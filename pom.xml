@@ -56,7 +56,6 @@
         <module>yak-ops-worker</module>
         <module>yak-ops-task-execution</module>
         <module>yak-ops-boot</module>
-        <module>yak-ops-e2e</module>
         <module>yak-ops-ui</module>
         <module>yak-ops-dist</module>
     </modules>

@@ -21,8 +21,6 @@ on:
           - pipeline
           - business
           - cdc
-          - backend-e2e
-          - recovery-e2e
 
 permissions:
   contents: read

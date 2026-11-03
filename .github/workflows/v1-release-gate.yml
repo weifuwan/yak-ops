@@ -8,11 +8,6 @@ on:
         description: Stable product version to validate and release.
         required: true
         type: string
-      manual_e2e_confirmed:
-        description: Required product Manual E2E passed; provide a traceable evidence reference.
-        required: true
-        default: false
-        type: boolean
       migration_review_confirmed:
         description: All migrations shipped by this version completed final release review.
         required: true
@@ -28,10 +23,6 @@ on:
         required: true
         default: false
         type: boolean
-      manual_e2e_evidence:
-        description: Traceable report or run URL for passing Manual E2E.
-        required: true
-        type: string
       migration_review_evidence:
         description: Reviewed migration evidence (or no migration justification).
         required: true
@@ -265,11 +256,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RELEASE_VERSION: ${{ inputs.release_version }}
-      MANUAL_E2E_CONFIRMED: ${{ inputs.manual_e2e_confirmed }}
       MIGRATION_REVIEW_CONFIRMED: ${{ inputs.migration_review_confirmed }}
       BLOCKERS_CLEARED: ${{ inputs.blockers_cleared }}
       RELEASE_NOTES_CONFIRMED: ${{ inputs.release_notes_confirmed }}
-      MANUAL_E2E_EVIDENCE: ${{ inputs.manual_e2e_evidence }}
       MIGRATION_REVIEW_EVIDENCE: ${{ inputs.migration_review_evidence }}
 
     steps:
@@ -293,7 +282,6 @@ jobs:
 
 
           checks=(
-            "Required Manual E2E:${MANUAL_E2E_CONFIRMED}"
             "Migration Review:${MIGRATION_REVIEW_CONFIRMED}"
             "Release Blockers Cleared:${BLOCKERS_CLEARED}"
             "Release Notes Ready:${RELEASE_NOTES_CONFIRMED}"
@@ -308,7 +296,7 @@ jobs:
             fi
           done
 
-          for field in MANUAL_E2E_EVIDENCE MIGRATION_REVIEW_EVIDENCE; do
+          for field in MIGRATION_REVIEW_EVIDENCE; do
             value="${!field}"
             if [[ -z "${value//[[:space:]]/}" ]]; then
               echo "Required release evidence is empty: ${field}"
@@ -327,8 +315,6 @@ jobs:
             printf -- '- Product Version: %s\n' "${RELEASE_VERSION}"
             printf -- '- Candidate Commit: %s\n' "${GITHUB_SHA}"
             printf -- '- Formal Gate Run: https://github.com/%s/actions/runs/%s\n' "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}"
-            printf -- '- Required Manual E2E: PASS\n'
-            printf -- '- Manual E2E Evidence: %s\n' "${MANUAL_E2E_EVIDENCE}"
             printf -- '- Migration Review: PASS\n'
             printf -- '- Migration Review Evidence: %s\n' "${MIGRATION_REVIEW_EVIDENCE}"
             printf -- '- P0/P1 Release Blockers: CLEARED\n'

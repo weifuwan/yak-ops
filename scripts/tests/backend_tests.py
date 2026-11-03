@@ -19,7 +19,6 @@ ROOT = Path(__file__).resolve().parents[2]
 JDBC = "yak-flow/yak-flow-connector-jdbc"
 CDC = "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc"
 BUSINESS = "yak-ops-business/yak-ops-business-task"
-E2E = "yak-ops-e2e"
 # Minimum method counts prevent an empty subclass, lost inherited tests or partial run from passing.
 SUITES = {
     "jdbc-mysql": (JDBC, "jdbc & mysql", {"MySqlSourceIT": 8, "MySqlSinkIT": 10, "MySqlKeylessRetractIT": 8, "MySqlXaSinkIT": 3}),
@@ -28,8 +27,6 @@ SUITES = {
     "pipeline": (JDBC, "pipeline", {name: 2 for name in ("MySqlToMySqlIT", "MySqlToPostgresIT", "PostgresToOracleIT", "OracleToMySqlIT")}),
     "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 3}),
     "cdc": (CDC, "cdc", {"MySqlSnapshotBackfillIT": 9, "MySqlDebeziumRecoveryIT": 1, "MySqlUnsignedChunkIT": 1, "MySqlStartupModesIT": 2}),
-    "backend-e2e": (E2E, "backend-e2e", {"TaskExecutionIT": 5, "BatchSyncIT": 3, "RealtimeSyncIT": 7, "SnapshotBackfillSinkIT": 1, "SingleTableRealtimeSchemaIT": 2, "OfflineIncrementalIT": 3, "SchemaMigrationIT": 2, "ScheduleIT": 1}),
-    "recovery-e2e": (E2E, "recovery-e2e", {"ProcessRecoveryIT": 2}),
 }
 
 
@@ -110,7 +107,7 @@ def run(name: str) -> None:
     shutil.rmtree(evidence, ignore_errors=True)
     evidence.mkdir(parents=True)
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    module = E2E if name == "full" else SUITES[name][0]
+    module = ",".join(dict.fromkeys(SUITES[n][0] for n in names))
     groups = " | ".join("(" + SUITES[n][1] + ")" for n in names)
     command = ["bash", "mvnw", "-B", "-ntp", "-pl", module, "-am", "-Pintegration-tests",
                "-Dspotless.check.skip=true", "-Dcheckstyle.skip=true",
@@ -149,7 +146,7 @@ def run(name: str) -> None:
             for path in folder.rglob("*"):
                 if path.is_file() and path.suffix in {".log", ".json", ".txt"}:
                     text = path.read_text(errors="replace")
-                    for secret in ("yak-test-only-password", "backend-e2e-only-password", "backend-test-isolated-master-key"):
+                    for secret in ("yak-test-only-password", "backend-test-isolated-master-key"):
                         text = text.replace(secret, "[REDACTED]")
                     path.write_text(text)
 

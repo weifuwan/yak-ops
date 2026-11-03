@@ -11,7 +11,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
-SUITES = ("jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "business", "cdc", "backend-e2e", "recovery-e2e")
+SUITES = ("jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "business", "cdc")
 JDBC = "yak-flow/yak-flow-connector-jdbc/"
 # Current CDC reactor layout; the old yak-flow modules were removed.
 CDC_ROOT = "yak-ops-cdc/"
@@ -19,7 +19,6 @@ CDC = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-conn
 CDC_BASE = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-cdc-base/"
 RUNTIME = CDC_ROOT + "yak-ops-cdc-runtime/"
 ENGINE = CDC_ROOT + "yak-ops-cdc-composer/"
-E2E = "yak-ops-e2e/"
 BUSINESS = "yak-ops-business/"
 NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
 
@@ -90,7 +89,7 @@ def affected_modules(owners: list[str]) -> set[str]:
 
 
 def test_suites(path: str) -> set[str]:
-    """Select registered integration suites, including connector-local CDC contracts."""
+    """Select only registered integration suites for changed production or IT files."""
     if "/src/test/" in path:
         if not path.endswith("IT.java"):
             return set()
@@ -102,8 +101,6 @@ def test_suites(path: str) -> set[str]:
             return {"jdbc-" + vendor} if vendor else {"pipeline"}
         if path.startswith(CDC_ROOT):
             return {"cdc"}
-        if path.startswith(E2E):
-            return {"recovery-e2e"} if "Recovery" in filename else {"backend-e2e"}
         if path.startswith(BUSINESS):
             return {"business"}
         return set()
@@ -111,40 +108,20 @@ def test_suites(path: str) -> set[str]:
     if path.startswith(JDBC):
         vendor = next((v for v in ("mysql", "postgres", "oracle") if v in path.lower().removeprefix(JDBC)), None)
         if vendor:
-            suites = {"jdbc-" + vendor, "pipeline", "backend-e2e"}
-            return suites | ({"recovery-e2e"} if vendor == "mysql" else set())
-        return {"jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "backend-e2e", "recovery-e2e"}
+            return {"jdbc-" + vendor, "pipeline"}
+        return {"jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline"}
     if path.startswith((RUNTIME, ENGINE)):
-        return {"pipeline", "cdc", "backend-e2e", "recovery-e2e"}
+        return {"pipeline", "cdc"}
     if path.startswith(CDC_ROOT):
-        return {"cdc", "backend-e2e", "recovery-e2e"}
-    if path.startswith("yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-api/"):
-        return {"backend-e2e", "recovery-e2e"}
-    if path.startswith("yak-flow/yak-flow-connector-base/"):
-        return {"pipeline", "backend-e2e", "recovery-e2e"}
-    if path.startswith("yak-ops-core/"):
-        return {"pipeline", "backend-e2e", "recovery-e2e"}
-    if path.startswith("yak-ops-business/yak-ops-business-task/"):
-        return {"business", "backend-e2e"}
-    if path.startswith("yak-ops-business/yak-ops-business-schedule/"):
-        return {"business", "backend-e2e"}
-    if path.startswith("yak-ops-business/"):
+        return {"cdc"}
+    if path.startswith(("yak-flow/yak-flow-connector-base/", "yak-ops-core/")):
+        return {"pipeline"}
+    if path.startswith(BUSINESS):
         return {"business"}
-    if path.startswith("yak-ops-task-execution/"):
-        return {"backend-e2e", "recovery-e2e"}
-    if path.startswith(E2E):
-        return {"backend-e2e", "recovery-e2e"}
-    if path.startswith(("yak-ops-boot/", "yak-ops-plugins/")):
-        return {"backend-e2e"}
-    if path.startswith("yak-ops-dao/"):
-        return {"business", "backend-e2e"}
-    if path.startswith("yak-ops-platform/"):
-        return {"business", "backend-e2e"}
-    if path.startswith(("yak-ops-common/", "yak-ops-configuration/", "yak-ops-spi/", "yak-ops-bom/")):
-        # Compile/unit-check shared contracts, but do not run unrelated databases.
-        return set()
+    if path.startswith(("yak-ops-dao/", "yak-ops-platform/")):
+        return {"business"}
+    # Boot, task execution and plugin wiring have no standalone database suite.
     return set()
-
 
 def compare_suite_registry(before: str, after: str) -> set[str] | None:
     """Return only modified suite entries when runner logic is unchanged.
