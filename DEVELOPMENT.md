@@ -13,7 +13,7 @@ Clone the repository and open its root `pom.xml` as a Maven project in IntelliJ 
 
 ## Build and Test
 
-Backend verify, including the existing Spotless check and ordinary tests:
+Full local backend verify (includes CDC modules, Spotless and ordinary tests; not the automatic CI scope):
 
 ```sh
 bash mvnw -pl '!yak-ops-ui,!yak-ops-dist' verify
@@ -34,8 +34,8 @@ Frontend commands and quality checks are documented in [frontend tooling](yak-op
 
 | Tests | Ownership | Execution |
 | --- | --- | --- |
-| Backend unit tests | Java modules | PR and main/dev CI |
-| Business database IT | Business modules | Selected backend PRs; full release suite |
+| Backend unit tests | Native Yak Ops Java modules (CDC excluded) | PR and main/dev CI |
+| Business database IT | Business modules | Selected backend PRs and main; manually runnable |
 | Frontend / backend formatting | Oxfmt / Spotless | PR and main/dev CI |
 
 ### Backend integration tests
@@ -61,7 +61,9 @@ Common Source/Sink behavior belongs in reusable Connector test bases, database-s
 
 JUnit owns shared containers within one module's test execution. Data is isolated per scenario; integration cases isolate state and resources. Destructive and recovery cases own independent environments. Stop running tasks before deleting their data. Do not mix class-scoped container shutdown with root-store reuse, share resources across CI jobs, or enable parallel methods without proving isolation.
 
-The [Backend Tests workflow](.github/workflows/backend-tests.yml) runs JUnit unit tests for affected Maven modules and registered Business/CDC database integration tests. Main pushes run the full backend matrix; pull requests and dev pushes select affected modules and database suites. Maven or test-infrastructure changes use full scope. CDC Runtime, Composer, CLI and MySQL Source unit tests now share this workflow; there are no specialized CDC or nightly workflows.
+The [Backend Tests workflow](.github/workflows/backend-tests.yml) runs JUnit unit tests for affected native Maven modules and automatically selected Business database integration tests only. It does not include `yak-ops-cdc` (or any of its children) in the automatic unit-test reactor; main pushes run the full **native** unit-test scope and the Business database suite. Pull requests and dev pushes select affected native modules and the Business suite as appropriate. Maven or test-infrastructure changes expand native scope without enabling CDC tests.
+
+CDC Runtime, Composer, CLI and MySQL Source tests are preserved but **manual-only**. To run them use `bash scripts/tests/run.sh cdc`, or manually dispatch [Backend Tests](.github/workflows/backend-tests.yml) with `suite=cdc` (or explicitly choose `suite=full` for both Business and CDC). The manual workflow defaults to `business`, not `full`. CDC's upstream Surefire configuration can run expensive tests and is never part of the automatic backend CI. The independent Code Format workflow still checks CDC formatting when relevant.
 
 Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including container logs and database test diagnostics on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
 
@@ -71,7 +73,7 @@ Reports live in each module's `target/failsafe-reports/` and `target/test-artifa
 
 ### Test and review evidence
 
-Connector integration workflows collect their own test reports. Preserve failures and traceback while redacting credentials and task parameters. Use condition-based bounded waits; arbitrary sleep, hiding failed assertions through retries, or changes to production checkpoint timing are prohibited.
+Explicitly selected database integration suites collect their own test reports. Preserve failures and traceback while redacting credentials and task parameters. Use condition-based bounded waits; arbitrary sleep, hiding failed assertions through retries, or changes to production checkpoint timing are prohibited.
 
 
 ## Incremental Review Evidence

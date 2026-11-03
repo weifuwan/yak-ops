@@ -23,6 +23,8 @@ SUITES = {
     "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 5}),
     "cdc": (CDC, "cdc", {"TableExclusionDuringSnapshotIT": 1}),
 }
+# Keep CDC tests as explicitly requested suites, never auto-selected by CI.
+AUTO_SUITES = ("business",)
 
 def select(paths: list[str]) -> list[str]:
     """Use the same change impact classification as the PR quality jobs."""
@@ -45,12 +47,12 @@ def selected_suites(request: str) -> list[str]:
     elif event == "push" and os.environ.get("CI_BRANCH") != "main":
         before, head = os.environ.get("CI_PUSH_BEFORE_SHA"), os.environ.get("CI_CURRENT_SHA")
         if not before or set(before) == {"0"} or not head:
-            return list(SUITES)
+            return list(AUTO_SUITES)
         refs = [before, head]
     else:
-        return list(SUITES)
+        return list(AUTO_SUITES)
     diff = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", "-z", *refs], cwd=ROOT)
-    return select([p.decode("utf-8") for p in diff.split(b"\0") if p])
+    return [suite for suite in select([p.decode("utf-8") for p in diff.split(b"\0") if p]) if suite in AUTO_SUITES]
 
 
 def check_registration(root: Path = ROOT) -> None:

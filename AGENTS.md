@@ -5,7 +5,8 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 ## Prerequisites and Commands
 
 - Java 21, Git, and the checked-in Maven wrapper. On Windows, run `mvnw` through Bash/WSL.
-- Backend verification: `bash mvnw -pl '!yak-ops-ui,!yak-ops-dist' verify`.
+- Full local backend verification (including CDC, opt-in): `bash mvnw -pl '!yak-ops-ui,!yak-ops-dist' verify`.
+- Automatic backend CI runs native Yak Ops unit tests and Business database IT only; it excludes all `yak-ops-cdc` modules from the Maven unit-test reactor. Run CDC tests explicitly with `bash scripts/tests/run.sh cdc` or the manual Backend Tests workflow.
 - Java formatting: `bash mvnw -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply`; replace `:apply` with `:check` to verify.
 - See [DEVELOPMENT.md](DEVELOPMENT.md) for scoped checks, real-database suites, and review evidence; [frontend tooling](yak-ops-ui/docs/tooling.md) for UI commands.
 
@@ -57,14 +58,14 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 ## Code Quality and Review
 
-- GitHub CI runs frontend Oxfmt, backend Spotless, and backend unit/integration tests. Other static analysis and build commands remain available locally; never claim an unrun check passed.
+- GitHub CI runs frontend Oxfmt, backend Spotless, and native backend unit/Business integration tests. CDC tests are manual-only; formatting still covers changed CDC Java. Other static analysis and build commands remain available locally; never claim an unrun check passed.
 - Test externally observable contracts and invariants, not every new method or class. Do not expose production accessors just for tests. Prefer deterministic assertions to sleeps, reflection into private state, and method-count mocks.
 - Ordinary bug fixes/refactors need focused code/tests/JavaDoc, not parallel Markdown narratives. Use [the YOIP process](.github/CONTRIBUTING.md) before major subsystem or public contract changes; routine CDC stages, CI fixes, and refactors do not need YOIPs.
 - Frontend changes follow [FRONTEND_RULES.md](yak-ops-ui/FRONTEND_RULES.md). Keep one coherent change per PR and report its purpose, public impact, and evidence using [the PR template](.github/PULL_REQUEST_TEMPLATE.md).
 
 ## Verification Scope and Incremental Review
 
-- Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for current Business and MySQL CDC database integration tests. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
+- Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for Business and MySQL CDC database integration tests. CDC tests are excluded from automatic CI, not deleted. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
 - Select unit tests for pure logic, real database IT for current CDC and Task persistence semantics, and targeted CDC recovery integration tests for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
 - Isolate data, Workspace, and state per test. Use bounded condition-based waits; do not hide flakes via silent retries or change production checkpoint intervals for tests. Destructive integration tests need private environments and captured diagnostics before cleanup.
 - Follow the [Backend Test Selection](DEVELOPMENT.md#backend-integration-tests) scope. Frontend CI checks formatting only, not rendering, types, builds, or API behavior. Unselected suites are **not selected**, not passed.

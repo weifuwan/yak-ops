@@ -54,9 +54,26 @@ class SuiteSelectionTest(unittest.TestCase):
     def test_deleted_test_keeps_owner_selected(self):
         self.assertIn("cdc", subject.select([subject.CDC + "/src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"]))
 
-    def test_non_pr_auto_is_full(self):
-        with patch.dict(os.environ, {"CI_EVENT_NAME": "workflow_dispatch"}):
-            self.assertEqual(list(subject.SUITES), subject.selected_suites("auto"))
+    def test_non_pr_auto_is_business_only(self):
+        with patch.dict(os.environ, {"CI_EVENT_NAME": "workflow_dispatch"}, clear=True):
+            self.assertEqual(["business"], subject.selected_suites("auto"))
+            self.assertEqual(["business", "cdc"], subject.selected_suites("full"))
+            self.assertEqual(["cdc"], subject.selected_suites("cdc"))
+        with patch.dict(os.environ, {"CI_EVENT_NAME": "push", "CI_BRANCH": "main"}, clear=True):
+            self.assertEqual(["business"], subject.selected_suites("auto"))
+
+    def test_pr_auto_ignores_cdc_changes(self):
+        with patch.dict(os.environ, {
+            "CI_EVENT_NAME": "pull_request",
+            "CI_PR_BASE_SHA": "a",
+            "CI_PR_HEAD_SHA": "b",
+        }, clear=True):
+            changed = (subject.CDC + "/src/main/java/Reader.java\\0").encode()
+            with patch.object(subject.subprocess, "check_output", return_value=changed):
+                self.assertEqual([], subject.selected_suites("auto"))
+            changed = (subject.BUSINESS + "/src/main/java/TaskService.java\\0").encode()
+            with patch.object(subject.subprocess, "check_output", return_value=changed):
+                self.assertEqual(["business"], subject.selected_suites("auto"))
 
     def test_incomplete_pr_identity_fails(self):
         with patch.dict(os.environ, {"CI_EVENT_NAME": "pull_request"}, clear=True):
@@ -77,6 +94,9 @@ class ConsolidatedBackendWorkflowTest(unittest.TestCase):
         self.assertIn("  unit-tests:", workflow)
         self.assertIn("  integration-tests:", workflow)
         self.assertIn("    name: Backend Tests Check", workflow)
+        self.assertIn("default: business", workflow)
+        self.assertIn("options: [business, cdc, full]", workflow)
+        self.assertNotIn("Run JUnit tests including CDC modules", workflow)
         self.assertNotIn("continue-on-error: true", workflow)
 
     def test_full_retains_database_acceptance(self):

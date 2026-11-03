@@ -12,6 +12,11 @@ NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
 CDC_ROOT = "yak-ops-cdc/"
 CDC = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc/"
 BUSINESS = "yak-ops-business/"
+CI_UNIT_EXCLUDED = frozenset({"yak-ops-bom", "yak-ops-ui", "yak-ops-dist"})
+
+def is_ci_unit_module(module: str) -> bool:
+    """Only native backend modules belong in automatic unit-test Maven reactors."""
+    return module not in CI_UNIT_EXCLUDED and module != "yak-ops-cdc" and not module.startswith(CDC_ROOT)
 
 @lru_cache(maxsize=1)
 def reactor_modules() -> tuple[str, ...]:
