@@ -19,8 +19,6 @@ package io.yak.ops.cdc.common.configuration.description;
 
 import io.yak.ops.cdc.common.annotation.PublicEvolving;
 
-
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
