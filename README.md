@@ -30,7 +30,7 @@ docker compose up -d
 ## Development
 
 - [开发与验证](DEVELOPMENT.md)
-- [贡献与 YOIP](.github/CONTRIBUTING.md)
+- [贡献指南](.github/CONTRIBUTING.md)
 - [YOIP 模板](.github/YOIP_TEMPLATE.md)
 - [前端开发规范](yak-ops-ui/FRONTEND_RULES.md)
 

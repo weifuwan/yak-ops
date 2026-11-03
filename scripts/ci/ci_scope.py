@@ -32,7 +32,9 @@ def selection(paths: list[str] | None, *, mode: str, event: str, branch: str) ->
     result = impact.analyze(paths or [], full=paths is None)
     if mode == "tests" and event == "push" and branch == "main":
         result["full"] = True
-    unit_modules = impact.ALL_BACKEND if result["full"] else ",".join(sorted(result["modules"]))
+    selected = impact.reactor_modules() if result["full"] else result["modules"]
+    # Explicit module paths prevent an aggregator selector from including CDC children.
+    unit_modules = ",".join(sorted(module for module in selected if impact.is_ci_unit_module(module)))
     format_full = paths is None or any(
         path in {"pom.xml", ".editorconfig"} or path.startswith((".mvn/", "tools/maven/"))
         for path in paths

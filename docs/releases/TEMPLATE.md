@@ -45,7 +45,7 @@
 
 ## References
 
-与本版本相关的 GitHub Release、Compare、重要 PR、YOIP 和 Release Gate 证据；不粘贴自动生成的完整 PR 清单。
+与本版本相关的 GitHub Release、Compare、重要 PR、设计讨论和 Release Gate 证据；不粘贴自动生成的完整 PR 清单。
 
 <!--
 复制成 docs/releases/vX.Y.Z.md 后，将占位内容替换成经过验证的事实。

@@ -45,7 +45,25 @@ class ImpactTest(unittest.TestCase):
     def test_main_push_full_unit_suite(self):
         fields = ci_scope.selection(["yak-ops-ui/apps/web/main.tsx"], mode="tests",
                                     event="push", branch="main")
-        self.assertEqual(impact.ALL_BACKEND, fields["unit_modules"])
+        selected = fields["unit_modules"].split(",")
+        self.assertIn("yak-ops-boot", selected)
+        self.assertIn("yak-ops-business/yak-ops-business-task", selected)
+        self.assertTrue(all(impact.is_ci_unit_module(module) for module in selected))
+        self.assertEqual(
+            sorted(module for module in impact.reactor_modules() if impact.is_ci_unit_module(module)),
+            selected)
+    def test_cdc_change_does_not_select_automatic_unit_tests(self):
+        fields = ci_scope.selection([impact.CDC + "src/main/java/Reader.java"],
+                                    mode="tests", event="pull_request", branch="")
+        self.assertEqual("", fields["unit_modules"])
+    def test_cdc_modules_cannot_enter_unit_test_dependency_closure(self):
+        native = {module for module in impact.reactor_modules() if impact.is_ci_unit_module(module)}
+        for module in impact.reactor_modules():
+            if module.startswith(impact.CDC_ROOT):
+                self.assertFalse(
+                    native & impact.affected_modules([module]),
+                    "Native backend depends on CDC module: " + module)
+
     def test_pr_format_scopes_java(self):
         fields = ci_scope.selection([impact.CDC + "src/main/java/Source.java"],
                                     mode="format", event="pull_request", branch="")

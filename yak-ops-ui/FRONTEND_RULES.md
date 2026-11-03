@@ -2,7 +2,7 @@
 
 Scope: `yak-ops-ui/apps/**`, `yak-ops-ui/packages/**`, and `yak-ops-ui/scripts/**`.
 
-This document defines durable frontend engineering constraints. Current source code, TypeScript types, and backend APIs are the authority for observable behavior. See [Frontend Tooling](docs/tooling.md) for verification commands and the [YOIP process](../.github/CONTRIBUTING.md#yak-ops-improvement-proposals-yoips) for major design changes.
+This document defines durable frontend engineering constraints. Current source code, TypeScript types, and backend APIs are the authority for observable behavior. See [Frontend Tooling](docs/tooling.md) for verification commands and the [contribution process](../.github/CONTRIBUTING.md) for major design changes.
 
 ## Ownership and Dependencies
 
@@ -87,6 +87,6 @@ Place necessary copy near the relevant action and keep it short. Do not explain 
 ## Documentation and Proposals
 
 - Express routine page work, styling changes, component fixes, and bug fixes through code and focused pull requests. Do not create progress-only domain `*_RULES.md` files or duplicate architectural descriptions.
-- Use the repository YOIP process for major subsystem changes, public product settings, monitoring contracts, or other significant public contracts. Routine internal component refactors need no YOIP.
+- Discuss major subsystem changes, public product settings, monitoring contracts and other significant public contracts in a focused design PR. Routine internal component refactors need no separate design document.
 - Update user documentation when externally observable behavior, compatibility, or deployment requirements change. Engineering commands belong in [Frontend Tooling](docs/tooling.md).
-- Write rules and comments in the present tense, describing current responsibilities and invariants. Keep rationale and history in YOIPs or PR discussions. Accurately document published compatibility and safety restrictions.
+- Write rules and comments in the present tense, describing current responsibilities and invariants. Keep rationale and history in PR discussions. Accurately document published compatibility and safety restrictions.
