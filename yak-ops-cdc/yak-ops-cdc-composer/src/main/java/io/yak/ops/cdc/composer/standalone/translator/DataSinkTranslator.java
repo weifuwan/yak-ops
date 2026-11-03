@@ -1,6 +1,6 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -23,29 +23,43 @@ import io.yak.ops.cdc.common.factories.FactoryHelper;
 import io.yak.ops.cdc.common.sink.DataSink;
 import io.yak.ops.cdc.common.sink.EventSinkProvider;
 import io.yak.ops.cdc.composer.definition.SinkDef;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.SinkStage;
+import io.yak.ops.cdc.composer.standalone.StandaloneExecutionEnvironment;
 import io.yak.ops.cdc.composer.utils.FactoryDiscoveryUtils;
 import java.util.Objects;
 
-/** Standalone translation of a CDC SinkDef, without Flink SinkOperator/Sink V2 topology. */
+/** Standalone Sink translator: create DataSink through SPI and register it with the runtime. */
 public class DataSinkTranslator {
+    private final ClassLoader classLoader;
 
-    public DataSink createDataSink(SinkDef sinkDef, Configuration pipelineConfig) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        DataSinkFactory factory =
-                FactoryDiscoveryUtils.getFactoryByIdentifier(
-                        sinkDef.getType(), DataSinkFactory.class, classLoader);
-        FactoryHelper.DefaultContext context =
-                new FactoryHelper.DefaultContext(
-                        sinkDef.getConfig(), pipelineConfig, classLoader);
-        return Objects.requireNonNull(factory.createDataSink(context), "DataSinkFactory returned null");
+    public DataSinkTranslator() {
+        this(Thread.currentThread().getContextClassLoader());
     }
 
-    public SinkStage translate(
-            SinkDef sinkDef, DataSink dataSink, OperatorUidGenerator uidGenerator) {
+    public DataSinkTranslator(ClassLoader classLoader) {
+        this.classLoader = Objects.requireNonNull(classLoader, "classLoader");
+    }
+
+    public DataSink createDataSink(SinkDef sinkDef, Configuration pipelineConfig) {
+        DataSinkFactory factory = FactoryDiscoveryUtils.getFactoryByIdentifier(
+                sinkDef.getType(), DataSinkFactory.class, classLoader);
+        FactoryHelper.DefaultContext context = new FactoryHelper.DefaultContext(
+                sinkDef.getConfig(), pipelineConfig, classLoader);
+        return Objects.requireNonNull(
+                factory.createDataSink(context), "DataSinkFactory returned null");
+    }
+
+    public void translate(
+            SinkDef sinkDef,
+            DataSink dataSink,
+            StandaloneExecutionEnvironment env,
+            boolean isBatchMode,
+            OperatorUidGenerator uidGenerator) {
         EventSinkProvider provider = Objects.requireNonNull(
-                dataSink.getEventSinkProvider(), "DataSink returned a null EventSinkProvider");
-        String name = sinkDef.getName().orElse("Yak Ops CDC Event Sink: " + sinkDef.getType());
-        return new SinkStage(sinkDef, dataSink, provider, name, uidGenerator.generateUid("sink-writer"));
+                dataSink.getEventSinkProvider(), "DataSink returned null EventSinkProvider");
+        env.addSink(
+                sinkDef, dataSink, provider,
+                sinkDef.getName().orElse("Yak Ops CDC Event Sink: " + sinkDef.getType()),
+                uidGenerator.generateUid("sink-writer"),
+                isBatchMode);
     }
 }

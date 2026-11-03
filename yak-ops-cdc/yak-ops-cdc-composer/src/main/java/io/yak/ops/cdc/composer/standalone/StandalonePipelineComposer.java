@@ -1,6 +1,6 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -22,6 +22,7 @@ import io.yak.ops.cdc.common.event.DataChangeEvent;
 import io.yak.ops.cdc.common.function.HashFunctionProvider;
 import io.yak.ops.cdc.common.pipeline.HashFunctionStrategy;
 import io.yak.ops.cdc.common.pipeline.PipelineOptions;
+import io.yak.ops.cdc.common.pipeline.RuntimeExecutionMode;
 import io.yak.ops.cdc.common.sink.DataSink;
 import io.yak.ops.cdc.common.sink.DefaultDataChangeEventHashFunctionProvider;
 import io.yak.ops.cdc.common.sink.TableIdHashFunctionProvider;
@@ -29,10 +30,6 @@ import io.yak.ops.cdc.common.source.DataSource;
 import io.yak.ops.cdc.composer.PipelineComposer;
 import io.yak.ops.cdc.composer.PipelineExecution;
 import io.yak.ops.cdc.composer.definition.PipelineDef;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.PartitioningStage;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.SchemaStage;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.SinkStage;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.SourceStage;
 import io.yak.ops.cdc.composer.standalone.translator.DataSinkTranslator;
 import io.yak.ops.cdc.composer.standalone.translator.DataSourceTranslator;
 import io.yak.ops.cdc.composer.standalone.translator.OperatorUidGenerator;
@@ -44,19 +41,54 @@ import static io.yak.ops.cdc.common.pipeline.PipelineOptions.PIPELINE_OPERATOR_U
 import static io.yak.ops.cdc.common.pipeline.PipelineOptions.PIPELINE_SCHEMA_OPERATOR_UID;
 
 /**
- * Flink CDC 3.7-style composer that assembles standalone Source -> Schema -> Partition -> Sink.
- * No Flink DataStream or StreamExecutionEnvironment dependency is introduced.
+ * Assembles a standalone CDC pipeline in a supplied execution environment.
  *
- * <p>This first phase builds a typed plan. It deliberately rejects unsupported topologies and
- * leaves SourceReader/SinkWriter scheduling to the upcoming standalone runtime integration.
+ * <p>As in Flink CDC 3.7, the composer assembles the Source, Schema, Partitioning and Sink
+ * operators, and the returned PipelineExecution delegates actual execution to that environment.
+ * No intermediate StandalonePipelinePlan or Flink DataStream type is required.
+ *
+ * <p>One composer/environment pair is intended for one pipeline, like Flink's
+ * StreamExecutionEnvironment. The environment implementation owns runtime resources and execution.
  */
 public final class StandalonePipelineComposer implements PipelineComposer {
 
     private static final String SCHEMA_OPERATOR_UID_SUFFIX = "schema-operator";
-    private final DataSourceTranslator sourceTranslator = new DataSourceTranslator();
-    private final DataSinkTranslator sinkTranslator = new DataSinkTranslator();
-    private final SchemaOperatorTranslator schemaOperatorTranslator = new SchemaOperatorTranslator();
-    private final PartitioningTranslator partitioningTranslator = new PartitioningTranslator();
+
+    private final StandaloneExecutionEnvironment env;
+    private final DataSourceTranslator sourceTranslator;
+    private final DataSinkTranslator sinkTranslator;
+    private final SchemaOperatorTranslator schemaOperatorTranslator;
+    private final PartitioningTranslator partitioningTranslator;
+
+    public StandalonePipelineComposer(StandaloneExecutionEnvironment env) {
+        this(env, Thread.currentThread().getContextClassLoader());
+    }
+
+    public StandalonePipelineComposer(
+            StandaloneExecutionEnvironment env, ClassLoader classLoader) {
+        this(
+                env,
+                new DataSourceTranslator(Objects.requireNonNull(classLoader, "classLoader")),
+                new DataSinkTranslator(classLoader),
+                new SchemaOperatorTranslator(),
+                new PartitioningTranslator());
+    }
+
+    /** Explicit translator injection for tests and alternate connector discovery mechanisms. */
+    public StandalonePipelineComposer(
+            StandaloneExecutionEnvironment env,
+            DataSourceTranslator sourceTranslator,
+            DataSinkTranslator sinkTranslator,
+            SchemaOperatorTranslator schemaOperatorTranslator,
+            PartitioningTranslator partitioningTranslator) {
+        this.env = Objects.requireNonNull(env, "env");
+        this.sourceTranslator = Objects.requireNonNull(sourceTranslator, "sourceTranslator");
+        this.sinkTranslator = Objects.requireNonNull(sinkTranslator, "sinkTranslator");
+        this.schemaOperatorTranslator =
+                Objects.requireNonNull(schemaOperatorTranslator, "schemaOperatorTranslator");
+        this.partitioningTranslator =
+                Objects.requireNonNull(partitioningTranslator, "partitioningTranslator");
+    }
 
     @Override
     public PipelineExecution compose(PipelineDef pipelineDef) {
@@ -93,22 +125,29 @@ public final class StandalonePipelineComposer implements PipelineComposer {
         HashFunctionProvider<DataChangeEvent> hashFunction =
                 resolveHashFunctionProvider(config, sinkHashFunction);
 
-        SourceStage source =
-                sourceTranslator.translate(pipelineDef.getSource(), dataSource, uidGenerator);
-        SchemaStage schema =
-                schemaOperatorTranslator.translateRegular(pipelineDef, dataSink, schemaOperatorUid);
-        PartitioningStage partitioning =
-                partitioningTranslator.translateRegular(
-                        config.get(PipelineOptions.PIPELINE_PARTITIONING_STRATEGY),
-                        hashFunction, parallelism, uidGenerator);
-        SinkStage sink =
-                sinkTranslator.translate(pipelineDef.getSink(), dataSink, uidGenerator);
+        RuntimeExecutionMode runtimeMode =
+                config.get(PipelineOptions.PIPELINE_EXECUTION_RUNTIME_MODE);
+        boolean isBatchMode = RuntimeExecutionMode.BATCH.equals(runtimeMode);
+        env.setParallelism(parallelism);
+        env.setRuntimeMode(runtimeMode);
 
-        StandalonePipelinePlan plan = new StandalonePipelinePlan(
-                config.get(PipelineOptions.PIPELINE_NAME),
-                config.get(PipelineOptions.PIPELINE_EXECUTION_RUNTIME_MODE),
-                parallelism, source, schema, partitioning, sink);
-        return new StandalonePipelineExecution(plan);
+        sourceTranslator.translate(
+                pipelineDef.getSource(), dataSource, env, parallelism, uidGenerator);
+        schemaOperatorTranslator.translateRegular(
+                pipelineDef, dataSink, env, schemaOperatorUid, isBatchMode);
+        partitioningTranslator.translateRegular(
+                env,
+                parallelism,
+                parallelism,
+                isBatchMode,
+                config.get(PipelineOptions.PIPELINE_PARTITIONING_STRATEGY),
+                hashFunction,
+                uidGenerator);
+        sinkTranslator.translate(
+                pipelineDef.getSink(), dataSink, env, isBatchMode, uidGenerator);
+
+        return new StandalonePipelineExecution(
+                env, config.get(PipelineOptions.PIPELINE_NAME));
     }
 
     private void validatePipelineConfiguration(Configuration config) {

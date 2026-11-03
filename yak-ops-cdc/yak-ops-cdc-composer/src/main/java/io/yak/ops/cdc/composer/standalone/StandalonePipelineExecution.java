@@ -1,6 +1,6 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -21,25 +21,25 @@ import io.yak.ops.cdc.composer.PipelineExecution;
 import java.util.Objects;
 
 /**
- * A composed pipeline that has not yet been connected to a standalone execution engine.
- * Failing explicitly prevents the CLI from reporting a successful but inactive CDC task.
+ * Submit the pipeline already assembled in a standalone execution environment.
+ *
+ * <p>Mirrors the responsibility of FlinkPipelineExecution. The runtime, not this adapter,
+ * owns the readers, writers, scheduling and cleanup.
  */
 public final class StandalonePipelineExecution implements PipelineExecution {
 
-    private final StandalonePipelinePlan plan;
+    private final StandaloneExecutionEnvironment env;
+    private final String jobName;
 
-    public StandalonePipelineExecution(StandalonePipelinePlan plan) {
-        this.plan = Objects.requireNonNull(plan, "plan");
-    }
-
-    public StandalonePipelinePlan getPlan() {
-        return plan;
+    public StandalonePipelineExecution(StandaloneExecutionEnvironment env, String jobName) {
+        this.env = Objects.requireNonNull(env, "env");
+        this.jobName = Objects.requireNonNull(jobName, "jobName");
     }
 
     @Override
-    public ExecutionInfo execute() {
-        throw new UnsupportedOperationException(
-                "Standalone pipeline plan was composed, but the CDC Runtime has not yet been "
-                        + "connected to SourceReader and SinkWriter. No task was started.");
+    public ExecutionInfo execute() throws Exception {
+        return Objects.requireNonNull(
+                env.execute(jobName),
+                "StandaloneExecutionEnvironment returned null execution information");
     }
 }

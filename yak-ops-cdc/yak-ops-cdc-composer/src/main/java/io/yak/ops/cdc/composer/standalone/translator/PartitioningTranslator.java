@@ -1,6 +1,6 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -20,20 +20,28 @@ package io.yak.ops.cdc.composer.standalone.translator;
 import io.yak.ops.cdc.common.event.DataChangeEvent;
 import io.yak.ops.cdc.common.function.HashFunctionProvider;
 import io.yak.ops.cdc.common.pipeline.HashFunctionStrategy;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.PartitioningStage;
+import io.yak.ops.cdc.composer.standalone.StandaloneExecutionEnvironment;
 
-/** Record regular partitioning configuration; no Flink shuffle is built. */
+/**
+ * Register the regular partitioning topology. The runtime owns actual event redistribution.
+ */
 public class PartitioningTranslator {
 
-    public PartitioningStage translateRegular(
+    public void translateRegular(
+            StandaloneExecutionEnvironment env,
+            int upstreamParallelism,
+            int downstreamParallelism,
+            boolean isBatchMode,
             HashFunctionStrategy strategy,
             HashFunctionProvider<DataChangeEvent> hashFunctionProvider,
-            int downstreamParallelism,
             OperatorUidGenerator uidGenerator) {
-        return new PartitioningStage(
+        env.addPartitioning(
                 strategy,
                 hashFunctionProvider,
+                upstreamParallelism,
                 downstreamParallelism,
-                uidGenerator.generateUid("pre-partition"));
+                uidGenerator.generateUid("pre-partition"),
+                uidGenerator.generateUid("post-partition"),
+                isBatchMode);
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -24,18 +24,20 @@ import io.yak.ops.cdc.common.sink.DataSink;
 import io.yak.ops.cdc.common.sink.MetadataApplier;
 import io.yak.ops.cdc.composer.definition.PipelineDef;
 import io.yak.ops.cdc.composer.definition.RouteDef;
-import io.yak.ops.cdc.composer.standalone.StandalonePipelinePlan.SchemaStage;
+import io.yak.ops.cdc.composer.standalone.StandaloneExecutionEnvironment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Assemble regular Schema stage settings from Flink CDC configuration.
- * Actual SchemaOperator and Schema Registry execution are added by the runtime.
- */
+/** Translate regular schema and route options without constructing a Flink operator. */
 public class SchemaOperatorTranslator {
 
-    public SchemaStage translateRegular(PipelineDef pipelineDef, DataSink dataSink, String uid) {
+    public void translateRegular(
+            PipelineDef pipelineDef,
+            DataSink dataSink,
+            StandaloneExecutionEnvironment env,
+            String schemaOperatorUid,
+            boolean isBatchMode) {
         Configuration config = pipelineDef.getConfig();
         List<RouteRule> routingRules = new ArrayList<>();
         for (RouteDef route : pipelineDef.getRoute()) {
@@ -45,10 +47,12 @@ public class SchemaOperatorTranslator {
                     route.getReplaceSymbol().orElse(null)));
         }
         MetadataApplier metadataApplier =
-                Objects.requireNonNull(dataSink.getMetadataApplier(), "DataSink returned null MetadataApplier")
+                Objects.requireNonNull(
+                        dataSink.getMetadataApplier(), "DataSink returned null MetadataApplier")
                         .setAcceptedSchemaEvolutionTypes(
                                 pipelineDef.getSink().getIncludedSchemaEvolutionTypes());
-        return new SchemaStage(
+
+        env.addSchemaOperator(
                 Objects.requireNonNull(metadataApplier, "MetadataApplier returned null"),
                 routingRules,
                 pipelineDef.getRouteMode(),
@@ -57,6 +61,7 @@ public class SchemaOperatorTranslator {
                 pipelineDef.getSink().getIncludedSchemaEvolutionTypes(),
                 config.get(PipelineOptions.PIPELINE_SCHEMA_OPERATOR_RPC_TIMEOUT),
                 config.get(PipelineOptions.PIPELINE_LOCAL_TIME_ZONE),
-                uid);
+                schemaOperatorUid,
+                isBatchMode);
     }
 }
