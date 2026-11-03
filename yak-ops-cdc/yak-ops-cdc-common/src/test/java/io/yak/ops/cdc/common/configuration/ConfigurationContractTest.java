@@ -39,6 +39,8 @@ class ConfigurationContractTest {
 
         assertFalse(exception.getMessage().contains(secret));
         assertEquals("NumberFormatException", exception.getCause().getMessage());
-        assertFalse(exception.getCause().getMessage().contains(secret));
+        for (Throwable cause = exception.getCause(); cause != null; cause = cause.getCause()) {
+            assertFalse(String.valueOf(cause.getMessage()).contains(secret));
+        }
     }
 }
