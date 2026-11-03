@@ -17,8 +17,7 @@
 
 package org.apache.flink.cdc.common.utils;
 
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.cdc.common.utils.tuple.Tuple2;
 import org.apache.flink.cdc.common.data.DateData;
 import org.apache.flink.cdc.common.data.DecimalData;
 import org.apache.flink.cdc.common.data.GenericArrayData;
@@ -1271,5 +1270,26 @@ class SchemaMergingUtilsTest {
 
     private static byte[] binOf(String str) {
         return str.getBytes();
+    }
+
+    /** Test-local four-field case for the schema coercion matrix. */
+    private static final class Tuple4<T0, T1, T2, T3> {
+
+        private final T0 f0;
+        private final T1 f1;
+        private final T2 f2;
+        private final T3 f3;
+
+        private Tuple4(T0 f0, T1 f1, T2 f2, T3 f3) {
+            this.f0 = f0;
+            this.f1 = f1;
+            this.f2 = f2;
+            this.f3 = f3;
+        }
+
+        private static <T0, T1, T2, T3> Tuple4<T0, T1, T2, T3> of(
+                T0 f0, T1 f1, T2 f2, T3 f3) {
+            return new Tuple4<>(f0, f1, f2, f3);
+        }
     }
 }

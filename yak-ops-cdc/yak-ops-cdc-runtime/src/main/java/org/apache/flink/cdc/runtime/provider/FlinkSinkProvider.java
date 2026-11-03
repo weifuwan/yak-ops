@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.cdc.common.sink;
+package org.apache.flink.cdc.runtime.provider;
 
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.cdc.common.annotation.PublicEvolving;
+import org.apache.flink.cdc.common.sink.EventSinkProvider;
 import org.apache.flink.cdc.common.event.Event;
 
 /**

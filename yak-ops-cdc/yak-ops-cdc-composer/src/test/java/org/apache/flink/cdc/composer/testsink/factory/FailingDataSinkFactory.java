@@ -26,7 +26,7 @@ import org.apache.flink.cdc.common.exceptions.SchemaEvolveException;
 import org.apache.flink.cdc.common.factories.DataSinkFactory;
 import org.apache.flink.cdc.common.sink.DataSink;
 import org.apache.flink.cdc.common.sink.EventSinkProvider;
-import org.apache.flink.cdc.common.sink.FlinkSinkProvider;
+import org.apache.flink.cdc.runtime.provider.FlinkSinkProvider;
 import org.apache.flink.cdc.common.sink.MetadataApplier;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;

@@ -15,20 +15,11 @@
     <name>Yak Ops CDC Common</name>
     <description>Flink CDC 3.7 common APIs and models adapted for Yak Ops</description>
 
-    <!-- Temporary compile-time compatibility while the Flink API is replaced by Yak Ops CDC runtime-api. -->
     <properties>
-        <flink.version>1.20.3</flink.version>
         <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
-        <!-- Legacy Flink Streaming contracts remain until the Source/Sink provider migration. -->
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-streaming-java</artifactId>
-            <version>${flink.version}</version>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>

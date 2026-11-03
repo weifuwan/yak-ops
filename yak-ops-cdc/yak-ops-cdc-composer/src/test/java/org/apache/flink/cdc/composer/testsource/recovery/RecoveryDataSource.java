@@ -19,7 +19,7 @@ package org.apache.flink.cdc.composer.testsource.recovery;
 
 import org.apache.flink.cdc.common.source.DataSource;
 import org.apache.flink.cdc.common.source.EventSourceProvider;
-import org.apache.flink.cdc.common.source.FlinkSourceFunctionProvider;
+import org.apache.flink.cdc.runtime.provider.FlinkSourceFunctionProvider;
 import org.apache.flink.cdc.common.source.MetadataAccessor;
 
 /** A checkpoint-aware source used by schema coordinator recovery integration tests. */

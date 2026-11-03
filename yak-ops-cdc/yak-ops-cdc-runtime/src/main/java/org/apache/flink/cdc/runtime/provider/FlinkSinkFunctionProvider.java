@@ -15,24 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.flink.cdc.common.source;
+package org.apache.flink.cdc.runtime.provider;
 
 import org.apache.flink.cdc.common.annotation.PublicEvolving;
+import org.apache.flink.cdc.common.sink.EventSinkProvider;
 import org.apache.flink.cdc.common.event.Event;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 
 /**
- * {@code FlinkSourceFunctionProvider} is used to provide a Flink {@link SourceFunction} for reading
- * events from external systems.
+ * {@code FlinkSinkFunctionProvider} is used to provide a Flink {@link SinkFunction} for writing
+ * events to external systems.
  */
 @PublicEvolving
-public interface FlinkSourceFunctionProvider extends EventSourceProvider {
+public interface FlinkSinkFunctionProvider extends EventSinkProvider {
 
-    /** Get the {@link SourceFunction} for reading events from external systems. */
-    SourceFunction<Event> getSourceFunction();
+    /** Get the {@link SinkFunction} for writing events to external systems. */
+    SinkFunction<Event> getSinkFunction();
 
-    /** Create a {@link FlinkSourceFunctionProvider} from a {@link SourceFunction}. */
-    static FlinkSourceFunctionProvider of(SourceFunction<Event> sourceFunction) {
-        return () -> sourceFunction;
+    /** Create a {@link FlinkSinkFunctionProvider} from a {@link SinkFunction}. */
+    static FlinkSinkFunctionProvider of(SinkFunction<Event> sinkFunction) {
+        return () -> sinkFunction;
     }
 }

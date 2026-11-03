@@ -20,7 +20,7 @@ package org.apache.flink.cdc.composer.testsource.source;
 import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.source.DataSource;
 import org.apache.flink.cdc.common.source.EventSourceProvider;
-import org.apache.flink.cdc.common.source.FlinkSourceFunctionProvider;
+import org.apache.flink.cdc.runtime.provider.FlinkSourceFunctionProvider;
 import org.apache.flink.cdc.common.source.MetadataAccessor;
 
 /** A {@link DataSource} that emits single-table-in-multi-partition data records. */

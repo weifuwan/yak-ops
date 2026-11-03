@@ -27,6 +27,11 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-cdc-runtime-api</artifactId>
         </dependency>
+        <!-- Keep Flink-specific providers in the runtime module until MySQL Source is standalone. -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-runtime</artifactId>
+        </dependency>
         <!-- Temporary upstream Source API compatibility until the Yak Ops standalone runtime bridge is ready. -->
         <dependency>
             <groupId>org.apache.flink</groupId>

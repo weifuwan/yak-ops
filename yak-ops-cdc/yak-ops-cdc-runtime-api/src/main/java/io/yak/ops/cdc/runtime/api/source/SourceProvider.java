@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.flink.cdc.common.sink;
+package io.yak.ops.cdc.runtime.api.source;
 
 import org.apache.flink.cdc.common.annotation.PublicEvolving;
 import org.apache.flink.cdc.common.event.Event;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.cdc.common.source.EventSourceProvider;
 
-/**
- * {@code FlinkSinkFunctionProvider} is used to provide a Flink {@link SinkFunction} for writing
- * events to external systems.
- */
+import java.util.Objects;
+
+/** Provides a standalone Source V2 for reading CDC events. */
 @PublicEvolving
-public interface FlinkSinkFunctionProvider extends EventSinkProvider {
+public interface SourceProvider extends EventSourceProvider {
 
-    /** Get the {@link SinkFunction} for writing events to external systems. */
-    SinkFunction<Event> getSinkFunction();
+    /** Returns the standalone source implementation. */
+    Source<Event, ?, ?> getSource();
 
-    /** Create a {@link FlinkSinkFunctionProvider} from a {@link SinkFunction}. */
-    static FlinkSinkFunctionProvider of(SinkFunction<Event> sinkFunction) {
-        return () -> sinkFunction;
+    /** Creates a provider for a standalone source. */
+    static SourceProvider of(Source<Event, ?, ?> source) {
+        Objects.requireNonNull(source, "source must not be null");
+        return () -> source;
     }
 }
