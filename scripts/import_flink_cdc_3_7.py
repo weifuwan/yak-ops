@@ -167,7 +167,7 @@ def rewrite_pom(xml: str, relative: str) -> str:
         xml = re.sub(
             r"\s*<dependency>\s*<groupId>org\.apache\.flink</groupId>"
             r"\s*<artifactId>flink-cdc-pipeline-connector-values</artifactId>"
-            r"[\s\\S]*?</dependency>", "", xml, count=1)
+            r"(?s:.*?)</dependency>", "", xml, count=1)
         if xml == before:
             raise ValueError("Values test dependency missing in " + relative)
         exclusions = "\n".join(
@@ -184,7 +184,10 @@ def rewrite_pom(xml: str, relative: str) -> str:
             "\n                </testExcludes></configuration>\n"
             "            </plugin>\n"
         )
-        xml = re.sub(r"(<build>\s*<plugins>)", r"\1\n" + plugin, xml, count=1)
+        if relative == "flink-cdc-composer/pom.xml":
+            xml = xml.replace("    <profiles>", "    <build><plugins>\\n" + plugin + "    </plugins></build>\\n    <profiles>", 1)
+        else:
+            xml = re.sub(r"(<build>\\s*<plugins>)", r"\\1\\n" + plugin, xml, count=1)
     ET.fromstring(xml)
     return xml
 
