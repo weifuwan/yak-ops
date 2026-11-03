@@ -148,6 +148,17 @@ def rewrite_pom(xml: str, relative: str) -> str:
         xml = re.sub(r"<scm>[\s\S]*?</scm>",
                      "<scm><url>https://github.com/weifuwan/yak-ops</url></scm>",
                      xml, count=1)
+    if relative == "pom.xml":
+        # The original checkstyle/RAT/spotless bindings assume the upstream
+        # repository's build root and are deliberately not inherited here.
+        for plugin in ("maven-checkstyle-plugin", "spotless-maven-plugin", "apache-rat-plugin"):
+            pattern = (
+                r"\s*<plugin>\s*<groupId>[^<]+</groupId>\\s*<artifactId>"
+                + plugin + r"</artifactId>[\s\S]*?</plugin>"
+            )
+            xml, removed = re.subn(pattern, "", xml, count=1)
+            if removed != 1:
+                raise ValueError(f"Missing upstream plugin {plugin}")
     ET.fromstring(xml)
     return xml
 
