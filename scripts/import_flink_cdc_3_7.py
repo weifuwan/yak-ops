@@ -202,6 +202,41 @@ def rewrite_pom(xml: str, relative: str) -> str:
     return xml
 
 
+
+def rewrite_runtime_descriptor_test(source: str) -> str:
+    """Replace an optional legacy AI model fixture with a self-contained array UDF."""
+    legacy_import = "import org.apache.flink.cdc.runtime.model.OpenAIEmbeddingModel;\n"
+    fixture_anchor = "    /** This is a Flink ScalarFunction. */"
+    legacy_assertion_start = '        String name = "GET_EMBEDDING";'
+    for required in (legacy_import, fixture_anchor, legacy_assertion_start):
+        if source.count(required) != 1:
+            raise ValueError("Unexpected upstream UserDefinedFunctionDescriptorTest source")
+    source = source.replace(legacy_import, "", 1)
+    fixture = """    /** A test-local CDC UDF that declares an array return type. */
+    public static class ArrayTypeHintUdf implements UserDefinedFunction {
+        @Override
+        public DataType getReturnType() {
+            return DataTypes.ARRAY(DataTypes.FLOAT());
+        }
+    }
+
+"""
+    source = source.replace(fixture_anchor, fixture + fixture_anchor, 1)
+    start = source.index(legacy_assertion_start)
+    end = source.index("\n    }\n", start)
+    if "OpenAIEmbeddingModel.class.getName()" not in source[start:end]:
+        raise ValueError("Legacy AI model test no longer matches")
+    replacement = """        assertThat(new UserDefinedFunctionDescriptor("array_hint", ArrayTypeHintUdf.class.getName()))
+                .extracting("name", "className", "classpath", "returnTypeHint", "isCdcPipelineUdf")
+                .containsExactly(
+                        "array_hint",
+                        "UserDefinedFunctionDescriptorTest$ArrayTypeHintUdf",
+                        "org.apache.flink.cdc.runtime.operators.transform.UserDefinedFunctionDescriptorTest$ArrayTypeHintUdf",
+                        DataTypes.ARRAY(DataTypes.FLOAT()),
+                        true);"""
+    return source[:start] + replacement + source[end:]
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: import_fl...py PATH_TO_UPSTREAM PATH_TO_YAK_OPS_CDC")
@@ -231,6 +266,11 @@ def main() -> None:
         if relative.endswith("/pom.xml") or relative == "pom.xml":
             output.write_text(rewrite_pom(origin.read_text(encoding="utf-8"), relative),
                               encoding="utf-8")
+        elif relative == "flink-cdc-runtime/src/test/java/org/apache/flink/cdc/runtime/operators/transform/UserDefinedFunctionDescriptorTest.java":
+            output.write_text(
+                rewrite_runtime_descriptor_test(origin.read_text(encoding="utf-8")),
+                encoding="utf-8",
+            )
         else:
             shutil.copy2(origin, output)
         count += 1
