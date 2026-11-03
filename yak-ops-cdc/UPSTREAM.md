@@ -9,3 +9,8 @@ Only MySQL CDC connectors and their Debezium/Base dependencies are included. No 
 Baseline: Flink 1.20.3, Debezium 1.9.8.Final. Yak Ops application/task integration intentionally deferred.
 
 Build from repository root: \`mvn -pl yak-ops-cdc -am -Dmaven.test.skip=true compile\`
+
+JDBC Pipeline Sink is separately ported from the unmerged Apache Flink CDC PR #3916
+(`d8bf6f37001bd67b48174456a57e484d9078f040`). The JDBC connector dependency
+uses JDBC `3.3.0-1.20` to match Yak Ops Flink 1.20.3, with Maven coordinates remapped to Yak Ops.
+The original PR uses JDBC `3.2.0-1.19`; Yak Ops tests the Flink 1.20 connector in its backend CDC suite.

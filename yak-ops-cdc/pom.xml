@@ -368,6 +368,22 @@ limitations under the License.
 
     <build>
         <plugins>
+            <!-- The CDC subtree retains upstream Java formatting. Check whitespace without
+                 rewriting imported upstream sources to the app's Palantir style. -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.10.2</version>
+                <configuration>
+                    <java>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                        </includes>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                    </java>
+                </configuration>
+            </plugin>
             <plugin>
                 <!-- Inherited from Apache parent, but not actually used. Disable to reduce noise. -->
                 <groupId>org.apache.maven.plugins</groupId>

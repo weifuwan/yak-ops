@@ -1,0 +1,26 @@
+# MySQL CDC -> MySQL JDBC Pipeline
+# Create the target database and grant DDL/DML permissions before running.
+source:
+  type: mysql
+  hostname: 127.0.0.1
+  port: 3306
+  username: cdc_user
+  password: change-me
+  tables: cdc_lab.orders
+  server-id: 5400-5404
+  server-time-zone: Asia/Shanghai
+
+sink:
+  type: jdbc
+  url: jdbc:mysql://127.0.0.1:3306
+  username: sink_user
+  password: change-me
+  driver-class-name: com.mysql.cj.jdbc.Driver
+
+route:
+  - source-table: cdc_lab.orders
+    sink-table: yak_e2e_target.orders
+
+pipeline:
+  name: mysql-orders-to-jdbc-mysql
+  parallelism: 1
