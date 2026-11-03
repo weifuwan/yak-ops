@@ -123,6 +123,7 @@ class DefinitionServiceContractTest {
         query.setPageSize(7);
         query.setKeyword(" orders ");
         query.setStatus(DefinitionStatus.PUBLISHED);
+        query.setParameterFilters(Map.of());
         when(definitions.queryPage(any())).thenAnswer(invocation -> {
             DefinitionPageQuery selected = invocation.getArgument(0);
             assertEquals("current-workspace", selected.workspaceId());
