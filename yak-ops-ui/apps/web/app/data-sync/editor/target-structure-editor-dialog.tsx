@@ -348,7 +348,7 @@ export function TargetStructureEditorDialog({
           </div>
         )}
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && <Alert>{error}</Alert>}
       </div>
 
       {editingPartition && (
@@ -494,7 +494,7 @@ function PartitionAssignmentDialog({
             <ContentField label="来源字段" required>
               <Select
                 value={partition.assignment.field || ""}
-                onValueChange={(value) => updateAssignment({ field: value })}
+                onValueChange={(value) => updateAssignment({ field: value ?? "" })}
               >
                 <SelectTrigger size="small">
                   <SelectValue placeholder="选择来源字段" />
@@ -617,7 +617,7 @@ function PartitionAssignmentDialog({
           </>
         )}
 
-        <Alert variant="info">
+        <Alert>
           <div className="text-xs">
             <div className="mb-1 font-medium">注意事项:</div>
             <ul className="list-inside list-disc space-y-1">
@@ -628,7 +628,7 @@ function PartitionAssignmentDialog({
           </div>
         </Alert>
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && <Alert>{error}</Alert>}
       </div>
     </Modal>
   );

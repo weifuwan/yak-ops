@@ -51,8 +51,8 @@ export function useFieldMappingDrag({
     (clientX: number, clientY: number) => {
       const node = document.elementFromPoint(clientX, clientY);
       const field = node?.closest<HTMLElement>("[data-mapping-target]")?.dataset.mappingTarget;
-      if (field && targets.current.has(field)) return field;
-      for (const [name, element] of targets.current) {
+      if (field && targets.current?.has(field)) return field;
+      for (const [name, element] of targets.current ?? []) {
         const rect = element.getBoundingClientRect();
         if (
           clientY >= rect.top &&
@@ -72,7 +72,7 @@ export function useFieldMappingDrag({
     (event: ReactPointerEvent<HTMLButtonElement>, source: string) => {
       if (event.button !== 0 || connectionRef.current) return;
       const root = canvas.current;
-      const row = sources.current.get(source);
+      const row = sources.current?.get(source);
       if (!root || !row) return;
       const rootRect = root.getBoundingClientRect();
       const rect = row.getBoundingClientRect();
@@ -107,7 +107,7 @@ export function useFieldMappingDrag({
         Math.hypot(event.clientX - active.clientX, event.clientY - active.clientY) >=
           DRAG_THRESHOLD;
       const target = targetAt(event.clientX, event.clientY);
-      const targetRect = target ? targets.current.get(target)?.getBoundingClientRect() : undefined;
+      const targetRect = target ? targets.current?.get(target)?.getBoundingClientRect() : undefined;
       updateConnection({
         ...active,
         moved,

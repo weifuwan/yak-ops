@@ -28,11 +28,13 @@ export function ContentSection({
 export function ContentField({
   label,
   children,
+  description,
   required = false,
   wide = false,
 }: {
   label: string;
   children: ReactNode;
+  description?: ReactNode;
   required?: boolean;
   wide?: boolean;
 }) {
@@ -41,7 +43,12 @@ export function ContentField({
       <FieldLabel required={required} className="pt-1 text-xs font-normal">
         {label}
       </FieldLabel>
-      <div className={wide ? "min-w-0" : "min-w-0 max-w-lg"}>{children}</div>
+      <div className={wide ? "min-w-0" : "min-w-0 max-w-lg"}>
+        {children}
+        {description ? (
+          <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">{description}</p>
+        ) : null}
+      </div>
     </Field>
   );
 }

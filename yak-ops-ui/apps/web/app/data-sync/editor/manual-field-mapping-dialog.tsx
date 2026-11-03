@@ -116,7 +116,7 @@ export function ManualFieldMappingDialog({
         <p className="text-xs text-[var(--yak-components-muted-text)]">
           来源字段：{parseLines(sourceText).length} · 目标字段：{parseLines(targetText).length}
         </p>
-        {error ? <Alert variant="error">{error}</Alert> : null}
+        {error ? <Alert>{error}</Alert> : null}
       </div>
     </Modal>
   );
