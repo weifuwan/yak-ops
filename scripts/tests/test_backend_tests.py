@@ -18,7 +18,7 @@ class SuiteSelectionTest(unittest.TestCase):
             self.assertEqual(list(subject.SUITES), subject.select([path]))
         for path in ("yak-ops-common/src/main/java/X.java", "yak-ops-spi/src/main/java/X.java"):
             self.assertEqual([], subject.select([path]))
-        self.assertEqual(["business", "backend-e2e"], subject.select(["yak-ops-dao/src/main/java/Mapper.java"]))
+        self.assertEqual(["business"], subject.select(["yak-ops-dao/src/main/java/Mapper.java"]))
 
     def test_unit_test_change_does_not_run_real_database(self):
         self.assertEqual([], subject.select([subject.CDC + "/src/test/java/SnapshotChunkBackfillBudgetTest.java"]))
@@ -31,8 +31,7 @@ class SuiteSelectionTest(unittest.TestCase):
     def test_cdc_production_change_retains_sink_and_recovery_acceptance(self):
         selected = subject.select([subject.CDC + "/src/main/java/reader/Reader.java"])
         self.assertIn("cdc", selected)
-        self.assertIn("backend-e2e", selected)
-        self.assertIn("recovery-e2e", selected)
+        self.assertEqual(["cdc"], selected)
 
     def test_removed_jdbc_module_is_treated_as_unknown(self):
         # The old yak-flow JDBC path no longer belongs to this reactor.
@@ -41,7 +40,7 @@ class SuiteSelectionTest(unittest.TestCase):
 
     def test_mysql_cdc_change_selects_current_cdc_coverage(self):
         selected = subject.select([subject.CDC + "/src/main/java/source/MySqlSource.java"])
-        self.assertEqual(["cdc", "backend-e2e", "recovery-e2e"], selected)
+        self.assertEqual(["cdc"], selected)
 
     def test_rename_includes_old_and_new_owner(self):
         selected = subject.select([
@@ -50,8 +49,7 @@ class SuiteSelectionTest(unittest.TestCase):
         ])
         self.assertIn("business", selected)
         self.assertIn("cdc", selected)
-        self.assertIn("backend-e2e", selected)
-        self.assertIn("recovery-e2e", selected)
+        self.assertEqual(["business", "cdc"], selected)
 
     def test_deleted_test_keeps_owner_selected(self):
         self.assertIn("cdc", subject.select([subject.CDC + "/src/test/java/integration/MySqlSourceIT.java"]))
@@ -67,7 +65,7 @@ class SuiteSelectionTest(unittest.TestCase):
     def test_unselected_is_not_pass(self):
         self.assertEqual("NOT SELECTED", subject.require_results([], "success", "skipped"))
         for result in ("skipped", "failure", "cancelled", ""):
-            self.assertRaises(ValueError, subject.require_results, ["backend-e2e"], "success", result)
+            self.assertRaises(ValueError, subject.require_results, ["business"], "success", result)
         self.assertRaises(ValueError, subject.require_results, [], "failure", "skipped")
 
 
@@ -79,9 +77,9 @@ class NightlyAcceptanceTest(unittest.TestCase):
         self.assertIn("suite: full", workflow)
         self.assertNotIn("continue-on-error: true", workflow)
 
-    def test_release_full_retains_end_to_end_acceptance(self):
-        self.assertIn("backend-e2e", subject.SUITES)
-        self.assertIn("recovery-e2e", subject.SUITES)
+    def test_release_full_retains_database_acceptance(self):
+        self.assertNotIn("backend-e2e", subject.SUITES)
+        self.assertNotIn("recovery-e2e", subject.SUITES)
         self.assertIn("cdc", subject.SUITES)
         self.assertFalse(any(name.startswith("cdc-") for name in subject.SUITES))
 
@@ -170,8 +168,8 @@ class ReportTest(unittest.TestCase):
 
     def test_removed_cdc_suites_are_not_registered(self):
         self.assertFalse(any(suite.startswith("cdc-") for suite in subject.SUITES))
-        self.assertIn("backend-e2e", subject.SUITES)
-        self.assertIn("recovery-e2e", subject.SUITES)
+        self.assertNotIn("backend-e2e", subject.SUITES)
+        self.assertNotIn("recovery-e2e", subject.SUITES)
 
     def test_new_unregistered_it_fails(self):
         with patch.object(subject, "SUITES", {"small": ("module", "tag", {"NamedIT": 1})}):

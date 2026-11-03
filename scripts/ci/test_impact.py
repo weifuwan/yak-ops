@@ -35,11 +35,11 @@ class ImpactTest(unittest.TestCase):
             ("yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc/pom.xml", True),
             ("yak-ops-bom/pom.xml", False),
         )
-        with patch.object(impact, "suite_registration_changes", return_value={"backend-e2e"}):
+        with patch.object(impact, "suite_registration_changes", return_value={"cdc"}):
             for path, expected in paths:
                 with self.subTest(path=path):
                     self.assertEqual(expected, impact.analyze([path])["preflight"])
-            self.assertEqual({"backend-e2e"}, impact.analyze(["scripts/tests/backend_tests.py"])["suites"])
+            self.assertEqual({"cdc"}, impact.analyze(["scripts/tests/backend_tests.py"])["suites"])
 
     def test_fast_preflight_full_scope_for_build_and_workflow(self):
         for path in ("pom.xml", "tools/maven/checkstyle.xml",
@@ -74,20 +74,20 @@ class ImpactTest(unittest.TestCase):
         check = impact.analyze(["yak-ops-business/yak-ops-business-task/src/main/java/X.java"])
         self.assertIn("yak-ops-business/yak-ops-business-task", check["modules"])
         self.assertIn("yak-ops-boot", check["modules"])
-        self.assertEqual({"business", "backend-e2e"}, check["suites"])
+        self.assertEqual({"business"}, check["suites"])
 
     def test_pipeline_composition_selects_database_and_recovery_suites(self):
         path = impact.ENGINE + "src/main/java/io/yak/ops/composer/yakflow/YakFlowPipelineComposer.java"
         result = impact.analyze([path])
-        self.assertEqual({"pipeline", "cdc", "backend-e2e", "recovery-e2e"}, result["suites"])
+        self.assertEqual({"pipeline", "cdc"}, result["suites"])
         self.assertIn(impact.ENGINE.rstrip("/"), result["modules"])
         self.assertIn(impact.ENGINE.rstrip("/"), result["modules"])
         self.assertEqual([], impact.select_suites([
             impact.ENGINE + "src/test/java/io/yak/ops/composer/PipelineComposerTest.java"]))
 
-    def test_task_parameter_contract_selects_recovery_acceptance(self):
+    def test_task_parameter_contract_has_no_database_suite(self):
         path = "yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-api/src/main/java/PipelineTaskChannel.java"
-        self.assertEqual({"backend-e2e", "recovery-e2e"}, set(impact.select_suites([path])))
+        self.assertEqual(set(), set(impact.select_suites([path])))
 
     def test_downstream_checks_follow_runtime_dependencies(self):
         selected = impact.affected_modules(["yak-ops-common"])
@@ -108,9 +108,9 @@ class ImpactTest(unittest.TestCase):
                 self.assertTrue(result["full"])
                 self.assertEqual(set(impact.SUITES), result["suites"])
 
-    def test_shared_cdc_base_selects_cdc_and_e2e_checks(self):
+    def test_shared_cdc_base_selects_cdc_checks(self):
         path = impact.CDC_BASE + "src/main/java/io/yak/ops/connector/cdc/base/source/assigner/SnapshotSplitAssigner.java"
-        self.assertEqual({"cdc", "backend-e2e", "recovery-e2e"}, set(impact.select_suites([path])))
+        self.assertEqual({"cdc"}, set(impact.select_suites([path])))
         self.assertIn(impact.CDC_BASE.rstrip("/"), impact.analyze([path])["modules"])
         self.assertEqual([], impact.select_suites([
             impact.CDC_BASE + "src/test/java/SnapshotSplitAssignerTest.java"]))
@@ -120,7 +120,7 @@ class ImpactTest(unittest.TestCase):
         self.assertEqual({"cdc"}, set(impact.select_suites([path])))
         self.assertEqual([], impact.select_suites([impact.CDC + "src/test/java/source/reader/BinlogSplitReaderTest.java"]))
 
-    def test_snapshot_and_unknown_cdc_changes_preserve_e2e_coverage(self):
+    def test_snapshot_and_unknown_cdc_changes_select_cdc(self):
         for path in (
             impact.CDC + "src/main/java/io/yak/ops/connector/cdc/mysql/source/assigners/MySqlChunkSplitter.java",
             impact.CDC + "src/main/java/source/UnexpectedChange.java",
@@ -128,23 +128,22 @@ class ImpactTest(unittest.TestCase):
             impact.CDC_BASE + "src/main/java/source/assigner/SnapshotSplitAssigner.java",
         ):
             with self.subTest(path=path):
-                self.assertEqual({"cdc", "backend-e2e", "recovery-e2e"}, set(impact.select_suites([path])))
+                self.assertEqual({"cdc"}, set(impact.select_suites([path])))
 
-    def test_current_mysql_cdc_changes_keep_end_to_end_acceptance(self):
+    def test_current_mysql_cdc_changes_keep_cdc_coverage(self):
         selected = impact.select_suites([
             impact.CDC + "src/main/java/io/yak/ops/connector/cdc/mysql/source/MySqlSource.java"
         ])
-        self.assertEqual(["cdc", "backend-e2e", "recovery-e2e"], selected)
+        self.assertEqual(["cdc"], selected)
 
-    def test_unknown_cdc_and_shared_runtime_keep_recovery(self):
+    def test_unknown_cdc_and_shared_runtime_select_cdc(self):
         for path in (
             impact.CDC + "src/main/java/source/UnknownSource.java",
             impact.CDC_BASE + "src/main/java/source/assigner/SnapshotSplitAssigner.java",
             impact.RUNTIME + "src/main/java/execution/CheckpointCoordinator.java",
         ):
             with self.subTest(path=path):
-                self.assertTrue({"backend-e2e", "recovery-e2e"}.issubset(
-                    set(impact.select_suites([path]))))
+                self.assertEqual({"cdc"}, set(impact.select_suites([path])))
 
     def test_test_only_changes_do_not_start_database(self):
         self.assertEqual([], impact.select_suites([
@@ -156,16 +155,13 @@ class ImpactTest(unittest.TestCase):
         self.assertEqual(["cdc"], impact.select_suites([
             impact.CDC + "src/test/java/MySqlSourceIT.java"
         ]))
-        self.assertEqual(["recovery-e2e"], impact.select_suites([
-            "yak-ops-e2e/src/test/java/ProcessRecoveryIT.java"
-        ]))
 
     def test_rename_union_and_release(self):
         check = impact.analyze(["yak-ops-ui/apps/web/app/data-sync/index.tsx", "yak-ops-dao/src/main/resources/db/migration/V1__init.sql"])
         self.assertTrue(check["frontend"])
         self.assertTrue(check["backend"])
         self.assertTrue(check["release"])
-        self.assertIn("backend-e2e", check["suites"])
+        self.assertIn("business", check["suites"])
 
     def test_unknown_and_root_build_are_fail_closed(self):
         for path in (".editorconfig", "pom.xml", "unknown/Config.java"):
@@ -186,9 +182,9 @@ class ImpactTest(unittest.TestCase):
 
 
     def test_registry_change_only_selects_affected_suite(self):
-        before = 'SUITES = {"jdbc-mysql": (1, 2), "backend-e2e": (1, 2)}\n\ndef runner():\n    return True\n'
-        after = 'SUITES = {"jdbc-mysql": (1, 2), "backend-e2e": (1, 3)}\n\ndef runner():\n    return True\n'
-        self.assertEqual({"backend-e2e"}, impact.compare_suite_registry(before, after))
+        before = 'SUITES = {"jdbc-mysql": (1, 2), "cdc": (1, 2)}\n\ndef runner():\n    return True\n'
+        after = 'SUITES = {"jdbc-mysql": (1, 2), "cdc": (1, 3)}\n\ndef runner():\n    return True\n'
+        self.assertEqual({"cdc"}, impact.compare_suite_registry(before, after))
         self.assertEqual(set(), impact.compare_suite_registry(before, before + "# comment only\n"))
 
     def test_registry_logic_change_fails_closed(self):
@@ -200,9 +196,9 @@ class ImpactTest(unittest.TestCase):
 
     def test_registry_selection_and_reason_are_consistent(self):
         from unittest.mock import patch
-        with patch.object(impact, "suite_registration_changes", return_value={"backend-e2e"}):
+        with patch.object(impact, "suite_registration_changes", return_value={"cdc"}):
             selected = impact.select_suites(["scripts/tests/backend_tests.py"])
-            self.assertEqual(["backend-e2e"], selected)
+            self.assertEqual(["cdc"], selected)
             self.assertIn("suite registration only", impact.summary(["scripts/tests/backend_tests.py"]))
         with patch.object(impact, "suite_registration_changes", return_value=None):
             self.assertEqual(list(impact.SUITES), impact.select_suites(["scripts/tests/backend_tests.py"]))
