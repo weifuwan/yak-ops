@@ -22,6 +22,8 @@ import io.yak.ops.cdc.common.annotation.Internal;
 
 
 
+import java.nio.ByteBuffer;
+
 import static io.yak.ops.cdc.common.utils.Preconditions.checkArgument;
 
 /** A factory for heap memory segments ({@link MemorySegment}). */
