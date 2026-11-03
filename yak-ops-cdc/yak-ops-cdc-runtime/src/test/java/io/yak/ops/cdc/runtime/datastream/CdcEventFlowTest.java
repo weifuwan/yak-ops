@@ -77,14 +77,14 @@ class CdcEventFlowTest {
                 }
             };
         }).uid("source-uid");
-        DataStream<Event> first = source.transform("schema-stage", () -> {
+        DataStream<Event> first = source.<Event>transform("schema-stage", () -> {
             instantiated.incrementAndGet();
             return (event, output) -> {
                 seenAtFirst.add(event);
                 output.collect(event);
             };
         }).uid("schema-uid");
-        DataStream<Event> second = first.transform("data-stage", () -> {
+        DataStream<Event> second = first.<Event>transform("data-stage", () -> {
             instantiated.incrementAndGet();
             return (event, output) -> {
                 seenAtSecond.add(event);
@@ -164,7 +164,7 @@ class CdcEventFlowTest {
                     output.collect(insert);
                     output.collect(later);
                 })
-                .transform("fail", () -> (event, output) -> {
+                .<Event>transform("fail", () -> (event, output) -> {
                     if (event instanceof DataChangeEvent) {
                         throw new IllegalStateException("invalid row");
                     }
