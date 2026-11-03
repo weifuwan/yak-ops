@@ -47,7 +47,7 @@ class StreamExecutionEnvironmentTest {
         var env = StreamExecutionEnvironment.getLocalEnvironment();
         var created = new AtomicInteger();
         List<Integer> collected = new ArrayList<>();
-        DataStream<Integer> source = env.fromSource("source", () -> {
+        DataStream<Integer> source = env.<Integer>fromSource("source", () -> {
             created.incrementAndGet();
             return output -> {
                 output.collect(1);

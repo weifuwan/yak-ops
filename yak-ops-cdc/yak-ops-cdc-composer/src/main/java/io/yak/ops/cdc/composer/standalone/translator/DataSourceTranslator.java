@@ -66,7 +66,7 @@ public class DataSourceTranslator {
                     "Unsupported EventSourceProvider type for standalone runtime: "
                             + provider.getClass().getName());
         }
-        return env.fromSource(
+        return env.<Event>fromSource(
                         sourceDef.getName().orElse(
                                 "Yak Ops CDC Event Source: " + sourceDef.getType()),
                         standalone::createSourceOperator)
