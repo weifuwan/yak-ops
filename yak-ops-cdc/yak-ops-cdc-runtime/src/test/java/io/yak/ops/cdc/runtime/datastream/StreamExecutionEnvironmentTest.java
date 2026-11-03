@@ -56,11 +56,11 @@ class StreamExecutionEnvironmentTest {
             };
         }).uid("source-uid");
 
-        DataStream<Integer> mapped = source.transform("multiply", () -> {
+        DataStream<Integer> mapped = source.<Integer>transform("multiply", () -> {
             created.incrementAndGet();
             return (value, output) -> output.collect(value * 10);
         }).uid("multiply-uid");
-        DataStream<Integer> filtered = mapped.transform("filter",
+        DataStream<Integer> filtered = mapped.<Integer>transform("filter",
                 () -> (value, output) -> {
                     if (value > 10) {
                         output.collect(value);
