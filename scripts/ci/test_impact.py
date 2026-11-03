@@ -14,6 +14,16 @@ class ImpactTest(unittest.TestCase):
                 self.assertFalse(any(check[key] for key in ("backend", "frontend", "distribution", "release")))
                 self.assertEqual(set(), check["suites"])
 
+    def test_logging_rule_changes_do_not_select_frontend_or_distribution(self):
+        result = impact.analyze(["scripts/verify_logging_rules.py"])
+        self.assertTrue(result["backend"])
+        self.assertFalse(result["frontend"])
+        self.assertFalse(result["distribution"])
+        self.assertFalse(result["release"])
+        self.assertFalse(result["full"])
+        self.assertEqual(set(), result["suites"])
+        self.assertIn("yak-ops-boot", result["modules"])
+
     def test_fast_preflight_direct_modules(self):
         source = "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc/src/main/java/Source.java"
         result = impact.analyze([source])
