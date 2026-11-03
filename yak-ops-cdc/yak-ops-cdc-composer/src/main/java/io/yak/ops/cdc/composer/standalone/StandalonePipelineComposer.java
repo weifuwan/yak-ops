@@ -19,16 +19,22 @@ package io.yak.ops.cdc.composer.standalone;
 
 import io.yak.ops.cdc.common.configuration.Configuration;
 import io.yak.ops.cdc.common.event.Event;
+import io.yak.ops.cdc.common.pipeline.ExistingTableSchemaExpansionMode;
 import io.yak.ops.cdc.common.pipeline.HashFunctionStrategy;
 import io.yak.ops.cdc.common.pipeline.PipelineOptions;
-import io.yak.ops.cdc.common.source.DataSource;
+import io.yak.ops.cdc.common.pipeline.RuntimeExecutionMode;
+import io.yak.ops.cdc.common.pipeline.SchemaChangeBehavior;
 import io.yak.ops.cdc.common.sink.DataSink;
+import io.yak.ops.cdc.common.sink.MetadataApplier;
+import io.yak.ops.cdc.common.source.DataSource;
 import io.yak.ops.cdc.composer.PipelineComposer;
 import io.yak.ops.cdc.composer.PipelineExecution;
 import io.yak.ops.cdc.composer.definition.PipelineDef;
 import io.yak.ops.cdc.composer.standalone.translator.DataSinkTranslator;
 import io.yak.ops.cdc.composer.standalone.translator.DataSourceTranslator;
 import io.yak.ops.cdc.composer.standalone.translator.OperatorUidGenerator;
+import io.yak.ops.cdc.composer.standalone.translator.PartitioningTranslator;
+import io.yak.ops.cdc.composer.standalone.translator.SchemaOperatorTranslator;
 import io.yak.ops.cdc.composer.standalone.translator.TransformTranslator;
 import io.yak.ops.cdc.runtime.datastream.DataStream;
 import io.yak.ops.cdc.runtime.datastream.StreamExecutionEnvironment;
@@ -37,13 +43,18 @@ import java.util.Objects;
 import static io.yak.ops.cdc.common.pipeline.PipelineOptions.PIPELINE_OPERATOR_UID_PREFIX;
 
 /**
- * Flink CDC-style composer backed by the minimal single-threaded local DataStream API.
+ * Composes a Flink CDC-style pipeline using the single-JVM DataStream runtime.
  *
- * <p>Scope is Source -> optional PreTransform -> optional PostTransform -> Sink. Schema routing,
- * parallel metadata and partitioning are explicitly unsupported until implemented in runtime.
- * A composer/environment pair represents exactly one pipeline.
+ * <p>The regular topology follows Flink CDC 3.7: Source -> PreTransform -> PostTransform ->
+ * SchemaOperator -> PrePartition -> PostPartition -> Sink. The partitioning stages preserve
+ * ordering in the one-partition runtime. Distributed metadata, multiple subtasks and advanced
+ * transform execution remain intentionally unsupported.
+ *
+ * <p>Each environment represents exactly one pipeline.
  */
 public final class StandalonePipelineComposer implements PipelineComposer {
+    private static final String SCHEMA_OPERATOR_UID_SUFFIX = "schema-operator";
+
     private final StreamExecutionEnvironment env;
     private final DataSourceTranslator sourceTranslator;
     private final DataSinkTranslator sinkTranslator;
@@ -72,62 +83,109 @@ public final class StandalonePipelineComposer implements PipelineComposer {
     }
 
     @Override
-    public PipelineExecution compose(PipelineDef definition) {
-        Objects.requireNonNull(definition, "definition");
-        Objects.requireNonNull(definition.getSource(), "source");
-        Objects.requireNonNull(definition.getSink(), "sink");
-        Configuration config = Objects.requireNonNull(definition.getConfig(), "config");
-        validateSupportedConfiguration(definition);
+    public PipelineExecution compose(PipelineDef pipelineDef) {
+        Objects.requireNonNull(pipelineDef, "pipelineDef");
+        Objects.requireNonNull(pipelineDef.getSource(), "source");
+        Objects.requireNonNull(pipelineDef.getSink(), "sink");
+        Configuration config = Objects.requireNonNull(pipelineDef.getConfig(), "config");
 
-        OperatorUidGenerator uidGenerator =
-                new OperatorUidGenerator(config.get(PIPELINE_OPERATOR_UID_PREFIX));
-        DataSource dataSource = sourceTranslator.createDataSource(definition.getSource(), config);
-        if (dataSource.isParallelMetadataSource()) {
-            throw new UnsupportedOperationException(
-                    "Parallel metadata sources require a distributed schema topology");
-        }
-        DataSink dataSink = sinkTranslator.createDataSink(definition.getSink(), config);
+        translate(env, pipelineDef);
 
-        DataStream<Event> stream =
-                sourceTranslator.translate(definition.getSource(), dataSource, env, uidGenerator);
-        stream = transformTranslator.translatePreTransform(stream, definition.getTransforms());
-        stream = transformTranslator.translatePostTransform(
-                stream, definition.getTransforms(), uidGenerator);
-        sinkTranslator.translate(definition.getSink(), stream, dataSink, uidGenerator);
-
-        // Validate and seal the whole graph before giving it to the execution adapter.
+        // Materialize, validate and seal the complete graph before handing it to the runner.
         env.getStreamGraph();
         return new StandalonePipelineExecution(env, config.get(PipelineOptions.PIPELINE_NAME));
     }
 
-    private void validateSupportedConfiguration(PipelineDef definition) {
-        Configuration config = definition.getConfig();
+    /** Follow the same operator-translation order as FlinkPipelineComposer.translate(). */
+    private void translate(StreamExecutionEnvironment env, PipelineDef pipelineDef) {
+        Configuration pipelineConfig = pipelineDef.getConfig();
+        int parallelism = pipelineConfig.get(PipelineOptions.PIPELINE_PARALLELISM);
+        boolean isBatchMode = RuntimeExecutionMode.BATCH.equals(
+                pipelineConfig.get(PipelineOptions.PIPELINE_EXECUTION_RUNTIME_MODE));
+        SchemaChangeBehavior schemaChangeBehavior =
+                pipelineConfig.get(PipelineOptions.PIPELINE_SCHEMA_CHANGE_BEHAVIOR);
+
+        validatePipelineConfiguration(pipelineDef);
+
+        String operatorUidPrefix = pipelineConfig.get(PIPELINE_OPERATOR_UID_PREFIX);
+        OperatorUidGenerator uidGenerator = new OperatorUidGenerator(operatorUidPrefix);
+        String schemaOperatorUid = operatorUidPrefix == null
+                ? pipelineConfig.get(PipelineOptions.PIPELINE_SCHEMA_OPERATOR_UID)
+                : uidGenerator.generateUid(SCHEMA_OPERATOR_UID_SUFFIX);
+
+        // Initialize translators and connector instances before registering graph nodes.
+        SchemaOperatorTranslator schemaTranslator = new SchemaOperatorTranslator();
+        PartitioningTranslator partitioningTranslator = new PartitioningTranslator();
+        DataSource dataSource =
+                sourceTranslator.createDataSource(pipelineDef.getSource(), pipelineConfig);
+        DataSink dataSink =
+                sinkTranslator.createDataSink(pipelineDef.getSink(), pipelineConfig);
+
+        if (dataSource.isParallelMetadataSource()) {
+            throw new UnsupportedOperationException(
+                    "Distributed metadata topology (Partitioning -> SchemaOperator) "
+                            + "is not supported in the single-partition runtime");
+        }
+        MetadataApplier metadataApplier = Objects.requireNonNull(
+                dataSink.getMetadataApplier(), "DataSink returned null MetadataApplier");
+        metadataApplier = Objects.requireNonNull(
+                metadataApplier.setAcceptedSchemaEvolutionTypes(
+                        pipelineDef.getSink().getIncludedSchemaEvolutionTypes()),
+                "MetadataApplier returned null after schema evolution configuration");
+
+        // Source -> PreTransform -> PostTransform
+        DataStream<Event> stream = sourceTranslator.translate(
+                pipelineDef.getSource(), dataSource, env, uidGenerator);
+        stream = transformTranslator.translatePreTransform(stream, pipelineDef.getTransforms());
+        stream = transformTranslator.translatePostTransform(
+                stream, pipelineDef.getTransforms(), uidGenerator);
+
+        // Regular Flink CDC topology: PostTransform -> SchemaOperator -> Partitioning -> Sink.
+        stream = schemaTranslator.translateRegular(
+                stream, parallelism, isBatchMode, metadataApplier, schemaChangeBehavior,
+                schemaOperatorUid);
+        stream = partitioningTranslator.translateRegular(
+                stream, parallelism, parallelism, isBatchMode, uidGenerator);
+        sinkTranslator.translate(pipelineDef.getSink(), stream, dataSink, uidGenerator);
+    }
+
+    private void validatePipelineConfiguration(PipelineDef pipelineDef) {
+        Configuration config = pipelineDef.getConfig();
         if (config.get(PipelineOptions.PIPELINE_PARALLELISM) != 1) {
             throw new UnsupportedOperationException(
-                    "Standalone runtime v1 supports only parallelism=1");
+                    "Standalone runtime supports only parallelism=1");
         }
-        if (!definition.getRoute().isEmpty()) {
+        if (!pipelineDef.getRoute().isEmpty()) {
             throw new UnsupportedOperationException(
-                    "Table routing requires the SchemaOperator, which is not yet supported");
+                    "Table routing is not yet supported by the standalone SchemaOperator");
         }
-        if (!definition.getUdfs().isEmpty() || !definition.getModels().isEmpty()) {
+        if (!pipelineDef.getUdfs().isEmpty() || !pipelineDef.getModels().isEmpty()) {
+            throw new UnsupportedOperationException("UDF and model execution are not yet supported");
+        }
+        if (config.get(PipelineOptions.PIPELINE_TRANSFORM_ASYNC_EXECUTION_ENABLED)) {
             throw new UnsupportedOperationException(
-                    "UDF and model execution are not yet supported");
+                    "Asynchronous post-transform execution is not supported");
         }
         if (config.get(PipelineOptions.PIPELINE_PARTITIONING_STRATEGY)
                 != HashFunctionStrategy.SINK_DEFINED) {
             throw new UnsupportedOperationException(
-                    "Explicit partitioning strategies require a partitioning operator");
+                    "Explicit partitioning strategies require multiple partitions");
         }
-        String prefix = config.get(PIPELINE_OPERATOR_UID_PREFIX);
-        if (prefix != null && prefix.isEmpty()) {
+        if (pipelineDef.getSink().getExistingTableSchemaExpansionMode()
+                != ExistingTableSchemaExpansionMode.DISABLED) {
+            throw new UnsupportedOperationException(
+                    "Existing target table schema expansion is not implemented in standalone");
+        }
+
+        String uidPrefix = config.get(PIPELINE_OPERATOR_UID_PREFIX);
+        String schemaOperatorUid = config.get(PipelineOptions.PIPELINE_SCHEMA_OPERATOR_UID);
+        if (uidPrefix != null && uidPrefix.isEmpty()) {
             throw new IllegalArgumentException("operator.uid.prefix cannot be empty");
         }
-        if (!Objects.equals(
-                config.get(PipelineOptions.PIPELINE_SCHEMA_OPERATOR_UID),
+        if (uidPrefix != null && !Objects.equals(schemaOperatorUid,
                 PipelineOptions.PIPELINE_SCHEMA_OPERATOR_UID.defaultValue())) {
-            throw new UnsupportedOperationException(
-                    "SchemaOperator UID cannot be used before SchemaOperator is implemented");
+            throw new IllegalArgumentException(
+                    "Only one of operator.uid.prefix and schema.operator.uid may be set");
         }
     }
 }

@@ -33,6 +33,8 @@ import io.yak.ops.cdc.common.event.CreateTableEvent;
 import io.yak.ops.cdc.common.event.DataChangeEvent;
 import io.yak.ops.cdc.common.event.Event;
 import io.yak.ops.cdc.common.event.OperationType;
+import io.yak.ops.cdc.common.event.SchemaChangeEvent;
+import io.yak.ops.cdc.common.exceptions.SchemaEvolveException;
 import io.yak.ops.cdc.common.event.TableId;
 import io.yak.ops.cdc.common.schema.Column;
 import io.yak.ops.cdc.common.schema.Schema;
@@ -69,6 +71,8 @@ import org.junit.jupiter.api.Test;
 class StandalonePipelineComposerTest {
 
     private static final List<Event> RECEIVED = new CopyOnWriteArrayList<>();
+    private static final List<SchemaChangeEvent> APPLIED = new CopyOnWriteArrayList<>();
+    private static final List<Event> DELIVERY_TRACE = new CopyOnWriteArrayList<>();
     private static final List<Event> CDC_EVENTS = createCdcEvents();
 
     private static List<Event> createCdcEvents() {
@@ -119,6 +123,8 @@ class StandalonePipelineComposerTest {
     @BeforeEach
     void clear() {
         RECEIVED.clear();
+        APPLIED.clear();
+        DELIVERY_TRACE.clear();
     }
 
     private PipelineDef definition(
@@ -148,11 +154,18 @@ class StandalonePipelineComposerTest {
                                 Map.of("name", "orders", "operator.uid.prefix", "replica"),
                                 List.of(), List.of())));
         StreamGraph graph = env.getStreamGraph();
-        assertEquals(List.of(OperatorType.SOURCE, OperatorType.SINK),
+        assertEquals(List.of(OperatorType.SOURCE, OperatorType.TRANSFORM,
+                        OperatorType.TRANSFORM, OperatorType.TRANSFORM, OperatorType.SINK),
                 graph.getOrderedNodes().stream().map(n -> n.getType()).toList());
+        assertEquals(List.of("Yak Ops CDC Event Source: test-source", "SchemaOperator",
+                        "PrePartition", "PostPartition", "Yak Ops CDC Event Sink: test-sink"),
+                graph.getOrderedNodes().stream().map(n -> n.getOperatorName()).toList());
         assertEquals("replica-source", graph.getOrderedNodes().get(0).getTransformationUID());
-        assertEquals("replica-sink-writer", graph.getOrderedNodes().get(1).getTransformationUID());
-        assertEquals(1, graph.getEdges().size());
+        assertEquals("replica-schema-operator", graph.getOrderedNodes().get(1).getTransformationUID());
+        assertEquals("replica-pre-partition", graph.getOrderedNodes().get(2).getTransformationUID());
+        assertEquals("replica-post-partition", graph.getOrderedNodes().get(3).getTransformationUID());
+        assertEquals("replica-sink-writer", graph.getOrderedNodes().get(4).getTransformationUID());
+        assertEquals(4, graph.getEdges().size());
         assertEquals(0, RECEIVED.size(), "Composer must not execute any Event");
 
         PipelineExecution.ExecutionInfo info = execution.execute();
@@ -175,15 +188,20 @@ class StandalonePipelineComposerTest {
                                 Map.of("operator.uid.prefix", "cdc"),
                                 List.of(), List.of())));
         StreamGraph graph = env.getStreamGraph();
-        assertEquals(2, graph.getNodes().size());
-        assertEquals(1, graph.getEdges().size());
+        assertEquals(5, graph.getNodes().size());
+        assertEquals(4, graph.getEdges().size());
         assertEquals("cdc-source", graph.getStreamNode(1).getTransformationUID());
-        assertEquals("cdc-sink-writer", graph.getStreamNode(2).getTransformationUID());
+        assertEquals("cdc-schema-operator", graph.getStreamNode(2).getTransformationUID());
+        assertEquals("cdc-sink-writer", graph.getStreamNode(5).getTransformationUID());
         assertTrue(RECEIVED.isEmpty());
 
         execution.execute();
         execution.getHandle().getCompletion().get(5, TimeUnit.SECONDS);
         assertEquals(CDC_EVENTS, RECEIVED);
+        assertEquals(List.of(CDC_EVENTS.get(0), CDC_EVENTS.get(3)), APPLIED);
+        assertEquals(List.of(CDC_EVENTS.get(0), CDC_EVENTS.get(0), CDC_EVENTS.get(1),
+                CDC_EVENTS.get(2), CDC_EVENTS.get(3), CDC_EVENTS.get(3), CDC_EVENTS.get(4)),
+                DELIVERY_TRACE, "Schema must be applied before downstream consumes each DDL");
         for (int i = 0; i < CDC_EVENTS.size(); i++) {
             assertSame(CDC_EVENTS.get(i), RECEIVED.get(i));
         }
@@ -206,7 +224,7 @@ class StandalonePipelineComposerTest {
                                 Map.of("tables", "db.orders", "emit-cdc-events", "true"),
                                 Map.of("target", "target.orders"), Map.of(),
                                 List.of(), rules)));
-        assertEquals(4, env.getStreamGraph().getNodes().size());
+        assertEquals(7, env.getStreamGraph().getNodes().size());
         execution.execute();
         CompletionException error = assertThrows(CompletionException.class,
                 () -> execution.getHandle().getCompletion().join());
@@ -229,9 +247,10 @@ class StandalonePipelineComposerTest {
                                 List.of(), transforms)));
         assertEquals(List.of("Yak Ops CDC Event Source: test-source",
                         "Transform:Schema", "Transform:Data",
+                        "SchemaOperator", "PrePartition", "PostPartition",
                         "Yak Ops CDC Event Sink: test-sink"),
                 env.getStreamGraph().getOrderedNodes().stream().map(n -> n.getOperatorName()).toList());
-        assertEquals(3, env.getStreamGraph().getEdges().size());
+        assertEquals(6, env.getStreamGraph().getEdges().size());
         assertEquals("job-post-transform", env.getStreamGraph().getOrderedNodes().get(2).getTransformationUID());
         execution.execute();
         CompletionException error = assertThrows(CompletionException.class,
@@ -294,9 +313,63 @@ class StandalonePipelineComposerTest {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
         new StandalonePipelineComposer(env, TestSourceFactory.class.getClassLoader())
                 .compose(definition());
-        assertEquals(2, env.getStreamGraph().getNodes().size());
+        assertEquals(5, env.getStreamGraph().getNodes().size());
         assertThrows(NullPointerException.class,
                 () -> new StandalonePipelineComposer(null));
+    }
+
+    @Test
+    void schemaUidMatchesFlinkCdcPrecedenceAndRejectsConflict() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        new StandalonePipelineComposer(env).compose(definition(
+                Map.of("tables", "db.orders"), Map.of("target", "target.orders"),
+                Map.of("schema.operator.uid", "explicit-schema"), List.of(), List.of()));
+        assertEquals("explicit-schema",
+                env.getStreamGraph().getOrderedNodes().get(1).getTransformationUID());
+        assertThrows(IllegalArgumentException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"),
+                                Map.of("operator.uid.prefix", "job", "schema.operator.uid", "custom"),
+                                List.of(), List.of())));
+    }
+
+    @Test
+    void batchModeUsesBatchStageNames() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        new StandalonePipelineComposer(env).compose(definition(
+                Map.of("tables", "db.orders"), Map.of("target", "target.orders"),
+                Map.of("execution.runtime-mode", "BATCH"), List.of(), List.of()));
+        assertEquals(List.of("Yak Ops CDC Event Source: test-source",
+                        "SchemaBatchOperator", "BatchPrePartition", "BatchPostPartition",
+                        "Yak Ops CDC Event Sink: test-sink"),
+                env.getStreamGraph().getOrderedNodes().stream().map(n -> n.getOperatorName()).toList());
+    }
+
+    @Test
+    void schemaApplicationFailureBlocksFollowingDataEvents() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        StandalonePipelineExecution execution = assertInstanceOf(
+                StandalonePipelineExecution.class,
+                new StandalonePipelineComposer(env).compose(definition(
+                        Map.of("tables", "db.orders", "emit-cdc-events", "true"),
+                        Map.of("target", "target.orders", "fail-schema", "true"),
+                        Map.of("schema.change.behavior", "EVOLVE"), List.of(), List.of())));
+        execution.execute();
+        CompletionException failure = assertThrows(CompletionException.class,
+                () -> execution.getHandle().getCompletion().join());
+        assertInstanceOf(SchemaEvolveException.class, failure.getCause());
+        assertTrue(RECEIVED.isEmpty(), "No DML may reach the sink after failed CREATE TABLE");
+    }
+
+    @Test
+    void asyncTransformConfigurationIsRejectedInsteadOfIgnored() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"),
+                                Map.of("transform.async-execution.enabled", "true"),
+                                List.of(), List.of())));
     }
 
     public static class TestSourceFactory implements DataSourceFactory {
@@ -345,19 +418,31 @@ class StandalonePipelineComposerTest {
                 ConfigOptions.key("target").stringType().noDefaultValue();
         private static final ConfigOption<Boolean> LEGACY =
                 ConfigOptions.key("legacy-provider").booleanType().defaultValue(false);
+        private static final ConfigOption<Boolean> FAIL_SCHEMA =
+                ConfigOptions.key("fail-schema").booleanType().defaultValue(false);
 
         @Override public String identifier() { return "test-sink"; }
         @Override public Set<ConfigOption<?>> requiredOptions() { return Set.of(TARGET); }
-        @Override public Set<ConfigOption<?>> optionalOptions() { return Set.of(LEGACY); }
+        @Override public Set<ConfigOption<?>> optionalOptions() { return Set.of(LEGACY, FAIL_SCHEMA); }
 
         @Override
         public DataSink createDataSink(Context context) {
             FactoryHelper.createFactoryHelper(this, context).validate();
             boolean legacy = context.getFactoryConfiguration().get(LEGACY);
+            boolean failSchema = context.getFactoryConfiguration().get(FAIL_SCHEMA);
             EventSinkProvider provider = legacy
                     ? new EventSinkProvider() {}
-                    : (RuntimeSinkProvider) () -> RECEIVED::add;
-            MetadataApplier metadataApplier = event -> {};
+                    : (RuntimeSinkProvider) () -> event -> {
+                        RECEIVED.add(event);
+                        DELIVERY_TRACE.add(event);
+                    };
+            MetadataApplier metadataApplier = event -> {
+                if (failSchema) {
+                    throw new SchemaEvolveException(event, "test schema failure");
+                }
+                APPLIED.add(event);
+                DELIVERY_TRACE.add(event);
+            };
             return new DataSink() {
                 @Override public EventSinkProvider getEventSinkProvider() { return provider; }
                 @Override public MetadataApplier getMetadataApplier() { return metadataApplier; }
