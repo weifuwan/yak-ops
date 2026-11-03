@@ -4,7 +4,7 @@
     <parent><groupId>io.yak.ops</groupId><artifactId>yak-ops-cdc</artifactId><version>1.4.0</version><relativePath>../pom.xml</relativePath></parent>
     <artifactId>yak-ops-cdc-cli</artifactId><name>Yak Ops CDC CLI</name>
     <dependencies><dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-cdc-composer</artifactId></dependency>
-        <dependency><groupId>org.yaml</groupId><artifactId>snakeyaml-engine</artifactId><version>2.6</version></dependency>
+        <dependency><groupId>org.snakeyaml</groupId><artifactId>snakeyaml-engine</artifactId><version>2.6</version></dependency>
         <dependency><groupId>com.fasterxml.jackson.dataformat</groupId><artifactId>jackson-dataformat-yaml</artifactId></dependency>
         <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     </dependencies>
