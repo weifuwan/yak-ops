@@ -132,6 +132,7 @@ public final class BinaryArrayData extends BinarySection implements ArrayData {
             case DOUBLE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+            case TIMESTAMP_WITH_TIME_ZONE:
             case ARRAY:
             case MAP:
             case ROW:
@@ -139,8 +140,6 @@ public final class BinaryArrayData extends BinarySection implements ArrayData {
                 // otherwise it stores the length and offset of the variable-length part for types
                 // such as is string, map, etc.
                 return 8;
-            case TIMESTAMP_WITH_TIME_ZONE:
-                throw new UnsupportedOperationException();
             case SMALLINT:
                 return 2;
             case INTEGER:
@@ -278,12 +277,19 @@ public final class BinaryArrayData extends BinarySection implements ArrayData {
 
     @Override
     public LocalZonedTimestampData getLocalZonedTimestamp(int pos, int precision) {
-        throw new UnsupportedOperationException("Not support LocalZonedTimestampData");
+        assertIndexIsValid(pos);
+        int fieldOffset = getElementOffset(pos, 8);
+        final long offsetAndNanoOfMilli = BinarySegmentUtils.getLong(segments, fieldOffset);
+        return BinarySegmentUtils.readLocalZonedTimestampData(
+                segments, offset, offsetAndNanoOfMilli);
     }
 
     @Override
     public ZonedTimestampData getZonedTimestamp(int pos, int precision) {
-        throw new UnsupportedOperationException("Not support ZonedTimestampData");
+        assertIndexIsValid(pos);
+        String[] parts = getString(pos).toString().split(BinaryRecordData.TIMESTAMP_DELIMITER);
+        return ZonedTimestampData.of(
+                Long.parseLong(parts[0]), Integer.parseInt(parts[1]), parts[2]);
     }
 
     @Override
