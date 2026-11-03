@@ -29,4 +29,14 @@ jobs:
         run: >
           bash mvnw -B -ntp
           -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc-core,yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc-mysql
-          -am -DskipITs test
+          -am -Dtest=JdbcSinkConfigTest,EventRecordSerializationSchemaTest,MySqlStmtCreatorTest,MySqlTypeTransformerTest -Dsurefire.failIfNoSpecifiedTests=false test
+      - name: Install JDBC sink test fixtures
+        run: >
+          bash mvnw -B -ntp
+          -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc
+          -am -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true install
+      - name: Verify JDBC Sink against a real MySQL Testcontainer
+        run: >
+          bash mvnw -B -ntp
+          -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc
+          -Dtest=MySqlDataSinkITCase,MySqlMetadataApplierITCase -Dsurefire.failIfNoSpecifiedTests=false test
