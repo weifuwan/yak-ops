@@ -52,6 +52,7 @@ class DataSinkTranslatorTest {
                 new MockPreWriteWithoutCommitSink(uid);
         translator.sinkTo(
                 inputStream,
+                1,
                 mockPreWriteWithoutCommitSink,
                 "testPreWriteWithoutCommitSink",
                 false,

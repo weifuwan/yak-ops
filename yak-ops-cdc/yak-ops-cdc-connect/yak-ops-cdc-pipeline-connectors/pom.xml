@@ -29,6 +29,7 @@ limitations under the License.
     <packaging>pom</packaging>
     <modules>
         <module>yak-ops-cdc-pipeline-connector-mysql</module>
+        <module>yak-ops-cdc-pipeline-connector-jdbc-parent</module>
     </modules>
 
     <dependencies>
