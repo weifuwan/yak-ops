@@ -40,11 +40,11 @@ public final class PartitioningTranslator {
                     "Standalone partitioning supports only one upstream and downstream partition");
         }
         Objects.requireNonNull(uidGenerator, "uidGenerator");
-        DataStream<Event> prePartition = input.transform(
+        DataStream<Event> prePartition = input.<Event>transform(
                         isBatchMode ? "BatchPrePartition" : "PrePartition",
                         () -> (event, output) -> output.collect(event))
                 .uid(uidGenerator.generateUid("pre-partition"));
-        return prePartition.transform(
+        return prePartition.<Event>transform(
                         isBatchMode ? "BatchPostPartition" : "PostPartition",
                         () -> (event, output) -> output.collect(event))
                 .uid(uidGenerator.generateUid("post-partition"));
