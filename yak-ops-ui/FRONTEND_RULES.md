@@ -54,7 +54,7 @@ This document defines durable frontend engineering constraints. Current source c
 
 ## Testing and Architecture Enforcement
 
-- Keep pure functions and transformations under focused unit tests. Test component input, async states, focus, and error behavior at the component boundary; use existing Playwright flows for cross-page behavior.
+- Keep pure functions and transformations under focused unit tests. Test component input, async states, focus, and error behavior at the component boundary; validate cross-page behavior with focused manual checks or optional local browser automation when needed.
 - Protect Data Sync draft restoration, dependent field resets, validation, saving, Schedule partial failure, publish failure, Workspace switching, and instance polling during refactors. Never weaken assertions merely to complete a move.
 - `scripts/check-architecture.mjs` enforces real dependency direction: services cannot import App code, pages cannot bypass domain services for HTTP, and Yak UI cannot import product code. Validate aliases, relative imports, re-exports, and dynamic imports.
 - Data Sync page entrypoints can be imported by `app/router`. Private `list/`, `editor/`, and `detail/` implementation paths cannot be deep-imported from other domains or each other. Share stable behavior through a deliberately owned module, not by opening arbitrary private imports.

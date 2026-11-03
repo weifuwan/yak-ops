@@ -36,7 +36,7 @@ Frontend commands and quality checks are documented in [frontend tooling](yak-op
 | --- | --- | --- |
 | Unit / frontend contracts | Java modules / `yak-ops-ui` | Affected PR quality checks |
 | Business database IT | Business modules | Selected backend PRs; full release suite |
-| UI automation / deployment | Playwright / Docker Compose | Release; manual as needed |
+| Frontend contracts / deployment | TypeScript checks / Docker Compose | Related PRs; release |
 
 ### Backend integration tests
 
@@ -67,24 +67,15 @@ The [Backend Tests workflow](.github/workflows/backend-tests.yml) selects the re
 
 Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including container logs and database test diagnostics on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
 
-### Playwright UI Tests
+### Frontend checks and optional browser verification
 
-Playwright is **not a default feature PR gate**. The standalone [Playwright UI Tests workflow](.github/workflows/playwright-ui-tests.yml) runs on manual dispatch and when its own tests/workflow change. Its mocked scenarios run against the **built** frontend, not the Vite development server. Ordinary UI feature PRs rely on frontend quality and contract checks; reviewers may explicitly request a browser run for high-risk interactions.
+Normal frontend PRs use Quality Check for formatting, lint, types, architecture, contracts, and production build validation. The formal Release Gate also runs Docker Compose authentication and HTTP smoke checks, but does not run browser automation.
 
-The formal [Release Gate](.github/workflows/v1-release-gate.yml) always runs the **full** UI suite against a disposable Docker Compose stack containing the exact candidate images. The suite includes mocked interaction contracts and a real authenticated login/navigation smoke. UI tests must not wait for real JDBC/CDC, checkpoints, or Cron triggering; these belong to backend integration tests.
-
-```sh
-python3 -m pip install playwright==1.57.0
-python3 -m playwright install chromium
-# Serve yak-ops-ui's production build on http://127.0.0.1:5173
-python3 yak-ops-ui/tests/e2e/run.py --suite mocked --base-url http://127.0.0.1:5173
-```
-
-The Playwright report is `/tmp/yak-playwright/v<VERSION>/<SHA>/playwright-results.json`, with per-scenario Playwright traces and failure screenshots. Only results from the **exact release version and SHA** apply to that build. A skipped, failed, cancelled, or missing required run blocks release.
+Local Playwright scenarios may still be used on demand for browser interaction checks; see [UI test instructions](yak-ops-ui/tests/e2e/README.md). These local tests are not required CI or release evidence, and do not replace backend database/CDC integration tests.
 
 ### Test and review evidence
 
-Connector integration workflows collect their own test reports. Playwright has its own versioned artifact. Preserve failures and traceback while redacting credentials and task parameters. Use condition-based bounded waits; arbitrary sleep, hiding failed assertions through retries, or changes to production checkpoint timing are prohibited.
+Connector integration workflows collect their own test reports. Preserve failures and traceback while redacting credentials and task parameters. Use condition-based bounded waits; arbitrary sleep, hiding failed assertions through retries, or changes to production checkpoint timing are prohibited.
 
 
 ## Incremental Review Evidence

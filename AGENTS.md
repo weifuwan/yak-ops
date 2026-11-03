@@ -67,7 +67,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 - Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for current Business and MySQL CDC database integration tests. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
 - Select unit tests for pure logic, real database IT for current CDC and Task persistence semantics, and targeted CDC recovery integration tests for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
 - Isolate data, Workspace, and state per test. Use bounded condition-based waits; do not hide flakes via silent retries or change production checkpoint intervals for tests. Destructive integration tests need private environments and captured diagnostics before cleanup.
-- Follow the [Backend Tests and Release Gate](DEVELOPMENT.md#test-types-and-execution) scope. Frontend Playwright checks browser behavior; do not place real CDC/transaction waits in browser tests. Unselected suites are **not selected**, not passed.
+- Follow the [Backend Tests and Release Gate](DEVELOPMENT.md#test-types-and-execution) scope. Frontend static checks do not prove browser behavior or database/CDC correctness. Unselected suites are **not selected**, not passed.
 - For reviews, record head, base, tested tree/SHA, changed files, and relevant CI evidence. Read affected callers/tests; after fixes review the delta from the prior reviewed SHA, expanding when shared contracts or base change. Known unresolved failures remain blockers.
 
 ## Persistence and Public Contract Documentation

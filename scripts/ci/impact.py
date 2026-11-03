@@ -191,7 +191,7 @@ def analyze(paths: list[str], *, full: bool = False) -> dict:
             if path in {"yak-ops-ui/pom.xml", "yak-ops-ui/package.json", "yak-ops-ui/package-lock.json"}:
                 result["distribution"] = True
             continue
-        if path.startswith((".github/workflows/playwright-", ".github/ISSUE_TEMPLATE/")):
+        if path.startswith(".github/ISSUE_TEMPLATE/"):
             continue
         if path.startswith("scripts/ci/") or path.startswith("scripts/tests/test_") or path == "scripts/tests/__init__.py":
             # Scope unit tests are always run in the cheap select job.

@@ -26,13 +26,9 @@ npm run build
 
 ## Runtime and Interaction Verification
 
-Frontend tests are split into static/TypeScript contracts (`npm run check`) and Playwright. The former run through Quality Check on normal PRs; the latter are release-scoped.
+Frontend PRs use static and TypeScript contract checks through [Quality Check](../../.github/workflows/quality-check.yml); the [Release Gate](../../.github/workflows/v1-release-gate.yml) runs Docker Compose authentication and HTTP smoke checks without browser automation.
 
-The standalone [Playwright UI Tests workflow](../../.github/workflows/playwright-ui-tests.yml) runs Playwright Python 1.57.0 against a **production build** served by Vite preview. It is manually runnable; only changes to the Playwright test suite/framework itself trigger an additional PR run. Do not add a browser test for every feature PR.
-
-The [Release Gate](../../.github/workflows/v1-release-gate.yml) runs the same UI interaction suite plus real login/navigation against candidate images started with Docker Compose. This is independent of backend JDBC/CDC/checkpoint tests. The Boot backend E2E suite is currently not configured; JDBC/CDC connector integration tests remain separate from Playwright.
-
-Browser scenarios and conventions: [Playwright UI Tests](../tests/e2e/README.md).
+The local [Playwright UI scenarios](../tests/e2e/README.md) remain available on demand. They are neither triggered by GitHub Actions nor required to pass a release.
 
 Useful focused static scripts remain:
 
@@ -42,4 +38,4 @@ node scripts/verify-login-failure-transition.mjs
 node scripts/verify-login-success-transition.mjs
 ```
 
-Static scripts validate source contracts but do not prove actual DOM/focus/animation behavior. Browser results must record the test suite, version, exact commit SHA, relevant traces, and pass/fail state; a skipped suite is never a pass.
+Static scripts validate source contracts but do not prove actual DOM, focus, or animation behavior. Record the actual result when running optional local browser tests; an unrun or failed check must not be reported as passed.

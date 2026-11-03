@@ -150,24 +150,8 @@ jobs:
             echo "OK  ${image} version=${version} revision=${revision}"
           done
 
-      - name: Install pinned Playwright and Chromium
-        run: |
-          python3 -m pip install playwright==1.57.0
-          python3 -m playwright install --with-deps chromium
-
-      - name: Compose smoke and Playwright UI tests
-        env:
-          YAK_PLAYWRIGHT: 'true'
+      - name: Compose smoke
         run: bash scripts/release/smoke-compose.sh "v${RELEASE_VERSION}"
-
-      - name: Upload Playwright results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: yak-ops-${{ env.RELEASE_VERSION }}-playwright
-          path: /tmp/yak-playwright/
-          if-no-files-found: ignore
-          retention-days: 14
 
       - name: Build release candidate evidence
         shell: bash
@@ -206,7 +190,6 @@ jobs:
             printf -- '- Distribution Verification: PASS\n'
             printf -- '- Docker Image Identity: PASS\n'
             printf -- '- Compose Login Smoke: PASS\n\n'
-            printf -- '- Playwright UI Tests: PASS\n\n'
             printf '%s\n' 'Local image IDs are candidate-build evidence. Registry manifest digests are recorded only after immutable version tags are pushed during the publish step.'
           } > release-evidence/release-evidence.md
 

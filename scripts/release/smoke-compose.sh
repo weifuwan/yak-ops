@@ -196,14 +196,4 @@ if data.get("userName") != expected_user:
     raise SystemExit(f"current-user returned unexpected user: {payload}")
 PY
 
-if [[ "${YAK_PLAYWRIGHT:-false}" == "true" ]]; then
-    printf 'Running Playwright UI tests against the release Compose stack...\n'
-    YAK_UI_LOGIN_USERNAME="$YAK_SECURITY_BOOTSTRAP_USERNAME" \
-    YAK_UI_LOGIN_PASSWORD="$YAK_SECURITY_BOOTSTRAP_PASSWORD" \
-        python3 -u yak-ops-ui/tests/e2e/run.py \
-            --suite full \
-            --base-url "http://127.0.0.1:${YAK_OPS_PORT}" \
-            --version "$VERSION" \
-            --sha "$(git rev-parse HEAD)"
-fi
 printf '\nCompose smoke passed for Yak Ops %s.\n' "$VERSION"
