@@ -31,9 +31,8 @@ import java.util.Set;
 /**
  * Local stream topology. Owns node registration and maintains both sides of every edge.
  *
- * <p>The graph can represent an acyclic topology. The first standalone execution engine only
- * accepts a linear source-to-sink path; that restriction belongs to
- * {@link #getLinearExecutionOrder()}, not to the underlying node/edge model.
+ * <p>The graph can represent a directed acyclic topology. Single-threaded execution constraints
+ * are validated when a local execution plan is built, not by this graph.
  *
  * <p>Once sealed, topology and operator UIDs cannot be modified. Operators remain uninstantiated.
  */
@@ -173,45 +172,6 @@ public final class StreamGraph {
     /** All nodes in topological order, including possible branches. */
     public List<StreamNode> getOrderedNodes() {
         return sealed ? orderedNodes : topologicalOrder();
-    }
-
-    /**
-     * Validate the execution constraints of the first single-threaded runtime.
-     *
-     * <p>This does not seal the graph so an incomplete pipeline can still be edited after
-     * validation fails.
-     */
-    public List<StreamNode> getLinearExecutionOrder() {
-        List<StreamNode> ordered = getOrderedNodes();
-        if (sources.size() != 1 || sinks.size() != 1) {
-            throw new IllegalArgumentException("Pipeline requires exactly one source and one sink");
-        }
-        for (StreamNode node : ordered) {
-            int inputs = node.getInEdges().size();
-            int outputs = node.getOutEdges().size();
-            if (node.getType() == OperatorType.SOURCE) {
-                if (inputs != 0 || outputs != 1) {
-                    throw new IllegalArgumentException("Source must have exactly one output");
-                }
-            } else if (node.getType() == OperatorType.SINK) {
-                if (inputs != 1 || outputs != 0) {
-                    throw new IllegalArgumentException("Sink must have exactly one input");
-                }
-            } else if (inputs != 1 || outputs != 1) {
-                throw new IllegalArgumentException("Branches, multiple inputs or disconnected nodes are not supported by the local executor");
-            }
-        }
-        for (int i = 0; i < ordered.size() - 1; i++) {
-            StreamNode current = ordered.get(i);
-            if (current.getOutEdges().get(0).getTargetId() != ordered.get(i + 1).getId()) {
-                throw new IllegalArgumentException("Pipeline is not a single source-to-sink path");
-            }
-        }
-        if (ordered.get(0).getType() != OperatorType.SOURCE
-                || ordered.get(ordered.size() - 1).getType() != OperatorType.SINK) {
-            throw new IllegalArgumentException("Pipeline does not terminate in a sink");
-        }
-        return ordered;
     }
 
     private List<StreamNode> topologicalOrder() {

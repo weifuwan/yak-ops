@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.cdc.runtime.operators.StreamOperator;
+import io.yak.ops.cdc.runtime.tasks.LocalExecutionPlan;
 import io.yak.ops.cdc.runtime.tasks.StreamTask;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class StreamGraphTest {
 
         assertEquals(List.of(1), List.copyOf(graph.getSourceIDs()));
         assertEquals(List.of(3), List.copyOf(graph.getSinkIDs()));
-        assertEquals(List.of(source, transform, sink), graph.getLinearExecutionOrder());
+        assertEquals(List.of(source, transform, sink), LocalExecutionPlan.compile(graph).getNodes());
         assertEquals(1, source.getOutEdges().size());
         assertEquals(1, transform.getInEdges().size());
         assertEquals(1, transform.getOutEdges().size());
@@ -83,7 +84,7 @@ class StreamGraphTest {
         assertNotEquals(graph.getEdges().get(0), graph.getEdges().get(1));
         assertNotEquals(graph.getEdges().get(0), graph.getEdges().get(2));
         assertEquals(List.of(source, sink), graph.getOrderedNodes());
-        assertThrows(IllegalArgumentException.class, graph::getLinearExecutionOrder);
+        assertThrows(IllegalArgumentException.class, () -> LocalExecutionPlan.compile(graph));
     }
 
     @Test
@@ -102,7 +103,7 @@ class StreamGraphTest {
         assertEquals(2, graph.getStreamNode(4).getInEdges().size());
         graph.seal();
         assertEquals(4, graph.getOrderedNodes().size());
-        assertThrows(IllegalArgumentException.class, graph::getLinearExecutionOrder);
+        assertThrows(IllegalArgumentException.class, () -> LocalExecutionPlan.compile(graph));
         assertThrows(IllegalArgumentException.class, () -> new StreamTask(graph).execute());
     }
 

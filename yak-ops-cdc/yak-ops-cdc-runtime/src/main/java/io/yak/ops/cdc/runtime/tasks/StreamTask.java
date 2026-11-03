@@ -4,7 +4,7 @@
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * the License.  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -17,6 +17,8 @@
 
 package io.yak.ops.cdc.runtime.tasks;
 
+import io.yak.ops.cdc.runtime.graph.OperatorType;
+import io.yak.ops.cdc.runtime.graph.StreamEdge;
 import io.yak.ops.cdc.runtime.graph.StreamGraph;
 import io.yak.ops.cdc.runtime.graph.StreamNode;
 import io.yak.ops.cdc.runtime.operators.OneInputStreamOperator;
@@ -25,25 +27,31 @@ import io.yak.ops.cdc.runtime.operators.SinkOperator;
 import io.yak.ops.cdc.runtime.operators.SourceOperator;
 import io.yak.ops.cdc.runtime.operators.StreamOperator;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Execute a linear graph on the calling thread with synchronous in-memory operator chaining.
+ * Executes a compiled local execution plan in memory, using synchronous per-edge output links.
  *
- * <p>Operators are created once per task; downstream operators are opened before the source.
- * Event delivery is synchronous through Output.collect. There are no threads or queues per node.
+ * <p>Operator instances are created once per task and opened downstream-first. Only the source
+ * drives record delivery. No thread, queue, network or distributed scheduler is created per node.
  */
 public final class StreamTask {
-    private final StreamGraph graph;
+    private final LocalExecutionPlan plan;
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean cancelled = new AtomicBoolean();
     private volatile SourceOperator<?> runningSource;
     private volatile Thread runningThread;
 
     public StreamTask(StreamGraph graph) {
-        this.graph = Objects.requireNonNull(graph, "graph");
+        this(LocalExecutionPlan.compile(graph));
+    }
+
+    public StreamTask(LocalExecutionPlan plan) {
+        this.plan = Objects.requireNonNull(plan, "plan");
     }
 
     @SuppressWarnings("unchecked")
@@ -51,49 +59,71 @@ public final class StreamTask {
         if (!started.compareAndSet(false, true)) {
             throw new IllegalStateException("StreamTask cannot be run more than once");
         }
+        if (cancelled.get()) {
+            return;
+        }
 
-        List<StreamOperator> operators = new ArrayList<>();
+        Map<Integer, StreamOperator> operatorsById = new LinkedHashMap<>();
+        List<StreamOperator> created = new ArrayList<>();
         Throwable failure = null;
         try {
-            for (StreamNode node : graph.getLinearExecutionOrder()) {
-                StreamOperator op = Objects.requireNonNull(
+            for (StreamNode node : plan.getNodes()) {
+                StreamOperator operator = Objects.requireNonNull(
                         node.getOperatorFactory().create(),
                         "Operator factory returned null for " + node.getOperatorName());
-                operators.add(op);
+                // Register immediately so even a wrongly typed instance is closed on failure.
+                created.add(operator);
+                operatorsById.put(node.getId(), operator);
+                validateOperator(node, operator);
             }
 
-            if (!(operators.get(0) instanceof SourceOperator<?> source)) {
-                throw new IllegalStateException("Source node did not create SourceOperator");
-            }
-            if (!(operators.get(operators.size() - 1) instanceof SinkOperator<?>)) {
-                throw new IllegalStateException("Sink node did not create SinkOperator");
-            }
-            for (int i = 1; i < operators.size() - 1; i++) {
-                if (!(operators.get(i) instanceof OneInputStreamOperator<?, ?>)) {
-                    throw new IllegalStateException(
-                            "Transform node did not create OneInputStreamOperator: " + i);
-                }
-            }
-
+            SourceOperator<Object> source =
+                    (SourceOperator<Object>) operatorsById.get(plan.getSourceId());
             runningSource = source;
             runningThread = Thread.currentThread();
-            for (int i = operators.size() - 1; i >= 0; i--) {
-                operators.get(i).open();
+
+            for (int i = created.size() - 1; i >= 0; i--) {
+                created.get(i).open();
             }
             if (cancelled.get()) {
                 return;
             }
 
-            SinkOperator<Object> sink = (SinkOperator<Object>) operators.get(operators.size() - 1);
-            Output<Object> output = sink::write;
-            for (int i = operators.size() - 2; i >= 1; i--) {
-                OneInputStreamOperator<Object, Object> operator =
-                        (OneInputStreamOperator<Object, Object>) operators.get(i);
-                Output<Object> next = output;
-                output = event -> operator.processElement(event, next);
+            // Every output is keyed by the actual upstream node and follows a StreamEdge.
+            // Reverse traversal makes the downstream output available before its predecessor.
+            Map<Integer, Output<Object>> outputsBySource = new LinkedHashMap<>();
+            List<StreamEdge> edges = plan.getEdges();
+            for (int i = edges.size() - 1; i >= 0; i--) {
+                StreamEdge edge = edges.get(i);
+                StreamOperator downstreamOperator = operatorsById.get(edge.getTargetId());
+                Output<Object> output;
+                if (downstreamOperator instanceof SinkOperator) {
+                    SinkOperator<Object> sink = (SinkOperator<Object>) downstreamOperator;
+                    output = sink::write;
+                } else if (downstreamOperator instanceof OneInputStreamOperator) {
+                    OneInputStreamOperator<Object, Object> transform =
+                            (OneInputStreamOperator<Object, Object>) downstreamOperator;
+                    Output<Object> next = outputsBySource.get(edge.getTargetId());
+                    if (next == null) {
+                        throw new IllegalStateException(
+                                "Missing downstream output for edge " + edge);
+                    }
+                    output = element -> transform.processElement(element, next);
+                } else {
+                    throw new IllegalStateException(
+                            "Unsupported downstream operator for edge " + edge);
+                }
+                if (outputsBySource.put(edge.getSourceId(), output) != null) {
+                    throw new IllegalStateException(
+                            "Multiple outputs from source node " + edge.getSourceId());
+                }
             }
 
-            ((SourceOperator<Object>) source).run(output);
+            Output<Object> sourceOutput = outputsBySource.get(plan.getSourceId());
+            if (sourceOutput == null) {
+                throw new IllegalStateException("Missing output for local source");
+            }
+            source.run(sourceOutput);
         } catch (Exception | Error error) {
             failure = error;
             throw error;
@@ -101,7 +131,7 @@ public final class StreamTask {
             runningSource = null;
             runningThread = null;
             Exception closeFailure = null;
-            for (StreamOperator operator : operators) {
+            for (StreamOperator operator : created) {
                 try {
                     operator.close();
                 } catch (Exception error) {
@@ -120,7 +150,23 @@ public final class StreamTask {
         }
     }
 
-    /** Cooperative cancellation; source implementations should honor cancel() or interruption. */
+    private static void validateOperator(StreamNode node, StreamOperator operator) {
+        if (node.getType() == OperatorType.SOURCE && operator instanceof SourceOperator) {
+            return;
+        }
+        if (node.getType() == OperatorType.TRANSFORM
+                && operator instanceof OneInputStreamOperator) {
+            return;
+        }
+        if (node.getType() == OperatorType.SINK && operator instanceof SinkOperator) {
+            return;
+        }
+        throw new IllegalStateException(
+                "Wrong operator type created for " + node.getOperatorName()
+                        + " (" + node.getType() + ")");
+    }
+
+    /** Cooperative cancellation; source implementations must honor cancellation or interruption. */
     public void cancel() {
         cancelled.set(true);
         SourceOperator<?> source = runningSource;
@@ -128,7 +174,7 @@ public final class StreamTask {
             try {
                 source.cancel();
             } catch (Exception error) {
-                // Interrupt the task anyway. Any running failure propagates through execute().
+                // Still interrupt the task if a source cancellation callback fails.
             }
         }
         Thread thread = runningThread;

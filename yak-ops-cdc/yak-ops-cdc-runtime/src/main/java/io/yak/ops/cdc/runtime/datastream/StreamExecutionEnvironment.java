@@ -25,6 +25,7 @@ import io.yak.ops.cdc.runtime.operators.OperatorFactory;
 import io.yak.ops.cdc.runtime.operators.SinkOperator;
 import io.yak.ops.cdc.runtime.operators.SourceOperator;
 import io.yak.ops.cdc.runtime.operators.StreamOperator;
+import io.yak.ops.cdc.runtime.tasks.LocalExecutionPlan;
 import io.yak.ops.cdc.runtime.tasks.StreamTask;
 import java.util.Objects;
 import java.util.UUID;
@@ -40,6 +41,7 @@ public final class StreamExecutionEnvironment {
     private final StreamGraph graph = new StreamGraph();
     private int nextId = 1;
     private boolean submitted;
+    private LocalExecutionPlan executionPlan;
 
     public static StreamExecutionEnvironment getLocalEnvironment() {
         return new StreamExecutionEnvironment();
@@ -115,35 +117,38 @@ public final class StreamExecutionEnvironment {
 
     public StreamGraph getStreamGraph() {
         if (!graph.isSealed()) {
-            graph.getLinearExecutionOrder();
+            LocalExecutionPlan validatedPlan = LocalExecutionPlan.compile(graph);
             graph.seal();
+            executionPlan = validatedPlan;
         }
         return graph;
     }
 
     public void execute(String jobName) throws Exception {
         Objects.requireNonNull(jobName, "jobName");
+        StreamTask task;
         synchronized (this) {
             if (submitted) {
                 throw new IllegalStateException("Pipeline was already submitted");
             }
-            StreamGraph snapshot = getStreamGraph();
+            getStreamGraph();
+            task = new StreamTask(executionPlan);
             submitted = true;
-            new StreamTask(snapshot).execute();
         }
+        task.execute();
     }
 
     public StreamExecutionHandle executeAsync(String jobName) {
         Objects.requireNonNull(jobName, "jobName");
-        final StreamGraph snapshot;
+        final StreamTask task;
         synchronized (this) {
             if (submitted) {
                 throw new IllegalStateException("Pipeline was already submitted");
             }
-            snapshot = getStreamGraph();
+            getStreamGraph();
+            task = new StreamTask(executionPlan);
             submitted = true;
         }
-        StreamTask task = new StreamTask(snapshot);
         CompletableFuture<Void> completion = new CompletableFuture<>();
         String id = UUID.randomUUID().toString();
         Thread runner = new Thread(() -> {
