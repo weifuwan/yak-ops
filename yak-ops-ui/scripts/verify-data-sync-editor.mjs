@@ -1008,7 +1008,8 @@ for (const label of [
   assert.doesNotMatch(replicationTableUi, new RegExp(label));
 }
 // Legacy predicate editors must stay hidden, but preserved predicate warnings remain visible.
-assert.doesNotMatch(replicationTableUi, /label=["\x27]全量条件|title: ["\x27]全量条件/);
+assert.doesNotMatch(replicationTableUi, /label="全量条件"/);
+assert.doesNotMatch(replicationTableUi, /title: "全量条件"/);
 assert.match(replicationTableUi, /已保存的.*字段表达式仍会执行/);
 const inlineCellUi = readFileSync(
   new URL("../apps/web/app/data-sync/editor/replication-editable-cell.tsx", import.meta.url),
