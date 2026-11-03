@@ -20,7 +20,7 @@ package org.apache.flink.cdc.common.factories;
 import org.apache.flink.cdc.common.configuration.ConfigOption;
 import org.apache.flink.cdc.common.configuration.ConfigOptions;
 import org.apache.flink.cdc.common.configuration.Configuration;
-import org.apache.flink.table.api.ValidationException;
+import org.apache.flink.cdc.common.exceptions.ValidationException;
 
 import com.google.common.collect.Sets;
 
@@ -189,5 +189,48 @@ class FactoryHelperTests {
                 .hasMessageContaining("Unsupported options found for 'dummy'.");
 
         factoryHelper.validateExcept("debezium.", "canal.");
+    }
+
+    @Test
+    void testFormatConfigurationUsesCdcConfiguration() {
+        Map<String, String> options = new HashMap<>();
+        options.put("format.type", "json");
+        options.put("format.charset", "UTF-8");
+        options.put("unrelated.option", "keep");
+
+        FactoryHelper factoryHelper =
+                FactoryHelper.createFactoryHelper(
+                        getDummyFactory(),
+                        new FactoryHelper.DefaultContext(
+                                Configuration.fromMap(options), null, null));
+
+        Configuration formatConfig = factoryHelper.getFormatConfig("format");
+        Assertions.assertThat(formatConfig.toMap())
+                .containsEntry("type", "json")
+                .containsEntry("charset", "UTF-8")
+                .doesNotContainKeys("format.type", "format.charset", "unrelated.option");
+        Assertions.assertThat(factoryHelper.getFormatConfig("missing").toMap()).isEmpty();
+    }
+
+    @Test
+    void testRuntimeConfigurationInFactoryContext() {
+        Configuration factoryConfig = new Configuration();
+        Configuration pipelineConfig = new Configuration();
+        Configuration runtimeConfig =
+                Configuration.fromMap(Collections.singletonMap("execution.target", "local"));
+
+        FactoryHelper.DefaultContext context =
+                new FactoryHelper.DefaultContext(
+                        factoryConfig, pipelineConfig, getClass().getClassLoader(), runtimeConfig);
+
+        Assertions.assertThat(context.getFactoryConfiguration()).isSameAs(factoryConfig);
+        Assertions.assertThat(context.getPipelineConfiguration()).isSameAs(pipelineConfig);
+        Assertions.assertThat(context.getRuntimeConfiguration()).isSameAs(runtimeConfig);
+        Assertions.assertThat(context.getRuntimeConfiguration().toMap())
+                .containsEntry("execution.target", "local");
+
+        FactoryHelper.DefaultContext defaultContext =
+                new FactoryHelper.DefaultContext(factoryConfig, pipelineConfig, null);
+        Assertions.assertThat(defaultContext.getRuntimeConfiguration().toMap()).isEmpty();
     }
 }

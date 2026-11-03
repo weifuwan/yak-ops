@@ -76,7 +76,7 @@ public class DataSinkTranslator {
                         sinkDef.getConfig(),
                         pipelineConfig,
                         Thread.currentThread().getContextClassLoader(),
-                        env.getConfiguration()));
+                        Configuration.fromMap(env.getConfiguration().toMap())));
     }
 
     public void translate(

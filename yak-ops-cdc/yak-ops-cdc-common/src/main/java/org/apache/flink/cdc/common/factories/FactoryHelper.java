@@ -22,8 +22,7 @@ import org.apache.flink.cdc.common.configuration.ConfigOption;
 import org.apache.flink.cdc.common.configuration.Configuration;
 import org.apache.flink.cdc.common.configuration.FallbackKey;
 import org.apache.flink.cdc.common.utils.Preconditions;
-import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.table.api.ValidationException;
+import org.apache.flink.cdc.common.exceptions.ValidationException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -157,7 +156,7 @@ public class FactoryHelper {
                         .map(FallbackKey::getKey));
     }
 
-    public ReadableConfig getFormatConfig(String formatPrefix) {
+    public Configuration getFormatConfig(String formatPrefix) {
         final String prefix = formatPrefix + ".";
         Map<String, String> formatConfigMap = new HashMap<>();
         context.getFactoryConfiguration()
@@ -168,7 +167,7 @@ public class FactoryHelper {
                                 formatConfigMap.put(k.substring(prefix.length()), v);
                             }
                         });
-        return org.apache.flink.configuration.Configuration.fromMap(formatConfigMap);
+        return Configuration.fromMap(formatConfigMap);
     }
 
     /** Default implementation of {@link Factory.Context}. */
@@ -177,7 +176,7 @@ public class FactoryHelper {
         private final Configuration factoryConfiguration;
         private final ClassLoader classLoader;
         private final Configuration pipelineConfiguration;
-        private final ReadableConfig flinkConf;
+        private final Configuration runtimeConfiguration;
 
         public DefaultContext(
                 Configuration factoryConfiguration,
@@ -187,18 +186,18 @@ public class FactoryHelper {
                     factoryConfiguration,
                     pipelineConfiguration,
                     classLoader,
-                    new org.apache.flink.configuration.Configuration());
+                    new Configuration());
         }
 
         public DefaultContext(
                 Configuration factoryConfiguration,
                 Configuration pipelineConfiguration,
                 ClassLoader classLoader,
-                ReadableConfig flinkConf) {
+                Configuration runtimeConfiguration) {
             this.factoryConfiguration = factoryConfiguration;
             this.pipelineConfiguration = pipelineConfiguration;
             this.classLoader = classLoader;
-            this.flinkConf = flinkConf;
+            this.runtimeConfiguration = runtimeConfiguration;
         }
 
         @Override
@@ -217,8 +216,8 @@ public class FactoryHelper {
         }
 
         @Override
-        public ReadableConfig getFlinkConf() {
-            return flinkConf;
+        public Configuration getRuntimeConfiguration() {
+            return runtimeConfiguration;
         }
     }
 }

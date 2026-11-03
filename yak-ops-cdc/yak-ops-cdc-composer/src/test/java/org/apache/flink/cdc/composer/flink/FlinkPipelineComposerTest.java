@@ -68,6 +68,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** A test for the {@link FlinkPipelineComposer}. */
 class FlinkPipelineComposerTest {
 
+    private static final ConfigOption<String> RUNTIME_TARGET =
+            ConfigOptions.key(DeploymentOptions.TARGET.key())
+                    .stringType()
+                    .defaultValue("local");
+
     @Test
     void testCreateDataSinkFromSinkDef() {
         SinkDef sinkDef =
@@ -95,8 +100,12 @@ class FlinkPipelineComposerTest {
     }
 
     @Test
-    void testGettingFlinkConfiguration() {
-        FlinkPipelineComposer composer = FlinkPipelineComposer.ofMiniCluster();
+    void testPassingRuntimeConfigurationToFactories() {
+        org.apache.flink.configuration.Configuration flinkConfig =
+                new org.apache.flink.configuration.Configuration();
+        flinkConfig.set(DeploymentOptions.TARGET, "local");
+        FlinkPipelineComposer composer =
+                FlinkPipelineComposer.ofMiniCluster(flinkConfig, Collections.emptyList());
         PipelineDef pipelineDef =
                 new PipelineDef(
                         new SourceDef(TestDataSourceFactory.IDENTIFIER, null, new Configuration()),
@@ -118,7 +127,7 @@ class FlinkPipelineComposerTest {
 
         @Override
         public DataSink createDataSink(Context context) {
-            String target = context.getFlinkConf().get(DeploymentOptions.TARGET);
+            String target = context.getRuntimeConfiguration().get(RUNTIME_TARGET);
             if (!"local".equals(target)) {
                 throw new IllegalArgumentException(
                         "The flink configuration is invalid. Please check the pipeline configuration.");
@@ -189,7 +198,7 @@ class FlinkPipelineComposerTest {
         @Override
         public DataSource createDataSource(Context context) {
             // This option has no default value.
-            String target = context.getFlinkConf().get(DeploymentOptions.TARGET);
+            String target = context.getRuntimeConfiguration().get(RUNTIME_TARGET);
             if (!"local".equals(target)) {
                 throw new IllegalArgumentException(
                         "The flink configuration is invalid. Please check the pipeline configuration.");

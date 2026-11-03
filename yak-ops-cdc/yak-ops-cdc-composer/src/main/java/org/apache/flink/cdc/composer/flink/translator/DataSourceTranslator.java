@@ -98,7 +98,7 @@ public class DataSourceTranslator {
                         sourceDef.getConfig(),
                         pipelineConfig,
                         Thread.currentThread().getContextClassLoader(),
-                        env.getConfiguration());
+                        Configuration.fromMap(env.getConfiguration().toMap()));
         return sourceFactory.createDataSource(context);
     }
 

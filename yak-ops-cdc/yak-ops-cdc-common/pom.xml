@@ -22,13 +22,7 @@
     </properties>
 
     <dependencies>
-        <!-- Flink Table and legacy Streaming contracts are migrated in subsequent phases. -->
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-common</artifactId>
-            <version>${flink.version}</version>
-            <scope>provided</scope>
-        </dependency>
+        <!-- Legacy Flink Streaming contracts remain until the Source/Sink provider migration. -->
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-streaming-java</artifactId>
