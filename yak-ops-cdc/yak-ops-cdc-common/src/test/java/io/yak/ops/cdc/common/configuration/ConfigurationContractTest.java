@@ -25,12 +25,20 @@ class ConfigurationContractTest {
     }
 
     @Test
-    void configurationLogsNeverExposeSecrets() {
-        Configuration configuration = Configuration.fromMap(Map.of("password", "my-secret-value"));
-        assertFalse(configuration.toString().contains("my-secret-value"));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> Configuration.fromMap(Map.of("parallelism", "my-secret-value"))
-                        .get(ConfigOptions.key("parallelism").intType().noDefaultValue()));
+    void configurationDiagnosticsNeverExposeSecrets() {
+        String secret = "my-secret-value";
+        Configuration configuration = Configuration.fromMap(Map.of("password", secret));
+        assertFalse(configuration.toString().contains(secret));
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                Configuration.fromMap(Map.of("parallelism", secret))
+                                        .get(ConfigOptions.key("parallelism").intType().noDefaultValue()));
+
+        assertFalse(exception.getMessage().contains(secret));
+        assertEquals("NumberFormatException", exception.getCause().getMessage());
+        assertFalse(exception.getCause().getMessage().contains(secret));
     }
 }
