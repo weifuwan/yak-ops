@@ -92,13 +92,14 @@ class CliExecutorTest {
         PipelineComposer composer =
                 definition -> {
                     composerInvoked.set(true);
-                    return () -> new PipelineExecution.ExecutionInfo("unexpected", "unexpected");
+                    return () ->
+                            new PipelineExecution.ExecutionInfo("unexpected", "unexpected");
                 };
 
         CliExecutor executor =
                 new CliExecutor(pipelineDefinition, new Configuration(), composer);
 
-        assertThrows(Exception.class, executor::run);
+        assertThrows(NullPointerException.class, executor::run);
         assertFalse(composerInvoked.get());
     }
 
