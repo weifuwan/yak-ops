@@ -16,7 +16,7 @@ Example: [mysql-to-mysql.yaml](examples/mysql-to-mysql.yaml).
 The target database must exist before first execution. Table creation is handled by
 `JdbcMetadataApplier` when `CreateTableEvent` is received, provided the database user has
 DDL permissions. The JDBC sink currently has **at-least-once**, not exactly-once, semantics.
-The upstream JDBC 3.2.0-1.19 dependency targets Flink 1.19; runtime compatibility with Flink 1.20.3 must be checked by integration tests.
+The JDBC connector dependency is 3.3.0-1.20 for Flink 1.20.3; the original upstream PR used 3.2.0-1.19. The backend CDC suite verifies the JDBC sink with MySQL Testcontainers and a bounded source-to-sink snapshot pipeline.
 Use a dedicated MySQL account for the source with replication privileges and ensure
 row-based binlogging is enabled. Change the sample credentials before use.
 

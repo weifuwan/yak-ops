@@ -32,6 +32,7 @@ limitations under the License.
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-cdc-pipeline-connector-jdbc-core</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

@@ -197,5 +197,38 @@ class ReportTest(unittest.TestCase):
             self.assertRaises(ValueError, subject.check_registration, self.root)
 
 
+class JdbcSinkReportTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.reports = self.root / subject.JDBC_SINK_MODULE / "target/surefire-reports"
+        self.reports.mkdir(parents=True)
+
+    def write_report(self, name, count, error=False):
+        cases = "".join('<testcase classname="jdbc.' + name + '" name="case' + str(i) + '"/>'
+                        for i in range(count))
+        errors = ' errors="1"' if error else ""
+        (self.reports / ("TEST-jdbc." + name + ".xml")).write_text(
+            '<testsuite name="jdbc.' + name + '"' + errors + '>' + cases + '</testsuite>')
+
+    def test_all_jdbc_reports_are_required(self):
+        for name, minimum in subject.JDBC_SINK_TESTS.items():
+            self.write_report(name, minimum)
+        self.assertEqual(subject.JDBC_SINK_TESTS, subject.check_jdbc_sink_reports(self.root))
+        missing = next(iter(subject.JDBC_SINK_TESTS))
+        (self.reports / ("TEST-jdbc." + missing + ".xml")).unlink()
+        with self.assertRaisesRegex(ValueError, missing):
+            subject.check_jdbc_sink_reports(self.root)
+
+    def test_skipped_or_failed_jdbc_report_fails(self):
+        for name, minimum in subject.JDBC_SINK_TESTS.items():
+            self.write_report(name, minimum)
+        bad = next(iter(subject.JDBC_SINK_TESTS))
+        self.write_report(bad, subject.JDBC_SINK_TESTS[bad], error=True)
+        with self.assertRaisesRegex(ValueError, bad):
+            subject.check_jdbc_sink_reports(self.root)
+
+
 if __name__ == "__main__":
     unittest.main()

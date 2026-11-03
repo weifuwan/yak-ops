@@ -32,8 +32,8 @@ limitations under the License.
     </modules>
 
     <properties>
-        <!-- TODO: Bump JDBC connector version after it supports Flink 1.20 -->
-        <flink.jdbc.connector.version>3.2.0-1.19</flink.jdbc.connector.version>
+        <!-- Use the JDBC Connector release compiled for Flink 1.20. -->
+        <flink.jdbc.connector.version>3.3.0-1.20</flink.jdbc.connector.version>
         <hikari.version>4.0.3</hikari.version>
         <mysql.driver.version>8.0.27</mysql.driver.version>
     </properties>

@@ -84,6 +84,34 @@ def check_reports(names: list[str], root: Path = ROOT) -> dict[str, int]:
     return counts
 
 
+JDBC_SINK_MODULE = ("yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/"
+                    "yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc")
+JDBC_SINK_TESTS = {
+    "JdbcSinkGenericITCase": 2,
+    "MySqlDataSinkITCase": 6,
+    "MySqlMetadataApplierITCase": 8,
+    "MySqlPipelineToJdbcITCase": 1,
+}
+
+
+def check_jdbc_sink_reports(root: Path = ROOT) -> dict[str, int]:
+    """Require fresh, non-skipped Surefire evidence from the JDBC integration run."""
+    folder = root / JDBC_SINK_MODULE / "target/surefire-reports"
+    counts: dict[str, int] = {}
+    for name, minimum in JDBC_SINK_TESTS.items():
+        reports = list(folder.glob("TEST-*." + name + ".xml"))
+        if len(reports) != 1:
+            raise ValueError(f"Missing or duplicate JDBC report for {name}: {len(reports)}")
+        suite = ET.parse(reports[0]).getroot()
+        cases = suite.findall("testcase")
+        if len(cases) < minimum or any(int(suite.get(k, "0")) for k in ("failures", "errors", "skipped")):
+            raise ValueError(f"Incomplete or failed JDBC suite {name}: {len(cases)} cases; expected {minimum}")
+        if any(case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")):
+            raise ValueError("Failed or skipped JDBC integration test " + name)
+        counts[name] = len(cases)
+    return counts
+
+
 def require_results(names: list[str], scope_result: str, tests_result: str) -> str:
     if scope_result != "success":
         raise ValueError("Backend test selection did not succeed")
@@ -155,11 +183,13 @@ def run(name: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("select", "run", "check", "registration"))
+    parser.add_argument("action", choices=("select", "run", "check", "registration", "jdbc-reports"))
     parser.add_argument("suite", nargs="?", default="full")
     args = parser.parse_args()
     if args.action == "registration":
         check_registration()
+    elif args.action == "jdbc-reports":
+        print(check_jdbc_sink_reports())
     elif args.action == "run":
         run(args.suite)
     elif args.action == "check":

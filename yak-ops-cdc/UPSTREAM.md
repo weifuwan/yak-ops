@@ -12,5 +12,5 @@ Build from repository root: \`mvn -pl yak-ops-cdc -am -Dmaven.test.skip=true com
 
 JDBC Pipeline Sink is separately ported from the unmerged Apache Flink CDC PR #3916
 (`d8bf6f37001bd67b48174456a57e484d9078f040`). The JDBC connector dependency
-follows upstream JDBC `3.2.0-1.19`, with Maven coordinates remapped to Yak Ops.
-This original JDBC version targets Flink 1.19; Flink 1.20 runtime compatibility needs testing.
+uses JDBC `3.3.0-1.20` to match Yak Ops Flink 1.20.3, with Maven coordinates remapped to Yak Ops.
+The original PR uses JDBC `3.2.0-1.19`; Yak Ops tests the Flink 1.20 connector in its backend CDC suite.
