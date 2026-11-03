@@ -27,7 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Utilities for handling schema change events. */
+/** Utilities for handling {@link io.yak.ops.cdc.common.event.ChangeEvent}s. */
 public class ChangeEventUtils {
     public static Set<SchemaChangeEventType> resolveSchemaEvolutionOptions(
             List<String> includedSchemaEvolutionTypes, List<String> excludedSchemaEvolutionTypes) {
