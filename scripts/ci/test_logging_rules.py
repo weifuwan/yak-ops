@@ -64,7 +64,7 @@ class LoggingChecksTest(unittest.TestCase):
                 return verify_file(source)
 
     def test_cli_main_can_bind_standard_streams_to_the_command_runner(self):
-        self.assertEqual([], self.check_cli('int exitCode = run(args, System.out, System.err);'))
+        self.assertEqual([], self.check_cli('System.out.println("Pipeline has been submitted to cluster.");'))
 
     def test_cli_console_binding_does_not_exempt_other_calls(self):
         for statement in (
@@ -77,7 +77,7 @@ class LoggingChecksTest(unittest.TestCase):
                 self.assertTrue(self.check_cli(statement))
 
     def test_cli_console_binding_does_not_exempt_other_files(self):
-        statement = 'int exitCode = run(args, System.out, System.err);'
+        statement = 'System.out.println("Pipeline has been submitted to cluster.");'
         self.assertTrue(self.check(statement))
         self.assertTrue(self.check_cli(statement, CLI_CONSOLE_ENTRYPOINT.with_name("OtherCommand.java")))
 

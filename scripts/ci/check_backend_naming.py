@@ -9,7 +9,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 # Last accepted main commit before the Java record ban. Existing declarations are grandfathered.
 RECORD_BASELINE_COMMIT = "cbc26fbeace4bd3cb7fa3df57e8250e27f0abe93"
-NETWORK_IO = "yak-flow/yak-flow-runtime/src/main/java/io/yak/ops/flow/runtime/io/"
 OBSOLETE_DATA_SYNC_PACKAGES = (
     "yak-ops-common/src/main/java/io/yak/ops/common/bean/dto/datasync",
     "yak-ops-common/src/main/java/io/yak/ops/common/bean/vo/datasync",
@@ -34,10 +33,6 @@ METHOD = re.compile(
 CODEC = re.compile(r"Codec|(?<![A-Za-z])codec")
 RECORD_DECLARATION = re.compile(r"\brecord\s+([A-Za-z_$][\w$]*)\s*\(")
 VAR_DECLARATION = re.compile(r"\bvar\s+[A-Za-z_$][\w$]*\s*(?:=|:)")
-DATA_SYNC_JAVA = (
-    "yak-ops-plugins/yak-ops-plugin-task/"
-    "yak-ops-plugin-task-data-sync/src/main/java/"
-)
 
 
 def code_only(source: str) -> str:
@@ -75,9 +70,7 @@ def verify_source(path: str, source: str) -> list[tuple[int, str]]:
                 line_number(code, match.start(1)),
                 f"Type '{name}' uses Codec; prefer Parser, Serializer or a specific converter",
             ))
-        if name.endswith("Gate") and not (
-            path.startswith(NETWORK_IO) and package.group(1).startswith("io.yak.ops.flow.runtime.io.")
-        ):
+        if name.endswith("Gate"):
             violations.append((
                 line_number(code, match.start(1)),
                 f"Type '{name}' uses Gate outside Runtime network I/O; name its actual owner",
@@ -151,11 +144,11 @@ def verify_repository(root: Path = ROOT) -> tuple[int, list[str]]:
         source = path.read_text(encoding="utf-8")
         for line, reason in verify_source(relative, source):
             errors.append(f"{relative}:{line}: {reason}")
-        if relative.startswith(DATA_SYNC_JAVA):
+        if PACKAGE.search(code_only(source)) and PACKAGE.search(code_only(source)).group(1).startswith("io.yak.ops."):
             for match in VAR_DECLARATION.finditer(code_only(source)):
                 errors.append(
                     f"{relative}:{line_number(source, match.start())}: "
-                    "Java var is prohibited in DATA_SYNC; declare an explicit type"
+                    "Java var is prohibited in native Yak Ops production; declare an explicit type"
                 )
         if enforce_records and RECORD_DECLARATION.search(code_only(source)):
             for line, reason in new_record_violations(relative, source, baseline_record_source(relative)):

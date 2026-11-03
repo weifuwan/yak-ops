@@ -18,7 +18,7 @@ After v1.3.0 is published, V1 is immutable. Every later release with schema chan
 
 ## Release Gate
 
-Run [Release Gate](../../.github/workflows/v1-release-gate.yml) manually from `main`, with a stable `release_version` matching repository metadata. The workflow requires full Quality Check, JDBC source/sink real-database integration, versioned Playwright UI tests, distribution checks, Docker identity and Compose smoke. The formal `full` backend test selection covers the remaining registered database integration suites. Only a completed test report from the exact candidate commit can be marked PASS; skipped, missing or failed tests block the Release Gate. Required checks must actually run and succeed; UI evidence must match the candidate version and commit SHA.
+Run [Release Gate](../../.github/workflows/v1-release-gate.yml) manually from `main`, with a stable `release_version` matching repository metadata. The workflow requires full Quality Check, registered Business and MySQL CDC database integration, versioned Playwright UI tests, distribution checks, Docker identity and Compose smoke. The formal `full` backend test selection covers the remaining registered database integration suites. Only a completed test report from the exact candidate commit can be marked PASS; skipped, missing or failed tests block the Release Gate. Required checks must actually run and succeed; UI evidence must match the candidate version and commit SHA.
 
 Release Decision requires explicit confirmations and evidence:
 

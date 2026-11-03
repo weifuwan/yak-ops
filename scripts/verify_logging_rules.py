@@ -8,8 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 # modules. Keep source intact for upstream diffs; native Yak Ops code is checked.
 UPSTREAM_REGISTRY_MODULES = {"yak-ops-registry-api", "yak-ops-registry-jdbc"}
 
-CLI_CONSOLE_ENTRYPOINT = Path("yak-ops-engine/src/main/java/io/yak/ops/cli/CliFrontend.java")
-CLI_CONSOLE_BINDING = "int exitCode = run(args, System.out, System.err);"
+CLI_CONSOLE_ENTRYPOINT = Path("yak-ops-cdc/yak-ops-cdc-cli/src/main/java/org/apache/flink/cdc/cli/CliFrontend.java")
+CLI_CONSOLE_BINDINGS = {
+    'System.out.println("Pipeline has been submitted to cluster.");',
+    'System.out.printf("Job ID: %s\\n", info.getId());',
+    'System.out.printf("Job Description: %s\\n", info.getDescription());',
+}
 
 FORBIDDEN_SNIPPETS = {
     "@Slf4j": "禁止使用 Lombok @Slf4j，统一显式声明 SLF4J Logger",
@@ -181,7 +185,7 @@ def verify_file(path):
                 start = text.rfind("\n", 0, match.start()) + 1
                 end = text.find("\n", match.end())
                 # The command entry point injects standard I/O into its runner exactly once.
-                if text[start:end if end >= 0 else len(text)].strip() == CLI_CONSOLE_BINDING:
+                if text[start:end if end >= 0 else len(text)].strip() in CLI_CONSOLE_BINDINGS:
                     continue
             violations.append((line_number(text, match.start()), reason))
 
@@ -256,10 +260,10 @@ def verify_file(path):
             violations.append((line, f"日志调用疑似直接引用敏感字段：{sensitive.group(0)}"))
 
     file_name = relative.as_posix()
-    if file_name.startswith(("yak-ops-core/src/main/java/", "yak-flow/yak-flow-runtime/src/main/java/")):
+    if file_name.startswith(("yak-ops-task-execution/src/main/java/", "yak-ops-cdc/yak-ops-cdc-runtime/src/main/java/")):
         for offset, _message in chinese_engine_literals(text):
             violations.append((line_number(text, offset), "Core and Runtime diagnostics must be written in English"))
-    elif file_name.startswith("yak-flow/yak-flow-connector-") and "/src/main/java/" in file_name:
+    elif file_name.startswith("yak-ops-plugins/yak-ops-plugin-datasource/yak-ops-plugin-datasource-jdbc/src/main/java/"):
         for offset, _message in chinese_connector_exceptions(text):
             violations.append((line_number(text, offset), "Connector technical exception messages must be in English"))
 

@@ -2,7 +2,7 @@
 
 Build, move, and operate data with confidence.
 
-Yak Ops 是面向数据集成与同步场景的数据平台，通过 Task Definition 管理同步配置、发布和执行，由 YakFlow 执行 JDBC 批量读取与 MySQL CDC 同步。已发布版本的能力请查看对应 Release。
+Yak Ops 是面向数据集成与同步场景的数据平台，通过 Task Definition 管理同步配置、发布和执行，目前保留通用任务管理和数据源能力，并持续迁移 Flink CDC 代码；旧数据同步 Task 插件已不再注册，具体可执行能力以实际版本和测试结果为准。已发布版本的能力请查看对应 Release。
 
 ## Build and Run
 
@@ -45,4 +45,4 @@ docker compose up -d
 - [历史 GitHub Releases](https://github.com/weifuwan/yak-ops/releases)
 - [发布操作](scripts/release/README.md)
 
-发布检查包括 CI、JDBC Source/Sink、CDC、Playwright UI、Distribution 与 Docker/Compose 验证。各测试是否通过以对应 Release Gate 的实际报告为准。发布证据来自 GitHub Actions、Git Tags 和 Release Assets。
+发布检查包括 CI、当前 Business/CDC 集成测试、Playwright UI、Distribution 与 Docker/Compose 验证。各测试是否通过以对应 Release Gate 的实际报告为准。发布证据来自 GitHub Actions、Git Tags 和 Release Assets。

@@ -20,8 +20,8 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 ## Repository Structure
 
-- `yak-ops-core` owns database-neutral Source/Sink and value contracts; it cannot depend on Runtime.
-- `yak-flow` owns local execution, physical graphs, mailbox scheduling, checkpointing, and JDBC/CDC connectors.
+- `yak-ops-cdc` retains Flink CDC CLI, composer, runtime and MySQL connector source; it is not yet wired to the product Task plugin.
+- `yak-ops-configuration` owns the shared option parsing and validation contracts used by Task and Datasource plugins.
 - `yak-ops-business` owns datasource/task business lifecycle; `yak-ops-task-execution` owns process-level dispatch, observation, cancellation, and embedded Task execution.
 - `yak-ops-plugins` owns plugin APIs and implementations; `yak-ops-dao` owns repositories, persistence, and Flyway; `yak-ops-platform` owns Workspace, security, and preferences.
 - `yak-ops-common` holds genuine shared utilities; `yak-ops-boot` assembles the application and HTTP boundary.
@@ -30,7 +30,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 ## Architecture Boundaries
 
-- Do not add reverse dependencies from Core to Runtime or from business modules to Boot. Connectors must not depend on Controllers/DAO or product Task identity for runtime creation.
+- Do not add reverse dependencies from business modules to Boot or product Task components to CDC connector internals. Connectors must not depend on Controllers/DAO or product Task identity for runtime creation.
 - Preserve Workspace authorization and isolation, immutable task versions, task-definition identity, credential separation, and safety checks. Accepted task configuration is JSON; plugin validation must not read credentials or silently rewrite user parameters.
 - Keep Reader/Writer mutable execution state separate from immutable checkpoint snapshots. Preserve checkpoint, serializer, handoff, offset, and recovery guarantees; do not claim exactly-once or distributed behavior without executable evidence.
 - Logging and diagnostics must not expose credentials, sensitive row data, dispatch tokens, or state bytes, including via `toString()`. Preserve exception types and causes; never derive execution decisions from exception message text or expose raw internal diagnostics to users. Technical logs and JavaDoc use English; user-visible errors are localized at their owning boundary.
@@ -53,7 +53,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 - `normalize` means canonicalization, not parsing, validation, resolution, planning, or applying state. Reserve `*Gate` types for Runtime network I/O boundaries (`InputGate`); do not use `Manager`, `Handler`, `Compiler`, or `Policy` as vague substitutes for an actual responsibility.
 - Avoid redundant package-local prefixes (for example, `Sync*` under `io.yak.ops.plugin.task.datasync`). Preserve meaningful `Jdbc` and `MySqlCdc` qualifiers where they disambiguate public APIs.
 - Keep shared helpers with the module owning their invariant. Naming-only changes must not alter published identifiers, JSON fields, configuration keys, or checkpoint formats; do not add aliases merely to preserve internal names.
-- `python3 scripts/ci/check_backend_naming.py` enforces new Java records, `Codec` symbols, invalid `*Gate` types and `var` declarations in DATA_SYNC. Semantic ownership still requires review.
+- `python3 scripts/ci/check_backend_naming.py` enforces new Java records, `Codec` symbols, invalid native `*Gate` types and `var` declarations in owned Yak Ops Java. Semantic ownership still requires review.
 
 ## Code Quality and Review
 
@@ -64,8 +64,8 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 ## Verification Scope and Incremental Review
 
-- Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for real JDBC/CDC integration tests. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
-- Select unit tests for pure logic, real database IT for JDBC/CDC semantics, and targeted CDC recovery integration tests for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
+- Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for current Business and MySQL CDC database integration tests. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
+- Select unit tests for pure logic, real database IT for current CDC and Task persistence semantics, and targeted CDC recovery integration tests for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
 - Isolate data, Workspace, and state per test. Use bounded condition-based waits; do not hide flakes via silent retries or change production checkpoint intervals for tests. Destructive integration tests need private environments and captured diagnostics before cleanup.
 - Follow the [Backend Tests and Release Gate](DEVELOPMENT.md#test-types-and-execution) scope. Frontend Playwright checks browser behavior; do not place real CDC/transaction waits in browser tests. Unselected suites are **not selected**, not passed.
 - For reviews, record head, base, tested tree/SHA, changed files, and relevant CI evidence. Read affected callers/tests; after fixes review the delta from the prior reviewed SHA, expanding when shared contracts or base change. Known unresolved failures remain blockers.
