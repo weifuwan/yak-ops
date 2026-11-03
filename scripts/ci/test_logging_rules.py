@@ -26,10 +26,11 @@ class LoggingChecksTest(unittest.TestCase):
             )
             return verify_file(source)
 
-    def test_upstream_registry_sources_are_excluded_without_disabling_native_rules(self):
+    def test_upstream_sources_are_excluded_without_disabling_native_rules(self):
         paths = [str(path.relative_to(ROOT)) for path in production_java_files()]
         self.assertFalse(any(path.startswith("yak-ops-registry-jdbc/") for path in paths))
         self.assertFalse(any(path.startswith("yak-ops-registry-api/") for path in paths))
+        self.assertFalse(any(path.startswith("yak-ops-cdc/") for path in paths))
         self.assertTrue(any(path.startswith("yak-ops-task-execution/") for path in paths))
 
     def test_marker_log_templates_follow_the_same_language_rules(self):
@@ -102,6 +103,8 @@ class LoggingChecksTest(unittest.TestCase):
         self.assertEqual(1, len(diagnostics))
         self.assertIn("CRC", diagnostics[0][1])
         self.assertEqual([], chinese_connector_exceptions('String warning = "目标使用 TEXT";'))
+        self.assertEqual([], chinese_connector_exceptions(
+            'throw new DataSourcePluginException(DataSourcePluginOperation.CONNECTIVITY, "数据库连接不可用");'))
 
 
 if __name__ == "__main__":

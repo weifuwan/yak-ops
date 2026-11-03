@@ -4,9 +4,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Verbatim Apache DolphinScheduler Registry source is held in dedicated vendor
-# modules. Keep source intact for upstream diffs; native Yak Ops code is checked.
-UPSTREAM_REGISTRY_MODULES = {"yak-ops-registry-api", "yak-ops-registry-jdbc"}
+# Upstream DolphinScheduler, Flink CDC and Debezium copies use their own style.
+# Native Yak Ops modules remain subject to all logging and diagnostic checks.
+UPSTREAM_MODULES = {"yak-ops-registry-api", "yak-ops-registry-jdbc", "yak-ops-cdc"}
 
 CLI_CONSOLE_ENTRYPOINT = Path("yak-ops-cdc/yak-ops-cdc-cli/src/main/java/org/apache/flink/cdc/cli/CliFrontend.java")
 CLI_CONSOLE_BINDINGS = {
@@ -88,6 +88,9 @@ def chinese_connector_exceptions(text):
                 depth -= 1
             end += 1
         call = text[match.start():end]
+        # Product-facing datasource errors are intentionally localized at their API boundary.
+        if re.match(r"\bnew\s+[\w$.]*DataSourcePluginException\s*\(", call):
+            continue
         for offset, value in java_string_literals(call):
             if HAN_TEXT.search(value):
                 found.append((match.start() + offset, value))
@@ -100,7 +103,7 @@ def production_java_files():
         normalized = path.as_posix()
         if "/src/main/java/" not in normalized:
             continue
-        if "yak-ops-ui" in path.parts or path.relative_to(ROOT).parts[0] in UPSTREAM_REGISTRY_MODULES:
+        if "yak-ops-ui" in path.parts or path.relative_to(ROOT).parts[0] in UPSTREAM_MODULES:
             continue
         files.append(path)
     return sorted(files)
