@@ -68,10 +68,10 @@ class SuiteSelectionTest(unittest.TestCase):
             "CI_PR_BASE_SHA": "a",
             "CI_PR_HEAD_SHA": "b",
         }, clear=True):
-            changed = (subject.CDC + "/src/main/java/Reader.java\\0").encode()
+            changed = (subject.CDC + "/src/main/java/Reader.java\0").encode()
             with patch.object(subject.subprocess, "check_output", return_value=changed):
                 self.assertEqual([], subject.selected_suites("auto"))
-            changed = (subject.BUSINESS + "/src/main/java/TaskService.java\\0").encode()
+            changed = (subject.BUSINESS + "/src/main/java/TaskService.java\0").encode()
             with patch.object(subject.subprocess, "check_output", return_value=changed):
                 self.assertEqual(["business"], subject.selected_suites("auto"))
 
