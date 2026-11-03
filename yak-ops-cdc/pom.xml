@@ -92,7 +92,7 @@ limitations under the License.
         more details are in FLINK-27995 -->
         <janino.version>3.1.10</janino.version>
         <!-- This is for Scala UDF testing purposes only. -->
-        <scala.version>2.12.16</scala.version>
+        <scala.version>2.12.20</scala.version>
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <iceberg.version>1.10.1</iceberg.version>

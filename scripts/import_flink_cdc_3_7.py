@@ -145,6 +145,8 @@ def rewrite_pom(xml: str, relative: str) -> str:
         xml = xml.replace(old, new, 1)
         xml = xml.replace("<revision>3.7.0</revision>",
                           "<revision>1.4.0</revision>", 1)
+        xml = xml.replace("<scala.version>2.12.16</scala.version>",
+                          "<scala.version>2.12.20</scala.version>", 1)
         xml = re.sub(r"<scm>[\s\S]*?</scm>",
                      "<scm><url>https://github.com/weifuwan/yak-ops</url></scm>",
                      xml, count=1)
