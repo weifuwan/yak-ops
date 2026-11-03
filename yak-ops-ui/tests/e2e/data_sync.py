@@ -44,7 +44,7 @@ async def rename_task(page, name):
 
 async def open_advanced(page, tab="高级参数", parameter_tab="读端配置"):
     drawer = page.get_by_role("dialog", name="高级配置", exact=True)
-    if not await drawer.count():
+    if not await drawer.is_visible():
         await page.get_by_role("button", name="高级配置", exact=True).click()
     await expect(drawer).to_be_visible()
     await drawer.get_by_role("tab", name=tab, exact=True).click()
@@ -1080,12 +1080,12 @@ async def verify_field_mapping(page):
     await fields.get_by_role("button", name="手动编辑映射关系", exact=True).click()
     manual = page.get_by_role("dialog", name="手动编辑字段映射", exact=True)
     await expect(manual).to_be_visible()
-    await manual.get_by_role("textbox", name="手动来源字段", exact=True).fill("id\\namount")
+    await manual.get_by_role("textbox", name="手动来源字段", exact=True).fill("id\namount")
     target_editor = manual.get_by_role("textbox", name="手动目标字段", exact=True)
-    await target_editor.fill("order_id\\norder_id")
+    await target_editor.fill("order_id\norder_id")
     await manual.get_by_role("button", name="确认", exact=True).click()
     await expect(manual.get_by_text("来源字段和目标字段均不能重复映射", exact=True)).to_be_visible()
-    await target_editor.fill("order_id\\namount")
+    await target_editor.fill("order_id\namount")
     await manual.get_by_role("button", name="确认", exact=True).click()
     await expect(manual).to_be_hidden()
     await expect(fields.get_by_text("已映射 2 个字段", exact=True)).to_be_visible()
