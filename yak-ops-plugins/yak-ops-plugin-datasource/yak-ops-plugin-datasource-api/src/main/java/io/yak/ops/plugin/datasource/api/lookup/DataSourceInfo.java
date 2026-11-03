@@ -10,8 +10,7 @@ public record DataSourceInfo(String type, String database, String schema, long r
     }
 
     public DataSourceTablePath resolveTable(String selectedDatabase, String selectedSchema, String table) {
-        return new DataSourceTablePath(
-                namespace(database, selectedDatabase), namespace(schema, selectedSchema), table);
+        return new DataSourceTablePath(namespace(database, selectedDatabase), namespace(schema, selectedSchema), table);
     }
 
     private static String namespace(String bound, String selected) {

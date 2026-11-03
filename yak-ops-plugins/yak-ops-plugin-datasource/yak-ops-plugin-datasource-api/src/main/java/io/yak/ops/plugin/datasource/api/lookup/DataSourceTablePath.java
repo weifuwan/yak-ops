@@ -43,9 +43,7 @@ public final class DataSourceTablePath {
             return false;
         }
         DataSourceTablePath that = (DataSourceTablePath) other;
-        return Objects.equals(catalog, that.catalog)
-                && Objects.equals(schema, that.schema)
-                && table.equals(that.table);
+        return Objects.equals(catalog, that.catalog) && Objects.equals(schema, that.schema) && table.equals(that.table);
     }
 
     @Override
