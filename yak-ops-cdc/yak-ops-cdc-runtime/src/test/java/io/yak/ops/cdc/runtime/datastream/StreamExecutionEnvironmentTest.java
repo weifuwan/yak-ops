@@ -109,6 +109,49 @@ class StreamExecutionEnvironmentTest {
     }
 
     @Test
+    void materializesOnlyOnDemandAndRetainsTransformationIdsAndGraphIdentity() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        AtomicInteger created = new AtomicInteger();
+
+        DataStream<Integer> source = env.fromSource("input", () -> {
+            created.incrementAndGet();
+            return output -> output.collect(3);
+        });
+        DataStream<Integer> transform = source.transform("increment", () -> {
+            created.incrementAndGet();
+            return (number, output) -> output.collect(number + 1);
+        });
+        transform.addSink("output", () -> {
+            created.incrementAndGet();
+            return value -> {};
+        }, "sink-uid");
+
+        assertEquals(1, source.getId());
+        assertEquals(2, transform.getId());
+        assertEquals(0, created.get());
+        StreamGraph first = env.getStreamGraph();
+        assertTrue(first == env.getStreamGraph());
+        assertEquals(0, created.get());
+        assertEquals(3, first.getNodes().size());
+        assertEquals("sink-uid", first.getStreamNode(3).getTransformationUID());
+        assertThrows(IllegalStateException.class, () -> source.uid("too-late"));
+
+        env.execute("lazy");
+        assertEquals(3, created.get());
+    }
+
+    @Test
+    void invalidDefinitionCanBeCompletedAfterFailedMaterialization() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        DataStream<Integer> source = env.fromSource("input", () -> output -> {});
+        assertThrows(IllegalArgumentException.class, env::getStreamGraph);
+        source.addSink("output", () -> value -> {});
+        assertEquals(2, env.getStreamGraph().getNodes().size());
+        assertThrows(IllegalStateException.class,
+                () -> source.transform("too-late", () -> (value, output) -> {}));
+    }
+
+    @Test
     void rejectsMalformedGraphsAndMultipleSourcesOrBranches() {
         StreamExecutionEnvironment noSink = StreamExecutionEnvironment.getLocalEnvironment();
         DataStream<Object> src = noSink.fromSource("source", () -> out -> {});

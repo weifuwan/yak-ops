@@ -17,31 +17,38 @@
 
 package io.yak.ops.cdc.runtime.datastream;
 
-import io.yak.ops.cdc.runtime.graph.OperatorType;
 import io.yak.ops.cdc.runtime.graph.StreamGraph;
-import io.yak.ops.cdc.runtime.graph.StreamNode;
+import io.yak.ops.cdc.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.cdc.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.cdc.runtime.operators.OperatorFactory;
 import io.yak.ops.cdc.runtime.operators.SinkOperator;
 import io.yak.ops.cdc.runtime.operators.SourceOperator;
-import io.yak.ops.cdc.runtime.operators.StreamOperator;
 import io.yak.ops.cdc.runtime.tasks.LocalExecutionPlan;
 import io.yak.ops.cdc.runtime.tasks.StreamTask;
+import io.yak.ops.cdc.runtime.transformations.OneInputTransformation;
+import io.yak.ops.cdc.runtime.transformations.SinkTransformation;
+import io.yak.ops.cdc.runtime.transformations.SourceTransformation;
+import io.yak.ops.cdc.runtime.transformations.Transformation;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Local DataStream builder. Delegates topology management to StreamGraph, not live operators.
+ * Local DataStream environment. Records transformations first, then generates and seals
+ * the StreamGraph when it is requested or submitted for execution.
  *
- * <p>For now an environment builds a single linear pipeline, while StreamGraph can represent
- * more general acyclic topologies. Once finalized, the graph cannot be modified.
+ * <p>The standalone builder currently permits exactly one linear source-to-sink pipeline.
+ * The general graph model and generator do not inherit that runtime restriction.
  */
 public final class StreamExecutionEnvironment {
-    private final StreamGraph graph = new StreamGraph();
+    private final List<Transformation<?>> transformations = new ArrayList<>();
     private int nextId = 1;
-    private boolean submitted;
+    private Transformation<?> tail;
+    private StreamGraph graph;
     private LocalExecutionPlan executionPlan;
+    private boolean submitted;
 
     public static StreamExecutionEnvironment getLocalEnvironment() {
         return new StreamExecutionEnvironment();
@@ -50,76 +57,92 @@ public final class StreamExecutionEnvironment {
     public <T> DataStream<T> fromSource(
             String name, OperatorFactory<? extends SourceOperator<T>> factory) {
         checkMutable();
-        if (!graph.getNodes().isEmpty()) {
+        if (!transformations.isEmpty()) {
             throw new IllegalStateException("Only one source per pipeline is supported");
         }
-        int id = addNode(name, OperatorType.SOURCE, factory, null);
-        return new DataStream<>(this, id);
+        SourceTransformation<T> source = new SourceTransformation<>(nextId, name, factory);
+        addTransformation(source);
+        return new DataStream<>(this, source);
     }
 
     <IN, OUT> DataStream<OUT> addTransform(
-            int inputId, String name,
+            Transformation<IN> input,
+            String name,
             OperatorFactory<? extends OneInputStreamOperator<IN, OUT>> factory) {
-        validateTail(inputId);
-        int id = addNode(name, OperatorType.TRANSFORM, factory, null);
-        graph.addEdge(inputId, id);
-        return new DataStream<>(this, id);
+        validateTail(input);
+        OneInputTransformation<IN, OUT> transform =
+                new OneInputTransformation<>(nextId, name, input, factory);
+        addTransformation(transform);
+        return new DataStream<>(this, transform);
     }
 
     <T> void addSink(
-            int inputId, String name,
-            OperatorFactory<? extends SinkOperator<T>> factory, String uid) {
-        validateTail(inputId);
-        int id = addNode(name, OperatorType.SINK, factory, uid);
-        graph.addEdge(inputId, id);
+            Transformation<T> input,
+            String name,
+            OperatorFactory<? extends SinkOperator<T>> factory,
+            String uid) {
+        validateTail(input);
+        SinkTransformation<T> sink = new SinkTransformation<>(nextId, name, input, factory);
+        validateUid(sink, uid);
+        sink.setUid(uid);
+        addTransformation(sink);
     }
 
-    void setUid(int id, String uid) {
-        graph.setTransformationUID(id, uid);
-    }
-
-    private int addNode(
-            String name, OperatorType type,
-            OperatorFactory<? extends StreamOperator> factory, String uid) {
+    void setUid(Transformation<?> transformation, String uid) {
         checkMutable();
-        int id = nextId;
-        StreamNode node = new StreamNode(id, name, uid, type, factory);
-        if (type == OperatorType.SOURCE) {
-            graph.addSource(node);
-        } else if (type == OperatorType.SINK) {
-            graph.addSink(node);
-        } else {
-            graph.addOperator(node);
+        Objects.requireNonNull(transformation, "transformation");
+        if (!transformations.contains(transformation)) {
+            throw new IllegalArgumentException("Unknown transformation: " + transformation.getId());
         }
+        validateUid(transformation, uid);
+        transformation.setUid(uid);
+    }
+
+    private void addTransformation(Transformation<?> transformation) {
+        checkMutable();
+        transformations.add(transformation);
+        tail = transformation;
         nextId++;
-        return id;
     }
 
-    private void validateTail(int inputId) {
-        checkMutable();
-        StreamNode input = graph.getStreamNode(inputId);
-        if (input == null) {
-            throw new IllegalArgumentException("Unknown upstream node: " + inputId);
+    private void validateUid(Transformation<?> target, String uid) {
+        if (uid != null && uid.isBlank()) {
+            throw new IllegalArgumentException("UID must not be blank");
         }
-        if (input.getType() == OperatorType.SINK || !graph.getSinkIDs().isEmpty()) {
+        if (uid == null) {
+            return;
+        }
+        for (Transformation<?> existing : transformations) {
+            if (existing != target && uid.equals(existing.getUid())) {
+                throw new IllegalArgumentException("Duplicate operator UID: " + uid);
+            }
+        }
+    }
+
+    private void validateTail(Transformation<?> input) {
+        checkMutable();
+        Objects.requireNonNull(input, "input");
+        if (tail instanceof SinkTransformation<?>) {
             throw new IllegalStateException("Cannot attach nodes after the sink");
         }
-        if (!input.getOutEdges().isEmpty()) {
-            throw new IllegalArgumentException("Branching is not supported in the first runtime");
+        if (tail != input) {
+            throw new IllegalArgumentException(
+                    "Branching and multiple inputs are not supported in the first runtime");
         }
     }
 
     private void checkMutable() {
-        if (graph.isSealed()) {
+        if (graph != null) {
             throw new IllegalStateException("The pipeline graph is already finalized");
         }
     }
 
-    public StreamGraph getStreamGraph() {
-        if (!graph.isSealed()) {
-            LocalExecutionPlan validatedPlan = LocalExecutionPlan.compile(graph);
-            graph.seal();
-            executionPlan = validatedPlan;
+    public synchronized StreamGraph getStreamGraph() {
+        if (graph == null) {
+            StreamGraph candidate = new StreamGraphGenerator(transformations).generate();
+            LocalExecutionPlan candidatePlan = LocalExecutionPlan.compile(candidate);
+            graph = candidate;
+            executionPlan = candidatePlan;
         }
         return graph;
     }
