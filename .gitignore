@@ -70,3 +70,6 @@ spark-warehouse
 # stage completion notes, connector probes, sync markers, or other agent handoff files.
 .stage*
 docs/**/STAGE*.md
+
+# Flink CDC Java data packages are source code, not runtime data directories.
+!yak-ops-cdc/**/data/
