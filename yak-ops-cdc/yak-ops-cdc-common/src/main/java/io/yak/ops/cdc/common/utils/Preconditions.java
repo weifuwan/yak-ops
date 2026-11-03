@@ -17,7 +17,7 @@
 
 package io.yak.ops.cdc.common.utils;
 
-
+import javax.annotation.Nullable;
 
 /**
  * A collection of static utility methods to validate input.
@@ -39,7 +39,7 @@ public final class Preconditions {
      * @return The object reference itself (generically typed).
      * @throws NullPointerException Thrown, if the passed reference was null.
      */
-    public static <T> T checkNotNull(T reference) {
+    public static <T> T checkNotNull(@Nullable T reference) {
         if (reference == null) {
             throw new NullPointerException();
         }
@@ -56,7 +56,7 @@ public final class Preconditions {
      * @return The object reference itself (generically typed).
      * @throws NullPointerException Thrown, if the passed reference was null.
      */
-    public static <T> T checkNotNull(T reference, String errorMessage) {
+    public static <T> T checkNotNull(@Nullable T reference, @Nullable String errorMessage) {
         if (reference == null) {
             throw new NullPointerException(String.valueOf(errorMessage));
         }
@@ -82,8 +82,8 @@ public final class Preconditions {
      */
     public static <T> T checkNotNull(
             T reference,
-            String errorMessageTemplate,
-            Object... errorMessageArgs) {
+            @Nullable String errorMessageTemplate,
+            @Nullable Object... errorMessageArgs) {
 
         if (reference == null) {
             throw new NullPointerException(format(errorMessageTemplate, errorMessageArgs));
@@ -122,8 +122,8 @@ public final class Preconditions {
      */
     public static void checkArgument(
             boolean condition,
-            String errorMessageTemplate,
-            Object... errorMessageArgs) {
+            @Nullable String errorMessageTemplate,
+            @Nullable Object... errorMessageArgs) {
 
         if (!condition) {
             throw new IllegalArgumentException(format(errorMessageTemplate, errorMessageArgs));
@@ -157,7 +157,7 @@ public final class Preconditions {
      *     check fails.
      * @throws IllegalStateException Thrown, if the condition is violated.
      */
-    public static void checkState(boolean condition, Object errorMessage) {
+    public static void checkState(boolean condition, @Nullable Object errorMessage) {
         if (!condition) {
             throw new IllegalStateException(String.valueOf(errorMessage));
         }
@@ -173,7 +173,7 @@ public final class Preconditions {
      *
      * <p>This method is taken quasi verbatim from the Guava Preconditions class.
      */
-    private static String format(String template, Object... args) {
+    private static String format(@Nullable String template, @Nullable Object... args) {
         final int numArgs = args == null ? 0 : args.length;
         template = String.valueOf(template); // null -> "null"
 
