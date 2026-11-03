@@ -99,7 +99,7 @@ class CliExecutorTest {
         CliExecutor executor =
                 new CliExecutor(pipelineDefinition, new Configuration(), composer);
 
-        assertThrows(NullPointerException.class, executor::run);
+        assertThrows(IllegalArgumentException.class, executor::run);
         assertFalse(composerInvoked.get());
     }
 
