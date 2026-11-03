@@ -1,6 +1,6 @@
 # Developing Yak Ops
 
-This document covers the Yak Ops development environment and verification commands. For the contribution process and YOIPs, see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+This document covers the Yak Ops development environment and verification commands. For the contribution process, see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ## Preparation
 
@@ -98,8 +98,8 @@ Keep JavaDoc and implementation comments in English. Checkstyle validates the co
 
 Follow the [current-state comment and documentation rules](AGENTS.md#current-state-comments-and-documentation) when changing JavaDoc, implementation comments or active project guidance.
 
-- Major design changes and public contract changes go through the [YOIP process](.github/CONTRIBUTING.md#yak-ops-improvement-proposals-yoips) before implementation.
+- Discuss major design changes and public contract changes through the [contribution process](.github/CONTRIBUTING.md) before implementation.
 - Ordinary implementation details belong in code, JavaDoc, tests and the GitHub PR; no companion descriptive Markdown is required.
 - Change user documentation for new or changed user-visible functionality, compatibility or operation procedures.
-- Consult current code, JavaDoc, tests and accepted YOIPs for behavior and design decisions.
+- Consult current code, JavaDoc, tests and linked PR discussions for behavior and design decisions.
 - Versioned user-facing release notes live in [docs/releases](docs/releases/README.md). Release preparation and publishing are manual operations; the two CI workflows do not certify release readiness.

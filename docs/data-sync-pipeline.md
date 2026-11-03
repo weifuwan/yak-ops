@@ -6,4 +6,4 @@ The shared Datasource, Task Definition, Task Instance, and scheduling APIs remai
 
 The `/api/v1/data-sync/operations/dashboard` endpoint was retired. Task Definition pagination no longer supports the product-specific `parameterFilters`; requests with nonempty legacy filters are explicitly rejected instead of silently returning unfiltered data. The frontend was not changed during this backend cleanup, so its old synchronization and operations views are not functional until a new backend integration is implemented.
 
-Historical details remain available in the repository's Git history and the accepted YOIP discussions. Do not use the old JSON examples or test expectations for a new CDC Pipeline.
+Historical details remain available in the repository's Git history and original PR discussions. Do not use the old JSON examples or test expectations for a new CDC Pipeline.

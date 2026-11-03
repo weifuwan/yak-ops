@@ -1,6 +1,6 @@
 <!--
 Following Apache Flink's PR conventions: keep the change focused, explain the
-design and its verification, and link an accepted YOIP for major changes.
+design and its verification, and link relevant design discussions for major changes.
 Documentation is required for user-facing changes, not routine refactors.
 See .github/CONTRIBUTING.md.
 -->
@@ -35,7 +35,7 @@ A focused run is not full backend E2E or release verification. -->
 - Runtime hot paths, checkpoint or recovery: no / yes (explain)
 - Security, credentials or Workspace isolation: no / yes (explain)
 - Deployment or release behavior: no / yes (explain)
-- Accepted YOIP: N/A / link
+- Related design discussion or decision: N/A / link
 
 ## Documentation
 

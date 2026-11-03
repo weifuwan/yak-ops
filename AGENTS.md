@@ -60,7 +60,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 - GitHub CI runs frontend Oxfmt, backend Spotless, and native backend unit/Business integration tests. CDC tests are manual-only; formatting still covers changed CDC Java. Other static analysis and build commands remain available locally; never claim an unrun check passed.
 - Test externally observable contracts and invariants, not every new method or class. Do not expose production accessors just for tests. Prefer deterministic assertions to sleeps, reflection into private state, and method-count mocks.
-- Ordinary bug fixes/refactors need focused code/tests/JavaDoc, not parallel Markdown narratives. Use [the YOIP process](.github/CONTRIBUTING.md) before major subsystem or public contract changes; routine CDC stages, CI fixes, and refactors do not need YOIPs.
+- Ordinary bug fixes/refactors need focused code/tests/JavaDoc, not parallel Markdown narratives. Discuss major subsystem or public contract changes through the [contribution process](.github/CONTRIBUTING.md); routine CDC stages, CI fixes, and refactors need no separate design document.
 - Frontend changes follow [FRONTEND_RULES.md](yak-ops-ui/FRONTEND_RULES.md). Keep one coherent change per PR and report its purpose, public impact, and evidence using [the PR template](.github/PULL_REQUEST_TEMPLATE.md).
 
 ## Verification Scope and Incremental Review
@@ -80,13 +80,12 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 ## Current-State Comments and Documentation
 
 - Describe current responsibility, lifecycle, invariants, and supported limitations in present tense. Do not leave development-phase labels, PR numbers, obsolete implementation narratives, or comparison commentary in ordinary code/JavaDoc.
-- Keep upstream rationale, FLIP comparisons, and rejected alternatives in YOIPs/PR discussions. Do not duplicate implementation facts in Markdown; update published user guidance when user-visible behavior changes.
+- Keep upstream rationale, FLIP comparisons, and rejected alternatives in PR discussions. Do not duplicate implementation facts in Markdown; update published user guidance when user-visible behavior changes.
 - Do not change public behavior, persisted formats, existing safety gates, or immutable third-party/release notices just to simplify prose.
 
 ## References
 
 - [Local development and verification](DEVELOPMENT.md)
-- [Contributing and YOIP governance](.github/CONTRIBUTING.md)
-- [YOIP index](docs/yoips/README.md)
+- [Contributing guidelines](.github/CONTRIBUTING.md)
 - [Frontend rules](yak-ops-ui/FRONTEND_RULES.md)
 - [OpenCode project commands](.opencode/commands/) — invoke targeted analysis/review workflows on demand rather than embedding them in these always-loaded rules.

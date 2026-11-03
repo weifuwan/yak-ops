@@ -14,8 +14,8 @@ Yak Ops 每个正式版本都有一份独立的、经 Review 的发布说明。�
 
 1. **One release, one file:** `docs/releases/vX.Y.Z.md`, based on [TEMPLATE.md](TEMPLATE.md). No duplicate full-size `CHANGELOG.md`, release contract or readiness copy.
 2. **Keep history:** do not delete, rename, or silently rewrite published release notes. Correct material mistakes with a dated **Errata** entry, citing the published version and correction.
-3. **Review before publishing:** the complete notes must be committed and reviewed **before** a release. They describe what the candidate commit actually ships, not a YOIP proposal or a later `main` state.
-4. **Write for users:** explain the outcome of a change, not class renames or a raw PR/commit list. Group changes under New Features, Improvements, and Bug Fixes. Link significant claims to PRs or YOIPs.
+3. **Review before publishing:** the complete notes must be committed and reviewed **before** a release. They describe what the candidate commit actually ships, not a design proposal or a later `main` state.
+4. **Write for users:** explain the outcome of a change, not class renames or a raw PR/commit list. Group changes under New Features, Improvements, and Bug Fixes. Link significant claims to PRs or other recorded evidence.
 5. **Be explicit about compatibility:** Breaking Changes, Upgrade Guide, Compatibility and Known Limitations are required even when their value is `None`. Document migration preconditions, state/offset handling, supported sources/targets and deployment requirements when relevant. Do not claim unverified compatibility.
 6. **Preserve version identity:** version in the filename/title must match the repository version, Git Tag, distribution and immutable Docker tags.
 7. **Only facts:** do not claim a test passed unless an actual run and preserved evidence proves it. Record the test command, commit SHA and result; a formatting check does not certify a release.
