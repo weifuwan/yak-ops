@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from check_backend_naming import new_record_violations, verify_repository, verify_source
+from check_backend_naming import new_record_violations, new_var_violations, verify_repository, verify_source
 
 CORE = "yak-ops-common/src/main/java/io/yak/ops/common/Foo.java"
 CDC = "yak-ops-cdc/yak-ops-cdc-runtime/src/main/java/io/yak/ops/cdc/runtime/Foo.java"
@@ -148,6 +148,19 @@ class BackendNamingTest(unittest.TestCase):
             )
             _, errors = verify_repository(Path(directory))
             self.assertTrue(any("Obsolete Data Sync contract package" in error for error in errors))
+
+    def test_existing_var_is_grandfathered_but_added_var_is_rejected(self):
+        previous = source("io.yak.ops.common", "class Example { void run() { var count = 1; } }")
+        current = source("io.yak.ops.common", "class Example { void run() { var count = 1; var next = 2; } }")
+        self.assertEqual([], new_var_violations(CORE, previous, previous))
+        errors = new_var_violations(CORE, current, previous)
+        self.assertEqual(1, len(errors))
+        self.assertIn("New Java var", errors[0][1])
+        self.assertEqual([], new_var_violations(
+            "yak-ops-cdc/foo/src/main/java/org/apache/flink/Example.java",
+            source("org.apache.flink", "class Example { void run() { var next = 2; } }"),
+            "",
+        ))
 
     def test_native_var_declarations_are_rejected(self):
         with tempfile.TemporaryDirectory() as root:

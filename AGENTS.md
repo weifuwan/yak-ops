@@ -53,7 +53,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 - `normalize` means canonicalization, not parsing, validation, resolution, planning, or applying state. Reserve `*Gate` types for Runtime network I/O boundaries (`InputGate`); do not use `Manager`, `Handler`, `Compiler`, or `Policy` as vague substitutes for an actual responsibility.
 - Avoid redundant package-local prefixes (for example, `Sync*` under `io.yak.ops.plugin.task.datasync`). Preserve meaningful `Jdbc` and `MySqlCdc` qualifiers where they disambiguate public APIs.
 - Keep shared helpers with the module owning their invariant. Naming-only changes must not alter published identifiers, JSON fields, configuration keys, or checkpoint formats; do not add aliases merely to preserve internal names.
-- `python3 scripts/ci/check_backend_naming.py` enforces new Java records, `Codec` symbols, invalid native `*Gate` types and `var` declarations in owned Yak Ops Java. Semantic ownership still requires review.
+- `python3 scripts/ci/check_backend_naming.py` enforces new Java records, `Codec` symbols, invalid native `*Gate` types and new `var` declarations in owned Yak Ops Java (existing declarations are grandfathered). Semantic ownership still requires review.
 
 ## Code Quality and Review
 

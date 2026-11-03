@@ -2,6 +2,7 @@
 """Check Java declaration names and package ownership without banning valid domain terms."""
 from __future__ import annotations
 
+from collections import Counter
 import re
 import subprocess
 from pathlib import Path
@@ -9,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 # Last accepted main commit before the Java record ban. Existing declarations are grandfathered.
 RECORD_BASELINE_COMMIT = "cbc26fbeace4bd3cb7fa3df57e8250e27f0abe93"
+# Existing var declarations are grandfathered; only additions since the pre-cleanup main are rejected.
+VAR_BASELINE_COMMIT = "36c44d2de643e2edbfaea1b34ef9acf825c87cac"
 OBSOLETE_DATA_SYNC_PACKAGES = (
     "yak-ops-common/src/main/java/io/yak/ops/common/bean/dto/datasync",
     "yak-ops-common/src/main/java/io/yak/ops/common/bean/vo/datasync",
@@ -103,6 +106,37 @@ def new_record_violations(path: str, source: str, baseline_source: str) -> list[
     ]
 
 
+def new_var_violations(path: str, source: str, baseline_source: str) -> list[tuple[int, str]]:
+    """Allow established native declarations while rejecting new ones."""
+    if "/src/main/java/" not in path or not path.endswith(".java"):
+        return []
+    code = code_only(source)
+    match_package = PACKAGE.search(code)
+    if not match_package or not match_package.group(1).startswith("io.yak.ops."):
+        return []
+    existing = Counter(match.group() for match in VAR_DECLARATION.finditer(code_only(baseline_source)))
+    errors = []
+    for match in VAR_DECLARATION.finditer(code):
+        declaration = match.group()
+        if existing[declaration]:
+            existing[declaration] -= 1
+        else:
+            errors.append((
+                line_number(code, match.start()),
+                "New Java var is prohibited in native Yak Ops production; declare an explicit type",
+            ))
+    return errors
+
+
+def baseline_var_source(path: str) -> str:
+    """Read the pre-cleanup Java source to preserve already accepted declarations."""
+    result = subprocess.run(
+        ["git", "show", f"{VAR_BASELINE_COMMIT}:{path}"],
+        cwd=ROOT, text=True, capture_output=True, check=False,
+    )
+    return result.stdout if result.returncode == 0 else ""
+
+
 def baseline_record_source(path: str) -> str:
     """Read the frozen record baseline; missing files are new and cannot contain records."""
     result = subprocess.run(
@@ -139,17 +173,21 @@ def verify_repository(root: Path = ROOT) -> tuple[int, list[str]]:
         if found.returncode != 0:
             errors.append("Java record baseline commit is unavailable; a full git history is required")
             enforce_records = False
+    if enforce_records:
+        found = subprocess.run(
+            ["git", "cat-file", "-e", f"{VAR_BASELINE_COMMIT}^{{commit}}"],
+            cwd=ROOT, check=False, capture_output=True,
+        )
+        if found.returncode != 0:
+            errors.append("Java var baseline commit is unavailable; a full git history is required")
     for path in files:
         relative = path.relative_to(root).as_posix()
         source = path.read_text(encoding="utf-8")
         for line, reason in verify_source(relative, source):
             errors.append(f"{relative}:{line}: {reason}")
-        if PACKAGE.search(code_only(source)) and PACKAGE.search(code_only(source)).group(1).startswith("io.yak.ops."):
-            for match in VAR_DECLARATION.finditer(code_only(source)):
-                errors.append(
-                    f"{relative}:{line_number(source, match.start())}: "
-                    "Java var is prohibited in native Yak Ops production; declare an explicit type"
-                )
+        var_baseline = baseline_var_source(relative) if enforce_records else ""
+        for line, reason in new_var_violations(relative, source, var_baseline):
+            errors.append(f"{relative}:{line}: {reason}")
         if (enforce_records and PACKAGE.search(code_only(source))
                 and PACKAGE.search(code_only(source)).group(1).startswith("io.yak.ops.")
                 and RECORD_DECLARATION.search(code_only(source))):
