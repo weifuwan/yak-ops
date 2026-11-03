@@ -36,6 +36,7 @@ import io.yak.ops.cdc.common.types.RowType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -61,6 +62,10 @@ class BinaryRecordDataGeneratorTest {
                         DataTypes.FIELD("updated_at", DataTypes.TIMESTAMP_LTZ(9)),
                         DataTypes.FIELD("observed_at", DataTypes.TIMESTAMP_TZ(9)));
 
+        Map<Object, Object> attributes = new LinkedHashMap<>();
+        attributes.put(BinaryStringData.fromString("region"), 1);
+        attributes.put(BinaryStringData.fromString("tier"), 2);
+
         Object[] values =
                 new Object[] {
                     1001L,
@@ -71,12 +76,7 @@ class BinaryRecordDataGeneratorTest {
                                 BinaryStringData.fromString("full"), null,
                                 BinaryStringData.fromString("incremental")
                             }),
-                    new GenericMapData(
-                            Map.of(
-                                    BinaryStringData.fromString("region"),
-                                    1,
-                                    BinaryStringData.fromString("tier"),
-                                    2)),
+                    new GenericMapData(attributes),
                     GenericRecordData.of(7, BinaryStringData.fromString("nested")),
                     TimestampData.fromLocalDateTime(
                             LocalDateTime.of(2026, 11, 3, 11, 30, 0, 123456789)),
