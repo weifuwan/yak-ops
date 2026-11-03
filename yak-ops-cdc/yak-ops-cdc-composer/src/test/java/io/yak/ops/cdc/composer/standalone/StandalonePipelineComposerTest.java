@@ -354,7 +354,7 @@ class StandalonePipelineComposerTest {
                 new StandalonePipelineComposer(env).compose(definition(
                         Map.of("tables", "db.orders", "emit-cdc-events", "true"),
                         Map.of("target", "target.orders", "fail-schema", "true"),
-                        Map.of("schema.change.behavior", "EVOLVE"), List.of(), List.of())));
+                        Map.of(), List.of(), List.of())));
         execution.execute();
         CompletionException failure = assertThrows(CompletionException.class,
                 () -> execution.getHandle().getCompletion().join());

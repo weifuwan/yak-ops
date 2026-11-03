@@ -20,14 +20,11 @@ package io.yak.ops.cdc.runtime.operators.schema;
 import io.yak.ops.cdc.common.event.Event;
 import io.yak.ops.cdc.common.event.SchemaChangeEvent;
 import io.yak.ops.cdc.common.event.SchemaChangeEventType;
-import io.yak.ops.cdc.common.exceptions.SchemaEvolveException;
 import io.yak.ops.cdc.common.pipeline.SchemaChangeBehavior;
 import io.yak.ops.cdc.common.sink.MetadataApplier;
 import io.yak.ops.cdc.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.cdc.runtime.operators.Output;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Single-threaded SchemaOperator boundary for the regular Flink CDC pipeline.
@@ -37,8 +34,6 @@ import java.util.logging.Logger;
  * multi-table routing, schema coercion or distributed coordinator state.
  */
 public final class StandaloneSchemaOperator implements OneInputStreamOperator<Event, Event> {
-    private static final Logger LOG = Logger.getLogger(StandaloneSchemaOperator.class.getName());
-
     private final MetadataApplier metadataApplier;
     private final SchemaChangeBehavior schemaChangeBehavior;
 
@@ -62,27 +57,14 @@ public final class StandaloneSchemaOperator implements OneInputStreamOperator<Ev
                         "Schema change rejected by EXCEPTION behavior: " + schemaEvent);
             }
             if (!metadataApplier.acceptsSchemaEvolutionType(schemaEvent.getType())) {
-                if (isCreateTable || schemaChangeBehavior == SchemaChangeBehavior.EVOLVE) {
-                    throw new UnsupportedOperationException(
-                            "Sink does not accept schema evolution event: "
-                                    + schemaEvent.getType());
-                }
-                // The target has not changed; do not send the rejected DDL to the writer.
-                return;
+                throw new UnsupportedOperationException(
+                        "Sink does not accept schema evolution event: "
+                                + schemaEvent.getType()
+                                + "; standalone cannot safely coerce following DML");
             }
-            try {
-                metadataApplier.applySchemaChange(schemaEvent);
-            } catch (SchemaEvolveException failure) {
-                if (!isCreateTable
-                        && (schemaChangeBehavior == SchemaChangeBehavior.TRY_EVOLVE
-                                || schemaChangeBehavior == SchemaChangeBehavior.LENIENT)) {
-                    // Best-effort schema evolution only. Full LENIENT row coercion is not ported.
-                    LOG.log(Level.WARNING, "Schema change could not be applied: "
-                            + schemaEvent, failure);
-                    return;
-                }
-                throw failure;
-            }
+            // Unlike Flink's full LENIENT implementation, there is no row-schema coercion
+            // yet. Do not continue with DML after a failed DDL: propagate the failure.
+            metadataApplier.applySchemaChange(schemaEvent);
         }
         output.collect(event);
     }
