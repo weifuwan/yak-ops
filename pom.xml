@@ -42,7 +42,6 @@
         <module>yak-ops-bom</module>
         <module>yak-ops-test-utils</module>
         <module>yak-ops-common</module>
-        <module>yak-ops-cdc</module>
         <module>yak-ops-platform</module>
         <module>yak-ops-dao</module>
         <module>yak-ops-spi</module>
