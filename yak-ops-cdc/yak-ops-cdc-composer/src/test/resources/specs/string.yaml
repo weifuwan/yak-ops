@@ -1,0 +1,277 @@
+################################################################################
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+################################################################################
+
+- do: String Concat Operator
+  projection: id_, string_, '<<' || string_ || '>>' AS quoted
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`quoted` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, <<From A to Z is Lie>>], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, <<From A to Z is Lie>>], after=[-1, 天地玄黄宇宙洪荒, <<天地玄黄宇宙洪荒>>], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, <<天地玄黄宇宙洪荒>>], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, <<null>>], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, <<null>>], after=[], op=DELETE, meta=()}
+- do: Char Length
+  non-null: 'true'
+  projection: id_, CHAR_LENGTH('QWERTYUIOPASDFGHJKLZXCVBNM') AS twenty_six, string_, CHAR_LENGTH(string_) AS strlen
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`twenty_six` INT,`string_` STRING,`strlen` INT}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, 26, From A to Z is Lie, 18], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, 26, From A to Z is Lie, 18], after=[-1, 26, 天地玄黄宇宙洪荒, 8], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 26, 天地玄黄宇宙洪荒, 8], after=[], op=DELETE, meta=()}
+- do: Upper Case
+  non-null: 'true'
+  projection: id_, string_, UPPER('AbCdEfGhIjKlMnOpQrStUvWxYz') AS ascii_uppercase, UPPER(string_) AS upper_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`ascii_uppercase` STRING,`upper_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, ABCDEFGHIJKLMNOPQRSTUVWXYZ, FROM A TO Z IS LIE], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, ABCDEFGHIJKLMNOPQRSTUVWXYZ, FROM A TO Z IS LIE], after=[-1, 天地玄黄宇宙洪荒, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 天地玄黄宇宙洪荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 天地玄黄宇宙洪荒], after=[], op=DELETE, meta=()}
+- do: Lower Case
+  non-null: 'true'
+  projection: id_, string_, LOWER('AbCdEfGhIjKlMnOpQrStUvWxYz') AS ascii_lowercase, LOWER(string_) AS lower_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`ascii_lowercase` STRING,`lower_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, abcdefghijklmnopqrstuvwxyz, from a to z is lie], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, abcdefghijklmnopqrstuvwxyz, from a to z is lie], after=[-1, 天地玄黄宇宙洪荒, abcdefghijklmnopqrstuvwxyz, 天地玄黄宇宙洪荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, abcdefghijklmnopqrstuvwxyz, 天地玄黄宇宙洪荒], after=[], op=DELETE, meta=()}
+- do: Char Length (With NULL)
+  ignore: FLINK-38905
+  projection: id_, CHAR_LENGTH('QWERTYUIOPASDFGHJKLZXCVBNM') AS twenty_six, string_, CHAR_LENGTH(string_) AS strlen
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`twenty_six` INT,`string_` STRING,`strlen` INT}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, 26, From A to Z is Lie, 18], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, 26, From A to Z is Lie, 18], after=[-1, 26, 天地玄黄宇宙洪荒, 8], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 26, 天地玄黄宇宙洪荒, 8], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, 26, null, 0], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, 26, null, 0], after=[], op=DELETE, meta=()}
+- do: Upper Case (With NULL)
+  ignore: FLINK-38905
+  projection: id_, string_, UPPER('AbCdEfGhIjKlMnOpQrStUvWxYz') AS ascii_uppercase, UPPER(string_) AS upper_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`ascii_uppercase` STRING,`upper_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, ABCDEFGHIJKLMNOPQRSTUVWXYZ, FROM A TO Z IS LIE], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, ABCDEFGHIJKLMNOPQRSTUVWXYZ, FROM A TO Z IS LIE], after=[-1, 天地玄黄宇宙洪荒, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 天地玄黄宇宙洪荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 天地玄黄宇宙洪荒], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, ABCDEFGHIJKLMNOPQRSTUVWXYZ, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, ABCDEFGHIJKLMNOPQRSTUVWXYZ, null], after=[], op=DELETE, meta=()}
+- do: Lower Case (With NULL)
+  ignore: FLINK-38905
+  projection: id_, string_, LOWER('AbCdEfGhIjKlMnOpQrStUvWxYz') AS ascii_lowercase, LOWER(string_) AS lower_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`ascii_lowercase` STRING,`lower_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, abcdefghijklmnopqrstuvwxyz, from a to z is lie], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, abcdefghijklmnopqrstuvwxyz, from a to z is lie], after=[-1, 天地玄黄宇宙洪荒, abcdefghijklmnopqrstuvwxyz, 天地玄黄宇宙洪荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, abcdefghijklmnopqrstuvwxyz, 天地玄黄宇宙洪荒], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, abcdefghijklmnopqrstuvwxyz, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, abcdefghijklmnopqrstuvwxyz, null], after=[], op=DELETE, meta=()}
+- do: Trim String
+  non-null: 'true'
+  projection: id_, string_, TRIM(string_) AS trimmed_, TRIM('  Alice') AS trim_left, TRIM('Bob   ') AS trim_right, TRIM('   Derrida    ') AS trim_both
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`trimmed_` STRING,`trim_left` STRING,`trim_right` STRING,`trim_both` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, From A to Z is Lie, Alice, Bob, Derrida], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, From A to Z is Lie, Alice, Bob, Derrida], after=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒, Alice, Bob, Derrida], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒, Alice, Bob, Derrida], after=[], op=DELETE, meta=()}
+- do: Trim String (With NULL)
+  ignore: FLINK-38905
+  projection: id_, string_, TRIM(string_) AS trimmed_, TRIM('  Alice') AS trim_left, TRIM('Bob   ') AS trim_right, TRIM('   Derrida    ') AS trim_both
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`trimmed_` STRING,`trim_left` STRING,`trim_right` STRING,`trim_both` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, From A to Z is Lie, Alice, Bob, Derrida], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, From A to Z is Lie, Alice, Bob, Derrida], after=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒, Alice, Bob, Derrida], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒, Alice, Bob, Derrida], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, Alice, Bob, Derrida], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, Alice, Bob, Derrida], after=[], op=DELETE, meta=()}
+- do: RegExp Replace
+  projection: id_, string_, REGEXP_REPLACE(string_, '[aeiouAEIOU]', '*') AS censored
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`censored` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, Fr*m * t* Z *s L**], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, Fr*m * t* Z *s L**], after=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null], after=[], op=DELETE, meta=()}
+- do: Substring
+  non-null: 'true'
+  projection: id_, string_, SUBSTRING(string_ FROM 1 FOR 3) AS one_two_three, SUBSTRING(string_ FROM 8) AS since_eight
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`one_two_three` STRING,`since_eight` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, Fro, to Z is Lie], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, Fro, to Z is Lie], after=[-1, 天地玄黄宇宙洪荒, 天地玄, 荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 天地玄, 荒], after=[], op=DELETE, meta=()}
+- do: Substring (With NULL)
+  ignore: FLINK-38905
+  projection: id_, string_, SUBSTRING(string_ FROM 1 FOR 3) AS one_two_three, SUBSTRING(string_ FROM 8) AS since_eight
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`one_two_three` STRING,`since_eight` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, Fro, to Z is Lie], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, Fro, to Z is Lie], after=[-1, 天地玄黄宇宙洪荒, 天地玄, 荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 天地玄, 荒], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, null], after=[], op=DELETE, meta=()}
+- do: Substring with Index OOB
+  projection: id_, string_, SUBSTRING(string_ FROM 1 FOR -1) AS oob
+  primary-key: id_
+  expect-error: 'java.lang.RuntimeException: length of ''substring(str, beginIndex, length)'' must be >= 0 and Int type, but length = -1'
+- do: String Concat Function
+  projection: id_, string_, CONCAT('{{', string_, '}}') AS braced
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`braced` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, {{From A to Z is Lie}}], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, {{From A to Z is Lie}}], after=[-1, 天地玄黄宇宙洪荒, {{天地玄黄宇宙洪荒}}], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, {{天地玄黄宇宙洪荒}}], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, {{null}}], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, {{null}}], after=[], op=DELETE, meta=()}
+- do: Additional String Search Functions
+  projection: |-
+    id_
+    string_
+    POSITION('Z' IN string_) AS position_
+    POSITION('i' IN string_ FROM 15) AS position_from_
+    LOCATE('Z', string_) AS locate_
+    LOCATE('i', string_, 16) AS locate_from_
+    INSTR(string_, 'Z') AS instr_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`position_` INT,`position_from_` INT,`locate_` INT,`locate_from_` INT,`instr_` INT}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, 11, 17, 11, 17, 11], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, 11, 17, 11, 17, 11], after=[-1, 天地玄黄宇宙洪荒, 0, 0, 0, 0, 0], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 0, 0, 0, 0, 0], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, null, null, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, null, null, null, null], after=[], op=DELETE, meta=()}
+- do: Additional String Trim Functions
+  projection: |-
+    id_
+    LTRIM('  CDC') AS ltrim_default_
+    LTRIM('xxCDC', 'x') AS ltrim_chars_
+    RTRIM('CDC  ') AS rtrim_default_
+    RTRIM('CDCyy', 'y') AS rtrim_chars_
+    BTRIM('  CDC  ') AS btrim_default_
+    BTRIM('xyCDCxy', 'xy') AS btrim_chars_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`ltrim_default_` STRING,`ltrim_chars_` STRING,`rtrim_default_` STRING,`rtrim_chars_` STRING,`btrim_default_` STRING,`btrim_chars_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, CDC, CDC, CDC, CDC, CDC, CDC], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, CDC, CDC, CDC, CDC, CDC, CDC], after=[-1, CDC, CDC, CDC, CDC, CDC, CDC], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, CDC, CDC, CDC, CDC, CDC, CDC], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, CDC, CDC, CDC, CDC, CDC, CDC], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, CDC, CDC, CDC, CDC, CDC, CDC], after=[], op=DELETE, meta=()}
+- do: Additional String Join Functions
+  projection: |-
+    id_
+    string_
+    CONCAT_WS('|', string_, NULL, 'CDC') AS joined_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`joined_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, From A to Z is Lie|CDC], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, From A to Z is Lie|CDC], after=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒|CDC], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 天地玄黄宇宙洪荒|CDC], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, CDC], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, CDC], after=[], op=DELETE, meta=()}
+- do: Additional String Pad Replace Repeat Functions
+  projection: |-
+    id_
+    string_
+    LPAD('CDC', 5, '0') AS lpad_
+    LPAD('CDCLONG', 3, '0') AS lpad_truncated_
+    RPAD('CDC', 5, '0') AS rpad_
+    RPAD('CDCLONG', 3, '0') AS rpad_truncated_
+    REPLACE(string_, ' ', '_') AS replaced_
+    REPEAT('CDC', 2) AS repeated_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`lpad_` STRING,`lpad_truncated_` STRING,`rpad_` STRING,`rpad_truncated_` STRING,`replaced_` STRING,`repeated_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, 00CDC, CDC, CDC00, CDC, From_A_to_Z_is_Lie, CDCCDC], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, 00CDC, CDC, CDC00, CDC, From_A_to_Z_is_Lie, CDCCDC], after=[-1, 天地玄黄宇宙洪荒, 00CDC, CDC, CDC00, CDC, 天地玄黄宇宙洪荒, CDCCDC], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 00CDC, CDC, CDC00, CDC, 天地玄黄宇宙洪荒, CDCCDC], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, 00CDC, CDC, CDC00, CDC, null, CDCCDC], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, 00CDC, CDC, CDC00, CDC, null, CDCCDC], after=[], op=DELETE, meta=()}
+- do: Additional String Slice Functions
+  projection: |-
+    id_
+    string_
+    OVERLAY(string_ PLACING 'CDC' FROM 1) AS overlay_default_
+    OVERLAY(string_ PLACING 'CDC' FROM 1 FOR 4) AS overlay_with_length_
+    LEFT(string_, 2) AS left_
+    RIGHT(string_, 2) AS right_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`overlay_default_` STRING,`overlay_with_length_` STRING,`left_` STRING,`right_` STRING}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, CDCm A to Z is Lie, CDC A to Z is Lie, Fr, ie], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, CDCm A to Z is Lie, CDC A to Z is Lie, Fr, ie], after=[-1, 天地玄黄宇宙洪荒, CDC黄宇宙洪荒, CDC宇宙洪荒, 天地, 洪荒], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, CDC黄宇宙洪荒, CDC宇宙洪荒, 天地, 洪荒], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, null, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, null, null, null], after=[], op=DELETE, meta=()}
+- do: Additional String Predicate Functions
+  projection: |-
+    id_
+    string_
+    STARTSWITH(string_, 'From') AS starts_
+    ENDSWITH(string_, 'Lie') AS ends_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`starts_` BOOLEAN,`ends_` BOOLEAN}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, true, true], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, true, true], after=[-1, 天地玄黄宇宙洪荒, false, false], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, false, false], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, null], after=[], op=DELETE, meta=()}
+- do: Additional Base64 Functions
+  projection: |-
+    id_
+    string_
+    TO_BASE64(string_) AS encoded_string_
+    FROM_BASE64(TO_BASE64(string_)) AS decoded_string_
+    TO_BASE64(varbinary_) AS encoded_binary_
+    FROM_BASE64_BINARY(TO_BASE64(varbinary_)) AS decoded_binary_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`string_` STRING,`encoded_string_` STRING,`decoded_string_` STRING,`encoded_binary_` STRING,`decoded_binary_` VARBINARY(65536)}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, From A to Z is Lie, RnJvbSBBIHRvIFogaXMgTGll, From A to Z is Lie, ZG9sb3Igc2l0IGFtZXQ=, ZG9sb3Igc2l0IGFtZXQ=], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, From A to Z is Lie, RnJvbSBBIHRvIFogaXMgTGll, From A to Z is Lie, ZG9sb3Igc2l0IGFtZXQ=, ZG9sb3Igc2l0IGFtZXQ=], after=[-1, 天地玄黄宇宙洪荒, 5aSp5Zyw546E6buE5a6H5a6Z5rSq6I2S, 天地玄黄宇宙洪荒, 5YWt5LiD5YWr5Lmd5Y2B, 5YWt5LiD5YWr5Lmd5Y2B], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 天地玄黄宇宙洪荒, 5aSp5Zyw546E6buE5a6H5a6Z5rSq6I2S, 天地玄黄宇宙洪荒, 5YWt5LiD5YWr5Lmd5Y2B, 5YWt5LiD5YWr5Lmd5Y2B], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, null, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, null, null, null], after=[], op=DELETE, meta=()}
+- do: Additional Binary String Functions
+  projection: |-
+    id_
+    TO_BASE64(OVERLAY(binary_ PLACING varbinary_ FROM 2)) AS overlay_binary_default_
+    TO_BASE64(OVERLAY(binary_ PLACING varbinary_ FROM 2 FOR 3)) AS overlay_binary_with_length_
+    POSITION(binary_ IN binary_) AS position_binary_
+    POSITION(binary_ IN binary_ FROM 2) AS position_binary_from_
+    STARTSWITH(binary_, binary_) AS starts_binary_
+    ENDSWITH(binary_, binary_) AS ends_binary_
+  primary-key: id_
+  expect: |-
+    CreateTableEvent{tableId=foo.bar.baz, schema=columns={`id_` BIGINT NOT NULL 'Identifier',`overlay_binary_default_` STRING,`overlay_binary_with_length_` STRING,`position_binary_` INT,`position_binary_from_` INT,`starts_binary_` BOOLEAN,`ends_binary_` BOOLEAN}, primaryKeys=id_, options=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[1, TGRvbG9yIHNpdCBhbWV0, TGRvbG9yIHNpdCBhbWV0bSBpcHN1bQ==, 1, 0, true, true], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[1, TGRvbG9yIHNpdCBhbWV0, TGRvbG9yIHNpdCBhbWV0bSBpcHN1bQ==, 1, 0, true, true], after=[-1, 5OWFreS4g+WFq+S5neWNgQ==, 5OWFreS4g+WFq+S5neWNgbqM5LiJ5Zub5LqU, 1, 0, true, true], op=UPDATE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[-1, 5OWFreS4g+WFq+S5neWNgQ==, 5OWFreS4g+WFq+S5neWNgbqM5LiJ5Zub5LqU, 1, 0, true, true], after=[], op=DELETE, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[], after=[0, null, null, null, null, null, null], op=INSERT, meta=()}
+    DataChangeEvent{tableId=foo.bar.baz, before=[0, null, null, null, null, null, null], after=[], op=DELETE, meta=()}
