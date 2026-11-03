@@ -19,7 +19,7 @@ package io.yak.ops.cdc.common.event;
 
 import io.yak.ops.cdc.common.annotation.PublicEvolving;
 
-
+import javax.annotation.Nullable;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -47,12 +47,12 @@ import java.util.Objects;
 @PublicEvolving
 public class TableId implements Serializable {
 
-    private final String namespace;
-    private final String schemaName;
+    @Nullable private final String namespace;
+    @Nullable private final String schemaName;
     private final String tableName;
     private transient int cachedHashCode;
 
-    private TableId(String namespace, String schemaName, String tableName) {
+    private TableId(@Nullable String namespace, @Nullable String schemaName, String tableName) {
         this.namespace = namespace;
         this.schemaName = schemaName;
         this.tableName = Objects.requireNonNull(tableName);
@@ -96,11 +96,13 @@ public class TableId implements Serializable {
         return namespace + "." + schemaName + "." + tableName;
     }
 
-        public String getNamespace() {
+    @Nullable
+    public String getNamespace() {
         return namespace;
     }
 
-        public String getSchemaName() {
+    @Nullable
+    public String getSchemaName() {
         return schemaName;
     }
 

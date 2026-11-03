@@ -44,9 +44,9 @@ public enum ExistingTableSchemaExpansionMode {
      * Check and best-effort expand the existing target table with safe DDL. Failures of this
      * mechanism are logged and delegated to the sink's original behavior.
      *
-     * <p>A connector that does not implement {@link
-     * ExistingTableSchemaExpansionSupport} is a configuration
-     * error and fails the job rather than silently degrading.
+     * <p>A connector that does not implement
+     * {@code ExistingTableSchemaExpansionSupport} is a configuration error and fails the job rather
+     * than silently degrading.
      */
     TRY_EXPAND,
 
