@@ -19,13 +19,24 @@ package io.yak.ops.cdc.composer.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.cdc.common.configuration.ConfigOption;
 import io.yak.ops.cdc.common.configuration.ConfigOptions;
 import io.yak.ops.cdc.common.configuration.Configuration;
+import io.yak.ops.cdc.common.data.GenericRecordData;
+import io.yak.ops.cdc.common.data.binary.BinaryStringData;
+import io.yak.ops.cdc.common.event.AddColumnEvent;
+import io.yak.ops.cdc.common.event.CreateTableEvent;
+import io.yak.ops.cdc.common.event.DataChangeEvent;
 import io.yak.ops.cdc.common.event.Event;
+import io.yak.ops.cdc.common.event.OperationType;
+import io.yak.ops.cdc.common.event.TableId;
+import io.yak.ops.cdc.common.schema.Column;
+import io.yak.ops.cdc.common.schema.Schema;
+import io.yak.ops.cdc.common.types.DataTypes;
 import io.yak.ops.cdc.common.factories.DataSinkFactory;
 import io.yak.ops.cdc.common.factories.DataSourceFactory;
 import io.yak.ops.cdc.common.factories.FactoryHelper;
@@ -58,6 +69,27 @@ import org.junit.jupiter.api.Test;
 class StandalonePipelineComposerTest {
 
     private static final List<Event> RECEIVED = new CopyOnWriteArrayList<>();
+    private static final List<Event> CDC_EVENTS = createCdcEvents();
+
+    private static List<Event> createCdcEvents() {
+        TableId tableId = TableId.tableId("db", "orders");
+        Schema schema = Schema.newBuilder()
+                .physicalColumn("id", DataTypes.BIGINT())
+                .physicalColumn("name", DataTypes.STRING())
+                .primaryKey("id").build();
+        CreateTableEvent create = new CreateTableEvent(tableId, schema);
+        DataChangeEvent insert = DataChangeEvent.insertEvent(tableId,
+                GenericRecordData.of(1L, BinaryStringData.fromString("first")));
+        DataChangeEvent update = DataChangeEvent.updateEvent(tableId,
+                GenericRecordData.of(1L, BinaryStringData.fromString("first")),
+                GenericRecordData.of(1L, BinaryStringData.fromString("second")));
+        AddColumnEvent add = new AddColumnEvent(tableId, List.of(
+                AddColumnEvent.last(Column.physicalColumn("remark", DataTypes.STRING()))));
+        DataChangeEvent following = DataChangeEvent.insertEvent(tableId,
+                GenericRecordData.of(2L, BinaryStringData.fromString("new"),
+                        BinaryStringData.fromString("remark")));
+        return List.of(create, insert, update, add, following);
+    }
 
     private static final class TestEvent implements Event {
         private final String value;
@@ -129,6 +161,58 @@ class StandalonePipelineComposerTest {
         execution.getHandle().getCompletion().get(5, TimeUnit.SECONDS);
         assertEquals(List.of(new TestEvent("from-source")), RECEIVED);
         assertThrows(IllegalStateException.class, execution::execute);
+    }
+
+    @Test
+    void composerTransportsSchemaAndDataChangeEventsInSourceOrder() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        StandalonePipelineExecution execution = assertInstanceOf(
+                StandalonePipelineExecution.class,
+                new StandalonePipelineComposer(env).compose(
+                        definition(
+                                Map.of("tables", "db.orders", "emit-cdc-events", "true"),
+                                Map.of("target", "target.orders"),
+                                Map.of("operator.uid.prefix", "cdc"),
+                                List.of(), List.of())));
+        StreamGraph graph = env.getStreamGraph();
+        assertEquals(2, graph.getNodes().size());
+        assertEquals(1, graph.getEdges().size());
+        assertEquals("cdc-source", graph.getStreamNode(1).getTransformationUID());
+        assertEquals("cdc-sink-writer", graph.getStreamNode(2).getTransformationUID());
+        assertTrue(RECEIVED.isEmpty());
+
+        execution.execute();
+        execution.getHandle().getCompletion().get(5, TimeUnit.SECONDS);
+        assertEquals(CDC_EVENTS, RECEIVED);
+        for (int i = 0; i < CDC_EVENTS.size(); i++) {
+            assertSame(CDC_EVENTS.get(i), RECEIVED.get(i));
+        }
+        assertInstanceOf(CreateTableEvent.class, RECEIVED.get(0));
+        assertEquals(OperationType.INSERT, ((DataChangeEvent) RECEIVED.get(1)).op());
+        assertEquals(OperationType.UPDATE, ((DataChangeEvent) RECEIVED.get(2)).op());
+        assertInstanceOf(AddColumnEvent.class, RECEIVED.get(3));
+        assertEquals(3, ((DataChangeEvent) RECEIVED.get(4)).after().getArity());
+    }
+
+    @Test
+    void configuredTransformDoesNotSilentlyPassThroughConcreteSchemaEvents() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        List<TransformDef> rules = List.of(
+                new TransformDef("db.orders", "id", null, null, null, null, null, null));
+        StandalonePipelineExecution execution = assertInstanceOf(
+                StandalonePipelineExecution.class,
+                new StandalonePipelineComposer(env).compose(
+                        definition(
+                                Map.of("tables", "db.orders", "emit-cdc-events", "true"),
+                                Map.of("target", "target.orders"), Map.of(),
+                                List.of(), rules)));
+        assertEquals(4, env.getStreamGraph().getNodes().size());
+        execution.execute();
+        CompletionException error = assertThrows(CompletionException.class,
+                () -> execution.getHandle().getCompletion().join());
+        assertInstanceOf(UnsupportedOperationException.class, error.getCause());
+        assertTrue(error.getCause().getMessage().contains("PreTransform"));
+        assertTrue(RECEIVED.isEmpty());
     }
 
     @Test
@@ -222,11 +306,13 @@ class StandalonePipelineComposerTest {
                 ConfigOptions.key("parallel-metadata").booleanType().defaultValue(false);
         private static final ConfigOption<Boolean> LEGACY =
                 ConfigOptions.key("legacy-provider").booleanType().defaultValue(false);
+        private static final ConfigOption<Boolean> EMIT_CDC =
+                ConfigOptions.key("emit-cdc-events").booleanType().defaultValue(false);
 
         @Override public String identifier() { return "test-source"; }
         @Override public Set<ConfigOption<?>> requiredOptions() { return Set.of(TABLES); }
         @Override public Set<ConfigOption<?>> optionalOptions() {
-            return Set.of(PARALLEL_METADATA, LEGACY);
+            return Set.of(PARALLEL_METADATA, LEGACY, EMIT_CDC);
         }
 
         @Override
@@ -234,10 +320,18 @@ class StandalonePipelineComposerTest {
             FactoryHelper.createFactoryHelper(this, context).validate();
             boolean parallel = context.getFactoryConfiguration().get(PARALLEL_METADATA);
             boolean legacy = context.getFactoryConfiguration().get(LEGACY);
+            boolean emitCdc = context.getFactoryConfiguration().get(EMIT_CDC);
             EventSourceProvider provider = legacy
                     ? new EventSourceProvider() {}
-                    : (RuntimeSourceProvider) () ->
-                            output -> output.collect(new TestEvent("from-source"));
+                    : (RuntimeSourceProvider) () -> output -> {
+                        if (emitCdc) {
+                            for (Event event : CDC_EVENTS) {
+                                output.collect(event);
+                            }
+                        } else {
+                            output.collect(new TestEvent("from-source"));
+                        }
+                    };
             return new DataSource() {
                 @Override public EventSourceProvider getEventSourceProvider() { return provider; }
                 @Override public MetadataAccessor getMetadataAccessor() { return null; }
