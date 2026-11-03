@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import unittest
+import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import impact
@@ -69,6 +70,28 @@ class ImpactTest(unittest.TestCase):
                                     mode="format", event="pull_request", branch="")
         self.assertEqual(impact.CDC.rstrip("/"), fields["backend_modules"])
         self.assertEqual("false", fields["frontend"])
+    def test_cdc_uses_yak_ops_parent_without_inheriting_app_formatter(self):
+        root = Path(__file__).resolve().parents[2]
+        cdc_pom = ET.parse(root / "yak-ops-cdc/pom.xml").getroot()
+        ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+        parent = cdc_pom.find("m:parent", ns)
+        self.assertIsNotNone(parent)
+        self.assertEqual("io.yak.ops", parent.findtext("m:groupId", namespaces=ns))
+        self.assertEqual("yak-ops", parent.findtext("m:artifactId", namespaces=ns))
+        self.assertEqual("1.4.0", parent.findtext("m:version", namespaces=ns))
+        self.assertEqual("../pom.xml", parent.findtext("m:relativePath", namespaces=ns))
+        spotless = next(
+            plugin for plugin in cdc_pom.findall("./m:build/m:plugins/m:plugin", ns)
+            if plugin.findtext("m:artifactId", namespaces=ns) == "spotless-maven-plugin"
+        )
+        java = spotless.find("./m:configuration/m:java", ns)
+        self.assertEqual("override", java.get("combine.self"))
+        self.assertIsNone(java.find("m:palantirJavaFormat", ns))
+        self.assertFalse(any(
+            plugin.findtext("m:artifactId", namespaces=ns) == "maven-site-plugin"
+            for plugin in cdc_pom.findall("./m:build/m:plugins/m:plugin", ns)
+        ))
+
     def test_manual_format_full(self):
         fields = ci_scope.selection(None, mode="format", event="workflow_dispatch", branch="main")
         self.assertEqual(impact.ALL_BACKEND, fields["backend_modules"])

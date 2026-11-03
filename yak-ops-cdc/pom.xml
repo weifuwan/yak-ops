@@ -20,9 +20,10 @@ limitations under the License.
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <parent>
-        <groupId>org.apache</groupId>
-        <artifactId>apache</artifactId>
-        <version>20</version>
+        <groupId>io.yak.ops</groupId>
+        <artifactId>yak-ops</artifactId>
+        <version>1.4.0</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -375,7 +376,9 @@ limitations under the License.
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>3.10.2</version>
                 <configuration>
-                    <java>
+                    <!-- Do not inherit the application's Palantir format rules for
+                         the upstream Flink CDC source tree. -->
+                    <java combine.self="override">
                         <includes>
                             <include>src/main/java/**/*.java</include>
                         </includes>
@@ -383,17 +386,6 @@ limitations under the License.
                         <endWithNewline/>
                     </java>
                 </configuration>
-            </plugin>
-            <plugin>
-                <!-- Inherited from Apache parent, but not actually used. Disable to reduce noise. -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-descriptor</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
             </plugin>
 
             <!-- Due to the Flink build setup, "mvn spotless:apply" and "mvn spotless:check"
