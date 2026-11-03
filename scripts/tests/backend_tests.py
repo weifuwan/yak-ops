@@ -16,19 +16,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'ci'))
 import impact
 
 ROOT = Path(__file__).resolve().parents[2]
-JDBC = "yak-flow/yak-flow-connector-jdbc"
 CDC = "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc"
 BUSINESS = "yak-ops-business/yak-ops-business-task"
-# Minimum method counts prevent an empty subclass, lost inherited tests or partial run from passing.
+# Minimum counts are based on concrete source test methods; missing or skipped reports fail.
 SUITES = {
-    "jdbc-mysql": (JDBC, "jdbc & mysql", {"MySqlSourceIT": 8, "MySqlSinkIT": 10, "MySqlKeylessRetractIT": 8, "MySqlXaSinkIT": 3}),
-    "jdbc-postgres": (JDBC, "jdbc & postgres", {"PostgresSourceIT": 5, "PostgresSinkIT": 3, "PostgresKeylessRetractIT": 3}),
-    "jdbc-oracle": (JDBC, "jdbc & oracle", {"OracleSourceIT": 5, "OracleSinkIT": 3, "OracleKeylessRetractIT": 4}),
-    "pipeline": (JDBC, "pipeline", {name: 2 for name in ("MySqlToMySqlIT", "MySqlToPostgresIT", "PostgresToOracleIT", "OracleToMySqlIT")}),
-    "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 3}),
-    "cdc": (CDC, "cdc", {"MySqlSnapshotBackfillIT": 9, "MySqlDebeziumRecoveryIT": 1, "MySqlUnsignedChunkIT": 1, "MySqlStartupModesIT": 2}),
+    "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 5}),
+    "cdc": (CDC, "cdc", {"TableExclusionDuringSnapshotIT": 1}),
 }
-
 
 def select(paths: list[str]) -> list[str]:
     """Use the same change impact classification as the PR quality jobs."""

@@ -11,8 +11,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
-SUITES = ("jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "business", "cdc")
-JDBC = "yak-flow/yak-flow-connector-jdbc/"
+SUITES = ("business", "cdc")
 # Current CDC reactor layout; the old yak-flow modules were removed.
 CDC_ROOT = "yak-ops-cdc/"
 CDC = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc/"
@@ -89,38 +88,28 @@ def affected_modules(owners: list[str]) -> set[str]:
 
 
 def test_suites(path: str) -> set[str]:
-    """Select only registered integration suites for changed production or IT files."""
+    """Select database suites for current module owners and concrete Failsafe tests."""
     if "/src/test/" in path:
         if not path.endswith("IT.java"):
             return set()
-        filename = path.rsplit("/", 1)[-1]
-        if path.startswith(JDBC):
-            if "To" in filename or "/integration/" in path:
-                return {"pipeline"}
-            vendor = next((v for v in ("mysql", "postgres", "oracle") if v in filename.lower()), None)
-            return {"jdbc-" + vendor} if vendor else {"pipeline"}
         if path.startswith(CDC_ROOT):
             return {"cdc"}
         if path.startswith(BUSINESS):
             return {"business"}
         return set()
 
-    if path.startswith(JDBC):
-        vendor = next((v for v in ("mysql", "postgres", "oracle") if v in path.lower().removeprefix(JDBC)), None)
-        if vendor:
-            return {"jdbc-" + vendor, "pipeline"}
-        return {"jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline"}
-    if path.startswith((RUNTIME, ENGINE)):
-        return {"pipeline", "cdc"}
     if path.startswith(CDC_ROOT):
         return {"cdc"}
-    if path.startswith(("yak-flow/yak-flow-connector-base/", "yak-ops-core/")):
-        return {"pipeline"}
-    if path.startswith(BUSINESS):
+    if path.startswith((
+        BUSINESS,
+        "yak-ops-dao/",
+        "yak-ops-platform/",
+        "yak-ops-task-execution/",
+        "yak-ops-plugins/yak-ops-plugin-task/",
+        "yak-ops-plugins/yak-ops-plugin-datasource/",
+        "yak-ops-boot/",
+    )):
         return {"business"}
-    if path.startswith(("yak-ops-dao/", "yak-ops-platform/")):
-        return {"business"}
-    # Boot, task execution and plugin wiring have no standalone database suite.
     return set()
 
 def compare_suite_registry(before: str, after: str) -> set[str] | None:

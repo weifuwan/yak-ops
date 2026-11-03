@@ -25,17 +25,17 @@ class SuiteSelectionTest(unittest.TestCase):
         self.assertEqual([], subject.select([subject.BUSINESS + "/src/test/java/TaskCursorTest.java"]))
 
     def test_connector_local_cdc_it_runs_real_mysql_suite(self):
-        selected = subject.select([subject.CDC + "/src/test/java/MySqlSnapshotBackfillIT.java"])
+        selected = subject.select([subject.CDC + "/src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"])
         self.assertEqual(["cdc"], selected)
 
-    def test_cdc_production_change_retains_sink_and_recovery_acceptance(self):
+    def test_cdc_production_change_selects_cdc(self):
         selected = subject.select([subject.CDC + "/src/main/java/reader/Reader.java"])
         self.assertIn("cdc", selected)
         self.assertEqual(["cdc"], selected)
 
     def test_removed_jdbc_module_is_treated_as_unknown(self):
         # The old yak-flow JDBC path no longer belongs to this reactor.
-        selected = subject.select([subject.JDBC + "/src/main/java/reader/JdbcReader.java"])
+        selected = subject.select(["yak-flow/yak-flow-connector-jdbc/src/main/java/reader/JdbcReader.java"])
         self.assertEqual(list(subject.SUITES), selected)
 
     def test_mysql_cdc_change_selects_current_cdc_coverage(self):
@@ -52,7 +52,7 @@ class SuiteSelectionTest(unittest.TestCase):
         self.assertEqual(["business", "cdc"], selected)
 
     def test_deleted_test_keeps_owner_selected(self):
-        self.assertIn("cdc", subject.select([subject.CDC + "/src/test/java/integration/MySqlSourceIT.java"]))
+        self.assertIn("cdc", subject.select([subject.CDC + "/src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"]))
 
     def test_non_pr_auto_is_full(self):
         with patch.dict(os.environ, {"CI_EVENT_NAME": "workflow_dispatch"}):
@@ -80,7 +80,7 @@ class NightlyAcceptanceTest(unittest.TestCase):
     def test_release_full_retains_database_acceptance(self):
         self.assertNotIn("backend-e2e", subject.SUITES)
         self.assertNotIn("recovery-e2e", subject.SUITES)
-        self.assertIn("cdc", subject.SUITES)
+        self.assertEqual({"business", "cdc"}, set(subject.SUITES))
         self.assertFalse(any(name.startswith("cdc-") for name in subject.SUITES))
 
 
@@ -113,7 +113,7 @@ class MavenIntegrationProfileTest(unittest.TestCase):
 
 
 class ReportTest(unittest.TestCase):
-    COUNTS = {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 3}
+    COUNTS = {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 5}
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -170,6 +170,21 @@ class ReportTest(unittest.TestCase):
         self.assertFalse(any(suite.startswith("cdc-") for suite in subject.SUITES))
         self.assertNotIn("backend-e2e", subject.SUITES)
         self.assertNotIn("recovery-e2e", subject.SUITES)
+
+    def test_registered_it_classes_exist_in_current_reactor(self):
+        subject.check_registration()
+        for name, (module, _tag, tests) in subject.SUITES.items():
+            with self.subTest(suite=name):
+                self.assertTrue((subject.ROOT / module / "pom.xml").is_file())
+                for test_class in tests:
+                    self.assertEqual(
+                        1,
+                        len(list((subject.ROOT / module / "src/test").rglob(test_class + ".java"))),
+                    )
+
+    def test_missing_cdc_report_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "TableExclusionDuringSnapshotIT"):
+            subject.check_reports(["cdc"], self.root)
 
     def test_new_unregistered_it_fails(self):
         with patch.object(subject, "SUITES", {"small": ("module", "tag", {"NamedIT": 1})}):

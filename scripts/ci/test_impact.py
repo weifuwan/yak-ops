@@ -76,18 +76,17 @@ class ImpactTest(unittest.TestCase):
         self.assertIn("yak-ops-boot", check["modules"])
         self.assertEqual({"business"}, check["suites"])
 
-    def test_pipeline_composition_selects_database_and_recovery_suites(self):
+    def test_cdc_composer_changes_select_cdc(self):
         path = impact.ENGINE + "src/main/java/io/yak/ops/composer/yakflow/YakFlowPipelineComposer.java"
         result = impact.analyze([path])
-        self.assertEqual({"pipeline", "cdc"}, result["suites"])
-        self.assertIn(impact.ENGINE.rstrip("/"), result["modules"])
+        self.assertEqual({"cdc"}, result["suites"])
         self.assertIn(impact.ENGINE.rstrip("/"), result["modules"])
         self.assertEqual([], impact.select_suites([
             impact.ENGINE + "src/test/java/io/yak/ops/composer/PipelineComposerTest.java"]))
 
-    def test_task_parameter_contract_has_no_database_suite(self):
+    def test_task_parameter_contract_selects_business_suite(self):
         path = "yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-api/src/main/java/PipelineTaskChannel.java"
-        self.assertEqual(set(), set(impact.select_suites([path])))
+        self.assertEqual({"business"}, set(impact.select_suites([path])))
 
     def test_downstream_checks_follow_runtime_dependencies(self):
         selected = impact.affected_modules(["yak-ops-common"])
@@ -116,7 +115,7 @@ class ImpactTest(unittest.TestCase):
             impact.CDC_BASE + "src/test/java/SnapshotSplitAssignerTest.java"]))
 
     def test_connector_cdc_it_paths_select_owning_suite(self):
-        path = impact.CDC + "src/test/java/integration/MySqlCdcToMySqlCrashRecoveryIT.java"
+        path = impact.CDC + "src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"
         self.assertEqual({"cdc"}, set(impact.select_suites([path])))
         self.assertEqual([], impact.select_suites([impact.CDC + "src/test/java/source/reader/BinlogSplitReaderTest.java"]))
 
@@ -153,7 +152,7 @@ class ImpactTest(unittest.TestCase):
             "yak-ops-business/yak-ops-business-task/src/test/java/TaskCursorTest.java"
         ]))
         self.assertEqual(["cdc"], impact.select_suites([
-            impact.CDC + "src/test/java/MySqlSourceIT.java"
+            impact.CDC + "src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"
         ]))
 
     def test_rename_union_and_release(self):
@@ -182,8 +181,8 @@ class ImpactTest(unittest.TestCase):
 
 
     def test_registry_change_only_selects_affected_suite(self):
-        before = 'SUITES = {"jdbc-mysql": (1, 2), "cdc": (1, 2)}\n\ndef runner():\n    return True\n'
-        after = 'SUITES = {"jdbc-mysql": (1, 2), "cdc": (1, 3)}\n\ndef runner():\n    return True\n'
+        before = 'SUITES = {"business": (1, 2), "cdc": (1, 2)}\n\ndef runner():\n    return True\n'
+        after = 'SUITES = {"business": (1, 2), "cdc": (1, 3)}\n\ndef runner():\n    return True\n'
         self.assertEqual({"cdc"}, impact.compare_suite_registry(before, after))
         self.assertEqual(set(), impact.compare_suite_registry(before, before + "# comment only\n"))
 
