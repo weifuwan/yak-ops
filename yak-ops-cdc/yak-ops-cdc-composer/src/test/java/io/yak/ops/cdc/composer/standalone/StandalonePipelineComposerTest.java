@@ -19,336 +19,175 @@ package io.yak.ops.cdc.composer.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.cdc.common.configuration.ConfigOption;
 import io.yak.ops.cdc.common.configuration.ConfigOptions;
 import io.yak.ops.cdc.common.configuration.Configuration;
-import io.yak.ops.cdc.common.event.DataChangeEvent;
-import io.yak.ops.cdc.common.event.SchemaChangeEventType;
-import io.yak.ops.cdc.common.event.TableId;
+import io.yak.ops.cdc.common.event.Event;
 import io.yak.ops.cdc.common.factories.DataSinkFactory;
 import io.yak.ops.cdc.common.factories.DataSourceFactory;
 import io.yak.ops.cdc.common.factories.FactoryHelper;
-import io.yak.ops.cdc.common.function.HashFunction;
-import io.yak.ops.cdc.common.function.HashFunctionProvider;
-import io.yak.ops.cdc.common.pipeline.ExistingTableSchemaExpansionMode;
-import io.yak.ops.cdc.common.pipeline.HashFunctionStrategy;
-import io.yak.ops.cdc.common.pipeline.RouteMode;
-import io.yak.ops.cdc.common.pipeline.RuntimeExecutionMode;
-import io.yak.ops.cdc.common.pipeline.SchemaChangeBehavior;
-import io.yak.ops.cdc.common.route.RouteRule;
-import io.yak.ops.cdc.common.schema.Schema;
 import io.yak.ops.cdc.common.sink.DataSink;
-import io.yak.ops.cdc.common.sink.DefaultDataChangeEventHashFunctionProvider;
 import io.yak.ops.cdc.common.sink.EventSinkProvider;
 import io.yak.ops.cdc.common.sink.MetadataApplier;
 import io.yak.ops.cdc.common.source.DataSource;
 import io.yak.ops.cdc.common.source.EventSourceProvider;
 import io.yak.ops.cdc.common.source.MetadataAccessor;
-import io.yak.ops.cdc.composer.PipelineExecution;
 import io.yak.ops.cdc.composer.definition.PipelineDef;
 import io.yak.ops.cdc.composer.definition.RouteDef;
 import io.yak.ops.cdc.composer.definition.SinkDef;
 import io.yak.ops.cdc.composer.definition.SourceDef;
 import io.yak.ops.cdc.composer.definition.TransformDef;
-import io.yak.ops.cdc.composer.standalone.translator.DataSourceTranslator;
-import io.yak.ops.cdc.composer.standalone.translator.DataSinkTranslator;
-import io.yak.ops.cdc.composer.standalone.translator.OperatorUidGenerator;
-import io.yak.ops.cdc.composer.standalone.translator.PartitioningTranslator;
-import io.yak.ops.cdc.composer.standalone.translator.SchemaOperatorTranslator;
-
-import java.time.Duration;
-import java.util.ArrayList;
+import io.yak.ops.cdc.runtime.connectors.RuntimeSinkProvider;
+import io.yak.ops.cdc.runtime.connectors.RuntimeSourceProvider;
+import io.yak.ops.cdc.runtime.datastream.StreamExecutionEnvironment;
+import io.yak.ops.cdc.runtime.graph.OperatorType;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class StandalonePipelineComposerTest {
 
-    private PipelineDef definition(Map<String, String> sourceOptions,
-                                   Map<String, String> sinkOptions,
-                                   Map<String, String> pipelineOptions) {
+    private static final List<Event> RECEIVED = new CopyOnWriteArrayList<>();
+
+    private record TestEvent(String value) implements Event {}
+
+    @BeforeEach
+    void clear() {
+        RECEIVED.clear();
+    }
+
+    private PipelineDef definition(
+            Map<String, String> sourceOptions,
+            Map<String, String> sinkOptions,
+            Map<String, String> pipelineOptions,
+            List<RouteDef> routes,
+            List<TransformDef> transforms) {
         return new PipelineDef(
                 new SourceDef("test-source", null, Configuration.fromMap(sourceOptions)),
                 new SinkDef("test-sink", null, Configuration.fromMap(sinkOptions)),
-                List.of(new RouteDef("db.orders", "target.orders", null, null)),
-                List.of(),
-                List.of(),
-                List.of(),
-                Configuration.fromMap(pipelineOptions));
+                routes, transforms, List.of(), List.of(), Configuration.fromMap(pipelineOptions));
     }
 
-    private PipelineDef defaultDefinition() {
-        return definition(Map.of("tables", "db.orders"), Map.of("target", "target.orders"), Map.of());
-    }
-
-    private PipelineExecution compose(PipelineDef def) {
-        return new StandalonePipelineComposer(new RecordingEnvironment()).compose(def);
+    private PipelineDef definition() {
+        return definition(Map.of("tables", "db.orders"),
+                Map.of("target", "target.orders"), Map.of(), List.of(), List.of());
     }
 
     @Test
-    void assemblesRegularTopologyDirectlyIntoInjectedEnvironment() throws Exception {
-        RecordingEnvironment env = new RecordingEnvironment();
-        StandalonePipelineComposer composer = new StandalonePipelineComposer(env);
-        StandalonePipelineExecution execution = assertInstanceOf(
-                StandalonePipelineExecution.class,
-                composer.compose(definition(
-                        Map.of("tables", "db.orders"),
-                        Map.of("target", "target.orders"),
-                        Map.of("parallelism", "2",
-                               "operator.uid.prefix", "orders",
-                               "sink.partitioning.strategy", "TABLE_ID",
-                               "name", "Order replication"))));
+    void composerBuildsSourceToSinkAndExecutionDelegatesToRuntime() throws Exception {
+        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        var execution = assertInstanceOf(StandalonePipelineExecution.class,
+                new StandalonePipelineComposer(env).compose(
+                        definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"),
+                                Map.of("name", "orders", "operator.uid.prefix", "replica"),
+                                List.of(), List.of())));
+        var graph = env.getStreamGraph();
+        assertEquals(List.of(OperatorType.SOURCE, OperatorType.SINK),
+                graph.getOrderedNodes().stream().map(n -> n.type()).toList());
+        assertEquals("replica-source", graph.getOrderedNodes().get(0).uid());
+        assertEquals("replica-sink-writer", graph.getOrderedNodes().get(1).uid());
+        assertEquals(1, graph.getEdges().size());
+        assertEquals(0, RECEIVED.size(), "Composer must not execute any Event");
 
-        assertEquals(2, env.parallelism);
-        assertEquals(RuntimeExecutionMode.STREAMING, env.runtimeMode);
-        assertEquals(List.of("source", "schema", "partitioning", "sink"), env.stages);
-        assertEquals("orders-source", env.sourceUid);
-        assertEquals("orders-schema-operator", env.schemaUid);
-        assertEquals("orders-pre-partition", env.prePartitionUid);
-        assertEquals("orders-post-partition", env.postPartitionUid);
-        assertEquals("orders-sink-writer", env.sinkUid);
-        assertEquals(HashFunctionStrategy.TABLE_ID, env.strategy);
-        assertEquals(2, env.sourceParallelism);
-        assertEquals(2, env.downstreamParallelism);
-        assertEquals(1, env.routeRules.size());
-        assertEquals("db.orders", env.routeRules.get(0).sourceTable);
-        assertEquals("target.orders", env.routeRules.get(0).sinkTable);
-        assertNotNull(env.sourceProvider);
-        assertNotNull(env.sinkProvider);
-        assertNotNull(env.metadataApplier);
-        assertEquals("Yak Ops CDC Event Source: test-source", env.sourceName);
-        assertEquals("Yak Ops CDC Event Sink: test-sink", env.sinkName);
-        assertEquals(RouteMode.ALL_MATCH, env.routeMode);
-        PipelineExecution.ExecutionInfo info = execution.execute();
-        assertEquals("recorded-test-job", info.getId());
-        assertEquals("Order replication", info.getDescription());
-        assertEquals("Order replication", env.executedJobName);
-        assertEquals(1, env.executionCalls);
+        var info = execution.execute();
+        assertEquals("orders", info.getDescription());
+        assertEquals(info.getId(), execution.getHandle().getId());
+        execution.getHandle().getCompletion().get(5, TimeUnit.SECONDS);
+        assertEquals(List.of(new TestEvent("from-source")), RECEIVED);
+        assertThrows(IllegalStateException.class, execution::execute);
     }
 
     @Test
-    void injectsSourceTranslatorAndAllowsExplicitClassLoader() {
-        RecordingEnvironment env = new RecordingEnvironment();
-        class TrackingSourceTranslator extends DataSourceTranslator {
-            boolean translated;
-            @Override
-            public void translate(
-                    SourceDef definition,
-                    DataSource dataSource,
-                    StandaloneExecutionEnvironment environment,
-                    int parallelism,
-                    OperatorUidGenerator uidGenerator) {
-                translated = true;
-                super.translate(definition, dataSource, environment, parallelism, uidGenerator);
-            }
-        }
-        TrackingSourceTranslator sourceTranslator = new TrackingSourceTranslator();
-        StandalonePipelineComposer composer = new StandalonePipelineComposer(
-                env,
-                sourceTranslator,
-                new DataSinkTranslator(),
-                new SchemaOperatorTranslator(),
-                new PartitioningTranslator());
-        composer.compose(defaultDefinition());
-        assertTrue(sourceTranslator.translated);
-
-        RecordingEnvironment another = new RecordingEnvironment();
-        new StandalonePipelineComposer(another, TestSourceFactory.class.getClassLoader())
-                .compose(defaultDefinition());
-        assertEquals(List.of("source", "schema", "partitioning", "sink"), another.stages);
+    void transformDefinitionsProduceFlinkCdcPreAndPostStagesWithoutRunningExpressions() {
+        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        var transforms = List.of(
+                new TransformDef("db.orders", "id", null, null, null, null, null, null),
+                new TransformDef("db.users", "id", null, null, null, null, null, null));
+        var execution = assertInstanceOf(StandalonePipelineExecution.class,
+                new StandalonePipelineComposer(env).compose(
+                        definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"),
+                                Map.of("operator.uid.prefix", "job"),
+                                List.of(), transforms)));
+        assertEquals(List.of("Yak Ops CDC Event Source: test-source",
+                        "Transform:Schema", "Transform:Data",
+                        "Yak Ops CDC Event Sink: test-sink"),
+                env.getStreamGraph().getOrderedNodes().stream().map(n -> n.name()).toList());
+        assertEquals(3, env.getStreamGraph().getEdges().size());
+        assertEquals("job-post-transform", env.getStreamGraph().getOrderedNodes().get(2).uid());
+        execution.execute();
+        CompletionException error = assertThrows(CompletionException.class,
+                () -> execution.getHandle().getCompletion().join());
+        assertInstanceOf(UnsupportedOperationException.class, error.getCause());
+        assertTrue(error.getCause().getMessage().contains("PreTransform"));
+        assertTrue(RECEIVED.isEmpty());
     }
 
     @Test
-    void passesBatchModeAndSinkDefinedHashProviderToEnvironment() {
-        RecordingEnvironment env = new RecordingEnvironment();
-        new StandalonePipelineComposer(env).compose(
-                definition(Map.of("tables", "db.orders"), Map.of("target", "target.orders"),
-                        Map.of("execution.runtime-mode", "BATCH")));
-        assertEquals(RuntimeExecutionMode.BATCH, env.runtimeMode);
-        assertTrue(env.schemaBatchMode);
-        assertTrue(env.partitionBatchMode);
-        assertTrue(env.sinkBatchMode);
-        assertEquals(HashFunctionStrategy.SINK_DEFINED, env.strategy);
-        assertInstanceOf(
-                DefaultDataChangeEventHashFunctionProvider.class, env.hashFunctionProvider);
+    void rejectsUnsupportedTopologyInsteadOfSilentlyDroppingSemantics() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"),
+                                Map.of("parallelism", "2"), List.of(), List.of())));
+        assertThrows(UnsupportedOperationException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"), Map.of(),
+                                List.of(new RouteDef("db.orders", "dst.orders", null, null)),
+                                List.of())));
+        assertThrows(UnsupportedOperationException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders"),
+                                Map.of("sink.partitioning.strategy", "TABLE_ID"),
+                                List.of(), List.of())));
+        assertThrows(UnsupportedOperationException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders",
+                                        "parallel-metadata", "true"),
+                                Map.of("target", "target.orders"), Map.of(), List.of(), List.of())));
     }
 
     @Test
-    void invalidArgumentsAndDefinitionsFailBeforeRuntimeRegistration() {
+    void rejectsInvalidFactoryOptionsAndUnsupportedProviderTypes() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders", "unknown", "x"),
+                                Map.of("target", "target.orders"), Map.of(), List.of(), List.of())));
+        assertThrows(IllegalArgumentException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of(), Map.of("target", "target.orders"),
+                                Map.of(), List.of(), List.of())));
+        assertThrows(IllegalStateException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders",
+                                        "legacy-provider", "true"),
+                                Map.of("target", "target.orders"), Map.of(), List.of(), List.of())));
+        assertThrows(IllegalStateException.class,
+                () -> new StandalonePipelineComposer(StreamExecutionEnvironment.getLocalEnvironment())
+                        .compose(definition(Map.of("tables", "db.orders"),
+                                Map.of("target", "target.orders", "legacy-provider", "true"),
+                                Map.of(), List.of(), List.of())));
+    }
+
+    @Test
+    void supportsExplicitClassLoaderAndInjection() {
+        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        new StandalonePipelineComposer(env, TestSourceFactory.class.getClassLoader())
+                .compose(definition());
+        assertEquals(2, env.getStreamGraph().getNodes().size());
         assertThrows(NullPointerException.class,
-                () -> new StandalonePipelineComposer((StandaloneExecutionEnvironment) null));
-        RecordingEnvironment env = new RecordingEnvironment();
-        assertThrows(NullPointerException.class, () -> new StandalonePipelineComposer(
-                env, null, new DataSinkTranslator(),
-                new SchemaOperatorTranslator(), new PartitioningTranslator()));
-        assertThrows(IllegalArgumentException.class, () -> new StandalonePipelineComposer(env).compose(
-                definition(Map.of("tables", "db.orders"), Map.of("target", "target.orders"),
-                        Map.of("parallelism", "0"))));
-        assertEquals(List.of(), env.stages);
-        assertThrows(IllegalArgumentException.class, () -> compose(
-                definition(Map.of("tables", "db.orders"), Map.of("target", "target.orders"),
-                        Map.of("schema.operator.uid", "custom",
-                               "operator.uid.prefix", "jobs"))));
-        assertThrows(IllegalArgumentException.class, () -> compose(
-                definition(Map.of("tables", "db.orders"), Map.of("target", "target.orders"),
-                        Map.of("operator.uid.prefix", ""))));
-    }
-
-    @Test
-    void rejectsInvalidFactoryOptionsAndUnknownFactories() {
-        assertThrows(IllegalArgumentException.class, () -> compose(
-                definition(Map.of("tables", "db.orders", "unsupported", "x"),
-                        Map.of("target", "target.orders"), Map.of())));
-        assertThrows(IllegalArgumentException.class, () -> compose(
-                definition(Map.of(), Map.of("target", "target.orders"), Map.of())));
-        PipelineDef missing = new PipelineDef(
-                new SourceDef("missing-source", null, new Configuration()),
-                new SinkDef("test-sink", null,
-                        Configuration.fromMap(Map.of("target", "target.orders"))),
-                List.of(), List.of(), List.of(), new Configuration());
-        assertThrows(IllegalStateException.class, () -> compose(missing));
-    }
-
-    @Test
-    void rejectsIncompatibleSinkHashAndUnsupportedTopologies() {
-        assertThrows(IllegalArgumentException.class, () -> compose(
-                definition(Map.of("tables", "db.orders"),
-                        Map.of("target", "target.orders", "custom-hash", "true"),
-                        Map.of("sink.partitioning.strategy", "PRIMARY_KEY"))));
-        assertThrows(UnsupportedOperationException.class, () -> compose(
-                definition(Map.of("tables", "db.orders", "parallel-metadata", "true"),
-                        Map.of("target", "target.orders"), Map.of())));
-        PipelineDef base = defaultDefinition();
-        PipelineDef transform = new PipelineDef(
-                base.getSource(), base.getSink(), List.of(),
-                List.of(new TransformDef("db.orders", "id", null, null, null, null, null, null)),
-                List.of(), base.getConfig());
-        assertThrows(UnsupportedOperationException.class, () -> compose(transform));
-    }
-
-    @Test
-    void runtimeFailureIsPropagatedRatherThanReportedAsSuccess() {
-        RecordingEnvironment env = new RecordingEnvironment();
-        env.failOnExecute = true;
-        PipelineExecution execution =
-                new StandalonePipelineComposer(env).compose(defaultDefinition());
-        UnsupportedOperationException failure =
-                assertThrows(UnsupportedOperationException.class, execution::execute);
-        assertTrue(failure.getMessage().contains("runtime"));
-    }
-
-    /**
-     * Test-only environment. Does not run any CDC readers or writers.
-     * Real runtime implementations must own actual execution.
-     */
-    private static class RecordingEnvironment implements StandaloneExecutionEnvironment {
-        final List<String> stages = new ArrayList<>();
-        int parallelism;
-        RuntimeExecutionMode runtimeMode;
-        String sourceUid;
-        String schemaUid;
-        String prePartitionUid;
-        String postPartitionUid;
-        String sinkUid;
-        int sourceParallelism;
-        int downstreamParallelism;
-        String sourceName;
-        String sinkName;
-        EventSourceProvider sourceProvider;
-        EventSinkProvider sinkProvider;
-        MetadataApplier metadataApplier;
-        List<RouteRule> routeRules;
-        RouteMode routeMode;
-        HashFunctionStrategy strategy;
-        HashFunctionProvider<DataChangeEvent> hashFunctionProvider;
-        boolean schemaBatchMode;
-        boolean partitionBatchMode;
-        boolean sinkBatchMode;
-        String executedJobName;
-        int executionCalls;
-        boolean failOnExecute;
-
-        @Override public void setParallelism(int parallelism) { this.parallelism = parallelism; }
-        @Override public void setRuntimeMode(RuntimeExecutionMode mode) { this.runtimeMode = mode; }
-
-        @Override
-        public void fromSource(SourceDef definition, DataSource dataSource,
-                               EventSourceProvider provider, String name,
-                               int parallelism, String uid) {
-            stages.add("source");
-            this.sourceUid = uid;
-            this.sourceParallelism = parallelism;
-            this.sourceName = name;
-            this.sourceProvider = provider;
-        }
-
-        @Override
-        public void addSchemaOperator(
-                MetadataApplier metadataApplier,
-                List<RouteRule> rules,
-                RouteMode routeMode,
-                SchemaChangeBehavior behavior,
-                ExistingTableSchemaExpansionMode existingTableSchemaExpansionMode,
-                Set<SchemaChangeEventType> accepted,
-                Duration timeout,
-                String timezone,
-                String uid,
-                boolean isBatchMode) {
-            stages.add("schema");
-            this.metadataApplier = metadataApplier;
-            this.routeRules = List.copyOf(rules);
-            this.routeMode = routeMode;
-            this.schemaUid = uid;
-            this.schemaBatchMode = isBatchMode;
-        }
-
-        @Override
-        public void addPartitioning(
-                HashFunctionStrategy strategy,
-                HashFunctionProvider<DataChangeEvent> hashFunctionProvider,
-                int upstreamParallelism,
-                int downstreamParallelism,
-                String prePartitionUid,
-                String postPartitionUid,
-                boolean isBatchMode) {
-            stages.add("partitioning");
-            this.strategy = strategy;
-            this.hashFunctionProvider = hashFunctionProvider;
-            this.downstreamParallelism = downstreamParallelism;
-            this.prePartitionUid = prePartitionUid;
-            this.postPartitionUid = postPartitionUid;
-            this.partitionBatchMode = isBatchMode;
-        }
-
-        @Override
-        public void addSink(
-                SinkDef definition,
-                DataSink dataSink,
-                EventSinkProvider provider,
-                String name,
-                String uid,
-                boolean isBatchMode) {
-            stages.add("sink");
-            this.sinkProvider = provider;
-            this.sinkName = name;
-            this.sinkUid = uid;
-            this.sinkBatchMode = isBatchMode;
-        }
-
-        @Override
-        public PipelineExecution.ExecutionInfo execute(String jobName) {
-            executionCalls++;
-            executedJobName = jobName;
-            if (failOnExecute) {
-                throw new UnsupportedOperationException("Standalone runtime is not connected");
-            }
-            return new PipelineExecution.ExecutionInfo("recorded-test-job", jobName);
-        }
+                () -> new StandalonePipelineComposer(null));
     }
 
     public static class TestSourceFactory implements DataSourceFactory {
@@ -356,16 +195,24 @@ class StandalonePipelineComposerTest {
                 ConfigOptions.key("tables").stringType().noDefaultValue();
         private static final ConfigOption<Boolean> PARALLEL_METADATA =
                 ConfigOptions.key("parallel-metadata").booleanType().defaultValue(false);
+        private static final ConfigOption<Boolean> LEGACY =
+                ConfigOptions.key("legacy-provider").booleanType().defaultValue(false);
 
         @Override public String identifier() { return "test-source"; }
         @Override public Set<ConfigOption<?>> requiredOptions() { return Set.of(TABLES); }
-        @Override public Set<ConfigOption<?>> optionalOptions() { return Set.of(PARALLEL_METADATA); }
+        @Override public Set<ConfigOption<?>> optionalOptions() {
+            return Set.of(PARALLEL_METADATA, LEGACY);
+        }
 
         @Override
         public DataSource createDataSource(Context context) {
             FactoryHelper.createFactoryHelper(this, context).validate();
             boolean parallel = context.getFactoryConfiguration().get(PARALLEL_METADATA);
-            EventSourceProvider provider = new EventSourceProvider() {};
+            boolean legacy = context.getFactoryConfiguration().get(LEGACY);
+            EventSourceProvider provider = legacy
+                    ? new EventSourceProvider() {}
+                    : (RuntimeSourceProvider) () ->
+                            output -> output.collect(new TestEvent("from-source"));
             return new DataSource() {
                 @Override public EventSourceProvider getEventSourceProvider() { return provider; }
                 @Override public MetadataAccessor getMetadataAccessor() { return null; }
@@ -377,35 +224,24 @@ class StandalonePipelineComposerTest {
     public static class TestSinkFactory implements DataSinkFactory {
         private static final ConfigOption<String> TARGET =
                 ConfigOptions.key("target").stringType().noDefaultValue();
-        private static final ConfigOption<Boolean> CUSTOM_HASH =
-                ConfigOptions.key("custom-hash").booleanType().defaultValue(false);
+        private static final ConfigOption<Boolean> LEGACY =
+                ConfigOptions.key("legacy-provider").booleanType().defaultValue(false);
 
         @Override public String identifier() { return "test-sink"; }
         @Override public Set<ConfigOption<?>> requiredOptions() { return Set.of(TARGET); }
-        @Override public Set<ConfigOption<?>> optionalOptions() { return Set.of(CUSTOM_HASH); }
+        @Override public Set<ConfigOption<?>> optionalOptions() { return Set.of(LEGACY); }
 
         @Override
         public DataSink createDataSink(Context context) {
             FactoryHelper.createFactoryHelper(this, context).validate();
-            boolean custom = context.getFactoryConfiguration().get(CUSTOM_HASH);
-            EventSinkProvider provider = new EventSinkProvider() {};
-            MetadataApplier applier = event -> {};
+            boolean legacy = context.getFactoryConfiguration().get(LEGACY);
+            EventSinkProvider provider = legacy
+                    ? new EventSinkProvider() {}
+                    : (RuntimeSinkProvider) () -> RECEIVED::add;
+            MetadataApplier metadataApplier = event -> {};
             return new DataSink() {
                 @Override public EventSinkProvider getEventSinkProvider() { return provider; }
-                @Override public MetadataApplier getMetadataApplier() { return applier; }
-                @Override
-                public HashFunctionProvider<DataChangeEvent> getDataChangeEventHashFunctionProvider() {
-                    if (!custom) {
-                        return new DefaultDataChangeEventHashFunctionProvider();
-                    }
-                    return new HashFunctionProvider<DataChangeEvent>() {
-                        @Override
-                        public HashFunction<DataChangeEvent> getHashFunction(
-                                TableId tableId, Schema schema) {
-                            return event -> 0;
-                        }
-                    };
-                }
+                @Override public MetadataApplier getMetadataApplier() { return metadataApplier; }
             };
         }
     }

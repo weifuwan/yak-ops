@@ -18,16 +18,24 @@
 package io.yak.ops.cdc.composer.standalone.translator;
 
 import io.yak.ops.cdc.common.configuration.Configuration;
+import io.yak.ops.cdc.common.event.Event;
 import io.yak.ops.cdc.common.factories.DataSourceFactory;
 import io.yak.ops.cdc.common.factories.FactoryHelper;
 import io.yak.ops.cdc.common.source.DataSource;
 import io.yak.ops.cdc.common.source.EventSourceProvider;
 import io.yak.ops.cdc.composer.definition.SourceDef;
-import io.yak.ops.cdc.composer.standalone.StandaloneExecutionEnvironment;
 import io.yak.ops.cdc.composer.utils.FactoryDiscoveryUtils;
+import io.yak.ops.cdc.runtime.connectors.RuntimeSourceProvider;
+import io.yak.ops.cdc.runtime.datastream.DataStream;
+import io.yak.ops.cdc.runtime.datastream.StreamExecutionEnvironment;
 import java.util.Objects;
 
-/** Standalone Source translator: create DataSource through SPI and register it with the runtime. */
+/**
+ * Translate a CDC SourceDef to an executable DataStream node.
+ *
+ * <p>Factory discovery matches Flink CDC; unsupported source provider implementations fail
+ * explicitly until migrated onto the standalone SourceOperator contract.
+ */
 public class DataSourceTranslator {
     private final ClassLoader classLoader;
 
@@ -48,18 +56,20 @@ public class DataSourceTranslator {
                 factory.createDataSource(context), "DataSourceFactory returned null");
     }
 
-    public void translate(
-            SourceDef sourceDef,
-            DataSource dataSource,
-            StandaloneExecutionEnvironment env,
-            int sourceParallelism,
+    public DataStream<Event> translate(
+            SourceDef sourceDef, DataSource dataSource, StreamExecutionEnvironment env,
             OperatorUidGenerator uidGenerator) {
         EventSourceProvider provider = Objects.requireNonNull(
                 dataSource.getEventSourceProvider(), "DataSource returned null EventSourceProvider");
-        env.fromSource(
-                sourceDef, dataSource, provider,
-                sourceDef.getName().orElse("Yak Ops CDC Event Source: " + sourceDef.getType()),
-                sourceParallelism,
-                uidGenerator.generateUid("source"));
+        if (!(provider instanceof RuntimeSourceProvider standalone)) {
+            throw new IllegalStateException(
+                    "Unsupported EventSourceProvider type for standalone runtime: "
+                            + provider.getClass().getName());
+        }
+        return env.fromSource(
+                        sourceDef.getName().orElse(
+                                "Yak Ops CDC Event Source: " + sourceDef.getType()),
+                        standalone::createSourceOperator)
+                .uid(uidGenerator.generateUid("source"));
     }
 }

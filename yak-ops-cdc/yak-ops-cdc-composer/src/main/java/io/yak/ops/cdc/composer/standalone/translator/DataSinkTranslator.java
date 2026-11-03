@@ -18,16 +18,18 @@
 package io.yak.ops.cdc.composer.standalone.translator;
 
 import io.yak.ops.cdc.common.configuration.Configuration;
+import io.yak.ops.cdc.common.event.Event;
 import io.yak.ops.cdc.common.factories.DataSinkFactory;
 import io.yak.ops.cdc.common.factories.FactoryHelper;
 import io.yak.ops.cdc.common.sink.DataSink;
 import io.yak.ops.cdc.common.sink.EventSinkProvider;
 import io.yak.ops.cdc.composer.definition.SinkDef;
-import io.yak.ops.cdc.composer.standalone.StandaloneExecutionEnvironment;
 import io.yak.ops.cdc.composer.utils.FactoryDiscoveryUtils;
+import io.yak.ops.cdc.runtime.connectors.RuntimeSinkProvider;
+import io.yak.ops.cdc.runtime.datastream.DataStream;
 import java.util.Objects;
 
-/** Standalone Sink translator: create DataSink through SPI and register it with the runtime. */
+/** Translate CDC SinkDef into a real terminal node attached to its input DataStream. */
 public class DataSinkTranslator {
     private final ClassLoader classLoader;
 
@@ -49,17 +51,18 @@ public class DataSinkTranslator {
     }
 
     public void translate(
-            SinkDef sinkDef,
-            DataSink dataSink,
-            StandaloneExecutionEnvironment env,
-            boolean isBatchMode,
+            SinkDef sinkDef, DataStream<Event> input, DataSink dataSink,
             OperatorUidGenerator uidGenerator) {
         EventSinkProvider provider = Objects.requireNonNull(
                 dataSink.getEventSinkProvider(), "DataSink returned null EventSinkProvider");
-        env.addSink(
-                sinkDef, dataSink, provider,
+        if (!(provider instanceof RuntimeSinkProvider standalone)) {
+            throw new IllegalStateException(
+                    "Unsupported EventSinkProvider type for standalone runtime: "
+                            + provider.getClass().getName());
+        }
+        input.addSink(
                 sinkDef.getName().orElse("Yak Ops CDC Event Sink: " + sinkDef.getType()),
-                uidGenerator.generateUid("sink-writer"),
-                isBatchMode);
+                standalone::createSinkOperator,
+                uidGenerator.generateUid("sink-writer"));
     }
 }

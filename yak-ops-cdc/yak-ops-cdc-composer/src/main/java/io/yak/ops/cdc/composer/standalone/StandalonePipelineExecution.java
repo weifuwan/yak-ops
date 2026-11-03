@@ -18,28 +18,33 @@
 package io.yak.ops.cdc.composer.standalone;
 
 import io.yak.ops.cdc.composer.PipelineExecution;
+import io.yak.ops.cdc.runtime.datastream.StreamExecutionEnvironment;
+import io.yak.ops.cdc.runtime.datastream.StreamExecutionHandle;
 import java.util.Objects;
 
-/**
- * Submit the pipeline already assembled in a standalone execution environment.
- *
- * <p>Mirrors the responsibility of FlinkPipelineExecution. The runtime, not this adapter,
- * owns the readers, writers, scheduling and cleanup.
- */
+/** Submit a previously composed standalone graph to the single-JVM runtime. */
 public final class StandalonePipelineExecution implements PipelineExecution {
 
-    private final StandaloneExecutionEnvironment env;
+    private final StreamExecutionEnvironment env;
     private final String jobName;
+    private volatile StreamExecutionHandle handle;
 
-    public StandalonePipelineExecution(StandaloneExecutionEnvironment env, String jobName) {
+    public StandalonePipelineExecution(StreamExecutionEnvironment env, String jobName) {
         this.env = Objects.requireNonNull(env, "env");
         this.jobName = Objects.requireNonNull(jobName, "jobName");
     }
 
     @Override
-    public ExecutionInfo execute() throws Exception {
-        return Objects.requireNonNull(
-                env.execute(jobName),
-                "StandaloneExecutionEnvironment returned null execution information");
+    public ExecutionInfo execute() {
+        handle = env.executeAsync(jobName);
+        return new ExecutionInfo(handle.getId(), jobName);
+    }
+
+    /** Exposes completion and cancellation after execute(). */
+    public StreamExecutionHandle getHandle() {
+        if (handle == null) {
+            throw new IllegalStateException("Pipeline has not been submitted");
+        }
+        return handle;
     }
 }
