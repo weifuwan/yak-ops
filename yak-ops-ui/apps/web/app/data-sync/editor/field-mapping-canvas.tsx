@@ -1,6 +1,4 @@
-import {
-  Button, Input, Popover, PopoverContent, PopoverTrigger,
-} from "@yak-ops/yak-ui";
+import { Button, Input, Popover, PopoverContent, PopoverTrigger } from "@yak-ops/yak-ui";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataSourceCatalogColumn } from "@/service/datasource";
 import type { DirectFieldMapping } from "@/service/data-sync/transforms";
@@ -25,10 +23,18 @@ interface ConnectionGeometry {
 
 const BORDER = "var(--yak-components-panel-border)";
 const ACCENT = "var(--yak-color-primary)";
-const ROW = "relative grid h-8 grid-cols-[minmax(0,1fr)_140px] items-center border-x border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-xs text-[var(--yak-components-panel-text)]";
-const HEADER = "grid h-8 grid-cols-[minmax(0,1fr)_140px] items-center border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-muted)] text-xs font-medium";
+const ROW =
+  "relative grid h-8 grid-cols-[minmax(0,1fr)_140px] items-center border-x border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-xs text-[var(--yak-components-panel-text)]";
+const HEADER =
+  "grid h-8 grid-cols-[minmax(0,1fr)_140px] items-center border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-muted)] text-xs font-medium";
 
-export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disabled, onChange }: Props) {
+export function FieldMappingCanvas({
+  fields,
+  sourceColumns,
+  targetColumns,
+  disabled,
+  onChange,
+}: Props) {
   const canvas = useRef<HTMLDivElement>(null);
   const sources = useRef(new Map<string, HTMLDivElement>());
   const targets = useRef(new Map<string, HTMLDivElement>());
@@ -39,7 +45,10 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
   const [hoveredSource, setHoveredSource] = useState<string | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mappedSources = useMemo(() => new Set(fields.map((field) => field.source)), [fields]);
-  const mappedTargets = useMemo(() => new Set(fields.map((field) => field.target.toLocaleLowerCase())), [fields]);
+  const mappedTargets = useMemo(
+    () => new Set(fields.map((field) => field.target.toLocaleLowerCase())),
+    [fields],
+  );
   const targetNames = useMemo(() => {
     if (targetColumns) return targetColumns;
     const names = new Set(sourceColumns.map((column) => column.name));
@@ -47,54 +56,84 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
       .filter((field) => !names.has(field.target))
       .map((field) => {
         names.add(field.target);
-        return { name: field.target, typeName: sourceColumns.find((column) => column.name === field.source)?.typeName };
+        return {
+          name: field.target,
+          typeName: sourceColumns.find((column) => column.name === field.source)?.typeName,
+        };
       });
     return [...sourceColumns, ...extra];
   }, [targetColumns, sourceColumns, fields]);
   const occupiedTargets = useMemo(() => new Set(fields.map((field) => field.target)), [fields]);
 
-  const connect = useCallback((source: string, target: string) => {
-    const trimmed = target.trim();
-    if (disabled || !trimmed || mappedSources.has(source) || mappedTargets.has(trimmed.toLocaleLowerCase())) return;
-    onChange([...fields, { source, target: trimmed }]);
-    setPickerSource(null);
-    setCustomTarget("");
-  }, [disabled, mappedSources, mappedTargets, fields, onChange]);
+  const connect = useCallback(
+    (source: string, target: string) => {
+      const trimmed = target.trim();
+      if (
+        disabled ||
+        !trimmed ||
+        mappedSources.has(source) ||
+        mappedTargets.has(trimmed.toLocaleLowerCase())
+      )
+        return;
+      onChange([...fields, { source, target: trimmed }]);
+      setPickerSource(null);
+      setCustomTarget("");
+    },
+    [disabled, mappedSources, mappedTargets, fields, onChange],
+  );
 
   const relink = (source: string, target: string) => {
     const trimmed = target.trim();
     if (
-      disabled || !trimmed ||
-      fields.some((field) => field.source !== source && field.target.toLocaleLowerCase() === trimmed.toLocaleLowerCase())
-    ) return;
-    onChange(fields.map((field) => field.source === source ? { ...field, target: trimmed } : field));
+      disabled ||
+      !trimmed ||
+      fields.some(
+        (field) =>
+          field.source !== source &&
+          field.target.toLocaleLowerCase() === trimmed.toLocaleLowerCase(),
+      )
+    )
+      return;
+    onChange(
+      fields.map((field) => (field.source === source ? { ...field, target: trimmed } : field)),
+    );
     setEditingSource(null);
     setCustomTarget("");
   };
 
   const { connection, start, suppressClick } = useFieldMappingDrag({
-    canvas, sources, targets, occupiedTargets, onConnect: connect,
+    canvas,
+    sources,
+    targets,
+    occupiedTargets,
+    onConnect: connect,
   });
 
   const measure = useCallback(() => {
     const root = canvas.current;
     if (!root) return;
     const bounds = root.getBoundingClientRect();
-    setGeometries(fields.flatMap((field) => {
-      const left = sources.current.get(field.source)?.getBoundingClientRect();
-      const right = targets.current.get(field.target)?.getBoundingClientRect();
-      if (!left || !right) return [];
-      return [{
-        source: field.source,
-        x1: left.right - bounds.left,
-        y1: left.top - bounds.top + left.height / 2,
-        x2: right.left - bounds.left,
-        y2: right.top - bounds.top + right.height / 2,
-      }];
-    }));
+    setGeometries(
+      fields.flatMap((field) => {
+        const left = sources.current.get(field.source)?.getBoundingClientRect();
+        const right = targets.current.get(field.target)?.getBoundingClientRect();
+        if (!left || !right) return [];
+        return [
+          {
+            source: field.source,
+            x1: left.right - bounds.left,
+            y1: left.top - bounds.top + left.height / 2,
+            x2: right.left - bounds.left,
+            y2: right.top - bounds.top + right.height / 2,
+          },
+        ];
+      }),
+    );
   }, [fields]);
 
-  useLayoutEffect(() => { measure(); }, [measure, targetNames, sourceColumns]);
+  useLayoutEffect(() => {
+    measure();
+  }, [measure, targetNames, sourceColumns]);
   useEffect(() => {
     const root = canvas.current;
     if (!root) return;
@@ -106,9 +145,12 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
       window.removeEventListener("resize", measure);
     };
   }, [measure]);
-  useEffect(() => () => {
-    if (hoverTimer.current) clearTimeout(hoverTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    },
+    [],
+  );
 
   const showActions = (source: string) => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -117,13 +159,20 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
   const hideActions = (source: string) => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     hoverTimer.current = setTimeout(() => {
-      setHoveredSource((current) => current === source ? null : current);
+      setHoveredSource((current) => (current === source ? null : current));
     }, 150);
   };
   const targetOptions = (source: string) =>
-    (targetColumns ?? []).filter((column) =>
-      !fields.some((field) => field.source !== source && field.target.toLocaleLowerCase() === column.name.toLocaleLowerCase())
-    ).map((column) => ({ label: column.name, value: column.name }));
+    (targetColumns ?? [])
+      .filter(
+        (column) =>
+          !fields.some(
+            (field) =>
+              field.source !== source &&
+              field.target.toLocaleLowerCase() === column.name.toLocaleLowerCase(),
+          ),
+      )
+      .map((column) => ({ label: column.name, value: column.name }));
 
   const targetPicker = (source: string, existing?: string) => (
     <div className="w-56 space-y-2">
@@ -136,7 +185,7 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
           placeholder="选择目标字段"
           value={existing || null}
           options={targetOptions(source)}
-          onValueChange={(target) => existing ? relink(source, target) : connect(source, target)}
+          onValueChange={(target) => (existing ? relink(source, target) : connect(source, target))}
         />
       ) : (
         <>
@@ -153,9 +202,15 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
               }
             }}
           />
-          <Button size="small" disabled={!customTarget.trim()} onClick={() =>
-            existing ? relink(source, customTarget) : connect(source, customTarget)
-          }>确认</Button>
+          <Button
+            size="small"
+            disabled={!customTarget.trim()}
+            onClick={() =>
+              existing ? relink(source, customTarget) : connect(source, customTarget)
+            }
+          >
+            确认
+          </Button>
         </>
       )}
     </div>
@@ -170,9 +225,15 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
   const rowContents = (column: { name: string; typeName?: string; primaryKey?: boolean }) => (
     <>
       <span className="truncate px-3" title={column.name}>
-        {column.name}{column.primaryKey ? <span className="ml-2 text-[var(--yak-components-muted-text)]">主键</span> : null}
+        {column.name}
+        {column.primaryKey ? (
+          <span className="ml-2 text-[var(--yak-components-muted-text)]">主键</span>
+        ) : null}
       </span>
-      <span className="truncate border-l border-[var(--yak-components-panel-border)] px-3" title={column.typeName}>
+      <span
+        className="truncate border-l border-[var(--yak-components-panel-border)] px-3"
+        title={column.typeName}
+      >
         {column.typeName || "—"}
       </span>
     </>
@@ -195,12 +256,18 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
             return (
               <div
                 key={column.name}
-                ref={(element) => { if (element) sources.current.set(column.name, element); else sources.current.delete(column.name); }}
+                ref={(element) => {
+                  if (element) sources.current.set(column.name, element);
+                  else sources.current.delete(column.name);
+                }}
                 className={ROW}
               >
                 {rowContents(column)}
                 {mapped ? (
-                  <span className="absolute -right-1 top-1/2 z-30 h-2 w-2 -translate-y-1/2 rotate-45" style={{ backgroundColor: hoveredSource === column.name ? ACCENT : BORDER }} />
+                  <span
+                    className="absolute -right-1 top-1/2 z-30 h-2 w-2 -translate-y-1/2 rotate-45"
+                    style={{ backgroundColor: hoveredSource === column.name ? ACCENT : BORDER }}
+                  />
                 ) : (
                   <Popover
                     open={pickerSource === column.name}
@@ -216,12 +283,21 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
                       disabled={disabled}
                       aria-label={"连接来源字段 " + column.name}
                       className="absolute -right-2.5 top-1/2 z-40 flex h-5 w-5 -translate-y-1/2 touch-none items-center justify-center rounded-full text-[var(--yak-color-primary)] hover:bg-[var(--yak-components-panel-muted)]"
-                      onPointerDown={(event) => { if (!disabled) start(event, column.name); }}
-                      onClick={(event) => { if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); } }}
+                      onPointerDown={(event) => {
+                        if (!disabled) start(event, column.name);
+                      }}
+                      onClick={(event) => {
+                        if (suppressClick.current) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }
+                      }}
                     >
                       <span className="h-2 w-2 rotate-45 bg-[var(--yak-color-primary)]" />
                     </PopoverTrigger>
-                    <PopoverContent side="top" align="start">{targetPicker(column.name)}</PopoverContent>
+                    <PopoverContent side="top" align="start">
+                      {targetPicker(column.name)}
+                    </PopoverContent>
                   </Popover>
                 )}
               </div>
@@ -238,10 +314,25 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
               <div
                 key={column.name}
                 data-mapping-target={column.name}
-                ref={(element) => { if (element) targets.current.set(column.name, element); else targets.current.delete(column.name); }}
-                className={ROW + (over ? " outline outline-1 outline-[var(--yak-color-primary)]" : "")}
+                ref={(element) => {
+                  if (element) targets.current.set(column.name, element);
+                  else targets.current.delete(column.name);
+                }}
+                className={
+                  ROW + (over ? " outline outline-1 outline-[var(--yak-color-primary)]" : "")
+                }
               >
-                <span className="pointer-events-none absolute -left-1 top-1/2 z-30 h-2 w-2 -translate-y-1/2 rotate-45" style={{ backgroundColor: over && occupied ? "var(--yak-components-field-error)" : occupied ? ACCENT : BORDER }} />
+                <span
+                  className="pointer-events-none absolute -left-1 top-1/2 z-30 h-2 w-2 -translate-y-1/2 rotate-45"
+                  style={{
+                    backgroundColor:
+                      over && occupied
+                        ? "var(--yak-components-field-error)"
+                        : occupied
+                          ? ACCENT
+                          : BORDER,
+                  }}
+                />
                 {rowContents(column)}
               </div>
             );
@@ -254,23 +345,37 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
           {geometries.map((line) => (
             <g key={line.source}>
               <line
-                x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
-                stroke="transparent" strokeWidth={18} pointerEvents="stroke"
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke="transparent"
+                strokeWidth={18}
+                pointerEvents="stroke"
                 onMouseEnter={() => showActions(line.source)}
                 onMouseLeave={() => hideActions(line.source)}
               />
               <line
-                x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
-                stroke={hoveredSource === line.source || editingSource === line.source ? ACCENT : BORDER}
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke={
+                  hoveredSource === line.source || editingSource === line.source ? ACCENT : BORDER
+                }
                 strokeWidth={hoveredSource === line.source ? 2 : 1}
               />
             </g>
           ))}
           {connection?.moved ? (
             <line
-              x1={connection.startX} y1={connection.startY} x2={connection.x} y2={connection.y}
+              x1={connection.startX}
+              y1={connection.startY}
+              x2={connection.x}
+              y2={connection.y}
               stroke={connection.occupied ? "var(--yak-components-field-error)" : ACCENT}
-              strokeWidth={1.5} strokeDasharray="6 5"
+              strokeWidth={1.5}
+              strokeDasharray="6 5"
             />
           ) : null}
         </svg>
@@ -287,13 +392,23 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
                 open={editingSource === line.source}
                 onOpenChange={(open) => {
                   setEditingSource(open ? line.source : null);
-                  setCustomTarget(open ? fields.find((field) => field.source === line.source)?.target || "" : "");
+                  setCustomTarget(
+                    open ? fields.find((field) => field.source === line.source)?.target || "" : "",
+                  );
                 }}
               >
-                <PopoverTrigger className="rounded px-2 py-1 text-xs hover:bg-[var(--yak-components-panel-muted)]" disabled={disabled}>
+                <PopoverTrigger
+                  className="rounded px-2 py-1 text-xs hover:bg-[var(--yak-components-panel-muted)]"
+                  disabled={disabled}
+                >
                   修改
                 </PopoverTrigger>
-                <PopoverContent side="bottom">{targetPicker(line.source, fields.find((field) => field.source === line.source)?.target)}</PopoverContent>
+                <PopoverContent side="bottom">
+                  {targetPicker(
+                    line.source,
+                    fields.find((field) => field.source === line.source)?.target,
+                  )}
+                </PopoverContent>
               </Popover>
               <Button
                 variant="ghost"
@@ -303,9 +418,11 @@ export function FieldMappingCanvas({ fields, sourceColumns, targetColumns, disab
                   onChange(fields.filter((field) => field.source !== line.source));
                   setHoveredSource(null);
                 }}
-              >删除</Button>
+              >
+                删除
+              </Button>
             </div>
-          ) : null
+          ) : null,
         )}
       </div>
     </div>

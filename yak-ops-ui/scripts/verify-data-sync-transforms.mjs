@@ -36,14 +36,13 @@ assert.deepEqual(
     { source: "amount", target: "amount" },
   ],
 );
-assert.deepEqual(
-  sameNameFieldMappings([{ name: " Order_No " }], [{ name: "order_no" }]),
-  [{ source: " Order_No ", target: "order_no" }],
-);
-assert.deepEqual(
-  samePositionFieldMappings(source, [{ name: "order_id" }, { name: "tenant_id" }]),
-  [{ source: "id", target: "order_id" }, { source: "tenant", target: "tenant_id" }],
-);
+assert.deepEqual(sameNameFieldMappings([{ name: " Order_No " }], [{ name: "order_no" }]), [
+  { source: " Order_No ", target: "order_no" },
+]);
+assert.deepEqual(samePositionFieldMappings(source, [{ name: "order_id" }, { name: "tenant_id" }]), [
+  { source: "id", target: "order_id" },
+  { source: "tenant", target: "tenant_id" },
+]);
 assert.deepEqual(samePositionFieldMappings(source, []), []);
 
 const fields = [

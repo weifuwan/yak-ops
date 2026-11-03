@@ -120,7 +120,9 @@ export function sameNameFieldMappings(
   target?: readonly DataSourceCatalogColumn[],
 ): DirectFieldMapping[] {
   if (!target) return source.map((column) => ({ source: column.name, target: column.name }));
-  const byName = new Map(target.map((column) => [column.name.trim().toLocaleLowerCase(), column.name]));
+  const byName = new Map(
+    target.map((column) => [column.name.trim().toLocaleLowerCase(), column.name]),
+  );
   return source.flatMap((column) => {
     const targetName = byName.get(column.name.trim().toLocaleLowerCase());
     return targetName ? [{ source: column.name, target: targetName }] : [];

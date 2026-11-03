@@ -11,11 +11,25 @@ interface Props {
   onClose: () => void;
 }
 
-const parseLines = (text: string) => text.split(/\r?\n/).map((name) => name.trim()).filter(Boolean);
+const parseLines = (text: string) =>
+  text
+    .split(/\r?\n/)
+    .map((name) => name.trim())
+    .filter(Boolean);
 
-export function ManualFieldMappingDialog({ fields, sourceColumns, targetColumns, onApply, onClose }: Props) {
-  const [sourceText, setSourceText] = useState(() => fields.map((field) => field.source).join("\n"));
-  const [targetText, setTargetText] = useState(() => fields.map((field) => field.target).join("\n"));
+export function ManualFieldMappingDialog({
+  fields,
+  sourceColumns,
+  targetColumns,
+  onApply,
+  onClose,
+}: Props) {
+  const [sourceText, setSourceText] = useState(() =>
+    fields.map((field) => field.source).join("\n"),
+  );
+  const [targetText, setTargetText] = useState(() =>
+    fields.map((field) => field.target).join("\n"),
+  );
   const [error, setError] = useState("");
 
   const apply = () => {
@@ -25,14 +39,18 @@ export function ManualFieldMappingDialog({ fields, sourceColumns, targetColumns,
       setError("请至少填写一组映射，并确保两侧字段数量一致");
       return;
     }
-    const sourceByName = new Map(sourceColumns.map((column) => [column.name.toLocaleLowerCase(), column.name]));
+    const sourceByName = new Map(
+      sourceColumns.map((column) => [column.name.toLocaleLowerCase(), column.name]),
+    );
     const targetByName = targetColumns
       ? new Map(targetColumns.map((column) => [column.name.toLocaleLowerCase(), column.name]))
       : undefined;
     const mappings: DirectFieldMapping[] = [];
     for (let index = 0; index < source.length; index++) {
       const sourceName = sourceByName.get(source[index].toLocaleLowerCase());
-      const targetName = targetByName ? targetByName.get(target[index].toLocaleLowerCase()) : target[index];
+      const targetName = targetByName
+        ? targetByName.get(target[index].toLocaleLowerCase())
+        : target[index];
       if (!sourceName || !targetName) {
         setError("字段不存在：" + (!sourceName ? source[index] : target[index]));
         return;
@@ -58,8 +76,12 @@ export function ManualFieldMappingDialog({ fields, sourceColumns, targetColumns,
       onClose={onClose}
       footer={
         <>
-          <Button size="small" variant="primary" onClick={apply}>确认</Button>
-          <Button size="small" onClick={onClose}>取消</Button>
+          <Button size="small" variant="primary" onClick={apply}>
+            确认
+          </Button>
+          <Button size="small" onClick={onClose}>
+            取消
+          </Button>
         </>
       }
     >

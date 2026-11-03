@@ -150,14 +150,22 @@ export function FieldMappingSection({
             {direct ? (
               <Button
                 size="small"
-                disabled={fieldsDisabled || !sourceColumns.length || Boolean(targetColumns && !targetColumns.length)}
+                disabled={
+                  fieldsDisabled ||
+                  !sourceColumns.length ||
+                  Boolean(targetColumns && !targetColumns.length)
+                }
                 onClick={applyPositionMapping}
               >
                 同行映射
               </Button>
             ) : null}
             {direct ? (
-              <Button size="small" disabled={fieldsDisabled} onClick={() => setManualEditorOpen(true)}>
+              <Button
+                size="small"
+                disabled={fieldsDisabled}
+                onClick={() => setManualEditorOpen(true)}
+              >
                 手动编辑映射关系
               </Button>
             ) : null}
