@@ -27,9 +27,9 @@ jobs:
       # currently blocking the repository-wide verify lifecycle.
       - name: Compile MySQL CDC and reactor dependencies
         run: bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc -am -DskipTests compile
-      - name: Install reactor dependencies without unrelated upstream test compilation
+      - name: Install reactor dependencies and required test-jar artifacts
         run: >
           bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc -am
-          -Dmaven.test.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true install
+          -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true install
       - name: Verify all MySQL CDC unit tests
         run: bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc test
