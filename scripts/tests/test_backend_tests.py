@@ -177,10 +177,10 @@ class ReportTest(unittest.TestCase):
             with self.subTest(suite=name):
                 self.assertTrue((subject.ROOT / module / "pom.xml").is_file())
                 for test_class in tests:
-                    self.assertEqual(
-                        1,
-                        len(list((subject.ROOT / module / "src/test").rglob(test_class + ".java"))),
-                    )
+                    matches = list((subject.ROOT / module / "src/test").rglob(test_class + ".java"))
+                    self.assertEqual(1, len(matches))
+                    source = matches[0].read_text(encoding="utf-8")
+                    self.assertIn('@Tag("' + name + '")', source)
 
     def test_missing_cdc_report_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "TableExclusionDuringSnapshotIT"):

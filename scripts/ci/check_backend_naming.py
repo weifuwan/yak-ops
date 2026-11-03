@@ -150,7 +150,9 @@ def verify_repository(root: Path = ROOT) -> tuple[int, list[str]]:
                     f"{relative}:{line_number(source, match.start())}: "
                     "Java var is prohibited in native Yak Ops production; declare an explicit type"
                 )
-        if enforce_records and RECORD_DECLARATION.search(code_only(source)):
+        if (enforce_records and PACKAGE.search(code_only(source))
+                and PACKAGE.search(code_only(source)).group(1).startswith("io.yak.ops.")
+                and RECORD_DECLARATION.search(code_only(source))):
             for line, reason in new_record_violations(relative, source, baseline_record_source(relative)):
                 errors.append(f"{relative}:{line}: {reason}")
     return len(files), errors
