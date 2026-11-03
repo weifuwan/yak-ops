@@ -22,7 +22,7 @@ all_true="$(printf 'backend=true\nfrontend=true\ndistribution=true')"
 
 expect_scope "${all_false}" DEVELOPMENT.md
 expect_scope "${all_false}" README.md
-expect_scope "${backend_only}" yak-flow/yak-flow-runtime/src/main/java/StreamTask.java
+expect_scope "${backend_only}" yak-ops-cdc/yak-ops-cdc-runtime/src/main/java/StreamTask.java
 expect_scope "${backend_only}" yak-ops-business/yak-ops-business-task/src/main/java/DefinitionService.java
 expect_scope "${backend_only}" yak-ops-task-execution/src/main/java/io/yak/ops/task/execution/TaskExecutionService.java
 expect_scope "${frontend_only}" yak-ops-ui/apps/web/app/layout/ProductSidebar.tsx
@@ -33,7 +33,7 @@ expect_scope "${distribution_only}" Dockerfile
 expect_scope "${all_true}" pom.xml
 expect_scope "${all_true}" .github/workflows/quality-check.yml
 expect_scope "${all_true}" .editorconfig
-expect_scope "${all_true}" yak-flow/yak-flow-runtime/src/main/java/StreamTask.java yak-ops-ui/apps/web/app/layout/ProductSidebar.tsx Dockerfile
+expect_scope "${all_true}" yak-ops-cdc/yak-ops-cdc-runtime/src/main/java/StreamTask.java yak-ops-ui/apps/web/app/layout/ProductSidebar.tsx Dockerfile
 
 # Reusable Release Gate runs never skip quality, tests, or packaging.
 actual="$(env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY CI_EVENT_NAME=workflow_dispatch bash scripts/ci/detect-changes.sh)"

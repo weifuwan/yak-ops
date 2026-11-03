@@ -17,7 +17,7 @@ import impact
 
 ROOT = Path(__file__).resolve().parents[2]
 JDBC = "yak-flow/yak-flow-connector-jdbc"
-CDC = "yak-flow/yak-flow-connector-cdc-mysql"
+CDC = "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc"
 BUSINESS = "yak-ops-business/yak-ops-business-task"
 E2E = "yak-ops-e2e"
 # Minimum method counts prevent an empty subclass, lost inherited tests or partial run from passing.

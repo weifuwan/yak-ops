@@ -13,10 +13,12 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 SUITES = ("jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "business", "cdc", "backend-e2e", "recovery-e2e")
 JDBC = "yak-flow/yak-flow-connector-jdbc/"
-CDC = "yak-flow/yak-flow-connector-cdc-mysql/"
-CDC_BASE = "yak-flow/yak-flow-connector-cdc-base/"
-RUNTIME = "yak-flow/yak-flow-runtime/"
-ENGINE = "yak-ops-engine/"
+# Current CDC reactor layout; the old yak-flow modules were removed.
+CDC_ROOT = "yak-ops-cdc/"
+CDC = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc/"
+CDC_BASE = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-cdc-base/"
+RUNTIME = CDC_ROOT + "yak-ops-cdc-runtime/"
+ENGINE = CDC_ROOT + "yak-ops-cdc-composer/"
 E2E = "yak-ops-e2e/"
 BUSINESS = "yak-ops-business/"
 NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
@@ -98,7 +100,7 @@ def test_suites(path: str) -> set[str]:
                 return {"pipeline"}
             vendor = next((v for v in ("mysql", "postgres", "oracle") if v in filename.lower()), None)
             return {"jdbc-" + vendor} if vendor else {"pipeline"}
-        if path.startswith(CDC):
+        if path.startswith(CDC_ROOT):
             return {"cdc"}
         if path.startswith(E2E):
             return {"recovery-e2e"} if "Recovery" in filename else {"backend-e2e"}
@@ -112,13 +114,11 @@ def test_suites(path: str) -> set[str]:
             suites = {"jdbc-" + vendor, "pipeline", "backend-e2e"}
             return suites | ({"recovery-e2e"} if vendor == "mysql" else set())
         return {"jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "backend-e2e", "recovery-e2e"}
-    if path.startswith(CDC_BASE) or path.startswith(CDC):
-        return {"cdc", "backend-e2e", "recovery-e2e"}
-    if path.startswith(RUNTIME):
-        return {"pipeline", "recovery-e2e", "backend-e2e"}
-    if path.startswith(ENGINE):
+    if path.startswith((RUNTIME, ENGINE)):
         return {"pipeline", "cdc", "backend-e2e", "recovery-e2e"}
-    if path.startswith("yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync/"):
+    if path.startswith(CDC_ROOT):
+        return {"cdc", "backend-e2e", "recovery-e2e"}
+    if path.startswith("yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-api/"):
         return {"backend-e2e", "recovery-e2e"}
     if path.startswith("yak-flow/yak-flow-connector-base/"):
         return {"pipeline", "backend-e2e", "recovery-e2e"}
