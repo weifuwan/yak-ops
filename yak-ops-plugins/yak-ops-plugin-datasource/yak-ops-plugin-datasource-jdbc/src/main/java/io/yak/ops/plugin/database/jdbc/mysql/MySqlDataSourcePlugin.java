@@ -72,7 +72,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
                 .build();
     }
 
-private static final Map<String, String> PROPERTY_KEYS = Map.ofEntries(
+    private static final Map<String, String> PROPERTY_KEYS = Map.ofEntries(
             Map.entry("useunicode", "useUnicode"),
             Map.entry("characterencoding", "characterEncoding"),
             Map.entry("connectiontimezone", "connectionTimeZone"),

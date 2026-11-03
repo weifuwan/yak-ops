@@ -396,8 +396,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             values.put("connection.ssh.known-hosts", ssh.knownHosts());
             String loopbackUrl =
                     buildJdbcUrl("127.0.0.1", 0, jdbc.database(), JSONUtils.readTree(jdbc.normalizedJson()));
-            values.put(
-                    "connection.ssh.jdbc-url", loopbackUrl.replace("127.0.0.1:0", "127.0.0.1:{port}"));
+            values.put("connection.ssh.jdbc-url", loopbackUrl.replace("127.0.0.1:0", "127.0.0.1:{port}"));
         }
         return ReadonlyConfig.fromMap(values);
     }
