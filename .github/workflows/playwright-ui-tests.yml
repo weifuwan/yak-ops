@@ -2,6 +2,11 @@ name: Playwright UI Tests
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'yak-ops-ui/tests/e2e/**'
+      - '.github/workflows/playwright-ui-tests.yml'
   # Run on Playwright changes; normal feature PRs use frontend checks.
   pull_request:
     paths:
