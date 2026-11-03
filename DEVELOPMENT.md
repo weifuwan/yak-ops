@@ -34,9 +34,9 @@ Frontend commands and quality checks are documented in [frontend tooling](yak-op
 
 | Tests | Ownership | Execution |
 | --- | --- | --- |
-| Unit / frontend contracts | Java modules / `yak-ops-ui` | Affected PR quality checks |
+| Backend unit tests | Java modules | PR and main/dev CI |
 | Business database IT | Business modules | Selected backend PRs; full release suite |
-| UI automation / deployment | Playwright / Docker Compose | Release; manual as needed |
+| Frontend / backend formatting | Oxfmt / Spotless | PR and main/dev CI |
 
 ### Backend integration tests
 
@@ -61,30 +61,17 @@ Common Source/Sink behavior belongs in reusable Connector test bases, database-s
 
 JUnit owns shared containers within one module's test execution. Data is isolated per scenario; integration cases isolate state and resources. Destructive and recovery cases own independent environments. Stop running tasks before deleting their data. Do not mix class-scoped container shutdown with root-store reuse, share resources across CI jobs, or enable parallel methods without proving isolation.
 
-The [Nightly Backend Acceptance workflow](.github/workflows/nightly-backend-acceptance.yml) runs `suite: full` every day at 18:00 UTC (02:00 Asia/Singapore) on the default branch. It is also manually runnable. Nightly is additional coverage, not a replacement for affected PR checks or the full Release Gate; failure, skip or missing evidence must not be treated as success.
-
-The [Backend Tests workflow](.github/workflows/backend-tests.yml) selects the registered Business and CDC suites from the complete PR diff. MySQL CDC Source unit tests follow Flink CDC test names; upstream `*ITCase` classes remain outside the current Failsafe `*IT` registry. The connector-local `cdc` suite runs `TableExclusionDuringSnapshotIT` with a real database, and CDC production changes select the CDC suite. Cross-process crash-recovery acceptance is not covered by the remaining database integration suites. Shared or unrecognized backend changes still select the full registered matrix, and missing, skipped or failed selected reports block the check.
+The [Backend Tests workflow](.github/workflows/backend-tests.yml) runs JUnit unit tests for affected Maven modules and registered Business/CDC database integration tests. Main pushes run the full backend matrix; pull requests and dev pushes select affected modules and database suites. Maven or test-infrastructure changes use full scope. CDC Runtime, Composer, CLI and MySQL Source unit tests now share this workflow; there are no specialized CDC or nightly workflows.
 
 Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including container logs and database test diagnostics on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
 
-### Playwright UI Tests
+### CI formatting and frontend verification
 
-Playwright is **not a default feature PR gate**. The standalone [Playwright UI Tests workflow](.github/workflows/playwright-ui-tests.yml) runs on manual dispatch and when its own tests/workflow change. Its mocked scenarios run against the **built** frontend, not the Vite development server. Ordinary UI feature PRs rely on frontend quality and contract checks; reviewers may explicitly request a browser run for high-risk interactions.
-
-The formal [Release Gate](.github/workflows/v1-release-gate.yml) always runs the **full** UI suite against a disposable Docker Compose stack containing the exact candidate images. The suite includes mocked interaction contracts and a real authenticated login/navigation smoke. UI tests must not wait for real JDBC/CDC, checkpoints, or Cron triggering; these belong to backend integration tests.
-
-```sh
-python3 -m pip install playwright==1.57.0
-python3 -m playwright install chromium
-# Serve yak-ops-ui's production build on http://127.0.0.1:5173
-python3 yak-ops-ui/tests/e2e/run.py --suite mocked --base-url http://127.0.0.1:5173
-```
-
-The Playwright report is `/tmp/yak-playwright/v<VERSION>/<SHA>/playwright-results.json`, with per-scenario Playwright traces and failure screenshots. Only results from the **exact release version and SHA** apply to that build. A skipped, failed, cancelled, or missing required run blocks release.
+[Code Format](.github/workflows/format-check.yml) runs Oxfmt for frontend changes and Spotless for changed Java modules. It does not run frontend tests, lint, typecheck, build, distribution checks or release validation. Frontend typing and builds remain available locally via `yak-ops-ui/package.json`.
 
 ### Test and review evidence
 
-Connector integration workflows collect their own test reports. Playwright has its own versioned artifact. Preserve failures and traceback while redacting credentials and task parameters. Use condition-based bounded waits; arbitrary sleep, hiding failed assertions through retries, or changes to production checkpoint timing are prohibited.
+Connector integration workflows collect their own test reports. Preserve failures and traceback while redacting credentials and task parameters. Use condition-based bounded waits; arbitrary sleep, hiding failed assertions through retries, or changes to production checkpoint timing are prohibited.
 
 
 ## Incremental Review Evidence
@@ -103,7 +90,7 @@ python3 scripts/ci/test_logging_rules.py
 python3 scripts/verify_logging_rules.py
 ```
 
-Keep JavaDoc and implementation comments in English. Checkstyle validates the configured backend source packages; public interfaces and non-obvious lifecycle contracts require useful documentation. Logging validation enforces SLF4J structure, sensitive-data safety and English internal log templates. Core and Runtime diagnostic strings and Connector technical exception messages use English; user-facing ErrorCode and validation messages remain localized. TRACE remains supported. In CI, Checkstyle and Spotless run before `verify`; their repeated Maven executions are skipped only after both checks pass. Plain local `verify` still enforces them.
+Keep JavaDoc and implementation comments in English. Checkstyle validates the configured backend source packages; public interfaces and non-obvious lifecycle contracts require useful documentation. Logging validation enforces SLF4J structure, sensitive-data safety and English internal log templates. Core and Runtime diagnostic strings and Connector technical exception messages use English; user-facing ErrorCode and validation messages remain localized. TRACE remains supported. GitHub CI uses Spotless as the Java formatting gate. Backend test CI skips Spotless/Checkstyle within Maven because formatting is a separate workflow. Other Maven checks remain available locally; plain `verify` still runs configured lifecycle checks.
 
 ## Documentation and Design
 
@@ -113,4 +100,4 @@ Follow the [current-state comment and documentation rules](AGENTS.md#current-sta
 - Ordinary implementation details belong in code, JavaDoc, tests and the GitHub PR; no companion descriptive Markdown is required.
 - Change user documentation for new or changed user-visible functionality, compatibility or operation procedures.
 - Consult current code, JavaDoc, tests and accepted YOIPs for behavior and design decisions.
-- Versioned user-facing release notes live in [docs/releases](docs/releases/README.md), reviewed before the Release Gate. Release decisions and test evidence remain in Gate artifacts; published notes and immutable asset evidence also appear in GitHub Releases.
+- Versioned user-facing release notes live in [docs/releases](docs/releases/README.md). Release preparation and publishing are manual operations; the two CI workflows do not certify release readiness.

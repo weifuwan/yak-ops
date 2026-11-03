@@ -1,94 +1,74 @@
 #!/usr/bin/env python3
-"""One source of truth for PR quality, Maven modules and database-test impact."""
+"""Select format modules, unit modules and registered database suites from changed files."""
 from __future__ import annotations
-
-import ast
 from functools import lru_cache
-import os
 from pathlib import Path
-import subprocess
-import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
 SUITES = ("business", "cdc")
-# Current CDC reactor layout; the old yak-flow modules were removed.
+ALL_BACKEND = "!yak-ops-bom,!yak-ops-ui,!yak-ops-dist"
+NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
 CDC_ROOT = "yak-ops-cdc/"
 CDC = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc/"
-CDC_BASE = CDC_ROOT + "yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-cdc-base/"
-RUNTIME = CDC_ROOT + "yak-ops-cdc-runtime/"
-ENGINE = CDC_ROOT + "yak-ops-cdc-composer/"
 BUSINESS = "yak-ops-business/"
-NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
-
 
 @lru_cache(maxsize=1)
 def reactor_modules() -> tuple[str, ...]:
-    """Read the actual nested reactor; new modules require no hard-coded path list."""
-    result = []
-
+    modules = []
     def visit(folder: Path) -> None:
         pom = ET.parse(folder / "pom.xml").getroot()
-        children = [element.text for element in pom.findall("m:modules/m:module", NAMESPACE)]
+        children = [node.text for node in pom.findall("m:modules/m:module", NAMESPACE)]
         if children:
             for child in children:
                 visit(folder / child)
         elif folder != ROOT:
-            result.append(folder.relative_to(ROOT).as_posix())
-
+            modules.append(folder.relative_to(ROOT).as_posix())
     visit(ROOT)
-    return tuple(result)
-
+    return tuple(modules)
 
 def module_for(path: str) -> list[str]:
     modules = reactor_modules()
-    owners = [m for m in modules if path.startswith(m + "/")]
-    if owners:
-        return [max(owners, key=len)]
-    # An aggregator POM or module configuration owns its children.
+    matches = [module for module in modules if path.startswith(module + "/")]
+    if matches:
+        return [max(matches, key=len)]
     if path.endswith("/pom.xml"):
-        folder = path.removesuffix("/pom.xml")
-        return [m for m in modules if m.startswith(folder + "/")]
+        prefix = path.removesuffix("/pom.xml") + "/"
+        return [module for module in modules if module.startswith(prefix)]
     return []
-
 
 @lru_cache(maxsize=1)
 def module_dependents() -> dict[str, set[str]]:
-    """Map reactor dependencies to consumers so changed contracts compile downstream."""
-    projects = {}
     artifacts = {}
+    projects = {}
     for module in reactor_modules():
-        project = ET.parse(ROOT / module / "pom.xml").getroot()
-        projects[module] = project
-        artifact = project.findtext("m:artifactId", namespaces=NAMESPACE)
+        pom = ET.parse(ROOT / module / "pom.xml").getroot()
+        projects[module] = pom
+        artifact = pom.findtext("m:artifactId", namespaces=NAMESPACE)
         if artifact:
             artifacts[artifact] = module
-    consumers = {module: set() for module in projects}
-    for module, project in projects.items():
-        for dependency in project.findall("m:dependencies/m:dependency", NAMESPACE):
+    result = {module: set() for module in projects}
+    for module, pom in projects.items():
+        for dependency in pom.findall("m:dependencies/m:dependency", NAMESPACE):
             if dependency.findtext("m:groupId", namespaces=NAMESPACE) != "io.yak.ops":
                 continue
-            producer = artifacts.get(dependency.findtext("m:artifactId", namespaces=NAMESPACE))
-            if producer:
-                consumers[producer].add(module)
-    return consumers
-
+            supplier = artifacts.get(dependency.findtext("m:artifactId", namespaces=NAMESPACE))
+            if supplier:
+                result[supplier].add(module)
+    return result
 
 def affected_modules(owners: list[str]) -> set[str]:
-    """Only changed modules and actual transitively dependent modules need unit checks."""
-    consumers = module_dependents()
+    dependents = module_dependents()
     selected = set(owners)
     pending = list(owners)
     while pending:
-        for module in consumers.get(pending.pop(), set()):
+        for module in dependents.get(pending.pop(), set()):
             if module not in selected:
                 selected.add(module)
                 pending.append(module)
-    return selected - {"yak-ops-ui", "yak-ops-dist"}
-
+    return selected - {"yak-ops-ui", "yak-ops-dist", "yak-ops-bom"}
 
 def test_suites(path: str) -> set[str]:
-    """Select database suites for current module owners and concrete Failsafe tests."""
     if "/src/test/" in path:
         if not path.endswith("IT.java"):
             return set()
@@ -97,209 +77,67 @@ def test_suites(path: str) -> set[str]:
         if path.startswith(BUSINESS):
             return {"business"}
         return set()
-
     if path.startswith(CDC_ROOT):
         return {"cdc"}
     if path.startswith((
-        BUSINESS,
-        "yak-ops-dao/",
-        "yak-ops-platform/",
-        "yak-ops-task-execution/",
+        BUSINESS, "yak-ops-dao/", "yak-ops-platform/", "yak-ops-task-execution/",
         "yak-ops-plugins/yak-ops-plugin-task/",
-        "yak-ops-plugins/yak-ops-plugin-datasource/",
-        "yak-ops-boot/",
+        "yak-ops-plugins/yak-ops-plugin-datasource/", "yak-ops-boot/",
     )):
         return {"business"}
     return set()
 
-def compare_suite_registry(before: str, after: str) -> set[str] | None:
-    """Return only modified suite entries when runner logic is unchanged.
-
-    None means an unrecognized/unsafe change and requires the full test matrix.
-    """
-    try:
-        previous, current = ast.parse(before), ast.parse(after)
-
-        def entries(module: ast.Module) -> dict[str, str]:
-            assignments = [
-                node for node in module.body
-                if isinstance(node, ast.Assign)
-                and any(isinstance(target, ast.Name) and target.id == "SUITES" for target in node.targets)
-            ]
-            if len(assignments) != 1 or not isinstance(assignments[0].value, ast.Dict):
-                raise ValueError("Expected one literal suite registry")
-            registry = assignments[0]
-            suites = {}
-            for key, value in zip(registry.value.keys, registry.value.values):
-                if not isinstance(key, ast.Constant) or not isinstance(key.value, str) or key.value in suites:
-                    raise ValueError("Non-literal or duplicate suite name")
-                if key.value not in SUITES:
-                    raise ValueError("Unknown suite")
-                suites[key.value] = ast.dump(value, include_attributes=False)
-            module.body.remove(registry)
-            return suites
-
-        old_suites, new_suites = entries(previous), entries(current)
-        if ast.dump(previous, include_attributes=False) != ast.dump(current, include_attributes=False):
-            return None
-        return {
-            suite for suite in old_suites.keys() | new_suites.keys()
-            if old_suites.get(suite) != new_suites.get(suite)
-        }
-    except (SyntaxError, ValueError, TypeError):
-        return None
-
-
-def suite_registration_changes() -> set[str] | None:
-    """Inspect the PR endpoints, not checkout's synthetic merge commit."""
-    base = os.environ.get("CI_PR_BASE_SHA")
-    head = os.environ.get("CI_PR_HEAD_SHA")
-    if not base or not head or os.environ.get("CI_EVENT_NAME") != "pull_request":
-        return None
-    path = "scripts/tests/backend_tests.py"
-    try:
-        before = subprocess.check_output(["git", "show", f"{base}:{path}"], cwd=ROOT, text=True)
-        after = subprocess.check_output(["git", "show", f"{head}:{path}"], cwd=ROOT, text=True)
-    except (OSError, subprocess.CalledProcessError, UnicodeError):
-        return None
-    return compare_suite_registry(before, after)
-
-
 def analyze(paths: list[str], *, full: bool = False) -> dict:
-    result = dict(backend=False, frontend=False, distribution=False, release=False,
-                  modules=set(), suites=set(), suite_reasons={}, full=False,
-                  preflight=False, preflight_modules=set())
-
-    def add_suites(suites: set[str] | tuple[str, ...], reason: str) -> None:
-        result["suites"].update(suites)
-        for suite in suites:
-            result["suite_reasons"].setdefault(suite, set()).add(reason)
-
-    def all_checks(reason: str) -> None:
-        result.update(backend=True, frontend=True, distribution=True, release=True, full=True,
-                      preflight=True)
-        result["preflight_modules"].clear()
-        add_suites(SUITES, reason)
-
+    result = {"frontend_format": False, "format_modules": set(),
+              "modules": set(), "suites": set(), "full": full}
+    def require_full() -> None:
+        result["full"] = True
+        result["suites"].update(SUITES)
     if full:
-        all_checks("Release Gate: full verification")
+        require_full()
+        result["frontend_format"] = True
     for path in paths:
-        if path.startswith("docs/") or path.endswith(".md") or path in {".gitignore", ".asf.yaml", "LICENSE"}:
-            continue
         if path.startswith("yak-ops-ui/"):
-            result["frontend"] = True
-            if path in {"yak-ops-ui/pom.xml", "yak-ops-ui/package.json", "yak-ops-ui/package-lock.json"}:
-                result["distribution"] = True
+            result["frontend_format"] = True
             continue
-        if path.startswith((".github/workflows/playwright-", ".github/ISSUE_TEMPLATE/")):
+        if path.startswith("docs/") or path.endswith(".md") or path in {
+            "README.md", "LICENSE", "NOTICE", ".gitignore", ".asf.yaml",
+        }:
             continue
-        if path.startswith("scripts/ci/") or path.startswith("scripts/tests/test_") or path == "scripts/tests/__init__.py":
-            # Scope unit tests are always run in the cheap select job.
+        if path in {"pom.xml", "mvnw", "mvnw.cmd", ".editorconfig"} or path.startswith(
+            ("yak-ops-bom/", ".mvn/", "tools/maven/")
+        ):
+            require_full()
+            continue
+        if path in {".github/workflows/backend-tests.yml", "scripts/tests/backend_tests.py"} or path.startswith(
+            ("scripts/tests/", "scripts/ci/")
+        ):
+            require_full()
+            continue
+        if path.startswith(".github/workflows/"):
+            continue
+        if path.startswith(("scripts/release/", "docker/")) or path in {
+            "Dockerfile", "compose.yaml", "compose.without-mysql.yaml", "release.env",
+        }:
             continue
         if path.startswith("yak-ops-configuration/"):
-            # A removed module still impacts its moved consumer contracts.
-            result["backend"] = True
-            selected = affected_modules(["yak-ops-common"])
-            result["modules"].update(selected)
-            result["preflight"] = True
-            result["preflight_modules"].add("yak-ops-common")
+            result["modules"].update(affected_modules(["yak-ops-common"]))
             continue
         if path == "scripts/verify_logging_rules.py":
-            # Native backend diagnostics are checked in Backend Quality, not UI or distribution.
-            result["backend"] = True
             result["modules"].add("yak-ops-boot")
             continue
-        if path == "scripts/tests/backend_tests.py":
-            changed = suite_registration_changes()
-            if changed is None:
-                add_suites(SUITES, f"{path}: runner logic changed or diff unavailable")
-            else:
-                add_suites(changed, f"{path}: suite registration only")
-            continue
-        if path.startswith("scripts/tests/") or path == ".github/workflows/backend-tests.yml":
-            add_suites(SUITES, f"{path}: test execution infrastructure")
-            continue
-        if path in {".github/workflows/quality-check.yml"}:
-            all_checks(f"{path}: workflow definition")
-            continue
-        if path.startswith(".github/workflows/") or path.startswith("scripts/release/") or path == "release.env":
-            result["release"] = True
-            continue
-        if path in {"Dockerfile", "compose.yaml", "compose.without-mysql.yaml", "NOTICE", ".env.example"} or path.startswith(("docker/", "yak-ops-dist/")):
-            result["distribution"] = True
-            continue
-        if path == "pom.xml" or path in {"mvnw", "mvnw.cmd"} or path.startswith((".mvn/", "tools/maven/")):
-            all_checks(f"{path}: build infrastructure")
-            continue
-        if path.startswith("yak-ops-dao/") and "/db/migration/" in path:
-            result["release"] = True
-        owners = [m for m in module_for(path) if m not in {"yak-ops-ui", "yak-ops-dist"}]
+        owners = [module for module in module_for(path) if module not in {
+            "yak-ops-ui", "yak-ops-dist", "yak-ops-bom",
+        }]
         if owners:
-            result["backend"] = True
             result["modules"].update(affected_modules(owners))
-            # Spotless and Checkstyle cover production Java; check direct owners only.
-            if "/src/main/java/" in path or path.endswith("/pom.xml"):
-                # BOM has a standalone parent and does not inherit these plugins.
-                preflight_owners = set(owners) - {"yak-ops-bom"}
-                if preflight_owners:
-                    result["preflight"] = True
-                    if not result["full"]:
-                        result["preflight_modules"].update(preflight_owners)
-            add_suites(test_suites(path), path)
+            if path.endswith(".java"):
+                result["format_modules"].update(owners)
+            result["suites"].update(test_suites(path))
             continue
-        # An unknown path might change a build or generated contract: fail closed.
-        all_checks(f"{path}: unknown impact")
+        require_full()
     return result
 
-
-
-def summary(paths: list[str], *, full: bool = False) -> str:
-    """Human-readable selection evidence in the Detect Changes job."""
-    result = analyze(paths, full=full)
-    lines = ["### Selected CI checks", "", "| Check | Run |", "| --- | --- |"]
-    for key, label in (("backend", "Backend Quality"), ("frontend", "Frontend Quality"),
-                       ("distribution", "Distribution Quality"), ("release", "Release Checks")):
-        lines.append(f"| {label} | {'Yes' if result[key] else 'No'} |")
-    preflight_modules = ("!yak-ops-bom,!yak-ops-ui,!yak-ops-dist" if result["full"]
-                         else ",".join(sorted(result["preflight_modules"])))
-    lines.extend(["", "### Fast Preflight", "",
-                  f"Run: {'Yes' if result['preflight'] else 'No'}",
-                  f"Modules: {preflight_modules if result['preflight'] else '-'}",
-                  "", "### Selected database suites", "", "| Suite | Reason |", "| --- | --- |"])
-    if not result["suites"]:
-        lines.append("| None | No relevant database changes |")
-    for suite in SUITES:
-        if suite in result["suites"]:
-            reasons = ", ".join(sorted(result["suite_reasons"].get(suite, {"Full verification"})))
-            lines.append(f"| {suite} | {reasons.replace('|', '/').replace(chr(10), ' ')} |")
-    return "\n".join(lines) + "\n"
-
-
 def select_suites(paths: list[str]) -> list[str]:
-    result = analyze(paths)
-    return [name for name in SUITES if name in result["suites"]]
-
-
-def outputs(paths: list[str], *, full: bool = False) -> str:
-    impact = analyze(paths, full=full)
-    selected_modules = "!yak-ops-bom,!yak-ops-ui,!yak-ops-dist" if impact["full"] else ",".join(sorted(impact["modules"]))
-    fields = {
-        "backend": str(impact["backend"]).lower(),
-        "frontend": str(impact["frontend"]).lower(),
-        "distribution": str(impact["distribution"]).lower(),
-        "release": str(impact["release"]).lower(),
-        "tests": str(bool(impact["suites"])).lower(),
-        "modules": selected_modules,
-        "suites": ",".join(name for name in SUITES if name in impact["suites"]),
-        "preflight": str(impact["preflight"]).lower(),
-        "preflight_modules": (
-            "!yak-ops-bom,!yak-ops-ui,!yak-ops-dist" if impact["full"]
-            else ",".join(sorted(impact["preflight_modules"]))
-        ),
-    }
-    return "\n".join(f"{key}={value}" for key, value in fields.items()) + "\n"
-
-
-if __name__ == "__main__":
-    # Paths are collected using git -z, so spaces and non-ASCII file names are safe.
-    print(outputs(sys.argv[1:]), end="")
+    selected = analyze(paths)["suites"]
+    return [suite for suite in SUITES if suite in selected]

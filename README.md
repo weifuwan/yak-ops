@@ -40,4 +40,4 @@ docker compose up -d
 - [历史 GitHub Releases](https://github.com/weifuwan/yak-ops/releases)
 - [发布操作](scripts/release/README.md)
 
-发布检查包括 CI、当前 Business/CDC 集成测试、Playwright UI、Distribution 与 Docker/Compose 验证。各测试是否通过以对应 Release Gate 的实际报告为准。发布证据来自 GitHub Actions、Git Tags 和 Release Assets。
+GitHub Actions 仅执行前后端格式检查以及后端单元、Business/CDC 集成测试。打包、部署和版本发布不再由 CI 自动执行；正式发布前需手动完成构建、验证与证据记录。

@@ -2,7 +2,7 @@
 
 Scope: `yak-ops-ui/apps/**`, `yak-ops-ui/packages/**`, and `yak-ops-ui/scripts/**`.
 
-This document defines durable frontend engineering constraints. Current source code, TypeScript types, tests, and backend APIs are the authority for observable behavior. See [Frontend Tooling](docs/tooling.md) for verification commands and the [YOIP process](../.github/CONTRIBUTING.md#yak-ops-improvement-proposals-yoips) for major design changes.
+This document defines durable frontend engineering constraints. Current source code, TypeScript types, and backend APIs are the authority for observable behavior. See [Frontend Tooling](docs/tooling.md) for verification commands and the [YOIP process](../.github/CONTRIBUTING.md#yak-ops-improvement-proposals-yoips) for major design changes.
 
 ## Ownership and Dependencies
 
@@ -13,7 +13,7 @@ This document defines durable frontend engineering constraints. Current source c
 - `apps/web/app/<domain>` owns domain pages and interaction state. `app/layout` owns the shell; `app/router` owns route composition and historical URL redirects. `app/data-sync` is the unified offline/realtime synchronization feature.
 - Product requests flow from `app/<domain>` to `service/<domain>` to `service/http`. The HTTP transport is centralized, including consistent response and authentication error handling. Domain services own endpoint adaptation and request/response types and must never depend on App code.
 - UI dependencies flow from App to `@yak-ops/yak-ui`, then to Base UI/DOM. Yak UI must not contain product routes, Workspace policy, business copy, or domain data access.
-- Organize components, hooks, local types, and tests by real user workflow. Promote cross-domain code only after actual stable reuse. Do not create speculative `common` or `shared` layers.
+- Organize components, hooks, and local types by real user workflow. Promote cross-domain code only after actual stable reuse. Do not create speculative `common` or `shared` layers.
 - Workspace-scoped queries must isolate user and Workspace identity. Pages must not invent Workspace headers; transport applies the real API contract.
 - Services expose only capabilities with real consumers. Components must not parse HTTP envelope details or turn API failures into successful empty results.
 
@@ -50,16 +50,14 @@ This document defines durable frontend engineering constraints. Current source c
 - Prefer standard utility classes and semantic `data-*` attributes. Keep feature-scoped CSS only when it is appropriate for dynamic geometry, specialized keyframes, third-party DOM overrides, or log syntax coloring. Migrate existing CSS deliberately, not with blind deletion.
 - Feature CSS must not override generic Yak UI controls or depend on private styles owned by another domain. Support light/dark themes and `prefers-reduced-motion`; derive theme variables from existing tokens.
 - Do not move a hardcoded color from `className` to inline `style` to bypass checks. Inline styles are for genuinely runtime-dependent values. Add reusable visual capabilities in `packages/yak-ui`.
-- The architecture check enforces semantic colors in migrated Data Sync `list/`, `editor/`, and `detail/` modules. Dedicated log coloring and execution animation CSS remain valid where the feature owns them.
+- Keep semantic colors in migrated Data Sync `list/`, `editor/`, and `detail/` modules. Dedicated log coloring and execution animation CSS remain valid where the feature owns them.
 
-## Testing and Architecture Enforcement
+## Verification and Architecture
 
-- Keep pure functions and transformations under focused unit tests. Test component input, async states, focus, and error behavior at the component boundary; use existing Playwright flows for cross-page behavior.
-- Protect Data Sync draft restoration, dependent field resets, validation, saving, Schedule partial failure, publish failure, Workspace switching, and instance polling during refactors. Never weaken assertions merely to complete a move.
-- `scripts/check-architecture.mjs` enforces real dependency direction: services cannot import App code, pages cannot bypass domain services for HTTP, and Yak UI cannot import product code. Validate aliases, relative imports, re-exports, and dynamic imports.
-- Data Sync page entrypoints can be imported by `app/router`. Private `list/`, `editor/`, and `detail/` implementation paths cannot be deep-imported from other domains or each other. Share stable behavior through a deliberately owned module, not by opening arbitrary private imports.
-- New architecture checks require positive and negative regression tests. Track genuine historical dependencies explicitly; do not silence failures through permissive ignore lists, deleting tests, or fabricated passing results.
-- Report formatting, lint, typing, contracts, builds, and actual browser validation separately. A TypeScript build is not a substitute for interaction testing.
+- Frontend GitHub CI checks Oxfmt formatting only; frontend test cases and browser automation have been removed from the repository.
+- Maintain service, HTTP, Workspace and component dependency boundaries during code review. Do not introduce deep imports across private features.
+- For UI changes, developers may manually exercise affected interaction, focus, keyboard, responsive and error flows; record what was actually verified.
+- Local lint, TypeScript and production builds remain available but are not enforced by the GitHub CI.
 
 ## Design System and Interaction
 
@@ -82,13 +80,13 @@ Place necessary copy near the relevant action and keep it short. Do not explain 
 
 ## Quality and Verification
 
-- Retain Oxfmt, Oxlint, TypeScript, architecture checks, and production builds. Tests must claim only the behavior they actually cover.
+- Keep Oxfmt in CI. Oxlint, TypeScript and Vite build remain available locally; do not claim those checks ran unless executed.
 - Maintain real dependency, directory, HTTP, and Workspace boundaries. Fix incorrect implementation rather than loosening checks or adding broad lint disables.
-- Run focused formatting, types, builds, and executable checks based on changed scope. Record actual browser, keyboard, responsive, and reduced-motion verification when relevant, distinguishing passed, skipped, and not-run checks.
+- Run relevant local formatting, typing, and build commands as needed. Record actual manual UI verification when relevant, distinguishing passed, skipped, and not-run checks.
 
 ## Documentation and Proposals
 
-- Express routine page work, styling changes, component fixes, and bug fixes through code, tests, and focused pull requests. Do not create progress-only domain `*_RULES.md` files or duplicate architectural descriptions.
+- Express routine page work, styling changes, component fixes, and bug fixes through code and focused pull requests. Do not create progress-only domain `*_RULES.md` files or duplicate architectural descriptions.
 - Use the repository YOIP process for major subsystem changes, public product settings, monitoring contracts, or other significant public contracts. Routine internal component refactors need no YOIP.
 - Update user documentation when externally observable behavior, compatibility, or deployment requirements change. Engineering commands belong in [Frontend Tooling](docs/tooling.md).
 - Write rules and comments in the present tense, describing current responsibilities and invariants. Keep rationale and history in YOIPs or PR discussions. Accurately document published compatibility and safety restrictions.

@@ -36,12 +36,20 @@ def selected_suites(request: str) -> list[str]:
         return [request]
     if request != "auto":
         raise ValueError("Unknown suite: " + request)
-    if os.environ.get("CI_EVENT_NAME") != "pull_request":
+    event = os.environ.get("CI_EVENT_NAME")
+    if event == "pull_request":
+        base, head = os.environ.get("CI_PR_BASE_SHA"), os.environ.get("CI_PR_HEAD_SHA")
+        if not base or not head:
+            raise ValueError("PR selection requires base and head SHAs")
+        refs = [base + "..." + head]
+    elif event == "push" and os.environ.get("CI_BRANCH") != "main":
+        before, head = os.environ.get("CI_PUSH_BEFORE_SHA"), os.environ.get("CI_CURRENT_SHA")
+        if not before or set(before) == {"0"} or not head:
+            return list(SUITES)
+        refs = [before, head]
+    else:
         return list(SUITES)
-    base, head = os.environ.get("CI_PR_BASE_SHA"), os.environ.get("CI_PR_HEAD_SHA")
-    if not base or not head:
-        raise ValueError("PR selection requires base and head SHAs")
-    diff = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", "-z", base + "..." + head], cwd=ROOT)
+    diff = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", "-z", *refs], cwd=ROOT)
     return select([p.decode("utf-8") for p in diff.split(b"\0") if p])
 
 

@@ -69,19 +69,20 @@ class SuiteSelectionTest(unittest.TestCase):
         self.assertRaises(ValueError, subject.require_results, [], "failure", "skipped")
 
 
-class NightlyAcceptanceTest(unittest.TestCase):
-    def test_nightly_calls_full_suite_not_fast_or_selected_only(self):
-        workflow = (subject.ROOT / ".github/workflows/nightly-backend-acceptance.yml").read_text()
-        self.assertIn("schedule:", workflow)
-        self.assertIn("uses: ./.github/workflows/backend-tests.yml", workflow)
-        self.assertIn("suite: full", workflow)
+class ConsolidatedBackendWorkflowTest(unittest.TestCase):
+    def test_one_workflow_owns_backend_testing(self):
+        workflow = (subject.ROOT / ".github/workflows/backend-tests.yml").read_text()
+        self.assertIn("  push:", workflow)
+        self.assertIn("  pull_request:", workflow)
+        self.assertIn("  unit-tests:", workflow)
+        self.assertIn("  integration-tests:", workflow)
+        self.assertIn("    name: Backend Tests Check", workflow)
         self.assertNotIn("continue-on-error: true", workflow)
 
-    def test_release_full_retains_database_acceptance(self):
+    def test_full_retains_database_acceptance(self):
         self.assertNotIn("backend-e2e", subject.SUITES)
         self.assertNotIn("recovery-e2e", subject.SUITES)
         self.assertEqual({"business", "cdc"}, set(subject.SUITES))
-        self.assertFalse(any(name.startswith("cdc-") for name in subject.SUITES))
 
 
 class MavenIntegrationProfileTest(unittest.TestCase):
