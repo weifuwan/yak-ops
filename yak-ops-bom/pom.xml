@@ -27,6 +27,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-cdc-common</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-cdc-runtime</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-cdc-composer</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-cdc-cli</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-registry-api</artifactId><version>${project.version}</version></dependency>

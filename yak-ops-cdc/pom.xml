@@ -5,6 +5,7 @@
     <artifactId>yak-ops-cdc</artifactId><packaging>pom</packaging><name>Yak Ops CDC</name>
     <modules>
         <module>yak-ops-cdc-common</module>
+        <module>yak-ops-cdc-runtime</module>
         <module>yak-ops-cdc-composer</module>
         <module>yak-ops-cdc-cli</module>
     </modules>
