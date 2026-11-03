@@ -18,9 +18,7 @@
 package org.apache.flink.cdc.common.types;
 
 import org.apache.flink.cdc.common.annotation.PublicEvolving;
-import org.apache.flink.cdc.common.types.utils.DataTypeUtils;
 import org.apache.flink.cdc.common.utils.Preconditions;
-import org.apache.flink.table.types.utils.LogicalTypeDataTypeConverter;
 
 import javax.annotation.Nullable;
 
@@ -117,22 +115,5 @@ public class DataField implements Serializable {
                     typeString,
                     escapeSingleQuotes(description));
         }
-    }
-
-    public org.apache.flink.table.api.DataTypes.Field toFlinkDataTypeField() {
-        return description == null
-                ? org.apache.flink.table.api.DataTypes.FIELD(
-                        name, DataTypeUtils.toFlinkDataType(type))
-                : org.apache.flink.table.api.DataTypes.FIELD(
-                        name, DataTypeUtils.toFlinkDataType(type), description);
-    }
-
-    public static DataField fromFlinkDataTypeField(
-            org.apache.flink.table.types.logical.RowType.RowField rowField) {
-        return DataTypes.FIELD(
-                rowField.getName(),
-                DataTypeUtils.fromFlinkDataType(
-                        LogicalTypeDataTypeConverter.toDataType(rowField.getType())),
-                rowField.getDescription().orElse(null));
     }
 }
