@@ -237,6 +237,22 @@ def rewrite_runtime_descriptor_test(source: str) -> str:
     return source[:start] + replacement + source[end:]
 
 
+
+def rewrite_composer_test_factories(source: str) -> str:
+    """Unregister upstream test factories intentionally excluded from compilation."""
+    excluded = (
+        "org.apache.flink.cdc.composer.testsource.recovery.RecoveryDataSinkFactory",
+        "org.apache.flink.cdc.composer.flink.FlinkPipelineComposerTest$TestDataSinkFactory",
+        "org.apache.flink.cdc.composer.flink.FlinkPipelineComposerTest$TestDataSourceFactory",
+    )
+    for provider in excluded:
+        line = provider + "\n"
+        if source.count(line) != 1:
+            raise ValueError(f"Unexpected upstream composer factory provider: {provider}")
+        source = source.replace(line, "", 1)
+    return source
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: import_fl...py PATH_TO_UPSTREAM PATH_TO_YAK_OPS_CDC")
@@ -269,6 +285,11 @@ def main() -> None:
         elif relative == "flink-cdc-runtime/src/test/java/org/apache/flink/cdc/runtime/operators/transform/UserDefinedFunctionDescriptorTest.java":
             output.write_text(
                 rewrite_runtime_descriptor_test(origin.read_text(encoding="utf-8")),
+                encoding="utf-8",
+            )
+        elif relative == "flink-cdc-composer/src/test/resources/META-INF/services/org.apache.flink.cdc.common.factories.Factory":
+            output.write_text(
+                rewrite_composer_test_factories(origin.read_text(encoding="utf-8")),
                 encoding="utf-8",
             )
         else:

@@ -42,6 +42,21 @@ class ImportFlinkCdcTest(unittest.TestCase):
         self.assertIn("DataTypes.ARRAY(DataTypes.FLOAT())", result)
         self.assertIn("UserDefinedFunctionDescriptorTest$ArrayTypeHintUdf", result)
 
+    def test_composer_factory_services_never_reference_excluded_tests(self):
+        excluded = (
+            "org.apache.flink.cdc.composer.testsource.recovery.RecoveryDataSinkFactory",
+            "org.apache.flink.cdc.composer.flink.FlinkPipelineComposerTest$TestDataSinkFactory",
+            "org.apache.flink.cdc.composer.flink.FlinkPipelineComposerTest$TestDataSourceFactory",
+        )
+        retained = "org.apache.flink.cdc.composer.utils.factory.DataSourceFactory1"
+        source = "\n".join((retained, *excluded, ""))
+        rewritten = IMPORTER.rewrite_composer_test_factories(source)
+        self.assertEqual(retained + "\n", rewritten)
+        for provider in excluded:
+            self.assertNotIn(provider, rewritten)
+        with self.assertRaisesRegex(ValueError, "Unexpected upstream composer"):
+            IMPORTER.rewrite_composer_test_factories(retained + "\n")
+
     def test_upstream_fixture_shape_changes_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "Unexpected upstream"):
             IMPORTER.rewrite_runtime_descriptor_test("class WrongTest {}")
