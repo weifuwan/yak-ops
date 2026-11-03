@@ -118,7 +118,7 @@ def rewrite_pom(xml: str, relative: str) -> str:
         elif tag == "dependency" and artifact_id.startswith("flink-cdc-"):
             # Uncopied connector artifacts may be referenced by upstream tests.
             # They must never accidentally resolve against Yak Ops 1.4.0.
-            inner = inner.replace("<version>\${project.version}</version>",
+            inner = inner.replace("<version>${project.version}</version>",
                                   "<version>3.7.0</version>", 1)
         return f"<{tag}>{inner}</{tag}>"
 
