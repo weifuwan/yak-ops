@@ -44,8 +44,8 @@ class StreamExecutionEnvironmentTest {
 
     @Test
     void constructsGraphWithoutCreatingOrRunningOperators() throws Exception {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
-        var created = new AtomicInteger();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        AtomicInteger created = new AtomicInteger();
         List<Integer> collected = new ArrayList<>();
         DataStream<Integer> source = env.<Integer>fromSource("source", () -> {
             created.incrementAndGet();
@@ -74,15 +74,17 @@ class StreamExecutionEnvironmentTest {
         StreamGraph graph = env.getStreamGraph();
         assertEquals(0, created.get(), "Graph construction must not instantiate operators");
         assertEquals(List.of("source", "multiply", "filter", "sink"),
-                graph.getOrderedNodes().stream().map(n -> n.name()).toList());
+                graph.getOrderedNodes().stream().map(n -> n.getOperatorName()).toList());
         assertEquals(List.of(OperatorType.SOURCE, OperatorType.TRANSFORM,
                         OperatorType.TRANSFORM, OperatorType.SINK),
-                graph.getOrderedNodes().stream().map(n -> n.type()).toList());
-        assertEquals(List.of(new StreamEdge(1, 2), new StreamEdge(2, 3),
-                new StreamEdge(3, 4)), graph.getEdges());
-        assertEquals("multiply-uid", graph.getOrderedNodes().get(1).uid());
+                graph.getOrderedNodes().stream().map(n -> n.getType()).toList());
+        assertEquals(List.of(1, 2, 3),
+                graph.getEdges().stream().map(StreamEdge::getSourceId).toList());
+        assertEquals(List.of(2, 3, 4),
+                graph.getEdges().stream().map(StreamEdge::getTargetId).toList());
+        assertEquals("multiply-uid", graph.getOrderedNodes().get(1).getTransformationUID());
         assertThrows(IllegalStateException.class,
-                () -> filtered.transform("too late", () -> (record, output) -> {}));
+                () -> filtered.transform("too late", () -> (event, output) -> {}));
 
         env.execute("test");
         assertEquals(List.of(20, 30), collected);
@@ -92,7 +94,7 @@ class StreamExecutionEnvironmentTest {
 
     @Test
     void supportsDirectSourceToSinkAndPassesCdcEventInstancesUnchanged() throws Exception {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
         Event schema = new Event() {};
         Event data = new Event() {};
         List<Event> seen = new ArrayList<>();
@@ -108,12 +110,12 @@ class StreamExecutionEnvironmentTest {
 
     @Test
     void rejectsMalformedGraphsAndMultipleSourcesOrBranches() {
-        var noSink = StreamExecutionEnvironment.getLocalEnvironment();
-        var src = noSink.fromSource("source", () -> out -> {});
+        StreamExecutionEnvironment noSink = StreamExecutionEnvironment.getLocalEnvironment();
+        DataStream<Object> src = noSink.fromSource("source", () -> out -> {});
         assertThrows(IllegalArgumentException.class, noSink::getStreamGraph);
         assertThrows(IllegalStateException.class,
                 () -> noSink.fromSource("other", () -> out -> {}));
-        var next = src.transform("first", () -> (input, output) -> {});
+        DataStream<Object> next = src.transform("first", () -> (input, output) -> {});
         assertThrows(IllegalArgumentException.class,
                 () -> src.transform("branch", () -> (input, output) -> {}));
         next.addSink("sink", () -> element -> {});
@@ -122,8 +124,8 @@ class StreamExecutionEnvironmentTest {
         assertThrows(IllegalStateException.class,
                 () -> next.addSink("second sink", () -> element -> {}));
 
-        var duplicateUid = StreamExecutionEnvironment.getLocalEnvironment();
-        var s = duplicateUid.fromSource("src", () -> out -> {}).uid("same");
+        StreamExecutionEnvironment duplicateUid = StreamExecutionEnvironment.getLocalEnvironment();
+        DataStream<Object> s = duplicateUid.fromSource("src", () -> out -> {}).uid("same");
         assertThrows(IllegalArgumentException.class,
                 () -> s.transform("transform", () -> (input, out) -> {}).uid("same"));
     }
@@ -131,7 +133,7 @@ class StreamExecutionEnvironmentTest {
     @Test
     void closesOpenedOperatorsOnTransformFailure() throws Exception {
         List<String> lifecycle = new ArrayList<>();
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
         env.<Integer>fromSource("source", () -> new SourceOperator<>() {
                     @Override public void open() { lifecycle.add("open-source"); }
                     @Override public void run(Output<Integer> output) throws Exception {
@@ -160,8 +162,8 @@ class StreamExecutionEnvironmentTest {
     @Test
     void closesAlreadyConstructedOperatorsOnSourceAndSinkErrors() {
         for (boolean sourceError : new boolean[]{true, false}) {
-            var closed = new AtomicInteger();
-            var env = StreamExecutionEnvironment.getLocalEnvironment();
+            AtomicInteger closed = new AtomicInteger();
+            StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
             env.<Integer>fromSource("source", () -> new SourceOperator<>() {
                         @Override public void run(Output<Integer> output) throws Exception {
                             if (sourceError) {
@@ -186,11 +188,11 @@ class StreamExecutionEnvironmentTest {
 
     @Test
     void asyncExecutionCompletesAndSupportsCancellation() throws Exception {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
-        var seen = new AtomicInteger();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        AtomicInteger seen = new AtomicInteger();
         env.<Integer>fromSource("source", () -> out -> out.collect(4))
                 .addSink("sink", () -> element -> seen.set(element));
-        var handle = env.executeAsync("async");
+        StreamExecutionHandle handle = env.executeAsync("async");
         assertNotNull(handle.getId());
         assertEquals("async", handle.getJobName());
         handle.getCompletion().get(5, TimeUnit.SECONDS);
@@ -198,7 +200,7 @@ class StreamExecutionEnvironmentTest {
 
         CountDownLatch started = new CountDownLatch(1);
         CountDownLatch cancelled = new CountDownLatch(1);
-        var streaming = StreamExecutionEnvironment.getLocalEnvironment();
+        StreamExecutionEnvironment streaming = StreamExecutionEnvironment.getLocalEnvironment();
         streaming.<Integer>fromSource("live", () -> new SourceOperator<>() {
                     @Override public void run(Output<Integer> output) throws Exception {
                         started.countDown();
@@ -207,7 +209,7 @@ class StreamExecutionEnvironmentTest {
                     @Override public void cancel() { cancelled.countDown(); }
                 })
                 .addSink("terminal", () -> element -> {});
-        var running = streaming.executeAsync("live");
+        StreamExecutionHandle running = streaming.executeAsync("live");
         assertTrue(started.await(5, TimeUnit.SECONDS));
         running.cancel();
         assertTrue(running.getCompletion().isDone());
@@ -215,12 +217,12 @@ class StreamExecutionEnvironmentTest {
 
     @Test
     void asyncErrorsStayObservable() {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
         env.<Integer>fromSource("source", () -> out -> {
                     throw new IllegalStateException("broken");
                 })
                 .addSink("sink", () -> element -> {});
-        var handle = env.executeAsync("failure");
+        StreamExecutionHandle handle = env.executeAsync("failure");
         CompletionException error =
                 assertThrows(CompletionException.class, () -> handle.getCompletion().join());
         assertEquals("broken", error.getCause().getMessage());

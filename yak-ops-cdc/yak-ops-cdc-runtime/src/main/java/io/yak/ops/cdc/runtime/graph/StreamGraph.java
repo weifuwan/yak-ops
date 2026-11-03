@@ -4,7 +4,7 @@
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * the License.  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -17,109 +17,262 @@
 
 package io.yak.ops.cdc.runtime.graph;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 /**
- * Validated immutable logical graph for one source, any number of transforms, and one sink.
+ * Local stream topology. Owns node registration and maintains both sides of every edge.
  *
- * <p>The first standalone runtime intentionally rejects fan-out, fan-in and disconnected nodes;
- * such graph topologies need an explicit execution design before they can be enabled.
+ * <p>The graph can represent an acyclic topology. The first standalone execution engine only
+ * accepts a linear source-to-sink path; that restriction belongs to
+ * {@link #getLinearExecutionOrder()}, not to the underlying node/edge model.
+ *
+ * <p>Once sealed, topology and operator UIDs cannot be modified. Operators remain uninstantiated.
  */
 public final class StreamGraph {
-    private final List<StreamNode> nodes;
-    private final List<StreamEdge> edges;
-    private final List<StreamNode> orderedNodes;
+    private final Map<Integer, StreamNode> streamNodes = new LinkedHashMap<>();
+    private final Set<Integer> sources = new LinkedHashSet<>();
+    private final Set<Integer> sinks = new LinkedHashSet<>();
+    private final List<StreamEdge> edges = new ArrayList<>();
 
-    public StreamGraph(List<StreamNode> nodes, List<StreamEdge> edges) {
-        this.nodes = List.copyOf(Objects.requireNonNull(nodes, "nodes"));
-        this.edges = List.copyOf(Objects.requireNonNull(edges, "edges"));
-        this.orderedNodes = validateAndOrder();
+    private boolean sealed;
+    private List<StreamNode> orderedNodes;
+
+    public void addSource(StreamNode node) {
+        checkType(node, OperatorType.SOURCE);
+        addNode(node);
+    }
+
+    public void addOperator(StreamNode node) {
+        checkType(node, OperatorType.TRANSFORM);
+        addNode(node);
+    }
+
+    public void addSink(StreamNode node) {
+        checkType(node, OperatorType.SINK);
+        addNode(node);
+    }
+
+    public void addNode(StreamNode node) {
+        checkMutable();
+        Objects.requireNonNull(node, "node");
+        if (streamNodes.containsKey(node.getId())) {
+            throw new IllegalArgumentException("Duplicate node id: " + node.getId());
+        }
+        if (!node.getInEdges().isEmpty() || !node.getOutEdges().isEmpty()) {
+            throw new IllegalArgumentException("Cannot register a node already connected to a graph");
+        }
+        ensureUniqueUID(node.getId(), node.getTransformationUID());
+        streamNodes.put(node.getId(), node);
+        if (node.getType() == OperatorType.SOURCE) {
+            sources.add(node.getId());
+        } else if (node.getType() == OperatorType.SINK) {
+            sinks.add(node.getId());
+        }
+    }
+
+    public void addEdge(int sourceId, int targetId) {
+        addEdge(sourceId, targetId, 0);
+    }
+
+    public void addEdge(int sourceId, int targetId, int typeNumber) {
+        checkMutable();
+        StreamNode source = requireNode(sourceId);
+        StreamNode target = requireNode(targetId);
+        if (source.getType() == OperatorType.SINK || target.getType() == OperatorType.SOURCE) {
+            throw new IllegalArgumentException("Invalid edge direction: " + source + " -> " + target);
+        }
+        int uniqueId = 0;
+        for (StreamEdge existing : edges) {
+            if (existing.getSourceId() == sourceId
+                    && existing.getTargetId() == targetId
+                    && existing.getTypeNumber() == typeNumber) {
+                uniqueId++;
+            }
+        }
+        StreamEdge edge = new StreamEdge(source, target, typeNumber, uniqueId);
+        source.addOutEdge(edge);
+        target.addInEdge(edge);
+        edges.add(edge);
+    }
+
+    public void setTransformationUID(int nodeId, String uid) {
+        checkMutable();
+        StreamNode node = requireNode(nodeId);
+        if (uid != null && uid.isBlank()) {
+            throw new IllegalArgumentException("UID must not be blank");
+        }
+        ensureUniqueUID(nodeId, uid);
+        node.setTransformationUID(uid);
+    }
+
+    public StreamNode getStreamNode(int id) {
+        return streamNodes.get(id);
+    }
+
+    public Collection<StreamNode> getStreamNodes() {
+        return getNodes();
     }
 
     public List<StreamNode> getNodes() {
-        return nodes;
+        return Collections.unmodifiableList(new ArrayList<>(streamNodes.values()));
     }
 
     public List<StreamEdge> getEdges() {
-        return edges;
+        return Collections.unmodifiableList(new ArrayList<>(edges));
     }
 
-    /** Nodes in the only valid execution order: source -> transforms -> sink. */
-    public List<StreamNode> getOrderedNodes() {
-        return orderedNodes;
+    public List<StreamEdge> getStreamEdges(int sourceId) {
+        return getStreamEdges(sourceId, null);
     }
 
-    private List<StreamNode> validateAndOrder() {
-        Map<Integer, StreamNode> byId = new LinkedHashMap<>();
-        Set<String> uids = new HashSet<>();
-        StreamNode source = null;
-        int sinks = 0;
-        for (StreamNode node : nodes) {
-            if (byId.putIfAbsent(node.id(), node) != null) {
-                throw new IllegalArgumentException("Duplicate node id: " + node.id());
-            }
-            if (node.uid() != null && !uids.add(node.uid())) {
-                throw new IllegalArgumentException("Duplicate operator UID: " + node.uid());
-            }
-            if (node.type() == OperatorType.SOURCE) {
-                if (source != null) {
-                    throw new IllegalArgumentException("Exactly one source is supported");
-                }
-                source = node;
-            }
-            if (node.type() == OperatorType.SINK) {
-                sinks++;
+    public List<StreamEdge> getStreamEdges(int sourceId, int targetId) {
+        return getStreamEdges(sourceId, Integer.valueOf(targetId));
+    }
+
+    private List<StreamEdge> getStreamEdges(int sourceId, Integer targetId) {
+        List<StreamEdge> matches = new ArrayList<>();
+        for (StreamEdge edge : edges) {
+            if (edge.getSourceId() == sourceId
+                    && (targetId == null || edge.getTargetId() == targetId.intValue())) {
+                matches.add(edge);
             }
         }
-        if (source == null || sinks != 1) {
+        return Collections.unmodifiableList(matches);
+    }
+
+    public Set<Integer> getSourceIDs() {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(sources));
+    }
+
+    public Set<Integer> getSinkIDs() {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(sinks));
+    }
+
+    public boolean isSealed() {
+        return sealed;
+    }
+
+    /** Make the graph read-only only after a complete topological validation. */
+    public void seal() {
+        if (!sealed) {
+            List<StreamNode> order = topologicalOrder();
+            orderedNodes = order;
+            sealed = true;
+        }
+    }
+
+    /** All nodes in topological order, including possible branches. */
+    public List<StreamNode> getOrderedNodes() {
+        return sealed ? orderedNodes : topologicalOrder();
+    }
+
+    /**
+     * Validate the execution constraints of the first single-threaded runtime.
+     *
+     * <p>This does not seal the graph so an incomplete pipeline can still be edited after
+     * validation fails.
+     */
+    public List<StreamNode> getLinearExecutionOrder() {
+        List<StreamNode> ordered = getOrderedNodes();
+        if (sources.size() != 1 || sinks.size() != 1) {
             throw new IllegalArgumentException("Pipeline requires exactly one source and one sink");
         }
-
-        Map<Integer, Integer> successors = new HashMap<>();
-        Map<Integer, Integer> predecessors = new HashMap<>();
-        for (StreamEdge edge : edges) {
-            StreamNode from = byId.get(edge.sourceId());
-            StreamNode to = byId.get(edge.targetId());
-            if (from == null || to == null) {
-                throw new IllegalArgumentException("Edge references missing node: " + edge);
-            }
-            if (from.type() == OperatorType.SINK || to.type() == OperatorType.SOURCE) {
-                throw new IllegalArgumentException("Invalid edge direction: " + edge);
-            }
-            if (successors.putIfAbsent(edge.sourceId(), edge.targetId()) != null
-                    || predecessors.putIfAbsent(edge.targetId(), edge.sourceId()) != null) {
-                throw new IllegalArgumentException("Branches and multiple inputs are not yet supported");
-            }
-        }
-
-        List<StreamNode> result = new ArrayList<>(nodes.size());
-        Set<Integer> visited = new HashSet<>();
-        int cursor = source.id();
-        while (true) {
-            if (!visited.add(cursor)) {
-                throw new IllegalArgumentException("Cycle detected in pipeline");
-            }
-            StreamNode current = byId.get(cursor);
-            result.add(current);
-            Integer next = successors.get(cursor);
-            if (next == null) {
-                if (current.type() != OperatorType.SINK) {
-                    throw new IllegalArgumentException("Pipeline does not terminate in a sink");
+        for (StreamNode node : ordered) {
+            int inputs = node.getInEdges().size();
+            int outputs = node.getOutEdges().size();
+            if (node.getType() == OperatorType.SOURCE) {
+                if (inputs != 0 || outputs != 1) {
+                    throw new IllegalArgumentException("Source must have exactly one output");
                 }
-                break;
+            } else if (node.getType() == OperatorType.SINK) {
+                if (inputs != 1 || outputs != 0) {
+                    throw new IllegalArgumentException("Sink must have exactly one input");
+                }
+            } else if (inputs != 1 || outputs != 1) {
+                throw new IllegalArgumentException("Branches, multiple inputs or disconnected nodes are not supported by the local executor");
             }
-            cursor = next;
         }
-        if (result.size() != nodes.size() || predecessors.containsKey(source.id())) {
-            throw new IllegalArgumentException("Disconnected or invalid nodes in pipeline");
+        for (int i = 0; i < ordered.size() - 1; i++) {
+            StreamNode current = ordered.get(i);
+            if (current.getOutEdges().get(0).getTargetId() != ordered.get(i + 1).getId()) {
+                throw new IllegalArgumentException("Pipeline is not a single source-to-sink path");
+            }
         }
-        return List.copyOf(result);
+        if (ordered.get(0).getType() != OperatorType.SOURCE
+                || ordered.get(ordered.size() - 1).getType() != OperatorType.SINK) {
+            throw new IllegalArgumentException("Pipeline does not terminate in a sink");
+        }
+        return ordered;
+    }
+
+    private List<StreamNode> topologicalOrder() {
+        Map<Integer, Integer> inDegrees = new LinkedHashMap<>();
+        ArrayDeque<StreamNode> available = new ArrayDeque<>();
+        for (StreamNode node : streamNodes.values()) {
+            int degree = node.getInEdges().size();
+            inDegrees.put(node.getId(), degree);
+            if (degree == 0) {
+                available.add(node);
+            }
+        }
+
+        List<StreamNode> result = new ArrayList<>(streamNodes.size());
+        while (!available.isEmpty()) {
+            StreamNode current = available.remove();
+            result.add(current);
+            for (StreamEdge edge : current.getOutEdges()) {
+                int targetId = edge.getTargetId();
+                int remaining = inDegrees.get(targetId) - 1;
+                inDegrees.put(targetId, remaining);
+                if (remaining == 0) {
+                    available.add(requireNode(targetId));
+                }
+            }
+        }
+        if (result.size() != streamNodes.size()) {
+            throw new IllegalArgumentException("Cycle detected in pipeline");
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    private void ensureUniqueUID(int nodeId, String uid) {
+        if (uid == null) {
+            return;
+        }
+        for (StreamNode node : streamNodes.values()) {
+            if (node.getId() != nodeId && uid.equals(node.getTransformationUID())) {
+                throw new IllegalArgumentException("Duplicate operator UID: " + uid);
+            }
+        }
+    }
+
+    private StreamNode requireNode(int id) {
+        StreamNode node = streamNodes.get(id);
+        if (node == null) {
+            throw new IllegalArgumentException("Unknown stream node: " + id);
+        }
+        return node;
+    }
+
+    private static void checkType(StreamNode node, OperatorType expected) {
+        Objects.requireNonNull(node, "node");
+        if (node.getType() != expected) {
+            throw new IllegalArgumentException("Expected " + expected + " node: " + node);
+        }
+    }
+
+    private void checkMutable() {
+        if (sealed) {
+            throw new IllegalStateException("The pipeline graph is already finalized");
+        }
     }
 }

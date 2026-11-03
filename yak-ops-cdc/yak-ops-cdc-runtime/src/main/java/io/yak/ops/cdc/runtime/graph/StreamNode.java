@@ -4,7 +4,7 @@
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * the License.  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,31 +19,126 @@ package io.yak.ops.cdc.runtime.graph;
 
 import io.yak.ops.cdc.runtime.operators.OperatorFactory;
 import io.yak.ops.cdc.runtime.operators.StreamOperator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
-/** Logical node. The operator factory is invoked only when a task starts. */
-public record StreamNode(
-        int id,
-        String name,
-        String uid,
-        OperatorType type,
-        OperatorFactory<? extends StreamOperator> operatorFactory) {
+/**
+ * A logical stream node with its incoming and outgoing edges.
+ *
+ * <p>Operators are created by the factory only when execution starts. Graph construction never
+ * creates an operator instance.
+ */
+public final class StreamNode {
+    private final int id;
+    private final String operatorName;
+    private final OperatorType type;
+    private final OperatorFactory<? extends StreamOperator> operatorFactory;
+    private final List<StreamEdge> inEdges = new ArrayList<>();
+    private final List<StreamEdge> outEdges = new ArrayList<>();
+    private String transformationUID;
 
-    public StreamNode {
+    public StreamNode(
+            int id,
+            String operatorName,
+            OperatorType type,
+            OperatorFactory<? extends StreamOperator> operatorFactory) {
+        this(id, operatorName, null, type, operatorFactory);
+    }
+
+    public StreamNode(
+            int id,
+            String operatorName,
+            String transformationUID,
+            OperatorType type,
+            OperatorFactory<? extends StreamOperator> operatorFactory) {
         if (id < 1) {
             throw new IllegalArgumentException("Node id must be positive");
         }
-        if (name == null || name.isBlank()) {
+        if (operatorName == null || operatorName.isBlank()) {
             throw new IllegalArgumentException("Node name must not be blank");
         }
-        Objects.requireNonNull(type, "type");
-        Objects.requireNonNull(operatorFactory, "operatorFactory");
+        if (transformationUID != null && transformationUID.isBlank()) {
+            throw new IllegalArgumentException("UID must not be blank");
+        }
+        this.id = id;
+        this.operatorName = operatorName;
+        this.transformationUID = transformationUID;
+        this.type = Objects.requireNonNull(type, "type");
+        this.operatorFactory = Objects.requireNonNull(operatorFactory, "operatorFactory");
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getOperatorName() {
+        return operatorName;
+    }
+
+    public String getTransformationUID() {
+        return transformationUID;
+    }
+
+    public OperatorType getType() {
+        return type;
+    }
+
+    public OperatorFactory<? extends StreamOperator> getOperatorFactory() {
+        return operatorFactory;
+    }
+
+    public List<StreamEdge> getInEdges() {
+        return Collections.unmodifiableList(inEdges);
+    }
+
+    public List<StreamEdge> getOutEdges() {
+        return Collections.unmodifiableList(outEdges);
+    }
+
+    void setTransformationUID(String uid) {
         if (uid != null && uid.isBlank()) {
             throw new IllegalArgumentException("UID must not be blank");
         }
+        this.transformationUID = uid;
     }
 
-    public StreamNode withUid(String newUid) {
-        return new StreamNode(id, name, newUid, type, operatorFactory);
+    void addInEdge(StreamEdge edge) {
+        Objects.requireNonNull(edge, "edge");
+        if (edge.getTargetId() != id || inEdges.contains(edge)) {
+            throw new IllegalArgumentException("Invalid or duplicate incoming edge: " + edge);
+        }
+        inEdges.add(edge);
+    }
+
+    void addOutEdge(StreamEdge edge) {
+        Objects.requireNonNull(edge, "edge");
+        if (edge.getSourceId() != id || outEdges.contains(edge)) {
+            throw new IllegalArgumentException("Invalid or duplicate outgoing edge: " + edge);
+        }
+        outEdges.add(edge);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof StreamNode)) {
+            return false;
+        }
+        StreamNode that = (StreamNode) other;
+        return id == that.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
+    }
+
+    @Override
+    public String toString() {
+        return operatorName + "-" + id;
     }
 }

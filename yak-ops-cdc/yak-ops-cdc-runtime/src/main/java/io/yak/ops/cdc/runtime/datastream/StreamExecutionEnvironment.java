@@ -4,7 +4,7 @@
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * the License.  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -18,35 +18,28 @@
 package io.yak.ops.cdc.runtime.datastream;
 
 import io.yak.ops.cdc.runtime.graph.OperatorType;
-import io.yak.ops.cdc.runtime.graph.StreamEdge;
 import io.yak.ops.cdc.runtime.graph.StreamGraph;
 import io.yak.ops.cdc.runtime.graph.StreamNode;
 import io.yak.ops.cdc.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.cdc.runtime.operators.OperatorFactory;
 import io.yak.ops.cdc.runtime.operators.SinkOperator;
 import io.yak.ops.cdc.runtime.operators.SourceOperator;
+import io.yak.ops.cdc.runtime.operators.StreamOperator;
 import io.yak.ops.cdc.runtime.tasks.StreamTask;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Minimal local DataStream builder. Builds a graph, not live operators.
+ * Local DataStream builder. Delegates topology management to StreamGraph, not live operators.
  *
- * <p>A single environment represents exactly one linear pipeline. Once materialized as a graph,
- * its topology is sealed and can be executed synchronously or asynchronously.
+ * <p>For now an environment builds a single linear pipeline, while StreamGraph can represent
+ * more general acyclic topologies. Once finalized, the graph cannot be modified.
  */
 public final class StreamExecutionEnvironment {
-    private final Map<Integer, StreamNode> nodes = new LinkedHashMap<>();
-    private final List<StreamEdge> edges = new ArrayList<>();
+    private final StreamGraph graph = new StreamGraph();
     private int nextId = 1;
-    private boolean sealed;
     private boolean submitted;
-    private StreamGraph graph;
 
     public static StreamExecutionEnvironment getLocalEnvironment() {
         return new StreamExecutionEnvironment();
@@ -55,10 +48,10 @@ public final class StreamExecutionEnvironment {
     public <T> DataStream<T> fromSource(
             String name, OperatorFactory<? extends SourceOperator<T>> factory) {
         checkMutable();
-        if (!nodes.isEmpty()) {
+        if (!graph.getNodes().isEmpty()) {
             throw new IllegalStateException("Only one source per pipeline is supported");
         }
-        int id = addNode(name, OperatorType.SOURCE, factory);
+        int id = addNode(name, OperatorType.SOURCE, factory, null);
         return new DataStream<>(this, id);
     }
 
@@ -66,8 +59,8 @@ public final class StreamExecutionEnvironment {
             int inputId, String name,
             OperatorFactory<? extends OneInputStreamOperator<IN, OUT>> factory) {
         validateTail(inputId);
-        int id = addNode(name, OperatorType.TRANSFORM, factory);
-        edges.add(new StreamEdge(inputId, id));
+        int id = addNode(name, OperatorType.TRANSFORM, factory, null);
+        graph.addEdge(inputId, id);
         return new DataStream<>(this, id);
     }
 
@@ -75,60 +68,55 @@ public final class StreamExecutionEnvironment {
             int inputId, String name,
             OperatorFactory<? extends SinkOperator<T>> factory, String uid) {
         validateTail(inputId);
-        int id = addNode(name, OperatorType.SINK, factory);
-        if (uid != null) {
-            setUid(id, uid);
-        }
-        edges.add(new StreamEdge(inputId, id));
+        int id = addNode(name, OperatorType.SINK, factory, uid);
+        graph.addEdge(inputId, id);
     }
 
     void setUid(int id, String uid) {
-        checkMutable();
-        StreamNode node = Objects.requireNonNull(nodes.get(id), "Unknown node: " + id);
-        if (uid != null) {
-            for (StreamNode existing : nodes.values()) {
-                if (existing.id() != id && uid.equals(existing.uid())) {
-                    throw new IllegalArgumentException("Duplicate operator UID: " + uid);
-                }
-            }
-        }
-        nodes.put(id, node.withUid(uid));
+        graph.setTransformationUID(id, uid);
     }
 
     private int addNode(
             String name, OperatorType type,
-            OperatorFactory<? extends io.yak.ops.cdc.runtime.operators.StreamOperator> factory) {
+            OperatorFactory<? extends StreamOperator> factory, String uid) {
         checkMutable();
-        int id = nextId++;
-        nodes.put(id, new StreamNode(id, name, null, type, factory));
+        int id = nextId;
+        StreamNode node = new StreamNode(id, name, uid, type, factory);
+        if (type == OperatorType.SOURCE) {
+            graph.addSource(node);
+        } else if (type == OperatorType.SINK) {
+            graph.addSink(node);
+        } else {
+            graph.addOperator(node);
+        }
+        nextId++;
         return id;
     }
 
     private void validateTail(int inputId) {
         checkMutable();
-        StreamNode input = nodes.get(inputId);
+        StreamNode input = graph.getStreamNode(inputId);
         if (input == null) {
             throw new IllegalArgumentException("Unknown upstream node: " + inputId);
         }
-        if (input.type() == OperatorType.SINK || nodes.values().stream()
-                .anyMatch(n -> n.type() == OperatorType.SINK)) {
+        if (input.getType() == OperatorType.SINK || !graph.getSinkIDs().isEmpty()) {
             throw new IllegalStateException("Cannot attach nodes after the sink");
         }
-        if (edges.stream().anyMatch(e -> e.sourceId() == inputId)) {
+        if (!input.getOutEdges().isEmpty()) {
             throw new IllegalArgumentException("Branching is not supported in the first runtime");
         }
     }
 
     private void checkMutable() {
-        if (sealed) {
+        if (graph.isSealed()) {
             throw new IllegalStateException("The pipeline graph is already finalized");
         }
     }
 
     public StreamGraph getStreamGraph() {
-        if (graph == null) {
-            graph = new StreamGraph(new ArrayList<>(nodes.values()), edges);
-            sealed = true;
+        if (!graph.isSealed()) {
+            graph.getLinearExecutionOrder();
+            graph.seal();
         }
         return graph;
     }

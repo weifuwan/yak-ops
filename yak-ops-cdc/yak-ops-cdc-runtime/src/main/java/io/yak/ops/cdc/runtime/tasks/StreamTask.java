@@ -55,10 +55,10 @@ public final class StreamTask {
         List<StreamOperator> operators = new ArrayList<>();
         Throwable failure = null;
         try {
-            for (StreamNode node : graph.getOrderedNodes()) {
+            for (StreamNode node : graph.getLinearExecutionOrder()) {
                 StreamOperator op = Objects.requireNonNull(
-                        node.operatorFactory().create(),
-                        "Operator factory returned null for " + node.name());
+                        node.getOperatorFactory().create(),
+                        "Operator factory returned null for " + node.getOperatorName());
                 operators.add(op);
             }
 
