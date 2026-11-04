@@ -34,8 +34,8 @@ SchemaChangeEvent -> JdbcMetadataApplier -> JdbcCatalog -> JdbcDialect (DDL SQL)
   to metadata/DDL connections and does not control DML writer count.
 - `JdbcDialect` generates SQL but does not open connections. `JdbcCatalog`
   owns metadata lookup and the DDL execution connection; `getTableSchema()`
-  reads the target schema using JDBC metadata, with MySQL's database name mapped
-  to `TABLE_CAT` rather than `TABLE_SCHEM`.
+  reads the target schema using JDBC metadata. MySQL Connector/J's `databaseTerm`
+  determines whether the target database is passed as the catalog or the schema.
 - `JdbcRowConverter` is provided by each dialect and binds typed CDC row
   values and typed SQL NULLs to JDBC statement parameters. MySQL has a converter
   for local-zoned TIMESTAMP JDBC binding. `jdbc.properties.*` is forwarded to
@@ -63,6 +63,12 @@ normal backend CI):
 ```bash
 bash mvnw -B -ntp -f yak-ops-cdc/pom.xml -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql -am -Dtest=RichJdbcOutputFormatLifecycleTest,JdbcTableWriterRegistryTest,JdbcSinkConfigTest,JdbcOutputFormatBuilderTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,EventRecordSerializationSchemaTest,MySqlStmtCreatorFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
+
+To include the live MySQL catalog test, first load
+[mysql-catalog-fixture.sql](yak-ops-cdc-pipeline-connector-jdbc-mysql/src/test/resources/mysql-catalog-fixture.sql)
+into an empty MySQL test instance. Set `JDBC_CATALOG_TEST_URL` to a JDBC URL
+with `yak_catalog_source` as its default database and set `JDBC_CATALOG_TEST_USER`
+and `JDBC_CATALOG_TEST_PASSWORD` before running the command above.
 
 The CDC connector is based on the JDBC Pipeline Sink from Apache Flink CDC
 [PR #3916](https://github.com/apache/flink-cdc/pull/3916), with Yak Ops
