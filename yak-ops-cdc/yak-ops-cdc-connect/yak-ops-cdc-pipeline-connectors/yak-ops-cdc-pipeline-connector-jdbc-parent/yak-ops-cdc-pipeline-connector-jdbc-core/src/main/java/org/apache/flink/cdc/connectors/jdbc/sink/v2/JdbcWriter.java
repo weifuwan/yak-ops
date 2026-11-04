@@ -30,7 +30,6 @@ import org.apache.flink.cdc.connectors.jdbc.internal.writer.JdbcTableWriterRegis
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
-import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.datasource.connections.SimpleJdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
@@ -39,7 +38,6 @@ import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterSta
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -149,15 +147,4 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         flush(true);
     }
 
-    // Preserve the package-level pure helper entry points for existing JDBC regression coverage.
-    static JdbcStatementBuilder<JdbcRowData> getStatementBuilder(
-            List<String> statementColumns, List<String> rowColumns) {
-        return new org.apache.flink.cdc.connectors.jdbc.internal.converter.DefaultJdbcRowConverter()
-                .createStatementBuilder(statementColumns, rowColumns);
-    }
-
-    static Function<JdbcRowData, JdbcRowData> createRowKeyExtractor(
-            TableId tableId, Schema schema) {
-        return JdbcOutputFormatBuilder.createRowKeyExtractor(tableId, schema);
-    }
 }
