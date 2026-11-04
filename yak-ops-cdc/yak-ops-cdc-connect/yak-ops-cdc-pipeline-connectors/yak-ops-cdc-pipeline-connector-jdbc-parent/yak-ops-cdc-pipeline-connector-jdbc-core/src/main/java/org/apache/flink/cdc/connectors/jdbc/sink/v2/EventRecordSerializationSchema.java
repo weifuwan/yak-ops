@@ -17,6 +17,7 @@
 
 package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
+import org.apache.flink.cdc.common.converter.JavaObjectConverter;
 import org.apache.flink.cdc.common.data.RecordData;
 import org.apache.flink.cdc.common.event.CreateTableEvent;
 import org.apache.flink.cdc.common.event.DataChangeEvent;
@@ -27,10 +28,6 @@ import org.apache.flink.cdc.common.schema.Column;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.utils.Preconditions;
 import org.apache.flink.cdc.common.utils.SchemaUtils;
-import org.apache.flink.cdc.connectors.jdbc.sink.utils.JsonWrapper;
-
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,8 +38,6 @@ import java.util.Map;
 public class EventRecordSerializationSchema implements RecordSerializationSchema<Event> {
     /** Keeping the relationship of TableId and table information. */
     private final Map<TableId, TableInfo> tableInfoMap;
-
-    private final JsonWrapper jsonWrapper = new JsonWrapper();
 
     public EventRecordSerializationSchema() {
         tableInfoMap = new HashMap<>();
@@ -80,8 +75,7 @@ public class EventRecordSerializationSchema implements RecordSerializationSchema
                 .build();
     }
 
-    private JdbcRowData[] applyDataChangeEvent(DataChangeEvent event)
-            throws JsonProcessingException {
+    private JdbcRowData[] applyDataChangeEvent(DataChangeEvent event) {
         TableInfo tableInfo = tableInfoMap.get(event.tableId());
         Preconditions.checkNotNull(tableInfo, event.tableId() + " does not exist");
 
@@ -107,19 +101,18 @@ public class EventRecordSerializationSchema implements RecordSerializationSchema
         return rows.toArray(new JdbcRowData[0]);
     }
 
-    private byte[] serializeRecord(TableId tableId, TableInfo tableInfo, RecordData record)
-            throws JsonProcessingException {
+    private Object[] serializeRecord(TableId tableId, TableInfo tableInfo, RecordData record) {
         Preconditions.checkNotNull(record, tableId + " record is null");
 
         List<Column> columns = tableInfo.schema.getColumns();
         Preconditions.checkArgument(columns.size() == record.getArity());
 
-        Map<String, Object> rowMap = new HashMap<>(record.getArity() + 1);
+        Object[] values = new Object[record.getArity()];
         for (int i = 0; i < record.getArity(); i++) {
-            rowMap.put(columns.get(i).getName(), tableInfo.fieldGetters[i].getFieldOrNull(record));
+            Object field = tableInfo.fieldGetters[i].getFieldOrNull(record);
+            values[i] = JavaObjectConverter.convertToJava(field, columns.get(i).getType());
         }
-
-        return jsonWrapper.toJSONBytes(rowMap);
+        return values;
     }
 
     /** Table information. */
