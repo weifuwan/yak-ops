@@ -20,6 +20,7 @@ package org.apache.flink.cdc.connectors.jdbc.mysql.catalog;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataTypeRoot;
+import org.apache.flink.cdc.common.types.DecimalType;
 import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalogException;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
@@ -143,6 +144,88 @@ class MySqlCatalogTest {
                 catalog.fromJdbcColumn(Types.INTEGER, "INT UNSIGNED", 10, 0).getTypeRoot());
         assertEquals(DataTypeRoot.DECIMAL,
                 catalog.fromJdbcColumn(Types.BIGINT, "BIGINT UNSIGNED", 20, 0).getTypeRoot());
+    }
+
+    @Test
+    void preservesSupportedDecimalPrecisionAndScaleExactly() {
+        MySqlCatalog catalog = createCatalog(new FakeMetadata());
+
+        DecimalType small = (DecimalType) catalog.fromJdbcColumn(
+                Types.DECIMAL, "DECIMAL", 1, 0);
+        assertEquals(1, small.getPrecision());
+        assertEquals(0, small.getScale());
+
+        DecimalType ordinary = (DecimalType) catalog.fromJdbcColumn(
+                Types.DECIMAL, "DECIMAL", 18, 4);
+        assertEquals(18, ordinary.getPrecision());
+        assertEquals(4, ordinary.getScale());
+
+        DecimalType maximum = (DecimalType) catalog.fromJdbcColumn(
+                Types.DECIMAL, "DECIMAL", 38, 30);
+        assertEquals(38, maximum.getPrecision());
+        assertEquals(30, maximum.getScale());
+
+        DecimalType numeric = (DecimalType) catalog.fromJdbcColumn(
+                Types.NUMERIC, "NUMERIC", 38, 0);
+        assertEquals(38, numeric.getPrecision());
+        assertEquals(0, numeric.getScale());
+    }
+
+    @Test
+    void rejectsUnsupportedPrecisionInsteadOfSilentlyClampingDecimal() {
+        MySqlCatalog catalog = createCatalog(new FakeMetadata());
+
+        JdbcCatalogException aboveLimit = assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.DECIMAL, "DECIMAL", 39, 20));
+        assertTrue(aboveLimit.getMessage().contains("DECIMAL(39,20)"));
+        assertTrue(aboveLimit.getMessage().contains("38"));
+
+        JdbcCatalogException mysqlMaximum = assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.DECIMAL, "DECIMAL", 65, 20));
+        assertTrue(mysqlMaximum.getMessage().contains("DECIMAL(65,20)"));
+        assertTrue(mysqlMaximum.getMessage().contains("without loss"));
+
+        assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.NUMERIC, "NUMERIC", 65, 30));
+    }
+
+    @Test
+    void rejectsInvalidDecimalMetadataWithoutChangingPrecisionOrScale() {
+        MySqlCatalog catalog = createCatalog(new FakeMetadata());
+
+        assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.DECIMAL, "DECIMAL", 0, 0));
+        assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.DECIMAL, "DECIMAL", -1, 0));
+        JdbcCatalogException negativeScale = assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.DECIMAL, "DECIMAL", 18, -1));
+        assertTrue(negativeScale.getMessage().contains("DECIMAL(18,-1)"));
+
+        JdbcCatalogException excessScale = assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.fromJdbcColumn(Types.DECIMAL, "DECIMAL", 18, 19));
+        assertTrue(excessScale.getMessage().contains("DECIMAL(18,19)"));
+    }
+
+    @Test
+    void schemaReadIdentifiesUnsupportedDecimalColumnAndClosesConnection() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.columns.add(column("amount", Types.DECIMAL, "DECIMAL", 65, 20, false));
+        MySqlCatalog catalog = createCatalog(metadata);
+
+        JdbcCatalogException failure = assertThrows(
+                JdbcCatalogException.class,
+                () -> catalog.getTableSchema(TABLE));
+
+        assertTrue(failure.getMessage().contains("yak_e2e_target.orders.amount"));
+        assertTrue(failure.getMessage().contains("DECIMAL(65,20)"));
+        assertTrue(metadata.connectionClosed);
     }
 
     private static MySqlCatalog createCatalog(FakeMetadata metadata) {
