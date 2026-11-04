@@ -668,14 +668,14 @@
                     <skip>${spotless.skip}</skip>
                     <java>
                         <eclipse>
-                            <file>${maven.multiModuleProjectDirectory}/style/spotless_dolphinscheduler_formatter.xml</file>
+                            <file>${maven.multiModuleProjectDirectory}/yak-ops-scheduler/style/spotless_dolphinscheduler_formatter.xml</file>
                         </eclipse>
                         <removeUnusedImports />
                         <licenseHeader>
-                            <file>${maven.multiModuleProjectDirectory}/style/license-header</file>
+                            <file>${maven.multiModuleProjectDirectory}/yak-ops-scheduler/style/license-header</file>
                         </licenseHeader>
                         <importOrder>
-                            <file>${maven.multiModuleProjectDirectory}/style/eclipse.importorder</file>
+                            <file>${maven.multiModuleProjectDirectory}/yak-ops-scheduler/style/eclipse.importorder</file>
                         </importOrder>
                         <replaceRegex>
                             <name>Remove wildcard imports</name>

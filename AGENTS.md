@@ -25,6 +25,7 @@ The root pom.xml is an aggregator. Do not merge Scheduler's Spring Boot 2.x depe
 - Java 21 and checked-in Maven wrapper for Yak Ops; Scheduler source upstream targets Java 8/Spring Boot 2.x and needs separate verification.
 - Scheduler model: bash mvnw -B -ntp -pl :yak-ops-scheduler validate
 - Scheduler smoke (JDK 11 to avoid upstream Lombok / JDK 21 incompatibility): bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests package
+- CDC formatting: bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 - CDC build: bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
 - UI checks: cd yak-ops-ui && npm ci && npm run format:check && npm run typecheck && npm run build
 - Record exact commands and results; tests not run must not be reported as successful.

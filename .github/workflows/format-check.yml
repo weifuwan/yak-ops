@@ -44,4 +44,4 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Check CDC formatting
-        run: bash mvnw -B -ntp -pl '!yak-ops-ui' com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+        run: bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check

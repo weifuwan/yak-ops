@@ -20,6 +20,9 @@ bash mvnw -B -ntp -pl :yak-ops-scheduler validate
 # Use JDK 11 for the unmodified upstream Lombok/compiler combination
 bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests -Dspotless.skip=true package
 
+# Check CDC formatting without scanning upstream Scheduler code
+bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+
 # Build CDC CLI without tests
 bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
 
