@@ -104,6 +104,14 @@
         <dependency>
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
+            <!-- The legacy StAX 1.0 API shadows the JDK XML streaming API and
+                 breaks Jackson XML during embedded Standalone startup. -->
+            <exclusions>
+                <exclusion>
+                    <groupId>stax</groupId>
+                    <artifactId>stax-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
