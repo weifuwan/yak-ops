@@ -27,11 +27,6 @@ limitations under the License.
 
     <artifactId>yak-ops-cdc-flink1-compat</artifactId>
 
-    <properties>
-        <flink.version>${flink.1.x.version}</flink.version>
-        <shaded.guava.version>${flink.1.x.shaded.guava.version}</shaded.guava.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.flink</groupId>
