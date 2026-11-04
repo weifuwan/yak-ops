@@ -30,7 +30,8 @@ public interface JdbcRowData extends Serializable {
 
     RowKind getRowKind();
 
-    byte[] getRows();
+    /** Values in schema column order, converted to JDBC-compatible Java types. */
+    Object[] getRows();
 
     boolean hasPrimaryKey();
 }
