@@ -48,18 +48,19 @@ public class DefaultJdbcRowConverter implements JdbcRowConverter {
         final List<DataType> statementTypes = new ArrayList<>(statementColumns.size());
         int[] indexes = new int[statementColumns.size()];
         for (int i = 0; i < statementColumns.size(); i++) {
-            indexes[i] = rowColumns.indexOf(statementColumns.get(i));
+            String columnName = statementColumns.get(i);
+            indexes[i] = rowColumns.indexOf(columnName);
             checkArgument(
                     indexes[i] >= 0, "Missing JDBC column %s in row schema", statementColumns.get(i));
             if (tableSchema != null) {
                 Column column =
                         tableSchema
-                                .getColumn(statementColumns.get(i))
+                                .getColumn(columnName)
                                 .orElseThrow(
                                         () ->
                                                 new IllegalArgumentException(
                                                         "Missing JDBC type for column "
-                                                                + statementColumns.get(i)));
+                                                                + columnName));
                 statementTypes.add(column.getType());
             }
         }
