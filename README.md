@@ -20,7 +20,11 @@ Java 21 and the checked-in Maven wrapper are used for the existing Yak Ops react
 
 ```sh
 # Inspect newly imported Scheduler Maven reactor
-bash mvnw -B -ntp -pl :yak-ops-scheduler validate\n\n# With JDK 11: full Scheduler source compile and standalone H2 startup\n# bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile\n# bash scripts/run-scheduler-standalone.sh
+bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+
+# With JDK 11: full Scheduler source compile and standalone H2 startup
+# bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile
+# bash scripts/run-scheduler-standalone.sh
 
 # Build CDC CLI and runtime dependencies without tests
 bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
