@@ -72,8 +72,18 @@ public class JdbcOutputFormatBuilder {
                         connectionProvider,
                         executionOptions,
                         () -> createStatementExecutor(tableId, schema));
-        format.open(outputSerializer);
-        return format;
+        try {
+            format.open(outputSerializer);
+            return format;
+        } catch (IOException | RuntimeException failure) {
+            // Flink JDBC may have established a connection before preparing statements failed.
+            try {
+                format.close();
+            } catch (Exception closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
+        }
     }
 
     private JdbcBatchStatementExecutor<JdbcRowData> createStatementExecutor(
