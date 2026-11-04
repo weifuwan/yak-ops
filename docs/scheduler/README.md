@@ -12,7 +12,7 @@ The historical import manifest retains paths from the former `yak-ops-scheduler/
 - Imported Maven coordinates: `io.yak.ops:yak-ops-*:1.4.0` (upstream POM uses `3.4.4-SNAPSHOT`).
 - The Scheduler modules now live directly at the repository root (22 top-level modules and 82 Maven POMs at migration time).
 - The upstream Maven baseline uses Spring Boot 2.x and an older Java toolchain. Use **JDK 11** for the imported Scheduler build/runtime checks while the upstream Lombok baseline is retained. Do not automatically align its dependencies with the root Yak Ops/CDC build.
-- Core Java packages remain under `org.apache.dolphinscheduler` for upstream comparison.
+- Imported Java package names have been changed from `org.apache.dolphinscheduler` to `io.yak.ops`; the upstream execution model, license headers, and historical provenance remain preserved.
 
 `MIGRATION_MANIFEST.json` is the **historical import inventory**, with upstream file checksums and exclusions; it is not a live inventory of subsequent cleanup changes. `UPSTREAM.md` and `UPSTREAM_ROOT_POM.xml` retain the source provenance. Keep Apache `LICENSE`, `NOTICE`, file headers, and applicable third-party license files.
 
