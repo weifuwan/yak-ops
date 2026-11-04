@@ -159,7 +159,8 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         return outputFormat;
     }
 
-    private JdbcStatementBuilder<JdbcRowData> getStatementBuilder(
+    // Pure statement binding, shared by upsert and primary-key delete paths.
+    static JdbcStatementBuilder<JdbcRowData> getStatementBuilder(
             List<String> statementColumns, List<String> rowColumns) {
         int[] indexes = new int[statementColumns.size()];
         for (int i = 0; i < statementColumns.size(); i++) {
@@ -222,7 +223,7 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         return new BatchedStatementExecutor(upsertExecutor, deleteExecutor, keyExtractor);
     }
 
-    private Function<JdbcRowData, JdbcRowData> createRowKeyExtractor(
+    static Function<JdbcRowData, JdbcRowData> createRowKeyExtractor(
             TableId tableId, Schema schema) {
 
         List<String> primaryKeys = schema.primaryKeys();
