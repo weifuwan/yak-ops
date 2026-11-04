@@ -20,7 +20,9 @@ package org.apache.flink.cdc.connectors.jdbc.mysql.catalog;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.DataTypes;
+import org.apache.flink.cdc.common.types.DecimalType;
 import org.apache.flink.cdc.connectors.jdbc.catalog.AbstractJdbcCatalog;
+import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalogException;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
@@ -86,9 +88,29 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
                 return unsigned ? DataTypes.DECIMAL(20, 0) : DataTypes.BIGINT();
             case Types.DECIMAL:
             case Types.NUMERIC:
-                int decimalPrecision = Math.max(1, Math.min(precision, 38));
-                return DataTypes.DECIMAL(
-                        decimalPrecision, Math.max(0, Math.min(scale, decimalPrecision)));
+                if (precision < DecimalType.MIN_PRECISION
+                        || precision > DecimalType.MAX_PRECISION) {
+                    throw new JdbcCatalogException(
+                            String.format(
+                                    "MySQL DECIMAL(%d,%d) cannot be represented without loss by "
+                                            + "Flink CDC DECIMAL: supported precision is %d to %d. "
+                                            + "Refusing to truncate the JDBC column precision.",
+                                    precision,
+                                    scale,
+                                    DecimalType.MIN_PRECISION,
+                                    DecimalType.MAX_PRECISION));
+                }
+                if (scale < DecimalType.MIN_SCALE || scale > precision) {
+                    throw new JdbcCatalogException(
+                            String.format(
+                                    "Invalid MySQL DECIMAL(%d,%d) metadata: scale must be "
+                                            + "between %d and precision %d.",
+                                    precision,
+                                    scale,
+                                    DecimalType.MIN_SCALE,
+                                    precision));
+                }
+                return DataTypes.DECIMAL(precision, scale);
             case Types.FLOAT:
             case Types.REAL:
                 return DataTypes.FLOAT();
