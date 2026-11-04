@@ -120,12 +120,24 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
                     }
                     hasColumns = true;
                     String name = columns.getString("COLUMN_NAME");
-                    DataType dataType =
-                            fromJdbcColumn(
-                                    columns.getInt("DATA_TYPE"),
-                                    columns.getString("TYPE_NAME"),
-                                    columns.getInt("COLUMN_SIZE"),
-                                    columns.getInt("DECIMAL_DIGITS"));
+                    DataType dataType;
+                    try {
+                        dataType =
+                                fromJdbcColumn(
+                                        columns.getInt("DATA_TYPE"),
+                                        columns.getString("TYPE_NAME"),
+                                        columns.getInt("COLUMN_SIZE"),
+                                        columns.getInt("DECIMAL_DIGITS"));
+                    } catch (RuntimeException exception) {
+                        throw new JdbcCatalogException(
+                                "Failed to map JDBC column "
+                                        + tableId
+                                        + "."
+                                        + name
+                                        + ": "
+                                        + exception.getMessage(),
+                                exception);
+                    }
                     if (columns.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls) {
                         dataType = dataType.notNull();
                     }
