@@ -91,11 +91,11 @@ public class JdbcOutputFormatBuilder {
         JdbcBatchStatementExecutor<JdbcRowData> upserts =
                 JdbcBatchStatementExecutor.simple(
                         dialect.getUpsertStatement(tableId, schema),
-                        converter.createStatementBuilder(columns, columns));
+                        converter.createStatementBuilder(schema, columns, columns));
         JdbcBatchStatementExecutor<JdbcRowData> deletes =
                 JdbcBatchStatementExecutor.simple(
                         dialect.getDeleteStatement(tableId, schema),
-                        converter.createStatementBuilder(deleteColumns, deleteRowColumns));
+                        converter.createStatementBuilder(schema, deleteColumns, deleteRowColumns));
         return new BatchedStatementExecutor(
                 upserts, deletes, createRowKeyExtractor(tableId, schema));
     }
