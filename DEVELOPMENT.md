@@ -38,7 +38,7 @@ Use JDK 11 for Scheduler compilation while its upstream Lombok baseline is retai
 
 ## Scheduler Stage 6 acceptance (JDK 11)
 
-The following commands were exercised in GitHub Actions; `mvn test` was not run across all 99 modules.
+The Maven compile and test commands below were exercised in GitHub Actions. The local launcher follows the equivalent successfully verified Standalone build/resource/startup steps, but the helper script itself was not separately executed. `mvn test` was not run across all 99 modules.
 
 ```sh
 # Compile all selected Scheduler modules, skipping test source compilation
