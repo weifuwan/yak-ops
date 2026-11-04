@@ -117,6 +117,7 @@ CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-o
 - Native Scheduler Maven validation, dependency resolution, compilation and Standalone runtime acceptance are separate milestones.
 - Optional YARN, Spark, Hadoop, Hive, Kubernetes and original DolphinScheduler UI features are not declared operational.
 - The Yak Ops UI and CDC modules are not yet wired to the imported Scheduler API and Task Engine.
-- Use GitHub Actions Code Format for the original UI/CDC code and Scheduler Build for imported Maven verification.
+- GitHub Actions has only two workflows: **Code Format** (UI and CDC formatting) and **Backend Tests** (selected Scheduler common/SPI JUnit tests on JDK 11). CDC test suites, Windows/full reactor compilation, Scheduler integration/Standalone smoke and migration jobs are manual-only. Do not restore stage-specific workflows.
+- The automatic backend test command is `bash mvnw -B -ntp -pl :yak-ops-common,:yak-ops-spi -am -Dtest=DAGTest,WorkflowExecutionStatusTest,MaskUtilsTest,PluginParamsTransferTest,PrioritySPIFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test` (JDK 11). The CI also requires nonempty Surefire XML reports in both selected modules.
 
 The original DolphinScheduler root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the one-time importer is blocked when the historical manifest exists.

@@ -24,11 +24,19 @@ The root pom.xml is the unified Scheduler-derived parent. CDC keeps Java 17 and 
 
 - Java 21 and checked-in Maven wrapper for Yak Ops; Scheduler source upstream targets Java 8/Spring Boot 2.x and needs separate verification.
 - Scheduler JDK 11 status: full 99-module compile, targeted Master + EventBus tests, H2-backed Workflow integration and Standalone health smoke passed in CI. Java 21 compatibility and all-plugin coverage remain unverified.
-- Scheduler startup (JDK 11): bash scripts/run-scheduler-standalone.sh\n- Scheduler model: bash mvnw -B -ntp -pl :yak-ops validate
+- Scheduler startup (JDK 11): bash scripts/run-scheduler-standalone.sh
+- Scheduler model: bash mvnw -B -ntp -pl :yak-ops validate
 - Scheduler smoke (JDK 11 to avoid upstream Lombok / JDK 21 incompatibility): bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests package
 - CDC formatting: bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 - CDC build: bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
 - UI checks: cd yak-ops-ui && npm ci && npm run format:check && npm run typecheck && npm run build
 - Record exact commands and results; tests not run must not be reported as successful.
+
+## CI policy
+
+- Maintain exactly two long-lived GitHub Actions workflows: `.github/workflows/format-check.yml` and `.github/workflows/backend-tests.yml`. Do not add a new workflow, check gate, or automated migration without explicit approval.
+- Automatic CI checks UI and CDC Java formatting, plus a bounded set of real Scheduler unit tests using JDK 11. Backend test reports must prove that tests executed.
+- CDC unit/integration tests, frontend unit/E2E tests, complete Scheduler/CDC compilation, Windows builds, database integration, Standalone smoke tests, dependency audits and source-import jobs are manual-only. Run the relevant local commands when needed; do not leave one-off workflows in the repository.
+- Keep Scheduler's JDK 11 verification separate from CDC's toolchain and dependency baseline. A successful scoped CI run does not certify a full reactor or integration test.
 
 Never log credentials or sensitive CDC row payloads. Read current code, callers and dependencies before modifying them. Keep changes minimal, reviewable and upstream-comparable.
