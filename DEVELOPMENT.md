@@ -61,7 +61,10 @@ bash mvnw -B -ntp -pl :yak-ops validate
 # Use JDK 11 for the unmodified upstream Lombok/compiler combination
 bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests -Dspotless.skip=true package
 
-# Check CDC formatting without scanning upstream Scheduler code
+# Auto-fix CDC formatting without scanning upstream Scheduler code
+bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+
+# Verify CDC formatting locally
 bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 
 # Build CDC CLI without tests
@@ -70,6 +73,7 @@ bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
 # Run UI formatting/type/build checks
 cd yak-ops-ui
 npm ci
+npm run format
 npm run format:check
 npm run typecheck
 npm run build
@@ -117,7 +121,7 @@ CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-o
 - Native Scheduler Maven validation, dependency resolution, compilation and Standalone runtime acceptance are separate milestones.
 - Optional YARN, Spark, Hadoop, Hive, Kubernetes and original DolphinScheduler UI features are not declared operational.
 - The Yak Ops UI and CDC modules are not yet wired to the imported Scheduler API and Task Engine.
-- GitHub Actions has only two workflows: **Code Format** (UI and CDC formatting) and **Backend Tests** (selected Scheduler common/SPI JUnit tests on JDK 11). CDC test suites, Windows/full reactor compilation, Scheduler integration/Standalone smoke and migration jobs are manual-only. Do not restore stage-specific workflows.
+- GitHub Actions has one workflow: **Backend Tests** (selected Scheduler common/SPI JUnit tests on JDK 11). UI, CDC and Scheduler formatting is handled locally with Oxfmt/Spotless and is not a CI gate. CDC test suites, frontend checks, Windows/full reactor compilation, Scheduler integration/Standalone smoke and migration jobs are manual-only. Do not restore formatting or stage-specific workflows.
 - The automatic backend test command is `bash mvnw -B -ntp -pl :yak-ops-common,:yak-ops-spi -am -Dtest=DAGTest,WorkflowExecutionStatusTest,MaskUtilsTest,PluginParamsTransferTest,PrioritySPIFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test` (JDK 11). The CI also requires nonempty Surefire XML reports in both selected modules.
 
 The original DolphinScheduler root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the one-time importer is blocked when the historical manifest exists.
