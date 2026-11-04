@@ -34,12 +34,6 @@
         <module>yak-ops-alert-script</module>
         <module>yak-ops-alert-http</module>
         <module>yak-ops-alert-feishu</module>
-        <module>yak-ops-alert-slack</module>
-        <module>yak-ops-alert-pagerduty</module>
-        <module>yak-ops-alert-webexteams</module>
-        <module>yak-ops-alert-telegram</module>
-        <module>yak-ops-alert-aliyunVoice</module>
-        <module>yak-ops-alert-prometheus</module>
     </modules>
 
 </project>

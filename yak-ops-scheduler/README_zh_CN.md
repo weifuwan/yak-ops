@@ -8,7 +8,7 @@
 
 - 上游基线：[apache/dolphinscheduler 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050)，分支 `3.4.3-release`。
 - 迁移后 Maven 坐标：`io.yak.ops:yak-ops-*:1.4.0`；上游 POM 版本为 `3.4.4-SNAPSHOT`。
-- 当前包含 22 个顶层模块、99 个 Maven POM。
+- 当前包含 22 个顶层模块；第四阶段插件收敛后剩余 82 个 Maven POM。
 - 原生依赖基线为 Spring Boot 2.x 及较早的 Java 工具链。暂时使用 **JDK 11** 编译和验证 Scheduler，避免将其依赖直接合并到根项目或 CDC 的版本体系。
 - Java 包名暂保留 `org.apache.dolphinscheduler`，便于与上游源码对照。
 
@@ -33,7 +33,7 @@ Standalone 是开发和冒烟验证入口，不等于已经完成 Yak Ops 生产
 
 ## 当前验证与集成状态
 
-已有 JDK 11 CI 记录显示：所选的 99 个 Maven 模块完成编译，部分 Master/EventBus 测试、H2 Workflow 集成测试通过，Standalone 能启动且健康检查覆盖 API、Master、Worker、Alert 和 DB。
+原先的 99 个 Maven 模块已有 JDK 11 编译通过记录；第四阶段后应重新验证剩余的 82 个模块，部分 Master/EventBus 测试、H2 Workflow 集成测试通过，Standalone 能启动且健康检查覆盖 API、Master、Worker、Alert 和 DB。
 
 **这些记录不代表所有插件、JDK 21 兼容性或 Yak Ops UI/CDC 集成已经验证通过。** 上游的独立 UI、distribution 和部分大数据插件并未迁移；公共 API 内仍可能存在 K8s、YARN、Hadoop 残留代码。
 
@@ -63,3 +63,13 @@ Standalone 成功启动后，健康检查地址：
 ## 维护原则
 
 第一阶段只删除过期文档和旧插件清单，不改动 Java 源码、测试、POM 和运行资源。删除的模块级 `CLAUDE.md` 中有价值的共性说明已集中到 `DEVELOPMENT.md`。保留历史迁移清单作为溯源基线，不把它误当作当前目录快照。
+
+## 第四阶段：插件收敛范围
+
+保留全部任务插件，以及数据源、存储、告警的 API / SPI。第四阶段删除以下可选插件实现：
+
+- **数据源**：Redshift、Snowflake、Azure SQL、SAP HANA、Vertica、DolphinDB、Databend。保留 MySQL、PostgreSQL、Oracle、SQL Server、ClickHouse、DB2、OceanBase、达梦、StarRocks、Doris 和 SSH。
+- **存储**：GCS、Azure Blob（ABS）、华为 OBS、腾讯 COS。保留 S3、阿里 OSS 及其远程任务日志功能。
+- **告警**：PagerDuty、Slack、Webex Teams、Telegram、阿里云语音、Prometheus。保留邮件、HTTP、脚本、钉钉、飞书和微信。
+
+为兼容历史数据库数据，保留原有数据源类型枚举和数据库升级 SQL；但是被删除的插件实现已不可加载。Quartz、Task Executor 和 Standalone 的执行模型保持不变。

@@ -42,26 +42,6 @@
             <artifactId>yak-ops-storage-oss</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-storage-gcs</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-storage-abs</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-storage-obs</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-storage-cos</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
 </project>

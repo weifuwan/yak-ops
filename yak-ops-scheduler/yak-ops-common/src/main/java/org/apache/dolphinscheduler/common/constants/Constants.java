@@ -355,31 +355,6 @@ public final class Constants {
 
     public static final String REMOTE_LOGGING_OSS_ENDPOINT = "remote.logging.oss.endpoint";
 
-    /**
-     * remote logging for GCS
-     */
-    public static final String REMOTE_LOGGING_GCS_CREDENTIAL = "remote.logging.google.cloud.storage.credential";
-
-    public static final String REMOTE_LOGGING_GCS_BUCKET_NAME = "remote.logging.google.cloud.storage.bucket.name";
-
-    /**
-     * remote logging for ABS
-     */
-    public static final String REMOTE_LOGGING_ABS_ACCOUNT_NAME = "remote.logging.abs.account.name";
-    public static final String REMOTE_LOGGING_ABS_ACCOUNT_KEY = "remote.logging.abs.account.key";
-    public static final String REMOTE_LOGGING_ABS_CONTAINER_NAME = "remote.logging.abs.container.name";
-
-    /**
-     * remote logging for COS
-     */
-    public static final String REMOTE_LOGGING_COS_ACCESS_KEY_ID = "remote.logging.cos.access.key.id";
-
-    public static final String REMOTE_LOGGING_COS_ACCESS_KEY_SECRET = "remote.logging.cos.access.key.secret";
-
-    public static final String REMOTE_LOGGING_COS_BUCKET_NAME = "remote.logging.cos.bucket.name";
-
-    public static final String REMOTE_LOGGING_COS_REGION = "remote.logging.cos.region";
-
     public static final String DATABASES_QUERY = "show databases";
     public static final String DATABASES_QUERY_PG = "SELECT datname FROM pg_database";
 

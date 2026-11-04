@@ -31,10 +31,6 @@
         <module>yak-ops-storage-all</module>
         <module>yak-ops-storage-s3</module>
         <module>yak-ops-storage-oss</module>
-        <module>yak-ops-storage-gcs</module>
-        <module>yak-ops-storage-abs</module>
-        <module>yak-ops-storage-obs</module>
-        <module>yak-ops-storage-cos</module>
     </modules>
 
     <dependencyManagement>

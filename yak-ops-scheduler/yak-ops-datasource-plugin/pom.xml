@@ -36,17 +36,10 @@
         <module>yak-ops-datasource-postgresql</module>
         <module>yak-ops-datasource-api</module>
         <module>yak-ops-datasource-all</module>
-        <module>yak-ops-datasource-redshift</module>
         <module>yak-ops-datasource-starrocks</module>
-        <module>yak-ops-datasource-azure-sql</module>
         <module>yak-ops-datasource-dameng</module>
         <module>yak-ops-datasource-ssh</module>
-        <module>yak-ops-datasource-databend</module>
-        <module>yak-ops-datasource-snowflake</module>
-        <module>yak-ops-datasource-vertica</module>
         <module>yak-ops-datasource-doris</module>
-        <module>yak-ops-datasource-hana</module>
-        <module>yak-ops-datasource-dolphindb</module>
     </modules>
 
     <dependencyManagement>

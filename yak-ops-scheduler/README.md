@@ -8,7 +8,7 @@ Yak Ops Scheduler is a **source-based import of Apache DolphinScheduler 3.4.3-re
 
 - Upstream: [apache/dolphinscheduler commit 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050) on `3.4.3-release`.
 - Imported Maven coordinates: `io.yak.ops:yak-ops-*:1.4.0` (upstream POM uses `3.4.4-SNAPSHOT`).
-- This subtree has 22 top-level modules and 99 Maven POMs.
+- This subtree has 22 top-level modules and 82 Maven POMs after the optional-plugin cleanup.
 - The upstream Maven baseline uses Spring Boot 2.x and an older Java toolchain. Use **JDK 11** for the imported Scheduler build/runtime checks while the upstream Lombok baseline is retained. Do not automatically align its dependencies with the root Yak Ops/CDC build.
 - Core Java packages remain under `org.apache.dolphinscheduler` for upstream comparison.
 
@@ -33,7 +33,7 @@ The imported Standalone mode is a development/smoke-test entry point with H2; it
 
 ## Current integration status
 
-Earlier CI checks on JDK 11 compiled the selected 99-module reactor, exercised selected Master/EventBus tests and an H2-backed workflow, and started Standalone with a healthy API/Master/Worker/Alert/DB response. **These checks do not establish that all plugins work, Java 21 is compatible, or Yak Ops UI/CDC is integrated.**
+Earlier JDK 11 CI checks compiled the original 99-module reactor; validate the current 82-module reactor after optional-plugin cleanup, exercised selected Master/EventBus tests and an H2-backed workflow, and started Standalone with a healthy API/Master/Worker/Alert/DB response. **These checks do not establish that all plugins work, Java 21 is compatible, or Yak Ops UI/CDC is integrated.**
 
 The separate DolphinScheduler UI, distribution, and several optional big-data task/data-source plugins were not imported. Some residual Kubernetes/YARN/Hadoop code may still exist in common APIs; do not infer that their integrations are supported.
 
@@ -62,3 +62,13 @@ See [DEVELOPMENT.md](../DEVELOPMENT.md) for the verified test commands, module r
 ## Maintenance notes
 
 The imported Java/test/resource trees are intentionally left untouched by the first-stage documentation cleanup. The obsolete upstream distribution plugin inventory (`config/plugins_config`) and module-level `CLAUDE.md` files were removed; maintain shared architecture notes in `DEVELOPMENT.md`. Keep the migration manifest for historical comparison, not as a current-file-existence assertion.
+
+## Stage 4 plugin scope
+
+The Maven reactor retains all task plugins and the SPI/APIs for datasource, storage and alerts. Optional plugin implementations removed in Stage 4:
+
+- **Datasources:** Redshift, Snowflake, Azure SQL, SAP HANA, Vertica, DolphinDB, and Databend. Retained: MySQL, PostgreSQL, Oracle, SQL Server, ClickHouse, DB2, OceanBase, Dameng, StarRocks, Doris, and SSH.
+- **Storage:** GCS, Azure Blob (ABS), Huawei OBS, Tencent COS. Retained: S3 and Alibaba OSS, including their remote task-log handlers.
+- **Alerts:** PagerDuty, Slack, Webex Teams, Telegram, Aliyun Voice, and Prometheus. Retained: email, HTTP, script, DingTalk, Feishu, and WeChat.
+
+Existing database enum values and historical SQL migrations remain for compatibility, but removing a plugin means that backend can no longer load that implementation. Quartz, the task executor and Standalone still use their original integration model.

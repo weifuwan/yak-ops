@@ -16,36 +16,6 @@
 #
 
 resource:
-  # Tencent Cloud Storage (COS) setup, required if you set resource.storage.type=COS
-  tencent:
-    cloud:
-      access:
-        key:
-          id: <your-access-key-id>
-          secret: <your-access-key-secret>
-      cos:
-        # predefined region code: https://cloud.tencent.com/document/product/436/6224
-        region: ap-nanjing
-        bucket:
-          name: dolphinscheduler
-
-  # Microsoft Azure Storage (ABS) setup, required if you set resource.storage.type=ABS
-  azure:
-    client:
-      id: minioadmin
-      secret: minioadmin
-    subId: minioadmin
-    tenant:
-      id:  minioadmin
-    blob:
-      storage:
-        connection:
-          string: <your-connection-string>
-        account:
-          name: <your-account-name>
-        container:
-          name: <your-container>
-
   # Alibaba Cloud Storage (OSS) setup, required if you set resource.storage.type=OSS
   alibaba:
     cloud:
@@ -58,23 +28,3 @@ resource:
         bucket:
           name: dolphinscheduler
         endpoint: https://oss-cn-hangzhou.aliyuncs.com
-
-  # Google Cloud Storage (GCS) setup, required if you set resource.storage.type=GCS
-  google:
-    cloud:
-      storage:
-        credential: /path/to/credential
-        bucket:
-          name: <your-bucket>
-
-  # Huawei Cloud Storage (OBS), required if you set resource.storage.type=OBS
-  huawei:
-    cloud:
-      access:
-        key:
-          id: <your-access-key-id>
-          secret: <your-access-key-secret>
-      obs:
-        bucket:
-          name: dolphinscheduler
-        endpoint: obs.cn-southwest-2.huaweicloud.com

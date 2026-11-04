@@ -6,7 +6,7 @@
 - yak-ops-cdc: standalone Flink CDC pipeline implementation
 - yak-ops-scheduler: Apache DolphinScheduler 3.4.3-release source migration at commit 26228f9c5bff24b3ded7095484caf7a5ecffa050
 
-This is an upstream-preserving source migration with scoped CI acceptance: all 99 Maven reactor modules compile on JDK 11, one H2-backed Workflow integration test and selected Master/EventBus tests pass, and Standalone's H2 health endpoint reports UP for API, Master, Worker, Alert and database. This does not certify all plugins, Java 21 compatibility or CDC integration. Java source, resource and test files in the selected modules are preserved as upstream. Only Maven module coordinates, module inclusion and dependencies on excluded optional plugin modules have been adapted. Consult yak-ops-scheduler/MIGRATION_MANIFEST.json before changing or deleting migrated code.
+The initial 99-module Scheduler import passed scoped JDK 11 CI (full compilation, a selected H2 Workflow integration test, and Master/EventBus tests); Standalone's H2 health endpoint also reported UP for API, Master, Worker, Alert and DB. Subsequent cleanup explicitly removed stale launchers, Kubernetes/YARN code and optional plugins. The current Stage 4 reactor contains 82 Maven POMs. Re-run current CI to establish its status; those historical checks do not certify every plugin, Java 21, or Yak Ops UI/CDC integration. The migration manifest is a provenance snapshot, not a list of files currently present.
 
 ## Scheduler architecture notes (consolidated)
 
@@ -39,6 +39,14 @@ These notes describe the imported architecture, **not** a completed Yak Ops UI/C
 - Preserved workflow, Master, Worker, Quartz, standalone startup, data source Kerberos support, and historical SQL upgrades (including old namespace tables for compatibility).
 - Legacy `Queue` CRUD and `YARN_QUEUE` audit labels remain because user/tenant queue metadata and their APIs are still coupled to these models. They do not provide a YARN application client.
 - The original import manifest is historical provenance; removed files will still appear in its original source list. Revalidate compilation and selected workflow tests after this change.
+
+## Scheduler stage 4: optional-plugin cleanup
+
+- Removed 17 standalone plugin implementation modules: 7 niche/cloud datasource connectors (Redshift, Snowflake, Azure SQL, SAP HANA, Vertica, DolphinDB, Databend), 4 object storage backends (GCS, ABS, OBS, COS), and 6 alert channels (PagerDuty, Slack, Webex Teams, Telegram, Aliyun Voice, Prometheus).
+- Updated the three plugin Maven module parents and their `*-all` aggregators, removed unused cloud SDK dependencies from `yak-ops-common`, and pruned the related BOM coordinates and version properties. Azure Identity and Azure Resource Manager remain because the independent Cloud API still uses them; LZ4 remains because ClickHouse uses it.
+- Removed GCS/ABS/COS task-log handlers and obsolete remote-log/resource-center sample configurations. S3 and OSS remote log handling stays available.
+- Preserved every task plugin, core Master/Worker/Quartz/Standalone services, the datasource/storage/alert SPI APIs, persistence enums, and historical SQL migrations. Persisted identifiers for an uninstalled plugin remain recognizable but that implementation is no longer loadable without adding the module back.
+- The Stage 4 Maven reactor should have 82 POMs instead of the original 99. Use the full Scheduler JDK 11 compile CI and smoke tests to validate the new classpath and service-loader behavior.
 
 ## Build commands
 

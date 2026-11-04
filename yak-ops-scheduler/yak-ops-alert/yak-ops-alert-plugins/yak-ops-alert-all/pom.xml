@@ -28,11 +28,6 @@
     <dependencies>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-alert-prometheus</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-alert-dingtalk</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -53,37 +48,12 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-alert-pagerduty</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-alert-script</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-alert-slack</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-alert-telegram</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-alert-webexteams</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-alert-wechat</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-alert-aliyunVoice</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

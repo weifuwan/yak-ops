@@ -33,11 +33,6 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-databend</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-datasource-db2</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -67,11 +62,6 @@
             <artifactId>yak-ops-datasource-sqlserver</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-redshift</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
         
         
@@ -83,17 +73,7 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-azure-sql</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-datasource-dameng</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-snowflake</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -102,11 +82,6 @@
             <version>${project.version}</version>
         </dependency>
         
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-vertica</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
 
         <dependency>
@@ -116,16 +91,6 @@
         </dependency>
         
         
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-hana</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-datasource-dolphindb</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 </project>
