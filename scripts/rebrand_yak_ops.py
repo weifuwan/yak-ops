@@ -24,6 +24,8 @@ TEXT_EXTS = {
 PROVENANCE = (
     "docs/scheduler/",
     "scripts/migrate_ds343.py",
+    "scripts/rebrand_yak_ops.py",
+    ".github/workflows/rebrand-yak-ops-once.yml",
 )
 UPSTREAM_URL = re.compile(
     r"https?://(?:github\.com/apache/dolphinscheduler|"
