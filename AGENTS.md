@@ -27,15 +27,22 @@ The root pom.xml is the unified Scheduler-derived parent. CDC keeps Java 17 and 
 - Scheduler startup (JDK 11): bash scripts/run-scheduler-standalone.sh
 - Scheduler model: bash mvnw -B -ntp -pl :yak-ops validate
 - Scheduler smoke (JDK 11 to avoid upstream Lombok / JDK 21 incompatibility): bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests package
-- CDC formatting: bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+- CDC formatting check (manual): bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 - CDC build: bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
-- UI checks: cd yak-ops-ui && npm ci && npm run format:check && npm run typecheck && npm run build
+- UI checks (manual): cd yak-ops-ui && npm ci && npm run format:check && npm run typecheck && npm run build
 - Record exact commands and results; tests not run must not be reported as successful.
+
+## Local formatting
+
+- Scheduler Maven modules: `bash mvnw -B -ntp spotless:apply` (verify with `bash mvnw -B -ntp spotless:check`).
+- CDC Java: `bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply` (verify with the corresponding `:check` goal).
+- UI: run `npm run format` in `yak-ops-ui` (verify with `npm run format:check`).
+- Formatting is a local developer responsibility, not a GitHub Actions gate. Apply the formatter before committing relevant changes.
 
 ## CI policy
 
-- Maintain exactly two long-lived GitHub Actions workflows: `.github/workflows/format-check.yml` and `.github/workflows/backend-tests.yml`. Do not add a new workflow, check gate, or automated migration without explicit approval.
-- Automatic CI checks UI and CDC Java formatting, plus a bounded set of real Scheduler unit tests using JDK 11. Backend test reports must prove that tests executed.
+- Maintain exactly one long-lived GitHub Actions workflow: `.github/workflows/backend-tests.yml`. Do not add a new workflow, formatting gate, or automated migration without explicit approval.
+- Automatic CI runs only a bounded set of real Scheduler unit tests using JDK 11. UI, CDC and Scheduler formatting is handled locally, not in CI. Backend test reports must prove that tests executed.
 - CDC unit/integration tests, frontend unit/E2E tests, complete Scheduler/CDC compilation, Windows builds, database integration, Standalone smoke tests, dependency audits and source-import jobs are manual-only. Run the relevant local commands when needed; do not leave one-off workflows in the repository.
 - Keep Scheduler's JDK 11 verification separate from CDC's toolchain and dependency baseline. A successful scoped CI run does not certify a full reactor or integration test.
 
