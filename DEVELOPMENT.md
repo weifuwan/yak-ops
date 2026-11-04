@@ -6,7 +6,7 @@
 - yak-ops-cdc: standalone Flink CDC pipeline implementation
 - yak-ops-scheduler: Apache DolphinScheduler 3.4.3-release source migration at commit 26228f9c5bff24b3ded7095484caf7a5ecffa050
 
-This is a source migration, not a claim that the Scheduler is operational. Java source, resource and test files in the selected modules are preserved as upstream. Only Maven module coordinates, module inclusion and dependencies on excluded optional plugin modules have been adapted. Consult yak-ops-scheduler/MIGRATION_MANIFEST.json before changing or deleting migrated code.
+This is an upstream-preserving source migration with scoped CI acceptance: all 99 Maven reactor modules compile on JDK 11, one H2-backed Workflow integration test and selected Master/EventBus tests pass, and Standalone's H2 health endpoint reports UP for API, Master, Worker, Alert and database. This does not certify all plugins, Java 21 compatibility or CDC integration. Java source, resource and test files in the selected modules are preserved as upstream. Only Maven module coordinates, module inclusion and dependencies on excluded optional plugin modules have been adapted. Consult yak-ops-scheduler/MIGRATION_MANIFEST.json before changing or deleting migrated code.
 
 ## Build commands
 
@@ -35,6 +35,39 @@ npm run build
 ```
 
 Use JDK 11 for Scheduler compilation while its upstream Lombok baseline is retained; JDK 21 currently fails on older Lombok javac internals. DolphinScheduler originally targets Java 8, Maven version 3.4.4-SNAPSHOT and Spring Boot 2.x. The imported module coordinates use 1.4.0 and an independent upstream-based Maven parent. Do not silently align these dependencies with the CDC Java 17/Flink 1.20.3 baseline or the root Spring Boot 3.3.x parent.
+
+## Scheduler Stage 6 acceptance (JDK 11)
+
+The following commands were exercised in GitHub Actions; `mvn test` was not run across all 99 modules.
+
+```sh
+# Compile all selected Scheduler modules, skipping test source compilation
+bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+  -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile
+
+# Selected Master lifecycle / state-machine tests
+bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+  -pl :yak-ops-master -am \
+  -Dtest=TaskRetryLifecycleEventTest,TaskForceSuccessStateActionTest,WorkflowInstanceRepeatTriggerTest \
+  -Dsurefire.failIfNoSpecifiedTests=false \
+  -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+
+# Execute one real H2-backed Workflow with an upstream Fake Task
+bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+  -pl :yak-ops-master -am \
+  -Dtest=WorkflowStartBasicTestCase#testStartWorkflow_with_oneSuccessTask \
+  -Dsurefire.failIfNoSpecifiedTests=false \
+  -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+
+# Build and launch Standalone with original H2 configuration
+bash scripts/run-scheduler-standalone.sh
+```
+
+After Standalone starts, its health endpoint is `http://127.0.0.1:12345/dolphinscheduler/actuator/health`. In CI it reported `UP` with `api`, `master`, `worker`, `alert` and `db` components UP. The helper supplies upstream API YAML and DAO H2 SQL to the Maven runtime classpath, without touching Java source.
+
+The upstream Aliyun OSS dependency indirectly introduces `stax-api:1.0.1`, which shadows JDK XML streaming and breaks Jackson XML. `yak-ops-common/pom.xml` explicitly excludes this old transitive dependency; the OSS SDK itself is retained. The default standalone JAR packaging and distribution are **not** certified by the Maven exec smoke test.
+
+CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-ops/actions/runs/41788436423), [Workflow integration](https://github.com/weifuwan/yak-ops/actions/runs/41786829369), and [Standalone health smoke](https://github.com/weifuwan/yak-ops/actions/runs/41788492871).
 
 ## Migration and testing policy
 

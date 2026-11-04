@@ -12,15 +12,15 @@ The Scheduler source baseline is [apache/dolphinscheduler commit 26228f9c](https
 
 Core Master, Worker, Task Executor, Workflow Engine, DAO, Service, SPI, Registry, Scheduler, EventBus, Extract, Alert, Authentication, API and Standalone source trees have been imported without changing Java packages or source bodies. Tests and resources are retained. The separate DolphinScheduler UI, distribution and optional big-data-specific plugins are not included in the active source tree.
 
-See [the full manifest](yak-ops-scheduler/MIGRATION_MANIFEST.json) for each imported source path, its original SHA-256, and exclusions, and [the migration notes](yak-ops-scheduler/UPSTREAM.md) for provenance. Only Maven metadata was adapted; do not infer successful runtime or end-to-end scheduling from source import.
+See [the full manifest](yak-ops-scheduler/MIGRATION_MANIFEST.json) for each imported source path, its original SHA-256, and exclusions, and [the migration notes](yak-ops-scheduler/UPSTREAM.md) for provenance. Most source files remain upstream-identical; Maven metadata and one legacy StAX dependency exclusion were adapted. Separate CI now verifies all 99 imported Maven modules compile, a basic H2-backed Workflow executes, and Standalone starts with H2 and reports health UP.
 
 ## Local development
 
-Java 21 and the checked-in Maven wrapper are used for the existing Yak Ops reactor. The migrated Scheduler subtree retains the upstream Java 8 / Spring Boot 2.x conventions and requires independent compatibility testing; it is not yet certified to run alongside the CDC runtime.
+Java 21 and the checked-in Maven wrapper are used for the existing Yak Ops reactor. The migrated Scheduler subtree retains the upstream Java 8 / Spring Boot 2.x conventions and has been compiled and started under JDK 11 in CI. It is still not integrated with the separate Flink CDC runtime.
 
 ```sh
 # Inspect newly imported Scheduler Maven reactor
-bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+bash mvnw -B -ntp -pl :yak-ops-scheduler validate\n\n# With JDK 11: full Scheduler source compile and standalone H2 startup\n# bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile\n# bash scripts/run-scheduler-standalone.sh
 
 # Build CDC CLI and runtime dependencies without tests
 bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
