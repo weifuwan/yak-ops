@@ -28,6 +28,13 @@ jobs:
             -pl :yak-ops-bom,:yak-ops-standalone-server -am \
             -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true \
             -Danalyze.skip=true -Dbuild.assembly.skip=true install
+      - name: Assemble standalone classpath resources
+        run: |
+          conf=yak-ops-scheduler/yak-ops-standalone-server/target/classes
+          mkdir -p "$conf/sql"
+          cp yak-ops-scheduler/yak-ops-api/src/main/resources/task-type-config.yaml "$conf/"
+          cp yak-ops-scheduler/yak-ops-api/src/main/resources/dynamic-task-type-config.yaml "$conf/"
+          cp yak-ops-scheduler/yak-ops-dao/src/main/resources/sql/dolphinscheduler_h2.sql "$conf/sql/"
       - name: Run Standalone and probe HTTP health
         shell: bash
         run: |
