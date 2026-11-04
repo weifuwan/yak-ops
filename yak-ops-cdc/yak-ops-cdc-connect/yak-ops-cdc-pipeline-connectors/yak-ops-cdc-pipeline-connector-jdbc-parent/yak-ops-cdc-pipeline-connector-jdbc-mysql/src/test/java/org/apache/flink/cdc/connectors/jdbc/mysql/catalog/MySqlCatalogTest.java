@@ -97,6 +97,35 @@ class MySqlCatalogTest {
     }
 
     @Test
+    void ignoresWildcardMatchesWhenCheckingExactTableName() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.tables.add(Map.of("TABLE_NAME", "ordersXtypeXprobe"));
+        MySqlCatalog catalog = createCatalog(metadata);
+
+        TableId expected = TableId.tableId("yak_e2e_target", "orders_type_probe");
+        // '_' is a single-character wildcard in DatabaseMetaData.getTables().
+        assertFalse(catalog.tableExists(expected));
+        assertTrue(metadata.connectionClosed);
+
+        metadata.tables.add(Map.of("TABLE_NAME", "orders_type_probe"));
+        assertTrue(catalog.tableExists(expected));
+        assertEquals("orders_type_probe", metadata.tableArgs[2]);
+    }
+
+    @Test
+    void ignoresPercentWildcardMatchesWhenCheckingExactTableName() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.tables.add(Map.of("TABLE_NAME", "orders_2026_probe"));
+        MySqlCatalog catalog = createCatalog(metadata);
+
+        TableId requested = TableId.tableId("yak_e2e_target", "orders%probe");
+        assertFalse(catalog.tableExists(requested));
+
+        metadata.tables.add(Map.of("TABLE_NAME", "orders%probe"));
+        assertTrue(catalog.tableExists(requested));
+    }
+
+    @Test
     void missingTargetTableDoesNotSilentlyReturnEmptySchema() {
         FakeMetadata metadata = new FakeMetadata();
         MySqlCatalog catalog = createCatalog(metadata);
