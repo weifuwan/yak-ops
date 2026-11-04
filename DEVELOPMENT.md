@@ -128,7 +128,7 @@ The original YakOps root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml 
 
 ## Database schema baseline
 
-Yak Ops uses the complete YakOps 3.4.3 SQL schema as its first supported database version.
+Yak Ops uses the complete upstream 3.4.3 SQL schema as its first supported database version.
 Historical `sql/upgrade/` migrations and the old 3.0.0 upgrade test fixtures were removed.
 The tools launcher is now `init-schema.sh`: it initializes an empty MySQL/PostgreSQL
 schema or validates an existing 3.4.3 schema without modifying it. Earlier versions,
