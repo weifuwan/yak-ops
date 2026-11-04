@@ -29,7 +29,6 @@ import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.utils.StringUtils;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
-import org.apache.flink.cdc.connectors.jdbc.exception.JdbcSinkDialectException;
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 
 import org.slf4j.Logger;
@@ -73,7 +72,7 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
                                         new String[] {"TABLE"})) {
             return tables.next();
         } catch (SQLException exception) {
-            throw new JdbcSinkDialectException("Failed to inspect JDBC table " + tableId, exception);
+            throw new JdbcCatalogException("Failed to inspect JDBC table " + tableId, exception);
         }
     }
 
@@ -154,7 +153,7 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
             statement.executeUpdate(sql);
             LOG.info("Applied JDBC schema change to table {}. Raw SQL: {}", tableId, sql);
         } catch (SQLException exception) {
-            throw new JdbcSinkDialectException(
+            throw new JdbcCatalogException(
                     "Failed to update JDBC table " + tableId + ". Raw SQL: " + sql, exception);
         }
     }
