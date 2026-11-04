@@ -4,7 +4,7 @@ Upstream: https://github.com/apache/flink-cdc/tree/release-3.7.0
 
 Production source is copied from Apache Flink CDC 3.7.0 and keeps its original Java packages. Maven module names, local dependency coordinates and reactor module lists are adapted for Yak Ops.
 
-Only MySQL CDC connectors and their Debezium/Base dependencies are included. No other database connectors, Flink 2 compatibility, distribution, optional AI model client implementations, Python bindings or E2E harness are copied. The Dummy Model and UDF example modules remain as examples.
+Only MySQL CDC connectors and their Debezium/Base dependencies are included. No other database connectors, Flink 2 compatibility, distribution, optional AI model client implementations, Python bindings or E2E harness are copied. The example-only Dummy Model and UDF modules and the Flink SQL MySQL CDC connector packaging module were removed; the MySQL Pipeline source and JDBC sink remain.
 
 Baseline: Flink 1.20.3, Debezium 1.9.8.Final. Yak Ops application/task integration intentionally deferred.
 

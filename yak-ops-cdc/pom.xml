@@ -40,8 +40,6 @@ limitations under the License.
         <module>yak-ops-cdc-composer</module>
         <module>yak-ops-cdc-connect</module>
         <module>yak-ops-cdc-runtime</module>
-        <module>yak-ops-cdc-pipeline-udf-examples</module>
-        <module>yak-ops-cdc-pipeline-model</module>
     </modules>
 
     <licenses>
@@ -56,7 +54,6 @@ limitations under the License.
 
     <properties>
         <revision>1.4.0</revision>
-        <scala.binary.version>2.12</scala.binary.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- dependencies versions -->
@@ -78,7 +75,6 @@ limitations under the License.
         at the same time minimum 3.1.x Janino version passing Flink tests without WAs is 3.1.10,
         more details are in FLINK-27995 -->
         <janino.version>3.1.10</janino.version>
-        <scala.version>2.12.20</scala.version>
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <iceberg.version>1.10.1</iceberg.version>
