@@ -65,7 +65,7 @@ def strip_asf_header(text: str) -> tuple[str, bool]:
     else:
         return text, False
     header = text[at:end]
-    if re.search(r"(?im)^\\s*(?:\\*|#)?\\s*copyright\\s+(?:\\(?c\\)?\\s*)?\\d{4}", header) or not all(token in header for token in REQUIRED):
+    if any(token in header.lower() for token in ("copyright 20", "copyright 19", "copyright (c)")) or not all(token in header for token in REQUIRED):
         return text, False
     prefix = text[:pos]
     if prefix and not prefix.endswith(("\r", "\n")):
