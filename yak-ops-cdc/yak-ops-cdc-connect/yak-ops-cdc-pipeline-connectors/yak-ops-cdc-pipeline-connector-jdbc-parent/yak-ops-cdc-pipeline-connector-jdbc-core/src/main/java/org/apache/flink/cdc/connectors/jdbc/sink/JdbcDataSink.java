@@ -47,12 +47,18 @@ public class JdbcDataSink implements DataSink, Serializable {
 
     @Override
     public EventSinkProvider getEventSinkProvider() {
-        JdbcConnectionOptions connectionOptions =
+        JdbcConnectionOptions.JdbcConnectionOptionsBuilder connectionBuilder =
                 new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
                         .withUrl(sinkConfig.getConnUrl())
+                        .withDriverName(sinkConfig.getDriverClassName());
+        if (sinkConfig.getJdbcProperties() != null) {
+            sinkConfig.getJdbcProperties().forEach(
+                    (key, value) -> connectionBuilder.withProperty(key.toString(), value.toString()));
+        }
+        JdbcConnectionOptions connectionOptions =
+                connectionBuilder
                         .withUsername(sinkConfig.getUsername())
                         .withPassword(sinkConfig.getPassword())
-                        .withDriverName(sinkConfig.getDriverClassName())
                         .build();
 
         JdbcSink<Event> jdbcSink =
