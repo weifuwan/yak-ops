@@ -48,3 +48,4 @@ jobs:
           bash mvnw -B -ntp -pl :yak-ops-standalone-server -am \
             -Dmaven.test.skip=true -Dspotless.skip=true \
             -Djacoco.skip=true -Danalyze.skip=true compile
+# Re-run after fixing four legacy Tools initialization test calls.
