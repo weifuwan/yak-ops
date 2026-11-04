@@ -42,8 +42,6 @@ public interface IShellInterceptorBuilder<T extends IShellInterceptorBuilder<T, 
 
     T appendCustomEnvScript(String customEnvScript);
 
-    T k8sConfigYaml(String k8sConfigYaml);
-
     T properties(Map<String, String> propertyMap);
 
     T sudoMode(boolean sudoEnable);

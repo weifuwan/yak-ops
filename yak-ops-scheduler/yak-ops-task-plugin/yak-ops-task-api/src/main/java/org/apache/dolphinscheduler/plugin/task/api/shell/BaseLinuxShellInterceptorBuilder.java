@@ -53,7 +53,6 @@ public abstract class BaseLinuxShellInterceptorBuilder<T extends BaseLinuxShellI
         // add custom env
         finalScripts.addAll(customEnvScript());
         // add k8s config
-        finalScripts.addAll(k8sConfig());
         // add shell body
         finalScripts.add(shellBody());
         // create shell file
@@ -85,24 +84,6 @@ public abstract class BaseLinuxShellInterceptorBuilder<T extends BaseLinuxShellI
         return systemEnvs
                 .stream()
                 .map(systemEnv -> "source " + systemEnv).collect(Collectors.toList());
-    }
-
-    private List<String> customEnvScript() {
-        if (CollectionUtils.isEmpty(customEnvScripts)) {
-            return Collections.emptyList();
-        }
-        return customEnvScripts;
-    }
-
-    private List<String> k8sConfig() throws IOException {
-        if (StringUtils.isEmpty(k8sConfigYaml)) {
-            return Collections.emptyList();
-        }
-        Path kubeConfigPath = Paths.get(FileUtils.getKubeConfigPath(shellDirectory));
-        FileUtils.createFileWith755(kubeConfigPath);
-        Files.write(kubeConfigPath, k8sConfigYaml.getBytes(), StandardOpenOption.APPEND);
-        log.info("Created kubernetes configuration file: {}.", kubeConfigPath);
-        return Collections.singletonList("export KUBECONFIG=" + kubeConfigPath);
     }
 
     private String shellBody() {

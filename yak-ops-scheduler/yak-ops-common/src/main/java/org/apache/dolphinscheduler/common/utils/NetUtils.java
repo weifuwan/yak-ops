@@ -88,17 +88,6 @@ public class NetUtils {
      */
     public static String getHost(InetAddress inetAddress) {
         if (inetAddress != null) {
-            if (KubernetesUtils.isKubernetesMode()) {
-                String canonicalHost = inetAddress.getCanonicalHostName();
-                String[] items = canonicalHost.split("\\.");
-                if (items.length == 6 && "svc".equals(items[3])) {
-                    return String.format("%s.%s", items[0], items[1]);
-                }
-                if (inetAddress instanceof Inet6Address) {
-                    return normalizeV6Address((Inet6Address) inetAddress).getHostAddress();
-                }
-                return inetAddress.getHostAddress();
-            }
             if (inetAddress instanceof Inet6Address) {
                 return normalizeV6Address((Inet6Address) inetAddress).getHostAddress();
             }
@@ -117,7 +106,7 @@ public class NetUtils {
             HOST_ADDRESS = getHost(address);
             return HOST_ADDRESS;
         }
-        return KubernetesUtils.isKubernetesMode() ? "localhost" : "127.0.0.1";
+        return "127.0.0.1";
     }
 
     private static InetAddress getLocalAddress() {

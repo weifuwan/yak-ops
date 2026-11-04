@@ -17,7 +17,6 @@
 
 package org.apache.dolphinscheduler.plugin.task.api;
 
-import static org.apache.dolphinscheduler.common.constants.Constants.SLEEP_TIME_MILLIS;
 import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.EXIT_CODE_FAILURE;
 import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.EXIT_CODE_HARD_KILL;
 import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.EXIT_CODE_KILL;
@@ -25,7 +24,6 @@ import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.EXIT_COD
 
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
 import org.apache.dolphinscheduler.common.utils.OSUtils;
-import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
 import org.apache.dolphinscheduler.plugin.task.api.model.TaskResponse;
 import org.apache.dolphinscheduler.plugin.task.api.parser.TaskOutputParameterParser;
 import org.apache.dolphinscheduler.plugin.task.api.shell.IShellInterceptor;
@@ -42,13 +40,11 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
 
 @Slf4j
 public abstract class AbstractCommandExecutor {
@@ -80,10 +76,6 @@ public abstract class AbstractCommandExecutor {
         if (StringUtils.isNotBlank(taskRequest.getEnvironmentConfig())) {
             iShellInterceptorBuilder.appendCustomEnvScript(taskRequest.getEnvironmentConfig());
         }
-        // Set k8s config (This is only work in Linux)
-        if (taskRequest.getK8sTaskExecutionContext() != null) {
-            iShellInterceptorBuilder.k8sConfigYaml(taskRequest.getK8sTaskExecutionContext().getConfigYaml());
-        }
         // Set sudo (This is only work in Linux)
         iShellInterceptorBuilder.sudoMode(OSUtils.isSudoEnable());
         // Set tenant (This is only work in Linux)
@@ -103,8 +95,6 @@ public abstract class AbstractCommandExecutor {
         // parse process output
         final CompletableFuture<Void> collectProcessLogFuture = collectProcessLog(this.process);
 
-        // collect pod log
-        final Optional<CompletableFuture<?>> collectPodLogFuture = collectPodLogIfNeeded();
 
         int processId = getProcessId(this.process);
 
@@ -127,21 +117,13 @@ public abstract class AbstractCommandExecutor {
         // waiting for the run to finish
         boolean status = this.process.waitFor(remainTime, TimeUnit.SECONDS);
 
-        TaskExecutionStatus kubernetesStatus =
-                ProcessUtils.getApplicationStatus(taskRequest.getK8sTaskExecutionContext(), taskRequest.getTaskAppId());
 
         // Wait the task log process finished.
         collectProcessLogFuture.join();
 
-        if (collectPodLogFuture.isPresent()) {
-            // Wait kubernetes pod log collection finished
-            collectPodLogFuture.get().join();
-            // delete pod after successful execution and log collection
-            ProcessUtils.cancelApplication(taskRequest);
-        }
 
         // if SHELL task exit
-        if (status && kubernetesStatus.isSuccess()) {
+        if (status) {
 
             // SHELL task state
             result.setExitStatusCode(this.process.exitValue());
@@ -163,59 +145,6 @@ public abstract class AbstractCommandExecutor {
 
     public Map<String, String> getTaskOutputParams() {
         return taskOutputParams;
-    }
-
-    public void cancelApplication() throws InterruptedException {
-        if (process == null) {
-            return;
-        }
-
-        // Try to kill process tree
-        boolean killed = ProcessUtils.kill(taskRequest);
-        if (killed) {
-            log.info("Process tree for task: {} is killed or already finished, pid: {}",
-                    taskRequest.getTaskAppId(), taskRequest.getProcessId());
-        } else {
-            log.error("Failed to kill process tree for task: {}, pid: {}",
-                    taskRequest.getTaskAppId(), taskRequest.getProcessId());
-        }
-
-        // Try to kill yarn or k8s application
-        ProcessUtils.cancelApplication(taskRequest);
-    }
-
-    private Optional<CompletableFuture<?>> collectPodLogIfNeeded() {
-        if (null == taskRequest.getK8sTaskExecutionContext()) {
-            return Optional.empty();
-        }
-
-        ExecutorService collectPodLogExecutorService = ThreadUtils
-                .newSingleDaemonScheduledExecutorService("CollectPodLogOutput-thread-" + taskRequest.getTaskName());
-
-        final CompletableFuture<Void> collectPodLogFuture = CompletableFuture.runAsync(() -> {
-            // wait for launching (driver) pod
-            ThreadUtils.sleep(SLEEP_TIME_MILLIS * 5L);
-            try (
-                    LogWatch watcher = ProcessUtils.getPodLogWatcher(taskRequest.getK8sTaskExecutionContext(),
-                            taskRequest.getTaskAppId(), "")) {
-                if (watcher == null) {
-                    throw new RuntimeException("The driver pod does not exist.");
-                } else {
-                    String line;
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(watcher.getOutput()))) {
-                        while ((line = reader.readLine()) != null) {
-                            log.info("[K8S-pod-log-{}]: {}", taskRequest.getTaskName(), line);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Collect pod log error", e);
-                throw new RuntimeException(e);
-            }
-        }, collectPodLogExecutorService);
-
-        collectPodLogExecutorService.shutdown();
-        return Optional.of(collectPodLogFuture);
     }
 
     private CompletableFuture<Void> collectProcessLog(Process process) {

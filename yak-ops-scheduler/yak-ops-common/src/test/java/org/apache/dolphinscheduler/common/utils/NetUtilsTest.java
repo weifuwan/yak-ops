@@ -18,7 +18,6 @@
 package org.apache.dolphinscheduler.common.utils;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.net.Inet4Address;
@@ -28,7 +27,6 @@ import java.net.UnknownHostException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 
 public class NetUtilsTest {
 
@@ -41,40 +39,6 @@ public class NetUtilsTest {
                 NetUtils.getAddr("fd15:4ba5:5a2b:1008:71bc:dd01:e661:e831", 1234));
         Assertions.assertEquals("[fd15:4ba5:5a2b:1008:71bc:dd01:e661:e831]:1234",
                 NetUtils.getAddr("[fd15:4ba5:5a2b:1008:71bc:dd01:e661:e831]", 1234));
-    }
-
-    @Test
-    public void testGetHostInKubernetesMode() {
-        try (MockedStatic<KubernetesUtils> mockedKubernetesUtils = mockStatic(KubernetesUtils.class)) {
-            mockedKubernetesUtils.when(() -> KubernetesUtils.isKubernetesMode()).thenReturn(true);
-
-            InetAddress address = mock(InetAddress.class);
-            when(address.getCanonicalHostName())
-                    .thenReturn("dolphinscheduler-worker-0.dolphinscheduler-worker-headless.default.svc.cluster.local");
-            when(address.getHostName()).thenReturn("dolphinscheduler-worker-0");
-            Assertions.assertEquals("dolphinscheduler-worker-0.dolphinscheduler-worker-headless",
-                    NetUtils.getHost(address));
-
-            address = mock(InetAddress.class);
-            when(address.getCanonicalHostName())
-                    .thenReturn("busybox-1.default-subdomain.my-namespace.svc.cluster-domain.example");
-            when(address.getHostName()).thenReturn("busybox-1");
-            Assertions.assertEquals("busybox-1.default-subdomain", NetUtils.getHost(address));
-
-            address = mock(InetAddress.class);
-            when(address.getCanonicalHostName()).thenReturn("dolphinscheduler.cluster-domain.example");
-            when(address.getHostName()).thenReturn("dolphinscheduler");
-            when(address.getHostAddress()).thenReturn("10.0.0.1");
-            Assertions.assertEquals("10.0.0.1", NetUtils.getHost(address));
-
-            // Regression test for Kubernetes Deployment pod: short hostname without svc suffix
-            // should fall back to getHostAddress() to return the IP address
-            address = mock(InetAddress.class);
-            when(address.getCanonicalHostName()).thenReturn("dolphinscheduler-worker-0");
-            when(address.getHostName()).thenReturn("dolphinscheduler-worker-0");
-            when(address.getHostAddress()).thenReturn("10.0.0.2");
-            Assertions.assertEquals("10.0.0.2", NetUtils.getHost(address));
-        }
     }
 
     @Test

@@ -26,7 +26,6 @@ import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
 import org.apache.dolphinscheduler.dao.entity.WorkflowInstance;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
-import org.apache.dolphinscheduler.plugin.task.api.utils.ProcessUtils;
 import org.apache.dolphinscheduler.server.master.config.MasterConfig;
 import org.apache.dolphinscheduler.server.master.engine.WorkflowEventBus;
 import org.apache.dolphinscheduler.server.master.engine.graph.IWorkflowExecutionGraph;
@@ -121,7 +120,6 @@ public class TaskExecution implements ITaskExecution {
             log.info("Failover task success, the task {} has been taken-over from executor", taskInstance.getName());
             return;
         }
-        killApplicationWhenTaskFailoverIfNeeded();
         this.taskInstance = applicationContext.getBean(TaskInstanceFactories.class)
                 .failoverTaskInstanceFactory()
                 .builder()
@@ -141,25 +139,6 @@ public class TaskExecution implements ITaskExecution {
     }
 
     @Override
-    public void initializeTaskExecutionContext() {
-        checkState(isTaskInstanceInitialized(),
-                "The task instance is not initialized, can't initialize TaskExecutionContext.");
-        this.taskExecutionContext = createTaskExecutionContext();
-    }
-
-    private void killApplicationWhenTaskFailoverIfNeeded() {
-        final MasterConfig masterConfig = applicationContext.getBean(MasterConfig.class);
-        if (!masterConfig.isKillApplicationWhenTaskFailover()) {
-            return;
-        }
-
-        try {
-            ProcessUtils.cancelApplication(createTaskExecutionContext());
-        } catch (Exception ex) {
-            log.error("Kill application before failover task: {} failed", taskInstance.getName(), ex);
-        }
-    }
-
     private TaskExecutionContext createTaskExecutionContext() {
         final TaskExecutionContextCreateRequest request = TaskExecutionContextCreateRequest.builder()
                 .workflowExecutionGraph(workflowExecutionGraph)

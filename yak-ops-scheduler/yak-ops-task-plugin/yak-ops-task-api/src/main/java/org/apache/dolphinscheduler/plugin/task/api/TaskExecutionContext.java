@@ -114,8 +114,6 @@ public class TaskExecutionContext implements Serializable {
 
     private SQLTaskExecutionContext sqlTaskExecutionContext;
 
-    private K8sTaskExecutionContext k8sTaskExecutionContext;
-
     private ResourceContext resourceContext;
 
     private List<Property> varPool;

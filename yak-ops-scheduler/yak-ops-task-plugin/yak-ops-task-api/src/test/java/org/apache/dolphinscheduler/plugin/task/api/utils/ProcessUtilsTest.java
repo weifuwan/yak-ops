@@ -104,17 +104,6 @@ public class ProcessUtilsTest {
     }
 
     @Test
-    public void testRemoveK8sClientCache() {
-        Assertions.assertDoesNotThrow(() -> {
-            ProcessUtils.removeK8sClientCache("a");
-        });
-
-        Assertions.assertThrows(Exception.class, () -> {
-            ProcessUtils.removeK8sClientCache(null);
-        });
-    }
-
-    @Test
     void testKillProcessSuccessWithNoAlivePids() {
         // Arrange
         TaskExecutionContext taskRequest = Mockito.mock(TaskExecutionContext.class);

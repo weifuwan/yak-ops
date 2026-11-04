@@ -17,10 +17,7 @@
 
 package org.apache.dolphinscheduler.server.master.runner;
 
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.CLUSTER;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.NAMESPACE_NAME;
 
-import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.dao.entity.DataSource;
 import org.apache.dolphinscheduler.dao.entity.Environment;
 import org.apache.dolphinscheduler.dao.entity.Project;
@@ -30,12 +27,10 @@ import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
 import org.apache.dolphinscheduler.dao.entity.WorkflowInstance;
 import org.apache.dolphinscheduler.dao.repository.IEnvironmentDao;
 import org.apache.dolphinscheduler.dao.utils.EnvironmentUtils;
-import org.apache.dolphinscheduler.plugin.task.api.K8sTaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.TaskPluginManager;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.K8sTaskParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.AbstractResourceParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.DataSourceParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
@@ -99,7 +94,6 @@ public class TaskExecutionContextFactory {
                 .buildResourceParameters(getResourceParameters(taskInstance))
                 // todo: use TaskRuntimeParameters to replace Map<String, Property> in TaskExecutionContext
                 .buildPrepareParams(getPrepareParams(taskInstance, workflowInstance, workflowDefinition, project))
-                .buildK8sTaskRelatedInfo(getK8sTaskExecutionContext(taskInstance))
                 .create();
     }
 
@@ -120,48 +114,6 @@ public class TaskExecutionContextFactory {
             });
         }
         return resourceParameters;
-    }
-
-    private void assembleDataSourceParameters(Map<Integer, AbstractResourceParameters> map) {
-        if (MapUtils.isEmpty(map)) {
-            return;
-        }
-
-        map.forEach((code, parameters) -> {
-            DataSource datasource = processService.findDataSourceById(code);
-            if (Objects.isNull(datasource)) {
-                return;
-            }
-            DataSourceParameters dataSourceParameters = new DataSourceParameters();
-            dataSourceParameters.setType(datasource.getType());
-            dataSourceParameters.setConnectionParams(datasource.getConnectionParams());
-            map.put(code, dataSourceParameters);
-        });
-    }
-
-    private K8sTaskExecutionContext getK8sTaskExecutionContext(final TaskInstance taskInstance) {
-        K8sTaskExecutionContext k8sTaskExecutionContext = null;
-        String namespace = "";
-        switch (taskInstance.getTaskType()) {
-            case "K8S":
-            case "KUBEFLOW":
-                K8sTaskParameters k8sTaskParameters =
-                        JSONUtils.parseObject(taskInstance.getTaskParams(), K8sTaskParameters.class);
-                namespace = k8sTaskParameters.getNamespace();
-                break;
-            default:
-                break;
-        }
-
-        if (StringUtils.isNotEmpty(namespace)) {
-            String clusterName = JSONUtils.toMap(namespace).get(CLUSTER);
-            String configYaml = processService.findConfigYamlByName(clusterName);
-            if (configYaml != null) {
-                k8sTaskExecutionContext =
-                        new K8sTaskExecutionContext(configYaml, JSONUtils.toMap(namespace).get(NAMESPACE_NAME));
-            }
-        }
-        return k8sTaskExecutionContext;
     }
 
     private Map<String, Property> getPrepareParams(final TaskInstance taskInstance,

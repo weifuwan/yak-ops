@@ -24,7 +24,6 @@ import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.entity.WorkflowInstance;
-import org.apache.dolphinscheduler.plugin.task.api.K8sTaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.enums.TaskTimeoutStrategy;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
@@ -109,17 +108,6 @@ public class TaskExecutionContextBuilder {
         return this;
     }
 
-    /**
-     * build k8sTask related info
-     *
-     * @param k8sTaskExecutionContext sqoopTaskExecutionContext
-     * @return TaskExecutionContextBuilder
-     */
-
-    public TaskExecutionContextBuilder buildK8sTaskRelatedInfo(final K8sTaskExecutionContext k8sTaskExecutionContext) {
-        taskExecutionContext.setK8sTaskExecutionContext(k8sTaskExecutionContext);
-        return this;
-    }
 
     /**
      * The runtime params, include local params from task, global params from workflow, startup params from command, varpool params from pre-task, built-in params from system

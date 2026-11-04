@@ -18,38 +18,23 @@
 package org.apache.dolphinscheduler.plugin.task.api.utils;
 
 import static org.apache.dolphinscheduler.common.constants.Constants.SLEEP_TIME_MILLIS;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.APPID_COLLECT;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.COMMA;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.DEFAULT_COLLECT_WAY;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.TASK_TYPE_SET_K8S;
 
 import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
 import org.apache.dolphinscheduler.common.utils.OSUtils;
 import org.apache.dolphinscheduler.common.utils.PropertyUtils;
-import org.apache.dolphinscheduler.plugin.task.api.K8sTaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.TaskConstants;
 import org.apache.dolphinscheduler.plugin.task.api.TaskException;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
-import org.apache.dolphinscheduler.plugin.task.api.am.ApplicationManager;
-import org.apache.dolphinscheduler.plugin.task.api.am.KubernetesApplicationManager;
-import org.apache.dolphinscheduler.plugin.task.api.am.KubernetesApplicationManagerContext;
-import org.apache.dolphinscheduler.plugin.task.api.am.YarnApplicationManagerContext;
-import org.apache.dolphinscheduler.plugin.task.api.enums.ResourceManagerType;
-import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,7 +42,6 @@ import java.util.stream.Collectors;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
 
 @Slf4j
 public final class ProcessUtils {
@@ -68,14 +52,6 @@ public final class ProcessUtils {
 
     private ProcessUtils() {
         throw new IllegalStateException("Utility class");
-    }
-
-    private static final Map<ResourceManagerType, ApplicationManager> applicationManagerMap = new HashMap<>();
-
-    static {
-        ServiceLoader.load(ApplicationManager.class)
-                .forEach(applicationManager -> applicationManagerMap.put(applicationManager.getResourceManagerType(),
-                        applicationManager));
     }
 
     /**
@@ -338,97 +314,5 @@ public final class ProcessUtils {
             }
         }
         return String.join(" ", allPidList).trim();
-    }
-
-    /**
-     * cancel k8s / yarn application
-     *
-     * @param taskExecutionContext
-     * @return
-     */
-    public static void cancelApplication(TaskExecutionContext taskExecutionContext) {
-        try {
-            if (Objects.nonNull(taskExecutionContext.getK8sTaskExecutionContext())) {
-                if (!TASK_TYPE_SET_K8S.contains(taskExecutionContext.getTaskType())) {
-                    // Set empty container name for Spark on K8S task
-                    applicationManagerMap.get(ResourceManagerType.KUBERNETES)
-                            .killApplication(new KubernetesApplicationManagerContext(
-                                    taskExecutionContext.getK8sTaskExecutionContext(),
-                                    taskExecutionContext.getTaskAppId(), ""));
-                }
-            } else {
-                String host = taskExecutionContext.getHost();
-                String executePath = taskExecutionContext.getExecutePath();
-                String tenantCode = taskExecutionContext.getTenantCode();
-                List<String> appIds;
-                if (StringUtils.isNotEmpty(taskExecutionContext.getAppIds())) {
-                    // is failover
-                    appIds = Arrays.asList(taskExecutionContext.getAppIds().split(COMMA));
-                } else {
-                    String logPath = taskExecutionContext.getLogPath();
-                    String appInfoPath = taskExecutionContext.getAppInfoPath();
-                    if (logPath == null || appInfoPath == null || executePath == null || tenantCode == null) {
-                        log.error(
-                                "Kill yarn job error, the input params is illegal, host: {}, logPath: {}, appInfoPath: {}, executePath: {}, tenantCode: {}",
-                                host, logPath, appInfoPath, executePath, tenantCode);
-                        throw new TaskException("Cancel application failed!");
-                    }
-                    log.info("Get appIds from worker {}, taskLogPath: {}", host, logPath);
-                    appIds = LogUtils.getAppIds(logPath, appInfoPath,
-                            PropertyUtils.getString(APPID_COLLECT, DEFAULT_COLLECT_WAY));
-                    taskExecutionContext.setAppIds(String.join(TaskConstants.COMMA, appIds));
-                }
-                if (CollectionUtils.isEmpty(appIds)) {
-                    log.info("The appId is empty");
-                    return;
-                }
-                ApplicationManager applicationManager = applicationManagerMap.get(ResourceManagerType.YARN);
-                applicationManager.killApplication(new YarnApplicationManagerContext(executePath, tenantCode, appIds));
-                log.info("yarn application [{}] is killed or already finished", appIds);
-            }
-        } catch (Exception e) {
-            log.error("Cancel application failed: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * get k8s application status
-     *
-     * @param k8sTaskExecutionContext
-     * @param taskAppId
-     * @return
-     */
-    public static TaskExecutionStatus getApplicationStatus(K8sTaskExecutionContext k8sTaskExecutionContext,
-                                                           String taskAppId) {
-        if (Objects.isNull(k8sTaskExecutionContext)) {
-            return TaskExecutionStatus.SUCCESS;
-        }
-        KubernetesApplicationManager applicationManager =
-                (KubernetesApplicationManager) applicationManagerMap.get(ResourceManagerType.KUBERNETES);
-        return applicationManager
-                .getApplicationStatus(new KubernetesApplicationManagerContext(k8sTaskExecutionContext, taskAppId, ""));
-    }
-
-    /**
-     * get driver pod logs
-     *
-     * @param k8sTaskExecutionContext
-     * @param taskAppId
-     * @return
-     */
-    public static LogWatch getPodLogWatcher(K8sTaskExecutionContext k8sTaskExecutionContext, String taskAppId,
-                                            String containerName) {
-        KubernetesApplicationManager applicationManager =
-                (KubernetesApplicationManager) applicationManagerMap.get(ResourceManagerType.KUBERNETES);
-
-        return applicationManager
-                .getPodLogWatcher(
-                        new KubernetesApplicationManagerContext(k8sTaskExecutionContext, taskAppId, containerName));
-    }
-
-    public static void removeK8sClientCache(String taskAppId) {
-        KubernetesApplicationManager applicationManager =
-                (KubernetesApplicationManager) applicationManagerMap.get(ResourceManagerType.KUBERNETES);
-        applicationManager.removeCache(taskAppId);
     }
 }

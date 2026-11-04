@@ -42,8 +42,6 @@ public abstract class BaseShellInterceptorBuilder<T extends BaseShellInterceptor
 
     protected List<String> customEnvScripts = new ArrayList<>();
 
-    protected String k8sConfigYaml;
-
     protected Map<String, String> propertyMap = new HashMap<>();
 
     protected boolean sudoEnable;
@@ -63,7 +61,6 @@ public abstract class BaseShellInterceptorBuilder<T extends BaseShellInterceptor
         newBuilder.memoryQuota = builder.memoryQuota;
         newBuilder.systemEnvs = builder.systemEnvs;
         newBuilder.customEnvScripts = builder.customEnvScripts;
-        newBuilder.k8sConfigYaml = builder.k8sConfigYaml;
         newBuilder.propertyMap = builder.propertyMap;
         newBuilder.sudoEnable = builder.sudoEnable;
         newBuilder.scripts = builder.scripts;
@@ -109,12 +106,6 @@ public abstract class BaseShellInterceptorBuilder<T extends BaseShellInterceptor
     @Override
     public T appendCustomEnvScript(String customEnvScript) {
         customEnvScripts.add(customEnvScript);
-        return (T) this;
-    }
-
-    @Override
-    public T k8sConfigYaml(String k8sConfigYaml) {
-        this.k8sConfigYaml = k8sConfigYaml;
         return (T) this;
     }
 
