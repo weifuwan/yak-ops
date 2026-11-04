@@ -30,7 +30,7 @@ import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProv
 import org.apache.flink.connector.jdbc.internal.JdbcOutputFormat;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
 import org.apache.flink.connector.jdbc.internal.executor.JdbcBatchStatementExecutor;
-import org.apache.flink.connector.jdbc.sink.writer.JdbcWriterState;
+import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterState;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;

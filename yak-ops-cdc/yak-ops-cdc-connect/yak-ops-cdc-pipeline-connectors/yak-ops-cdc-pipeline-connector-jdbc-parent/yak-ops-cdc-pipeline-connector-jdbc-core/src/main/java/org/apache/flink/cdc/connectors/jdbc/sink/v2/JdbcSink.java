@@ -23,8 +23,8 @@ import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
-import org.apache.flink.connector.jdbc.sink.writer.JdbcWriterState;
-import org.apache.flink.connector.jdbc.sink.writer.JdbcWriterStateSerializer;
+import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterState;
+import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterStateSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import org.slf4j.Logger;
