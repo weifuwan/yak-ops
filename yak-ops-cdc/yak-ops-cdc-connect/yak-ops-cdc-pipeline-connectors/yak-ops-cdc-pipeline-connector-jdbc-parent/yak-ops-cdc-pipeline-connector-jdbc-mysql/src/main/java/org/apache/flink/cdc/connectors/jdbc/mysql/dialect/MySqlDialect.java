@@ -21,6 +21,8 @@ import org.apache.flink.cdc.common.event.AddColumnEvent;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataType;
+import org.apache.flink.cdc.connectors.jdbc.internal.converter.DefaultJdbcRowConverter;
+import org.apache.flink.cdc.connectors.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 
 import java.util.List;
@@ -31,6 +33,11 @@ public class MySqlDialect implements JdbcDialect {
     @Override
     public String dialectName() {
         return "mysql";
+    }
+
+    @Override
+    public JdbcRowConverter createRowConverter() {
+        return new DefaultJdbcRowConverter();
     }
 
     @Override
