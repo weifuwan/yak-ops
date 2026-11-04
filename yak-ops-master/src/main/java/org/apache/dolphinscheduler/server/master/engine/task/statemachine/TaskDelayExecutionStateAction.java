@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.server.master.engine.task.statemachine;
 
 import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The action to be taken when a task is in the DELAY_EXECUTION state.

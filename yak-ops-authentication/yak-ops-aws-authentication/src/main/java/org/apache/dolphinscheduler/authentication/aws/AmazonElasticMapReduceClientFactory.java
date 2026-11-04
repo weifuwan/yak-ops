@@ -19,13 +19,13 @@ package org.apache.dolphinscheduler.authentication.aws;
 
 import java.util.Map;
 
-import lombok.experimental.UtilityClass;
-
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
+
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class AmazonElasticMapReduceClientFactory {

@@ -32,9 +32,9 @@ import org.apache.dolphinscheduler.server.master.engine.executor.plugin.ITaskPar
 import org.apache.dolphinscheduler.server.master.engine.workflow.execution.IWorkflowExecution;
 import org.apache.dolphinscheduler.server.master.exception.MasterTaskExecuteException;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.fasterxml.jackson.core.type.TypeReference;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DependentLogicTask extends AbstractLogicTask<DependentParameters> {

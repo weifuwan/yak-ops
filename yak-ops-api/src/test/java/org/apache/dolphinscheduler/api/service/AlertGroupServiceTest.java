@@ -96,13 +96,13 @@ public class AlertGroupServiceTest {
 
         when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.ALERT_GROUP, 2,
                 alertGroupServiceLogger))
-                        .thenReturn(Collections.emptySet());
+                .thenReturn(Collections.emptySet());
         Assertions.assertEquals(alertGroupService.queryAllAlertGroup(user).size(), 0);
 
         user.setId(3);
         when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.ALERT_GROUP, 3,
                 alertGroupServiceLogger))
-                        .thenReturn(Collections.singleton(1));
+                .thenReturn(Collections.singleton(1));
         assertDoesNotThrow(() -> alertGroupService.queryAllAlertGroup(user));
     }
 
@@ -114,7 +114,7 @@ public class AlertGroupServiceTest {
 
         when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.ALERT_GROUP, 2, ALERT_GROUP_VIEW,
                 baseServiceLogger))
-                        .thenReturn(false);
+                .thenReturn(false);
 
         assertThrowsServiceException(Status.USER_NO_OPERATION_PERM,
                 () -> alertGroupService.queryAlertGroupById(user, 1));
@@ -122,10 +122,10 @@ public class AlertGroupServiceTest {
         user.setId(1);
         when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.ALERT_GROUP, 1, ALERT_GROUP_VIEW,
                 baseServiceLogger))
-                        .thenReturn(true);
+                .thenReturn(true);
         when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.ALERT_GROUP, new Object[]{999}, 1,
                 baseServiceLogger))
-                        .thenReturn(true);
+                .thenReturn(true);
         when(alertGroupDao.queryById(999)).thenReturn(null);
 
         assertThrowsServiceException(Status.ALERT_GROUP_NOT_EXIST,
@@ -161,7 +161,7 @@ public class AlertGroupServiceTest {
 
         when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.ALERT_GROUP, user.getId(),
                 alertGroupServiceLogger))
-                        .thenReturn(Collections.singleton(1));
+                .thenReturn(Collections.singleton(1));
         when(alertGroupDao.queryAlertGroupPageByIds(any(Page.class), any(List.class), eq(groupName)))
                 .thenReturn(page);
 

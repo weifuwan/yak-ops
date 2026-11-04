@@ -21,11 +21,11 @@ import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import com.google.common.annotations.VisibleForTesting;
 
 @Data
 @NoArgsConstructor

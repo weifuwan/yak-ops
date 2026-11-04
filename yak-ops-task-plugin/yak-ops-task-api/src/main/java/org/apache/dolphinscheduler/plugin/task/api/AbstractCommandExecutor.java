@@ -95,7 +95,6 @@ public abstract class AbstractCommandExecutor {
         // parse process output
         final CompletableFuture<Void> collectProcessLogFuture = collectProcessLog(this.process);
 
-
         int processId = getProcessId(this.process);
 
         result.setProcessId(processId);
@@ -117,10 +116,8 @@ public abstract class AbstractCommandExecutor {
         // waiting for the run to finish
         boolean status = this.process.waitFor(remainTime, TimeUnit.SECONDS);
 
-
         // Wait the task log process finished.
         collectProcessLogFuture.join();
-
 
         // if SHELL task exit
         if (status) {

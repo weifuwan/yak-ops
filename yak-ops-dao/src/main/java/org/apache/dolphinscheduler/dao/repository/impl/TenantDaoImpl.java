@@ -25,11 +25,11 @@ import org.apache.dolphinscheduler.dao.repository.TenantDao;
 import java.util.List;
 import java.util.Optional;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import lombok.NonNull;
 
 @Repository
 public class TenantDaoImpl extends BaseDao<Tenant, TenantMapper> implements TenantDao {

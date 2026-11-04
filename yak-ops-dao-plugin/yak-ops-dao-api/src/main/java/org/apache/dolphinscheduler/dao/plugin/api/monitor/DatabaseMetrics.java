@@ -19,11 +19,11 @@ package org.apache.dolphinscheduler.dao.plugin.api.monitor;
 
 import java.util.Date;
 
+import com.baomidou.mybatisplus.annotation.DbType;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import com.baomidou.mybatisplus.annotation.DbType;
 
 @Data
 @NoArgsConstructor

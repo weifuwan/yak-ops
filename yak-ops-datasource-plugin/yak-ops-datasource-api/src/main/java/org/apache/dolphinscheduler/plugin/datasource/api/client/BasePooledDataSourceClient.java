@@ -32,9 +32,9 @@ import org.apache.commons.collections4.MapUtils;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.zaxxer.hikari.HikariDataSource;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class BasePooledDataSourceClient implements PooledDataSourceClient {

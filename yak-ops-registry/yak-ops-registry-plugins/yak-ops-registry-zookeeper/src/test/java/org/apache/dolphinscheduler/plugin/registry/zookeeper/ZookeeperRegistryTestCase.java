@@ -21,8 +21,6 @@ import org.apache.dolphinscheduler.plugin.registry.RegistryTestCase;
 
 import java.util.stream.Stream;
 
-import lombok.SneakyThrows;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +30,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
+
+import lombok.SneakyThrows;
 
 @SpringBootTest(classes = ZookeeperRegistryProperties.class)
 @SpringBootApplication(scanBasePackageClasses = ZookeeperRegistryProperties.class)

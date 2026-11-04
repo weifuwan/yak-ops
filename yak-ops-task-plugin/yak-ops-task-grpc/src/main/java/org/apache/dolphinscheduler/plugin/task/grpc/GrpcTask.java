@@ -30,8 +30,6 @@ import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters
 import org.apache.dolphinscheduler.plugin.task.grpc.protobufjs.GrpcDynamicService;
 import org.apache.dolphinscheduler.plugin.task.grpc.protobufjs.JSONDescriptorHelper;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
@@ -41,6 +39,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.TlsChannelCredentials;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GrpcTask extends AbstractTask {

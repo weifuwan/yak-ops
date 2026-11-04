@@ -24,14 +24,14 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
 
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Validated

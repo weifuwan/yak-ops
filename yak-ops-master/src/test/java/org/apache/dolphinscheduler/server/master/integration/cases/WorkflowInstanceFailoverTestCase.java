@@ -901,10 +901,10 @@ public class WorkflowInstanceFailoverTestCase extends AbstractMasterIntegrationT
                 .untilAsserted(() -> {
                     assertThat(registryClient
                             .exists(RegistryUtils.getGlobalMasterFailoverNodePath(mainWorkflowInstance.getHost())))
-                                    .isTrue();
+                            .isTrue();
                     assertThat(registryClient.exists(
                             RegistryUtils.getGlobalMasterFailoverNodePath(submittedSubWorkflowInstance.getHost())))
-                                    .isTrue();
+                            .isTrue();
                 });
 
         // Two workflow instance is success
@@ -940,10 +940,10 @@ public class WorkflowInstanceFailoverTestCase extends AbstractMasterIntegrationT
                                         .satisfiesExactly(workflowInstance -> {
                                             assertThat(
                                                     repository.queryTaskInstance(submittedSubWorkflowInstance.getId()))
-                                                            .hasSize(1)
-                                                            .satisfiesExactly(
-                                                                    taskInstance -> assertThat(taskInstance.getState())
-                                                                            .isEqualTo(TaskExecutionStatus.SUCCESS));
+                                                    .hasSize(1)
+                                                    .satisfiesExactly(
+                                                            taskInstance -> assertThat(taskInstance.getState())
+                                                                    .isEqualTo(TaskExecutionStatus.SUCCESS));
                                         });
                             });
                 });

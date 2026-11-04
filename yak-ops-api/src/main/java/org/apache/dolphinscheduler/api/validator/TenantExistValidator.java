@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.api.validator;
 
 import org.apache.dolphinscheduler.dao.repository.TenantDao;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This validator is used to validate whether the tenant exists.

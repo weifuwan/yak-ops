@@ -17,10 +17,10 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.utils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.constructor.Constructor;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Whitelist constructor implementation for YAML snake.

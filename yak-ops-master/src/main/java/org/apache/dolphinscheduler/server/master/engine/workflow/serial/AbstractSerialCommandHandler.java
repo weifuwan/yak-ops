@@ -31,12 +31,12 @@ import org.apache.dolphinscheduler.extract.master.transportor.workflow.WorkflowI
 import org.apache.dolphinscheduler.server.master.config.MasterConfig;
 import org.apache.dolphinscheduler.server.master.metrics.WorkflowInstanceMetrics;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractSerialCommandHandler implements ISerialCommandHandler {

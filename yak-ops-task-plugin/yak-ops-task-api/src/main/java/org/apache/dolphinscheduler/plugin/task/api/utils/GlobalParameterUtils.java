@@ -25,10 +25,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import java.util.Collections;
 import java.util.List;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 
 @Slf4j
 @UtilityClass

@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.plugin.datasource.ssh.param;
 
 import org.apache.dolphinscheduler.spi.datasource.ConnectionParam;
 
-import lombok.Data;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import lombok.Data;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -39,9 +39,9 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Test;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class JavaTaskTest {

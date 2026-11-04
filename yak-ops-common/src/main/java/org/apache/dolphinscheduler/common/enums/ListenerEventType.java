@@ -20,9 +20,9 @@ package org.apache.dolphinscheduler.common.enums;
 import java.util.HashMap;
 import java.util.Map;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+
+import lombok.Getter;
 
 @Getter
 public enum ListenerEventType {

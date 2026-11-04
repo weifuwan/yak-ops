@@ -23,9 +23,9 @@ import org.apache.dolphinscheduler.server.master.engine.executor.plugin.LogicTas
 import org.apache.dolphinscheduler.task.executor.ITaskExecutor;
 import org.apache.dolphinscheduler.task.executor.ITaskExecutorFactory;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

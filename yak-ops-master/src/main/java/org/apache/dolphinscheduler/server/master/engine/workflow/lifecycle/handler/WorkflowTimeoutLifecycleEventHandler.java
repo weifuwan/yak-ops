@@ -25,9 +25,9 @@ import org.apache.dolphinscheduler.server.master.engine.workflow.lifecycle.event
 import org.apache.dolphinscheduler.server.master.engine.workflow.statemachine.IWorkflowStateAction;
 import org.apache.dolphinscheduler.service.alert.WorkflowAlertManager;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

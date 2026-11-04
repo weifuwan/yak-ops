@@ -42,13 +42,13 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Optional;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import com.cronutils.model.Cron;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * // todo: this utils is heavy, it rely on quartz and corn-utils.

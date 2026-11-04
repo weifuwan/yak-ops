@@ -31,11 +31,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.LoggerContext;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LogUtils {

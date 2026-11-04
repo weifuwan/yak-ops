@@ -25,10 +25,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import lombok.NonNull;
-
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+
+import lombok.NonNull;
 
 public abstract class BaseDao<ENTITY, MYBATIS_MAPPER extends BaseMapper<ENTITY>> implements IDao<ENTITY> {
 

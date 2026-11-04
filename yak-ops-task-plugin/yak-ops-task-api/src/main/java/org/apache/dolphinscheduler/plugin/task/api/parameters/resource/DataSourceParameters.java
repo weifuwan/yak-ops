@@ -19,10 +19,10 @@ package org.apache.dolphinscheduler.plugin.task.api.parameters.resource;
 
 import org.apache.dolphinscheduler.spi.enums.DbType;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

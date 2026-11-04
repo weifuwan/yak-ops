@@ -25,12 +25,12 @@ import org.apache.dolphinscheduler.dao.repository.DataSourceDao;
 import java.util.Collections;
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import lombok.NonNull;
 
 @Repository
 public class DataSourceDaoImpl extends BaseDao<DataSource, DataSourceMapper> implements DataSourceDao {

@@ -41,17 +41,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import lombok.AllArgsConstructor;
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
-
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import ch.qos.logback.classic.sift.SiftingAppender;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.spi.AppenderAttachable;
+import lombok.AllArgsConstructor;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @UtilityClass

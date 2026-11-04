@@ -29,10 +29,10 @@ import org.apache.dolphinscheduler.dao.model.WorkflowInstanceSummaryDto;
 
 import java.util.Date;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Lightweight response VO for workflow instance list / top-N / trigger queries.

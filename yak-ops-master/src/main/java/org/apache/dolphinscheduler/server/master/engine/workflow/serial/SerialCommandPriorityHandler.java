@@ -21,9 +21,9 @@ import org.apache.dolphinscheduler.dao.model.SerialCommandDto;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This strategy will stop the previous workflow instance and notify the newly workflow instance.

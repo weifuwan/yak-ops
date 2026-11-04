@@ -29,11 +29,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3RemoteLogHandler implements RemoteLogHandler, Closeable {

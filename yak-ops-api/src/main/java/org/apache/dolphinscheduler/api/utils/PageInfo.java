@@ -20,12 +20,12 @@ package org.apache.dolphinscheduler.api.utils;
 import java.util.Collections;
 import java.util.List;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Setter;
-
-import com.baomidou.mybatisplus.core.metadata.IPage;
 
 @Data
 @Builder

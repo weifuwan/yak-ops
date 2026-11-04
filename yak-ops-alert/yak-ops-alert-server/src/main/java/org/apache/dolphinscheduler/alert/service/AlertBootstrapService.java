@@ -20,9 +20,9 @@ package org.apache.dolphinscheduler.alert.service;
 import org.apache.dolphinscheduler.alert.registry.AlertRegistryClient;
 import org.apache.dolphinscheduler.alert.rpc.AlertRpcServer;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The bootstrap service for alert server. it will start all the necessary component for alert server.

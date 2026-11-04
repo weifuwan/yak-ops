@@ -21,8 +21,8 @@ import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelation;
 
 import java.util.Date;
 
-import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
 @Data
 public class TaskRelationCreateRequest {

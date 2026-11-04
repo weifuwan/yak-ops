@@ -21,9 +21,9 @@ import org.apache.dolphinscheduler.dao.model.SerialCommandDto;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This strategy will discard the new workflow instance if there is a running workflow instance.

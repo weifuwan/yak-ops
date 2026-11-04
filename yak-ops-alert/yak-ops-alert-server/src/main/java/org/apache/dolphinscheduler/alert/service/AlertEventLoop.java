@@ -20,9 +20,9 @@ package org.apache.dolphinscheduler.alert.service;
 import org.apache.dolphinscheduler.alert.metrics.AlertServerMetrics;
 import org.apache.dolphinscheduler.dao.entity.Alert;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

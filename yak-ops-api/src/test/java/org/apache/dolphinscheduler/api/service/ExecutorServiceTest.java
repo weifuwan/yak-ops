@@ -124,8 +124,8 @@ public class ExecutorServiceTest {
 
         doThrow(new ServiceException(Status.USER_NO_WRITE_PROJECT_PERM,
                 loginUser.getUserName(), projectCode))
-                        .when(projectService)
-                        .checkHasProjectWritePermissionThrowException(loginUser, projectCode);
+                .when(projectService)
+                .checkHasProjectWritePermissionThrowException(loginUser, projectCode);
 
         ServiceException ex = assertThrows(ServiceException.class,
                 () -> executorService.triggerWorkflowDefinition(request));
@@ -181,8 +181,8 @@ public class ExecutorServiceTest {
 
         doThrow(new ServiceException(Status.USER_NO_WRITE_PROJECT_PERM,
                 loginUser.getUserName(), projectCode))
-                        .when(projectService)
-                        .checkHasProjectWritePermissionThrowException(loginUser, projectCode);
+                .when(projectService)
+                .checkHasProjectWritePermissionThrowException(loginUser, projectCode);
 
         ServiceException ex = assertThrows(ServiceException.class,
                 () -> executorService.backfillWorkflowDefinition(request));

@@ -19,10 +19,10 @@ package org.apache.dolphinscheduler.plugin.task.grpc.protobufjs.mapping;
 
 import java.util.Map;
 
-import lombok.Data;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+import lombok.Data;
 
 @Data
 @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION, defaultImpl = Namespace.class)

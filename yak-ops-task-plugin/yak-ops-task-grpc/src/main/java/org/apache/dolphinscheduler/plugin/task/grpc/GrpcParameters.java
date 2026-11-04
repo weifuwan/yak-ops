@@ -23,11 +23,11 @@ import org.apache.dolphinscheduler.plugin.task.grpc.protobufjs.JSONDescriptorHel
 
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.Descriptors;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

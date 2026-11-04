@@ -36,10 +36,10 @@ import org.apache.dolphinscheduler.server.master.engine.workflow.trigger.Workflo
 import org.apache.dolphinscheduler.server.master.engine.workflow.trigger.WorkflowInstanceRecoverSuspendTaskTrigger;
 import org.apache.dolphinscheduler.server.master.exception.MasterTaskExecuteException;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

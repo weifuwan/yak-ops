@@ -17,9 +17,9 @@
 
 package org.apache.dolphinscheduler.common.enums;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+
+import lombok.Getter;
 
 /**
  * describe the reason why alert generates

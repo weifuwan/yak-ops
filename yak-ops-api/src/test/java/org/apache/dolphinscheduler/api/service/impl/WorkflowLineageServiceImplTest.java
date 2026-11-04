@@ -71,7 +71,7 @@ class WorkflowLineageServiceImplTest {
         long workflowCode = 100L;
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, workflowCode, Constants.DEPENDENT_ALL_TASK))
-                        .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         List<DependentWorkflowDefinition> result =
                 workflowLineageService.queryDownstreamDependentWorkflowDefinitions(workflowCode);
@@ -98,7 +98,7 @@ class WorkflowLineageServiceImplTest {
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, upstreamWorkflowCode,
                         Constants.DEPENDENT_ALL_TASK))
-                                .thenReturn(Arrays.asList(taskLineage, workflowLineage));
+                .thenReturn(Arrays.asList(taskLineage, workflowLineage));
 
         WorkflowDefinition workflowDefinition200 = new WorkflowDefinition();
         workflowDefinition200.setCode(200L);
@@ -157,7 +157,7 @@ class WorkflowLineageServiceImplTest {
 
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, root, Constants.DEPENDENT_ALL_TASK))
-                        .thenReturn(Collections.singletonList(edge));
+                .thenReturn(Collections.singletonList(edge));
         when(workflowDefinitionDao.queryByCodes(Collections.singletonList(child)))
                 .thenReturn(Collections.singletonList(WorkflowDefinition.builder().code(child).version(1).build()));
 
@@ -185,13 +185,13 @@ class WorkflowLineageServiceImplTest {
 
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, codeA, Constants.DEPENDENT_ALL_TASK))
-                        .thenReturn(Collections.singletonList(aToB));
+                .thenReturn(Collections.singletonList(aToB));
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, codeB, Constants.DEPENDENT_ALL_TASK))
-                        .thenReturn(Collections.singletonList(bToC));
+                .thenReturn(Collections.singletonList(bToC));
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, codeC, Constants.DEPENDENT_ALL_TASK))
-                        .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         WorkflowDefinition workflowB = WorkflowDefinition.builder().code(codeB).version(1).build();
         WorkflowDefinition workflowC = WorkflowDefinition.builder().code(codeC).version(1).build();
@@ -218,7 +218,7 @@ class WorkflowLineageServiceImplTest {
 
         when(workflowTaskLineageDao
                 .queryWorkFlowLineageByDept(Constants.DEFAULT_PROJECT_CODE, codeA, Constants.DEPENDENT_ALL_TASK))
-                        .thenReturn(Collections.singletonList(aToB));
+                .thenReturn(Collections.singletonList(aToB));
 
         WorkflowDefinition workflowB = new WorkflowDefinition();
         workflowB.setCode(codeB);

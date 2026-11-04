@@ -23,8 +23,6 @@ import org.apache.dolphinscheduler.registry.api.ConnectionState;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.SneakyThrows;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -32,6 +30,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 
 import com.google.common.truth.Truth;
+
+import lombok.SneakyThrows;
 
 @SpringBootTest(classes = {JdbcRegistryProperties.class})
 @SpringBootApplication(scanBasePackageClasses = JdbcRegistryProperties.class)

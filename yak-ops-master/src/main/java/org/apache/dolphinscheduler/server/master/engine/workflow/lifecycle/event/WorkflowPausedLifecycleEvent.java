@@ -22,11 +22,11 @@ import org.apache.dolphinscheduler.server.master.engine.workflow.execution.IWork
 import org.apache.dolphinscheduler.server.master.engine.workflow.lifecycle.AbstractWorkflowLifecycleLifecycleEvent;
 import org.apache.dolphinscheduler.server.master.engine.workflow.lifecycle.WorkflowLifecycleEventType;
 
+import com.google.common.base.Preconditions;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import com.google.common.base.Preconditions;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

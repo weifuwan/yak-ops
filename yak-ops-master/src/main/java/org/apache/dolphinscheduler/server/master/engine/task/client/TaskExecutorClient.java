@@ -30,10 +30,10 @@ import org.apache.dolphinscheduler.task.executor.eventbus.ITaskExecutorLifecycle
 
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The client of task executor, used to communicate with task executor.

@@ -19,10 +19,10 @@ package org.apache.dolphinscheduler.common.factory;
 
 import org.apache.dolphinscheduler.common.model.OssConnection;
 
-import lombok.experimental.UtilityClass;
-
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class OssClientFactory {

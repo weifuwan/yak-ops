@@ -31,10 +31,10 @@ import org.apache.dolphinscheduler.server.master.config.MasterConfig;
 import org.apache.dolphinscheduler.server.master.config.MasterServerLoadProtection;
 import org.apache.dolphinscheduler.server.master.engine.MasterCoordinator;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * <p>DolphinScheduler master register client, used to connect to registry and hand the registry events.

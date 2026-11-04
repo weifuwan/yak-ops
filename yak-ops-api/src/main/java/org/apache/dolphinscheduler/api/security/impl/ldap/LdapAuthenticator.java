@@ -21,9 +21,9 @@ import org.apache.dolphinscheduler.api.dto.LdapLoginResult;
 import org.apache.dolphinscheduler.api.security.impl.AbstractAuthenticator;
 import org.apache.dolphinscheduler.dao.entity.User;
 
-import lombok.NonNull;
-
 import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.NonNull;
 
 public class LdapAuthenticator extends AbstractAuthenticator {
 

@@ -17,9 +17,9 @@
 
 package org.apache.dolphinscheduler.scheduler.quartz;
 
-import lombok.Getter;
-
 import org.quartz.JobDataMap;
+
+import lombok.Getter;
 
 @Getter
 public class QuartzJobData {

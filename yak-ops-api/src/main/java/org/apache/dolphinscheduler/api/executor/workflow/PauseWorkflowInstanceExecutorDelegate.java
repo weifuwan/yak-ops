@@ -28,11 +28,11 @@ import org.apache.dolphinscheduler.extract.master.IWorkflowControlClient;
 import org.apache.dolphinscheduler.extract.master.transportor.workflow.WorkflowInstancePauseRequest;
 import org.apache.dolphinscheduler.extract.master.transportor.workflow.WorkflowInstancePauseResponse;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

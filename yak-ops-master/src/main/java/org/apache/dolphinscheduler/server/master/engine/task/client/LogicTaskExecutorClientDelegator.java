@@ -37,10 +37,10 @@ import org.apache.dolphinscheduler.task.executor.operations.TaskExecutorPauseRes
 
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

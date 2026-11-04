@@ -37,10 +37,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.annotations.VisibleForTesting;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This task is used for testing purposes only.

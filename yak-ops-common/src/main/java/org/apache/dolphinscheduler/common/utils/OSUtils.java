@@ -20,9 +20,6 @@ package org.apache.dolphinscheduler.common.utils;
 import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.shell.ShellExecutor;
 
-import oshi.SystemInfo;
-import oshi.hardware.HardwareAbstractionLayer;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 
@@ -41,6 +38,8 @@ import java.util.regex.Pattern;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import oshi.SystemInfo;
+import oshi.hardware.HardwareAbstractionLayer;
 
 // todo: Split to WindowsOSUtils/LinuxOSUtils/MacOSOSUtils/K8sOSUtils...
 @Slf4j

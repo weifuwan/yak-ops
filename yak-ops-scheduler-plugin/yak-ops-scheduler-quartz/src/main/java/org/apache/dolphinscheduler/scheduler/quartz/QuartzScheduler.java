@@ -22,14 +22,14 @@ import org.apache.dolphinscheduler.scheduler.api.SchedulerApi;
 import org.apache.dolphinscheduler.scheduler.api.SchedulerException;
 import org.apache.dolphinscheduler.scheduler.quartz.exception.QuartzSchedulerExceptionEnum;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.quartz.CronTrigger;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 
 import com.google.common.collect.Sets;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class QuartzScheduler implements SchedulerApi {

@@ -23,10 +23,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * http parameter

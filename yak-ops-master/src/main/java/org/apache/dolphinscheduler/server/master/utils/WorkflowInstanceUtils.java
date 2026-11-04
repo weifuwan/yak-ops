@@ -28,9 +28,9 @@ import org.apache.dolphinscheduler.server.master.runner.IWorkflowExecuteContext;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.experimental.UtilityClass;
-
 import com.google.common.base.Strings;
+
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class WorkflowInstanceUtils {

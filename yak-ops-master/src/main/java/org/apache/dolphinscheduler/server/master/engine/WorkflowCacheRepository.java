@@ -26,11 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PostConstruct;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableList;
+
+import lombok.NonNull;
 
 @Component
 public class WorkflowCacheRepository implements IWorkflowRepository {

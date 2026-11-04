@@ -26,12 +26,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.SneakyThrows;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ImmutableMap;
+
+import lombok.SneakyThrows;
 
 class TaskOutputParameterParserTest {
 

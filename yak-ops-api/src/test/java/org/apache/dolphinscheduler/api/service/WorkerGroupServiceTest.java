@@ -235,7 +235,7 @@ public class WorkerGroupServiceTest {
         workflowInstances.add(workflowInstance);
         when(workflowInstanceDao.queryByWorkerGroupNameAndStatus(workerGroup.getName(),
                 WorkflowExecutionStatus.NOT_TERMINAL_STATES))
-                        .thenReturn(workflowInstances);
+                .thenReturn(workflowInstances);
 
         assertThrowsServiceException(Status.DELETE_WORKER_GROUP_BY_ID_FAIL,
                 () -> workerGroupService.deleteWorkerGroupById(loginUser, 1));

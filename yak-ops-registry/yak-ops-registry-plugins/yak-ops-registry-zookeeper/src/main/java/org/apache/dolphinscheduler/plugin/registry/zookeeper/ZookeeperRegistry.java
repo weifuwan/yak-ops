@@ -47,10 +47,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.base.Strings;
+
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-
-import com.google.common.base.Strings;
 
 @Slf4j
 final class ZookeeperRegistry implements Registry {

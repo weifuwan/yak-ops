@@ -26,9 +26,9 @@ import org.apache.dolphinscheduler.server.master.metrics.WorkflowInstanceMetrics
 import java.util.Collections;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The command fetcher which is fetch commands by command id and slot.

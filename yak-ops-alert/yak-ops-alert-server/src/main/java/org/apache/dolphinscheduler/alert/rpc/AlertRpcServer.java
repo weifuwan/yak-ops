@@ -21,9 +21,9 @@ import org.apache.dolphinscheduler.alert.config.AlertConfig;
 import org.apache.dolphinscheduler.extract.base.config.NettyServerConfig;
 import org.apache.dolphinscheduler.extract.base.server.SpringServerMethodInvokerDiscovery;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service

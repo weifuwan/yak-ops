@@ -26,7 +26,6 @@ import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
 import org.apache.dolphinscheduler.dao.entity.WorkflowInstance;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
-import org.apache.dolphinscheduler.server.master.config.MasterConfig;
 import org.apache.dolphinscheduler.server.master.engine.WorkflowEventBus;
 import org.apache.dolphinscheduler.server.master.engine.graph.IWorkflowExecutionGraph;
 import org.apache.dolphinscheduler.server.master.engine.task.client.ITaskExecutorClient;
@@ -37,10 +36,10 @@ import org.apache.dolphinscheduler.server.master.runner.TaskExecutionContextFact
 
 import javax.annotation.Nullable;
 
+import org.springframework.context.ApplicationContext;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.context.ApplicationContext;
 
 @Slf4j
 public class TaskExecution implements ITaskExecution {

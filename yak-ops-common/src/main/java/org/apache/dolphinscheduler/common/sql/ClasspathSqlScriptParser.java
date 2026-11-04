@@ -30,10 +30,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClasspathSqlScriptParser implements SqlScriptParser {

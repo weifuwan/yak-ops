@@ -108,7 +108,6 @@ public class TaskExecutionContextBuilder {
         return this;
     }
 
-
     /**
      * The runtime params, include local params from task, global params from workflow, startup params from command, varpool params from pre-task, built-in params from system
      *

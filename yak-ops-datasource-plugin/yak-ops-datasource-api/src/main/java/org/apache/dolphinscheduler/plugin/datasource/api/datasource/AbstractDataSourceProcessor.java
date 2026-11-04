@@ -34,11 +34,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Sets;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractDataSourceProcessor implements DataSourceProcessor {

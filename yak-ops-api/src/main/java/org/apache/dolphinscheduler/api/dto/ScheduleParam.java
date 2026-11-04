@@ -21,9 +21,9 @@ import org.apache.dolphinscheduler.common.enums.ScheduleMissedFirePolicy;
 
 import java.util.Date;
 
-import lombok.Data;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import lombok.Data;
 
 /**
  * schedule parameters

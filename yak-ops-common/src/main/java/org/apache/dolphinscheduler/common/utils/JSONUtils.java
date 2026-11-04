@@ -42,8 +42,6 @@ import java.util.TimeZone;
 
 import javax.annotation.Nullable;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -64,6 +62,8 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Strings;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class JSONUtils {

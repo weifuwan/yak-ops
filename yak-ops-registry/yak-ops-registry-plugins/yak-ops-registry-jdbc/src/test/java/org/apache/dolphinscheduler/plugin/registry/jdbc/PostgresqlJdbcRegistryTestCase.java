@@ -21,8 +21,6 @@ import org.apache.dolphinscheduler.common.sql.SqlScriptRunner;
 
 import java.util.stream.Stream;
 
-import lombok.SneakyThrows;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -36,6 +34,8 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
+import lombok.SneakyThrows;
 
 @ActiveProfiles("postgresql")
 @SpringBootTest(classes = {JdbcRegistryProperties.class})

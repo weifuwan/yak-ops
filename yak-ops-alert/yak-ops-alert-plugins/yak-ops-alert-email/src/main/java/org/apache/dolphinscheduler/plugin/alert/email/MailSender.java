@@ -56,9 +56,9 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.sun.mail.smtp.SMTPProvider;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class MailSender {

@@ -19,13 +19,13 @@ package org.apache.dolphinscheduler.authentication.aws;
 
 import java.util.Map;
 
-import lombok.experimental.UtilityClass;
-
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.databasemigrationservice.AWSDatabaseMigrationService;
 import com.amazonaws.services.databasemigrationservice.AWSDatabaseMigrationServiceClientBuilder;
+
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class AWSDatabaseMigrationServiceClientFactory {

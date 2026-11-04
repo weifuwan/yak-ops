@@ -38,10 +38,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.google.auto.service.AutoService;
+
+import lombok.extern.slf4j.Slf4j;
 
 @AutoService(DataSourceProcessor.class)
 @Slf4j

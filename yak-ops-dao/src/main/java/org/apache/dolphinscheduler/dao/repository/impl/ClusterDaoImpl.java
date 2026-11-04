@@ -24,11 +24,11 @@ import org.apache.dolphinscheduler.dao.repository.ClusterDao;
 
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import lombok.NonNull;
 
 @Repository
 public class ClusterDaoImpl extends BaseDao<Cluster, ClusterMapper> implements ClusterDao {

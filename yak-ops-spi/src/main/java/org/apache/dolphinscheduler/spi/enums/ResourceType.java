@@ -17,9 +17,9 @@
 
 package org.apache.dolphinscheduler.spi.enums;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+
+import lombok.Getter;
 
 @Getter
 public enum ResourceType {

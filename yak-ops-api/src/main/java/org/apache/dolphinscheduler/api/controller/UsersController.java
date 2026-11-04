@@ -43,8 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -61,6 +59,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 @Tag(name = "USERS_TAG")
 @RestController
@@ -245,7 +244,6 @@ public class UsersController extends BaseController {
         usersService.revokeProject(loginUser, userId, projectCode);
         return Result.success();
     }
-
 
     @Operation(summary = "grantDataSource", description = "GRANT_DATASOURCE_NOTES")
     @Parameters({

@@ -24,12 +24,12 @@ import org.apache.dolphinscheduler.server.master.engine.task.execution.ITaskExec
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * WorkerGroupTaskDispatcherManager is responsible for managing the task dispatching for worker groups.

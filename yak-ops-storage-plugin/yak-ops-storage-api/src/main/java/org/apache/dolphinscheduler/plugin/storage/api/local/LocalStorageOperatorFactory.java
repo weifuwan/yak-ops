@@ -23,9 +23,9 @@ import org.apache.dolphinscheduler.plugin.storage.api.StorageOperatorFactory;
 import org.apache.dolphinscheduler.plugin.storage.api.StorageType;
 import org.apache.dolphinscheduler.plugin.storage.api.constants.StorageConstants;
 
-import lombok.SneakyThrows;
-
 import com.google.auto.service.AutoService;
+
+import lombok.SneakyThrows;
 
 @AutoService(StorageOperatorFactory.class)
 public class LocalStorageOperatorFactory implements StorageOperatorFactory {

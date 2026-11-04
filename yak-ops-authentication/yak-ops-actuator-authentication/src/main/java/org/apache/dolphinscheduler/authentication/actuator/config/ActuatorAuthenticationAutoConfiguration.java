@@ -22,10 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Data;
-import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -38,6 +34,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import lombok.Data;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Security configuration for Actuator endpoints.

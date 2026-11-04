@@ -23,11 +23,11 @@ import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import java.util.Date;
 import java.util.List;
 
-import lombok.Data;
-
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
+import lombok.Data;
 
 @Data
 @TableName("t_ds_task_instance_context")

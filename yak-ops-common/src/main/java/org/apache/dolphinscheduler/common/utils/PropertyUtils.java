@@ -31,10 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.google.common.base.Strings;
+
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-
-import com.google.common.base.Strings;
 
 @Slf4j
 @UtilityClass

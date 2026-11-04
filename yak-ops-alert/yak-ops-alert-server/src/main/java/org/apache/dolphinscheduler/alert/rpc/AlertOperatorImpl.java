@@ -23,10 +23,10 @@ import org.apache.dolphinscheduler.extract.alert.request.AlertSendRequest;
 import org.apache.dolphinscheduler.extract.alert.request.AlertSendResponse;
 import org.apache.dolphinscheduler.extract.alert.request.AlertTestSendRequest;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service

@@ -30,9 +30,9 @@ import org.apache.dolphinscheduler.server.master.utils.MasterThreadFactory;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The MasterCoordinator is singleton at the clusters, which is used to do some control work, e.g manage the {@link ITaskGroupCoordinator}

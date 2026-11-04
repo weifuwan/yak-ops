@@ -32,9 +32,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.common.annotations.VisibleForTesting;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * WorkerGroupTaskDispatcher is responsible for dispatching tasks from the task queue.

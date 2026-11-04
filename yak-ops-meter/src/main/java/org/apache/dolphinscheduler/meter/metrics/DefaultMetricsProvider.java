@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.meter.metrics;
 
 import org.apache.dolphinscheduler.common.utils.OSUtils;
 
-import lombok.extern.slf4j.Slf4j;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DefaultMetricsProvider implements MetricsProvider {

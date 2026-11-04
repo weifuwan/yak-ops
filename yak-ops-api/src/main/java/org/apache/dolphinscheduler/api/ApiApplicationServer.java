@@ -28,14 +28,14 @@ import org.apache.dolphinscheduler.plugin.task.api.TaskPluginManager;
 import org.apache.dolphinscheduler.registry.api.RegistryConfiguration;
 import org.apache.dolphinscheduler.service.ServiceConfiguration;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Import({DaoConfiguration.class,

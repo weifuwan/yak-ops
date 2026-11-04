@@ -23,9 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
 
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -35,6 +32,9 @@ import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
 
 import com.zaxxer.hikari.HikariConfig;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Slf4j

@@ -33,10 +33,10 @@ import org.apache.dolphinscheduler.dao.repository.WorkflowInstanceDao;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractWorkflowTrigger<TriggerRequest, TriggerResponse>

@@ -33,11 +33,11 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DataSourceClientProvider {

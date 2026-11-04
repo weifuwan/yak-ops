@@ -24,14 +24,14 @@ import org.apache.dolphinscheduler.common.utils.PropertyUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)

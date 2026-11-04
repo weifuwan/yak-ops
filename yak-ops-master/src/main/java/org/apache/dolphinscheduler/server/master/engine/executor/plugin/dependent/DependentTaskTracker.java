@@ -52,10 +52,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-
-import com.google.common.collect.Lists;
 
 @Slf4j
 public class DependentTaskTracker {

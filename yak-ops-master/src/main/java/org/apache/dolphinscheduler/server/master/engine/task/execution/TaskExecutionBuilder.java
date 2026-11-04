@@ -27,11 +27,11 @@ import org.apache.dolphinscheduler.server.master.engine.graph.IWorkflowExecution
 
 import javax.annotation.Nullable;
 
+import org.springframework.context.ApplicationContext;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-
-import org.springframework.context.ApplicationContext;
 
 @Getter
 @Builder

@@ -23,13 +23,13 @@ import org.apache.dolphinscheduler.dao.entity.SerialCommand;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 
 @Data
 @Builder

@@ -24,9 +24,9 @@ import org.apache.dolphinscheduler.dao.repository.IEnvironmentDao;
 
 import java.util.Optional;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class EnvironmentDaoImpl extends BaseDao<Environment, EnvironmentMapper> implements IEnvironmentDao {

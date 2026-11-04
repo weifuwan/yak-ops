@@ -21,8 +21,8 @@ import org.apache.dolphinscheduler.common.utils.NetUtils;
 
 import java.net.InetSocketAddress;
 
-import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.Channel;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ChannelUtils {

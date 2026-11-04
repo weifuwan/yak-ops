@@ -190,7 +190,7 @@ public class TenantServiceTest {
         when(tenantDao.queryDetailById(1)).thenReturn(getTenant());
         when(workflowInstanceDao.queryByTenantCodeAndStatus(tenantCode,
                 WorkflowExecutionStatus.NOT_TERMINAL_STATES))
-                        .thenReturn(getInstanceList());
+                .thenReturn(getInstanceList());
         when(scheduleDao.queryScheduleListByTenant(tenantCode)).thenReturn(getScheduleList());
         when(userDao.queryUserListByTenant(3)).thenReturn(getUserList());
 

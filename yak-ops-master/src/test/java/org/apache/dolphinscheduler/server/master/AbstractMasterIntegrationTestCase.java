@@ -25,8 +25,6 @@ import org.apache.dolphinscheduler.server.master.integration.Repository;
 import org.apache.dolphinscheduler.server.master.integration.WorkflowOperator;
 import org.apache.dolphinscheduler.server.master.integration.WorkflowTestCaseContextFactory;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +32,7 @@ import org.springframework.test.annotation.DirtiesContext;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The abstract class for master integration test.

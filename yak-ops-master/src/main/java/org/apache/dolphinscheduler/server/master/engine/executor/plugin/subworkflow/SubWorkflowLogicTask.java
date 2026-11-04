@@ -55,11 +55,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.ApplicationContext;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SubWorkflowLogicTask extends AbstractLogicTask<SubWorkflowParameters> {

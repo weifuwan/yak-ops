@@ -24,12 +24,12 @@ import org.apache.dolphinscheduler.dao.repository.ScheduleDao;
 
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import lombok.NonNull;
 
 @Repository
 public class ScheduleDaoImpl extends BaseDao<Schedule, ScheduleMapper> implements ScheduleDao {

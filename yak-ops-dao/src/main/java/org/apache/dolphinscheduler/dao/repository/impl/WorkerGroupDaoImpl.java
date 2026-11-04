@@ -25,9 +25,9 @@ import org.apache.dolphinscheduler.dao.repository.WorkerGroupDao;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class WorkerGroupDaoImpl extends BaseDao<WorkerGroup, WorkerGroupMapper> implements WorkerGroupDao {

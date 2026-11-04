@@ -41,10 +41,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.Lists;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import com.google.common.collect.Lists;
 
 @Slf4j
 public class LocalStorageOperator extends AbstractStorageOperator implements Closeable, StorageOperator {

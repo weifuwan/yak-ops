@@ -29,14 +29,14 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Optional;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Configuration
 @Slf4j

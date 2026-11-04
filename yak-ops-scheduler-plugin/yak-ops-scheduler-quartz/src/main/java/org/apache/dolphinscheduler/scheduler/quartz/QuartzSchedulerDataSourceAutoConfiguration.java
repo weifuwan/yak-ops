@@ -21,9 +21,6 @@ import java.util.Optional;
 
 import javax.sql.DataSource;
 
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import org.quartz.Scheduler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -39,6 +36,9 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoConfiguration(after = {DataSourceAutoConfiguration.class}, before = QuartzSchedulerAutoConfiguration.class)

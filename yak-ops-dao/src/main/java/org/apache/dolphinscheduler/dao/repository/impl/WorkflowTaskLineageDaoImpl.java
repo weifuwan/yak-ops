@@ -28,9 +28,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class WorkflowTaskLineageDaoImpl extends BaseDao<WorkflowTaskLineage, WorkflowTaskLineageMapper>

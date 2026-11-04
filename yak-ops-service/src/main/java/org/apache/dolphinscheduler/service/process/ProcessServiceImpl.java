@@ -83,13 +83,13 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * process relative dao that some mappers in this.
@@ -718,7 +718,6 @@ public class ProcessServiceImpl implements ProcessService {
         }
         return taskNodeList;
     }
-
 
     /**
      * Force the workflow instance to success only when every enabled task in the workflow definition has a

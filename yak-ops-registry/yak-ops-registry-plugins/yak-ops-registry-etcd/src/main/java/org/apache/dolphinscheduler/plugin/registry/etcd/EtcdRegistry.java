@@ -42,9 +42,6 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLException;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.util.StringUtils;
 
 import com.google.common.base.Splitter;
@@ -65,6 +62,8 @@ import io.etcd.jetcd.support.Observers;
 import io.etcd.jetcd.watch.WatchEvent;
 import io.grpc.netty.GrpcSslContexts;
 import io.netty.handler.ssl.SslContext;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This is one of the implementation of {@link Registry}, with this implementation, you need to rely on Etcd cluster to

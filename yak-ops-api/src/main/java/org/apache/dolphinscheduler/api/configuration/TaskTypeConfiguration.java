@@ -26,13 +26,13 @@ import org.apache.commons.collections4.CollectionUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @EnableConfigurationProperties

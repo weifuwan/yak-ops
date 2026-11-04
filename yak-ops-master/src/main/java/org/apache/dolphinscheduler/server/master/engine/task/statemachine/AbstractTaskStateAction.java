@@ -50,11 +50,11 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractTaskStateAction implements ITaskStateAction {

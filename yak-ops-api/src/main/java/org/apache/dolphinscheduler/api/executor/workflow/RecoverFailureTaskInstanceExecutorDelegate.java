@@ -28,10 +28,10 @@ import org.apache.dolphinscheduler.extract.master.transportor.workflow.WorkflowI
 import org.apache.dolphinscheduler.registry.api.RegistryClient;
 import org.apache.dolphinscheduler.registry.api.enums.RegistryNodeType;
 
-import lombok.Getter;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.Getter;
 
 @Component
 public class RecoverFailureTaskInstanceExecutorDelegate

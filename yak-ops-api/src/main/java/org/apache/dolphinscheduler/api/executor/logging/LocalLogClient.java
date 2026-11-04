@@ -25,9 +25,9 @@ import org.apache.dolphinscheduler.extract.common.transportor.TaskInstanceLogFil
 import org.apache.dolphinscheduler.extract.common.transportor.TaskInstanceLogPageQueryRequest;
 import org.apache.dolphinscheduler.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j

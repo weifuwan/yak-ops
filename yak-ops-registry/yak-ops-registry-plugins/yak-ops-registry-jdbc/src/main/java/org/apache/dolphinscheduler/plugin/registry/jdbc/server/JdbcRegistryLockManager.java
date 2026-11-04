@@ -28,13 +28,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.springframework.dao.DuplicateKeyException;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.dao.DuplicateKeyException;
 
 @Slf4j
 public class JdbcRegistryLockManager implements IJdbcRegistryLockManager {

@@ -28,11 +28,11 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.GetObjectRequest;
 import com.aliyun.oss.model.PutObjectRequest;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OssRemoteLogHandler implements RemoteLogHandler, Closeable {

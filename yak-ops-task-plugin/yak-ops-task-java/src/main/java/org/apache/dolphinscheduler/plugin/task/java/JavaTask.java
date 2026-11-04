@@ -42,9 +42,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.common.base.Preconditions;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JavaTask extends AbstractTask {

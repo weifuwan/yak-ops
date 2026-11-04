@@ -26,9 +26,9 @@ import org.apache.dolphinscheduler.registry.api.SubscribeListener;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.common.collect.Lists;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractHAServer implements HAServer {

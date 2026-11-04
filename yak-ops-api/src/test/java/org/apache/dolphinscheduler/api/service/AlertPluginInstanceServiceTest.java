@@ -409,7 +409,7 @@ public class AlertPluginInstanceServiceTest {
                 loginUser.getId(), ALARM_INSTANCE_MANAGE, baseServiceLogger)).thenReturn(true);
         when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.ALERT_PLUGIN_INSTANCE, null,
                 loginUser.getUserType().equals(UserType.ADMIN_USER) ? 0 : loginUser.getId(), baseServiceLogger))
-                        .thenReturn(true);
+                .thenReturn(true);
     }
 
 }

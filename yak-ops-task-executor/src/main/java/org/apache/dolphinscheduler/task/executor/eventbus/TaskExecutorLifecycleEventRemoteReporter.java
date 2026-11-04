@@ -38,10 +38,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import com.google.common.annotations.VisibleForTesting;
 
 @Slf4j
 public class TaskExecutorLifecycleEventRemoteReporter extends BaseDaemonThread

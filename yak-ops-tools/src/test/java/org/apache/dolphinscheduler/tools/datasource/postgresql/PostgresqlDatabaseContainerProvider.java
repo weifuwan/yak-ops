@@ -22,8 +22,6 @@ import org.apache.dolphinscheduler.tools.datasource.jupiter.DolphinSchedulerData
 
 import java.util.stream.Stream;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -31,6 +29,8 @@ import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 
 import com.google.auto.service.AutoService;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoService(DatabaseContainerProvider.class)

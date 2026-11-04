@@ -26,9 +26,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Validator for the list of start parameters (Property list).

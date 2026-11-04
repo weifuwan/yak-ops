@@ -17,15 +17,14 @@
 
 package org.apache.dolphinscheduler.authentication.aws;
 
+import java.util.Map;
+
+import lombok.experimental.UtilityClass;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.datasync.DataSyncClient;
-
-import java.util.Map;
-
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class DataSyncClientFactory {

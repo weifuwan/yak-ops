@@ -21,14 +21,14 @@ import org.apache.dolphinscheduler.tools.datasource.DolphinSchedulerManager;
 import org.apache.dolphinscheduler.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
 import org.apache.dolphinscheduler.tools.datasource.mysql.DolphinSchedulerMysqlProfile;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @EnabledOnOs(OS.LINUX)

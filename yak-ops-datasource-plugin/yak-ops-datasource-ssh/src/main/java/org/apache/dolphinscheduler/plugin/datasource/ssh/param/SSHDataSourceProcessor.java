@@ -31,9 +31,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.sql.Connection;
 import java.text.MessageFormat;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.auto.service.AutoService;
+
+import lombok.extern.slf4j.Slf4j;
 
 @AutoService(DataSourceProcessor.class)
 @Slf4j

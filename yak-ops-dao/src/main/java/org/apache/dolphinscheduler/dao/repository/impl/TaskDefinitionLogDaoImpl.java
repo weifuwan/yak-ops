@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.NonNull;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 /**
  * Task Definition Log DAP implementation

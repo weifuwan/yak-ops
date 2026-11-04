@@ -59,9 +59,6 @@ import org.apache.dolphinscheduler.dao.repository.WorkflowDefinitionDao;
 import org.apache.dolphinscheduler.plugin.storage.api.StorageEntity;
 import org.apache.dolphinscheduler.spi.enums.ResourceType;
 
-import py4j.GatewayServer;
-import py4j.GatewayServer.GatewayServerBuilder;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -76,10 +73,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+import py4j.GatewayServer;
+import py4j.GatewayServer.GatewayServerBuilder;
 
 @Component
 @Slf4j

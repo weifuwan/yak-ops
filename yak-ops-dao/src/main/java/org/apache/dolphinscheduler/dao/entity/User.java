@@ -21,13 +21,13 @@ import org.apache.dolphinscheduler.common.enums.UserType;
 
 import java.util.Date;
 
-import lombok.Data;
-
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import lombok.Data;
 
 @Data
 @TableName("t_ds_user")

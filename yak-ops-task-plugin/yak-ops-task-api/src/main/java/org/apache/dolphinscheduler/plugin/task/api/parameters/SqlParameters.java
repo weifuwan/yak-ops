@@ -37,9 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Data;
-
 import com.google.common.collect.Lists;
+
+import lombok.Data;
 
 /**
  * Sql/Hql parameter

@@ -19,13 +19,13 @@ package org.apache.dolphinscheduler.plugin.registry.zookeeper;
 
 import org.apache.dolphinscheduler.registry.api.Registry;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ComponentScan

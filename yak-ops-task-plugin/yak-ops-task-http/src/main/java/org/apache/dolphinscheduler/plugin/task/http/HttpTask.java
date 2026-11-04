@@ -38,11 +38,11 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HttpTask extends AbstractTask {

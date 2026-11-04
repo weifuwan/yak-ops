@@ -22,9 +22,9 @@ import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.common.base.Preconditions;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractLogicTask<T extends AbstractParameters> implements ILogicTask<T> {

@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.google.common.base.Functions;
+
+import lombok.Getter;
 
 @Getter
 public enum DbType {

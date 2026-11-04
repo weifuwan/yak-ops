@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.server.master.integration;
 
 import java.io.InputStream;
 
-import lombok.SneakyThrows;
-
 import org.yaml.snakeyaml.Yaml;
+
+import lombok.SneakyThrows;
 
 public class YamlFactory {
 

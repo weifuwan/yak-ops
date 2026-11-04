@@ -20,10 +20,10 @@ package org.apache.dolphinscheduler.common.log.remote;
 import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.utils.PropertyUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j

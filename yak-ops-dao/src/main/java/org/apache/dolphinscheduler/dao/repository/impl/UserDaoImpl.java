@@ -26,12 +26,12 @@ import org.apache.dolphinscheduler.dao.repository.UserDao;
 import java.util.Date;
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import lombok.NonNull;
 
 @Repository
 public class UserDaoImpl extends BaseDao<User, UserMapper> implements UserDao {

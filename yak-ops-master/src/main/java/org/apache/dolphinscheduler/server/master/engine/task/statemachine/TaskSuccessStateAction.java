@@ -34,9 +34,9 @@ import org.apache.dolphinscheduler.server.master.engine.task.lifecycle.event.Tas
 import org.apache.dolphinscheduler.server.master.engine.task.lifecycle.event.TaskSuccessLifecycleEvent;
 import org.apache.dolphinscheduler.server.master.engine.workflow.execution.IWorkflowExecution;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The action to be taken when a task is in the Success state.

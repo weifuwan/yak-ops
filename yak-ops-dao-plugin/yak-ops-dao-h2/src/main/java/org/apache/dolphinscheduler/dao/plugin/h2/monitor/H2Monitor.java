@@ -27,9 +27,9 @@ import java.util.Date;
 
 import javax.sql.DataSource;
 
-import lombok.SneakyThrows;
-
 import com.baomidou.mybatisplus.annotation.DbType;
+
+import lombok.SneakyThrows;
 
 public class H2Monitor implements DatabaseMonitor {
 

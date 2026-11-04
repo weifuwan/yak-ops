@@ -41,13 +41,13 @@ import org.apache.dolphinscheduler.extract.master.transportor.workflow.WorkflowM
 import org.apache.dolphinscheduler.extract.master.transportor.workflow.WorkflowManualTriggerResponse;
 import org.apache.dolphinscheduler.scheduler.api.SchedulerApi;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-
 import org.assertj.core.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 
 @Component
 public class WorkflowOperator {

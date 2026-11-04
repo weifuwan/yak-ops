@@ -24,9 +24,9 @@ import org.apache.dolphinscheduler.dao.repository.WorkflowTaskRelationDao;
 
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class WorkflowTaskRelationDaoImpl extends BaseDao<WorkflowTaskRelation, WorkflowTaskRelationMapper>

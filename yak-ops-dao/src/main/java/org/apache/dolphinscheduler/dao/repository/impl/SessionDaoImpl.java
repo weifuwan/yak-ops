@@ -24,11 +24,11 @@ import org.apache.dolphinscheduler.dao.repository.SessionDao;
 
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+
+import lombok.NonNull;
 
 @Repository
 public class SessionDaoImpl extends BaseDao<Session, SessionMapper> implements SessionDao {

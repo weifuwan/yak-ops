@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.server.master.engine.command.handler;
 
 import org.apache.dolphinscheduler.common.enums.CommandType;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

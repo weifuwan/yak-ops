@@ -21,10 +21,10 @@ import org.apache.dolphinscheduler.extract.base.serialize.JsonSerializer;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TransporterDecoder extends ReplayingDecoder<TransporterDecoder.State> {

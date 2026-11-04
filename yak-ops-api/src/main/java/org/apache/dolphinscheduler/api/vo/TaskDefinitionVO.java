@@ -23,10 +23,10 @@ import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelation;
 
 import java.util.List;
 
+import org.springframework.beans.BeanUtils;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import org.springframework.beans.BeanUtils;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

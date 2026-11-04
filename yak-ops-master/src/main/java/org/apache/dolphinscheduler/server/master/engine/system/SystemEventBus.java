@@ -23,9 +23,9 @@ import org.apache.dolphinscheduler.server.master.engine.system.event.AbstractSys
 import org.apache.dolphinscheduler.server.master.engine.task.lifecycle.AbstractTaskLifecycleEvent;
 import org.apache.dolphinscheduler.server.master.engine.workflow.lifecycle.AbstractWorkflowLifecycleLifecycleEvent;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The event bus for system, this is used to store the whole {@link AbstractLifecycleEvent} in a workflow instance include the

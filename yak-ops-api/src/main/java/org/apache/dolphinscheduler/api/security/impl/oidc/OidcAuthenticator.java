@@ -37,9 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -72,6 +69,9 @@ import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.claims.UserInfo;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("oidcAuthenticator")
@@ -183,10 +183,10 @@ public class OidcAuthenticator extends AbstractSsoAuthenticator {
                     scope,
                     clientID,
                     redirectURI)
-                            .state(nimbusState)
-                            .nonce(nonce)
-                            .endpointURI(providerMetadata.getAuthorizationEndpointURI())
-                            .build();
+                    .state(nimbusState)
+                    .nonce(nonce)
+                    .endpointURI(providerMetadata.getAuthorizationEndpointURI())
+                    .build();
 
             return authRequest.toURI().toString();
         } catch (Exception e) {

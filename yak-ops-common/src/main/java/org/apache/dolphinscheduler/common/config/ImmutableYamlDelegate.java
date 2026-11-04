@@ -22,10 +22,10 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.core.io.InputStreamResource;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ImmutableYamlDelegate implements IPropertyDelegate {

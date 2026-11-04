@@ -21,10 +21,10 @@ import org.apache.dolphinscheduler.meter.metrics.BaseServerLoadProtectionConfig;
 
 import java.time.Duration;
 
+import org.springframework.validation.Errors;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import org.springframework.validation.Errors;
 
 @Data
 @EqualsAndHashCode(callSuper = true)

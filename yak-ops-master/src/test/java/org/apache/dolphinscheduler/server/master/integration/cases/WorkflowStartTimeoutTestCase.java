@@ -171,7 +171,7 @@ public class WorkflowStartTimeoutTestCase extends AbstractMasterIntegrationTestC
                             .assertThat(repository.queryWorkflowInstance(workflow))
                             .satisfiesExactly(workflowInstance -> assertThat(
                                     workflowInstance.getState())
-                                            .isEqualTo(WorkflowExecutionStatus.RUNNING_EXECUTION));
+                                    .isEqualTo(WorkflowExecutionStatus.RUNNING_EXECUTION));
 
                     Assertions
                             .assertThat(repository.queryTaskInstance(workflow))
@@ -225,7 +225,7 @@ public class WorkflowStartTimeoutTestCase extends AbstractMasterIntegrationTestC
                             .assertThat(repository.queryWorkflowInstance(workflow))
                             .satisfiesExactly(workflowInstance -> assertThat(
                                     workflowInstance.getState())
-                                            .isEqualTo(WorkflowExecutionStatus.STOP));
+                                    .isEqualTo(WorkflowExecutionStatus.STOP));
 
                     Assertions
                             .assertThat(repository.queryTaskInstance(workflow))

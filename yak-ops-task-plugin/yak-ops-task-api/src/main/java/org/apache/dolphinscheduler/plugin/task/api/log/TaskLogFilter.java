@@ -21,14 +21,13 @@ import org.apache.dolphinscheduler.plugin.task.api.utils.LogUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.slf4j.MDC;
 import org.slf4j.Marker;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class is used to filter the log of the task instance.

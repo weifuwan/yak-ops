@@ -22,9 +22,9 @@ import org.apache.dolphinscheduler.dao.mapper.WorkflowDefinitionLogMapper;
 import org.apache.dolphinscheduler.dao.repository.BaseDao;
 import org.apache.dolphinscheduler.dao.repository.WorkflowDefinitionLogDao;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class WorkflowDefinitionLogDaoImpl extends BaseDao<WorkflowDefinitionLog, WorkflowDefinitionLogMapper>

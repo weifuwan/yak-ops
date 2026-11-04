@@ -23,9 +23,9 @@ import org.apache.dolphinscheduler.server.master.engine.workflow.lifecycle.Workf
 import org.apache.dolphinscheduler.server.master.engine.workflow.lifecycle.event.WorkflowFinalizeLifecycleEvent;
 import org.apache.dolphinscheduler.server.master.engine.workflow.statemachine.IWorkflowStateAction;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This event handler will used to clear the WorkflowExecuteRunnable instance

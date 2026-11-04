@@ -24,9 +24,9 @@ import org.apache.dolphinscheduler.dao.repository.WorkflowInstanceMapDao;
 
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 /**
  * Process Instance Map Dao implementation

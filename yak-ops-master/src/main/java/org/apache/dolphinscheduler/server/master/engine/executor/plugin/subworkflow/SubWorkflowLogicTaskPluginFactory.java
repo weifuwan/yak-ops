@@ -24,10 +24,10 @@ import org.apache.dolphinscheduler.server.master.engine.executor.plugin.ILogicTa
 import org.apache.dolphinscheduler.server.master.engine.workflow.execution.IWorkflowExecution;
 import org.apache.dolphinscheduler.task.executor.ITaskExecutor;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

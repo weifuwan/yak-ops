@@ -22,9 +22,9 @@ import org.apache.dolphinscheduler.dao.mapper.ProjectUserMapper;
 import org.apache.dolphinscheduler.dao.repository.BaseDao;
 import org.apache.dolphinscheduler.dao.repository.ProjectUserDao;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class ProjectUserDaoImpl extends BaseDao<ProjectUser, ProjectUserMapper> implements ProjectUserDao {

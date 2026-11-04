@@ -26,9 +26,9 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class WorkflowTaskRelationLogDaoImpl extends BaseDao<WorkflowTaskRelationLog, WorkflowTaskRelationLogMapper>

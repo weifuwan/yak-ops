@@ -19,9 +19,9 @@ package org.apache.dolphinscheduler.common.enums;
 
 import java.util.Arrays;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+
+import lombok.Getter;
 
 @Getter
 public enum WorkflowExecutionStatus {

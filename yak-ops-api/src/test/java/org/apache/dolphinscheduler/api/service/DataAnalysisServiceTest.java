@@ -303,7 +303,7 @@ public class DataAnalysisServiceTest {
         user.setUserType(UserType.GENERAL_USER);
         when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS, 1,
                 serviceLogger))
-                        .thenReturn(projectIds());
+                .thenReturn(projectIds());
         PageInfo<Command> list2 = dataAnalysisServiceImpl.listPendingCommands(user, 1L, 1, 10);
         assertThat(list2.getTotal()).isEqualTo(0);
         when(projectDao.queryByIds(any())).thenReturn(Collections.singletonList(project));
@@ -325,7 +325,7 @@ public class DataAnalysisServiceTest {
         user.setUserType(UserType.GENERAL_USER);
         when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS, 1,
                 serviceLogger))
-                        .thenReturn(projectIds());
+                .thenReturn(projectIds());
         PageInfo<ErrorCommand> list2 = dataAnalysisServiceImpl.listErrorCommand(user, 1L, 1, 10);
         assertThat(list2.getTotal()).isEqualTo(0);
         when(projectDao.queryByIds(any())).thenReturn(Collections.singletonList(project));

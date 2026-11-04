@@ -111,10 +111,10 @@ public class WorkflowInstancePauseTestCase extends AbstractMasterIntegrationTest
                             });
                     assertThat(
                             repository.queryTaskInstance(workflowInstanceId))
-                                    .satisfiesExactly(taskInstance -> {
-                                        assertThat(taskInstance.getState())
-                                                .isEqualTo(TaskExecutionStatus.RUNNING_EXECUTION);
-                                    });
+                            .satisfiesExactly(taskInstance -> {
+                                assertThat(taskInstance.getState())
+                                        .isEqualTo(TaskExecutionStatus.RUNNING_EXECUTION);
+                            });
                 });
 
         assertThat(workflowOperator.pauseWorkflowInstance(workflowInstanceId).isSuccess()).isTrue();

@@ -25,11 +25,11 @@ import org.apache.dolphinscheduler.plugin.task.api.TaskPluginException;
 
 import java.util.Objects;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Repository

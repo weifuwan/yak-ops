@@ -165,7 +165,7 @@ public class TaskInstanceServiceTest {
                 Mockito.any(),
                 Mockito.any(),
                 Mockito.any()))
-                        .thenReturn(pageReturn);
+                .thenReturn(pageReturn);
         when(usersService.queryUser(workflowInstance.getExecutorId())).thenReturn(loginUser);
         when(processService.findWorkflowInstanceDetailById(taskInstance.getWorkflowInstanceId()))
                 .thenReturn(Optional.of(workflowInstance));
@@ -193,7 +193,7 @@ public class TaskInstanceServiceTest {
                 Mockito.any(Page.class), eq(project.getCode()), eq(1),
                 eq(""), eq(""), eq(""), eq(null),
                 eq(""), Mockito.any(), eq("192.168.xx.xx"), eq(TaskExecuteType.BATCH), eq(start), eq(end)))
-                        .thenReturn(pageReturn);
+                .thenReturn(pageReturn);
         Result executorEmptyRes = taskInstanceService.queryTaskListPaging(loginUser, projectCode, 1, "", "", "",
                 null, "", "2020-01-01 00:00:00", "2020-01-02 00:00:00", "", TaskExecutionStatus.SUCCESS,
                 "192.168.xx.xx",
@@ -213,7 +213,7 @@ public class TaskInstanceServiceTest {
         when(taskInstanceDao.queryTaskInstanceListPaging(Mockito.any(Page.class), eq(project.getCode()), eq(1),
                 eq(""), eq(""), eq(""), eq(null),
                 eq(""), Mockito.any(), eq("192.168.xx.xx"), eq(TaskExecuteType.BATCH), any(), any()))
-                        .thenReturn(pageReturn);
+                .thenReturn(pageReturn);
         Result executorNullDateRes = taskInstanceService.queryTaskListPaging(loginUser, projectCode, 1, "", "", "",
                 null, "", null, null, "", TaskExecutionStatus.SUCCESS, "192.168.xx.xx", TaskExecuteType.BATCH, 1, 20);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) executorNullDateRes.getCode());
@@ -222,7 +222,7 @@ public class TaskInstanceServiceTest {
         when(taskInstanceDao.queryTaskInstanceListPaging(Mockito.any(Page.class), eq(project.getCode()), eq(1),
                 eq(""), eq(""), eq(""), eq(null),
                 eq(""), Mockito.any(), eq("192.168.xx.xx"), eq(TaskExecuteType.BATCH), any(), any()))
-                        .thenReturn(pageReturn);
+                .thenReturn(pageReturn);
 
         Assertions.assertThrows(ServiceException.class, () -> taskInstanceService.queryTaskListPaging(
                 loginUser,

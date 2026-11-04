@@ -32,10 +32,10 @@ import org.apache.dolphinscheduler.task.executor.operations.TaskExecutorReassign
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

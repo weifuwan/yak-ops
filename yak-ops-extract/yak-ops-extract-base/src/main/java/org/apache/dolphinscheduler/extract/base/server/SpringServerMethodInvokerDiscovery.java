@@ -19,11 +19,11 @@ package org.apache.dolphinscheduler.extract.base.server;
 
 import org.apache.dolphinscheduler.extract.base.config.NettyServerConfig;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.lang.Nullable;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The RpcServer which will auto discovery the {@link ServerMethodInvoker} from Spring container.

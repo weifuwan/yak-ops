@@ -20,9 +20,9 @@ package org.apache.dolphinscheduler.server.master.rpc;
 import org.apache.dolphinscheduler.extract.common.ILogService;
 import org.apache.dolphinscheduler.extract.common.service.impl.LogServiceImpl;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service

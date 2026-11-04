@@ -24,10 +24,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
-import lombok.extern.slf4j.Slf4j;
 import io.etcd.jetcd.Client;
 import io.etcd.jetcd.lease.LeaseKeepAliveResponse;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class EtcdKeepAliveLeaseManager {

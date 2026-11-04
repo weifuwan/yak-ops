@@ -24,9 +24,9 @@ import org.apache.dolphinscheduler.server.master.engine.WorkflowEngine;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service

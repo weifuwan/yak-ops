@@ -22,8 +22,6 @@ import static java.util.Objects.isNull;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import lombok.Getter;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -38,6 +36,7 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.protobuf.ProtoUtils;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import lombok.Getter;
 
 public class GrpcDynamicService {
 

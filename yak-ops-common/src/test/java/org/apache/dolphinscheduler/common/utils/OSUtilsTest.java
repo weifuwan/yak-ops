@@ -21,10 +21,10 @@ import org.apache.commons.lang3.SystemUtils;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OSUtilsTest {

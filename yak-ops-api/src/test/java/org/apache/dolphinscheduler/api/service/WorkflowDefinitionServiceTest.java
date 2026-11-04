@@ -1420,8 +1420,8 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
 
         assertThatThrownBy(
                 () -> invokePrivateMethod("replaceTaskCodeForSwitchTaskParams", taskDef, Collections.emptyMap()))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("Failed to parse Switch task params");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Failed to parse Switch task params");
     }
 
     @Test

@@ -17,17 +17,16 @@
 
 package org.apache.dolphinscheduler.authentication.aws;
 
-import software.amazon.awssdk.utils.StringUtils;
-
 import java.util.Map;
-
-import lombok.experimental.UtilityClass;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+
+import lombok.experimental.UtilityClass;
+import software.amazon.awssdk.utils.StringUtils;
 
 @UtilityClass
 public class AmazonS3ClientFactory {

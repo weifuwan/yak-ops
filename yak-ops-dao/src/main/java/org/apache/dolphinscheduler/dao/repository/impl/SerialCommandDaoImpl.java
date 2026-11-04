@@ -26,9 +26,9 @@ import org.apache.dolphinscheduler.dao.repository.SerialCommandDao;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.NonNull;
-
 import org.springframework.stereotype.Repository;
+
+import lombok.NonNull;
 
 @Repository
 public class SerialCommandDaoImpl extends BaseDao<SerialCommand, SerialCommandMapper> implements SerialCommandDao {

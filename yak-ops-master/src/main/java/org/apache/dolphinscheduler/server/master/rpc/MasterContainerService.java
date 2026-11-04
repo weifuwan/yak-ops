@@ -20,10 +20,10 @@ package org.apache.dolphinscheduler.server.master.rpc;
 import org.apache.dolphinscheduler.extract.master.IMasterContainerService;
 import org.apache.dolphinscheduler.server.master.cluster.WorkerGroupChangeNotifier;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

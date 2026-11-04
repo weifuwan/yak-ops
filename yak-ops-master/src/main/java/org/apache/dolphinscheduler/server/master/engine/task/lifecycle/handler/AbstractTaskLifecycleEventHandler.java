@@ -25,9 +25,9 @@ import org.apache.dolphinscheduler.server.master.engine.task.statemachine.ITaskS
 import org.apache.dolphinscheduler.server.master.engine.task.statemachine.TaskStateActionFactory;
 import org.apache.dolphinscheduler.server.master.engine.workflow.execution.IWorkflowExecution;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractTaskLifecycleEventHandler<T extends AbstractTaskLifecycleEvent>

@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import io.etcd.jetcd.Client;
 
 public class EtcdConnectionStateListener implements AutoCloseable {

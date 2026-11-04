@@ -22,10 +22,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @UtilityClass
 @Slf4j

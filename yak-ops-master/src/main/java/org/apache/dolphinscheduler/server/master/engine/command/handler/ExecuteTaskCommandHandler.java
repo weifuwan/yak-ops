@@ -96,8 +96,8 @@ public class ExecuteTaskCommandHandler extends AbstractCommandHandler {
         final List<String> startNodes = parseStartNodesFromCommand(workflowExecuteContextBuilder, workflowGraph);
         final Map<String, TaskInstance> taskInstanceMap = getValidTaskInstance(workflowExecuteContextBuilder
                 .getWorkflowInstance())
-                        .stream()
-                        .collect(Collectors.toMap(TaskInstance::getName, Function.identity()));
+                .stream()
+                .collect(Collectors.toMap(TaskInstance::getName, Function.identity()));
 
         // Mark the selected task and all its downstream task instances as invalid, then trigger them again.
         final Set<String> taskNamesNeedRerun = new HashSet<>();

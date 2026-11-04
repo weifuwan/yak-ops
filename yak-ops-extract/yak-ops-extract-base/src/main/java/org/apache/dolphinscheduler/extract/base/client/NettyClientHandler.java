@@ -24,12 +24,12 @@ import org.apache.dolphinscheduler.extract.base.protocal.Transporter;
 import org.apache.dolphinscheduler.extract.base.serialize.JsonSerializer;
 import org.apache.dolphinscheduler.extract.base.utils.ChannelUtils;
 
-import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleStateEvent;
+import lombok.extern.slf4j.Slf4j;
 
 @ChannelHandler.Sharable
 @Slf4j

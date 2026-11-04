@@ -19,12 +19,12 @@ package org.apache.dolphinscheduler.api.dto.resources;
 
 import org.apache.dolphinscheduler.dao.entity.User;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder

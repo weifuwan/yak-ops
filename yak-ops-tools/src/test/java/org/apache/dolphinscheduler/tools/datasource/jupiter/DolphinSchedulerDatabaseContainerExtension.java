@@ -21,13 +21,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DolphinSchedulerDatabaseContainerExtension implements BeforeAllCallback, AfterAllCallback {

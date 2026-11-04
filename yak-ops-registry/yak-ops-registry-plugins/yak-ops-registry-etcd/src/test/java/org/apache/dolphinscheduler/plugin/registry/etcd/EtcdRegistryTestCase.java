@@ -22,8 +22,6 @@ import org.apache.dolphinscheduler.plugin.registry.RegistryTestCase;
 import java.net.URI;
 import java.util.stream.Collectors;
 
-import lombok.SneakyThrows;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import io.etcd.jetcd.launcher.EtcdCluster;
 import io.etcd.jetcd.test.EtcdClusterExtension;
+import lombok.SneakyThrows;
 
 @SpringBootTest(classes = EtcdRegistryProperties.class)
 @SpringBootApplication(scanBasePackageClasses = EtcdRegistryProperties.class)

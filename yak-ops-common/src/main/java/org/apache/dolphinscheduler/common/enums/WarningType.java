@@ -22,10 +22,10 @@ import static java.util.stream.Collectors.toMap;
 import java.util.Arrays;
 import java.util.Map;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.google.common.base.Functions;
+
+import lombok.Getter;
 
 /**
  * types for whether to send warning when workflow instance ends

@@ -39,12 +39,12 @@ import org.apache.commons.lang3.time.DateUtils;
 import java.time.Duration;
 import java.util.Date;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The integration test for scheduling a workflow from workflow definition.

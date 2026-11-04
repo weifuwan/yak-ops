@@ -27,10 +27,10 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import org.slf4j.Logger;
 
 public class PermissionCheck<T> {
 

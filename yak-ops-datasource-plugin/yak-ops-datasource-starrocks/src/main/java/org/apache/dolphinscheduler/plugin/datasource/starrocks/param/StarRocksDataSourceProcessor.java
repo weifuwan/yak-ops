@@ -38,9 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.auto.service.AutoService;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoService(DataSourceProcessor.class)

@@ -17,9 +17,9 @@
 
 package org.apache.dolphinscheduler.server.master.cluster.loadbalancer;
 
-import lombok.Data;
-
 import org.springframework.validation.Errors;
+
+import lombok.Data;
 
 @Data
 public class WorkerLoadBalancerConfigurationProperties {

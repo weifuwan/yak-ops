@@ -28,12 +28,11 @@ import java.util.regex.Pattern;
 
 import javax.script.ScriptException;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.google.common.collect.Maps;
 
 import delight.nashornsandbox.NashornSandbox;
 import delight.nashornsandbox.NashornSandboxes;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SwitchTaskUtils {

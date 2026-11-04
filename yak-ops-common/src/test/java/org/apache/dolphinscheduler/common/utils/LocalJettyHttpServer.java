@@ -23,9 +23,6 @@ import java.io.OutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import junit.extensions.TestSetup;
-import junit.framework.Test;
-
 import org.mortbay.jetty.HttpConnection;
 import org.mortbay.jetty.Request;
 import org.mortbay.jetty.Server;
@@ -34,6 +31,9 @@ import org.mortbay.jetty.handler.ContextHandler;
 import org.mortbay.util.ByteArrayISO8859Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import junit.extensions.TestSetup;
+import junit.framework.Test;
 
 public class LocalJettyHttpServer extends TestSetup {
 

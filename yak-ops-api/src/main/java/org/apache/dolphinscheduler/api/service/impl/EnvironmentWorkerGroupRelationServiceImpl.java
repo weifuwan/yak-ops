@@ -23,10 +23,10 @@ import org.apache.dolphinscheduler.dao.mapper.EnvironmentWorkerGroupRelationMapp
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * environment worker group relation service impl

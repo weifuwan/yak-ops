@@ -264,7 +264,7 @@ public class WorkflowInstanceServiceTest {
                 eq("192.168.xx.xx"),
                 eq(start),
                 eq(end)))
-                        .thenReturn(pageReturn);
+                .thenReturn(pageReturn);
         when(usersService.queryUser(workflowInstance.getExecutorId())).thenReturn(loginUser);
 
         Result successRes =
@@ -354,7 +354,7 @@ public class WorkflowInstanceServiceTest {
 
         when(workflowInstanceDao.queryTopNWorkflowInstance(Mockito.eq(size), Mockito.any(), Mockito.any(),
                 Mockito.eq(WorkflowExecutionStatus.SUCCESS), Mockito.eq(projectCode)))
-                        .thenReturn(new ArrayList<>());
+                .thenReturn(new ArrayList<>());
         List<WorkflowInstanceSummaryVO> successRes =
                 workflowInstanceService.queryTopNLongestRunningWorkflowInstance(loginUser,
                         projectCode, size, startTime, endTime);
@@ -474,7 +474,7 @@ public class WorkflowInstanceServiceTest {
         when(loggerService.queryLog(loginUser, taskInstance.getId(), 0, 4098)).thenReturn(res);
         when(taskInstanceContextDao.batchQueryByTaskInstanceIdsAndContextType(taskInstanceIdList,
                 ContextType.DEPENDENT_RESULT_CONTEXT))
-                        .thenReturn(Lists.asList(taskInstanceContext, new TaskInstanceContext[0]));
+                .thenReturn(Lists.asList(taskInstanceContext, new TaskInstanceContext[0]));
         WorkflowInstanceTaskListDTO successRes =
                 workflowInstanceService.queryTaskListByWorkflowInstanceId(loginUser, projectCode, 1);
         Assertions.assertEquals(WorkflowExecutionStatus.SUCCESS.toString(), successRes.getWorkflowInstanceState());
@@ -806,8 +806,8 @@ public class WorkflowInstanceServiceTest {
         // project auth fail
         doThrow(new ServiceException(Status.USER_NO_OPERATION_PROJECT_PERM,
                 loginUser.getUserName(), projectCode))
-                        .when(projectService)
-                        .checkProjectAndAuthThrowException(loginUser, projectCode, WORKFLOW_INSTANCE);
+                .when(projectService)
+                .checkProjectAndAuthThrowException(loginUser, projectCode, WORKFLOW_INSTANCE);
         assertThrowsServiceException(Status.USER_NO_OPERATION_PROJECT_PERM,
                 () -> workflowInstanceService.viewVariables(loginUser, projectCode, 1));
     }
@@ -933,8 +933,8 @@ public class WorkflowInstanceServiceTest {
         // project auth fail
         doThrow(new ServiceException(Status.USER_NO_OPERATION_PROJECT_PERM,
                 loginUser.getUserName(), projectCode))
-                        .when(projectService)
-                        .checkProjectAndAuthThrowException(loginUser, projectCode, WORKFLOW_INSTANCE);
+                .when(projectService)
+                .checkProjectAndAuthThrowException(loginUser, projectCode, WORKFLOW_INSTANCE);
         assertThrowsServiceException(Status.USER_NO_OPERATION_PROJECT_PERM,
                 () -> workflowInstanceService.viewGantt(loginUser, projectCode, 1));
     }

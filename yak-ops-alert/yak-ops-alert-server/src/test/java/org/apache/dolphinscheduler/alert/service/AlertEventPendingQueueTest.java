@@ -27,11 +27,11 @@ import org.apache.dolphinscheduler.dao.entity.Alert;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-import lombok.SneakyThrows;
-
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import lombok.SneakyThrows;
 
 class AlertEventPendingQueueTest {
 

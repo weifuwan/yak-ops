@@ -30,9 +30,9 @@ import org.apache.dolphinscheduler.server.master.engine.task.statemachine.ITaskS
 import org.apache.dolphinscheduler.server.master.engine.workflow.execution.IWorkflowExecution;
 import org.apache.dolphinscheduler.service.alert.WorkflowAlertManager;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
