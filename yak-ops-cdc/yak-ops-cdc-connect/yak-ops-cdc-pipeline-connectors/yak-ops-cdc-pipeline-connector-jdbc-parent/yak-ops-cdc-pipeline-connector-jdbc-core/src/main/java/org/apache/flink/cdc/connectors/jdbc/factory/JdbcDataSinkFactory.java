@@ -55,6 +55,7 @@ import static org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions.SERVE
 import static org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions.USERNAME;
 import static org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions.WRITE_BATCH_INTERVAL_MS;
 import static org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions.WRITE_BATCH_SIZE;
+import static org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions.WRITE_MAX_OPEN_TABLES;
 import static org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions.WRITE_MAX_RETRIES;
 
 /** A {@link DataSinkFactory} for creating JDBC sinks. */
@@ -87,6 +88,7 @@ public class JdbcDataSinkFactory implements DataSinkFactory {
                 .connectMaxRetries(config.get(CONNECT_MAX_RETRIES))
                 .writeBatchIntervalMs(config.get(WRITE_BATCH_INTERVAL_MS))
                 .writeBatchSize(config.get(WRITE_BATCH_SIZE))
+                .writeMaxOpenTables(config.get(WRITE_MAX_OPEN_TABLES))
                 .writeMaxRetries(config.get(WRITE_MAX_RETRIES))
                 .driverClassName(config.get(DRIVER_CLASS_NAME));
 
@@ -154,6 +156,7 @@ public class JdbcDataSinkFactory implements DataSinkFactory {
         options.add(CONNECT_MAX_RETRIES);
         options.add(WRITE_BATCH_INTERVAL_MS);
         options.add(WRITE_BATCH_SIZE);
+        options.add(WRITE_MAX_OPEN_TABLES);
         options.add(WRITE_MAX_RETRIES);
         return options;
     }
