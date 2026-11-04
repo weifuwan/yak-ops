@@ -19,8 +19,9 @@ package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
 import org.apache.flink.api.connector.sink2.StatefulSink;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
-import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
+import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
+import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
 import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterState;
@@ -39,23 +40,26 @@ public class JdbcSink<IN> implements StatefulSink<IN, JdbcWriterState> {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcSink.class);
 
     private final JdbcConnectionProvider connectionProvider;
+    private final JdbcConnectionOptions connectionOptions;
 
     private final JdbcExecutionOptions executionOptions;
 
     private final RecordSerializationSchema<IN> serializationSchema;
 
-    private final JdbcSinkDialect dialect;
+    private final JdbcDialect dialect;
 
     private final JdbcSinkConfig sinkConfig;
 
     public JdbcSink(
             JdbcExecutionOptions executionOptions,
+            JdbcConnectionOptions connectionOptions,
             JdbcConnectionProvider connectionProvider,
             RecordSerializationSchema<IN> serializationSchema,
-            JdbcSinkDialect dialect,
+            JdbcDialect dialect,
             JdbcSinkConfig sinkConfig) {
         this.executionOptions = executionOptions;
         this.connectionProvider = connectionProvider;
+        this.connectionOptions = connectionOptions;
         this.serializationSchema = serializationSchema;
         this.dialect = dialect;
         this.sinkConfig = sinkConfig;
@@ -77,6 +81,7 @@ public class JdbcSink<IN> implements StatefulSink<IN, JdbcWriterState> {
         return new JdbcWriter<>(
                 context,
                 executionOptions,
+                connectionOptions,
                 connectionProvider,
                 outputSerializer,
                 serializationSchema,
