@@ -33,6 +33,18 @@ limitations under the License.
             <artifactId>yak-ops-cdc-base</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Keep focused JDBC pipeline tests independent of the application test suite. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-runtime</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
