@@ -24,13 +24,11 @@ import static org.mockito.Mockito.when;
 
 import org.apache.dolphinscheduler.api.dto.ClusterDto;
 import org.apache.dolphinscheduler.api.enums.Status;
-import org.apache.dolphinscheduler.api.k8s.K8sManager;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.dao.entity.Cluster;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.repository.ClusterDao;
-import org.apache.dolphinscheduler.dao.repository.K8sNamespaceDao;
 
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -63,12 +61,6 @@ public class ClusterServiceTest {
 
     @Mock
     private ClusterDao clusterDao;
-
-    @Mock
-    private K8sManager k8sManager;
-
-    @Mock
-    private K8sNamespaceDao k8sNamespaceDao;
 
     public static final String testUserName = "clusterServerTest";
 
@@ -186,9 +178,6 @@ public class ClusterServiceTest {
         when(clusterDao.deleteByCode(1L)).thenReturn(true);
         assertDoesNotThrow(() -> clusterService.deleteClusterByCode(adminUser, 1L));
 
-        when(k8sNamespaceDao.countByClusterCode(Mockito.anyLong())).thenReturn(1L);
-        assertThrowsServiceException(Status.DELETE_CLUSTER_RELATED_NAMESPACE_EXISTS,
-                () -> clusterService.deleteClusterByCode(adminUser, 1L));
     }
 
     @Test

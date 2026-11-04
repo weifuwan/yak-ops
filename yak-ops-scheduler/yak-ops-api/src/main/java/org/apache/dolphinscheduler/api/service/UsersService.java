@@ -126,11 +126,6 @@ public interface UsersService {
     void revokeProject(User loginUser, int userId, long projectCode);
 
     /**
-     * grant namespace
-     */
-    void grantNamespaces(User loginUser, int userId, String namespaceIds);
-
-    /**
      * grant datasource
      */
     void grantDataSource(User loginUser, int userId, String datasourceIds);

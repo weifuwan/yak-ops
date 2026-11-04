@@ -193,11 +193,6 @@
             <artifactId>hibernate-validator</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-client</artifactId>
-        </dependency>
-
         <!-- just for test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

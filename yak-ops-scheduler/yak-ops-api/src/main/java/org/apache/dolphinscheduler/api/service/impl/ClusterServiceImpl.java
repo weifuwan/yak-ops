@@ -20,7 +20,6 @@ package org.apache.dolphinscheduler.api.service.impl;
 import org.apache.dolphinscheduler.api.dto.ClusterDto;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.exceptions.ServiceException;
-import org.apache.dolphinscheduler.api.k8s.K8sManager;
 import org.apache.dolphinscheduler.api.service.ClusterService;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.common.constants.Constants;
@@ -29,8 +28,6 @@ import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.dao.entity.Cluster;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.repository.ClusterDao;
-import org.apache.dolphinscheduler.dao.repository.K8sNamespaceDao;
-import org.apache.dolphinscheduler.service.utils.ClusterConfUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -60,11 +57,6 @@ public class ClusterServiceImpl extends BaseServiceImpl implements ClusterServic
     @Autowired
     private ClusterDao clusterDao;
 
-    @Autowired
-    private K8sManager k8sManager;
-
-    @Autowired
-    private K8sNamespaceDao k8sNamespaceDao;
 
     /**
      * create cluster
@@ -193,11 +185,6 @@ public class ClusterServiceImpl extends BaseServiceImpl implements ClusterServic
             throw new ServiceException(Status.USER_NO_OPERATION_PERM);
         }
 
-        long relatedNamespaceNumber = k8sNamespaceDao.countByClusterCode(code);
-
-        if (relatedNamespaceNumber > 0) {
-            throw new ServiceException(Status.DELETE_CLUSTER_RELATED_NAMESPACE_EXISTS);
-        }
 
         if (clusterDao.deleteByCode(code)) {
             return;
@@ -240,14 +227,6 @@ public class ClusterServiceImpl extends BaseServiceImpl implements ClusterServic
             throw new ServiceException(Status.CLUSTER_NOT_EXISTS, name);
         }
 
-        if (!Constants.K8S_LOCAL_TEST_CLUSTER_CODE.equals(clusterExist.getCode())
-                && !config.equals(ClusterConfUtils.getK8sConfig(clusterExist.getConfig()))) {
-            try {
-                k8sManager.getAndUpdateK8sClient(code, true);
-            } catch (Exception e) {
-                throw new ServiceException(Status.K8S_CLIENT_OPS_ERROR, name);
-            }
-        }
 
         // update cluster
         // need not update relation

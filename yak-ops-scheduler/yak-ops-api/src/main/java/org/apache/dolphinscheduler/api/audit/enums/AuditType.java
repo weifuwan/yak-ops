@@ -42,7 +42,6 @@ import static org.apache.dolphinscheduler.common.enums.AuditModelType.DATASOURCE
 import static org.apache.dolphinscheduler.common.enums.AuditModelType.ENVIRONMENT;
 import static org.apache.dolphinscheduler.common.enums.AuditModelType.FILE;
 import static org.apache.dolphinscheduler.common.enums.AuditModelType.FOLDER;
-import static org.apache.dolphinscheduler.common.enums.AuditModelType.K8S_NAMESPACE;
 import static org.apache.dolphinscheduler.common.enums.AuditModelType.PROJECT;
 import static org.apache.dolphinscheduler.common.enums.AuditModelType.SCHEDULE;
 import static org.apache.dolphinscheduler.common.enums.AuditModelType.TASK;
@@ -82,7 +81,6 @@ import org.apache.dolphinscheduler.api.audit.operator.impl.AlertInstanceAuditOpe
 import org.apache.dolphinscheduler.api.audit.operator.impl.ClusterAuditOperatorImpl;
 import org.apache.dolphinscheduler.api.audit.operator.impl.DatasourceAuditOperatorImpl;
 import org.apache.dolphinscheduler.api.audit.operator.impl.EnvironmentAuditOperatorImpl;
-import org.apache.dolphinscheduler.api.audit.operator.impl.K8SNamespaceAuditOperatorImpl;
 import org.apache.dolphinscheduler.api.audit.operator.impl.ProjectAuditOperatorImpl;
 import org.apache.dolphinscheduler.api.audit.operator.impl.ResourceAuditOperatorImpl;
 import org.apache.dolphinscheduler.api.audit.operator.impl.ScheduleAuditOperatorImpl;
@@ -207,9 +205,6 @@ public enum AuditType {
     CLUSTER_CREATE(CLUSTER, CREATE, ClusterAuditOperatorImpl.class, new String[]{}, new String[]{CODE}),
     CLUSTER_UPDATE(CLUSTER, UPDATE, ClusterAuditOperatorImpl.class, new String[]{}, new String[]{CODE}),
     CLUSTER_DELETE(CLUSTER, DELETE, ClusterAuditOperatorImpl.class, new String[]{CLUSTER_CODE}, new String[]{}),
-
-    K8S_NAMESPACE_CREATE(K8S_NAMESPACE, CREATE, K8SNamespaceAuditOperatorImpl.class, new String[]{}, new String[]{ID}),
-    K8S_NAMESPACE_DELETE(K8S_NAMESPACE, DELETE, K8SNamespaceAuditOperatorImpl.class, new String[]{ID}, new String[]{}),
 
     TOKEN_CREATE(TOKEN, CREATE, TokenAuditOperatorImpl.class, new String[]{}, new String[]{USER_ID}),
     TOKEN_UPDATE(TOKEN, UPDATE, TokenAuditOperatorImpl.class, new String[]{}, new String[]{USER_ID}),

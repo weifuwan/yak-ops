@@ -37,7 +37,6 @@ public enum AuthorizationType {
      * 9 ACCESS_TOKEN;
      * 10 QUEUE;
      * 11 DATA_ANALYSIS;
-     * 12 K8S_NAMESPACE;
      * 13 MONITOR;
      * 14 ALERT_PLUGIN_INSTANCE;
      * 15 TENANT;
@@ -58,7 +57,6 @@ public enum AuthorizationType {
     ACCESS_TOKEN(9, "access token"),
     QUEUE(10, "queue"),
     DATA_ANALYSIS(11, "data analysis"),
-    K8S_NAMESPACE(12, "k8s namespace"),
     MONITOR(13, "monitor"),
     ALERT_PLUGIN_INSTANCE(14, "alert plugin instance"),
     TENANT(15, "tenant"),

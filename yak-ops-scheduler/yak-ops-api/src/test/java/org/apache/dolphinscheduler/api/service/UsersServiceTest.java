@@ -38,7 +38,6 @@ import org.apache.dolphinscheduler.dao.entity.AlertGroup;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.Tenant;
 import org.apache.dolphinscheduler.dao.entity.User;
-import org.apache.dolphinscheduler.dao.mapper.K8sNamespaceUserMapper;
 import org.apache.dolphinscheduler.dao.repository.AccessTokenDao;
 import org.apache.dolphinscheduler.dao.repository.AlertGroupDao;
 import org.apache.dolphinscheduler.dao.repository.DataSourceUserDao;
@@ -92,9 +91,6 @@ public class UsersServiceTest {
 
     @Mock
     private DataSourceUserDao datasourceUserDao;
-
-    @Mock
-    private K8sNamespaceUserMapper k8sNamespaceUserMapper;
 
     @Mock
     private ProjectDao projectDao;
@@ -493,21 +489,6 @@ public class UsersServiceTest {
         // success
         Mockito.when(this.projectDao.queryByCode(Mockito.anyLong())).thenReturn(new Project());
         assertDoesNotThrow(() -> usersService.revokeProjectById(loginUser, 1, projectId));
-    }
-
-    @Test
-    public void testGrantNamespaces() {
-        String namespaceIds = "100000,120000";
-        when(userDao.queryById(1)).thenReturn(getUser());
-        User loginUser = new User();
-
-        // user not exist
-        loginUser.setUserType(UserType.ADMIN_USER);
-        assertThrowsServiceException(Status.USER_NOT_EXIST,
-                () -> usersService.grantNamespaces(loginUser, 2, namespaceIds));
-        // success
-        when(k8sNamespaceUserMapper.deleteNamespaceRelation(0, 1)).thenReturn(1);
-        assertDoesNotThrow(() -> usersService.grantNamespaces(loginUser, 1, namespaceIds));
     }
 
     @Test

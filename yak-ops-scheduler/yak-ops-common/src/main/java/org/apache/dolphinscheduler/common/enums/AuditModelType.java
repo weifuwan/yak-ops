@@ -49,7 +49,6 @@ public enum AuditModelType {
     YARN_QUEUE("YarnQueue", SECURITY),
     ENVIRONMENT("Environment", SECURITY),
     CLUSTER("Cluster", SECURITY),
-    K8S_NAMESPACE("K8sNamespace", SECURITY),
     TOKEN("Token", SECURITY),
     ;
     private final String name;

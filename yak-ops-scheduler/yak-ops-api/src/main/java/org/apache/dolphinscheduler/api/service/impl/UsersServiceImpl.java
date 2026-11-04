@@ -32,12 +32,10 @@ import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.common.utils.EncryptionUtils;
 import org.apache.dolphinscheduler.dao.entity.AlertGroup;
 import org.apache.dolphinscheduler.dao.entity.DatasourceUser;
-import org.apache.dolphinscheduler.dao.entity.K8sNamespaceUser;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.ProjectUser;
 import org.apache.dolphinscheduler.dao.entity.Tenant;
 import org.apache.dolphinscheduler.dao.entity.User;
-import org.apache.dolphinscheduler.dao.mapper.K8sNamespaceUserMapper;
 import org.apache.dolphinscheduler.dao.repository.AccessTokenDao;
 import org.apache.dolphinscheduler.dao.repository.AlertGroupDao;
 import org.apache.dolphinscheduler.dao.repository.DataSourceUserDao;
@@ -92,9 +90,6 @@ public class UsersServiceImpl extends BaseServiceImpl implements UsersService {
 
     @Autowired
     private ProjectDao projectDao;
-
-    @Autowired
-    private K8sNamespaceUserMapper k8sNamespaceUserMapper;
 
     @Autowired
     private SessionService sessionService;
@@ -649,47 +644,6 @@ public class UsersServiceImpl extends BaseServiceImpl implements UsersService {
         log.info("User is revoked permission for projects, userId:{}, projectCode:{}.", userId, projectCode);
     }
 
-    /**
-     * grant namespace
-     *
-     * @param loginUser    login user
-     * @param userId       user id
-     * @param namespaceIds namespace id array
-     * @return grant result code
-     */
-    @Override
-    @Transactional
-    public void grantNamespaces(User loginUser, int userId, String namespaceIds) {
-        // only admin can operate
-        if (!this.isAdmin(loginUser)) {
-            log.warn("Only admin can grant namespaces.");
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
-
-        // check exist
-        User tempUser = userDao.queryById(userId);
-        if (tempUser == null) {
-            log.error("User does not exist, userId:{}.", userId);
-            throw new ServiceException(Status.USER_NOT_EXIST, userId);
-        }
-
-        k8sNamespaceUserMapper.deleteNamespaceRelation(0, userId);
-        if (StringUtils.isNotEmpty(namespaceIds)) {
-            String[] namespaceIdArr = namespaceIds.split(",");
-            for (String namespaceId : namespaceIdArr) {
-                Date now = new Date();
-                K8sNamespaceUser namespaceUser = new K8sNamespaceUser();
-                namespaceUser.setUserId(userId);
-                namespaceUser.setNamespaceId(Integer.parseInt(namespaceId));
-                namespaceUser.setPerm(7);
-                namespaceUser.setCreateTime(now);
-                namespaceUser.setUpdateTime(now);
-                k8sNamespaceUserMapper.insert(namespaceUser);
-            }
-        }
-
-        log.info("User is granted permission for namespace, userId:{}.", tempUser.getId());
-    }
 
     /**
      * grant datasource

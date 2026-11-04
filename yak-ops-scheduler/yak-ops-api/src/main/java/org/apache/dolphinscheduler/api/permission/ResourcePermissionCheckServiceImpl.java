@@ -25,7 +25,6 @@ import org.apache.dolphinscheduler.dao.entity.AccessToken;
 import org.apache.dolphinscheduler.dao.entity.AlertGroup;
 import org.apache.dolphinscheduler.dao.entity.DataSource;
 import org.apache.dolphinscheduler.dao.entity.Environment;
-import org.apache.dolphinscheduler.dao.entity.K8sNamespace;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.Queue;
 import org.apache.dolphinscheduler.dao.entity.TaskGroup;
@@ -38,7 +37,6 @@ import org.apache.dolphinscheduler.dao.mapper.TaskGroupMapper;
 import org.apache.dolphinscheduler.dao.repository.AccessTokenDao;
 import org.apache.dolphinscheduler.dao.repository.AlertGroupDao;
 import org.apache.dolphinscheduler.dao.repository.DataSourceDao;
-import org.apache.dolphinscheduler.dao.repository.K8sNamespaceDao;
 import org.apache.dolphinscheduler.dao.repository.ProjectDao;
 import org.apache.dolphinscheduler.dao.repository.QueueDao;
 import org.apache.dolphinscheduler.dao.repository.TenantDao;
@@ -201,32 +199,6 @@ public class ResourcePermissionCheckServiceImpl
         @Override
         public boolean permissionCheck(int userId, String permissionKey, Logger logger) {
             return true;
-        }
-    }
-
-    @Component
-    public static class K8sNamespaceResourcePermissionCheck implements ResourceAcquisitionAndPermissionCheck<Integer> {
-
-        private final K8sNamespaceDao k8sNamespaceDao;
-
-        public K8sNamespaceResourcePermissionCheck(K8sNamespaceDao k8sNamespaceDao) {
-            this.k8sNamespaceDao = k8sNamespaceDao;
-        }
-
-        @Override
-        public List<AuthorizationType> authorizationTypes() {
-            return Collections.singletonList(AuthorizationType.K8S_NAMESPACE);
-        }
-
-        @Override
-        public boolean permissionCheck(int userId, String url, Logger logger) {
-            return false;
-        }
-
-        @Override
-        public Set<Integer> listAuthorizedResourceIds(int userId, Logger logger) {
-            List<K8sNamespace> k8sNamespaces = k8sNamespaceDao.queryAuthedNamespaceListByUserId(userId);
-            return k8sNamespaces.stream().map(K8sNamespace::getId).collect(Collectors.toSet());
         }
     }
 
