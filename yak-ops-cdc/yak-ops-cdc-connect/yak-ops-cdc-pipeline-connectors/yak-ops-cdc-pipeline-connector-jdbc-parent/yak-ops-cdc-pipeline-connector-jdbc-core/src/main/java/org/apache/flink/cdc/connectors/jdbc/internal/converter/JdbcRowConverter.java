@@ -18,7 +18,7 @@
 package org.apache.flink.cdc.connectors.jdbc.internal.converter;
 
 import org.apache.flink.cdc.common.schema.Schema;
-import org.apache.flink.cdc.connectors.jdbc.sink.v2.JdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
 import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
 
 import java.io.Serializable;
