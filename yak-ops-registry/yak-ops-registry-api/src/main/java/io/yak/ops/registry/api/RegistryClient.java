@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Component;
 
@@ -35,8 +34,6 @@ public class RegistryClient {
 
     private static final String EMPTY = "";
     private IStoppable stoppable;
-
-    private final Map<RegistryNodeType, IStoppable> roleStoppables = new ConcurrentHashMap<>();
 
     private final Registry registry;
 
@@ -192,18 +189,6 @@ public class RegistryClient {
 
     public IStoppable getStoppable() {
         return stoppable;
-    }
-
-    public void setStoppable(RegistryNodeType role, IStoppable stoppable) {
-        roleStoppables.put(role, stoppable);
-    }
-
-    public IStoppable getStoppable(RegistryNodeType role) {
-        IStoppable result = roleStoppables.get(role);
-        if (result == null) {
-            throw new IllegalStateException("No stop callback registered for " + role);
-        }
-        return result;
     }
 
     public Collection<String> getChildrenKeys(final String key) {

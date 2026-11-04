@@ -10,7 +10,6 @@ import io.yak.ops.common.utils.OSUtils;
 import io.yak.ops.meter.metrics.MetricsProvider;
 import io.yak.ops.meter.metrics.SystemMetrics;
 import io.yak.ops.registry.api.RegistryClient;
-import io.yak.ops.registry.api.enums.RegistryNodeType;
 import io.yak.ops.registry.api.utils.RegistryUtils;
 import io.yak.ops.server.worker.config.WorkerConfig;
 import io.yak.ops.server.worker.config.WorkerServerLoadProtection;
@@ -82,7 +81,7 @@ public class WorkerHeartBeatTask extends BaseHeartBeatTask<WorkerHeartBeat> {
                     workerHeartBeat,
                     failoverNodePath);
             registryClient
-                    .getStoppable(RegistryNodeType.WORKER)
+                    .getStoppable()
                     .stop("The worker exist: " + failoverNodePath + ", means it has been failover will close myself");
             return;
         }

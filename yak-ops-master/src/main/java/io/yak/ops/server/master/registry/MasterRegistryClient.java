@@ -14,10 +14,7 @@ import io.yak.ops.server.master.config.MasterConfig;
 import io.yak.ops.server.master.config.MasterServerLoadProtection;
 import io.yak.ops.server.master.engine.MasterCoordinator;
 
-import java.time.Duration;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class MasterRegistryClient implements AutoCloseable {
-
-    @Value("${yak-ops.startup.registry-timeout:60s}")
-    private Duration startupRegistryTimeout = Duration.ofSeconds(60);
 
     @Autowired
     private RegistryClient registryClient;
@@ -63,7 +57,7 @@ public class MasterRegistryClient implements AutoCloseable {
     }
 
     public void setRegistryStoppable(IStoppable stoppable) {
-        registryClient.setStoppable(RegistryNodeType.MASTER, stoppable);
+        registryClient.setStoppable(stoppable);
     }
 
     @Override
@@ -89,11 +83,8 @@ public class MasterRegistryClient implements AutoCloseable {
         registryClient.remove(masterRegistryPath);
         registryClient.persistEphemeral(masterRegistryPath, JSONUtils.toJsonString(masterHeartBeatTask.getHeartBeat()));
 
-        long deadline = System.nanoTime() + startupRegistryTimeout.toNanos();
         while (!registryClient.checkNodeExists(NetUtils.getHost(), RegistryNodeType.MASTER)) {
-            if (System.nanoTime() >= deadline) {
-                throw new RegistryException("Timed out waiting for MASTER registration in Registry");
-            }
+            log.warn("The current master server node:{} cannot find in registry", NetUtils.getHost());
             ThreadUtils.sleep(SLEEP_TIME_MILLIS);
         }
 
@@ -109,6 +100,7 @@ public class MasterRegistryClient implements AutoCloseable {
             if (masterHeartBeatTask != null) {
                 masterHeartBeatTask.shutdown();
             }
+            registryClient.close();
         } catch (Exception e) {
             log.error("MasterServer remove registry path exception ", e);
         }

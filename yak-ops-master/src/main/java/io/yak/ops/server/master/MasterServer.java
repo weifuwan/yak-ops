@@ -27,20 +27,17 @@ import io.yak.ops.server.master.registry.MasterRegistryClient;
 import io.yak.ops.server.master.rpc.MasterRpcServer;
 import io.yak.ops.server.master.utils.MasterThreadFactory;
 import io.yak.ops.service.ServiceConfiguration;
+import io.yak.ops.service.bean.SpringApplicationContext;
 
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.event.EventListener;
-import org.springframework.core.annotation.Order;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,10 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 @SpringBootApplication
 public class MasterServer implements IStoppable {
 
-    private final AtomicBoolean stopped = new AtomicBoolean();
-
-    @Value("${yak-ops.standalone:false}")
-    private boolean standalone;
+    @Autowired
+    private SpringApplicationContext springApplicationContext;
 
     @Autowired
     private MasterRegistryClient masterRegistryClient;
@@ -102,8 +97,7 @@ public class MasterServer implements IStoppable {
     /**
      * run master server
      */
-    @Order(10)
-    @EventListener(ApplicationStartedEvent.class)
+    @PostConstruct
     public void initialized() {
         ServerLifeCycleManager.toRunning();
 
@@ -115,8 +109,8 @@ public class MasterServer implements IStoppable {
         DataSourcePluginManager.loadDataSourcePlugin();
 
         // self tolerant
-        this.masterRegistryClient.setRegistryStoppable(this);
         this.masterRegistryClient.start();
+        this.masterRegistryClient.setRegistryStoppable(this);
 
         this.masterCoordinator.start();
 
@@ -162,12 +156,9 @@ public class MasterServer implements IStoppable {
     public void close(String cause) {
         // set stop signal is true
         // execute only once
-        if (!stopped.compareAndSet(false, true)) {
+        if (!ServerLifeCycleManager.toStopped()) {
             log.warn("MasterServer is already stopped, current cause: {}", cause);
             return;
-        }
-        if (!standalone) {
-            ServerLifeCycleManager.toStopped();
         }
         // thread sleep 3 seconds for thread quietly stop
         ThreadUtils.sleep(Constants.SERVER_CLOSE_WAIT_TIME.toMillis());
@@ -179,6 +170,9 @@ public class MasterServer implements IStoppable {
                 MasterRpcServer closedRpcServer = masterRPCServer;
                 MasterCoordinator closeMasterCoordinator = masterCoordinator;
                 MasterRegistryClient closedMasterRegistryClient = masterRegistryClient;
+                // close spring Context and will invoke method with @PreDestroy annotation to destroy beans.
+                // like ServerNodeManager,HostManager,TaskResponseService,CuratorZookeeperClient,etc
+                SpringApplicationContext closedSpringContext = springApplicationContext;
                 WorkerGroupDispatcherCoordinator closeWorkerGroupDispatcherCoordinator =
                         workerGroupDispatcherCoordinator) {
 
