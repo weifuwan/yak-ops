@@ -16,5 +16,5 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.scheduler.quartz.QuartzSchedulerDataSourceAutoConfiguration,\
-  org.apache.dolphinscheduler.scheduler.quartz.QuartzSchedulerAutoConfiguration
+  io.yak.ops.scheduler.quartz.QuartzSchedulerDataSourceAutoConfiguration,\
+  io.yak.ops.scheduler.quartz.QuartzSchedulerAutoConfiguration

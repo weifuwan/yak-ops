@@ -76,4 +76,4 @@ done
 
 $JAVA_HOME/bin/java $JAVA_OPTS \
   -cp "$STANDALONE_HOME/conf""$CP" \
-  org.apache.dolphinscheduler.StandaloneServer
+  io.yak.ops.StandaloneServer

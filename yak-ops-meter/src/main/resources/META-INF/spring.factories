@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.meter.MeterAutoConfiguration
+  io.yak.ops.meter.MeterAutoConfiguration

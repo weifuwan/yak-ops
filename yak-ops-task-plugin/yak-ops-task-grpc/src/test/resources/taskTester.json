@@ -12,7 +12,7 @@
                       "nested": {
                         "proto": {
                           "options": {
-                            "java_package": "org.apache.dolphinscheduler.plugin.task.grpc.generated",
+                            "java_package": "io.yak.ops.plugin.task.grpc.generated",
                             "java_multiple_files": true,
                             "java_outer_classname": "TaskTesterProto"
                           },

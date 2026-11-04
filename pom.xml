@@ -480,7 +480,7 @@
                                     <!-- Static code analysis tools like (maven-dependency-plugin) can not detect runtime dependencies, so you should instruct them about runtime dependencies -->
                                     <!-- https://stackoverflow.com/questions/37528928/spring-boot-core-dependencies-seen-as-unused-by-maven-dependency-plugin -->
                                     <ignoredDependency>org.springframework*:*</ignoredDependency>
-                                    <ignoredDependency>org.apache.dolphinscheduler:yak-ops-meter</ignoredDependency>
+                                    <ignoredDependency>io.yak.ops:yak-ops-meter</ignoredDependency>
                                 </ignoredDependencies>
                                 <ignoreNonCompile>true</ignoreNonCompile>
                             </configuration>
@@ -703,7 +703,7 @@
                         </includes>
                         <excludes>
                             <!-- Using customer license -->
-                            <exclude>src/main/java/org/apache/dolphinscheduler/common/utils/CodeGenerateUtils.java</exclude>
+                            <exclude>src/main/java/io/yak/ops/common/utils/CodeGenerateUtils.java</exclude>
                         </excludes>
                     </java>
                     <pom>

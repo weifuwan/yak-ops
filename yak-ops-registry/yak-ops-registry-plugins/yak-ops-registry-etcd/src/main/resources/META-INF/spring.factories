@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.plugin.registry.etcd.EtcdRegistryAutoConfiguration
+  io.yak.ops.plugin.registry.etcd.EtcdRegistryAutoConfiguration

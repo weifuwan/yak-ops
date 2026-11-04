@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.dao.plugin.postgresql.PostgresqlDaoPluginAutoConfiguration
+  io.yak.ops.dao.plugin.postgresql.PostgresqlDaoPluginAutoConfiguration

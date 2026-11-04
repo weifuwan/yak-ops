@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.dao.plugin.mysql.MysqlDaoPluginAutoConfiguration
+  io.yak.ops.dao.plugin.mysql.MysqlDaoPluginAutoConfiguration

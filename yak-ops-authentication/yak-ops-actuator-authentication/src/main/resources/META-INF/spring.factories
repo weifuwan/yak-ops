@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.authentication.actuator.config.ActuatorAuthenticationAutoConfiguration
+  io.yak.ops.authentication.actuator.config.ActuatorAuthenticationAutoConfiguration

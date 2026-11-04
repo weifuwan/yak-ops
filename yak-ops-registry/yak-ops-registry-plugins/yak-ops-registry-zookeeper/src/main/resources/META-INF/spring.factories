@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.plugin.registry.zookeeper.ZookeeperRegistryAutoConfiguration
+  io.yak.ops.plugin.registry.zookeeper.ZookeeperRegistryAutoConfiguration

@@ -8,7 +8,7 @@ this can help you to manage the version.
 <dependencyManagement>
     <dependencies>
         <dependency>
-            <groupId>org.apache.dolphinscheduler</groupId>
+            <groupId>io.yak.ops</groupId>
             <artifactId>dolphinscheduler-bom</artifactId>
             <version>${dolphinscheduler.version}</version>
             <type>pom</type>

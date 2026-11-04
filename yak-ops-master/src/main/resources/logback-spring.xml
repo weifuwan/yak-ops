@@ -21,7 +21,7 @@
     <property scope="context" name="log.base.ctx" value="${log.base}" />
 
     <conversionRule conversionWord="message"
-                    converterClass="org.apache.dolphinscheduler.plugin.task.api.log.SensitiveDataConverter"/>
+                    converterClass="io.yak.ops.plugin.task.api.log.SensitiveDataConverter"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -33,8 +33,8 @@
     </appender>
 
     <appender name="TASKLOGFILE" class="ch.qos.logback.classic.sift.SiftingAppender">
-        <filter class="org.apache.dolphinscheduler.plugin.task.api.log.TaskLogFilter"/>
-        <Discriminator class="org.apache.dolphinscheduler.plugin.task.api.log.TaskLogDiscriminator">
+        <filter class="io.yak.ops.plugin.task.api.log.TaskLogFilter"/>
+        <Discriminator class="io.yak.ops.plugin.task.api.log.TaskLogDiscriminator">
             <key>taskInstanceLogFullPath</key>
             <logBase>${log.base}</logBase>
         </Discriminator>

@@ -66,7 +66,7 @@ spring:
       org.quartz.jobStore.tablePrefix: QRTZ_
       org.quartz.jobStore.acquireTriggersWithinLock: true
       org.quartz.scheduler.instanceName: DolphinScheduler
-      org.quartz.threadPool.class: org.apache.dolphinscheduler.scheduler.quartz.QuartzZeroSizeThreadPool
+      org.quartz.threadPool.class: io.yak.ops.scheduler.quartz.QuartzZeroSizeThreadPool
       org.quartz.jobStore.useProperties: false
       org.quartz.jobStore.misfireThreshold: 60000
       org.quartz.scheduler.makeSchedulerThreadDaemon: true
@@ -83,12 +83,12 @@ spring:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-  packages-to-scan: org.apache.dolphinscheduler.api
+  packages-to-scan: io.yak.ops.api
 
 # Mybatis-plus configuration, you don't need to change it
 mybatis-plus:
-  mapper-locations: classpath:org/apache/dolphinscheduler/dao/mapper/*Mapper.xml
-  type-aliases-package: org.apache.dolphinscheduler.dao.entity
+  mapper-locations: classpath:io/yak/ops/dao/mapper/*Mapper.xml
+  type-aliases-package: io.yak.ops.dao.entity
   configuration:
     cache-enabled: false
     call-setters-on-nulls: true

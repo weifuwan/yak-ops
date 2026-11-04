@@ -36,6 +36,6 @@ cp yak-ops-dao/src/main/resources/sql/dolphinscheduler_h2.sql "$runtime_classes/
 
 exec bash mvnw -B -ntp \
   -f yak-ops-standalone-server/pom.xml \
-  -Dexec.mainClass=org.apache.dolphinscheduler.StandaloneServer \
+  -Dexec.mainClass=io.yak.ops.StandaloneServer \
   -Dexec.classpathScope=compile \
   org.codehaus.mojo:exec-maven-plugin:3.1.0:java

@@ -16,4 +16,4 @@
 #
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.apache.dolphinscheduler.dao.plugin.h2.H2DaoPluginAutoConfiguration
+  io.yak.ops.dao.plugin.h2.H2DaoPluginAutoConfiguration
