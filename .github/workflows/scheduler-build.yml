@@ -1,0 +1,47 @@
+name: Scheduler Maven Verification
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'yak-ops-scheduler/**'
+      - 'pom.xml'
+      - '.github/workflows/scheduler-build.yml'
+  pull_request:
+    paths:
+      - 'yak-ops-scheduler/**'
+      - 'pom.xml'
+      - '.github/workflows/scheduler-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  maven-model:
+    name: Validate imported Maven reactor
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Validate Scheduler POM and reactor
+        run: bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+
+  eventbus-smoke:
+    name: Compile Scheduler EventBus
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compile one upstream-derived module
+        run: bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests -Dspotless.skip=true package

@@ -1,37 +1,36 @@
 # Yak Ops
 
-Yak Ops now contains two independent development modules:
+Yak Ops maintains three independently evolving workspaces:
 
-- [yak-ops-cdc](yak-ops-cdc/): an embedded Flink 1.20.3 / Flink CDC pipeline codebase with CLI, composer, runtime, MySQL CDC source and JDBC sink.
-- [yak-ops-ui](yak-ops-ui/): the existing frontend workspace, preserved without feature changes.
+- [yak-ops-ui](yak-ops-ui/) — the existing React frontend, unchanged by the scheduler import.
+- [yak-ops-cdc](yak-ops-cdc/) — Flink CDC 1.20.3 pipeline CLI, runtime, MySQL CDC source and JDBC sink.
+- [yak-ops-scheduler](yak-ops-scheduler/) — source-preserving migration of Apache DolphinScheduler 3.4.3-release.
 
-The former application backend, REST API, database layer, plugins, distribution, Docker deployment and business services have been removed. **The UI is not currently connected to a running Yak Ops backend.** The CDC CLI is independent of the UI.
+## DolphinScheduler import status
 
-## Requirements
+The Scheduler source baseline is [apache/dolphinscheduler commit 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050), on the 3.4.3-release branch. Its upstream POM declares 3.4.4-SNAPSHOT; the imported Maven coordinates are io.yak.ops:yak-ops-*:1.4.0.
 
-- Java 21 and the checked-in Maven wrapper (the CDC subtree targets Java 17 and Flink 1.20.3).
-- Node.js >= 22.13 and npm for the UI.
+Core Master, Worker, Task Executor, Workflow Engine, DAO, Service, SPI, Registry, Scheduler, EventBus, Extract, Alert, Authentication, API and Standalone source trees have been imported without changing Java packages or source bodies. Tests and resources are retained. The separate DolphinScheduler UI, distribution and optional big-data-specific plugins are not included in the active source tree.
 
-## Build CDC
+See [the full manifest](yak-ops-scheduler/MIGRATION_MANIFEST.json) for each imported source path, its original SHA-256, and exclusions, and [the migration notes](yak-ops-scheduler/UPSTREAM.md) for provenance. Only Maven metadata was adapted; do not infer successful runtime or end-to-end scheduling from source import.
+
+## Local development
+
+Java 21 and the checked-in Maven wrapper are used for the existing Yak Ops reactor. The migrated Scheduler subtree retains the upstream Java 8 / Spring Boot 2.x conventions and requires independent compatibility testing; it is not yet certified to run alongside the CDC runtime.
 
 ```sh
+# Inspect newly imported Scheduler Maven reactor
+bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+
+# Build CDC CLI and runtime dependencies without tests
 bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
-```
 
-Run the standalone CDC CLI from your IDE with its pipeline YAML and Flink runtime dependencies. The CDC subtree's upstream source and connector organization is unchanged.
-
-## Develop UI
-
-```sh
+# Frontend development
 cd yak-ops-ui
 npm ci
 npm run dev
 ```
 
-```sh
-npm run format:check
-npm run typecheck
-npm run build
-```
+At present, the frontend is not connected to a functioning migrated Scheduler API or CDC task execution endpoint. Scheduler-to-CDC integration is planned separately.
 
-For verification and contributor guidance, see [DEVELOPMENT.md](DEVELOPMENT.md) and [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). The [YOIP template](.github/YOIP_TEMPLATE.md) remains available.
+See [DEVELOPMENT.md](DEVELOPMENT.md), [AGENTS.md](AGENTS.md), and [the contributor guide](.github/CONTRIBUTING.md).
