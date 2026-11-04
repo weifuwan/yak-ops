@@ -91,3 +91,36 @@ At this snapshot, `META-INF/services/` has 6 tracked service-provider descriptor
 ## Next execution boundary
 
 **Phase 2** is Java source/test package relocation and import rewriting; **Phase 3** is configuration, mapper XML and runtime descriptor migration; **Phase 4** is targeted compilation/tests and fixes; **Phase 5** is residual reference cleanup. None of those phases is performed by this audit.
+
+## Phase 2–5 completion (2026-11-04)
+
+The original audit metrics above describe the **phase-1 snapshot** and remain unchanged for provenance. Before executing phases 2–5, a concurrent cleanup on `main` changed the actual Java migration count from 1,952 to **1,951**.
+
+- Mainline migration commit: [`57799c719`](https://github.com/weifuwan/yak-ops/commit/57799c7193693f2f77a2cc4248021ad0270137c0).
+- Executed a single validated relocation of **1,951 Java files** and **40 MyBatis Mapper XML resource paths**, plus config, Spring factory, logging, launcher, formatter, fixture and documentation references (2,027 touched files in the migration execution).
+- Preserved subpackage suffixes, existing Maven modules, Apache-2.0 attribution, `yak-ops-cdc` / `org.apache.flink.cdc`, and the Protobuf wire-level package name in the GRPC test fixtures.
+- Checked the post-migration tracked tree: zero Java paths under `org/apache/dolphinscheduler/`; 1,951 Java paths under `io/yak/ops/`; zero old Mapper XML resource paths; 40 relocated Mapper XML files.
+- Verified with JDK 11: Maven model validation; Master + Tools dependency-reactor compilation; existing bounded Scheduler unit tests (**22 common + 4 SPI = 26 passing**, no failures/errors), and staged whitespace/runtime-reference checks.
+- Verification run: [one-time migration and build](https://github.com/weifuwan/yak-ops/actions/runs/41838909857). The temporary execution branch and workflow were deleted after the successful push; `.github/workflows/backend-tests.yml` remains the only long-lived workflow.
+- **Not verified:** complete production startup and standalone health smoke, database integration, CDC tests, and compatibility of already-persisted class-name strings in existing databases.
+
+### Existing Quartz databases: manual compatibility check
+
+A package change does **not** rewrite class names already stored in an existing Quartz database. Before restarting the scheduler against an existing database, back up the database and examine `QRTZ_JOB_DETAILS` (respecting any configured Quartz table prefix):
+
+```sql
+SELECT JOB_CLASS_NAME, COUNT(*)
+FROM QRTZ_JOB_DETAILS
+WHERE JOB_CLASS_NAME LIKE 'org.apache.dolphinscheduler%'
+GROUP BY JOB_CLASS_NAME;
+```
+
+For the old ProcessScheduleTask class, **after backing up and stopping active schedulers**, the MySQL/PostgreSQL equivalent can be updated explicitly:
+
+```sql
+UPDATE QRTZ_JOB_DETAILS
+SET JOB_CLASS_NAME = 'io.yak.ops.scheduler.quartz.ProcessScheduleTask'
+WHERE JOB_CLASS_NAME = 'org.apache.dolphinscheduler.scheduler.quartz.ProcessScheduleTask';
+```
+
+Inspect other persisted class names independently; do not blindly replace arbitrary serialized payloads. This SQL is **guidance only**, not executed automatically by the package migration. Historical upstream manifests and `UPSTREAM_ROOT_POM.xml` intentionally retain original package names and are not runtime references.
