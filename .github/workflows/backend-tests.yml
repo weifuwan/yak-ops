@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: backend-tests-${{ github.ref }}
+  group: backend-tests-complete-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

@@ -40,8 +40,8 @@ public class PostgresqlDatabaseContainerProvider implements DatabaseContainerPro
         Startables.deepStart(Stream.of(postgresqlContainer)).join();
         log.info("{} started", postgresqlContainer.getDockerImageName());
 
-        String jdbcUrl = "jdbc:mysql://localhost:" + postgresqlContainer.getMappedPort(5432)
-                + "/yak-ops?useUnicode=true&characterEncoding=UTF-8";
+        String jdbcUrl = "jdbc:postgresql://localhost:" + postgresqlContainer.getMappedPort(5432)
+                + "/yak-ops";
         System.clearProperty("spring.datasource.url");
         System.setProperty("spring.datasource.url", jdbcUrl);
         return postgresqlContainer;

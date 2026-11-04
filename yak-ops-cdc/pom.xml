@@ -62,6 +62,34 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Keep Kafka Connect aligned with Debezium 1.9.8.Final.
+                 Spring Boot 3's imported BOM otherwise selects a newer Connect API
+                 that requires methods not implemented by the migrated Flink CDC source. -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-api</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-runtime</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-json</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-transforms</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
             <!-- Replaces dependency versions formerly inherited from the Spring Boot 3 parent. -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
