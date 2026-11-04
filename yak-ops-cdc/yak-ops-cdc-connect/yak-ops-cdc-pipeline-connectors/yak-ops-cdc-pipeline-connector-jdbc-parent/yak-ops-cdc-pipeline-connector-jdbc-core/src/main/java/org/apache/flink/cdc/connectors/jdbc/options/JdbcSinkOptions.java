@@ -86,6 +86,14 @@ public class JdbcSinkOptions {
                     .withDescription(
                             "The flush interval mills, over this time, asynchronous threads will flush data. Can be set to '0' to disable it.");
 
+    public static final ConfigOption<Integer> WRITE_MAX_OPEN_TABLES =
+            ConfigOptions.key("write.max-open-tables")
+                    .intType()
+                    .defaultValue(32)
+                    .withDescription(
+                            "Maximum number of open JDBC DML table writers per Sink subtask. "
+                                    + "Least recently used tables are flushed and closed before reopening.");
+
     public static final ConfigOption<Integer> WRITE_BATCH_SIZE =
             ConfigOptions.key("write.batch.size")
                     .intType()
