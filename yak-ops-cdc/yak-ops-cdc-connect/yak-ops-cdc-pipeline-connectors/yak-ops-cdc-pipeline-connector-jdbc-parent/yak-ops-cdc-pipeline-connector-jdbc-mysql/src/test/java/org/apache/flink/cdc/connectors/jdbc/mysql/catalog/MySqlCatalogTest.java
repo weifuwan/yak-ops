@@ -1,0 +1,220 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.flink.cdc.connectors.jdbc.mysql.catalog;
+
+import org.apache.flink.cdc.common.event.TableId;
+import org.apache.flink.cdc.common.schema.Schema;
+import org.apache.flink.cdc.common.types.DataTypeRoot;
+import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalogException;
+import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
+import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
+import org.apache.flink.cdc.connectors.jdbc.mysql.dialect.MySqlDialect;
+
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Database-free JDBC metadata tests: follows SeaTunnel's Catalog contract tests and
+ * Flink JDBC's metadata-based dialect tests.
+ */
+class MySqlCatalogTest {
+    private static final TableId TABLE = TableId.tableId("yak_e2e_target", "orders");
+
+    @Test
+    void readsMySqlSchemaAndPrimaryKeysInKeySequenceOrder() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.columns.add(column("order_no", Types.VARCHAR, "VARCHAR", 64, 0, false));
+        metadata.columns.add(column("id", Types.BIGINT, "BIGINT", 20, 0, false));
+        metadata.columns.add(column("created_at", Types.TIMESTAMP, "DATETIME", 0, 3, false));
+        metadata.columns.add(column("recorded_at", Types.TIMESTAMP, "TIMESTAMP", 0, 3, true));
+        metadata.columns.add(column("amount", Types.DECIMAL, "DECIMAL", 18, 4, false));
+        metadata.keys.add(key("order_no", 2));
+        metadata.keys.add(key("id", 1));
+        MySqlCatalog catalog = createCatalog(metadata);
+
+        Schema schema = catalog.getTableSchema(TABLE);
+
+        assertEquals(List.of("order_no", "id", "created_at", "recorded_at", "amount"),
+                schema.getColumnNames());
+        assertEquals(List.of("id", "order_no"), schema.primaryKeys());
+        assertFalse(schema.getColumn("order_no").get().getType().isNullable());
+        assertFalse(schema.getColumn("created_at").get().getType().isNullable());
+        assertTrue(schema.getColumn("recorded_at").get().getType().isNullable());
+        assertEquals(DataTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE,
+                schema.getColumn("created_at").get().getType().getTypeRoot());
+        assertEquals(DataTypeRoot.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+                schema.getColumn("recorded_at").get().getType().getTypeRoot());
+        assertEquals(DataTypeRoot.DECIMAL,
+                schema.getColumn("amount").get().getType().getTypeRoot());
+        assertEquals("yak_e2e_target", metadata.columnArgs[0]);
+        assertEquals(null, metadata.columnArgs[1]);
+        assertEquals("orders", metadata.columnArgs[2]);
+        assertEquals("%", metadata.columnArgs[3]);
+        assertTrue(metadata.connectionClosed);
+    }
+
+    @Test
+    void usesMySqlDatabaseAsJdbcCatalogNotSchema() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.tables.add(Map.of("TABLE_NAME", "orders"));
+        MySqlCatalog catalog = createCatalog(metadata);
+
+        assertTrue(catalog.tableExists(TABLE));
+        assertEquals("yak_e2e_target", metadata.tableArgs[0]);
+        assertEquals(null, metadata.tableArgs[1]);
+        assertEquals("orders", metadata.tableArgs[2]);
+        assertTrue(metadata.connectionClosed);
+    }
+
+    @Test
+    void missingTargetTableDoesNotSilentlyReturnEmptySchema() {
+        FakeMetadata metadata = new FakeMetadata();
+        MySqlCatalog catalog = createCatalog(metadata);
+
+        assertThrows(JdbcCatalogException.class, () -> catalog.getTableSchema(TABLE));
+        assertTrue(metadata.connectionClosed);
+    }
+
+    @Test
+    void correctlyWidensVendorIntegerTypes() {
+        MySqlCatalog catalog = createCatalog(new FakeMetadata());
+        assertEquals(DataTypeRoot.INTEGER,
+                catalog.fromJdbcColumn(Types.INTEGER, "MEDIUMINT", 8, 0).getTypeRoot());
+        assertEquals(DataTypeRoot.BIGINT,
+                catalog.fromJdbcColumn(Types.INTEGER, "INT UNSIGNED", 10, 0).getTypeRoot());
+        assertEquals(DataTypeRoot.DECIMAL,
+                catalog.fromJdbcColumn(Types.BIGINT, "BIGINT UNSIGNED", 20, 0).getTypeRoot());
+    }
+
+    private static MySqlCatalog createCatalog(FakeMetadata metadata) {
+        JdbcSinkConfig config = new JdbcSinkConfig.Builder<>()
+                .connUrl("jdbc:mysql://localhost:3306")
+                .username("root")
+                .password("password")
+                .build();
+        JdbcConnectionFactory provider = new JdbcConnectionFactory(config) {
+            @Override
+            public Connection connect() throws SQLException {
+                metadata.connectionClosed = false;
+                return metadata.connection();
+            }
+        };
+        return new MySqlCatalog(new MySqlDialect(), provider);
+    }
+
+    private static Map<String, Object> column(
+            String name, int type, String typeName, int precision, int scale, boolean nullable) {
+        Map<String, Object> values = new HashMap<>();
+        values.put("TABLE_NAME", "orders");
+        values.put("COLUMN_NAME", name);
+        values.put("DATA_TYPE", type);
+        values.put("TYPE_NAME", typeName);
+        values.put("COLUMN_SIZE", precision);
+        values.put("DECIMAL_DIGITS", scale);
+        values.put("NULLABLE",
+                nullable ? DatabaseMetaData.columnNullable : DatabaseMetaData.columnNoNulls);
+        return values;
+    }
+
+    private static Map<String, Object> key(String column, int position) {
+        return Map.of("COLUMN_NAME", column, "KEY_SEQ", position);
+    }
+
+    private static final class FakeMetadata {
+        private final List<Map<String, Object>> tables = new ArrayList<>();
+        private final List<Map<String, Object>> columns = new ArrayList<>();
+        private final List<Map<String, Object>> keys = new ArrayList<>();
+        private Object[] columnArgs;
+        private Object[] tableArgs;
+        private boolean connectionClosed;
+
+        Connection connection() {
+            DatabaseMetaData databaseMetaData =
+                    (DatabaseMetaData) Proxy.newProxyInstance(
+                            getClass().getClassLoader(),
+                            new Class<?>[] {DatabaseMetaData.class},
+                            (proxy, method, args) -> {
+                                switch (method.getName()) {
+                                    case "getTables":
+                                        tableArgs = args;
+                                        return rows(tables);
+                                    case "getColumns":
+                                        columnArgs = args;
+                                        return rows(columns);
+                                    case "getPrimaryKeys":
+                                        return rows(keys);
+                                    default:
+                                        throw new UnsupportedOperationException(method.getName());
+                                }
+                            });
+            return (Connection) Proxy.newProxyInstance(
+                    getClass().getClassLoader(),
+                    new Class<?>[] {Connection.class},
+                    (proxy, method, args) -> {
+                        if (method.getName().equals("getMetaData")) {
+                            return databaseMetaData;
+                        }
+                        if (method.getName().equals("close")) {
+                            connectionClosed = true;
+                            return null;
+                        }
+                        throw new UnsupportedOperationException(method.getName());
+                    });
+        }
+
+        ResultSet rows(List<Map<String, Object>> records) {
+            final int[] position = {-1};
+            return (ResultSet) Proxy.newProxyInstance(
+                    getClass().getClassLoader(),
+                    new Class<?>[] {ResultSet.class},
+                    (proxy, method, args) -> {
+                        switch (method.getName()) {
+                            case "next":
+                                return ++position[0] < records.size();
+                            case "getString":
+                                return records.get(position[0]).get((String) args[0]);
+                            case "getInt":
+                                return ((Number) records.get(position[0]).get((String) args[0]))
+                                        .intValue();
+                            case "getShort":
+                                return ((Number) records.get(position[0]).get((String) args[0]))
+                                        .shortValue();
+                            case "close":
+                                return null;
+                            default:
+                                throw new UnsupportedOperationException(method.getName());
+                        }
+                    });
+        }
+    }
+}
