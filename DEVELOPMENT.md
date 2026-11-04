@@ -31,6 +31,15 @@ These notes describe the imported architecture, **not** a completed Yak Ops UI/C
 - Preserved `yak-ops-standalone-server`, its source launcher/configuration, and `scripts/run-scheduler-standalone.sh`. The Maven exec Standalone smoke path remains authoritative. The archived original standalone directory distribution has **not** been certified to run independently after removal of the separate service distributions.
 - `MIGRATION_MANIFEST.json` continues to record historical import provenance, not a list of files guaranteed to exist after cleanup.
 
+## Scheduler stage 3: Kubernetes / YARN runtime cleanup
+
+- Removed unused Kubernetes and YARN application managers, Kubernetes task execution classes and Kubernetes task context fields. The shell command executor now cancels the local process tree only; this does **not** kill remote YARN/Kubernetes jobs.
+- Removed Kubernetes Namespace management endpoints, permission/audit objects, mapper/repository Java code, namespace tests and the direct Fabric8 Kubernetes client dependencies.
+- Removed Master’s explicit Hadoop client/common dependencies, while keeping Hadoop in the datasource API where `CommonUtils` still implements Kerberos `UserGroupInformation` logic.
+- Preserved workflow, Master, Worker, Quartz, standalone startup, data source Kerberos support, and historical SQL upgrades (including old namespace tables for compatibility).
+- Legacy `Queue` CRUD and `YARN_QUEUE` audit labels remain because user/tenant queue metadata and their APIs are still coupled to these models. They do not provide a YARN application client.
+- The original import manifest is historical provenance; removed files will still appear in its original source list. Revalidate compilation and selected workflow tests after this change.
+
 ## Build commands
 
 Use Java 21, Git and the checked-in Maven wrapper for the existing Yak Ops modules. On Windows, run the shell wrapper under Git Bash or WSL.

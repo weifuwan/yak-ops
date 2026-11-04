@@ -139,6 +139,13 @@ public class TaskExecution implements ITaskExecution {
     }
 
     @Override
+    @Override
+    public void initializeTaskExecutionContext() {
+        checkState(isTaskInstanceInitialized(),
+                "The task instance is not initialized, can't initialize TaskExecutionContext.");
+        this.taskExecutionContext = createTaskExecutionContext();
+    }
+
     private TaskExecutionContext createTaskExecutionContext() {
         final TaskExecutionContextCreateRequest request = TaskExecutionContextCreateRequest.builder()
                 .workflowExecutionGraph(workflowExecutionGraph)

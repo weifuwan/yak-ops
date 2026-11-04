@@ -86,7 +86,7 @@ public class ShellTask extends AbstractTask {
     public void cancel() throws TaskException {
         // cancel process
         try {
-            shellCommandExecutor.cancelApplication();
+            shellCommandExecutor.cancelProcess();
         } catch (Exception e) {
             throw new TaskException("cancel application error", e);
         }

@@ -30,7 +30,6 @@ import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNodeRelation;
 import org.apache.dolphinscheduler.common.utils.CodeGenerateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
-import org.apache.dolphinscheduler.dao.entity.Cluster;
 import org.apache.dolphinscheduler.dao.entity.DagData;
 import org.apache.dolphinscheduler.dao.entity.DataSource;
 import org.apache.dolphinscheduler.dao.entity.Schedule;
@@ -45,7 +44,6 @@ import org.apache.dolphinscheduler.dao.entity.WorkflowInstance;
 import org.apache.dolphinscheduler.dao.entity.WorkflowInstanceRelation;
 import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelation;
 import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelationLog;
-import org.apache.dolphinscheduler.dao.mapper.ClusterMapper;
 import org.apache.dolphinscheduler.dao.mapper.DataSourceMapper;
 import org.apache.dolphinscheduler.dao.mapper.ScheduleMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskDefinitionLogMapper;
@@ -65,7 +63,6 @@ import org.apache.dolphinscheduler.dao.repository.WorkflowInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.SubWorkflowParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.TaskTimeoutParameter;
 import org.apache.dolphinscheduler.service.model.TaskNode;
-import org.apache.dolphinscheduler.service.utils.ClusterConfUtils;
 import org.apache.dolphinscheduler.service.utils.DagHelper;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -91,9 +88,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 /**
@@ -151,9 +146,6 @@ public class ProcessServiceImpl implements ProcessService {
 
     @Autowired
     private WorkflowTaskRelationLogMapper workflowTaskRelationLogMapper;
-
-    @Autowired
-    private ClusterMapper clusterMapper;
 
     /**
      * find workflow instance detail by id
@@ -727,23 +719,6 @@ public class ProcessServiceImpl implements ProcessService {
         return taskNodeList;
     }
 
-    /**
-     * find k8s config yaml by clusterName
-     *
-     * @param clusterName clusterName
-     * @return datasource
-     */
-    @Override
-    public String findConfigYamlByName(String clusterName) {
-        if (Strings.isNullOrEmpty(clusterName)) {
-            return null;
-        }
-
-        QueryWrapper<Cluster> nodeWrapper = new QueryWrapper<>();
-        nodeWrapper.eq("name", clusterName);
-        Cluster cluster = clusterMapper.selectOne(nodeWrapper);
-        return cluster == null ? null : ClusterConfUtils.getK8sConfig(cluster.getConfig());
-    }
 
     /**
      * Force the workflow instance to success only when every enabled task in the workflow definition has a

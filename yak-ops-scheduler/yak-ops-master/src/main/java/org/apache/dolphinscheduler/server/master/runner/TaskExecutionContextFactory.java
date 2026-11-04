@@ -116,6 +116,23 @@ public class TaskExecutionContextFactory {
         return resourceParameters;
     }
 
+    private void assembleDataSourceParameters(Map<Integer, AbstractResourceParameters> map) {
+        if (MapUtils.isEmpty(map)) {
+            return;
+        }
+
+        map.forEach((code, parameters) -> {
+            DataSource datasource = processService.findDataSourceById(code);
+            if (Objects.isNull(datasource)) {
+                return;
+            }
+            DataSourceParameters dataSourceParameters = new DataSourceParameters();
+            dataSourceParameters.setType(datasource.getType());
+            dataSourceParameters.setConnectionParams(datasource.getConnectionParams());
+            map.put(code, dataSourceParameters);
+        });
+    }
+
     private Map<String, Property> getPrepareParams(final TaskInstance taskInstance,
                                                    final WorkflowInstance workflowInstance,
                                                    final WorkflowDefinition workflowDefinition,

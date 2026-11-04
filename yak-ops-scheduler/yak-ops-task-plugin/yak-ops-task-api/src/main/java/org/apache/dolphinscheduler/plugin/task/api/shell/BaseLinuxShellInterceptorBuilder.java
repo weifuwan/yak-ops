@@ -86,6 +86,13 @@ public abstract class BaseLinuxShellInterceptorBuilder<T extends BaseLinuxShellI
                 .map(systemEnv -> "source " + systemEnv).collect(Collectors.toList());
     }
 
+    private List<String> customEnvScript() {
+        if (CollectionUtils.isEmpty(customEnvScripts)) {
+            return Collections.emptyList();
+        }
+        return customEnvScripts;
+    }
+
     private String shellBody() {
         if (CollectionUtils.isEmpty(scripts)) {
             return StringUtils.EMPTY;

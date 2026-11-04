@@ -88,8 +88,6 @@ public interface ProcessService {
     List<TaskNode> transformTask(List<WorkflowTaskRelation> taskRelationList,
                                  List<TaskDefinitionLog> taskDefinitionLogs);
 
-    String findConfigYamlByName(String clusterName);
-
     void forceWorkflowInstanceSuccessByTaskInstanceId(TaskInstance taskInstance);
 
 }

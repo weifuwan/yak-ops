@@ -147,6 +147,23 @@ public abstract class AbstractCommandExecutor {
         return taskOutputParams;
     }
 
+    public void cancelProcess() throws InterruptedException {
+        if (process == null) {
+            return;
+        }
+
+        // Try to kill process tree
+        boolean killed = ProcessUtils.kill(taskRequest);
+        if (killed) {
+            log.info("Process tree for task: {} is killed or already finished, pid: {}",
+                    taskRequest.getTaskAppId(), taskRequest.getProcessId());
+        } else {
+            log.error("Failed to kill process tree for task: {}, pid: {}",
+                    taskRequest.getTaskAppId(), taskRequest.getProcessId());
+        }
+
+    }
+
     private CompletableFuture<Void> collectProcessLog(Process process) {
         // todo: remove this this thread pool.
         final ExecutorService collectProcessLogService = ThreadUtils.newSingleDaemonScheduledExecutorService(
