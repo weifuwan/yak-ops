@@ -24,7 +24,10 @@ import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class WorkerRegistryClient implements AutoCloseable {
+
+    @Value("${yak-ops.startup.registry-timeout:60s}")
+    private Duration startupRegistryTimeout = Duration.ofSeconds(60);
 
     @Autowired
     private WorkerConfig workerConfig;
@@ -77,7 +83,11 @@ public class WorkerRegistryClient implements AutoCloseable {
         log.info("Worker node: {} registry to registry center {} successfully", workerConfig.getWorkerAddress(),
                 workerRegistryPath);
 
+        long deadline = System.nanoTime() + startupRegistryTimeout.toNanos();
         while (!registryClient.checkNodeExists(workerConfig.getWorkerAddress(), RegistryNodeType.WORKER)) {
+            if (System.nanoTime() >= deadline) {
+                throw new RegistryException("Timed out waiting for WORKER registration in Registry");
+            }
             ThreadUtils.sleep(SLEEP_TIME_MILLIS);
         }
 
@@ -95,7 +105,7 @@ public class WorkerRegistryClient implements AutoCloseable {
     }
 
     public void setRegistryStoppable(IStoppable stoppable) {
-        registryClient.setStoppable(stoppable);
+        registryClient.setStoppable(RegistryNodeType.WORKER, stoppable);
     }
 
     @Override
@@ -103,7 +113,9 @@ public class WorkerRegistryClient implements AutoCloseable {
         if (workerHeartBeatTask != null) {
             workerHeartBeatTask.shutdown();
         }
-        registryClient.close();
+        if (registryClient.isConnected()) {
+            registryClient.remove(workerConfig.getWorkerRegistryPath());
+        }
         log.info("Closed WorkerRegistryClient");
     }
 

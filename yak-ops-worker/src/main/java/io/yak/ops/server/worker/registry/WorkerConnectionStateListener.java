@@ -4,6 +4,7 @@ import io.yak.ops.common.lifecycle.ServerLifeCycleManager;
 import io.yak.ops.registry.api.ConnectionListener;
 import io.yak.ops.registry.api.ConnectionState;
 import io.yak.ops.registry.api.RegistryClient;
+import io.yak.ops.registry.api.enums.RegistryNodeType;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,7 +30,10 @@ public class WorkerConnectionStateListener implements ConnectionListener {
                 log.warn("Worker reconnect to registry");
                 break;
             case DISCONNECTED:
-                registryClient.getStoppable().stop("Worker disconnected from registry, will stop myself");
+                if (ServerLifeCycleManager.isStopped()) {
+                    break;
+                }
+                registryClient.getStoppable(RegistryNodeType.WORKER).stop("Worker disconnected from registry, will stop myself");
             default:
         }
     }

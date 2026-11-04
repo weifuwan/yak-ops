@@ -26,7 +26,7 @@ public class WorkerConnectionStateListenerTest {
 
     @Test
     public void testWorkerConnectionStateListener() {
-        Mockito.when(registryClient.getStoppable()).thenReturn(cause -> {
+        Mockito.when(registryClient.getStoppable(io.yak.ops.registry.api.enums.RegistryNodeType.WORKER)).thenReturn(cause -> {
             // do nothing
         });
 

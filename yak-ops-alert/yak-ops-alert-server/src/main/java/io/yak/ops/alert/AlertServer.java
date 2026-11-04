@@ -15,13 +15,18 @@ import io.yak.ops.dao.DaoConfiguration;
 import io.yak.ops.registry.api.RegistryConfiguration;
 import io.yak.ops.registry.api.ha.AbstractServerStatusChangeListener;
 
-import javax.annotation.PostConstruct;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import javax.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,6 +36,11 @@ import lombok.extern.slf4j.Slf4j;
         RegistryConfiguration.class})
 @SpringBootApplication
 public class AlertServer {
+
+    private final AtomicBoolean stopped = new AtomicBoolean();
+
+    @Value("${yak-ops.standalone:false}")
+    private boolean standalone;
 
     @Autowired
     private AlertRpcServer alertRpcServer;
@@ -54,7 +64,8 @@ public class AlertServer {
         SpringApplication.run(AlertServer.class, args);
     }
 
-    @PostConstruct
+    @Order(30)
+    @EventListener(ApplicationStartedEvent.class)
     public void run() {
         ServerLifeCycleManager.toRunning();
         log.info("AlertServer is staring ...");
@@ -84,11 +95,12 @@ public class AlertServer {
     public void close() {
         String cause = "AlertServer destroy";
         try {
-            // set stop signal is true
-            // execute only once
-            if (!ServerLifeCycleManager.toStopped()) {
-                log.warn("AlterServer is already stopped");
+            if (!stopped.compareAndSet(false, true)) {
+                log.warn("AlertServer is already stopped");
                 return;
+            }
+            if (!standalone) {
+                ServerLifeCycleManager.toStopped();
             }
             log.info("AlertServer is stopping, cause: {}", cause);
             try (

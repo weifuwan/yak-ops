@@ -17,12 +17,18 @@ import io.yak.ops.server.worker.metrics.WorkerServerMetrics;
 import io.yak.ops.server.worker.registry.WorkerRegistryClient;
 import io.yak.ops.server.worker.rpc.WorkerRpcServer;
 
-import javax.annotation.PostConstruct;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,6 +38,11 @@ import lombok.extern.slf4j.Slf4j;
         RegistryConfiguration.class})
 @SpringBootApplication
 public class WorkerServer implements IStoppable {
+
+    private final AtomicBoolean stopped = new AtomicBoolean();
+
+    @Value("${yak-ops.standalone:false}")
+    private boolean standalone;
 
     @Autowired
     private WorkerRegistryClient workerRegistryClient;
@@ -57,7 +68,8 @@ public class WorkerServer implements IStoppable {
         SpringApplication.run(WorkerServer.class);
     }
 
-    @PostConstruct
+    @Order(20)
+    @EventListener(ApplicationStartedEvent.class)
     public void run() {
         ServerLifeCycleManager.toRunning();
 
@@ -95,10 +107,18 @@ public class WorkerServer implements IStoppable {
         }));
     }
 
+    @PreDestroy
+    public void shutdown() {
+        close("WorkerServer shutdown");
+    }
+
     public void close(String cause) {
-        if (!ServerLifeCycleManager.toStopped()) {
+        if (!stopped.compareAndSet(false, true)) {
             log.warn("WorkerServer is already stopped, current cause: {}", cause);
             return;
+        }
+        if (!standalone) {
+            ServerLifeCycleManager.toStopped();
         }
         ThreadUtils.sleep(Constants.SERVER_CLOSE_WAIT_TIME.toMillis());
 

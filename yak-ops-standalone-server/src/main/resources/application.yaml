@@ -21,6 +21,8 @@ spring:
       connection-test-query: select 1
       pool-name: YakOpsDataSource
   quartz:
+    # Quartz is explicitly started by Master after Registry and RPC are ready.
+    auto-startup: false
     job-store-type: jdbc
     jdbc:
       initialize-schema: never
@@ -54,6 +56,11 @@ spring:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
   cloud.discovery.client.composite-indicator.enabled: false
+
+yak-ops:
+  standalone: true
+  startup:
+    registry-timeout: 60s
 
 scheduler-plugin:
   quartz:

@@ -4,6 +4,7 @@ import io.yak.ops.common.lifecycle.ServerLifeCycleManager;
 import io.yak.ops.registry.api.ConnectionListener;
 import io.yak.ops.registry.api.ConnectionState;
 import io.yak.ops.registry.api.RegistryClient;
+import io.yak.ops.registry.api.enums.RegistryNodeType;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,7 +30,10 @@ public class MasterConnectionStateListener implements ConnectionListener {
                 log.warn("Master reconnect to registry");
                 break;
             case DISCONNECTED:
-                registryClient.getStoppable().stop("Master disconnected from registry, will stop myself");
+                if (ServerLifeCycleManager.isStopped()) {
+                    break;
+                }
+                registryClient.getStoppable(RegistryNodeType.MASTER).stop("Master disconnected from registry, will stop myself");
                 break;
             default:
                 log.warn("Unknown connection state: {}", state);
