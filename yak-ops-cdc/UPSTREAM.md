@@ -8,6 +8,8 @@ Only MySQL CDC connectors and their Debezium/Base dependencies are included. No 
 
 Baseline: Flink 1.20.3, Debezium 1.9.8.Final. Yak Ops application/task integration intentionally deferred.
 
+The CLI runs with a local Flink MiniCluster only. Remote, YARN, and Kubernetes deployment code is removed. Flink home is optional; `--flink-home` or `FLINK_HOME` can supply a Flink configuration directory. Any non-local `--target` or `execution.target` is rejected.
+
 Build the CLI, MySQL source and JDBC sink from the repository root:
 
 ```sh

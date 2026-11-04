@@ -67,17 +67,6 @@ public class FlinkPipelineComposer implements PipelineComposer {
     private final StreamExecutionEnvironment env;
     private final boolean isBlocking;
 
-    public static FlinkPipelineComposer ofRemoteCluster(
-            org.apache.flink.configuration.Configuration flinkConfig, List<Path> additionalJars) {
-        StreamExecutionEnvironment env = new StreamExecutionEnvironment(flinkConfig);
-        addAdditionalJars(env, additionalJars);
-        return new FlinkPipelineComposer(env, false);
-    }
-
-    public static FlinkPipelineComposer ofApplicationCluster(StreamExecutionEnvironment env) {
-        return new FlinkPipelineComposer(env, false);
-    }
-
     @VisibleForTesting
     public static FlinkPipelineComposer ofMiniCluster() {
         return new FlinkPipelineComposer(
@@ -86,6 +75,12 @@ public class FlinkPipelineComposer implements PipelineComposer {
 
     public static FlinkPipelineComposer ofMiniCluster(
             org.apache.flink.configuration.Configuration flinkConfig, List<Path> additionalJars) {
+        String target = flinkConfig.get(org.apache.flink.configuration.DeploymentOptions.TARGET);
+        if (target != null && !"local".equalsIgnoreCase(target)) {
+            throw new IllegalArgumentException(
+                    "Only local Flink execution is supported; unsupported target: " + target);
+        }
+        flinkConfig.set(org.apache.flink.configuration.DeploymentOptions.TARGET, "local");
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment(flinkConfig);
         addAdditionalJars(env, additionalJars);

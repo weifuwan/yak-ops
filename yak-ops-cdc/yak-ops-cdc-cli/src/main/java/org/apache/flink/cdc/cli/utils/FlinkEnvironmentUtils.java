@@ -43,9 +43,6 @@ import static org.apache.flink.cdc.cli.CliFrontendOptions.SAVEPOINT_ALLOW_NON_RE
 import static org.apache.flink.cdc.cli.CliFrontendOptions.SAVEPOINT_CLAIM_MODE;
 import static org.apache.flink.cdc.cli.CliFrontendOptions.SAVEPOINT_PATH_OPTION;
 import static org.apache.flink.cdc.cli.CliFrontendOptions.TARGET;
-import static org.apache.flink.cdc.cli.CliFrontendOptions.USE_MINI_CLUSTER;
-import static org.apache.flink.cdc.composer.flink.deployment.ComposeDeployment.LOCAL;
-import static org.apache.flink.cdc.composer.flink.deployment.ComposeDeployment.REMOTE;
 
 /** Utilities for handling Flink configuration and environment. */
 public class FlinkEnvironmentUtils {
@@ -71,6 +68,9 @@ public class FlinkEnvironmentUtils {
 
     private static Configuration loadBaseFlinkConfig(CommandLine commandLine) throws Exception {
         Path flinkHome = getFlinkHome(commandLine);
+        if (flinkHome == null) {
+            return new Configuration();
+        }
         Map<String, String> flinkConfigurationMap;
         Path flinkConfPath =
                 new Path(
@@ -96,12 +96,11 @@ public class FlinkEnvironmentUtils {
     private static void mergeCommandLineFlinkConfig(
             CommandLine commandLine, Configuration flinkConfig) {
         Properties commandLineProperties = commandLine.getOptionProperties(FLINK_CONFIG.getOpt());
-        // Use "remote" as the default target
-        String target =
-                commandLine.hasOption(USE_MINI_CLUSTER)
-                        ? LOCAL.getName()
-                        : commandLine.getOptionValue(TARGET, REMOTE.getName());
-        flinkConfig.set(DeploymentOptions.TARGET, target);
+        String target = commandLine.getOptionValue(TARGET);
+        if (target != null) {
+            validateLocalTarget(target);
+            flinkConfig.set(DeploymentOptions.TARGET, "local");
+        }
 
         Optional.ofNullable(commandLine.getOptionValue(SAVEPOINT_PATH_OPTION))
                 .ifPresent(value -> RestoreModeAdapter.setSavepointPath(flinkConfig, value));
@@ -118,6 +117,19 @@ public class FlinkEnvironmentUtils {
                 commandLineProperties);
         commandLineProperties.forEach(
                 (key, value) -> validateAndApplyCommandLineEntry(flinkConfig, key, value));
+
+        String configuredTarget = flinkConfig.get(DeploymentOptions.TARGET);
+        if (configuredTarget != null) {
+            validateLocalTarget(configuredTarget);
+        }
+        flinkConfig.set(DeploymentOptions.TARGET, "local");
+    }
+
+    private static void validateLocalTarget(String target) {
+        if (!"local".equalsIgnoreCase(target)) {
+            throw new IllegalArgumentException(
+                    "Only local Flink execution is supported; unsupported target: " + target);
+        }
     }
 
     private static void validateAndApplyCommandLineEntry(
@@ -165,10 +177,7 @@ public class FlinkEnvironmentUtils {
             return new Path(flinkHomeFromEnvVar);
         }
 
-        throw new IllegalArgumentException(
-                "Cannot find Flink home from either command line arguments \"--flink-home\" "
-                        + "or the environment variable \"FLINK_HOME\". "
-                        + "Please make sure Flink home is properly set. ");
+        return null;
     }
 
     public static SavepointRestoreSettings createSavepointRestoreSettings(

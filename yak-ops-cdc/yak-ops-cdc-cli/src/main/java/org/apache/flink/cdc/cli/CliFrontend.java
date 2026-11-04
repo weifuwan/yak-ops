@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.cdc.cli.utils.FlinkEnvironmentUtils.getFlinkHome;
 import static org.apache.flink.cdc.cli.utils.FlinkEnvironmentUtils.mergeFlinkConfigurationsWithPriority;
 
 /** The frontend entrypoint for the command-line interface of Flink CDC. */
@@ -83,7 +82,6 @@ public class CliFrontend {
         // Global pipeline configuration
         Configuration globalPipelineConfig = getGlobalConfig(commandLine);
 
-        Path flinkHome = getFlinkHome(commandLine);
         org.apache.flink.configuration.Configuration flinkConfig =
                 mergeFlinkConfigurationsWithPriority(pipelineDefPath, commandLine);
 
@@ -98,12 +96,7 @@ public class CliFrontend {
 
         // Build executor
         return new CliExecutor(
-                commandLine,
-                pipelineDefPath,
-                flinkConfig,
-                globalPipelineConfig,
-                additionalJars,
-                flinkHome);
+                pipelineDefPath, flinkConfig, globalPipelineConfig, additionalJars);
     }
 
     private static Configuration getGlobalConfig(CommandLine commandLine) throws Exception {
@@ -132,7 +125,7 @@ public class CliFrontend {
     }
 
     private static void printExecutionInfo(PipelineExecution.ExecutionInfo info) {
-        System.out.println("Pipeline has been submitted to cluster.");
+        System.out.println("Local Flink pipeline execution completed.");
         System.out.printf("Job ID: %s\n", info.getId());
         System.out.printf("Job Description: %s\n", info.getDescription());
     }

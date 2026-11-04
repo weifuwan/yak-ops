@@ -26,7 +26,7 @@ public class CliFrontendOptions {
             Option.builder()
                     .longOpt("flink-home")
                     .hasArg()
-                    .desc("Path of Flink home directory")
+                    .desc("Optional Flink home directory for loading local configuration")
                     .build();
 
     public static final Option HELP =
@@ -43,27 +43,14 @@ public class CliFrontendOptions {
             Option.builder()
                     .longOpt("jar")
                     .hasArgs()
-                    .desc("JARs to be submitted together with the pipeline")
+                    .desc("Additional JARs to load with the local pipeline")
                     .build();
 
     public static final Option TARGET =
             Option.builder("t")
                     .longOpt("target")
                     .hasArg()
-                    .desc(
-                            "The deployment target for the execution. This can take one of the following values:\n"
-                                    + "- local\n"
-                                    + "- remote\n"
-                                    + "- yarn-session\n"
-                                    + "- yarn-application\n"
-                                    + "- kubernetes-application")
-                    .build();
-
-    public static final Option USE_MINI_CLUSTER =
-            Option.builder()
-                    .longOpt("use-mini-cluster")
-                    .hasArg(false)
-                    .desc("Use Flink MiniCluster to run the pipeline")
+                    .desc("Execution target (only local is supported)")
                     .build();
 
     public static final Option SAVEPOINT_PATH_OPTION =
@@ -114,7 +101,6 @@ public class CliFrontendOptions {
                 .addOption(JAR)
                 .addOption(FLINK_HOME)
                 .addOption(GLOBAL_CONFIG)
-                .addOption(USE_MINI_CLUSTER)
                 .addOption(TARGET)
                 .addOption(SAVEPOINT_PATH_OPTION)
                 .addOption(SAVEPOINT_CLAIM_MODE)
