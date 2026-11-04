@@ -239,6 +239,11 @@
             <artifactId>yak-ops-actuator-authentication</artifactId>
         </dependency>
 
+        <!-- OIDC authentication requires Nimbus directly; do not rely on a cloud SDK's transitive dependency. -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>oauth2-oidc-sdk</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <testResources>
