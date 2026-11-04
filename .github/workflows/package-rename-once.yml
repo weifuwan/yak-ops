@@ -101,7 +101,9 @@ jobs:
               if "/org/apache/dolphinscheduler/" in p:
                   remaining.append(p + " [path]")
                   continue
-              if src.suffix not in exts and p != "style/eclipse.importorder" and src.name != "spring.factories":
+              if src.suffix == ".md":
+        continue
+    if src.suffix not in exts and p != "style/eclipse.importorder" and src.name != "spring.factories":
                   continue
               data = src.read_bytes()
               if src.suffix == ".proto":
