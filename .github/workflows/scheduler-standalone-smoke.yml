@@ -1,0 +1,66 @@
+name: Scheduler Stage 6 Standalone Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/scheduler-standalone-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    name: Package and boot embedded H2 Standalone
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+      - name: Build all Standalone dependencies
+        run: |
+          bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+            -pl :yak-ops-standalone-server -am \
+            -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true \
+            -Danalyze.skip=true -Dbuild.assembly.skip=true install
+      - name: Run Standalone and probe HTTP health
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          timeout 100s bash mvnw -B -ntp \
+            -f yak-ops-scheduler/yak-ops-standalone-server/pom.xml \
+            -Dexec.mainClass=org.apache.dolphinscheduler.StandaloneServer \
+            -Dexec.classpathScope=compile \
+            org.codehaus.mojo:exec-maven-plugin:3.1.0:java > /tmp/standalone.log 2>&1 &
+          pid=$!
+          set -e
+          ready=0
+          for i in $(seq 1 85); do
+            if curl -fsS --max-time 2 'http://127.0.0.1:12345/dolphinscheduler/actuator/health' > /tmp/standalone-health.json; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          cat /tmp/standalone-health.json 2>/dev/null || true
+          tail -n 150 /tmp/standalone.log
+          kill "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true
+          test "$ready" -eq 1
+      - name: Upload startup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduler-standalone-startup
+          path: /tmp/standalone.log
+          if-no-files-found: warn
+          retention-days: 7
