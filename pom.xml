@@ -17,88 +17,22 @@
     <packaging>pom</packaging>
 
     <name>Yak Ops</name>
-    <description>Yak Ops unified parent and reactor build</description>
+    <description>Yak Ops UI and CDC reactor</description>
 
     <properties>
         <java.version>21</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
-        <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
         <spotless-maven-plugin.version>3.10.2</spotless-maven-plugin.version>
         <palantir-java-format.version>2.97.0</palantir-java-format.version>
-        <auto-service.version>1.1.1</auto-service.version>
-        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-        <checkstyle.version>10.18.2</checkstyle.version>
-        <quartz.version>2.5.2</quartz.version>
-        <backend.test.groups>business</backend.test.groups>
-        <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
     </properties>
 
     <modules>
-        <module>yak-ops-bom</module>
-        <module>yak-ops-test-utils</module>
-        <module>yak-ops-common</module>
         <module>yak-ops-cdc</module>
-        <module>yak-ops-platform</module>
-        <module>yak-ops-dao</module>
-        <module>yak-ops-spi</module>
-        <module>yak-ops-business</module>
-        <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
-        <module>yak-ops-plugins/yak-ops-plugin-task</module>
-        <module>yak-ops-plugins/yak-ops-plugin-scheduler</module>
-        <module>yak-ops-registry-api</module>
-        <module>yak-ops-registry-jdbc</module>
-        <module>yak-ops-worker</module>
-        <module>yak-ops-task-execution</module>
-        <module>yak-ops-boot</module>
         <module>yak-ops-ui</module>
-        <module>yak-ops-dist</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-bom</artifactId>
-                <version>${project.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <profiles>
-        <profile>
-            <id>integration-tests</id>
-            <build><plugins>
-            <!-- Quality Check owns Surefire unit tests. Each integration-test
-                 matrix job only executes its selected Failsafe tests. -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration><skipTests>true</skipTests></configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-failsafe-plugin.version}</version>
-                <configuration>
-                    <includes><include>**/*IT.java</include></includes>
-                    <groups>${backend.test.groups}</groups>
-                    <failIfNoTests>false</failIfNoTests>
-                    <rerunFailingTestsCount>0</rerunFailingTestsCount>
-                    <forkCount>1</forkCount><reuseForks>true</reuseForks>
-                    <systemPropertyVariables>
-                        <junit.jupiter.execution.parallel.enabled>false</junit.jupiter.execution.parallel.enabled>
-                    </systemPropertyVariables>
-                </configuration>
-                <executions><execution><goals><goal>integration-test</goal><goal>verify</goal></goals></execution></executions>
-            </plugin></plugins></build>
-        </profile>
-    </profiles>
 
     <build>
         <plugins>
@@ -135,39 +69,7 @@
                     <execution>
                         <id>spotless-check</id>
                         <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${maven-checkstyle-plugin.version}</version>
-                <configuration>
-                    <configLocation>${maven.multiModuleProjectDirectory}/tools/maven/checkstyle.xml</configLocation>
-                    <includes>**/io/yak/ops/core/**/*.java,**/io/yak/ops/composer/**/*.java,**/io/yak/ops/cli/**/*.java,**/io/yak/ops/flow/runtime/**/*.java,**/io/yak/ops/connector/**/*.java,**/io/yak/ops/business/datasource/**/*.java,**/io/yak/ops/business/task/**/*.java,**/io/yak/ops/business/schedule/**/*.java,**/io/yak/ops/task/execution/**/*.java,**/io/yak/ops/plugin/**/*.java,**/io/yak/ops/common/bean/dto/**/*.java,**/io/yak/ops/common/bean/vo/**/*.java,**/io/yak/ops/common/enums/**/*.java,**/io/yak/ops/dao/entity/**/*.java,**/io/yak/ops/dao/mapper/**/*.java,**/io/yak/ops/dao/repository/**/*.java,**/io/yak/ops/boot/controller/**/*.java</includes>
-                    <includeTestSourceDirectory>false</includeTestSourceDirectory>
-                    <includeResources>false</includeResources>
-                    <includeTestResources>false</includeTestResources>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>${checkstyle.version}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>checkstyle-check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
+                        <goals><goal>check</goal></goals>
                     </execution>
                 </executions>
             </plugin>

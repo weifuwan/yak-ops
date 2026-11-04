@@ -1,43 +1,37 @@
 # Yak Ops
 
-Build, move, and operate data with confidence.
+Yak Ops now contains two independent development modules:
 
-Yak Ops 是面向数据集成与同步场景的数据平台，通过 Task Definition 管理同步配置、发布和执行，目前保留通用任务管理和数据源能力，并持续迁移 Flink CDC 代码；旧数据同步 Task 插件已不再注册，具体可执行能力以实际版本和测试结果为准。已发布版本的能力请查看对应 Release。
+- [yak-ops-cdc](yak-ops-cdc/): an embedded Flink 1.20.3 / Flink CDC pipeline codebase with CLI, composer, runtime, MySQL CDC source and JDBC sink.
+- [yak-ops-ui](yak-ops-ui/): the existing frontend workspace, preserved without feature changes.
 
-## Build and Run
+The former application backend, REST API, database layer, plugins, distribution, Docker deployment and business services have been removed. **The UI is not currently connected to a running Yak Ops backend.** The CDC CLI is independent of the UI.
 
-运行 Distribution 需要 Java 21，并配置元数据库连接和 Datasource Master Key。
+## Requirements
+
+- Java 21 and the checked-in Maven wrapper (the CDC subtree targets Java 17 and Flink 1.20.3).
+- Node.js >= 22.13 and npm for the UI.
+
+## Build CDC
 
 ```sh
-# Docker Compose，内置元数据库
-cp .env.example .env
-# 按下方说明编辑 .env，然后启动
-docker compose up -d
+bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
 ```
 
-首次使用空数据库时，在 `.env` 设置 `YAK_SECURITY_BOOTSTRAP_ENABLED=true` 和独立的强密码 `YAK_SECURITY_BOOTSTRAP_PASSWORD`，启动成功并创建管理员后将开关改回 `false` 并重新部署。已有用户数据的环境保持关闭。没有配置管理员密码时，不允许启用初始化。
+Run the standalone CDC CLI from your IDE with its pipeline YAML and Flink runtime dependencies. The CDC subtree's upstream source and connector organization is unchanged.
 
-在非本地环境必须修改示例数据库密码并设置新的 `YAK_OPS_DATASOURCE_MASTER_KEY`。使用外部数据库可选择 `compose.without-mysql.yaml`，两种部署方式都使用 `YAK_DATABASE_*` 连接元数据库。
+## Develop UI
 
-正式 Distribution 为 `yak-ops-{version}.tar.gz`，解压后通过 `./bin/run-yak-ops.sh` 启动。
+```sh
+cd yak-ops-ui
+npm ci
+npm run dev
+```
 
-## 数据同步状态
+```sh
+npm run format:check
+npm run typecheck
+npm run build
+```
 
-旧数据同步产品后端、监控接口及专用任务索引已移除。前端本轮不做修改，因此旧同步页面及监控面板暂时没有可用的后端服务。
-
-通用数据源、任务定义、任务实例与调度 API 保留；新的 Flink CDC 引擎仍在单独迁移和接入。参见 [历史 Data Sync 契约说明](docs/data-sync-pipeline.md)，该文档仅作退役记录，不再作为当前功能使用说明。
-
-## Development
-
-- [开发与验证](DEVELOPMENT.md)
-- [贡献指南](.github/CONTRIBUTING.md)
-- [YOIP 模板](.github/YOIP_TEMPLATE.md)
-- [前端开发规范](yak-ops-ui/FRONTEND_RULES.md)
-
-## Releases
-
-- [发布历史与 Release Notes](docs/releases/README.md)
-- [历史 GitHub Releases](https://github.com/weifuwan/yak-ops/releases)
-- [发布操作](scripts/release/README.md)
-
-GitHub Actions 仅执行前后端格式检查以及后端单元、Business/CDC 集成测试。打包、部署和版本发布不再由 CI 自动执行；正式发布前需手动完成构建、验证与证据记录。
+For verification and contributor guidance, see [DEVELOPMENT.md](DEVELOPMENT.md) and [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). The [YOIP template](.github/YOIP_TEMPLATE.md) remains available.

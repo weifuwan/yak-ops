@@ -1,75 +1,32 @@
-# Package Files #
+# Build and package outputs
+target/
+**/target/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
 *.jar
-!/jdbc-drivers/
-!/jdbc-drivers/*.jar
-!/yak-ops-dist/src/main/jdbc-drivers-builtin/mysql/5/mysql-connector-java-5.1.49.jar
-!/yak-ops-dist/src/main/jdbc-drivers-builtin/mysql/8/mysql-connector-j-8.4.0.jar
 *.zip
 *.tar.gz
-data/
-
-# see JDK-8214300
-.attach_pid*
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-
-# build targets
-target/
-
-# Log file
-*.log
-/logs
-logs.zip
-
-# Intellij Idea files
-.idea/
-*.iml
-.idea/*
-
-.DS_Store
-
-metastore_db/
-
-work_dir
-
-all-dependencies.txt
-self-modules.txt
-third-party-dependencies.txt
-
-*.keytab
-/derby.log
-
 dependency-reduced-pom.xml
 
-apidoc
+# Editor and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
 
-# Python
-*.py[cod]
-
-
-spark-warehouse
-*.flattened-pom.xml
-/linkup-ui/package-lock.json
-/linkup-ui/node
-/linkup-ui/node/*
-/linkup-ui/node_modules
-/linkup-ui/node_modules/*
-/yak-ops-it/profile/*
-/deploy/docker/dist/
-/node_modules/.yarn-integrity
-
-# Local environment files
+# Local runtime, logs and secrets
+/logs/
+*.log
+hs_err_pid*
+.attach_pid*
 .env
 .env.*
-!.env.example
-!.env.*.example
+*.keytab
+work_dir/
+metastore_db/
 
-# Temporary stage / agent handoff artifacts
-# Keep durable architecture and migration runbooks under docs/, but do not commit
-# stage completion notes, connector probes, sync markers, or other agent handoff files.
+# Temporary work
 .stage*
-docs/**/STAGE*.md
-
-# Flink CDC Java data packages are source code, not runtime data directories.
-!yak-ops-cdc/**/data/
+*.py[cod]

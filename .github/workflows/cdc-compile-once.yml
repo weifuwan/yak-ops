@@ -1,19 +1,16 @@
-name: CDC One-Time Compile
+name: CDC Compile (Manual)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/cdc-compile-once.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   compile:
-    name: Compile CDC modules without tests
+    name: Build CDC CLI, MySQL source and JDBC sink
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -21,8 +18,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Package CLI, MySQL CDC source, and JDBC sink
+      - name: Package retained CDC modules without tests
         run: |
           bash mvnw -B -ntp \
             -pl :yak-ops-cdc-cli,:yak-ops-cdc-pipeline-connector-mysql,:yak-ops-cdc-pipeline-connector-jdbc \
-            -am -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true package
+            -am -DskipTests -Dspotless.check.skip=true package
