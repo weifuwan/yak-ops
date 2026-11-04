@@ -1,0 +1,225 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.dolphinscheduler.api.service;
+
+import static org.apache.dolphinscheduler.api.AssertionsHelper.assertThrowsServiceException;
+
+import org.apache.dolphinscheduler.api.enums.Status;
+import org.apache.dolphinscheduler.api.k8s.K8sClientService;
+import org.apache.dolphinscheduler.api.service.impl.K8SNamespaceServiceImpl;
+import org.apache.dolphinscheduler.api.utils.PageInfo;
+import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.common.enums.UserType;
+import org.apache.dolphinscheduler.dao.entity.Cluster;
+import org.apache.dolphinscheduler.dao.entity.K8sNamespace;
+import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.repository.ClusterDao;
+import org.apache.dolphinscheduler.dao.repository.K8sNamespaceDao;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+public class K8SNamespaceServiceTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(K8SNamespaceServiceTest.class);
+
+    @InjectMocks
+    private K8SNamespaceServiceImpl k8sNamespaceService;
+
+    @Mock
+    private K8sNamespaceDao k8sNamespaceDao;
+
+    @Mock
+    private ClusterDao clusterDao;
+
+    @Mock
+    private K8sClientService k8sClientService;
+
+    private String namespace = "default";
+    private Long clusterCode = 100L;
+
+    @Test
+    public void queryListPaging() {
+        IPage<K8sNamespace> page = new Page<>(1, 10);
+        page.setTotal(1L);
+        page.setRecords(getNamespaceList());
+        Mockito.when(k8sNamespaceDao.queryK8sNamespacePaging(Mockito.any(Page.class), Mockito.eq(namespace)))
+                .thenReturn(page);
+        Result result = k8sNamespaceService.queryListPaging(getLoginUser(), namespace, 1, 10);
+        logger.info(result.toString());
+        PageInfo<K8sNamespace> pageInfo = (PageInfo<K8sNamespace>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(pageInfo.getTotalList()));
+    }
+
+    @Test
+    public void createK8sNamespace() {
+        // namespace is null
+        assertThrowsServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                () -> k8sNamespaceService.registerK8sNamespace(getLoginUser(), null, clusterCode));
+        // k8s is null
+        assertThrowsServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                () -> k8sNamespaceService.registerK8sNamespace(getLoginUser(), namespace, null));
+        // correct
+        Mockito.when(clusterDao.queryByClusterCode(Mockito.anyLong())).thenReturn(getCluster());
+        K8sNamespace created = k8sNamespaceService.registerK8sNamespace(getLoginUser(), namespace, clusterCode);
+        Assertions.assertNotNull(created);
+        Assertions.assertEquals(namespace, created.getNamespace());
+        Assertions.assertEquals(clusterCode, created.getClusterCode());
+    }
+
+    @Test
+    public void verifyNamespaceK8s() {
+
+        Mockito.when(k8sNamespaceDao.existNamespace(namespace, clusterCode)).thenReturn(true);
+
+        // namespace null
+        Result result = k8sNamespaceService.verifyNamespaceK8s(null, clusterCode);
+        logger.info(result.toString());
+        Assertions.assertEquals(result.getCode().intValue(), Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode());
+
+        // k8s null
+        result = k8sNamespaceService.verifyNamespaceK8s(namespace, null);
+        logger.info(result.toString());
+        Assertions.assertEquals(result.getCode().intValue(), Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode());
+
+        // exist
+        result = k8sNamespaceService.verifyNamespaceK8s(namespace, clusterCode);
+        logger.info(result.toString());
+        Assertions.assertEquals(result.getCode().intValue(), Status.K8S_NAMESPACE_EXIST.getCode());
+
+        // not exist
+        result = k8sNamespaceService.verifyNamespaceK8s(namespace, 9999L);
+        logger.info(result.toString());
+        Assertions.assertEquals(result.getCode().intValue(), Status.SUCCESS.getCode());
+    }
+
+    @Test
+    public void deleteNamespaceById() {
+        Mockito.when(k8sNamespaceDao.deleteById(Mockito.<Serializable>any())).thenReturn(true);
+        Mockito.when(k8sNamespaceDao.queryById(1)).thenReturn(getNamespace());
+
+        Assertions.assertDoesNotThrow(() -> k8sNamespaceService.deleteNamespaceById(getLoginUser(), 1));
+    }
+
+    @Test
+    public void testQueryAuthorizedNamespace() {
+        Mockito.when(k8sNamespaceDao.queryAuthedNamespaceListByUserId(2)).thenReturn(getNamespaceList());
+
+        User loginUser = getLoginUser();
+
+        // test admin user
+        loginUser.setUserType(UserType.ADMIN_USER);
+        List<K8sNamespace> namespaces = k8sNamespaceService.queryAuthorizedNamespace(loginUser, 2);
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(namespaces));
+
+        // test non-admin user
+        loginUser.setUserType(UserType.GENERAL_USER);
+        loginUser.setId(3);
+        assertThrowsServiceException(Status.USER_NO_OPERATION_PERM,
+                () -> k8sNamespaceService.queryAuthorizedNamespace(loginUser, 2));
+    }
+
+    @Test
+    public void testQueryUnAuthorizedNamespace() {
+        Mockito.when(k8sNamespaceDao.queryAuthedNamespaceListByUserId(2)).thenReturn(new ArrayList<>());
+        Mockito.when(k8sNamespaceDao.queryAll()).thenReturn(getNamespaceList());
+
+        // test admin user
+        User loginUser = new User();
+        loginUser.setUserType(UserType.ADMIN_USER);
+        List<K8sNamespace> namespaces = k8sNamespaceService.queryUnauthorizedNamespace(loginUser, 2);
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(namespaces));
+
+        // test non-admin user
+        loginUser.setId(2);
+        loginUser.setUserType(UserType.GENERAL_USER);
+        assertThrowsServiceException(Status.USER_NO_OPERATION_PERM,
+                () -> k8sNamespaceService.queryUnauthorizedNamespace(loginUser, 3));
+    }
+
+    @Test
+    public void testQueryNamespaceAvailable() {
+        List<K8sNamespace> k8sNamespaces = new ArrayList<>();
+        K8sNamespace k8sNamespace = new K8sNamespace();
+        k8sNamespace.setClusterCode(1L);
+        k8sNamespaces.add(k8sNamespace);
+
+        List<Cluster> clusters = new ArrayList<>();
+        Cluster cluster = new Cluster();
+        cluster.setCode(1L);
+        cluster.setName("test");
+        clusters.add(cluster);
+
+        Mockito.when(k8sNamespaceDao.queryAll()).thenReturn(k8sNamespaces);
+        Mockito.when(clusterDao.queryAllClusterList()).thenReturn(clusters);
+        List<K8sNamespace> result = k8sNamespaceService.queryNamespaceAvailable(getLoginUser());
+        Assertions.assertEquals(result.get(0).getClusterName(), cluster.getName());
+    }
+
+    private User getLoginUser() {
+
+        User loginUser = new User();
+        loginUser.setUserType(UserType.ADMIN_USER);
+        loginUser.setId(99999999);
+        return loginUser;
+    }
+
+    private K8sNamespace getNamespace() {
+        K8sNamespace k8sNamespace = new K8sNamespace();
+        k8sNamespace.setId(1);
+        k8sNamespace.setClusterCode(clusterCode);
+        k8sNamespace.setNamespace(namespace);
+        return k8sNamespace;
+    }
+
+    private List<K8sNamespace> getNamespaceList() {
+        List<K8sNamespace> k8sNamespaceList = new ArrayList<>();
+        k8sNamespaceList.add(getNamespace());
+        return k8sNamespaceList;
+    }
+
+    private Cluster getCluster() {
+        Cluster cluster = new Cluster();
+        cluster.setId(1);
+        cluster.setCode(1L);
+        cluster.setName("clusterName");
+        cluster.setConfig("{}");
+        cluster.setOperator(1);
+        return cluster;
+    }
+}

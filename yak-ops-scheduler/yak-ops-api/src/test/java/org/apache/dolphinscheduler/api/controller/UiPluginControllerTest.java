@@ -1,0 +1,106 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.dolphinscheduler.api.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.apache.dolphinscheduler.api.dto.ProductInfoDto;
+import org.apache.dolphinscheduler.api.enums.Status;
+import org.apache.dolphinscheduler.api.service.UiPluginService;
+import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.common.enums.PluginType;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.dao.entity.PluginDefine;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
+public class UiPluginControllerTest extends AbstractControllerTest {
+
+    private static final PluginType pluginType = PluginType.ALERT;
+    private static final int pluginId = 1;
+
+    @MockBean(name = "uiPluginService")
+    private UiPluginService uiPluginService;
+
+    @Test
+    public void testQueryUiPluginsByType() throws Exception {
+        when(uiPluginService.queryUiPluginsByType(any(PluginType.class)))
+                .thenReturn(Collections.singletonList(new PluginDefine("test", "alert", "[]")));
+
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginType", String.valueOf(pluginType));
+
+        final MvcResult mvcResult = mockMvc.perform(get("/ui-plugins/query-by-type")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+
+    @Test
+    public void testQueryUiPluginDetailById() throws Exception {
+        when(uiPluginService.queryUiPluginDetailById(anyInt()))
+                .thenReturn(new PluginDefine("test", "alert", "[]"));
+
+        final MvcResult mvcResult = mockMvc.perform(get("/ui-plugins/{id}", pluginId)
+                .header(SESSION_ID, sessionId))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+
+    @Test
+    public void testQueryProductInfo() throws Exception {
+        ProductInfoDto mockResult = new ProductInfoDto();
+        Mockito.when(uiPluginService.queryProductInfo()).thenReturn(mockResult);
+
+        MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("userId", "1");
+
+        MvcResult mvcResult = mockMvc.perform(get("/ui-plugins/query-product-info")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+}

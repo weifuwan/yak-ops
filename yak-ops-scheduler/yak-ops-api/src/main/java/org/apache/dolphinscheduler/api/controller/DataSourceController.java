@@ -1,0 +1,408 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.dolphinscheduler.api.controller;
+
+import static org.apache.dolphinscheduler.api.enums.Status.AUTHORIZED_DATA_SOURCE;
+import static org.apache.dolphinscheduler.api.enums.Status.CONNECTION_TEST_FAILURE;
+import static org.apache.dolphinscheduler.api.enums.Status.CONNECT_DATASOURCE_FAILURE;
+import static org.apache.dolphinscheduler.api.enums.Status.CREATE_DATASOURCE_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.DELETE_DATA_SOURCE_FAILURE;
+import static org.apache.dolphinscheduler.api.enums.Status.GET_DATASOURCE_DATABASES_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.GET_DATASOURCE_TABLES_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.GET_DATASOURCE_TABLE_COLUMNS_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.KERBEROS_STARTUP_STATE;
+import static org.apache.dolphinscheduler.api.enums.Status.QUERY_DATASOURCE_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.UNAUTHORIZED_DATASOURCE;
+import static org.apache.dolphinscheduler.api.enums.Status.UPDATE_DATASOURCE_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.VERIFY_DATASOURCE_NAME_FAILURE;
+
+import org.apache.dolphinscheduler.api.audit.OperatorLog;
+import org.apache.dolphinscheduler.api.audit.enums.AuditType;
+import org.apache.dolphinscheduler.api.enums.Status;
+import org.apache.dolphinscheduler.api.exceptions.ApiException;
+import org.apache.dolphinscheduler.api.exceptions.ServiceException;
+import org.apache.dolphinscheduler.api.service.DataSourceService;
+import org.apache.dolphinscheduler.api.utils.PageInfo;
+import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.api.vo.DataSourceSimpleInfoVO;
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.dao.entity.DataSource;
+import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
+import org.apache.dolphinscheduler.plugin.datasource.api.utils.CommonUtils;
+import org.apache.dolphinscheduler.plugin.datasource.api.utils.DataSourceUtils;
+import org.apache.dolphinscheduler.plugin.task.api.utils.ParameterUtils;
+import org.apache.dolphinscheduler.spi.datasource.ConnectionParam;
+import org.apache.dolphinscheduler.spi.enums.DbType;
+import org.apache.dolphinscheduler.spi.params.base.ParamsOptions;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "DATA_SOURCE_TAG")
+@RestController
+@RequestMapping("datasources")
+public class DataSourceController extends BaseController {
+
+    @Autowired
+    private DataSourceService dataSourceService;
+
+    /**
+     * create a new data source
+     *
+     * @param loginUser login user
+     * @param jsonStr   datasource param
+     *                  example: {"type":"MYSQL","name":"txx","note":"","host":"localhost","port":3306,"principal":"","javaSecurityKrb5Conf":"","loginUserKeytabUsername":"","loginUserKeytabPath":"","userName":"root","password":"xxx","database":"ds","connectType":"","other":{"serverTimezone":"GMT-8"},"id":2}
+     * @return the created DataSource object
+     * @throws ServiceException if the data source name already exists or parameters are invalid
+     */
+    @Operation(summary = "createDataSource", description = "CREATE_DATA_SOURCE_NOTES")
+    @PostMapping()
+    @ResponseStatus(HttpStatus.CREATED)
+    @ApiException(CREATE_DATASOURCE_ERROR)
+    @OperatorLog(auditType = AuditType.DATASOURCE_CREATE)
+    public Result<DataSource> createDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                               @Parameter(name = "dataSourceParam", description = "DATA_SOURCE_PARAM", required = true) @RequestBody String jsonStr) {
+        BaseDataSourceParamDTO dataSourceParam = DataSourceUtils.buildDatasourceParam(jsonStr);
+        DataSource dataSource = dataSourceService.createDataSource(loginUser, dataSourceParam);
+        return Result.success(dataSource);
+    }
+
+    /**
+     * update an existing data source
+     *
+     * @param loginUser login user
+     * @param id        datasource id
+     * @param jsonStr   datasource param
+     *                  example: {"type":"MYSQL","name":"txx","note":"","host":"localhost","port":3306,"principal":"","javaSecurityKrb5Conf":"","loginUserKeytabUsername":"","loginUserKeytabPath":"","userName":"root","password":"xxx","database":"ds","connectType":"","other":{"serverTimezone":"GMT-8"},"id":2}
+     * @return the updated DataSource object
+     * @throws ServiceException if the data source does not exist or parameters are invalid
+     */
+    @Operation(summary = "updateDataSource", description = "UPDATE_DATA_SOURCE_NOTES")
+    @Parameters({
+            @Parameter(name = "id", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class)),
+            @Parameter(name = "jsonStr", description = "DATA_SOURCE_PARAM", required = true, schema = @Schema(implementation = BaseDataSourceParamDTO.class))
+    })
+    @PutMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(UPDATE_DATASOURCE_ERROR)
+    @OperatorLog(auditType = AuditType.DATASOURCE_UPDATE)
+    public Result<DataSource> updateDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                               @PathVariable(value = "id") Integer id,
+                                               @RequestBody String jsonStr) {
+        BaseDataSourceParamDTO dataSourceParam = DataSourceUtils.buildDatasourceParam(jsonStr);
+        dataSourceParam.setId(id);
+        DataSource dataSource = dataSourceService.updateDataSource(loginUser, dataSourceParam);
+        return Result.success(dataSource);
+    }
+
+    /**
+     * query data source detail
+     *
+     * @param loginUser login user
+     * @param id datasource id
+     * @return data source detail
+     */
+    @Operation(summary = "queryDataSource", description = "QUERY_DATA_SOURCE_NOTES")
+    @Parameters({
+            @Parameter(name = "id", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class, example = "100"))
+
+    })
+    @GetMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_DATASOURCE_ERROR)
+    public Result<Object> queryDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                          @PathVariable("id") int id) {
+        BaseDataSourceParamDTO dataSource = dataSourceService.queryDataSource(id, loginUser);
+        return Result.success(dataSource);
+    }
+
+    /**
+     * query datasource by type
+     *
+     * @param loginUser login user
+     * @param type data source type
+     * @return data source list page
+     */
+    @Operation(summary = "queryDataSourceList", description = "QUERY_DATA_SOURCE_LIST_BY_TYPE_NOTES")
+    @Parameters({
+            @Parameter(name = "type", description = "DB_TYPE", required = true, schema = @Schema(implementation = DbType.class)),
+    })
+    @GetMapping(value = "/list")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_DATASOURCE_ERROR)
+    public Result<Object> queryDataSourceList(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                              @RequestParam("type") DbType type) {
+        List<DataSource> datasourceList = dataSourceService.queryDataSourceList(loginUser, type.getCode());
+        return Result.success(datasourceList);
+    }
+
+    /**
+     * query datasource with paging
+     *
+     * @param loginUser login user
+     * @param searchVal search value
+     * @param pageNo page number
+     * @param pageSize page size
+     * @return data source list page
+     */
+    @Operation(summary = "queryDataSourceListPaging", description = "QUERY_DATA_SOURCE_LIST_PAGING_NOTES")
+    @Parameters({
+            @Parameter(name = "searchVal", description = "SEARCH_VAL", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "pageNo", description = "PAGE_NO", required = true, schema = @Schema(implementation = int.class, example = "1")),
+            @Parameter(name = "pageSize", description = "PAGE_SIZE", required = true, schema = @Schema(implementation = int.class, example = "20"))
+    })
+    @GetMapping()
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_DATASOURCE_ERROR)
+    public Result<Object> queryDataSourceListPaging(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                    @RequestParam(value = "searchVal", required = false) String searchVal,
+                                                    @RequestParam("pageNo") Integer pageNo,
+                                                    @RequestParam("pageSize") Integer pageSize) {
+        checkPageParams(pageNo, pageSize);
+        searchVal = ParameterUtils.handleEscapes(searchVal);
+        PageInfo<DataSource> pageInfo =
+                dataSourceService.queryDataSourceListPaging(loginUser, searchVal, pageNo, pageSize);
+        return Result.success(pageInfo);
+    }
+
+    /**
+     * test the connection to a data source
+     *
+     * @param jsonStr   datasource param
+     *                  example: {"type":"MYSQL","name":"txx","note":"","host":"localhost","port":3306,"principal":"","javaSecurityKrb5Conf":"","loginUserKeytabUsername":"","loginUserKeytabPath":"","userName":"root","password":"xxx","database":"ds","connectType":"","other":{"serverTimezone":"GMT-8"},"id":2}
+     * @return {@code true} if the connection test was successful
+     * @throws ServiceException if the connection fails or parameters are invalid
+     */
+    @Operation(summary = "connectDataSource", description = "CONNECT_DATA_SOURCE_NOTES")
+    @PostMapping(value = "/connect")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(CONNECT_DATASOURCE_FAILURE)
+    public Result<Boolean> connectDataSource(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "dataSourceParam") @RequestBody String jsonStr) {
+        BaseDataSourceParamDTO dataSourceParam = DataSourceUtils.buildDatasourceParam(jsonStr);
+        DataSourceUtils.checkDatasourceParam(dataSourceParam);
+        ConnectionParam connectionParams = DataSourceUtils.buildConnectionParams(dataSourceParam);
+        dataSourceService.checkConnection(dataSourceParam.getType(), connectionParams);
+        return Result.success(true);
+    }
+
+    /**
+     * test the connection to an existing data source
+     *
+     * @param loginUser login user
+     * @param id data source id
+     * @return {@code true} if the connection test was successful
+     * @throws ServiceException if the connection fails or the data source does not exist
+     */
+    @Operation(summary = "connectionTest", description = "CONNECT_DATA_SOURCE_TEST_NOTES")
+    @Parameters({
+            @Parameter(name = "id", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class, example = "100"))
+    })
+    @GetMapping(value = "/{id}/connect-test")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(CONNECTION_TEST_FAILURE)
+    public Result<Boolean> connectionTest(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                          @PathVariable("id") int id) {
+        dataSourceService.connectionTest(loginUser, id);
+        return Result.success(true);
+    }
+
+    /**
+     * delete datasource by id
+     *
+     * @param loginUser login user
+     * @param id datasource id
+     * @return {@code true} if the deletion was successful
+     * @throws ServiceException if the data source does not exist or if the user lacks permission
+     */
+    @Operation(summary = "deleteDataSource", description = "DELETE_DATA_SOURCE_NOTES")
+    @Parameters({
+            @Parameter(name = "id", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class, example = "100"))
+    })
+    @DeleteMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(DELETE_DATA_SOURCE_FAILURE)
+    @OperatorLog(auditType = AuditType.DATASOURCE_DELETE)
+    public Result<Boolean> deleteDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                            @PathVariable("id") int id) {
+        dataSourceService.delete(loginUser, id);
+        return Result.success(true);
+    }
+
+    /**
+     * verify if a data source name is available
+     *
+     * @param name data source name
+     * @return {@code true} if the name is available (does not exist)
+     * @throws ServiceException if the name already exists
+     */
+    @Operation(summary = "verifyDataSourceName", description = "VERIFY_DATA_SOURCE_NOTES")
+    @Parameters({
+            @Parameter(name = "name", description = "DATA_SOURCE_NAME", required = true, schema = @Schema(implementation = String.class))
+    })
+    @GetMapping(value = "/verify-name")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(VERIFY_DATASOURCE_NAME_FAILURE)
+    public Result<Boolean> verifyDataSourceName(@RequestParam(value = "name") String name) {
+        dataSourceService.verifyDataSourceName(name);
+        return Result.success(true);
+    }
+
+    /**
+     * query the list of unauthorized data sources for a specific user
+     *
+     * @param loginUser login user
+     * @param userId user id
+     * @return a list of unauthorized data source summaries
+     */
+    @Operation(summary = "unauthorizedDatasource", description = "UNAUTHORIZED_DATA_SOURCE_NOTES")
+    @Parameters({
+            @Parameter(name = "userId", description = "USER_ID", required = true, schema = @Schema(implementation = int.class, example = "100"))
+    })
+    @GetMapping(value = "/unauth-datasource")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(UNAUTHORIZED_DATASOURCE)
+    public Result<List<DataSourceSimpleInfoVO>> getUnauthorizedDatasourceList(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                                              @RequestParam("userId") Integer userId) {
+
+        List<DataSourceSimpleInfoVO> unAuthDatasourceList = dataSourceService.unAuthDatasource(loginUser, userId);
+        return Result.success(unAuthDatasourceList);
+    }
+
+    /**
+     * query the list of data sources authorized for a specific user
+     *
+     * @param loginUser login user
+     * @param userId user id
+     * @return a list of authorized data source summaries
+     */
+    @Operation(summary = "authedDatasource", description = "AUTHORIZED_DATA_SOURCE_NOTES")
+    @Parameters({
+            @Parameter(name = "userId", description = "USER_ID", required = true, schema = @Schema(implementation = int.class, example = "100"))
+    })
+    @GetMapping(value = "/authed-datasource")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(AUTHORIZED_DATA_SOURCE)
+    public Result<List<DataSourceSimpleInfoVO>> getAuthorizedDatasourceList(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                                            @RequestParam("userId") Integer userId) {
+        List<DataSourceSimpleInfoVO> authedDatasourceList = dataSourceService.authedDatasource(loginUser, userId);
+        return Result.success(authedDatasourceList);
+    }
+
+    /**
+     * check the active status of Kerberos authentication
+     *
+     * @return {@code true} if Kerberos is active and configured for HDFS; {@code false} otherwise
+     */
+    @Operation(summary = "getKerberosStartupState", description = "GET_KERBEROS_STARTUP_STATE")
+    @GetMapping(value = "/kerberos-startup-state")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(KERBEROS_STARTUP_STATE)
+    public Result<Object> getKerberosStartupState() {
+        // if upload resource is HDFS and kerberos startup is true , else false
+        return success(Status.SUCCESS.getMsg(), CommonUtils.getKerberosStartupState());
+    }
+
+    /**
+     * query the list of tables within a specific database of a data source
+     *
+     * @param loginUser the current logged-in user (injected from session)
+     * @param datasourceId the unique identifier of the data source
+     * @param database the name of the database to query
+     * @return a list of table names/options accessible to the user
+     */
+    @Operation(summary = "tables", description = "GET_DATASOURCE_TABLES_NOTES")
+    @Parameters({
+            @Parameter(name = "datasourceId", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class, example = "1")),
+            @Parameter(name = "database", description = "DATABASE", required = true, schema = @Schema(implementation = String.class, example = "test"))
+    })
+    @GetMapping(value = "/tables")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(GET_DATASOURCE_TABLES_ERROR)
+    public Result<Object> getTables(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                    @RequestParam("datasourceId") Integer datasourceId,
+                                    @RequestParam("database") String database) {
+        List<ParamsOptions> options = dataSourceService.getTables(loginUser, datasourceId, database);
+        return Result.success(options);
+    }
+
+    /**
+     * query the column details (schema) for a specific table
+     *
+     * @param loginUser the current logged-in user (injected from session)
+     * @param datasourceId the unique identifier of the data source
+     * @param database the name of the database containing the table
+     * @param tableName the name of the table to query columns for
+     * @return a list of column definitions (name, type, etc.) for the specified table
+     */
+    @Operation(summary = "tableColumns", description = "GET_DATASOURCE_TABLE_COLUMNS_NOTES")
+    @Parameters({
+            @Parameter(name = "datasourceId", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class, example = "1")),
+            @Parameter(name = "database", description = "DATABASE", required = true, schema = @Schema(implementation = String.class, example = "test")),
+            @Parameter(name = "tableName", description = "TABLE_NAME", required = true, schema = @Schema(implementation = String.class, example = "test"))
+    })
+    @GetMapping(value = "/tableColumns")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(GET_DATASOURCE_TABLE_COLUMNS_ERROR)
+    public Result<Object> getTableColumns(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                          @RequestParam("datasourceId") Integer datasourceId,
+                                          @RequestParam("database") String database,
+                                          @RequestParam("tableName") String tableName) {
+        List<ParamsOptions> options = dataSourceService.getTableColumns(loginUser, datasourceId, database, tableName);
+        return Result.success(options);
+    }
+
+    /**
+     * query the list of databases available in a specific data source
+     *
+     * @param loginUser the current logged-in user (injected from session)
+     * @param datasourceId the unique identifier of the data source
+     * @return a list of database names/options accessible to the user
+     */
+    @Operation(summary = "databases", description = "GET_DATASOURCE_DATABASE_NOTES")
+    @Parameters({
+            @Parameter(name = "datasourceId", description = "DATA_SOURCE_ID", required = true, schema = @Schema(implementation = int.class, example = "1"))
+    })
+    @GetMapping(value = "/databases")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(GET_DATASOURCE_DATABASES_ERROR)
+    public Result<Object> getDatabases(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                       @RequestParam("datasourceId") Integer datasourceId) {
+        List<ParamsOptions> options = dataSourceService.getDatabases(loginUser, datasourceId);
+        return Result.success(options);
+    }
+}

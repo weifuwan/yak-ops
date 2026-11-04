@@ -1,0 +1,127 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.dolphinscheduler.api.service;
+
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.apache.dolphinscheduler.api.service.impl.AuditServiceImpl;
+import org.apache.dolphinscheduler.common.enums.AuditModelType;
+import org.apache.dolphinscheduler.common.enums.AuditOperationType;
+import org.apache.dolphinscheduler.common.enums.UserType;
+import org.apache.dolphinscheduler.common.utils.DateUtils;
+import org.apache.dolphinscheduler.dao.entity.AuditLog;
+import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.mapper.AuditLogMapper;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+@ExtendWith(MockitoExtension.class)
+public class AuditServiceTest {
+
+    @InjectMocks
+    private AuditServiceImpl auditService;
+
+    @Mock
+    private AuditLogMapper auditLogMapper;
+
+    @Test
+    public void testQueryLogListPaging() {
+        Date start = DateUtils.stringToDate("2020-11-01 00:00:00");
+        Date end = DateUtils.stringToDate("2020-11-02 00:00:00");
+
+        IPage<AuditLog> page = new Page<>(1, 10);
+        page.setRecords(getLists());
+        page.setTotal(1L);
+        when(auditLogMapper.queryAuditLog(Mockito.any(Page.class), Mockito.any(), Mockito.any(), Mockito.isNull(),
+                Mockito.eq(""),
+                Mockito.eq(""),
+                eq(start), eq(end))).thenReturn(page);
+        Assertions.assertDoesNotThrow(() -> {
+            auditService.queryLogListPaging(
+                    getUser(1, "admin", UserType.ADMIN_USER),
+                    "",
+                    "",
+                    "2020-11-01 00:00:00",
+                    "2020-11-02 00:00:00",
+                    "",
+                    "",
+                    1,
+                    10);
+        });
+    }
+
+    @Test
+    public void testQueryLogListPagingRestrictsGeneralUserToOwnAuditLogs() {
+        IPage<AuditLog> page = new Page<>(1, 10);
+        page.setRecords(getLists());
+        page.setTotal(1L);
+        when(auditLogMapper.queryAuditLog(Mockito.any(Page.class), Mockito.any(), Mockito.any(), Mockito.eq(10),
+                Mockito.eq("otherUser"), Mockito.eq(""), Mockito.isNull(), Mockito.isNull())).thenReturn(page);
+
+        auditService.queryLogListPaging(
+                getUser(10, "generalUser", UserType.GENERAL_USER),
+                "",
+                "",
+                null,
+                null,
+                "otherUser",
+                "",
+                1,
+                10);
+
+        verify(auditLogMapper).queryAuditLog(Mockito.any(Page.class), Mockito.any(), Mockito.any(), Mockito.eq(10),
+                Mockito.eq("otherUser"), Mockito.eq(""), Mockito.isNull(), Mockito.isNull());
+    }
+
+    private List<AuditLog> getLists() {
+        List<AuditLog> list = new ArrayList<>();
+        list.add(getAuditLog());
+        return list;
+    }
+
+    private AuditLog getAuditLog() {
+        AuditLog auditLog = new AuditLog();
+        auditLog.setUserName("testName");
+        auditLog.setOperationType(AuditOperationType.CREATE.getName());
+        auditLog.setModelType(AuditModelType.PROJECT.getName());
+        return auditLog;
+    }
+
+    private User getUser(Integer id, String userName, UserType userType) {
+        User user = new User();
+        user.setId(id);
+        user.setUserName(userName);
+        user.setUserType(userType);
+        return user;
+    }
+}

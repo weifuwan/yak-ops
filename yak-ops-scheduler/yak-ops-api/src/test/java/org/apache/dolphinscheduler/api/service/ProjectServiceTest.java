@@ -1,0 +1,574 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.dolphinscheduler.api.service;
+
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_CREATE;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_DELETE;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_UPDATE;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+
+import org.apache.dolphinscheduler.api.enums.Status;
+import org.apache.dolphinscheduler.api.exceptions.ServiceException;
+import org.apache.dolphinscheduler.api.permission.ResourcePermissionCheckService;
+import org.apache.dolphinscheduler.api.service.impl.BaseServiceImpl;
+import org.apache.dolphinscheduler.api.service.impl.ProjectServiceImpl;
+import org.apache.dolphinscheduler.api.utils.PageInfo;
+import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.common.enums.AuthorizationType;
+import org.apache.dolphinscheduler.common.enums.UserType;
+import org.apache.dolphinscheduler.dao.entity.Project;
+import org.apache.dolphinscheduler.dao.entity.ProjectUser;
+import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
+import org.apache.dolphinscheduler.dao.repository.ProjectDao;
+import org.apache.dolphinscheduler.dao.repository.ProjectUserDao;
+import org.apache.dolphinscheduler.dao.repository.UserDao;
+import org.apache.dolphinscheduler.dao.repository.WorkflowDefinitionDao;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+/**
+ * project service test
+ **/
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+public class ProjectServiceTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProjectServiceTest.class);
+    private static final Logger baseServiceLogger = LoggerFactory.getLogger(BaseServiceImpl.class);
+    private static final Logger projectLogger = LoggerFactory.getLogger(ProjectServiceImpl.class);
+
+    @InjectMocks
+    private ProjectServiceImpl projectService;
+
+    @Mock
+    private ProjectDao projectDao;
+
+    @Mock
+    private ProjectUserDao projectUserDao;
+
+    @Mock
+    private TaskGroupService taskGroupService;
+
+    @Mock
+    private WorkflowDefinitionDao workflowDefinitionDao;
+
+    @Mock
+    private UserDao userDao;
+
+    @Mock
+    private ResourcePermissionCheckService resourcePermissionCheckService;
+
+    private String projectName = "ProjectServiceTest";
+
+    private String userName = "ProjectServiceTest";
+
+    @Test
+    public void testCreateProject() {
+        User loginUser = getLoginUser();
+        Mockito.when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS, 1,
+                PROJECT_CREATE, baseServiceLogger)).thenReturn(true);
+        Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS, null, 1,
+                baseServiceLogger)).thenReturn(true);
+
+        // REQUEST_PARAMS_NOT_VALID_ERROR
+        Result result = projectService.createProject(loginUser, projectName, getDesc());
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), 10001);
+
+        // PROJECT_ALREADY_EXISTS
+        Mockito.when(projectDao.queryByName(projectName)).thenReturn(getProject());
+        result = projectService.createProject(loginUser, projectName, projectName);
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.PROJECT_ALREADY_EXISTS.getCode(), result.getCode().intValue());
+
+        // success
+        Mockito.when(projectDao.insert(Mockito.any(Project.class))).thenReturn(1);
+        result = projectService.createProject(loginUser, "test", "test");
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+
+    }
+
+    @Test
+    public void testCheckProjectAndAuth() {
+        User loginUser = getLoginUser();
+
+        // PROJECT_NOT_EXIST
+        ServiceException notExistEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.checkProjectAndAuthThrowException(loginUser, (Project) null, PROJECT));
+        Assertions.assertEquals(Status.PROJECT_NOT_EXIST.getCode(), notExistEx.getCode());
+
+        // USER_NO_OPERATION_PROJECT_PERM
+        Project project = getProject();
+        project.setUserId(2);
+        ServiceException noPermEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.checkProjectAndAuthThrowException(loginUser, project, PROJECT));
+        Assertions.assertEquals(Status.USER_NO_OPERATION_PROJECT_PERM.getCode(), noPermEx.getCode());
+
+        // success
+        project.setUserId(1);
+        loginUser.setUserType(UserType.ADMIN_USER);
+        Mockito.when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS,
+                project.getUserId(), PROJECT, baseServiceLogger)).thenReturn(true);
+        Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS,
+                new Object[]{project.getId()},
+                0, baseServiceLogger)).thenReturn(true);
+        Assertions.assertDoesNotThrow(
+                () -> projectService.checkProjectAndAuthThrowException(loginUser, project, PROJECT));
+    }
+
+    @Test
+    public void testCheckHasProjectWritePermissionThrowException() {
+        User loginUser = getLoginUser();
+        Project project = getProject();
+
+        // PROJECT_NOT_FOUND
+        ServiceException notFoundEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.checkHasProjectWritePermissionThrowException(loginUser, (Project) null));
+        Assertions.assertEquals(Status.PROJECT_NOT_FOUND.getCode(), notFoundEx.getCode());
+
+        // USER_NO_WRITE_PROJECT_PERM
+        project.setUserId(2);
+        ServiceException noWriteEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.checkHasProjectWritePermissionThrowException(loginUser, project));
+        Assertions.assertEquals(Status.USER_NO_WRITE_PROJECT_PERM.getCode(), noWriteEx.getCode());
+
+        // USER_NO_WRITE_PROJECT_PERM: read-only project member
+        ProjectUser projectUser = new ProjectUser();
+        projectUser.setPerm(Constants.READ_PERMISSION);
+        Mockito.when(projectUserDao.queryProjectRelation(project.getId(), loginUser.getId())).thenReturn(projectUser);
+        ServiceException readOnlyEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.checkHasProjectWritePermissionThrowException(loginUser, project));
+        Assertions.assertEquals(Status.USER_NO_WRITE_PROJECT_PERM.getCode(), readOnlyEx.getCode());
+
+        // success: project member with write permission
+        projectUser.setPerm(Constants.DEFAULT_ADMIN_PERMISSION);
+        Assertions.assertDoesNotThrow(
+                () -> projectService.checkHasProjectWritePermissionThrowException(loginUser, project));
+
+        // success: admin
+        loginUser.setUserType(UserType.ADMIN_USER);
+        Assertions.assertDoesNotThrow(
+                () -> projectService.checkHasProjectWritePermissionThrowException(loginUser, project));
+
+        // success: project owner
+        loginUser.setUserType(UserType.GENERAL_USER);
+        project.setUserId(loginUser.getId());
+        Assertions.assertDoesNotThrow(
+                () -> projectService.checkHasProjectWritePermissionThrowException(loginUser, project));
+    }
+
+    @Test
+    public void testQueryProjectWithAuthorizedLevelListPaging() {
+        IPage<Project> page = new Page<>(1, 10);
+        page.setTotal(1L);
+        page.setRecords(getList());
+
+        User loginUser = getLoginUser();
+        Integer pageSize = 10;
+        Integer pageNo = 1;
+        String searchVal = "testVal";
+        Result result = new Result();
+        Mockito.when(projectDao.queryProjectListPaging(any(Page.class), Mockito.anyList(), eq(searchVal)))
+                .thenReturn(page);
+
+        Set<Integer> allProjectIds = new HashSet();
+        allProjectIds.add(1);
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(allProjectIds);
+
+        // SUCCESS
+        result = projectService.queryProjectWithAuthorizedLevelListPaging(loginUser.getId(), loginUser, pageSize,
+                pageNo, searchVal);
+        logger.info(result.toString());
+        PageInfo<Project> pageInfo = (PageInfo<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(pageInfo.getTotalList()));
+    }
+
+    @Test
+    public void testDeleteProject() {
+        User loginUser = getLoginUser();
+        Mockito.when(projectDao.queryByCode(1L)).thenReturn(getProject());
+
+        // PROJECT_NOT_FOUND
+        ServiceException notFoundEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.deleteProject(loginUser, 11L));
+        Assertions.assertEquals(Status.PROJECT_NOT_FOUND.getCode(), notFoundEx.getCode());
+        loginUser.setId(2);
+
+        // USER_NO_WRITE_PROJECT_PERM
+        ServiceException noWriteEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.deleteProject(loginUser, 1L));
+        Assertions.assertEquals(Status.USER_NO_WRITE_PROJECT_PERM.getCode(), noWriteEx.getCode());
+
+        // DELETE_PROJECT_ERROR_DEFINES_NOT_NULL
+        Mockito.when(workflowDefinitionDao.queryAllDefinitionList(1L)).thenReturn(getProcessDefinitions());
+        loginUser.setUserType(UserType.ADMIN_USER);
+        loginUser.setId(1);
+        Mockito.when(
+                resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS, new Object[]{1}, 0,
+                        baseServiceLogger))
+                .thenReturn(true);
+        Mockito.when(
+                resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS, loginUser.getId(),
+                        PROJECT_DELETE, baseServiceLogger))
+                .thenReturn(true);
+        Result result = projectService.deleteProject(loginUser, 1L);
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.DELETE_PROJECT_ERROR_DEFINES_NOT_NULL.getCode(), result.getCode().intValue());
+
+        // success
+        Mockito.when(projectDao.deleteById(1)).thenReturn(true);
+        Mockito.when(workflowDefinitionDao.queryAllDefinitionList(1L)).thenReturn(new ArrayList<>());
+        result = projectService.deleteProject(loginUser, 1L);
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+
+    @Test
+    public void testUpdate() {
+
+        User loginUser = getLoginUser();
+        loginUser.setId(1);
+        Project project = getProject();
+        project.setCode(2L);
+        Mockito.when(projectDao.queryByName(projectName)).thenReturn(project);
+        Mockito.when(projectDao.queryByCode(2L)).thenReturn(getProject());
+        // PROJECT_NOT_FOUND
+        ServiceException notFoundEx = Assertions.assertThrows(ServiceException.class,
+                () -> projectService.update(loginUser, 1L, projectName, "desc"));
+        Assertions.assertEquals(Status.PROJECT_NOT_FOUND.getCode(), notFoundEx.getCode());
+
+        // PROJECT_ALREADY_EXISTS
+        Mockito.when(
+                resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS, loginUser.getId(),
+                        PROJECT_UPDATE, baseServiceLogger))
+                .thenReturn(true);
+        Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS, new Object[]{1},
+                loginUser.getId(),
+                baseServiceLogger)).thenReturn(true);
+        Result result = projectService.update(loginUser, 2L, projectName, "desc");
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.PROJECT_ALREADY_EXISTS.getCode(), result.getCode().intValue());
+
+        // USER_NOT_EXIST
+        Mockito.when(userDao.queryById(Mockito.any())).thenReturn(null);
+        result = projectService.update(loginUser, 2L, "test", "desc");
+        Assertions.assertEquals(Status.USER_NOT_EXIST.getCode(), result.getCode().intValue());
+
+        // success
+        Mockito.when(userDao.queryById(Mockito.any())).thenReturn(new User());
+        project.setUserId(1);
+        Mockito.when(projectDao.updateById(Mockito.any(Project.class))).thenReturn(true);
+        result = projectService.update(loginUser, 2L, "test", "desc");
+        logger.info(result.toString());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+
+    }
+
+    @Test
+    public void testQueryAuthorizedProject() {
+        Mockito.when(projectDao.queryAuthedProjectListByUserId(2)).thenReturn(getList());
+
+        User loginUser = getLoginUser();
+
+        // test admin user
+        loginUser.setUserType(UserType.ADMIN_USER);
+        Result result = projectService.queryAuthorizedProject(loginUser, 2);
+        logger.info(result.toString());
+        List<Project> projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+        // test non-admin user
+        loginUser.setUserType(UserType.GENERAL_USER);
+        loginUser.setId(3);
+        result = projectService.queryAuthorizedProject(loginUser, 2);
+        projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+    }
+
+    @Test
+    public void testQueryAuthorizedUser() {
+        final User loginUser = this.getLoginUser();
+
+        // Failure 1: PROJECT_NOT_EXIST
+        ServiceException notFoundEx = Assertions.assertThrows(ServiceException.class,
+                () -> this.projectService.queryAuthorizedUser(loginUser, 3682329499136L));
+        Assertions.assertEquals(Status.PROJECT_NOT_EXIST.getCode(), notFoundEx.getCode());
+
+        // Failure 2: USER_NO_OPERATION_PROJECT_PERM
+        Mockito.when(this.projectDao.queryByCode(Mockito.anyLong())).thenReturn(this.getProject());
+        ServiceException noPermEx = Assertions.assertThrows(ServiceException.class,
+                () -> this.projectService.queryAuthorizedUser(loginUser, 3682329499136L));
+        Assertions.assertEquals(Status.USER_NO_OPERATION_PROJECT_PERM.getCode(), noPermEx.getCode());
+
+        // SUCCESS
+        loginUser.setUserType(UserType.ADMIN_USER);
+        Mockito.when(
+                resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS,
+                        loginUser.getId(), PROJECT, baseServiceLogger))
+                .thenReturn(true);
+        Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS, new Object[]{1},
+                0, baseServiceLogger)).thenReturn(true);
+        Mockito.when(this.userDao.queryAuthedUserListByProjectId(1)).thenReturn(this.getUserList());
+        Result result = this.projectService.queryAuthorizedUser(loginUser, 3682329499136L);
+        logger.info("SUCCESS 1: {}", result.toString());
+        List<User> users = (List<User>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(users));
+
+        loginUser.setId(1);
+        loginUser.setUserType(UserType.GENERAL_USER);
+        Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS, new Object[]{1},
+                1, baseServiceLogger)).thenReturn(true);
+        result = this.projectService.queryAuthorizedUser(loginUser, 3682329499136L);
+        logger.info("SUCCESS 2: {}", result.toString());
+        users = (List<User>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(users));
+    }
+
+    @Test
+    public void testQueryCreatedProject() {
+
+        User loginUser = getLoginUser();
+
+        Mockito.when(projectDao.queryProjectCreatedByUser(1)).thenReturn(getList());
+
+        // success
+        loginUser.setUserType(UserType.ADMIN_USER);
+        List<Project> projects = projectService.queryProjectCreatedByUser(loginUser);
+        logger.info("projects size {}", projects.size());
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+    }
+
+    @Test
+    public void testQueryProjectCreatedAndAuthorizedByUser() {
+        Result result;
+        User loginUser = getLoginUser();
+        Set<Integer> set = new HashSet();
+        set.add(1);
+
+        // not admin user
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(set);
+        Mockito.when(projectDao.queryByIds(set)).thenReturn(getList());
+        result = projectService.queryProjectCreatedAndAuthorizedByUser(loginUser);
+        List<Project> notAdminUserResult = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(notAdminUserResult));
+
+        // admin user
+        loginUser.setUserType(UserType.ADMIN_USER);
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(set);
+        Mockito.when(projectDao.queryByIds(set)).thenReturn(getList());
+        result = projectService.queryProjectCreatedAndAuthorizedByUser(loginUser);
+        List<Project> projects = (List<Project>) result.getData();
+
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+    }
+
+    @Test
+    public void testQueryAllProjectList() {
+        Mockito.when(projectDao.queryAllProject(0)).thenReturn(getList());
+
+        User user = new User();
+        user.setId(0);
+        Result result = projectService.queryAllProjectList(user);
+        logger.info(result.toString());
+        List<Project> projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+    }
+    @Test
+    public void queryAllProjectListForDependent() {
+        Mockito.when(projectDao.queryAllProjectForDependent()).thenReturn(getList());
+
+        Result result = projectService.queryAllProjectListForDependent();
+        logger.info(result.toString());
+        List<Project> projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+    }
+
+    @Test
+    public void testQueryProjectWithAuthorizedLevel() {
+        Set<Integer> set = new HashSet();
+        set.add(1);
+        // test admin user
+        User loginUser = new User();
+        loginUser.setUserType(UserType.ADMIN_USER);
+        loginUser.setId(1);
+        List<Integer> list = new ArrayList<>(1);
+        list.add(1);
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(set);
+        Mockito.when(projectDao.listAuthorizedProjects(
+                loginUser.getUserType().equals(UserType.ADMIN_USER) ? 0 : loginUser.getId(), list))
+                .thenReturn(getList());
+        Result result = projectService.queryProjectWithAuthorizedLevel(loginUser, 2);
+        logger.info(result.toString());
+        List<Project> projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+        // test non-admin user
+        loginUser.setId(2);
+        loginUser.setUserType(UserType.GENERAL_USER);
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(set);
+        Mockito.when(projectDao.listAuthorizedProjects(
+                loginUser.getUserType().equals(UserType.ADMIN_USER) ? 0 : loginUser.getId(), list))
+                .thenReturn(getList());
+        result = projectService.queryProjectWithAuthorizedLevel(loginUser, 3);
+        logger.info(result.toString());
+        projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+    }
+
+    @Test
+    public void testQueryUnauthorizedProject() {
+        Set<Integer> set = new HashSet();
+        set.add(1);
+        // test admin user
+        User loginUser = new User();
+        loginUser.setUserType(UserType.ADMIN_USER);
+        loginUser.setId(1);
+        List<Integer> list = new ArrayList<>(1);
+        list.add(1);
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(set);
+        Mockito.when(projectDao.listAuthorizedProjects(
+                loginUser.getUserType().equals(UserType.ADMIN_USER) ? 0 : loginUser.getId(), list))
+                .thenReturn(getList());
+        Result result = projectService.queryUnauthorizedProject(loginUser, 2);
+        logger.info(result.toString());
+        List<Project> projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+
+        // test non-admin user
+        loginUser.setId(2);
+        loginUser.setUserType(UserType.GENERAL_USER);
+        Mockito.when(resourcePermissionCheckService.userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS,
+                loginUser.getId(), projectLogger)).thenReturn(set);
+        Mockito.when(projectDao.listAuthorizedProjects(
+                loginUser.getUserType().equals(UserType.ADMIN_USER) ? 0 : loginUser.getId(), list))
+                .thenReturn(getList());
+        result = projectService.queryUnauthorizedProject(loginUser, 3);
+        logger.info(result.toString());
+        projects = (List<Project>) result.getData();
+        Assertions.assertTrue(CollectionUtils.isNotEmpty(projects));
+    }
+
+    private Project getProject() {
+        Project project = new Project();
+        project.setCode(1L);
+        project.setId(1);
+        project.setName(projectName);
+        project.setUserId(1);
+        return project;
+    }
+
+    private Project getProject(int projectId) {
+        Project project = new Project();
+        project.setId(projectId);
+        project.setCode(1L);
+        project.setName(projectName);
+        project.setUserId(1);
+        return project;
+    }
+
+    private List<Project> getList() {
+        List<Project> list = new ArrayList<>();
+        list.add(getProject(1));
+        list.add(getProject(2));
+        list.add(getProject(3));
+        return list;
+    }
+
+    private User getLoginUser() {
+        User loginUser = new User();
+        loginUser.setUserType(UserType.GENERAL_USER);
+        loginUser.setUserName(userName);
+        loginUser.setId(1);
+        return loginUser;
+    }
+
+    /**
+     * Get general user
+     *
+     * @return
+     */
+    private User getGeneralUser() {
+        User user = new User();
+        user.setUserType(UserType.GENERAL_USER);
+        user.setUserName("userTest0001");
+        user.setUserPassword("userTest0001");
+        return user;
+    }
+
+    /**
+     * Get user list
+     *
+     * @return
+     */
+    private List<User> getUserList() {
+        List<User> userList = new ArrayList<>();
+        userList.add(this.getGeneralUser());
+        return userList;
+    }
+
+    private List<WorkflowDefinition> getProcessDefinitions() {
+        List<WorkflowDefinition> list = new ArrayList<>();
+        WorkflowDefinition workflowDefinition = new WorkflowDefinition();
+        workflowDefinition.setProjectCode(1L);
+        list.add(workflowDefinition);
+        return list;
+    }
+
+    private String getDesc() {
+        return "projectUserMapper.deleteProjectRelation(projectId,userId)projectUserMappe"
+                + ".deleteProjectRelation(projectId,userId)projectUserMappe"
+                + "r.deleteProjectRelation(projectId,userId)projectUserMapper"
+                + ".deleteProjectRelation(projectId,userId)projectUserMapper.deleteProjectRelation(projectId,userId)";
+    }
+
+}
