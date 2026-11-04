@@ -99,29 +99,23 @@ public class MySqlStmtCreatorFactory {
     }
 
     public String buildAlterColumnTypeSql(TableId tableId, String columnName, DataType columnType) {
-        JdbcColumn.Builder columnBuilder = new JdbcColumn.Builder();
-        MySqlTypeTransformer transformer = new MySqlTypeTransformer(columnBuilder);
-        columnType.accept(transformer);
-        JdbcColumn type = columnBuilder.build();
+        JdbcColumn type = toJdbcColumn(columnType);
 
         return String.format(
-                "ALTER TABLE %s MODIFY COLUMN %s %s;",
-                tableId.identifier(), columnName, type.getColumnType());
+                "ALTER TABLE %s MODIFY COLUMN `%s` %s;",
+                tableId.identifier(), columnName, columnTypeDefinition(type));
     }
 
     private String buildAddColumnStmt(AddColumnEvent.ColumnWithPosition columnWithPosition) {
         Column column = columnWithPosition.getAddColumn();
         StringBuilder builder = new StringBuilder();
 
-        JdbcColumn.Builder columnBuilder = new JdbcColumn.Builder();
-        MySqlTypeTransformer transformer = new MySqlTypeTransformer(columnBuilder);
-        column.getType().accept(transformer);
-        JdbcColumn type = columnBuilder.build();
+        JdbcColumn type = toJdbcColumn(column.getType());
 
         builder.append("ADD COLUMN `")
                 .append(column.getName())
                 .append("` ")
-                .append(type.getColumnType());
+                .append(columnTypeDefinition(type));
 
         if (column.getComment() != null) {
             builder.append(" COMMENT '").append(column.getComment()).append("'");
@@ -196,6 +190,18 @@ public class MySqlStmtCreatorFactory {
     private static final Set<String> COLUMN_TYPES_THAT_DO_NOT_SUPPORT_DEFAULT_VALUE =
             ImmutableSet.of("BLOB", "TEXT", "GEOMETRY", "JSON");
 
+    /** Transforms the logical CDC data type into a MySQL column type without SQL constraints. */
+    private static JdbcColumn toJdbcColumn(DataType dataType) {
+        JdbcColumn.Builder columnBuilder = new JdbcColumn.Builder();
+        dataType.accept(new MySqlTypeTransformer(columnBuilder));
+        return columnBuilder.build();
+    }
+
+    /** Render nullability once, consistently for CREATE TABLE, ADD COLUMN and MODIFY COLUMN. */
+    private static String columnTypeDefinition(JdbcColumn jdbcColumn) {
+        return jdbcColumn.getColumnType() + (jdbcColumn.isNullable() ? "" : " NOT NULL");
+    }
+
     public String buildColumnStmt(Column column) {
         StringBuilder builder = new StringBuilder();
 
@@ -205,11 +211,8 @@ public class MySqlStmtCreatorFactory {
         builder.append("` ");
 
         // Column type
-        JdbcColumn.Builder columnBuilder = new JdbcColumn.Builder();
-        MySqlTypeTransformer transformer = new MySqlTypeTransformer(columnBuilder);
-        column.getType().accept(transformer);
-        JdbcColumn type = columnBuilder.build();
-        builder.append(type.getColumnType());
+        JdbcColumn type = toJdbcColumn(column.getType());
+        builder.append(columnTypeDefinition(type));
 
         // Extra attributes
         if (!StringUtils.isNullOrWhitespaceOnly(column.getComment())) {
