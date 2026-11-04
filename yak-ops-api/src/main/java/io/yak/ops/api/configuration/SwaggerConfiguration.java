@@ -31,8 +31,8 @@ public class SwaggerConfiguration implements WebMvcConfigurer {
     @Bean
     public OpenAPI openAPI() {
         Info info = new Info()
-                .title("Apache DolphinScheduler Api Docs")
-                .description("Apache DolphinScheduler Api Docs")
+                .title("Yak Ops Api Docs")
+                .description("Yak Ops Api Docs")
                 .version(getDsVersion());
         return new OpenAPI().info(info);
     }
