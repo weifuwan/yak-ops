@@ -17,12 +17,6 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.apache</groupId>
-        <artifactId>apache</artifactId>
-        <version>25</version>
-        <relativePath/>
-    </parent>
     <groupId>io.yak.ops</groupId>
     <artifactId>yak-ops-scheduler</artifactId>
     <version>1.4.0</version>
@@ -31,6 +25,17 @@
     <description>Dolphin Scheduler is a distributed and easy-to-expand visual DAG workflow scheduling system, dedicated
         to solving the complex dependencies in data processing, making the scheduling system out of the box for data
         processing.</description>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>https://github.com/weifuwan/yak-ops</url>
+    </scm>
 
     <modules>
         <module>yak-ops-bom</module>
