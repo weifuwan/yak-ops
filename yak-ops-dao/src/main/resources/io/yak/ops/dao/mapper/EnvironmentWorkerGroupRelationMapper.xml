@@ -7,17 +7,17 @@
     <select id="queryByEnvironmentCode" resultType="io.yak.ops.dao.entity.EnvironmentWorkerGroupRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_environment_worker_group_relation
+        from t_yak_ops_environment_worker_group_relation
         WHERE environment_code = #{environmentCode}
     </select>
     <select id="queryByWorkerGroupName" resultType="io.yak.ops.dao.entity.EnvironmentWorkerGroupRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_environment_worker_group_relation
+        from t_yak_ops_environment_worker_group_relation
         WHERE worker_group = #{workerGroupName}
     </select>
     <delete id="deleteByCode">
-        delete from t_ds_environment_worker_group_relation
+        delete from t_yak_ops_environment_worker_group_relation
         WHERE environment_code = #{environmentCode} and worker_group = #{workerGroupName}
     </delete>
 </mapper>

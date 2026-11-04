@@ -27,7 +27,13 @@ public class YakOpsManager {
      * Historical database upgrades are intentionally unsupported.
      */
     public void initializeOrValidate() throws IOException {
-        if (databaseDialect.tableExists("t_ds_version")) {
+        if (schemaDao.hasLegacySchemaTables()) {
+            throw new IllegalStateException(
+                    "Legacy DolphinScheduler database tables detected; "
+                            + "migrate them explicitly before starting Yak Ops");
+        }
+
+        if (databaseDialect.tableExists("t_yak_ops_version")) {
             validateCurrentVersion();
             log.info("Database schema is already initialized at version {}", SchemaUtils.getSoftVersion());
             return;
@@ -37,7 +43,7 @@ public class YakOpsManager {
         // a partially initialized database or an unsupported historical installation.
         if (schemaDao.hasExistingTables()) {
             throw new IllegalStateException(
-                    "Existing database tables detected without t_ds_version; "
+                    "Existing database tables detected without t_yak_ops_version; "
                             + "refusing destructive schema initialization");
         }
 
@@ -48,8 +54,8 @@ public class YakOpsManager {
     }
 
     public void validateCurrentVersion() throws IOException {
-        if (!databaseDialect.tableExists("t_ds_version")) {
-            throw new IllegalStateException("Required t_ds_version table is missing");
+        if (!databaseDialect.tableExists("t_yak_ops_version")) {
+            throw new IllegalStateException("Required t_yak_ops_version table is missing");
         }
 
         String expectedVersion = SchemaUtils.getSoftVersion();
@@ -61,11 +67,11 @@ public class YakOpsManager {
                             + " and does not support historical database upgrades");
         }
 
-        if (!databaseDialect.tableExists("t_ds_user")
-                || !databaseDialect.tableExists("t_ds_workflow_instance")
-                || !databaseDialect.tableExists("t_ds_task_instance")) {
+        if (!databaseDialect.tableExists("t_yak_ops_user")
+                || !databaseDialect.tableExists("t_yak_ops_workflow_instance")
+                || !databaseDialect.tableExists("t_yak_ops_task_instance")) {
             throw new IllegalStateException(
-                    "Database schema version matches but required 3.4.3 tables are missing");
+                    "Database schema version matches but required Yak Ops tables are missing");
         }
     }
 }

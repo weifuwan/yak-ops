@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_access_token")
+@TableName("t_yak_ops_access_token")
 public class AccessToken {
 
     /**

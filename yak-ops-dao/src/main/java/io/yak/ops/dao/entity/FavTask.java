@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @AllArgsConstructor
-@TableName("t_ds_fav_task")
+@TableName("t_yak_ops_fav_task")
 public class FavTask {
 
     @TableId(value = "id", type = IdType.AUTO)

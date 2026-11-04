@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_plugin_define")
+@TableName("t_yak_ops_plugin_define")
 public class PluginDefine {
 
     @TableId(value = "id", type = IdType.AUTO)

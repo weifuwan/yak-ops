@@ -15,7 +15,7 @@
     </sql>
 
     <delete id="batchDeleteByWorkflowDefinitionCode">
-        delete from t_ds_workflow_task_lineage
+        delete from t_yak_ops_workflow_task_lineage
         where workflow_definition_code in
         <foreach collection="workflowDefinitionCodes" index="index" item="i" open="(" separator="," close=")">
             #{i}
@@ -23,7 +23,7 @@
     </delete>
 
     <insert id="batchInsert">
-        insert into t_ds_workflow_task_lineage (workflow_definition_code, workflow_definition_version, task_definition_code,
+        insert into t_yak_ops_workflow_task_lineage (workflow_definition_code, workflow_definition_version, task_definition_code,
         task_definition_version, dept_project_code, dept_workflow_definition_code, dept_task_definition_code)
         values
         <foreach collection="workflowTaskLineages" item="workflowTaskLineage" separator=",">
@@ -38,8 +38,8 @@
         select
             <include refid="baseSql"/>
         from
-        t_ds_workflow_task_lineage
-        where workflow_definition_code in (select code from t_ds_workflow_definition where project_code = #{projectCode})
+        t_yak_ops_workflow_task_lineage
+        where workflow_definition_code in (select code from t_yak_ops_workflow_definition where project_code = #{projectCode})
     </select>
 
     <select id="queryWorkFlowLineageByCode" resultType="io.yak.ops.dao.entity.WorkFlowRelationDetail">
@@ -51,8 +51,8 @@
             ,schd.end_time as schedule_end_time
             ,schd.crontab as crontab
             ,schd.release_state as schedule_publish_status
-        from t_ds_workflow_definition pd
-        left join t_ds_schedules schd on pd.code = schd.workflow_definition_code
+        from t_yak_ops_workflow_definition pd
+        left join t_yak_ops_schedules schd on pd.code = schd.workflow_definition_code
         where pd.code = #{workflowDefinitionCode}
     </select>
 
@@ -65,8 +65,8 @@
         ,schd.end_time as schedule_end_time
         ,schd.crontab as crontab
         ,schd.release_state as schedule_publish_status
-        from t_ds_workflow_definition pd
-        left join t_ds_schedules schd on pd.code = schd.workflow_definition_code
+        from t_yak_ops_workflow_definition pd
+        left join t_yak_ops_schedules schd on pd.code = schd.workflow_definition_code
         where 1=1
         <if test="workflowDefinitionName != null and workflowDefinitionName != ''">
             and pd.name = #{workflowDefinitionName}
@@ -78,7 +78,7 @@
         select
             <include refid="baseSql"/>
         from
-        t_ds_workflow_task_lineage
+        t_yak_ops_workflow_task_lineage
         where 1=1
         <if test="deptProjectCode != null and deptProjectCode != 0">
         and dept_project_code = #{deptProjectCode}
@@ -93,7 +93,7 @@
         select
             <include refid="baseSql"/>
         from
-        t_ds_workflow_task_lineage
+        t_yak_ops_workflow_task_lineage
         where workflow_definition_code = #{workflowDefinitionCode}
     </select>
 

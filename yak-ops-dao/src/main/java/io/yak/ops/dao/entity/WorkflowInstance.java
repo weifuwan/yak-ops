@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @AllArgsConstructor
-@TableName("t_ds_workflow_instance")
+@TableName("t_yak_ops_workflow_instance")
 public class WorkflowInstance {
 
     @TableId(value = "id", type = IdType.AUTO)

@@ -24,7 +24,7 @@
         select
         <include refid="baseSql">
         </include>
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         <where>
             <if test="groupId != 0">
                 and group_id = #{groupId}
@@ -37,17 +37,17 @@
         select
         <include refid="baseSql">
         </include>
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
             where status = #{status}
     </select>
 
     <delete id="deleteByTaskId">
-        delete from t_ds_task_group_queue
+        delete from t_yak_ops_task_group_queue
         where task_id = #{taskId}
     </delete>
 
     <update id="updateStatusByTaskId">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
         <set>
             <if test="status != 0">
                 status = #{status},
@@ -57,31 +57,31 @@
     </update>
 
     <update id="updateInQueue">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
                set in_queue = #{inQueue}
         where id = #{id}
     </update>
 
     <update id="updateForceStart">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
         set force_start = #{forceStart}
         where id = #{queueId}
     </update>
 
     <update id="modifyPriority">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
         set priority = #{priority}
         where id = #{queueId}
     </update>
 
     <update id="updateInQueueLimit1">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
                set in_queue = #{newValue}
         where group_id = #{groupId} and in_queue = #{oldValue} and status = #{status} order by priority desc limit 1
     </update>
 
     <update id="updateInQueueCAS">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
                set in_queue = #{newValue}
         where id = #{id} and in_queue = #{oldValue}
     </update>
@@ -89,13 +89,13 @@
     <select id="queryHighPriorityTasks" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where group_id = #{groupId} and status = #{status} and  priority &gt; #{priority}
     </select>
     <select id="queryTheHighestPriorityTasks" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where group_id = #{groupId} and status = #{status} and  in_queue = #{inQueue} and force_start = #{forceStart}
         order by priority desc
         limit 1
@@ -104,7 +104,7 @@
     <select id="queryByTaskId" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where task_id = #{taskId}
     </select>
 
@@ -123,11 +123,11 @@
         workflow.name as workflowInstanceName,
         p.name as projectName,
         p.code as projectCode
-        from t_ds_task_group_queue queue
-        left join t_ds_workflow_instance workflow on queue.workflow_instance_id = workflow.id
-        left join t_ds_workflow_definition p_f on workflow.workflow_definition_code = p_f.code
+        from t_yak_ops_task_group_queue queue
+        left join t_yak_ops_workflow_instance workflow on queue.workflow_instance_id = workflow.id
+        left join t_yak_ops_workflow_definition p_f on workflow.workflow_definition_code = p_f.code
         and workflow.workflow_definition_version = p_f.version
-        join t_ds_project as p on p_f.project_code = p.code
+        join t_yak_ops_project as p on p_f.project_code = p.code
         <where>
             <if test="groupId != null and groupId != -1">
                 queue.group_id = #{groupId}
@@ -152,7 +152,7 @@
     </select>
 
     <delete id="deleteByTaskIds">
-        delete from t_ds_task_group_queue
+        delete from t_yak_ops_task_group_queue
         where task_id in
         <foreach collection="taskInstanceIds" index="index" item="i" open="(" separator="," close=")">
             #{i}
@@ -161,13 +161,13 @@
 
     <delete id="deleteByWorkflowInstanceId">
         delete
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where workflow_instance_id = #{workflowInstanceId}
     </delete>
 
     <delete id="deleteByWorkflowInstanceIds">
         delete
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where workflow_instance_id in
         <foreach collection="workflowInstanceIds" index="index" item="i" open="(" separator="," close=")">
             #{i}
@@ -176,7 +176,7 @@
 
     <delete id="deleteByTaskGroupIds">
         delete
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where group_id in
         <foreach collection="taskGroupIds" index="index" item="i" open="(" separator="," close=")">
             #{i}
@@ -184,7 +184,7 @@
     </delete>
 
     <update id="updateTaskGroupPriorityByTaskInstanceId">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
         set priority = #{priority}
         where task_id = #{taskInstanceId}
     </update>
@@ -192,21 +192,21 @@
     <select id="queryAllInQueueTaskGroupQueueByGroupId" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where group_id = #{taskGroupId} and in_queue = #{inQueue} order by priority desc
     </select>
 
     <select id="queryAllTaskGroupQueueByInQueue" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where in_queue = #{inQueue} order by priority desc
     </select>
 
     <select id="queryInQueueTaskGroupQueue" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql"/>
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where in_queue = #{inQueue}
         and id &gt; #{minTaskGroupQueueId}
         order by id asc
@@ -216,12 +216,12 @@
     <select id="queryByTaskInstanceId" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where task_id = #{taskInstanceId}
     </select>
 
     <update id="acquireTaskGroupQueue">
-        update t_ds_task_group_queue
+        update t_yak_ops_task_group_queue
         set status = #{acquiredStatus}, update_time = #{updateTime}
         where id = #{id}
         and status = #{waitingStatus}
@@ -230,7 +230,7 @@
     </update>
 
     <delete id="deleteByTaskInstanceIdAndStatus">
-        delete from t_ds_task_group_queue
+        delete from t_yak_ops_task_group_queue
         where task_id = #{taskInstanceId}
         and status = #{status}
     </delete>
@@ -238,20 +238,20 @@
     <select id="queryUsingTaskGroupQueueByGroupId" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql" />
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where group_id = #{taskGroupId} and status = #{status} and force_start = #{forceStart} and in_queue = #{inQueue}
     </select>
 
     <select id="countUsingTaskGroupQueueByGroupId" resultType="java.lang.Integer">
         select count(1)
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where group_id = #{taskGroupId} and status = #{status} and force_start = #{forceStart} and in_queue = #{inQueue}
     </select>
 
     <select id="queryWaitNotifyForceStartTaskGroupQueue" resultType="io.yak.ops.dao.entity.TaskGroupQueue">
         select
         <include refid="baseSql"/>
-        from t_ds_task_group_queue
+        from t_yak_ops_task_group_queue
         where in_queue = #{inQueue}
         and force_start = #{forceStart}
         and id &gt; #{minTaskGroupQueueId}

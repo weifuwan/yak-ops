@@ -3,23 +3,23 @@
 <mapper namespace="io.yak.ops.dao.mapper.WorkerGroupMapper">
     <select id="queryAllWorkerGroup" resultType="io.yak.ops.dao.entity.WorkerGroup">
         select *
-        from t_ds_worker_group
+        from t_yak_ops_worker_group
         order by update_time desc
     </select>
     <select id="queryWorkerGroupByName" resultType="io.yak.ops.dao.entity.WorkerGroup">
         select *
-        from t_ds_worker_group
+        from t_yak_ops_worker_group
         where name = #{name}
     </select>
 
     <update id="updateAddrListByWorkerGroupName">
-        update t_ds_worker_group
+        update t_yak_ops_worker_group
         set addr_list = #{addrList}, source = #{source}
         where name = #{name}
     </update>
 
     <delete id="deleteByWorkerGroupName">
-        delete from t_ds_worker_group
+        delete from t_yak_ops_worker_group
         where name = #{name}
     </delete>
 </mapper>

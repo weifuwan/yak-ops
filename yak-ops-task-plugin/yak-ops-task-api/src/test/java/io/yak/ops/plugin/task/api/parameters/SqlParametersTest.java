@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 public class SqlParametersTest {
 
     private final String type = "MYSQL";
-    private final String sql = "select * from t_ds_user";
+    private final String sql = "select * from t_yak_ops_user";
     private final int datasource = 1;
     private final int sqlType = 0;
     private final Boolean sendEmail = true;

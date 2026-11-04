@@ -12,7 +12,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@TableName("t_ds_worker_group")
+@TableName("t_yak_ops_worker_group")
 @Data
 @Builder
 @NoArgsConstructor

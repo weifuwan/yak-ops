@@ -7,19 +7,19 @@
     <select id="queryByClusterName" resultType="io.yak.ops.dao.entity.Cluster">
         select
         <include refid="baseSql"/>
-        from t_ds_cluster
+        from t_yak_ops_cluster
         WHERE name = #{clusterName}
     </select>
     <select id="queryAllClusterList" resultType="io.yak.ops.dao.entity.Cluster">
         select
         <include refid="baseSql"/>
-        from t_ds_cluster
+        from t_yak_ops_cluster
         order by create_time desc
     </select>
     <select id="queryClusterListPaging" resultType="io.yak.ops.dao.entity.Cluster">
         select
         <include refid="baseSql"/>
-        from t_ds_cluster
+        from t_yak_ops_cluster
         where 1=1
         <if test="searchName!=null and searchName != ''">
             and name like concat('%', #{searchName}, '%')
@@ -29,10 +29,10 @@
     <select id="queryByClusterCode" resultType="io.yak.ops.dao.entity.Cluster">
         select
         <include refid="baseSql"/>
-        from t_ds_cluster
+        from t_yak_ops_cluster
         where code = #{clusterCode}
     </select>
     <delete id="deleteByCode">
-        delete from t_ds_cluster where code = #{code}
+        delete from t_yak_ops_cluster where code = #{code}
     </delete>
 </mapper>

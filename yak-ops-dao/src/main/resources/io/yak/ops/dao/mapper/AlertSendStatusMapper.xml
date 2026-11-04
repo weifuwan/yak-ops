@@ -3,7 +3,7 @@
 <mapper namespace="io.yak.ops.dao.mapper.AlertSendStatusMapper">
 
     <insert id="batchInsert">
-        insert into t_ds_alert_send_status (alert_id, alert_plugin_instance_id, send_status, log, create_time)
+        insert into t_yak_ops_alert_send_status (alert_id, alert_plugin_instance_id, send_status, log, create_time)
         values
         <foreach collection="alertSendStatuses" item="alertSendStatus" separator=",">
             (#{alertSendStatus.alertId},
@@ -16,7 +16,7 @@
 
     <delete id="deleteByAlertIds">
         delete
-        from t_ds_alert_send_status
+        from t_yak_ops_alert_send_status
         where alert_id in
         <foreach collection="alertIds" item="alertId" separator="," open="(" close=")">
             #{alertId}

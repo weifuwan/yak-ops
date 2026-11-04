@@ -4,26 +4,26 @@
 
     <select id="queryAllPluginDefineList" resultType="io.yak.ops.dao.entity.PluginDefine">
         select *
-        from t_ds_plugin_define
+        from t_yak_ops_plugin_define
         where 1=1
     </select>
 
     <select id="queryByPluginType" resultType="io.yak.ops.dao.entity.PluginDefine">
         select id,plugin_name,plugin_type,create_time,update_time
-        from t_ds_plugin_define
+        from t_yak_ops_plugin_define
         where plugin_type = #{pluginType}
     </select>
 
     <select id="queryByNameAndType" resultType="io.yak.ops.dao.entity.PluginDefine">
         select *
-        from t_ds_plugin_define
+        from t_yak_ops_plugin_define
         where plugin_name = #{pluginName} and plugin_type = #{pluginType}
         limit 1
     </select>
 
     <select id="queryDetailById" resultType="io.yak.ops.dao.entity.PluginDefine">
         select id,plugin_name,plugin_type,plugin_params,create_time,update_time
-        from t_ds_plugin_define
+        from t_yak_ops_plugin_define
         where id = #{id}
     </select>
 

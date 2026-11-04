@@ -5,10 +5,10 @@ import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.UiPluginService;
 import io.yak.ops.common.enums.PluginType;
-import io.yak.ops.dao.entity.DsVersion;
+import io.yak.ops.dao.entity.YakOpsVersion;
 import io.yak.ops.dao.entity.PluginDefine;
 import io.yak.ops.dao.mapper.PluginDefineMapper;
-import io.yak.ops.dao.repository.DsVersionDao;
+import io.yak.ops.dao.repository.YakOpsVersionDao;
 
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -29,13 +29,13 @@ public class UiPluginServiceImpl extends BaseServiceImpl implements UiPluginServ
     PluginDefineMapper pluginDefineMapper;
 
     @Autowired
-    private DsVersionDao dsVersionDao;
+    private YakOpsVersionDao yakOpsVersionDao;
 
-    private String dsVersion;
+    private String yakOpsVersion;
 
     @PostConstruct
     private void init() {
-        dsVersion = dsVersionDao.selectVersion().map(DsVersion::getVersion).orElse("unknown");
+        yakOpsVersion = yakOpsVersionDao.selectVersion().map(YakOpsVersion::getVersion).orElse("unknown");
     }
 
     @Override
@@ -66,7 +66,7 @@ public class UiPluginServiceImpl extends BaseServiceImpl implements UiPluginServ
     @Override
     public ProductInfoDto queryProductInfo() {
         ProductInfoDto result = new ProductInfoDto();
-        result.setVersion(dsVersion);
+        result.setVersion(yakOpsVersion);
         return result;
     }
 

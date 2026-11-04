@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_workflow_definition_log")
+@TableName("t_yak_ops_workflow_definition_log")
 public class WorkflowDefinitionLog extends WorkflowDefinition {
 
     private int operator;

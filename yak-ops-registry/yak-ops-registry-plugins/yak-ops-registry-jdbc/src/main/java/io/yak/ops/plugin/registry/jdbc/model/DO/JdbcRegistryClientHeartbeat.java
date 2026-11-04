@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@TableName(value = "t_ds_jdbc_registry_client_heartbeat")
+@TableName(value = "t_yak_ops_jdbc_registry_client_heartbeat")
 @Data
 @Builder
 @NoArgsConstructor

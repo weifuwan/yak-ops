@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_datasource")
+@TableName("t_yak_ops_datasource")
 public class DataSource {
 
     @TableId(value = "id", type = IdType.AUTO)

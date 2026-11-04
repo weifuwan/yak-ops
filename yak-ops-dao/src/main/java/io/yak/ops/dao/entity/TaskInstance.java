@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("t_ds_task_instance")
+@TableName("t_yak_ops_task_instance")
 public class TaskInstance implements Serializable {
 
     @TableId(value = "id", type = IdType.AUTO)

@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_relation_project_worker_group")
+@TableName("t_yak_ops_relation_project_worker_group")
 public class ProjectWorkerGroup {
 
     @TableId(value = "id", type = IdType.AUTO)

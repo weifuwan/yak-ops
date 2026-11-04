@@ -16,11 +16,11 @@
         <include refid="baseSqlV2">
             <property name="alias" value="s"/>
         </include>
-        from t_ds_schedules s
-        join t_ds_workflow_definition p_f on s.workflow_definition_code = p_f.code
-        join t_ds_project as p on p_f.project_code = p.code
-        join t_ds_user as u on s.user_id = u.id
-        left join t_ds_environment as e on s.environment_code = e.code
+        from t_yak_ops_schedules s
+        join t_yak_ops_workflow_definition p_f on s.workflow_definition_code = p_f.code
+        join t_yak_ops_project as p on p_f.project_code = p.code
+        join t_yak_ops_user as u on s.user_id = u.id
+        left join t_yak_ops_environment as e on s.environment_code = e.code
         where 1=1
         <if test="workflowDefinitionCode != 0">
             and s.workflow_definition_code = #{workflowDefinitionCode}
@@ -32,11 +32,11 @@
         <include refid="baseSqlV2">
             <property name="alias" value="s"/>
         </include>
-        from t_ds_schedules s
-        join t_ds_workflow_definition p_f on s.workflow_definition_code = p_f.code
-        join t_ds_project as p on p_f.project_code = p.code
-        join t_ds_user as u on s.user_id = u.id
-        left join t_ds_environment as e on s.environment_code = e.code
+        from t_yak_ops_schedules s
+        join t_yak_ops_workflow_definition p_f on s.workflow_definition_code = p_f.code
+        join t_yak_ops_project as p on p_f.project_code = p.code
+        join t_yak_ops_user as u on s.user_id = u.id
+        left join t_yak_ops_environment as e on s.environment_code = e.code
         where 1=1
         <if test="projectCode != 0">
             and p.code = #{projectCode}
@@ -48,16 +48,16 @@
     </select>
     <select id="querySchedulerListByProjectName" resultType="io.yak.ops.dao.entity.Schedule">
         select p_f.name as workflow_definition_name, p_f.description as definition_description, p.name as project_name,u.user_name, s.*
-        from t_ds_schedules s
-        join t_ds_workflow_definition p_f on s.workflow_definition_code = p_f.code
-        join t_ds_project as p on p_f.project_code = p.code
-        join t_ds_user as u on s.user_id = u.id
+        from t_yak_ops_schedules s
+        join t_yak_ops_workflow_definition p_f on s.workflow_definition_code = p_f.code
+        join t_yak_ops_project as p on p_f.project_code = p.code
+        join t_yak_ops_user as u on s.user_id = u.id
         where p.name = #{projectName}
     </select>
     <select id="selectAllByWorkflowDefinitionArray" resultType="io.yak.ops.dao.entity.Schedule">
         select
         <include refid="baseSql"/>
-        from t_ds_schedules
+        from t_yak_ops_schedules
         where 1= 1
         <if test="workflowDefinitionCodes != null and workflowDefinitionCodes.length != 0 ">
             and workflow_definition_code in
@@ -70,14 +70,14 @@
     <select id="queryByWorkflowDefinitionCode" resultType="io.yak.ops.dao.entity.Schedule">
         select
         <include refid="baseSql"/>
-        from t_ds_schedules
+        from t_yak_ops_schedules
         where workflow_definition_code = #{workflowDefinitionCode}
     </select>
 
     <select id="querySchedulesByWorkflowDefinitionCodes" resultType="io.yak.ops.dao.entity.Schedule">
         select
         <include refid="baseSql"/>
-        from t_ds_schedules
+        from t_yak_ops_schedules
         <if test="workflowDefinitionCodeList != null and workflowDefinitionCodeList.size() != 0">
             where workflow_definition_code in
             <foreach collection="workflowDefinitionCodeList" item="code" index="index" open="(" close=")" separator=",">
@@ -90,7 +90,7 @@
             resultType="io.yak.ops.dao.entity.Schedule">
         select
         <include refid="baseSql"/>
-        from t_ds_schedules
+        from t_yak_ops_schedules
         where workflow_definition_code = #{workflowDefinitionCode} and release_state = 1
     </select>
 
@@ -101,9 +101,9 @@
         <include refid="baseSqlV2">
             <property name="alias" value="s"/>
         </include>
-        FROM t_ds_schedules s
-        join t_ds_workflow_definition pd on s.workflow_definition_code = pd.code
-        join t_ds_project as p on pd.project_code = p.code
+        FROM t_yak_ops_schedules s
+        join t_yak_ops_workflow_definition pd on s.workflow_definition_code = pd.code
+        join t_yak_ops_project as p on pd.project_code = p.code
         <where>
             <if test="schedule.projectName != null and schedule.projectName != ''">
                 and p.name like concat('%', #{schedule.projectName}, '%')
@@ -121,7 +121,7 @@
     <select id="queryScheduleListByTenant" resultType="io.yak.ops.dao.entity.Schedule">
         select
         <include refid="baseSql"/>
-        from t_ds_schedules
+        from t_yak_ops_schedules
         where tenant_code = #{tenantCode}
     </select>
 </mapper>

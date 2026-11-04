@@ -15,7 +15,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_error_command")
+@TableName("t_yak_ops_error_command")
 public class ErrorCommand {
 
     @TableId(value = "id", type = IdType.INPUT)

@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_user")
+@TableName("t_yak_ops_user")
 public class User {
 
     @TableId(value = "id", type = IdType.AUTO)

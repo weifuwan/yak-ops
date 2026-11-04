@@ -1,7 +1,7 @@
 package io.yak.ops.api.configuration;
 
-import io.yak.ops.dao.entity.DsVersion;
-import io.yak.ops.dao.repository.DsVersionDao;
+import io.yak.ops.dao.entity.YakOpsVersion;
+import io.yak.ops.dao.repository.YakOpsVersionDao;
 
 import org.springdoc.core.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,16 +24,16 @@ import io.swagger.v3.oas.models.info.Info;
 public class SwaggerConfiguration implements WebMvcConfigurer {
 
     @Autowired
-    private DsVersionDao dsVersionDao;
+    private YakOpsVersionDao yakOpsVersionDao;
 
-    private volatile String dsVersion;
+    private volatile String yakOpsVersion;
 
     @Bean
     public OpenAPI openAPI() {
         Info info = new Info()
                 .title("Yak Ops Api Docs")
                 .description("Yak Ops Api Docs")
-                .version(getDsVersion());
+                .version(getYakOpsVersion());
         return new OpenAPI().info(info);
     }
 
@@ -53,11 +53,11 @@ public class SwaggerConfiguration implements WebMvcConfigurer {
                 .build();
     }
 
-    private String getDsVersion() {
-        if (dsVersion != null) {
-            return dsVersion;
+    private String getYakOpsVersion() {
+        if (yakOpsVersion != null) {
+            return yakOpsVersion;
         }
-        dsVersion = dsVersionDao.selectVersion().map(DsVersion::getVersion).orElse("unknown");
-        return dsVersion;
+        yakOpsVersion = yakOpsVersionDao.selectVersion().map(YakOpsVersion::getVersion).orElse("unknown");
+        return yakOpsVersion;
     }
 }

@@ -27,17 +27,17 @@ class YakOpsManagerTest {
     }
 
     private void mockRequiredTables() {
-        when(databaseDialect.tableExists("t_ds_user")).thenReturn(true);
-        when(databaseDialect.tableExists("t_ds_workflow_instance")).thenReturn(true);
-        when(databaseDialect.tableExists("t_ds_task_instance")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_workflow_instance")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_task_instance")).thenReturn(true);
     }
 
     @Test
     void newDatabaseIsInitializedAndValidated() throws Exception {
-        when(databaseDialect.tableExists("t_ds_version")).thenReturn(false, true);
-        when(databaseDialect.tableExists("t_ds_user")).thenReturn(false, true);
-        when(databaseDialect.tableExists("t_ds_workflow_instance")).thenReturn(false, true);
-        when(databaseDialect.tableExists("t_ds_task_instance")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(false, true);
+        when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(false, true);
+        when(databaseDialect.tableExists("t_yak_ops_workflow_instance")).thenReturn(false, true);
+        when(databaseDialect.tableExists("t_yak_ops_task_instance")).thenReturn(true);
         when(schemaDao.getCurrentVersion()).thenReturn("3.4.3");
         manager.initializeOrValidate();
         verify(schemaDao).initSchema();
@@ -45,7 +45,7 @@ class YakOpsManagerTest {
 
     @Test
     void initializedDatabaseIsNotReinitialized() throws Exception {
-        when(databaseDialect.tableExists("t_ds_version")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(true);
         when(schemaDao.getCurrentVersion()).thenReturn("3.4.3");
         mockRequiredTables();
         manager.initializeOrValidate();
@@ -54,7 +54,7 @@ class YakOpsManagerTest {
 
     @Test
     void historicalDatabaseIsRejected() {
-        when(databaseDialect.tableExists("t_ds_version")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(true);
         when(schemaDao.getCurrentVersion()).thenReturn("3.2.0");
         IllegalStateException ex = Assertions.assertThrows(
                 IllegalStateException.class, () -> manager.initializeOrValidate());
@@ -64,7 +64,7 @@ class YakOpsManagerTest {
 
     @Test
     void missingVersionRowIsRejected() {
-        when(databaseDialect.tableExists("t_ds_version")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(true);
         Assertions.assertThrows(IllegalStateException.class, () -> manager.initializeOrValidate());
         verify(schemaDao, never()).initSchema();
     }
@@ -77,10 +77,27 @@ class YakOpsManagerTest {
     }
 
     @Test
+    void legacySchemaIsNotReinitialized() {
+        when(schemaDao.hasLegacySchemaTables()).thenReturn(true);
+        IllegalStateException ex = Assertions.assertThrows(
+                IllegalStateException.class, () -> manager.initializeOrValidate());
+        Assertions.assertTrue(ex.getMessage().contains("Legacy DolphinScheduler"));
+        verify(schemaDao, never()).initSchema();
+    }
+
+    @Test
+    void mixedLegacyAndNewSchemaIsRejected() {
+        when(schemaDao.hasLegacySchemaTables()).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(true);
+        Assertions.assertThrows(IllegalStateException.class, () -> manager.initializeOrValidate());
+        verify(schemaDao, never()).initSchema();
+    }
+
+    @Test
     void missingBaselineTableIsRejected() {
-        when(databaseDialect.tableExists("t_ds_version")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(true);
         when(schemaDao.getCurrentVersion()).thenReturn("3.4.3");
-        when(databaseDialect.tableExists("t_ds_user")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(true);
         Assertions.assertThrows(IllegalStateException.class, () -> manager.initializeOrValidate());
         verify(schemaDao, never()).initSchema();
     }

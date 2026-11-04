@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_task_definition_log")
+@TableName("t_yak_ops_task_definition_log")
 public class TaskDefinitionLog extends TaskDefinition {
 
     /**

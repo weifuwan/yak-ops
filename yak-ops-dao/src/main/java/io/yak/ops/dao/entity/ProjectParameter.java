@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_project_parameter")
+@TableName("t_yak_ops_project_parameter")
 public class ProjectParameter {
 
     @TableId(value = "id", type = IdType.AUTO)

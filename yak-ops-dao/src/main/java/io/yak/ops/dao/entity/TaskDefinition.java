@@ -35,7 +35,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_task_definition")
+@TableName("t_yak_ops_task_definition")
 public class TaskDefinition {
 
     @TableId(value = "id", type = IdType.AUTO)

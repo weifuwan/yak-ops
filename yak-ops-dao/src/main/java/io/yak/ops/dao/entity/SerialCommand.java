@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_serial_command")
+@TableName("t_yak_ops_serial_command")
 public class SerialCommand {
 
     @TableId(value = "id", type = IdType.AUTO)

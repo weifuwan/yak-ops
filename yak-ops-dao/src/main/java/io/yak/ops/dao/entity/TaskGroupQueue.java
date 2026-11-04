@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_task_group_queue")
+@TableName("t_yak_ops_task_group_queue")
 public class TaskGroupQueue implements Serializable {
 
     @TableId(value = "id", type = IdType.AUTO)

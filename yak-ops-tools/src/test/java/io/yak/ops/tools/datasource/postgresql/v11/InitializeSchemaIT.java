@@ -31,12 +31,12 @@ class InitializeSchemaIT {
         try (
                 Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery("SELECT version FROM t_ds_version")) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT version FROM t_yak_ops_version")) {
                 Assertions.assertTrue(resultSet.next());
                 Assertions.assertEquals("3.4.3", resultSet.getString(1));
             }
             Assertions.assertEquals(1, statement.executeUpdate(
-                    "UPDATE t_ds_user SET user_name = 'baseline_preserved' WHERE id = 1"));
+                    "UPDATE t_yak_ops_user SET user_name = 'baseline_preserved' WHERE id = 1"));
         }
 
         // An initialized database must not be replaced by the DROP TABLE-based full SQL.
@@ -44,7 +44,7 @@ class InitializeSchemaIT {
         try (
                 Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement();
-                ResultSet resultSet = statement.executeQuery("SELECT user_name FROM t_ds_user WHERE id = 1")) {
+                ResultSet resultSet = statement.executeQuery("SELECT user_name FROM t_yak_ops_user WHERE id = 1")) {
             Assertions.assertTrue(resultSet.next());
             Assertions.assertEquals("baseline_preserved", resultSet.getString(1));
         }

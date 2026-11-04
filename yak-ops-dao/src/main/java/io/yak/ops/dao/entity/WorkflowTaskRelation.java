@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("t_ds_workflow_task_relation")
+@TableName("t_yak_ops_workflow_task_relation")
 public class WorkflowTaskRelation {
 
     @TableId(value = "id", type = IdType.AUTO)

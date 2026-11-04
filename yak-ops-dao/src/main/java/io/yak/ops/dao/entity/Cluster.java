@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_cluster")
+@TableName("t_yak_ops_cluster")
 public class Cluster {
 
     @TableId(value = "id", type = IdType.AUTO)

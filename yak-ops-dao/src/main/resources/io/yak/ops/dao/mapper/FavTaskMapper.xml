@@ -4,13 +4,13 @@
 
     <select id="getUserFavTaskTypes" resultType="string">
         select task_type
-        from t_ds_fav_task
+        from t_yak_ops_fav_task
         where user_id = #{userId}
     </select>
 
     <delete id="deleteUserFavTask">
         delete
-        from t_ds_fav_task
+        from t_yak_ops_fav_task
         where user_id = #{userId}
           and task_type = #{taskType}
     </delete>

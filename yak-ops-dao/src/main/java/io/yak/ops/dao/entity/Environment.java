@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_environment")
+@TableName("t_yak_ops_environment")
 public class Environment {
 
     @TableId(value = "id", type = IdType.AUTO)
