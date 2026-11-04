@@ -39,14 +39,14 @@
             <directoryMode>0755</directoryMode>
         </fileSet>
         <fileSet>
-            <directory>${basedir}/../dolphinscheduler-dao/src/main/resources</directory>
+            <directory>${basedir}/../yak-ops-dao/src/main/resources</directory>
             <includes>
                 <include>sql/**/*</include>
             </includes>
             <outputDirectory>sql</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>${basedir}/../dolphinscheduler-common/src/main/resources</directory>
+            <directory>${basedir}/../yak-ops-common/src/main/resources</directory>
             <includes>
                 <include>**/*.properties</include>
             </includes>

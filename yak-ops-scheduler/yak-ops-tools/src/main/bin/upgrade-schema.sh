@@ -16,17 +16,36 @@
 # limitations under the License.
 #
 
-BIN_DIR=$(dirname $0)
-DOLPHINSCHEDULER_HOME=${DOLPHINSCHEDULER_HOME:-$(cd ${BIN_DIR}/../..;pwd)}
-TOOLS_HOME=$(cd ${BIN_DIR}/..;pwd)
+set -euo pipefail
 
-if [ "$DOCKER" != "true" ]; then
-  source "$DOLPHINSCHEDULER_HOME/bin/env/dolphinscheduler_env.sh"
+# This script runs from the standalone tools assembly, without requiring the
+# removed DolphinScheduler distribution's global bin/env directory.
+BIN_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+TOOLS_HOME="$(cd -- "${BIN_DIR}/.." && pwd)"
+DATABASE="${DATABASE:-postgresql}"
+
+case "${DATABASE}" in
+  mysql|postgresql) ;;
+  *)
+    echo "Unsupported DATABASE: ${DATABASE}. Use mysql or postgresql." >&2
+    exit 2
+    ;;
+esac
+
+if [[ -n "${JAVA_HOME:-}" ]]; then
+  JAVA_BIN="${JAVA_HOME}/bin/java"
+else
+  JAVA_BIN="java"
 fi
 
-JAVA_OPTS=${JAVA_OPTS:-"-server -Duser.timezone=${SPRING_JACKSON_TIME_ZONE} -Xms1g -Xmx1g -Xmn512m -XX:+PrintGCDetails -Xloggc:gc.log -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=dump.hprof"}
+if ! command -v "${JAVA_BIN}" >/dev/null 2>&1; then
+  echo "Java executable not found: ${JAVA_BIN}" >&2
+  exit 1
+fi
 
-$JAVA_HOME/bin/java $JAVA_OPTS \
-  -cp "$TOOLS_HOME/conf":"$TOOLS_HOME/sql":"$TOOLS_HOME/libs/*" \
-  -Dspring.profiles.active=upgrade,${DATABASE} \
-  org.apache.dolphinscheduler.tools.datasource.UpgradeDolphinScheduler
+read -r -a JVM_OPTS <<< "${JAVA_OPTS:--server -Xms256m -Xmx1g -XX:+HeapDumpOnOutOfMemoryError}"
+
+exec "${JAVA_BIN}" "${JVM_OPTS[@]}" \
+  -cp "${TOOLS_HOME}/conf:${TOOLS_HOME}/sql:${TOOLS_HOME}/libs/*" \
+  -Dspring.profiles.active="upgrade,${DATABASE}" \
+  org.apache.dolphinscheduler.tools.datasource.UpgradeDolphinScheduler "$@"
