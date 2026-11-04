@@ -54,14 +54,14 @@ rewritten by `CREATE TABLE IF NOT EXISTS`.
 Build from repository root (without running tests):
 
 ```bash
-bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc -am -DskipTests compile
+bash mvnw -B -ntp -f yak-ops-cdc/pom.xml -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql -am -DskipTests compile
 ```
 
 Run the targeted JDBC tests manually (they are intentionally excluded from the
 normal backend CI):
 
 ```bash
-bash mvnw -B -ntp -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql -am -Dtest=JdbcTableWriterRegistryTest,JdbcSinkConfigTest,JdbcOutputFormatBuilderTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,MySqlStmtCreatorFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test
+bash mvnw -B -ntp -f yak-ops-cdc/pom.xml -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql -am -Dtest=RichJdbcOutputFormatLifecycleTest,JdbcTableWriterRegistryTest,JdbcSinkConfigTest,JdbcOutputFormatBuilderTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,EventRecordSerializationSchemaTest,MySqlStmtCreatorFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 The CDC connector is based on the JDBC Pipeline Sink from Apache Flink CDC
