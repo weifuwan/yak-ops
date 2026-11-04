@@ -732,6 +732,8 @@
                         </includes>
                         <excludes>
                             <exclude>**/.github/**/*.md</exclude>
+                            <!-- The import provenance documentation has historical tables. -->
+                            <exclude>docs/scheduler/**/*.md</exclude>
                         </excludes>
                         <flexmark />
                     </markdown>

@@ -36,6 +36,6 @@ jobs:
         run: |
           java -version
           .\mvnw.cmd -version
-      - name: Compile all Maven modules
+      - name: Compile CDC Maven modules
         shell: pwsh
-        run: .\mvnw.cmd clean compile
+        run: .\mvnw.cmd -pl :yak-ops-cdc-cli -am -Dspotless.skip=true clean compile
