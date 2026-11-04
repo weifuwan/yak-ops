@@ -17,14 +17,15 @@
 
 package org.apache.flink.cdc.connectors.jdbc.internal;
 
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.connectors.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
-import org.apache.flink.cdc.connectors.jdbc.sink.v2.BatchedStatementExecutor;
-import org.apache.flink.cdc.connectors.jdbc.sink.v2.JdbcRowData;
-import org.apache.flink.cdc.connectors.jdbc.sink.v2.RichJdbcOutputFormat;
-import org.apache.flink.cdc.connectors.jdbc.sink.v2.RichJdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.executor.BatchedStatementExecutor;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.output.RichJdbcOutputFormat;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RichJdbcRowData;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
@@ -35,7 +36,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.cdc.connectors.jdbc.sink.v2.RowKind.PK_ROW;
+import static org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind.PK_ROW;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
