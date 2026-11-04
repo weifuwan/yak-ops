@@ -13,7 +13,7 @@ The root pom.xml is the unified Scheduler-derived parent. CDC keeps Java 17 and 
 ## Preserve upstream source fidelity
 
 - Start with docs/scheduler/MIGRATION_MANIFEST.json and docs/scheduler/UPSTREAM_ROOT_POM.xml before editing upstream-derived code.
-- Preserve io.yak.ops Java packages and upstream Apache source/license headers.
+- Preserve io.yak.ops Java packages and repository-level Apache-2.0 attribution in LICENSE/NOTICE. Standard ASF boilerplate file headers were removed in the subsequent cleanup; keep file-specific third-party copyright and license notices.
 - Distinguish source import from successful compilation, runtime integration and feature support.
 - Avoid changing Master/Worker execution graphs, state machines, lifecycle handling, checkpoint/recovery or scheduler semantics while doing Maven/build adaptation.
 - Keep all imported module Java tests/resources, even when tests are not selected in automatic CI.

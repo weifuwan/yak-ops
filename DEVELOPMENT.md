@@ -116,7 +116,7 @@ CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-o
 ## Migration and testing policy
 
 - Before any change, compare the source file to its upstream SHA-256 in the manifest.
-- Preserve the `io.yak.ops` Java package structure and upstream Apache-2.0 source headers; keep runtime resource and class-name references aligned.
+- Preserve the `io.yak.ops` Java package structure and Apache-2.0 obligations through LICENSE/NOTICE; standard ASF file headers were removed in the post-rename cleanup. Preserve file-specific third-party notices and keep runtime resource/class-name references aligned.
 - Keep tests and resources for all imported modules. An unexecuted test is not a pass.
 - Native Scheduler Maven validation, dependency resolution, compilation and Standalone runtime acceptance are separate milestones.
 - Optional YARN, Spark, Hadoop, Hive, Kubernetes and original DolphinScheduler UI features are not declared operational.

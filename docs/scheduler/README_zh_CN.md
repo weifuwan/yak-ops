@@ -10,9 +10,9 @@
 - 迁移后 Maven 坐标：`io.yak.ops:yak-ops-*:1.4.0`；上游 POM 版本为 `3.4.4-SNAPSHOT`。
 - 当前包含 22 个顶层模块；第四阶段插件收敛后剩余 82 个 Maven POM。
 - 原生依赖基线为 Spring Boot 2.x 及较早的 Java 工具链。暂时使用 **JDK 11** 编译和验证 Scheduler，避免将其依赖直接合并到根项目或 CDC 的版本体系。
-- 已将导入的 Java 包名从 `org.apache.dolphinscheduler` 迁移到 `io.yak.ops`，保留上游执行体系、版权声明及历史来源清单。
+- 已将导入的 Java 包名从 `org.apache.dolphinscheduler` 迁移到 `io.yak.ops`，保留上游执行体系及历史来源清单。后续已清理文件级 ASF 模板注释，但 Apache-2.0 许可义务及仓库级署名信息继续保留。
 
-`MIGRATION_MANIFEST.json` 是**最初迁移时的历史清单**，用于记录源码 SHA256 和被排除的内容；后续删除文档不会同步改写这份基线。迁移说明和原始根 POM 分别保留在 `UPSTREAM.md`、`UPSTREAM_ROOT_POM.xml`。Apache `LICENSE`、`NOTICE`、源码版权头和相关第三方许可证需要保留。
+`MIGRATION_MANIFEST.json` 是**最初迁移时的历史清单**，用于记录源码 SHA256 和被排除的内容；后续删除文档不会同步改写这份基线。迁移说明和原始根 POM 分别保留在 `UPSTREAM.md`、`UPSTREAM_ROOT_POM.xml`。仓库 `LICENSE`、`NOTICE`、文件中特有的第三方版权声明及相关第三方许可证需要保留。
 
 ## 模块与职责
 
@@ -30,6 +30,8 @@
 **Quartz 触发器不会直接运行 CDC Pipeline。** 当前实现将 Schedule 绑定到 DolphinScheduler 的 Workflow Definition；触发后生成 Workflow Command，由 Master 推进 Workflow，再派发 Task 给 Worker。
 
 Standalone 是开发和冒烟验证入口，不等于已经完成 Yak Ops 生产集成。默认内存 H2 的状态不会在重启后保留。
+使用现有 Quartz 数据库升级时，启动改名后的 Scheduler 前，先执行[只读的 Job 类名兼容检查 SQL](../../scripts/check-quartz-job-classes.sql)，检查是否仍保存 `org.apache.dolphinscheduler.*` 类名。若有命中，先停调度实例、备份数据库，再逐项迁移；不要自动替换序列化字段。全新的 3.4.3 基线数据库无需历史类名迁移。
+
 
 ## 当前验证与集成状态
 
@@ -56,7 +58,7 @@ Standalone 成功启动后，健康检查地址：
 
 `http://127.0.0.1:12345/dolphinscheduler/actuator/health`
 
-更详细的测试命令、架构约束和模块职责参见根目录 [DEVELOPMENT.md](../DEVELOPMENT.md)，仓库修改约束参见 [AGENTS.md](../AGENTS.md)。
+更详细的测试命令、架构约束和模块职责参见根目录 [DEVELOPMENT.md](../../DEVELOPMENT.md)，仓库修改约束参见 [AGENTS.md](../../AGENTS.md)。
 
 ## 维护原则
 

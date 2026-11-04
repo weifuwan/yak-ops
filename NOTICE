@@ -34,8 +34,7 @@ Copyright 2026 The Apache Software Foundation
 The Registry API SPI and JDBC Registry implementation are migrated from
 Apache DolphinScheduler 3.4.3, including upstream SQL resources. The upstream
 source files remain Apache-2.0 licensed, with attribution retained here. See
-`yak-ops-registry-jdbc/UPSTREAM.md` for the source baseline and the limited
-Yak Ops compatibility adaptations.
+`docs/scheduler/UPSTREAM.md` for the upstream source baseline.
 
 Apache DolphinScheduler 3.4.3
 This product contains source derived from Apache DolphinScheduler 3.4.3,

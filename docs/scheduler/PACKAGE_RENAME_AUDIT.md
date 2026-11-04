@@ -124,3 +124,11 @@ WHERE JOB_CLASS_NAME = 'org.apache.dolphinscheduler.scheduler.quartz.ProcessSche
 ```
 
 Inspect other persisted class names independently; do not blindly replace arbitrary serialized payloads. This SQL is **guidance only**, not executed automatically by the package migration. Historical upstream manifests and `UPSTREAM_ROOT_POM.xml` intentionally retain original package names and are not runtime references.
+
+## Post-rename cleanup follow-up (2026-11-04)
+
+- A subsequent repo-wide edit removed standard ASF boilerplate source headers. The historical phase-2 completion summary above predates that separate edit; project-level `LICENSE` / `NOTICE` and specific third-party attribution remain required.
+- The initial cleanup's extension filter missed nine `META-INF/spring.factories` files, `lombok.config`, and `style/eclipse.importorder`; a targeted follow-up removed only those eleven leading boilerplate blocks, leaving configuration values intact.
+- The root Maven POM no longer declares the Apache mailing list or a default `docker.hub=apache` namespace. Docker registry ownership must be configured explicitly before any publication.
+- Existing Quartz databases require the read-only check in `scripts/check-quartz-job-classes.sql` followed by a backed-up, instance-specific migration when necessary. No database state is modified by this source cleanup.
+- The automatic Backend Tests workflow is intentionally limited; it is not a full Scheduler/Standalone or CDC acceptance gate.

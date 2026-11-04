@@ -67,7 +67,6 @@
         <lombok.version>1.18.20</lombok.version>
         <awaitility.version>4.2.0</awaitility.version>
         <truth.version>1.4.2</truth.version>
-        <docker.hub>apache</docker.hub>
         <docker.repo>${project.name}</docker.repo>
         <docker.tag>${project.version}</docker.tag>
         <docker.build.skip>true</docker.build.skip>
@@ -776,14 +775,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <mailingLists>
-        <mailingList>
-            <name>DolphinScheduler Developer List</name>
-            <subscribe>dev-subscribe@dolphinscheduler.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@dolphinscheduler.apache.org</unsubscribe>
-            <post>dev@dolphinscheduler.apache.org</post>
-        </mailingList>
-    </mailingLists>
     <scm>
         <connection>scm:git:https://github.com/weifuwan/yak-ops.git</connection>
         <developerConnection>scm:git:https://github.com/weifuwan/yak-ops.git</developerConnection>

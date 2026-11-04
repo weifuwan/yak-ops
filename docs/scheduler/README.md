@@ -12,9 +12,9 @@ The historical import manifest retains paths from the former `yak-ops-scheduler/
 - Imported Maven coordinates: `io.yak.ops:yak-ops-*:1.4.0` (upstream POM uses `3.4.4-SNAPSHOT`).
 - The Scheduler modules now live directly at the repository root (22 top-level modules and 82 Maven POMs at migration time).
 - The upstream Maven baseline uses Spring Boot 2.x and an older Java toolchain. Use **JDK 11** for the imported Scheduler build/runtime checks while the upstream Lombok baseline is retained. Do not automatically align its dependencies with the root Yak Ops/CDC build.
-- Imported Java package names have been changed from `org.apache.dolphinscheduler` to `io.yak.ops`; the upstream execution model, license headers, and historical provenance remain preserved.
+- Imported Java package names have been changed from `org.apache.dolphinscheduler` to `io.yak.ops`; the upstream execution model and historical provenance are preserved. Standard ASF boilerplate source headers were removed in a subsequent formatting cleanup; the Apache-2.0 licensing obligations and repository attribution remain.
 
-`MIGRATION_MANIFEST.json` is the **historical import inventory**, with upstream file checksums and exclusions; it is not a live inventory of subsequent cleanup changes. `UPSTREAM.md` and `UPSTREAM_ROOT_POM.xml` retain the source provenance. Keep Apache `LICENSE`, `NOTICE`, file headers, and applicable third-party license files.
+`MIGRATION_MANIFEST.json` is the **historical import inventory**, with upstream file checksums and exclusions; it is not a live inventory of subsequent cleanup changes. `UPSTREAM.md` and `UPSTREAM_ROOT_POM.xml` retain the source provenance. Keep the repository `LICENSE` and `NOTICE`, any file-specific third-party copyright notices, and applicable third-party license files.
 
 ## Architecture
 
@@ -32,6 +32,8 @@ The historical import manifest retains paths from the former `yak-ops-scheduler/
 **Quartz does not directly run Yak Ops CDC pipelines.** The imported scheduler associates a schedule with a DolphinScheduler workflow definition. Quartz triggers a workflow command, then Master drives the workflow lifecycle and sends tasks to Worker.
 
 The imported Standalone mode is a development/smoke-test entry point with H2; it is not a production-ready integrated Yak Ops server. H2 in-memory state does not survive a restart.
+For an existing Quartz database, run the **read-only** [class-name compatibility query](../../scripts/check-quartz-job-classes.sql) before starting the renamed Scheduler. It lists any persisted `org.apache.dolphinscheduler.*` Job classes that need a deliberate, backed-up migration. Do not automatically rewrite arbitrary serialized records; a fresh 3.4.3 baseline database needs no historical class-name migration.
+
 
 ## Current integration status
 
@@ -57,7 +59,7 @@ bash scripts/run-scheduler-standalone.sh
 After a successful Standalone startup, the health endpoint is:
 `http://127.0.0.1:12345/dolphinscheduler/actuator/health`.
 
-See [DEVELOPMENT.md](../DEVELOPMENT.md) for the verified test commands, module responsibilities, and maintenance rules, and [AGENTS.md](../AGENTS.md) for repository constraints.
+See [DEVELOPMENT.md](../../DEVELOPMENT.md) for the verified test commands, module responsibilities, and maintenance rules, and [AGENTS.md](../../AGENTS.md) for repository constraints.
 
 ## Maintenance notes
 
