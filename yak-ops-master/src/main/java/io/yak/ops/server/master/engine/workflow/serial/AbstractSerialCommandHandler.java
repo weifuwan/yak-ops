@@ -1,0 +1,103 @@
+package io.yak.ops.server.master.engine.workflow.serial;
+
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
+import io.yak.ops.common.utils.DateUtils;
+import io.yak.ops.dao.entity.Command;
+import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.dao.model.SerialCommandDto;
+import io.yak.ops.dao.repository.CommandDao;
+import io.yak.ops.dao.repository.SerialCommandDao;
+import io.yak.ops.dao.repository.WorkflowInstanceDao;
+import io.yak.ops.extract.base.client.Clients;
+import io.yak.ops.extract.master.IWorkflowControlClient;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceStopRequest;
+import io.yak.ops.server.master.config.MasterConfig;
+import io.yak.ops.server.master.metrics.WorkflowInstanceMetrics;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public abstract class AbstractSerialCommandHandler implements ISerialCommandHandler {
+
+    @Autowired
+    protected WorkflowInstanceDao workflowInstanceDao;
+
+    @Autowired
+    protected IWorkflowControlClient workflowControlClient;
+
+    @Autowired
+    protected TransactionTemplate transactionTemplate;
+
+    @Autowired
+    protected MasterConfig masterConfig;
+
+    @Autowired
+    protected CommandDao commandDao;
+
+    @Autowired
+    protected SerialCommandDao serialCommandDao;
+
+    protected void launchSerialCommand(SerialCommandDto serialCommand) {
+        transactionTemplate.execute(new TransactionCallback<Object>() {
+
+            @Override
+            public Void doInTransaction(TransactionStatus status) {
+                final Command command = serialCommand.getCommand();
+                commandDao.insert(command);
+
+                serialCommand.setState(SerialCommandDto.State.LAUNCHED);
+                serialCommandDao.updateById(serialCommand.toEntity());
+                return null;
+            }
+        });
+    }
+
+    protected void discardSerialCommandAndStopWorkflowInstanceInDB(SerialCommandDto serialCommand) {
+        transactionTemplate.execute(new TransactionCallback<Object>() {
+
+            @Override
+            public Void doInTransaction(TransactionStatus status) {
+                serialCommandDao.deleteById(serialCommand.getId());
+
+                // todo: call api to stop the workflow instance
+                final Integer workflowInstanceId = serialCommand.getWorkflowInstanceId();
+                final WorkflowInstance workflowInstance = workflowInstanceDao.queryById(workflowInstanceId);
+                workflowInstance.setEndTime(DateUtils.getCurrentDate());
+                workflowInstance.setState(WorkflowExecutionStatus.STOP);
+                workflowInstanceDao.upsertWorkflowInstance(workflowInstance);
+                WorkflowInstanceMetrics.recordWorkflowInstanceFinish(
+                        WorkflowExecutionStatus.STOP,
+                        workflowInstance.getWorkflowDefinitionCode());
+                return null;
+            }
+        });
+    }
+
+    protected void stopWorkflowInstanceInMaster(SerialCommandDto serialCommand) {
+
+        // todo: directly call master api
+        // todo: call api to stop the workflow instance
+        // todo: We might need to set a status discarding in serial command. then we can avoid duplicate stop
+        // workflow instance
+        final Integer workflowInstanceId = serialCommand.getWorkflowInstanceId();
+        final WorkflowInstance workflowInstance = workflowInstanceDao.queryById(workflowInstanceId);
+        if (!workflowInstance.getState().isCanStop()) {
+            return;
+        }
+
+        final String workflowInstanceLaunchedHost = workflowInstance.getHost();
+        final WorkflowInstanceStopRequest stopRequest = new WorkflowInstanceStopRequest(workflowInstanceId);
+        if (masterConfig.getMasterAddress().equals(workflowInstanceLaunchedHost)) {
+            workflowControlClient.stopWorkflowInstance(stopRequest);
+        } else {
+            Clients.withService(IWorkflowControlClient.class)
+                    .withHost(workflowInstanceLaunchedHost)
+                    .stopWorkflowInstance(stopRequest);
+        }
+    }
+}

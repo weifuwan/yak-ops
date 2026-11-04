@@ -1,0 +1,86 @@
+package io.yak.ops.spi.enums;
+
+import static java.util.stream.Collectors.toMap;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.google.common.base.Functions;
+
+import lombok.Getter;
+
+@Getter
+public enum DbType {
+
+    MYSQL(0, "mysql", "mysql"),
+    POSTGRESQL(1, "postgresql", "postgresql"),
+    HIVE(2, "hive", "hive"),
+    SPARK(3, "spark", "spark"),
+    CLICKHOUSE(4, "clickhouse", "clickhouse"),
+    ORACLE(5, "oracle", "oracle"),
+    SQLSERVER(6, "sqlserver", "sqlserver"),
+    DB2(7, "db2", "db2"),
+    PRESTO(8, "presto", "presto"),
+    H2(9, "h2", "h2"),
+    REDSHIFT(10, "redshift", "redshift"),
+    ATHENA(11, "athena", "athena"),
+    TRINO(12, "trino", "trino"),
+    STARROCKS(13, "starrocks", "starrocks"),
+    AZURESQL(14, "azuresql", "azuresql"),
+    DAMENG(15, "dameng", "dameng"),
+    OCEANBASE(16, "oceanbase", "oceanbase"),
+    SSH(17, "ssh", "ssh"),
+    KYUUBI(18, "kyuubi", "kyuubi"),
+    DATABEND(19, "databend", "databend"),
+    SNOWFLAKE(20, "snowflake", "snowflake"),
+    VERTICA(21, "vertica", "vertica"),
+    HANA(22, "hana", "hana"),
+    DORIS(23, "doris", "doris"),
+    ZEPPELIN(24, "zeppelin", "zeppelin"),
+    SAGEMAKER(25, "sagemaker", "sagemaker"),
+
+    K8S(26, "k8s", "k8s"),
+
+    ALIYUN_SERVERLESS_SPARK(27, "aliyun_serverless_spark", "aliyun serverless spark"),
+    DOLPHINDB(28, "dolphindb", "dolphindb");
+
+    private static final Map<Integer, DbType> DB_TYPE_MAP =
+            Arrays.stream(DbType.values()).collect(toMap(DbType::getCode, Functions.identity()));
+    @EnumValue
+    private final int code;
+    private final String name;
+    private final String descp;
+
+    DbType(int code, String name, String descp) {
+        this.code = code;
+        this.name = name;
+        this.descp = descp;
+    }
+
+    public static DbType of(int type) {
+        if (DB_TYPE_MAP.containsKey(type)) {
+            return DB_TYPE_MAP.get(type);
+        }
+        return null;
+    }
+
+    public static DbType ofName(String name) {
+        return Arrays.stream(DbType.values()).filter(e -> e.name().equals(name)).findFirst()
+                .orElseThrow(() -> new NoSuchElementException("no such db type"));
+    }
+
+    public boolean isHive() {
+        return this == DbType.HIVE;
+    }
+
+    /**
+     * support execute multiple segmented statements at a time
+     *
+     * @return
+     */
+    public boolean isSupportMultipleStatement() {
+        return isHive() || this == DbType.SPARK;
+    }
+}

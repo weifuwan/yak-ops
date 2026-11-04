@@ -1,0 +1,176 @@
+package io.yak.ops.server.master.engine.task.statemachine;
+
+import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
+import io.yak.ops.server.master.engine.graph.IWorkflowExecutionGraph;
+import io.yak.ops.server.master.engine.task.execution.ITaskExecution;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskDispatchLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskDispatchedLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskFailedLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskFailoverLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskKillLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskKilledLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskPauseLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskPausedLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskRetryLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskRunningLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskStartLifecycleEvent;
+import io.yak.ops.server.master.engine.task.lifecycle.event.TaskSuccessLifecycleEvent;
+import io.yak.ops.server.master.engine.workflow.execution.IWorkflowExecution;
+
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * The action to be taken when a task is in the Failure state.
+ */
+@Slf4j
+@Component
+public class TaskFailureStateAction extends AbstractTaskStateAction {
+
+    @Override
+    public void onStartEvent(final IWorkflowExecution workflowExecution,
+                             final ITaskExecution taskExecution,
+                             final TaskStartLifecycleEvent taskStartEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        final TaskFailedLifecycleEvent taskFailedEvent = TaskFailedLifecycleEvent.builder()
+                .taskExecution(taskExecution)
+                .endTime(taskExecution.getTaskInstance().getEndTime())
+                .build();
+        taskExecution.getWorkflowEventBus().publish(taskFailedEvent);
+    }
+
+    @Override
+    public void onStartedEvent(final IWorkflowExecution workflowExecution,
+                               final ITaskExecution taskExecution,
+                               final TaskRunningLifecycleEvent taskRunningEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        logWarningIfCannotDoAction(taskExecution, taskRunningEvent);
+    }
+
+    @Override
+    public void onRetryEvent(final IWorkflowExecution workflowExecution,
+                             final ITaskExecution taskExecution,
+                             final TaskRetryLifecycleEvent taskRetryEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        final TaskInstance taskInstance = taskExecution.getTaskInstance();
+        // check the retry times
+        if (!taskExecution.isTaskInstanceCanRetry()) {
+            log.info("The task: {} cannot retry, because the retry times: {} is over the max retry times: {}",
+                    taskInstance.getName(),
+                    taskInstance.getRetryTimes(),
+                    taskInstance.getMaxRetryTimes());
+            return;
+        }
+        taskExecution.retry();
+    }
+
+    @Override
+    public void onDispatchEvent(final IWorkflowExecution workflowExecution,
+                                final ITaskExecution taskExecution,
+                                final TaskDispatchLifecycleEvent taskDispatchEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        logWarningIfCannotDoAction(taskExecution, taskDispatchEvent);
+    }
+
+    @Override
+    public void onDispatchedEvent(final IWorkflowExecution workflowExecution,
+                                  final ITaskExecution taskExecution,
+                                  final TaskDispatchedLifecycleEvent taskDispatchedEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        logWarningIfCannotDoAction(taskExecution, taskDispatchedEvent);
+    }
+
+    @Override
+    public void onPauseEvent(final IWorkflowExecution workflowExecution,
+                             final ITaskExecution taskExecution,
+                             final TaskPauseLifecycleEvent taskPauseEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        // When the failed task is awaiting retry, we can mark it as 'paused' to ignore the retry event.
+        if (isTaskRetrying(taskExecution)) {
+            super.onPausedEvent(workflowExecution, taskExecution,
+                    TaskPausedLifecycleEvent.of(taskExecution));
+            return;
+        }
+        logWarningIfCannotDoAction(taskExecution, taskPauseEvent);
+    }
+
+    @Override
+    public void onPausedEvent(final IWorkflowExecution workflowExecution,
+                              final ITaskExecution taskExecution,
+                              final TaskPausedLifecycleEvent taskPausedEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        // This case happen when the task is failure but the task is in delay retry queue.
+        // We don't remove the event in GlobalWorkflowDelayEventCoordinator the event should be dropped when the task is
+        // killed.
+        if (isTaskRetrying(taskExecution)) {
+            super.onPausedEvent(workflowExecution, taskExecution, taskPausedEvent);
+            return;
+        }
+        logWarningIfCannotDoAction(taskExecution, taskPausedEvent);
+    }
+
+    @Override
+    public void onKillEvent(final IWorkflowExecution workflowExecution,
+                            final ITaskExecution taskExecution,
+                            final TaskKillLifecycleEvent taskKillEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        // When the failed task is awaiting retry, we can mark it as 'killed' to ignore the retry event.
+        if (isTaskRetrying(taskExecution)) {
+            super.onKilledEvent(workflowExecution, taskExecution,
+                    TaskKilledLifecycleEvent.of(taskExecution));
+            return;
+        }
+        logWarningIfCannotDoAction(taskExecution, taskKillEvent);
+    }
+
+    @Override
+    public void onKilledEvent(final IWorkflowExecution workflowExecution,
+                              final ITaskExecution taskExecution,
+                              final TaskKilledLifecycleEvent taskKilledEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        // This case happen when the task is failure but the task is in delay retry queue.
+        // We don't remove the event in GlobalWorkflowDelayEventCoordinator the event should be dropped when the task is
+        // killed.
+        if (isTaskRetrying(taskExecution)) {
+            super.onKilledEvent(workflowExecution, taskExecution, taskKilledEvent);
+            return;
+        }
+        logWarningIfCannotDoAction(taskExecution, taskKilledEvent);
+    }
+
+    @Override
+    public void onFailedEvent(final IWorkflowExecution workflowExecution,
+                              final ITaskExecution taskExecution,
+                              final TaskFailedLifecycleEvent taskFailedEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        super.onFailedEvent(workflowExecution, taskExecution, taskFailedEvent);
+    }
+
+    @Override
+    public void onSucceedEvent(final IWorkflowExecution workflowExecution,
+                               final ITaskExecution taskExecution,
+                               final TaskSuccessLifecycleEvent taskSuccessEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        logWarningIfCannotDoAction(taskExecution, taskSuccessEvent);
+    }
+
+    @Override
+    public void onFailoverEvent(final IWorkflowExecution workflowExecution,
+                                final ITaskExecution taskExecution,
+                                final TaskFailoverLifecycleEvent taskFailoverEvent) {
+        throwExceptionIfStateIsNotMatch(taskExecution);
+        logWarningIfCannotDoAction(taskExecution, taskFailoverEvent);
+    }
+
+    @Override
+    public TaskExecutionStatus matchState() {
+        return TaskExecutionStatus.FAILURE;
+    }
+
+    private boolean isTaskRetrying(final ITaskExecution taskExecution) {
+        final IWorkflowExecutionGraph workflowExecutionGraph = taskExecution.getWorkflowExecutionGraph();
+        return workflowExecutionGraph.isTaskExecutionRetrying(taskExecution);
+    }
+}

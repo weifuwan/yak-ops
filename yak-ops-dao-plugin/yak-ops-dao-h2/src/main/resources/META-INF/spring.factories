@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.yak.ops.dao.plugin.h2.H2DaoPluginAutoConfiguration

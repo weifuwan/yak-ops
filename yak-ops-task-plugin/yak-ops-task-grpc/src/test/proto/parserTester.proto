@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package io.yak.ops.task.grpc.proto;
+
+option java_package = "io.yak.ops.plugin.task.grpc.generated";
+option java_multiple_files = true;
+option java_outer_classname = "ParserTesterProto";
+
+service ParserTester {
+  rpc TestNoneType (NoneRequest) returns (NoneReply) {}
+  rpc TestBasicType (BasicType) returns (NoneReply) {}
+  rpc TestEnumType (EnumType) returns (NoneReply) {}
+  rpc TestBasicMapType (BasicMapType) returns (NoneReply) {}
+  rpc TestMapType (MapType) returns (NoneReply) {}
+  rpc TestPrimitiveMapType (PrimitiveMapType) returns (NoneReply) {}
+  rpc TestOneofType (OneofType) returns (NoneReply) {}
+}
+
+message BasicType {
+  string stringVal = 1;
+  bool boolVal = 2;
+  float floatVal = 3;
+  double doubleVal = 4;
+  int32 int32Val = 5;
+  int64 int64Val = 6;
+  uint32 uint32Val = 7;
+  uint64 uint64Val = 8;
+  sint32 sint32Val = 9;
+  sint64 sint64Val = 10;
+  sfixed32 sfixed32 = 11;
+  sfixed64 sfixed64 = 12;
+  bytes bytesVal = 13;
+}
+
+message OneofType{
+    string name = 1;
+    optional string bio = 2;
+    optional int32 age = 3;
+    oneof contact{
+      string phone = 4;
+      string email = 5;
+    }
+}
+
+message EnumType {
+  Fruits what2eat = 1;
+}
+
+message Int32Only{
+  int32 id = 1;
+}
+
+message BasicMapType {
+  map<string, int32> seats = 1;
+}
+
+message MapType {
+  map<string, Fruits> bought = 1;
+  map<string, Int32Only> cash = 2;
+}
+
+message PrimitiveMapType {
+  message MapEntry_bought {
+    string key = 1;
+    Fruits value = 2;
+  }
+  repeated MapEntry_bought bought = 1;
+}
+
+enum Fruits {
+  LINGO = 0;
+  ICHIGO = 1;
+  MOMO = 2;
+}
+
+message NoneRequest {
+
+}
+
+message NoneReply {
+
+}

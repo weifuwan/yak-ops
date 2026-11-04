@@ -1,0 +1,57 @@
+package io.yak.ops.authentication.aws;
+
+import static io.yak.ops.authentication.aws.AwsConfigurationKeys.AWS_AUTHENTICATION_TYPE;
+
+import java.util.Map;
+
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@UtilityClass
+public class AWSCredentialsProviderFactor {
+
+    public static AWSCredentialsProvider credentialsProvider(Map<String, String> awsProperties) {
+        String awsAuthenticationType = awsProperties.getOrDefault(
+                AWS_AUTHENTICATION_TYPE, AWSCredentialsProviderType.STATIC_CREDENTIALS_PROVIDER.getName());
+        AWSCredentialsProviderType awsCredentialsProviderType =
+                AWSCredentialsProviderType.of(awsAuthenticationType).orElse(null);
+        if (awsCredentialsProviderType == null) {
+            throw new IllegalArgumentException(
+                    "The aws.credentials.provider.type: " + awsAuthenticationType + " is invalidated");
+        }
+        switch (awsCredentialsProviderType) {
+            case STATIC_CREDENTIALS_PROVIDER:
+                return createAWSStaticCredentialsProvider(awsProperties);
+            case INSTANCE_PROFILE_CREDENTIALS_PROVIDER:
+                return createInstanceProfileCredentialsProvider();
+            default:
+                throw new IllegalArgumentException(
+                        "The aws.credentials.provider.type: " + awsAuthenticationType + " is invalidated");
+        }
+
+    }
+
+    private static AWSCredentialsProvider createAWSStaticCredentialsProvider(Map<String, String> awsProperties) {
+        String awsAccessKeyId = awsProperties.get(AwsConfigurationKeys.AWS_ACCESS_KEY_ID);
+        String awsSecretAccessKey = awsProperties.get(AwsConfigurationKeys.AWS_SECRET);
+        final BasicAWSCredentials basicAWSCredentials = new BasicAWSCredentials(awsAccessKeyId, awsSecretAccessKey);
+        AWSStaticCredentialsProvider awsStaticCredentialsProvider =
+                new AWSStaticCredentialsProvider(basicAWSCredentials);
+        log.info("AWSStaticCredentialsProvider created successfully");
+        return awsStaticCredentialsProvider;
+    }
+
+    private static AWSCredentialsProvider createInstanceProfileCredentialsProvider() {
+        InstanceProfileCredentialsProvider instanceProfileCredentialsProvider =
+                InstanceProfileCredentialsProvider.getInstance();
+        log.info("InstanceProfileCredentialsProvider created successfully");
+        return instanceProfileCredentialsProvider;
+    }
+
+}

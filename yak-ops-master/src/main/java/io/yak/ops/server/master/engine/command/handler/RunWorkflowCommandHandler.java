@@ -1,0 +1,126 @@
+package io.yak.ops.server.master.engine.command.handler;
+
+import io.yak.ops.common.enums.CommandType;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.Command;
+import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.dao.repository.WorkflowInstanceDao;
+import io.yak.ops.extract.master.command.ICommandParam;
+import io.yak.ops.extract.master.command.RunWorkflowCommandParam;
+import io.yak.ops.plugin.task.api.model.Property;
+import io.yak.ops.plugin.task.api.utils.GlobalParameterUtils;
+import io.yak.ops.server.master.config.MasterConfig;
+import io.yak.ops.server.master.engine.graph.IWorkflowGraph;
+import io.yak.ops.server.master.engine.graph.WorkflowExecutionGraph;
+import io.yak.ops.server.master.engine.graph.WorkflowGraphTopologyLogicalVisitor;
+import io.yak.ops.server.master.engine.task.execution.TaskExecution;
+import io.yak.ops.server.master.engine.task.execution.TaskExecutionBuilder;
+import io.yak.ops.server.master.runner.WorkflowExecuteContext.WorkflowExecuteContextBuilder;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
+
+/**
+ * Used to handle the {@link CommandType#START_PROCESS} which will start the workflow definition.
+ * <p> You can specify the start nodes at {@link RunWorkflowCommandParam}
+ */
+@Component
+public class RunWorkflowCommandHandler extends AbstractCommandHandler {
+
+    @Autowired
+    private WorkflowInstanceDao workflowInstanceDao;
+
+    @Autowired
+    private MasterConfig masterConfig;
+
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    /**
+     * Will generate a new workflow instance based on the command.
+     */
+    @Override
+    protected void assembleWorkflowInstance(final WorkflowExecuteContextBuilder workflowExecuteContextBuilder) {
+        final WorkflowDefinition workflowDefinition = workflowExecuteContextBuilder.getWorkflowDefinition();
+        final Command command = workflowExecuteContextBuilder.getCommand();
+        final WorkflowInstance workflowInstance = workflowInstanceDao.queryById(command.getWorkflowInstanceId());
+        workflowInstance.setStateWithDesc(WorkflowExecutionStatus.RUNNING_EXECUTION, command.getCommandType().name());
+        workflowInstance.setHost(masterConfig.getMasterAddress());
+        workflowInstance.setCommandParam(command.getCommandParam());
+        workflowInstance.setGlobalParams(mergeCommandParamsWithWorkflowParams(command, workflowDefinition));
+        workflowInstanceDao.upsertWorkflowInstance(workflowInstance);
+        workflowExecuteContextBuilder.setWorkflowInstance(workflowInstance);
+    }
+
+    @Override
+    protected void assembleWorkflowExecutionGraph(final WorkflowExecuteContextBuilder workflowExecuteContextBuilder) {
+        final IWorkflowGraph workflowGraph = workflowExecuteContextBuilder.getWorkflowGraph();
+        final WorkflowExecutionGraph workflowExecutionGraph = new WorkflowExecutionGraph();
+        final BiConsumer<String, Set<String>> taskExecutionCreator = (task, successors) -> {
+            final TaskExecutionBuilder taskExecutionBuilder =
+                    TaskExecutionBuilder
+                            .builder()
+                            .workflowExecutionGraph(workflowExecutionGraph)
+                            .workflowDefinition(workflowExecuteContextBuilder.getWorkflowDefinition())
+                            .project(workflowExecuteContextBuilder.getProject())
+                            .workflowInstance(workflowExecuteContextBuilder.getWorkflowInstance())
+                            .taskDefinition(workflowGraph.getTaskNodeByName(task))
+                            .workflowEventBus(workflowExecuteContextBuilder.getWorkflowEventBus())
+                            .applicationContext(applicationContext)
+                            .build();
+            workflowExecutionGraph.addNode(new TaskExecution(taskExecutionBuilder));
+            workflowExecutionGraph.addEdge(task, successors);
+        };
+
+        final WorkflowGraphTopologyLogicalVisitor workflowGraphTopologyLogicalVisitor =
+                WorkflowGraphTopologyLogicalVisitor.builder()
+                        .taskDependType(workflowExecuteContextBuilder.getWorkflowInstance().getTaskDependType())
+                        .onWorkflowGraph(workflowGraph)
+                        .fromTask(parseStartNodesFromWorkflowInstance(workflowExecuteContextBuilder))
+                        .doVisitFunction(taskExecutionCreator)
+                        .build();
+        workflowGraphTopologyLogicalVisitor.visit();
+        workflowExecutionGraph.removeUnReachableEdge();
+
+        workflowExecuteContextBuilder.setWorkflowExecutionGraph(workflowExecutionGraph);
+    }
+
+    /**
+     * Merge the command params with the workflow params.
+     * <p> If there are duplicate keys, the command params will override the workflow params.
+     */
+    private String mergeCommandParamsWithWorkflowParams(final Command command,
+                                                        final WorkflowDefinition workflowDefinition) {
+        final List<Property> commandParams =
+                Optional.ofNullable(JSONUtils.parseObject(command.getCommandParam(), ICommandParam.class))
+                        .map(ICommandParam::getCommandParams)
+                        .orElse(null);
+        final List<Property> globalParamsList =
+                GlobalParameterUtils.deserializeGlobalParameter(workflowDefinition.getGlobalParams());
+        Map<String, Property> finalParams = new HashMap<>();
+        if (CollectionUtils.isNotEmpty(globalParamsList)) {
+            globalParamsList.forEach(globalParam -> finalParams.put(globalParam.getProp(), globalParam));
+        }
+        if (CollectionUtils.isNotEmpty(commandParams)) {
+            commandParams.forEach(commandParam -> finalParams.put(commandParam.getProp(), commandParam));
+        }
+        return JSONUtils.toJsonString(finalParams.values());
+    }
+
+    @Override
+    public CommandType commandType() {
+        return CommandType.START_PROCESS;
+    }
+}

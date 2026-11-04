@@ -1,0 +1,116 @@
+package io.yak.ops.server.master.cluster;
+
+import io.yak.ops.common.utils.MapComparator;
+import io.yak.ops.dao.entity.WorkerGroup;
+import io.yak.ops.dao.repository.WorkerGroupDao;
+import io.yak.ops.server.master.config.MasterConfig;
+import io.yak.ops.server.master.utils.MasterThreadFactory;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Use to watch the worker group from database and notify the change.
+ */
+@Slf4j
+@Component
+public class WorkerGroupChangeNotifier {
+
+    private final MasterConfig masterConfig;
+
+    private final TransactionTemplate transactionTemplate;
+
+    private final WorkerGroupDao workerGroupDao;
+
+    private final List<WorkerGroupListener> listeners = new CopyOnWriteArrayList<>();
+
+    private Map<String, WorkerGroup> workerGroupMap = new HashMap<>();
+
+    public WorkerGroupChangeNotifier(final MasterConfig masterConfig,
+                                     final WorkerGroupDao workerGroupDao,
+                                     final TransactionTemplate transactionTemplate) {
+        this.masterConfig = masterConfig;
+        this.workerGroupDao = workerGroupDao;
+        this.transactionTemplate = transactionTemplate;
+    }
+
+    public void start() {
+        detectWorkerGroupChanges();
+        final long workerGroupRefreshIntervalSeconds = masterConfig.getWorkerGroupRefreshInterval().getSeconds();
+        MasterThreadFactory.getDefaultSchedulerThreadExecutor().scheduleWithFixedDelay(
+                this::detectWorkerGroupChanges,
+                workerGroupRefreshIntervalSeconds,
+                workerGroupRefreshIntervalSeconds,
+                TimeUnit.SECONDS);
+    }
+
+    public void subscribeWorkerGroupsChange(WorkerGroupListener listener) {
+        listeners.add(listener);
+    }
+
+    public synchronized void detectWorkerGroupChanges() {
+        try {
+            final MapComparator<String, WorkerGroup> mapComparator = detectChangedWorkerGroups();
+            triggerListeners(mapComparator);
+            workerGroupMap = mapComparator.getNewMap();
+        } catch (Exception ex) {
+            log.error("Detect WorkerGroup changes failed", ex);
+        }
+    }
+
+    Map<String, WorkerGroup> getWorkerGroupMap() {
+        return workerGroupMap;
+    }
+
+    private MapComparator<String, WorkerGroup> detectChangedWorkerGroups() {
+        // We use transaction here to ensure that if mysql is configured at master/slave mode, this query will be routed
+        // to the master db.
+        // Avoid we query from the slave and find the data is not the latest.
+        return transactionTemplate.execute(status -> {
+            Map<String, WorkerGroup> tmpWorkerGroupMap = workerGroupDao.queryAll()
+                    .stream()
+                    .collect(Collectors.toMap(WorkerGroup::getName, workerGroup -> workerGroup));
+            return new MapComparator<>(workerGroupMap, tmpWorkerGroupMap);
+        });
+    }
+
+    private void triggerListeners(MapComparator<String, WorkerGroup> mapComparator) {
+        if (CollectionUtils.isEmpty(listeners)) {
+            return;
+        }
+        final List<WorkerGroup> workerGroupsAdded = mapComparator.getValuesToAdd();
+        if (CollectionUtils.isNotEmpty(workerGroupsAdded)) {
+            listeners.forEach(listener -> listener.onWorkerGroupAdd(workerGroupsAdded));
+        }
+
+        final List<WorkerGroup> workerGroupsRemoved = mapComparator.getValuesToRemove();
+        if (CollectionUtils.isNotEmpty(workerGroupsRemoved)) {
+            listeners.forEach(listener -> listener.onWorkerGroupDelete(workerGroupsRemoved));
+        }
+
+        final List<WorkerGroup> workerGroupsUpdated = mapComparator.getNewValuesToUpdate();
+        if (CollectionUtils.isNotEmpty(workerGroupsUpdated)) {
+            listeners.forEach(listener -> listener.onWorkerGroupChange(workerGroupsUpdated));
+        }
+    }
+
+    public interface WorkerGroupListener {
+
+        void onWorkerGroupDelete(List<WorkerGroup> workerGroups);
+
+        void onWorkerGroupAdd(List<WorkerGroup> workerGroups);
+
+        void onWorkerGroupChange(List<WorkerGroup> workerGroups);
+    }
+}

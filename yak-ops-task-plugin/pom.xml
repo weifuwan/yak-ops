@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.yak.ops</groupId>
+        <artifactId>yak-ops</artifactId>
+        <version>1.4.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>yak-ops-task-plugin</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>yak-ops-task-all</module>
+        <module>yak-ops-task-api</module>
+        <module>yak-ops-task-shell</module>
+        <module>yak-ops-task-grpc</module>
+        <module>yak-ops-task-http</module>
+        <module>yak-ops-task-python</module>
+        <module>yak-ops-task-sql</module>
+        <module>yak-ops-task-procedure</module>
+        <module>yak-ops-task-java</module>
+        <module>yak-ops-task-remoteshell</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

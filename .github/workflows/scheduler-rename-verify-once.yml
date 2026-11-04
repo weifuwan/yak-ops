@@ -1,0 +1,113 @@
+name: One-time Scheduler rename verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/scheduler-rename-verify-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-compile:
+    name: Scheduler full reactor compile (JDK 11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+      - name: Validate configuration and imported class references
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+          for f in [Path("pom.xml"), *Path(".").glob("yak-ops-*/**/pom.xml")]:
+              ElementTree.parse(f)
+          for f in Path(".").glob("yak-ops-*/**/META-INF/spring.factories"):
+              s = f.read_text(encoding="utf-8")
+              assert "Licensed to the Apache Software Foundation (ASF)" not in s, f
+              assert "io.yak.ops." in s, f
+          sql = Path("scripts/check-quartz-job-classes.sql").read_text(encoding="utf-8")
+          assert "JOB_CLASS_NAME LIKE 'org.apache.dolphinscheduler.%'" in sql
+          print("Static Maven, Spring, and Quartz preflight checks passed")
+          PY
+      - name: Compile the imported Scheduler reactor
+        run: bash scripts/compile-scheduler.sh
+
+  standalone-smoke:
+    name: Embedded H2 Standalone health (JDK 11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+      - name: Build Standalone and dependencies
+        run: |
+          bash mvnw -B -ntp -f pom.xml \
+            -pl :yak-ops-bom,:yak-ops-standalone-server -am \
+            -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true \
+            -Danalyze.skip=true -Dbuild.assembly.skip=true install
+      - name: Assemble H2 development resources
+        run: |
+          conf=yak-ops-standalone-server/target/classes
+          mkdir -p "$conf/sql"
+          cp yak-ops-api/src/main/resources/task-type-config.yaml "$conf/"
+          cp yak-ops-api/src/main/resources/dynamic-task-type-config.yaml "$conf/"
+          cp yak-ops-dao/src/main/resources/sql/yak-ops_h2.sql "$conf/sql/"
+      - name: Launch Standalone and require healthy components
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 110s bash mvnw -B -ntp \
+            -f yak-ops-standalone-server/pom.xml \
+            -Dexec.mainClass=io.yak.ops.StandaloneServer \
+            -Dexec.classpathScope=compile \
+            org.codehaus.mojo:exec-maven-plugin:3.1.0:java > /tmp/standalone.log 2>&1 &
+          pid=$!
+          ready=0
+          for i in $(seq 1 95); do
+            if curl -fs --max-time 2 'http://127.0.0.1:12345/yak-ops/actuator/health' > /tmp/standalone-health.json; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -eq 1 ]; then
+            python3 - <<'PY'
+          import json
+          with open("/tmp/standalone-health.json", encoding="utf-8") as f:
+              data = json.load(f)
+          assert data.get("status") == "UP", data
+          required = ("api", "master", "worker", "alert", "db")
+          for name in required:
+              assert data.get("components", {}).get(name, {}).get("status") == "UP", (name, data)
+          print("Standalone H2 health: all five components UP")
+          PY
+          fi
+          tail -n 100 /tmp/standalone.log || true
+          kill "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true
+          test "$ready" -eq 1
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rename-standalone-diagnostics
+          path: |
+            /tmp/standalone.log
+            /tmp/standalone-health.json
+          if-no-files-found: warn
+          retention-days: 7

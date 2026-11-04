@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.SerialCommandMapper">
+    <sql id="baseSql">
+        id, workflow_instance_id, workflow_definition_code, workflow_definition_version, command, state, create_time, update_time 
+    </sql>
+    
+    <select id="fetchSerialCommands" resultType="io.yak.ops.dao.entity.SerialCommand">
+        select 
+        <include refid="baseSql"/>
+        from t_ds_serial_command
+        order by id asc
+        limit #{fetchSize}
+    </select>
+
+    <delete id="deleteByWorkflowInstanceId">
+        delete from t_ds_serial_command where workflow_instance_id = #{workflowInstanceId}
+    </delete>
+    
+</mapper>

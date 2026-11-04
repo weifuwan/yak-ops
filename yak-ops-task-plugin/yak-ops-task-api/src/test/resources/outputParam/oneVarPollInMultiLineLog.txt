@@ -1,0 +1,4 @@
+${setValue(sql=select * from table
+where
+id = 1
+)}

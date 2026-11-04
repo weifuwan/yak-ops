@@ -1,0 +1,2 @@
+INFO: ${setValue(name=tom)}
+INFO: ${setValue(age=1)}

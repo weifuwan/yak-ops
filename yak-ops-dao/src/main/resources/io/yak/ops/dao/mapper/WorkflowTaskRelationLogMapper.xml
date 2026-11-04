@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.WorkflowTaskRelationLogMapper">
+    <sql id="baseSql">
+        id, name, workflow_definition_version, project_code, workflow_definition_code, pre_task_code, pre_task_version,
+        post_task_code, post_task_version, condition_type, condition_params, operator, operate_time, create_time, update_time
+    </sql>
+    <select id="queryByWorkflowCodeAndVersion" resultType="io.yak.ops.dao.entity.WorkflowTaskRelationLog">
+        select
+        <include refid="baseSql"/>
+        from t_ds_workflow_task_relation_log
+        WHERE workflow_definition_code = #{workflowDefinitionCode}
+        and workflow_definition_version = #{workflowDefinitionVersion}
+    </select>
+    <insert id="batchInsert">
+        insert into t_ds_workflow_task_relation_log (name, workflow_definition_version, project_code, workflow_definition_code,
+        pre_task_code, pre_task_version, post_task_code, post_task_version, condition_type, condition_params, operator, operate_time,
+        create_time, update_time)
+        values
+        <foreach collection="taskRelationList" item="relation" separator=",">
+            (#{relation.name},#{relation.workflowDefinitionVersion},#{relation.projectCode},#{relation.workflowDefinitionCode},
+            #{relation.preTaskCode},#{relation.preTaskVersion},#{relation.postTaskCode},#{relation.postTaskVersion},
+            #{relation.conditionType},#{relation.conditionParams},#{relation.operator},#{relation.operateTime},
+            #{relation.createTime},#{relation.updateTime})
+        </foreach>
+    </insert>
+    <delete id="deleteByCode">
+        delete from t_ds_workflow_task_relation_log
+        WHERE workflow_definition_code = #{workflowDefinitionCode}
+        and workflow_definition_version = #{workflowDefinitionVersion}
+    </delete>
+    <delete id="deleteRelation">
+        delete from t_ds_workflow_task_relation_log
+        WHERE project_code = #{workflowTaskRelationLog.projectCode}
+          and workflow_definition_code = #{workflowTaskRelationLog.workflowDefinitionCode}
+          and workflow_definition_version = #{workflowTaskRelationLog.workflowDefinitionVersion}
+        <if test="workflowTaskRelationLog.preTaskCode !=0 and workflowTaskRelationLog.preTaskVersion != 0">
+          and pre_task_code = #{workflowTaskRelationLog.preTaskCode}
+          and pre_task_version = #{workflowTaskRelationLog.preTaskVersion}
+        </if>
+          and post_task_code = #{workflowTaskRelationLog.postTaskCode}
+          and post_task_version = #{workflowTaskRelationLog.postTaskVersion}
+    </delete>
+    <select id="queryRelationLogByRelation" resultType="io.yak.ops.dao.entity.WorkflowTaskRelationLog">
+        select
+        <include refid="baseSql"/>
+        from t_ds_workflow_task_relation_log
+        WHERE project_code = #{workflowTaskRelation.projectCode}
+        and workflow_definition_code = #{workflowTaskRelation.workflowDefinitionCode}
+        and workflow_definition_version = #{workflowTaskRelation.workflowDefinitionVersion}
+        and pre_task_code = #{workflowTaskRelation.preTaskCode}
+        and pre_task_version = #{workflowTaskRelation.preTaskVersion}
+        and post_task_code = #{workflowTaskRelation.postTaskCode}
+        and post_task_version = #{workflowTaskRelation.postTaskVersion}
+    </select>
+
+    <select id="queryByWorkflowDefinitionCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelationLog">
+        select
+        <include refid="baseSql"/>
+        from t_ds_workflow_task_relation_log
+        WHERE workflow_definition_code = #{workflowDefinitionCode}
+    </select>
+    <delete id="deleteByWorkflowDefinitionCode">
+        delete
+        from t_ds_workflow_task_relation_log
+        WHERE workflow_definition_code = #{workflowDefinitionCode}
+    </delete>
+</mapper>

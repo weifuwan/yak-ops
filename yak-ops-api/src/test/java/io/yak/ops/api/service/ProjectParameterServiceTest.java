@@ -1,0 +1,263 @@
+package io.yak.ops.api.service;
+
+import static io.yak.ops.api.utils.ServiceTestUtil.getGeneralUser;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+
+import io.yak.ops.api.AssertionsHelper;
+import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.exceptions.ServiceException;
+import io.yak.ops.api.service.impl.ProjectParameterServiceImpl;
+import io.yak.ops.api.service.impl.ProjectServiceImpl;
+import io.yak.ops.api.utils.Result;
+import io.yak.ops.common.utils.CodeGenerateUtils;
+import io.yak.ops.dao.entity.Project;
+import io.yak.ops.dao.entity.ProjectParameter;
+import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.mapper.ProjectParameterMapper;
+import io.yak.ops.dao.repository.ProjectDao;
+import io.yak.ops.plugin.task.api.enums.DataType;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+public class ProjectParameterServiceTest {
+
+    @InjectMocks
+    private ProjectParameterServiceImpl projectParameterService;
+
+    @Mock
+    private ProjectDao projectDao;
+
+    @Mock
+    private ProjectParameterMapper projectParameterMapper;
+
+    @Mock
+    private ProjectServiceImpl projectService;
+
+    protected final static long projectCode = 1L;
+
+    @Test
+    public void testCreateProjectParameter() {
+        User loginUser = getGeneralUser();
+
+        // PERMISSION DENIED
+        doThrow(new ServiceException(Status.USER_NO_WRITE_PROJECT_PERM))
+                .when(projectService).checkHasProjectWritePermissionThrowException(any(), any());
+        assertThrows(ServiceException.class,
+                () -> projectParameterService.createProjectParameter(loginUser, projectCode, "key", "value",
+                        DataType.VARCHAR.name()));
+
+        doNothing().when(projectService).checkHasProjectWritePermissionThrowException(any(), any());
+
+        // CODE GENERATION ERROR
+        try (MockedStatic<CodeGenerateUtils> ignored = Mockito.mockStatic(CodeGenerateUtils.class)) {
+            when(CodeGenerateUtils.genCode()).thenThrow(CodeGenerateUtils.CodeGenerateException.class);
+
+            assertThrows(CodeGenerateUtils.CodeGenerateException.class,
+                    () -> projectParameterService.createProjectParameter(loginUser, projectCode, "key", "value",
+                            DataType.VARCHAR.name()));
+        }
+
+        // PROJECT_PARAMETER_ALREADY_EXISTS
+        when(projectDao.queryByCode(projectCode)).thenReturn(getProject(projectCode));
+        when(projectParameterMapper.selectOne(Mockito.any())).thenReturn(getProjectParameter());
+        Result result = projectParameterService.createProjectParameter(loginUser, projectCode, "key", "value",
+                DataType.VARCHAR.name());
+        assertEquals(Status.PROJECT_PARAMETER_ALREADY_EXISTS.getCode(), result.getCode());
+
+        // INSERT DATA ERROR
+        when(projectParameterMapper.selectOne(Mockito.any())).thenReturn(null);
+        when(projectParameterMapper.insert(Mockito.any())).thenReturn(-1);
+        result = projectParameterService.createProjectParameter(loginUser, projectCode, "key1", "value",
+                DataType.VARCHAR.name());
+        assertEquals(Status.CREATE_PROJECT_PARAMETER_ERROR.getCode(), result.getCode());
+
+        // SUCCESS
+        when(projectParameterMapper.insert(Mockito.any())).thenReturn(1);
+        result = projectParameterService.createProjectParameter(loginUser, projectCode, "key1", "value",
+                DataType.VARCHAR.name());
+        assertEquals(Status.SUCCESS.getCode(), result.getCode());
+
+        ProjectParameter projectParameter = (ProjectParameter) result.getData();
+        assertEquals(loginUser.getId(), projectParameter.getOperator());
+    }
+
+    @Test
+    public void testUpdateProjectParameter() {
+        User loginUser = getGeneralUser();
+
+        // NO PERMISSION
+        doThrow(new ServiceException(Status.USER_NO_WRITE_PROJECT_PERM))
+                .when(projectService).checkHasProjectWritePermissionThrowException(any(), any());
+        assertThrows(ServiceException.class,
+                () -> projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key", "value",
+                        DataType.VARCHAR.name()));
+
+        // PROJECT_PARAMETER_NOT_EXISTS
+        when(projectDao.queryByCode(projectCode)).thenReturn(getProject(projectCode));
+        doNothing().when(projectService).checkHasProjectWritePermissionThrowException(any(), any());
+        when(projectParameterMapper.queryByCode(Mockito.anyLong())).thenReturn(null);
+        Result result = projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key", "value",
+                DataType.VARCHAR.name());
+        assertEquals(Status.PROJECT_PARAMETER_NOT_EXISTS.getCode(), result.getCode());
+
+        // PROJECT_PARAMETER_ALREADY_EXISTS
+        when(projectParameterMapper.queryByCode(Mockito.anyLong())).thenReturn(getProjectParameter());
+        when(projectParameterMapper.selectOne(Mockito.any())).thenReturn(getProjectParameter());
+        result = projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key", "value",
+                DataType.VARCHAR.name());
+        assertEquals(Status.PROJECT_PARAMETER_ALREADY_EXISTS.getCode(), result.getCode());
+
+        // PROJECT_UPDATE_ERROR
+        when(projectParameterMapper.selectOne(Mockito.any())).thenReturn(null);
+        when(projectParameterMapper.updateById(Mockito.any())).thenReturn(-1);
+        result = projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key1", "value",
+                DataType.VARCHAR.name());
+        assertEquals(Status.UPDATE_PROJECT_PARAMETER_ERROR.getCode(), result.getCode());
+
+        // SUCCESS
+        when(projectParameterMapper.updateById(Mockito.any())).thenReturn(1);
+        result = projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key1", "value",
+                DataType.LONG.name());
+        assertEquals(Status.SUCCESS.getCode(), result.getCode());
+        ProjectParameter projectParameter = (ProjectParameter) result.getData();
+        assertNotNull(projectParameter.getOperator());
+        assertNotNull(projectParameter.getUpdateTime());
+        assertEquals(DataType.LONG.name(), projectParameter.getParamDataType());
+    }
+
+    @Test
+    public void testDeleteProjectParametersByCode() {
+        User loginUser = getGeneralUser();
+
+        // NO PERMISSION
+        doThrow(new ServiceException(Status.USER_NO_WRITE_PROJECT_PERM))
+                .when(projectService).checkHasProjectWritePermissionThrowException(any(), any());
+        assertThrows(ServiceException.class,
+                () -> projectParameterService.deleteProjectParametersByCode(loginUser, projectCode, 1));
+
+        // PROJECT_PARAMETER_NOT_EXISTS
+        when(projectDao.queryByCode(projectCode)).thenReturn(getProject(projectCode));
+        doNothing().when(projectService).checkHasProjectWritePermissionThrowException(any(), any());
+        when(projectParameterMapper.queryByCode(Mockito.anyLong())).thenReturn(null);
+        Result result = projectParameterService.deleteProjectParametersByCode(loginUser, projectCode, 1);
+        assertEquals(Status.PROJECT_PARAMETER_NOT_EXISTS.getCode(), result.getCode());
+
+        // DATABASE OPERATION ERROR
+        when(projectParameterMapper.queryByCode(Mockito.anyLong())).thenReturn(getProjectParameter());
+        when(projectParameterMapper.deleteById(Mockito.anyInt())).thenReturn(-1);
+        result = projectParameterService.deleteProjectParametersByCode(loginUser, projectCode, 1);
+        assertEquals(Status.DELETE_PROJECT_PARAMETER_ERROR.getCode(), result.getCode());
+
+        // SUCCESS
+        when(projectParameterMapper.deleteById(Mockito.anyInt())).thenReturn(1);
+        result = projectParameterService.deleteProjectParametersByCode(loginUser, projectCode, 1);
+        assertEquals(Status.SUCCESS.getCode(), result.getCode());
+    }
+
+    @Test
+    public void testQueryProjectParameterByCode() {
+        User loginUser = getGeneralUser();
+
+        // NO PERMISSION
+        doThrow(new ServiceException(Status.USER_NO_OPERATION_PROJECT_PERM))
+                .when(projectService).checkProjectAndAuthThrowException(any(), Mockito.<Project>any(), any());
+
+        assertThrows(ServiceException.class,
+                () -> projectParameterService.queryProjectParameterByCode(loginUser, projectCode, 1));
+
+        // PROJECT_PARAMETER_NOT_EXISTS
+        when(projectDao.queryByCode(projectCode)).thenReturn(getProject(projectCode));
+        doNothing().when(projectService).checkProjectAndAuthThrowException(any(), Mockito.<Project>any(), any());
+        when(projectParameterMapper.queryByCode(Mockito.anyLong())).thenReturn(null);
+        Result result = projectParameterService.queryProjectParameterByCode(loginUser, projectCode, 1);
+        assertEquals(Status.PROJECT_PARAMETER_NOT_EXISTS.getCode(), result.getCode());
+
+        // SUCCESS
+        when(projectParameterMapper.queryByCode(Mockito.anyLong())).thenReturn(getProjectParameter());
+        result = projectParameterService.queryProjectParameterByCode(loginUser, projectCode, 1);
+        assertEquals(Status.SUCCESS.getCode(), result.getCode());
+    }
+
+    @Test
+    public void testQueryProjectParameterListPaging() {
+        User loginUser = getGeneralUser();
+        Integer pageSize = 10;
+        Integer pageNo = 1;
+
+        // NO PERMISSION
+        doThrow(new ServiceException(Status.USER_NO_OPERATION_PROJECT_PERM))
+                .when(projectService).checkProjectAndAuthThrowException(any(), Mockito.<Project>any(), any());
+
+        assertThrows(ServiceException.class,
+                () -> projectParameterService.queryProjectParameterListPaging(loginUser, projectCode, pageSize, pageNo,
+                        null, DataType.VARCHAR.name()));
+
+        // SUCCESS
+        doNothing().when(projectService).checkProjectAndAuthThrowException(any(), Mockito.<Project>any(), any());
+
+        Page<ProjectParameter> page = new Page<>(pageNo, pageSize);
+        page.setRecords(Collections.singletonList(getProjectParameter()));
+
+        when(projectParameterMapper.queryProjectParameterListPaging(any(), anyLong(), any(), any(), any()))
+                .thenReturn(page);
+        Result result = projectParameterService.queryProjectParameterListPaging(loginUser, projectCode, pageSize,
+                pageNo,
+                null, null);
+        assertEquals(Status.SUCCESS.getCode(), result.getCode());
+    }
+
+    @Test
+    public void testBatchDeleteProjectParametersByCodes() {
+        User loginUser = getGeneralUser();
+
+        Result result = projectParameterService.batchDeleteProjectParametersByCodes(loginUser, projectCode, "");
+        assertEquals(Status.PROJECT_PARAMETER_CODE_EMPTY.getCode(), result.getCode());
+
+        when(projectParameterMapper.queryByCodes(any())).thenReturn(Collections.singletonList(getProjectParameter()));
+
+        AssertionsHelper.assertThrowsServiceException(Status.PROJECT_PARAMETER_NOT_EXISTS,
+                () -> projectParameterService.batchDeleteProjectParametersByCodes(loginUser, projectCode, "1,2"));
+
+        projectParameterService.batchDeleteProjectParametersByCodes(loginUser, projectCode, "1");
+    }
+
+    private Project getProject(long projectCode) {
+        Project project = new Project();
+        project.setCode(projectCode);
+        project.setId(1);
+        project.setName("test");
+        project.setUserId(1);
+        return project;
+    }
+
+    private ProjectParameter getProjectParameter() {
+        ProjectParameter projectParameter = new ProjectParameter();
+        projectParameter.setId(1);
+        projectParameter.setCode(1);
+        projectParameter.setProjectCode(1);
+        projectParameter.setParamName("key");
+        projectParameter.setParamValue("value");
+        return projectParameter;
+    }
+}

@@ -1,0 +1,153 @@
+package io.yak.ops.api.controller;
+
+import static io.yak.ops.api.enums.Status.DELETE_WORKER_GROUP_FAIL;
+import static io.yak.ops.api.enums.Status.QUERY_WORKER_ADDRESS_LIST_FAIL;
+import static io.yak.ops.api.enums.Status.QUERY_WORKER_GROUP_FAIL;
+import static io.yak.ops.api.enums.Status.SAVE_ERROR;
+
+import io.yak.ops.api.audit.OperatorLog;
+import io.yak.ops.api.audit.enums.AuditType;
+import io.yak.ops.api.exceptions.ApiException;
+import io.yak.ops.api.service.WorkerGroupService;
+import io.yak.ops.api.utils.Result;
+import io.yak.ops.common.constants.Constants;
+import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.WorkerGroup;
+import io.yak.ops.plugin.task.api.utils.ParameterUtils;
+
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "WORKER_GROUP_TAG")
+@RestController
+@RequestMapping("/worker-groups")
+public class WorkerGroupController extends BaseController {
+
+    @Autowired
+    private WorkerGroupService workerGroupService;
+
+    /**
+     * create or update a worker group
+     *
+     * @param loginUser login user
+     * @param id worker group id
+     * @param name worker group name
+     * @param addrList addr list
+     * @return create or update result code
+     */
+    @Operation(summary = "saveWorkerGroup", description = "CREATE_WORKER_GROUP_NOTES")
+    @Parameters({
+            @Parameter(name = "id", description = "WORKER_GROUP_ID", schema = @Schema(implementation = int.class, example = "10", defaultValue = "0")),
+            @Parameter(name = "name", description = "WORKER_GROUP_NAME", required = true, schema = @Schema(implementation = String.class)),
+            @Parameter(name = "addrList", description = "WORKER_ADDR_LIST", required = true, schema = @Schema(implementation = String.class)),
+            @Parameter(name = "description", description = "WORKER_DESC", required = false, schema = @Schema(implementation = String.class)),
+    })
+    @PostMapping()
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(SAVE_ERROR)
+    @OperatorLog(auditType = AuditType.WORKER_GROUP_CREATE)
+    public Result<WorkerGroup> saveWorkerGroup(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                               @RequestParam(value = "id", required = false, defaultValue = "0") int id,
+                                               @RequestParam(value = "name") String name,
+                                               @RequestParam(value = "addrList") String addrList,
+                                               @RequestParam(value = "description", required = false, defaultValue = "") String description) {
+        final WorkerGroup workerGroup = workerGroupService.saveWorkerGroup(loginUser, id, name, addrList, description);
+        return Result.success(workerGroup);
+    }
+
+    /**
+     * query worker groups paging
+     *
+     * @param loginUser login user
+     * @param pageNo page number
+     * @param searchVal search value
+     * @param pageSize page size
+     * @return worker group list page
+     */
+    @Operation(summary = "queryAllWorkerGroupsPaging", description = "QUERY_WORKER_GROUP_PAGING_NOTES")
+    @Parameters({
+            @Parameter(name = "pageNo", description = "PAGE_NO", required = true, schema = @Schema(implementation = int.class, example = "1")),
+            @Parameter(name = "pageSize", description = "PAGE_SIZE", required = true, schema = @Schema(implementation = int.class, example = "20")),
+            @Parameter(name = "searchVal", description = "SEARCH_VAL", schema = @Schema(implementation = String.class))
+    })
+    @GetMapping()
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_WORKER_GROUP_FAIL)
+    public Result queryAllWorkerGroupsPaging(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                             @RequestParam("pageNo") Integer pageNo,
+                                             @RequestParam("pageSize") Integer pageSize,
+                                             @RequestParam(value = "searchVal", required = false) String searchVal) {
+        checkPageParams(pageNo, pageSize);
+        searchVal = ParameterUtils.handleEscapes(searchVal);
+        return workerGroupService.queryAllGroupPaging(loginUser, pageNo, pageSize, searchVal);
+    }
+
+    /**
+     * query all worker groups
+     *
+     * @param loginUser login user
+     * @return all worker group list
+     */
+    @Operation(summary = "queryAllWorkerGroups", description = "QUERY_WORKER_GROUP_LIST_NOTES")
+    @GetMapping(value = "/all")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_WORKER_GROUP_FAIL)
+    public Result<List<String>> queryAllWorkerGroups(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser) {
+        List<String> workerGroupNames = workerGroupService.queryAllGroup(loginUser);
+        return Result.success(workerGroupNames);
+    }
+
+    /**
+     * delete worker group by id
+     *
+     * @param loginUser login user
+     * @param id group id
+     * @return delete result code
+     */
+    @Operation(summary = "deleteWorkerGroupById", description = "DELETE_WORKER_GROUP_BY_ID_NOTES")
+    @Parameters({
+            @Parameter(name = "id", description = "WORKER_GROUP_ID", required = true, schema = @Schema(implementation = int.class, example = "10")),
+    })
+    @DeleteMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(DELETE_WORKER_GROUP_FAIL)
+    @OperatorLog(auditType = AuditType.WORKER_GROUP_DELETE)
+    public Result<Void> deleteWorkerGroupById(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                              @PathVariable("id") Integer id) {
+        workerGroupService.deleteWorkerGroupById(loginUser, id);
+        return Result.success();
+    }
+
+    /**
+     * query worker address list
+     *
+     * @param loginUser login user
+     * @return all worker address list
+     */
+    @Operation(summary = "queryWorkerAddressList", description = "QUERY_WORKER_ADDRESS_LIST_NOTES")
+    @GetMapping(value = "/worker-address-list")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_WORKER_ADDRESS_LIST_FAIL)
+    public Result<Set<String>> queryWorkerAddressList(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser) {
+        Set<String> workerAddressList = workerGroupService.getWorkerAddressList();
+        return Result.success(workerAddressList);
+    }
+}

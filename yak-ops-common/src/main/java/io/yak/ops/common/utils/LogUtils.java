@@ -1,0 +1,99 @@
+package io.yak.ops.common.utils;
+
+import io.yak.ops.common.log.remote.RemoteLogUtils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.LoggerContext;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class LogUtils {
+
+    public static byte[] getFileContentBytesFromLocal(String filePath) {
+        try (
+                InputStream in = new FileInputStream(filePath);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = in.read(buf)) != -1) {
+                bos.write(buf, 0, len);
+            }
+            return bos.toByteArray();
+        } catch (IOException e) {
+            log.error("get file bytes error", e);
+        }
+        return new byte[0];
+    }
+
+    public static byte[] getFileContentBytesFromRemote(String filePath) {
+        RemoteLogUtils.getRemoteLog(filePath);
+        return getFileContentBytesFromLocal(filePath);
+    }
+
+    public static List<String> readPartFileContentFromLocal(String filePath,
+                                                            int skipLine,
+                                                            int limit) {
+        File file = new File(filePath);
+        if (file.exists() && file.isFile()) {
+            try (Stream<String> stream = Files.lines(Paths.get(filePath))) {
+                return stream.skip(skipLine).limit(limit).collect(Collectors.toList());
+            } catch (IOException e) {
+                log.error("read file error", e);
+                throw new RuntimeException(String.format("Read file: %s error", filePath), e);
+            }
+        } else {
+            throw new RuntimeException("The file path: " + filePath + " not exists");
+        }
+    }
+
+    public static List<String> readPartFileContentFromRemote(String filePath,
+                                                             int skipLine,
+                                                             int limit) {
+        RemoteLogUtils.getRemoteLog(filePath);
+        return readPartFileContentFromLocal(filePath, skipLine, limit);
+    }
+
+    public static String rollViewLogLines(List<String> lines) {
+        StringBuilder builder = new StringBuilder();
+        final int MaxResponseLogSize = 65535;
+        int totalLogByteSize = 0;
+        for (String line : lines) {
+            // If a single line of log is exceed max response size, cut off the line
+            final int lineByteSize = line.getBytes(StandardCharsets.UTF_8).length;
+            if (lineByteSize >= MaxResponseLogSize) {
+                builder.append(line, 0, MaxResponseLogSize)
+                        .append(" [this line's size ").append(lineByteSize).append(" bytes is exceed ")
+                        .append(MaxResponseLogSize).append(" bytes, so only ")
+                        .append(MaxResponseLogSize).append(" characters are reserved for performance reasons.]")
+                        .append("\r\n");
+            } else {
+                builder.append(line).append("\r\n");
+            }
+            totalLogByteSize += lineByteSize;
+            if (totalLogByteSize >= MaxResponseLogSize) {
+                break;
+            }
+        }
+
+        return builder.toString();
+    }
+
+    public static String getLocalLogBaseDir() {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        return loggerContext.getProperty("log.base.ctx");
+    }
+
+}

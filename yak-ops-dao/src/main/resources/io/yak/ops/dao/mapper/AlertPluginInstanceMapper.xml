@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.AlertPluginInstanceMapper">
+
+    <sql id="baseSql">
+        id, plugin_define_id, plugin_instance_params, create_time, update_time, instance_name
+    </sql>
+
+
+    <select id="queryAllAlertPluginInstanceList"
+            resultType="io.yak.ops.dao.entity.AlertPluginInstance">
+        select
+        <include refid="baseSql"/>
+        from t_ds_alert_plugin_instance
+        where 1 = 1 order by update_time desc
+    </select>
+
+    <select id="queryByIds" resultType="io.yak.ops.dao.entity.AlertPluginInstance">
+        select
+        <include refid="baseSql"/>
+        from t_ds_alert_plugin_instance
+        <if test="ids != null and ids.size() != 0">
+            where id in
+            <foreach item="item" index="index" collection="ids"
+                     open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="queryByInstanceNamePage" resultType="io.yak.ops.dao.entity.AlertPluginInstance">
+        select
+        <include refid="baseSql"/>
+        from t_ds_alert_plugin_instance
+        where 1 = 1
+        <if test="instanceName != null and instanceName != ''">
+            and instance_name like concat('%', #{instanceName}, '%')
+        </if>
+        order by update_time desc
+    </select>
+
+    <select id="existInstanceName" resultType="java.lang.Boolean">
+        select 1
+        from t_ds_alert_plugin_instance
+        where instance_name = #{instanceName} limit 1
+    </select>
+
+</mapper>

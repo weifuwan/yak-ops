@@ -1,0 +1,2 @@
+npm --prefix yak-ops-ui run format
+.\mvnw.cmd spotless:apply

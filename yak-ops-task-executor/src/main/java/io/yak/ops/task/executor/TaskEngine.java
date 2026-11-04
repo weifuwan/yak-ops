@@ -1,0 +1,102 @@
+package io.yak.ops.task.executor;
+
+import io.yak.ops.common.utils.DateUtils;
+import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.task.executor.container.ITaskExecutorContainer;
+import io.yak.ops.task.executor.container.ITaskExecutorContainerProvider;
+import io.yak.ops.task.executor.dto.TaskExecutorDTO;
+import io.yak.ops.task.executor.eventbus.ITaskExecutorEventBusCoordinator;
+import io.yak.ops.task.executor.events.TaskExecutorDispatchedLifecycleEvent;
+import io.yak.ops.task.executor.events.TaskExecutorKillLifecycleEvent;
+import io.yak.ops.task.executor.events.TaskExecutorPauseLifecycleEvent;
+import io.yak.ops.task.executor.exceptions.TaskExecutorNotFoundException;
+import io.yak.ops.task.executor.exceptions.TaskExecutorRuntimeException;
+import io.yak.ops.task.executor.log.TaskExecutorMDCUtils;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class TaskEngine implements ITaskEngine {
+
+    private final String engineName;
+
+    private final ITaskExecutorRepository taskExecutorRepository;
+
+    private final ITaskExecutorContainerProvider taskExecutorContainerDelegator;
+
+    private final ITaskExecutorEventBusCoordinator taskExecutorEventBusCoordinator;
+
+    public TaskEngine(final TaskEngineBuilder taskEngineBuilder) {
+        this.engineName = taskEngineBuilder.getEngineName();
+        this.taskExecutorContainerDelegator = taskEngineBuilder.getTaskExecutorContainerDelegator();
+        this.taskExecutorRepository = taskEngineBuilder.getTaskExecutorRepository();
+        this.taskExecutorEventBusCoordinator = taskEngineBuilder.getTaskExecutorEventBusCoordinator();
+    }
+
+    @Override
+    public void start() {
+        taskExecutorEventBusCoordinator.start();
+        log.info("{} started", engineName);
+    }
+
+    @Override
+    public void submitTask(final ITaskExecutor taskExecutor) throws TaskExecutorRuntimeException {
+        try (final TaskExecutorMDCUtils.MDCAutoClosable ignore = TaskExecutorMDCUtils.logWithMDC(taskExecutor)) {
+            final ITaskExecutorContainer executorContainer = taskExecutorContainerDelegator.getExecutorContainer();
+            executorContainer.dispatch(taskExecutor);
+            taskExecutorRepository.put(taskExecutor);
+            taskExecutor.getTaskExecutorEventBus().publish(TaskExecutorDispatchedLifecycleEvent.of(taskExecutor));
+            executorContainer.start(taskExecutor);
+        }
+    }
+
+    @Override
+    public void pauseTask(final int taskExecutorId) throws TaskExecutorNotFoundException {
+        final ITaskExecutor taskExecutor = getTaskExecutor(taskExecutorId);
+        try (final TaskExecutorMDCUtils.MDCAutoClosable ignore = TaskExecutorMDCUtils.logWithMDC(taskExecutor)) {
+            taskExecutor.getTaskExecutorEventBus().publish(TaskExecutorPauseLifecycleEvent.of(taskExecutor));
+        }
+    }
+
+    @Override
+    public void killTask(final int taskExecutorId) throws TaskExecutorNotFoundException {
+        final ITaskExecutor taskExecutor = getTaskExecutor(taskExecutorId);
+        try (final TaskExecutorMDCUtils.MDCAutoClosable ignore = TaskExecutorMDCUtils.logWithMDC(taskExecutor)) {
+            taskExecutor.getTaskExecutorEventBus().publish(TaskExecutorKillLifecycleEvent.of(taskExecutor));
+        }
+    }
+
+    @Override
+    public List<TaskExecutorDTO> queryTaskExecutors() {
+        return taskExecutorRepository.getAll().stream()
+                .map(executor -> {
+                    TaskExecutionContext ctx = executor.getTaskExecutionContext();
+                    return TaskExecutorDTO.builder()
+                            .id(ctx.getTaskInstanceId())
+                            .name(ctx.getTaskName())
+                            .taskType(ctx.getTaskType())
+                            .projectCode(ctx.getProjectCode())
+                            .workflowInstanceId(ctx.getWorkflowInstanceId())
+                            .workflowInstanceName(ctx.getWorkflowInstanceName())
+                            .startTime(DateUtils.timeStampToDate(ctx.getStartTime()))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void close() {
+        try (final ITaskExecutorEventBusCoordinator ignore1 = taskExecutorEventBusCoordinator) {
+            // Ignore
+            log.info("{} closed", engineName);
+        }
+    }
+
+    private ITaskExecutor getTaskExecutor(final int taskId) throws TaskExecutorNotFoundException {
+        return taskExecutorRepository.get(taskId).orElseThrow(() -> new TaskExecutorNotFoundException(taskId));
+    }
+
+}

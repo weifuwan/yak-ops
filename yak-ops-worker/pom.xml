@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.yak.ops</groupId>
+        <artifactId>yak-ops</artifactId>
+        <version>1.4.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>yak-ops-worker</artifactId>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- yak-ops -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-meter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-registry-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-all</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-datasource-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-datasource-all</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-storage-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-storage-all</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-extract-alert</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-extract-master</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-extract-worker</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-eventbus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-executor</artifactId>
+        </dependency>
+
+        <!-- yak-ops -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-to-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-actuator-authentication</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>*.yaml</exclude>
+                        <exclude>*.xml</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,112 @@
+package io.yak.ops.server.master.engine.executor.plugin.condition;
+
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.dao.repository.TaskInstanceDao;
+import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.api.enums.DependResult;
+import io.yak.ops.plugin.task.api.model.ConditionDependentItem;
+import io.yak.ops.plugin.task.api.parameters.ConditionsParameters;
+import io.yak.ops.plugin.task.api.utils.DependentUtils;
+import io.yak.ops.server.master.engine.executor.plugin.AbstractLogicTask;
+import io.yak.ops.server.master.engine.executor.plugin.ITaskParameterDeserializer;
+import io.yak.ops.server.master.engine.workflow.execution.IWorkflowExecution;
+import io.yak.ops.server.master.exception.MasterTaskExecuteException;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class ConditionLogicTask extends AbstractLogicTask<ConditionsParameters> {
+
+    private final TaskInstanceDao taskInstanceDao;
+
+    private final TaskInstance taskInstance;
+
+    public ConditionLogicTask(IWorkflowExecution workflowExecution,
+                              TaskExecutionContext taskExecutionContext,
+                              TaskInstanceDao taskInstanceDao) {
+        super(taskExecutionContext);
+        this.taskInstance = workflowExecution
+                .getWorkflowExecuteContext()
+                .getWorkflowExecutionGraph()
+                .getTaskExecutionById(taskExecutionContext.getTaskInstanceId())
+                .getTaskInstance();
+        this.taskInstanceDao = taskInstanceDao;
+        onTaskRunning();
+    }
+
+    @Override
+    public void start() {
+
+        DependResult conditionResult = calculateConditionResult();
+        log.info("The condition result is {}", conditionResult);
+        taskParameters.getConditionResult().setConditionSuccess(conditionResult == DependResult.SUCCESS);
+
+        taskInstance.setTaskParams(JSONUtils.toJsonString(taskParameters));
+
+        onTaskSuccess();
+    }
+
+    private DependResult calculateConditionResult() {
+        final List<TaskInstance> taskInstances = taskInstanceDao.queryValidTaskListByWorkflowInstanceId(
+                taskExecutionContext.getWorkflowInstanceId());
+        final Map<Long, TaskInstance> taskInstanceMap = taskInstances.stream()
+                .collect(Collectors.toMap(TaskInstance::getTaskCode, Function.identity()));
+
+        ConditionsParameters.ConditionDependency dependence = taskParameters.getDependence();
+        List<DependResult> dependResults = dependence.getDependTaskList()
+                .stream()
+                .map(dependentTaskModel -> DependentUtils.getDependResultForRelation(
+                        dependentTaskModel.getRelation(),
+                        dependentTaskModel.getDependItemList()
+                                .stream()
+                                .map(dependentItem -> getDependResultForItem((ConditionDependentItem) dependentItem,
+                                        taskInstanceMap))
+                                .collect(Collectors.toList())))
+                .collect(Collectors.toList());
+        return DependentUtils.getDependResultForRelation(dependence.getRelation(), dependResults);
+    }
+
+    private DependResult getDependResultForItem(ConditionDependentItem item, Map<Long, TaskInstance> taskInstanceMap) {
+        TaskInstance taskInstance = taskInstanceMap.get(item.getDepTaskCode());
+        if (taskInstance == null) {
+            log.info("The depend item: {} has not completed yet", DependResult.FAILED);
+            log.info("The dependent result will be {}", DependResult.FAILED);
+            return DependResult.FAILED;
+        }
+
+        DependResult dependResult = Objects.equals(item.getStatus(), taskInstance.getState())
+                ? DependResult.SUCCESS
+                : DependResult.FAILED;
+        log.info("The depend item: {}", item);
+        log.info("Expect status: {}", item.getStatus());
+        log.info("Actual status: {}", taskInstance.getState());
+        log.info("The dependent result will be: {}", dependResult);
+        return dependResult;
+    }
+
+    @Override
+    public void pause() throws MasterTaskExecuteException {
+        log.info("The ConditionTask does not support pause operation");
+    }
+
+    @Override
+    public void kill() throws MasterTaskExecuteException {
+        log.info("The ConditionTask does not support kill operation");
+    }
+
+    @Override
+    public ITaskParameterDeserializer<ConditionsParameters> getTaskParameterDeserializer() {
+        return taskParamsJson -> JSONUtils.parseObject(taskParamsJson, new TypeReference<ConditionsParameters>() {
+        });
+    }
+
+}

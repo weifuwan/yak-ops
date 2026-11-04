@@ -54,7 +54,7 @@ This document defines durable frontend engineering constraints. Current source c
 
 ## Verification and Architecture
 
-- Frontend GitHub CI checks Oxfmt formatting only; frontend test cases and browser automation have been removed from the repository.
+- Frontend formatting is local-only: use `npm run format` to apply Oxfmt and `npm run format:check` to verify it. GitHub Actions does not run frontend formatting or frontend tests; browser automation and frontend test cases have been removed from the repository.
 - Maintain service, HTTP, Workspace and component dependency boundaries during code review. Do not introduce deep imports across private features.
 - For UI changes, developers may manually exercise affected interaction, focus, keyboard, responsive and error flows; record what was actually verified.
 - Local lint, TypeScript and production builds remain available but are not enforced by the GitHub CI.
@@ -80,7 +80,7 @@ Place necessary copy near the relevant action and keep it short. Do not explain 
 
 ## Quality and Verification
 
-- Keep Oxfmt in CI. Oxlint, TypeScript and Vite build remain available locally; do not claim those checks ran unless executed.
+- Keep Oxfmt available as the local formatter; it is not a CI gate. Oxlint, TypeScript and Vite build remain available locally; do not claim those checks ran unless executed.
 - Maintain real dependency, directory, HTTP, and Workspace boundaries. Fix incorrect implementation rather than loosening checks or adding broad lint disables.
 - Run relevant local formatting, typing, and build commands as needed. Record actual manual UI verification when relevant, distinguishing passed, skipped, and not-run checks.
 

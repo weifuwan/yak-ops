@@ -1,0 +1,176 @@
+package io.yak.ops.server.master.integration;
+
+import io.yak.ops.common.enums.FailureStrategy;
+import io.yak.ops.common.enums.Flag;
+import io.yak.ops.common.enums.TaskDependType;
+import io.yak.ops.common.enums.WarningType;
+import io.yak.ops.dao.entity.Project;
+import io.yak.ops.dao.entity.Schedule;
+import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.extract.master.IWorkflowControlClient;
+import io.yak.ops.extract.master.command.BackfillWorkflowCommandParam;
+import io.yak.ops.extract.master.command.RunWorkflowCommandParam;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowBackfillTriggerRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowBackfillTriggerResponse;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstancePauseRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstancePauseResponse;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceRecoverFailureTasksRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceRecoverSuspendTasksRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceRecoverSuspendTasksResponse;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceRepeatRunningRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceStopRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowInstanceStopResponse;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowManualTriggerRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowManualTriggerResponse;
+import io.yak.ops.scheduler.api.SchedulerApi;
+
+import org.assertj.core.api.Assertions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+
+@Component
+public class WorkflowOperator {
+
+    @Autowired
+    private IWorkflowControlClient workflowInstanceController;
+
+    @Autowired
+    private SchedulerApi schedulerApi;
+
+    public Integer manualTriggerWorkflow(final WorkflowTriggerDTO workflowTriggerDTO) {
+        final WorkflowManualTriggerRequest workflowManualTriggerRequest = WorkflowManualTriggerRequest.builder()
+                .userId(workflowTriggerDTO.workflowDefinition.getUserId())
+                .workflowDefinitionCode(workflowTriggerDTO.workflowDefinition.getCode())
+                .workflowDefinitionVersion(workflowTriggerDTO.workflowDefinition.getVersion())
+                .startNodes(workflowTriggerDTO.getRunWorkflowCommandParam().getStartNodes())
+                .startParamList(workflowTriggerDTO.getRunWorkflowCommandParam().getCommandParams())
+                .dryRun(workflowTriggerDTO.getDryRun())
+                .taskDependType(workflowTriggerDTO.getTaskDependType())
+                .failureStrategy(workflowTriggerDTO.getFailureStrategy())
+                .warningGroupId(workflowTriggerDTO.getWarningGroupId())
+                .warningType(workflowTriggerDTO.getWarningType())
+                .build();
+
+        final WorkflowManualTriggerResponse manualTriggerWorkflowResponse =
+                workflowInstanceController.manualTriggerWorkflow(workflowManualTriggerRequest);
+        Assertions.assertThat(manualTriggerWorkflowResponse.isSuccess()).isTrue();
+
+        return manualTriggerWorkflowResponse.getWorkflowInstanceId();
+    }
+
+    public void backfillWorkflow(final WorkflowBackfillDTO workflowBackfillDTO) {
+        final WorkflowDefinition workflowDefinition = workflowBackfillDTO.getWorkflow();
+
+        final WorkflowBackfillTriggerRequest backfillTriggerRequest = WorkflowBackfillTriggerRequest.builder()
+                .userId(workflowDefinition.getUserId())
+                .workflowCode(workflowDefinition.getCode())
+                .workflowVersion(workflowDefinition.getVersion())
+                .startNodes(workflowBackfillDTO.getBackfillWorkflowCommandParam().getStartNodes())
+                .startParamList(workflowBackfillDTO.getBackfillWorkflowCommandParam().getCommandParams())
+                .backfillTimeList(workflowBackfillDTO.getBackfillWorkflowCommandParam().getBackfillTimeList())
+                .build();
+        final WorkflowBackfillTriggerResponse backfillTriggerResponse = workflowInstanceController
+                .backfillTriggerWorkflow(backfillTriggerRequest);
+
+        Assertions.assertThat(backfillTriggerResponse.isSuccess()).isTrue();
+    }
+
+    public void schedulingWorkflow(final WorkflowSchedulingDTO workflowSchedulingDTO) {
+        final Project project = workflowSchedulingDTO.getProject();
+        final Schedule schedule = workflowSchedulingDTO.getSchedule();
+        schedulerApi.insertOrUpdateScheduleTask(project.getId(), schedule);
+    }
+
+    public void unSchedulingWorkflow(final WorkflowSchedulingDTO workflowSchedulingDTO) {
+        final Project project = workflowSchedulingDTO.getProject();
+        final Schedule schedule = workflowSchedulingDTO.getSchedule();
+        schedulerApi.deleteScheduleTask(project.getId(), schedule.getId());
+    }
+
+    public void repeatRunningWorkflowInstance(final Integer workflowInstanceId) {
+        final WorkflowInstanceRepeatRunningRequest repeatRunningRequest = WorkflowInstanceRepeatRunningRequest.builder()
+                .workflowInstanceId(workflowInstanceId)
+                .userId(1)
+                .build();
+        workflowInstanceController.repeatTriggerWorkflowInstance(repeatRunningRequest);
+    }
+
+    public void recoverFailureTasks(final Integer workflowInstanceId) {
+        final WorkflowInstanceRecoverFailureTasksRequest recoverFailureTasksRequest =
+                WorkflowInstanceRecoverFailureTasksRequest.builder()
+                        .workflowInstanceId(workflowInstanceId)
+                        .userId(1)
+                        .build();
+        workflowInstanceController.triggerFromFailureTasks(recoverFailureTasksRequest);
+    }
+
+    public WorkflowInstancePauseResponse pauseWorkflowInstance(Integer workflowInstanceId) {
+        final WorkflowInstancePauseRequest workflowInstancePauseRequest =
+                new WorkflowInstancePauseRequest(workflowInstanceId);
+        return workflowInstanceController.pauseWorkflowInstance(workflowInstancePauseRequest);
+    }
+
+    public WorkflowInstanceRecoverSuspendTasksResponse recoverSuspendWorkflowInstance(Integer workflowInstanceId) {
+        final WorkflowInstanceRecoverSuspendTasksRequest workflowInstancePauseRequest =
+                WorkflowInstanceRecoverSuspendTasksRequest.builder()
+                        .workflowInstanceId(workflowInstanceId)
+                        .userId(1)
+                        .build();
+        return workflowInstanceController.triggerFromSuspendTasks(workflowInstancePauseRequest);
+    }
+
+    public WorkflowInstanceStopResponse stopWorkflowInstance(Integer workflowInstanceId) {
+        final WorkflowInstanceStopRequest workflowInstanceStopRequest =
+                new WorkflowInstanceStopRequest(workflowInstanceId);
+        return workflowInstanceController.stopWorkflowInstance(workflowInstanceStopRequest);
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    public static class WorkflowTriggerDTO {
+
+        private final WorkflowDefinition workflowDefinition;
+
+        private final RunWorkflowCommandParam runWorkflowCommandParam;
+
+        @Builder.Default
+        private Flag dryRun = Flag.NO;
+
+        @Builder.Default
+        private TaskDependType taskDependType = TaskDependType.TASK_POST;
+
+        @Builder.Default
+        private FailureStrategy failureStrategy = FailureStrategy.CONTINUE;
+
+        @Builder.Default
+        private WarningType warningType = WarningType.NONE;
+
+        @Builder.Default
+        private Integer warningGroupId = null;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    public static class WorkflowSchedulingDTO {
+
+        private WorkflowDefinition workflow;
+        private Project project;
+        private Schedule schedule;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    public static class WorkflowBackfillDTO {
+
+        private WorkflowDefinition workflow;
+        private BackfillWorkflowCommandParam backfillWorkflowCommandParam;
+    }
+
+}

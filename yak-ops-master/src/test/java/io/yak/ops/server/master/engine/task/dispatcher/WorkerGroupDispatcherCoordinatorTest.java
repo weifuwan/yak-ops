@@ -1,0 +1,58 @@
+package io.yak.ops.server.master.engine.task.dispatcher;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.server.master.config.MasterConfig;
+import io.yak.ops.server.master.engine.task.client.ITaskExecutorClient;
+import io.yak.ops.server.master.engine.task.execution.ITaskExecution;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+@ExtendWith(MockitoExtension.class)
+class WorkerGroupDispatcherCoordinatorTest {
+
+    private WorkerGroupDispatcherCoordinator workerGroupDispatcherCoordinator;
+
+    @Mock
+    private ITaskExecutorClient taskExecutorClient;
+
+    @BeforeEach
+    void setUp() {
+        MasterConfig masterConfig = new MasterConfig();
+        workerGroupDispatcherCoordinator = new WorkerGroupDispatcherCoordinator(masterConfig);
+        ReflectionTestUtils.setField(workerGroupDispatcherCoordinator, "taskExecutorClient", taskExecutorClient);
+    }
+
+    @Test
+    void addTaskToWorkerGroup_NewWorkerGroup_ShouldAddTask() {
+        String workerGroup = "newGroup";
+        long delayTimeMills = 1000;
+
+        ITaskExecution taskExecution = Mockito.mock(ITaskExecution.class);
+        TaskInstance taskInstance = mock(TaskInstance.class);
+        TaskExecutionContext taskExecutionContext = mock(TaskExecutionContext.class);
+
+        when(taskExecution.getTaskInstance()).thenReturn(taskInstance);
+        when(taskInstance.getWorkerGroup()).thenReturn(workerGroup);
+        when(taskExecution.getTaskExecutionContext()).thenReturn(taskExecutionContext);
+        when(taskExecutionContext.getDispatchFailTimes()).thenReturn(1);
+
+        assertFalse(workerGroupDispatcherCoordinator.existWorkerGroup(workerGroup));
+
+        workerGroupDispatcherCoordinator.dispatchTask(taskExecution, delayTimeMills);
+
+        assertTrue(workerGroupDispatcherCoordinator.existWorkerGroup(workerGroup));
+    }
+
+}

@@ -1,0 +1,110 @@
+package io.yak.ops.dao.entity;
+
+import io.yak.ops.common.enums.AlertEvent;
+import io.yak.ops.common.enums.AlertWarnLevel;
+import io.yak.ops.common.enums.CommandType;
+import io.yak.ops.common.enums.Flag;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@JsonInclude(Include.NON_NULL)
+public class WorkflowAlertContent implements Serializable {
+
+    @JsonProperty("projectId")
+    private Integer projectId;
+
+    @JsonProperty("projectCode")
+    private Long projectCode;
+
+    @JsonProperty("projectName")
+    private String projectName;
+
+    @JsonProperty("owner")
+    private String owner;
+
+    @JsonProperty("workflowInstanceId")
+    private Integer workflowInstanceId;
+
+    @JsonProperty("workflowDefinitionCode")
+    private Long workflowDefinitionCode;
+
+    @JsonProperty("workflowInstanceName")
+    private String workflowInstanceName;
+
+    @JsonProperty("commandType")
+    private CommandType commandType;
+
+    @JsonProperty("workflowExecutionStatus")
+    private WorkflowExecutionStatus workflowExecutionStatus;
+
+    @JsonProperty("modifyBy")
+    private String modifyBy;
+
+    @JsonProperty("recovery")
+    private Flag recovery;
+
+    @JsonProperty("runTimes")
+    private Integer runTimes;
+
+    @JsonProperty("workflowStartTime")
+    private Date workflowStartTime;
+
+    @JsonProperty("workflowEndTime")
+    private Date workflowEndTime;
+
+    @JsonProperty("workflowHost")
+    private String workflowHost;
+
+    @JsonProperty("taskCode")
+    private Long taskCode;
+
+    @JsonProperty("taskName")
+    private String taskName;
+
+    @JsonProperty("event")
+    private AlertEvent event;
+
+    @JsonProperty("warnLevel")
+    private AlertWarnLevel warnLevel;
+
+    @JsonProperty("taskType")
+    private String taskType;
+
+    @JsonProperty("retryTimes")
+    private Integer retryTimes;
+
+    @JsonProperty("taskState")
+    private TaskExecutionStatus taskState;
+
+    @JsonProperty("taskStartTime")
+    private Date taskStartTime;
+
+    @JsonProperty("taskEndTime")
+    private Date taskEndTime;
+
+    @JsonProperty("taskHost")
+    private String taskHost;
+
+    @JsonProperty("taskPriority")
+    private String taskPriority;
+
+    @JsonProperty("logPath")
+    private String logPath;
+
+}

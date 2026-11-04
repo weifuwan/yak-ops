@@ -1,0 +1,75 @@
+package io.yak.ops.plugin.registry.jdbc;
+
+import io.yak.ops.common.utils.NetUtils;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.time.Duration;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.Errors;
+import org.springframework.validation.Validator;
+import org.springframework.validation.annotation.Validated;
+
+import com.zaxxer.hikari.HikariConfig;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+
+@Data
+@Slf4j
+@Validated
+@Configuration
+@ConditionalOnProperty(prefix = "registry", name = "type", havingValue = "jdbc")
+@ConfigurationProperties(prefix = "registry")
+public class JdbcRegistryProperties implements Validator {
+
+    private static final Duration MIN_HEARTBEAT_REFRESH_INTERVAL = Duration.ofSeconds(1);
+
+    @Value("${server.port:8080}")
+    private int serverPort;
+
+    private String jdbcRegistryClientName;
+
+    private Duration heartbeatRefreshInterval = Duration.ofSeconds(3);
+    private Duration sessionTimeout = Duration.ofSeconds(60);
+    private HikariConfig hikariConfig;
+
+    @Override
+    public boolean supports(Class<?> clazz) {
+        return JdbcRegistryProperties.class.isAssignableFrom(clazz);
+    }
+
+    @Override
+    public void validate(Object target, Errors errors) {
+        JdbcRegistryProperties jdbcRegistryProperties = (JdbcRegistryProperties) target;
+        if (jdbcRegistryProperties.getHeartbeatRefreshInterval().compareTo(MIN_HEARTBEAT_REFRESH_INTERVAL) < 0) {
+            errors.rejectValue("heartbeatRefreshInterval", "heartbeatRefreshInterval",
+                    "registry.heartbeatRefreshInterval must be greater than 1s");
+        }
+
+        if (jdbcRegistryProperties.getSessionTimeout().toMillis() < 3
+                * jdbcRegistryProperties.getHeartbeatRefreshInterval().toMillis()) {
+            errors.rejectValue("sessionTimeout", "sessionTimeout",
+                    "registry.sessionTimeout must be greater than 3 * heartbeatRefreshInterval");
+        }
+        if (StringUtils.isEmpty(jdbcRegistryClientName)) {
+            jdbcRegistryClientName = NetUtils.getHost() + ":" + serverPort;
+        }
+        print();
+
+    }
+
+    private void print() {
+        String config =
+                "\n****************************JdbcRegistryProperties**************************************" +
+                        "\n  jdbcRegistryClientName -> " + jdbcRegistryClientName +
+                        "\n  heartbeatRefreshInterval -> " + heartbeatRefreshInterval +
+                        "\n  sessionTimeout -> " + sessionTimeout +
+                        "\n****************************JdbcRegistryProperties**************************************";
+        log.info(config);
+    }
+}

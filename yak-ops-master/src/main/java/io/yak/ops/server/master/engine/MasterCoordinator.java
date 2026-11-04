@@ -1,0 +1,102 @@
+package io.yak.ops.server.master.engine;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.yak.ops.registry.api.Registry;
+import io.yak.ops.registry.api.enums.RegistryNodeType;
+import io.yak.ops.registry.api.ha.AbstractHAServer;
+import io.yak.ops.registry.api.ha.AbstractServerStatusChangeListener;
+import io.yak.ops.server.master.config.MasterConfig;
+import io.yak.ops.server.master.failover.IFailoverCoordinator;
+import io.yak.ops.server.master.utils.MasterThreadFactory;
+
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * The MasterCoordinator is singleton at the clusters, which is used to do some control work, e.g manage the {@link ITaskGroupCoordinator}
+ */
+@Slf4j
+@Component
+public class MasterCoordinator extends AbstractHAServer {
+
+    private final ITaskGroupCoordinator taskGroupCoordinator;
+
+    private final IFailoverCoordinator failoverCoordinator;
+
+    private final IWorkflowSerialCoordinator workflowSerialCoordinator;
+
+    public MasterCoordinator(final Registry registry,
+                             final MasterConfig masterConfig,
+                             final ITaskGroupCoordinator taskGroupCoordinator,
+                             final IFailoverCoordinator failoverCoordinator,
+                             final IWorkflowSerialCoordinator workflowSerialCoordinator) {
+        super(
+                registry,
+                RegistryNodeType.MASTER_COORDINATOR.getRegistryPath(),
+                masterConfig.getMasterAddress());
+        this.taskGroupCoordinator = taskGroupCoordinator;
+        this.failoverCoordinator = failoverCoordinator;
+        this.workflowSerialCoordinator = workflowSerialCoordinator;
+        addServerStatusChangeListener(
+                new MasterCoordinatorListener(taskGroupCoordinator, failoverCoordinator, workflowSerialCoordinator));
+    }
+
+    @Override
+    public void start() {
+        super.start();
+        log.info("MasterCoordinator started...");
+    }
+
+    @Override
+    public void close() {
+        taskGroupCoordinator.close();
+        log.info("MasterCoordinator shutdown...");
+    }
+
+    public static class MasterCoordinatorListener extends AbstractServerStatusChangeListener {
+
+        private final ITaskGroupCoordinator taskGroupCoordinator;
+
+        private final IFailoverCoordinator failoverCoordinator;
+
+        private final IWorkflowSerialCoordinator workflowSerialCoordinator;
+        private Future<?> failoverCoordinatorFuture;
+
+        public MasterCoordinatorListener(ITaskGroupCoordinator taskGroupCoordinator,
+                                         IFailoverCoordinator failoverCoordinator,
+                                         IWorkflowSerialCoordinator workflowSerialCoordinator) {
+            this.taskGroupCoordinator = checkNotNull(taskGroupCoordinator);
+            this.failoverCoordinator = checkNotNull(failoverCoordinator);
+            this.workflowSerialCoordinator = checkNotNull(workflowSerialCoordinator);
+        }
+
+        @Override
+        public void changeToActive() {
+            taskGroupCoordinator.start();
+            workflowSerialCoordinator.start();
+            failoverCoordinatorFuture =
+                    MasterThreadFactory.getDefaultSchedulerThreadExecutor().scheduleWithFixedDelay(() -> {
+                        try {
+                            failoverCoordinator.cleanHistoryFailoverFinishedMarks();
+                        } catch (Exception e) {
+                            log.error("FailoverCoordinator cleanHistoryFailoverFinishedMarks failed", e);
+                        }
+                    }, 0, 1, TimeUnit.DAYS);
+        }
+
+        @Override
+        public void changeToStandBy() {
+            taskGroupCoordinator.close();
+            workflowSerialCoordinator.close();
+            if (failoverCoordinatorFuture != null) {
+                failoverCoordinatorFuture.cancel(true);
+            }
+        }
+    }
+
+}

@@ -1,0 +1,209 @@
+package io.yak.ops.plugin.task.api;
+
+import static io.yak.ops.plugin.task.api.TaskConstants.EXIT_CODE_FAILURE;
+import static io.yak.ops.plugin.task.api.TaskConstants.EXIT_CODE_HARD_KILL;
+import static io.yak.ops.plugin.task.api.TaskConstants.EXIT_CODE_KILL;
+import static io.yak.ops.plugin.task.api.TaskConstants.EXIT_CODE_SIGINT_KILL;
+
+import io.yak.ops.common.thread.ThreadUtils;
+import io.yak.ops.common.utils.OSUtils;
+import io.yak.ops.plugin.task.api.model.TaskResponse;
+import io.yak.ops.plugin.task.api.parser.TaskOutputParameterParser;
+import io.yak.ops.plugin.task.api.shell.IShellInterceptor;
+import io.yak.ops.plugin.task.api.shell.IShellInterceptorBuilder;
+import io.yak.ops.plugin.task.api.utils.LogUtils;
+import io.yak.ops.plugin.task.api.utils.ProcessUtils;
+import io.yak.ops.plugin.task.api.utils.ShellUtils;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public abstract class AbstractCommandExecutor {
+
+    protected volatile Map<String, String> taskOutputParams = new HashMap<>();
+    private Process process;
+
+    protected TaskExecutionContext taskRequest;
+
+    public AbstractCommandExecutor(TaskExecutionContext taskRequest) {
+        this.taskRequest = taskRequest;
+    }
+
+    // todo: We need to build the IShellActuator in outer class, since different task may have specific logic to build
+    // the IShellActuator
+    public TaskResponse run(IShellInterceptorBuilder iShellInterceptorBuilder,
+                            TaskCallBack taskCallBack) throws Exception {
+        TaskResponse result = new TaskResponse();
+        int taskInstanceId = taskRequest.getTaskInstanceId();
+        // todo: we need to use state like JDK Thread to make sure the killed task should not be executed
+        iShellInterceptorBuilder = iShellInterceptorBuilder
+                .shellDirectory(taskRequest.getExecutePath())
+                .shellName(taskRequest.getTaskAppId());
+        // Set system env
+        if (CollectionUtils.isNotEmpty(ShellUtils.ENV_SOURCE_LIST)) {
+            ShellUtils.ENV_SOURCE_LIST.forEach(iShellInterceptorBuilder::appendSystemEnv);
+        }
+        // Set custom env
+        if (StringUtils.isNotBlank(taskRequest.getEnvironmentConfig())) {
+            iShellInterceptorBuilder.appendCustomEnvScript(taskRequest.getEnvironmentConfig());
+        }
+        // Set sudo (This is only work in Linux)
+        iShellInterceptorBuilder.sudoMode(OSUtils.isSudoEnable());
+        // Set tenant (This is only work in Linux)
+        iShellInterceptorBuilder.runUser(taskRequest.getTenantCode());
+        // Set CPU Quota (This is only work in Linux)
+        if (taskRequest.getCpuQuota() != null) {
+            iShellInterceptorBuilder.cpuQuota(taskRequest.getCpuQuota());
+        }
+        // Set memory Quota (This is only work in Linux)
+        if (taskRequest.getMemoryMax() != null) {
+            iShellInterceptorBuilder.memoryQuota(taskRequest.getMemoryMax());
+        }
+
+        IShellInterceptor iShellInterceptor = iShellInterceptorBuilder.build();
+        process = iShellInterceptor.execute();
+
+        // parse process output
+        final CompletableFuture<Void> collectProcessLogFuture = collectProcessLog(this.process);
+
+        int processId = getProcessId(this.process);
+
+        result.setProcessId(processId);
+
+        // cache processId
+        taskRequest.setProcessId(processId);
+
+        // print process id
+        log.info("process start, process id is: {}", processId);
+
+        // if timeout occurs, exit directly
+        long remainTime = getRemainTime();
+
+        // update pid before waiting for the run to finish
+        if (null != taskCallBack) {
+            taskCallBack.updateTaskInstanceInfo(taskInstanceId);
+        }
+
+        // waiting for the run to finish
+        boolean status = this.process.waitFor(remainTime, TimeUnit.SECONDS);
+
+        // Wait the task log process finished.
+        collectProcessLogFuture.join();
+
+        // if SHELL task exit
+        if (status) {
+
+            // SHELL task state
+            result.setExitStatusCode(this.process.exitValue());
+
+        } else {
+            log.error("process has failure due to timeout kill, timeout value is:{}, timeoutStrategy is:{}",
+                    taskRequest.getTaskTimeout(), taskRequest.getTaskTimeoutStrategy());
+            result.setExitStatusCode(EXIT_CODE_FAILURE);
+        }
+        int exitCode = this.process.exitValue();
+        boolean isCancelled =
+                EXIT_CODE_KILL == exitCode || EXIT_CODE_HARD_KILL == exitCode || EXIT_CODE_SIGINT_KILL == exitCode;
+        String exitLogMessage = isCancelled ? "process has killed." : "process has exited.";
+        log.info("{} execute path:{}, processId:{} ,exitStatusCode:{} ,processWaitForStatus:{} ,processExitValue:{}",
+                exitLogMessage, taskRequest.getExecutePath(), processId, result.getExitStatusCode(), status, exitCode);
+        return result;
+
+    }
+
+    public Map<String, String> getTaskOutputParams() {
+        return taskOutputParams;
+    }
+
+    public void cancelProcess() throws InterruptedException {
+        if (process == null) {
+            return;
+        }
+
+        // Try to kill process tree
+        boolean killed = ProcessUtils.kill(taskRequest);
+        if (killed) {
+            log.info("Process tree for task: {} is killed or already finished, pid: {}",
+                    taskRequest.getTaskAppId(), taskRequest.getProcessId());
+        } else {
+            log.error("Failed to kill process tree for task: {}, pid: {}",
+                    taskRequest.getTaskAppId(), taskRequest.getProcessId());
+        }
+
+    }
+
+    private CompletableFuture<Void> collectProcessLog(Process process) {
+        // todo: remove this this thread pool.
+        final ExecutorService collectProcessLogService = ThreadUtils.newSingleDaemonScheduledExecutorService(
+                "ResolveOutputLog-thread-" + taskRequest.getTaskName());
+        final CompletableFuture<Void> collectProcessLogFuture = CompletableFuture.runAsync(() -> {
+            TaskOutputParameterParser taskOutputParameterParser = new TaskOutputParameterParser();
+            try (BufferedReader inReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                LogUtils.setTaskInstanceLogFullPathMDC(taskRequest.getLogPath());
+                String line;
+                while ((line = inReader.readLine()) != null) {
+                    log.info(" -> {}", line);
+                    taskOutputParameterParser.appendParseLog(line);
+                }
+            } catch (Exception e) {
+                log.error("Parse var pool error", e);
+            } finally {
+                LogUtils.removeTaskInstanceLogFullPathMDC();
+            }
+            taskOutputParams = taskOutputParameterParser.getTaskOutputParams();
+        }, collectProcessLogService);
+
+        collectProcessLogService.shutdown();
+        return collectProcessLogFuture;
+    }
+
+    /**
+     * get remain time（s）
+     *
+     * @return remain time
+     */
+    private long getRemainTime() {
+        long usedTime = (System.currentTimeMillis() - taskRequest.getStartTime()) / 1000;
+        long remainTime = taskRequest.getTaskTimeout() - usedTime;
+
+        if (remainTime < 0) {
+            throw new RuntimeException("task execution time out");
+        }
+
+        return remainTime;
+    }
+
+    /**
+     * get process id
+     *
+     * @param process process
+     * @return process id
+     */
+    private int getProcessId(Process process) {
+        int processId = 0;
+
+        try {
+            Field f = process.getClass().getDeclaredField(TaskConstants.PID);
+            f.setAccessible(true);
+
+            processId = f.getInt(process);
+        } catch (Exception e) {
+            log.error("Get task pid failed", e);
+        }
+
+        return processId;
+    }
+
+}

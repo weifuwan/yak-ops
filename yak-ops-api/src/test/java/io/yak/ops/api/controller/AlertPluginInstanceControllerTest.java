@@ -1,0 +1,312 @@
+package io.yak.ops.api.controller;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import io.yak.ops.api.service.AlertPluginInstanceService;
+import io.yak.ops.api.utils.PageInfo;
+import io.yak.ops.api.utils.Result;
+import io.yak.ops.common.enums.AlertPluginInstanceType;
+import io.yak.ops.common.enums.WarningType;
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.AlertPluginInstance;
+import io.yak.ops.dao.entity.User;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
+public class AlertPluginInstanceControllerTest extends AbstractControllerTest {
+
+    private static AlertPluginInstance alertPluginInstance = new AlertPluginInstance();
+    private static final int pluginDefineId = 1;
+    private static final String instanceName = "instanceName";
+    private static final String pluginInstanceParams = "pluginInstanceParams";
+    private static final AlertPluginInstanceType pluginInstanceType = AlertPluginInstanceType.NORMAL;
+    private static final WarningType warningType = WarningType.ALL;
+    private static final Result expectResponseContent = JSONUtils.parseObject(
+            "{\"code\":0,\"msg\":\"success\",\"data\":\"null\",\"success\":true,\"failed\":false}", Result.class);
+
+    @MockBean(name = "alertPluginInstanceServiceImpl")
+    private AlertPluginInstanceService alertPluginInstanceService;
+
+    @BeforeAll
+    public static void initInstance() {
+        alertPluginInstance.setId(1);
+        alertPluginInstance.setInstanceName(instanceName);
+    }
+
+    @Test
+    public void testCreateAlertPluginInstance() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("instanceName", instanceName);
+        paramsMap.add("instanceType", pluginInstanceType.getDescp());
+        paramsMap.add("warningType", warningType.name());
+        paramsMap.add("pluginInstanceParams", pluginInstanceParams);
+
+        when(alertPluginInstanceService.create(any(User.class), eq(pluginDefineId), eq(instanceName),
+                eq(pluginInstanceParams))).thenReturn(alertPluginInstance);
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(post("/alert-plugin-instances")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testSendAlertPluginInstance() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("pluginInstanceParams", pluginInstanceParams);
+
+        doNothing().when(alertPluginInstanceService).testSend(any(User.class), eq(pluginDefineId),
+                eq(pluginInstanceParams));
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(post("/alert-plugin-instances/test-send")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+        verify(alertPluginInstanceService).testSend(any(User.class), eq(pluginDefineId), eq(pluginInstanceParams));
+    }
+
+    @Test
+    public void testUpdateAlertPluginInstance() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("instanceName", instanceName);
+        paramsMap.add("warningType", warningType.name());
+        paramsMap.add("pluginInstanceParams", pluginInstanceParams);
+
+        when(alertPluginInstanceService.updateById(any(User.class), eq(pluginDefineId), eq(instanceName),
+                eq(pluginInstanceParams))).thenReturn(alertPluginInstance);
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(put("/alert-plugin-instances/{id}", pluginDefineId)
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testDeleteAlertPluginInstance() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("instanceName", instanceName);
+        paramsMap.add("pluginInstanceParams", pluginInstanceParams);
+
+        doNothing().when(alertPluginInstanceService).deleteById(any(User.class), eq(pluginDefineId));
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(delete("/alert-plugin-instances/{id}", pluginDefineId)
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testGetAlertPluginInstance() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+
+        when(alertPluginInstanceService.getById(any(User.class), eq(pluginDefineId))).thenReturn(null);
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(get("/alert-plugin-instances/{id}", pluginDefineId)
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testGetAlertPluginInstanceList() throws Exception {
+        // Given
+        when(alertPluginInstanceService.queryAll(any(User.class))).thenReturn(null);
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(get("/alert-plugin-instances/list")
+                .header(SESSION_ID, sessionId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testVerifyGroupName() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("alertInstanceName", instanceName);
+
+        when(alertPluginInstanceService.checkExistPluginInstanceName(any(User.class), eq(instanceName)))
+                .thenReturn(false);
+
+        Result expectResponseContent = JSONUtils.parseObject(
+                "{\"code\":0,\"msg\":\"success\",\"data\":null,\"failed\":false,\"success\":true}", Result.class);
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(get("/alert-plugin-instances/verify-name")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testVerifyGroupNamePluginInstanceNameExist() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("alertInstanceName", instanceName);
+
+        when(alertPluginInstanceService.checkExistPluginInstanceName(any(User.class), eq(instanceName)))
+                .thenReturn(true);
+
+        Result expectResponseContent = JSONUtils.parseObject(
+                "{\"code\":110010,\"msg\":\"plugin instance already exists\",\"data\":null,\"failed\":true,\"success\":false}",
+                Result.class);
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(get("/alert-plugin-instances/verify-name")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testListPaging() throws Exception {
+        // Given
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("searchVal", "searchVal");
+        paramsMap.add("pageNo", String.valueOf(1));
+        paramsMap.add("pageSize", String.valueOf(10));
+
+        when(alertPluginInstanceService.listPaging(eq(user), eq("searchVal"), eq(1), eq(10)))
+                .thenReturn(PageInfo.of(1, 10));
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(get("/alert-plugin-instances")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+
+    @Test
+    public void testListPagingResultFalse() throws Exception {
+        // Given
+        final Result expectResponseContent = JSONUtils.parseObject(
+                "{\"code\":10001,\"msg\":\"request parameter pageNo is not valid\",\"data\":null,\"success\":false,\"failed\":true}",
+                Result.class);
+
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginDefineId", String.valueOf(pluginDefineId));
+        paramsMap.add("searchVal", "searchVal");
+        paramsMap.add("pageNo", String.valueOf(0));
+        paramsMap.add("pageSize", String.valueOf(0));
+
+        // When
+        final MvcResult mvcResult = mockMvc.perform(get("/alert-plugin-instances")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Then
+        final Result actualResponseContent =
+                JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(actualResponseContent.getMsg()).isEqualTo(expectResponseContent.getMsg());
+        assertThat(actualResponseContent.getCode()).isEqualTo(expectResponseContent.getCode());
+    }
+}

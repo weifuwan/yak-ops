@@ -1,0 +1,93 @@
+package io.yak.ops.server.master.failover;
+
+import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import io.yak.ops.dao.repository.WorkflowInstanceDao;
+import io.yak.ops.registry.api.RegistryClient;
+import io.yak.ops.registry.api.RegistryLock;
+import io.yak.ops.registry.api.utils.RegistryUtils;
+import io.yak.ops.server.master.cluster.ClusterManager;
+import io.yak.ops.server.master.cluster.MasterClusters;
+import io.yak.ops.server.master.cluster.MasterServerMetadata;
+import io.yak.ops.server.master.engine.IWorkflowRepository;
+import io.yak.ops.server.master.engine.system.event.MasterFailoverEvent;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class FailoverCoordinatorTest {
+
+    @InjectMocks
+    private FailoverCoordinator failoverCoordinator;
+
+    @Mock
+    private RegistryClient registryClient;
+
+    @Mock
+    private ClusterManager clusterManager;
+
+    @Mock
+    private IWorkflowRepository workflowRepository;
+
+    @Mock
+    private TaskFailover taskFailover;
+
+    @Mock
+    private WorkflowInstanceDao workflowInstanceDao;
+
+    @Mock
+    private WorkflowFailover workflowFailover;
+
+    @Mock
+    private MasterClusters masterClusters;
+
+    @Mock
+    private RegistryLock registryLock;
+
+    /**
+     * Regression test for issue #18197: doMasterFailover used to acquire the lock at
+     * {@code /lock/master-failover/<masterAddress>} but release {@code /lock/master-failover},
+     * leaking the per-master lock. The fix uses a single lock-path local + try-with-resources.
+     */
+    @Test
+    void failoverMaster_releasesTheSameLockItAcquired() {
+        final String masterAddress = "127.0.0.1:5679";
+        final MasterServerMetadata metadata = MasterServerMetadata.builder()
+                .processId(1234)
+                .serverStartupTime(System.currentTimeMillis())
+                .address(masterAddress)
+                .build();
+        final MasterFailoverEvent event = MasterFailoverEvent.of(metadata, new Date(), 0L);
+
+        when(clusterManager.getMasterClusters()).thenReturn(masterClusters);
+        when(masterClusters.getServer(masterAddress)).thenReturn(Optional.empty());
+        when(registryClient.getLock(anyString())).thenReturn(registryLock);
+        when(registryClient.exists(anyString())).thenReturn(false);
+        when(workflowInstanceDao.queryNeedFailoverWorkflowInstances(masterAddress))
+                .thenReturn(Collections.emptyList());
+
+        failoverCoordinator.failoverMaster(event);
+
+        final ArgumentCaptor<String> lockPathCaptor = ArgumentCaptor.forClass(String.class);
+        verify(registryClient).getLock(lockPathCaptor.capture());
+        assertThat(lockPathCaptor.getValue())
+                .isEqualTo(RegistryUtils.getMasterFailoverLockPath(masterAddress));
+        verify(registryLock, times(1)).close();
+    }
+}

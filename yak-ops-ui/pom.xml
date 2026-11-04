@@ -11,6 +11,12 @@
   </parent>
 
   <artifactId>yak-ops-ui</artifactId>
+  <properties>
+    <!-- UI is an npm workspace, not a Java formatting/coverage target. -->
+    <spotless.skip>true</spotless.skip>
+    <jacoco.skip>true</jacoco.skip>
+    <analyze.skip>true</analyze.skip>
+  </properties>
   <version>1.4.0</version>
 
 

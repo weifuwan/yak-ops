@@ -1,0 +1,97 @@
+package io.yak.ops.server.master.engine.workflow.trigger;
+
+import io.yak.ops.common.enums.CommandType;
+import io.yak.ops.common.enums.Flag;
+import io.yak.ops.common.enums.WarningType;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
+import io.yak.ops.common.utils.DateUtils;
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.Command;
+import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.dao.utils.EnvironmentUtils;
+import io.yak.ops.dao.utils.WorkerGroupUtils;
+import io.yak.ops.extract.master.command.RunWorkflowCommandParam;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowManualTriggerRequest;
+import io.yak.ops.extract.master.transportor.workflow.WorkflowManualTriggerResponse;
+
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
+import java.util.Date;
+
+import org.springframework.stereotype.Component;
+
+/**
+ * Manual trigger of the workflow, used to trigger the workflow and generate the workflow instance in the manual way.
+ */
+@Component
+public class WorkflowManualTrigger
+        extends
+            AbstractWorkflowTrigger<WorkflowManualTriggerRequest, WorkflowManualTriggerResponse> {
+
+    @Override
+    protected ImmutablePair<WorkflowDefinition, WorkflowInstance> constructWorkflowInstance(final WorkflowManualTriggerRequest workflowManualTriggerRequest) {
+        final CommandType commandType = CommandType.START_PROCESS;
+        final Long workflowCode = workflowManualTriggerRequest.getWorkflowDefinitionCode();
+        final Integer workflowVersion = workflowManualTriggerRequest.getWorkflowDefinitionVersion();
+        final WorkflowDefinition workflowDefinition = getProcessDefinition(workflowCode, workflowVersion);
+
+        final WorkflowInstance workflowInstance = new WorkflowInstance();
+        workflowInstance.setWorkflowDefinitionCode(workflowDefinition.getCode());
+        workflowInstance.setWorkflowDefinitionVersion(workflowDefinition.getVersion());
+        workflowInstance.setProjectCode(workflowDefinition.getProjectCode());
+        workflowInstance.setCommandType(commandType);
+        workflowInstance.setStateWithDesc(WorkflowExecutionStatus.SUBMITTED_SUCCESS, commandType.name());
+        workflowInstance.setRecovery(Flag.NO);
+        workflowInstance.setScheduleTime(workflowManualTriggerRequest.getScheduleTime());
+        workflowInstance.setStartTime(new Date());
+        workflowInstance.setRestartTime(workflowInstance.getStartTime());
+        workflowInstance.setRunTimes(1);
+        workflowInstance.setName(String.join("-", workflowDefinition.getName(), DateUtils.getCurrentTimeStamp()));
+        workflowInstance.setTaskDependType(workflowManualTriggerRequest.getTaskDependType());
+        workflowInstance.setFailureStrategy(workflowManualTriggerRequest.getFailureStrategy());
+        workflowInstance.setWarningType(
+                ObjectUtils.defaultIfNull(workflowManualTriggerRequest.getWarningType(), WarningType.NONE));
+        workflowInstance.setWarningGroupId(workflowManualTriggerRequest.getWarningGroupId());
+        workflowInstance.setExecutorId(workflowManualTriggerRequest.getUserId());
+        workflowInstance.setExecutorName(getExecutorUser(workflowManualTriggerRequest.getUserId()).getUserName());
+        workflowInstance.setTenantCode(workflowManualTriggerRequest.getTenantCode());
+        workflowInstance.setIsSubWorkflow(Flag.NO);
+        workflowInstance.addHistoryCmd(commandType);
+        workflowInstance.setWorkflowInstancePriority(workflowManualTriggerRequest.getWorkflowInstancePriority());
+        workflowInstance.setWorkerGroup(
+                WorkerGroupUtils.getWorkerGroupOrDefault(workflowManualTriggerRequest.getWorkerGroup()));
+        workflowInstance.setEnvironmentCode(
+                EnvironmentUtils.getEnvironmentCodeOrDefault(workflowManualTriggerRequest.getEnvironmentCode()));
+        workflowInstance.setTimeout(workflowDefinition.getTimeout());
+        workflowInstance.setDryRun(workflowManualTriggerRequest.getDryRun().getCode());
+        return ImmutablePair.of(workflowDefinition, workflowInstance);
+    }
+
+    @Override
+    protected Command constructTriggerCommand(final WorkflowManualTriggerRequest workflowManualTriggerRequest,
+                                              final WorkflowInstance workflowInstance) {
+        final RunWorkflowCommandParam runWorkflowCommandParam = RunWorkflowCommandParam.builder()
+                .commandParams(workflowManualTriggerRequest.getStartParamList())
+                .startNodes(workflowManualTriggerRequest.getStartNodes())
+                .timeZone(
+                        StringUtils.defaultIfBlank(workflowManualTriggerRequest.getTimeZone(), DateUtils.getTimezone()))
+                .build();
+        return Command.builder()
+                .commandType(CommandType.START_PROCESS)
+                .workflowDefinitionCode(workflowManualTriggerRequest.getWorkflowDefinitionCode())
+                .workflowDefinitionVersion(workflowManualTriggerRequest.getWorkflowDefinitionVersion())
+                .workflowInstanceId(workflowInstance.getId())
+                .workflowInstancePriority(workflowInstance.getWorkflowInstancePriority())
+                .commandParam(JSONUtils.toJsonString(runWorkflowCommandParam))
+                .build();
+    }
+
+    @Override
+    protected WorkflowManualTriggerResponse onTriggerSuccess(WorkflowInstance workflowInstance) {
+        return WorkflowManualTriggerResponse.success(workflowInstance.getId());
+    }
+
+}

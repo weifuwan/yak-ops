@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:yak-ops-${random.uuid};MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true;
+
+server:
+  port: 0
+
+master:
+  listen-port: ${random.int[20000,60000]}
+  worker-group-refresh-interval: 1d

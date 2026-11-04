@@ -1,0 +1,89 @@
+package io.yak.ops.api.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import io.yak.ops.api.dto.ProductInfoDto;
+import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.service.UiPluginService;
+import io.yak.ops.api.utils.Result;
+import io.yak.ops.common.enums.PluginType;
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.PluginDefine;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
+public class UiPluginControllerTest extends AbstractControllerTest {
+
+    private static final PluginType pluginType = PluginType.ALERT;
+    private static final int pluginId = 1;
+
+    @MockBean(name = "uiPluginService")
+    private UiPluginService uiPluginService;
+
+    @Test
+    public void testQueryUiPluginsByType() throws Exception {
+        when(uiPluginService.queryUiPluginsByType(any(PluginType.class)))
+                .thenReturn(Collections.singletonList(new PluginDefine("test", "alert", "[]")));
+
+        final MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("pluginType", String.valueOf(pluginType));
+
+        final MvcResult mvcResult = mockMvc.perform(get("/ui-plugins/query-by-type")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+
+    @Test
+    public void testQueryUiPluginDetailById() throws Exception {
+        when(uiPluginService.queryUiPluginDetailById(anyInt()))
+                .thenReturn(new PluginDefine("test", "alert", "[]"));
+
+        final MvcResult mvcResult = mockMvc.perform(get("/ui-plugins/{id}", pluginId)
+                .header(SESSION_ID, sessionId))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+
+    @Test
+    public void testQueryProductInfo() throws Exception {
+        ProductInfoDto mockResult = new ProductInfoDto();
+        Mockito.when(uiPluginService.queryProductInfo()).thenReturn(mockResult);
+
+        MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("userId", "1");
+
+        MvcResult mvcResult = mockMvc.perform(get("/ui-plugins/query-product-info")
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+    }
+}

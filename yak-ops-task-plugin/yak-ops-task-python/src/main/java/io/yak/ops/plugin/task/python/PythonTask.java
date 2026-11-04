@@ -1,0 +1,168 @@
+package io.yak.ops.plugin.task.python;
+
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.plugin.task.api.AbstractTask;
+import io.yak.ops.plugin.task.api.ShellCommandExecutor;
+import io.yak.ops.plugin.task.api.TaskCallBack;
+import io.yak.ops.plugin.task.api.TaskConstants;
+import io.yak.ops.plugin.task.api.TaskException;
+import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.api.model.Property;
+import io.yak.ops.plugin.task.api.model.TaskResponse;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import io.yak.ops.plugin.task.api.shell.IShellInterceptorBuilder;
+import io.yak.ops.plugin.task.api.shell.ShellInterceptorBuilderFactory;
+import io.yak.ops.plugin.task.api.utils.ParameterUtils;
+
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Map;
+
+import com.google.common.base.Preconditions;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class PythonTask extends AbstractTask {
+
+    protected PythonParameters pythonParameters;
+
+    private final ShellCommandExecutor shellCommandExecutor;
+
+    protected static final String PYTHON_LAUNCHER = "PYTHON_LAUNCHER";
+
+    public PythonTask(TaskExecutionContext taskRequest) {
+        super(taskRequest);
+
+        this.shellCommandExecutor = new ShellCommandExecutor(taskRequest);
+    }
+
+    @Override
+    public void init() {
+
+        pythonParameters = JSONUtils.parseObject(taskRequest.getTaskParams(), PythonParameters.class);
+
+        log.info("Initialize python task params {}", JSONUtils.toPrettyJsonString(pythonParameters));
+        if (pythonParameters == null || !pythonParameters.checkParameters()) {
+            throw new TaskException("python task params is not valid");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void handle(TaskCallBack taskCallBack) throws TaskException {
+        try {
+            // generate the content of this python script
+            String pythonScriptContent = buildPythonScriptContent();
+            // generate the file path of this python script
+            String pythonScriptFile = buildPythonCommandFilePath();
+
+            // create this file
+            createPythonCommandFileIfNotExists(pythonScriptContent, pythonScriptFile);
+
+            IShellInterceptorBuilder<?, ?> shellActuatorBuilder = ShellInterceptorBuilderFactory.newBuilder()
+                    .appendScript(buildPythonExecuteCommand(pythonScriptFile));
+
+            TaskResponse taskResponse = shellCommandExecutor.run(shellActuatorBuilder, taskCallBack);
+            setExitStatusCode(taskResponse.getExitStatusCode());
+            setProcessId(taskResponse.getProcessId());
+            setTaskOutputParams(shellCommandExecutor.getTaskOutputParams());
+            pythonParameters.dealOutParam(shellCommandExecutor.getTaskOutputParams());
+            taskRequest.setVarPool(pythonParameters.getVarPool());
+        } catch (Exception e) {
+            log.error("python task failure", e);
+            setExitStatusCode(TaskConstants.EXIT_CODE_FAILURE);
+            throw new TaskException("run python task error", e);
+        }
+    }
+
+    @Override
+    public void cancel() throws TaskException {
+        // cancel process
+        try {
+            shellCommandExecutor.cancelProcess();
+        } catch (Exception e) {
+            throw new TaskException("cancel application error", e);
+        }
+    }
+
+    @Override
+    public AbstractParameters getParameters() {
+        return pythonParameters;
+    }
+
+    /**
+     * create python command file if not exists
+     *
+     * @param pythonScript     exec python script
+     * @param pythonScriptFile python script file
+     * @throws IOException io exception
+     */
+    protected void createPythonCommandFileIfNotExists(String pythonScript, String pythonScriptFile) throws IOException {
+        log.info("tenantCode :{}, task dir:{}", taskRequest.getTenantCode(), taskRequest.getExecutePath());
+
+        if (!Files.exists(Paths.get(pythonScriptFile))) {
+            log.info("generate python script file:{}", pythonScriptFile);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("#-*- encoding=utf8 -*-").append(System.lineSeparator());
+
+            sb.append(System.lineSeparator());
+            sb.append(pythonScript);
+            log.info(sb.toString());
+
+            // write data to file
+            FileUtils.writeStringToFile(new File(pythonScriptFile),
+                    sb.toString(),
+                    StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * build python command file path
+     *
+     * @return python command file path
+     */
+    protected String buildPythonCommandFilePath() {
+        return String.format("%s/py_%s.py", taskRequest.getExecutePath(), taskRequest.getTaskAppId());
+    }
+
+    /**
+     * build python script content
+     *
+     * @return raw python script
+     */
+    protected String buildPythonScriptContent() {
+        log.info("raw python script : {}", pythonParameters.getRawScript());
+        String rawPythonScript = pythonParameters.getRawScript().replaceAll("\\r\\n", System.lineSeparator());
+        Map<String, Property> paramsMap = mergeParamsWithContext(pythonParameters);
+        return ParameterUtils.convertParameterPlaceholders(rawPythonScript, ParameterUtils.convert(paramsMap));
+    }
+
+    protected Map<String, Property> mergeParamsWithContext(AbstractParameters parameters) {
+        // replace placeholder
+        return taskRequest.getPrepareParamsMap();
+    }
+
+    /**
+     * Build the python task command.
+     * If user have set the 'PYTHON_LAUNCHER' environment, we will use the 'PYTHON_LAUNCHER',
+     * if not, we will default use python.
+     *
+     * @param pythonFile Python file, cannot be empty.
+     * @return Python execute command, e.g. 'python test.py'.
+     */
+    protected String buildPythonExecuteCommand(String pythonFile) {
+        Preconditions.checkNotNull(pythonFile, "Python file cannot be null");
+
+        String pythonHome = String.format("${%s}", PYTHON_LAUNCHER);
+
+        return pythonHome + " " + pythonFile;
+    }
+
+}

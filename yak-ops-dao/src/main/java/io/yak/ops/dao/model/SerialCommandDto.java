@@ -1,0 +1,102 @@
+package io.yak.ops.dao.model;
+
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.Command;
+import io.yak.ops.dao.entity.SerialCommand;
+
+import java.util.Date;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class SerialCommandDto {
+
+    private Integer id;
+
+    private Integer workflowInstanceId;
+
+    private Long workflowDefinitionCode;
+
+    private Integer workflowDefinitionVersion;
+
+    private Command command;
+
+    private State state;
+
+    private Date createTime;
+
+    private Date updateTime;
+
+    public static SerialCommandDto newSerialCommand(Command command) {
+        return SerialCommandDto.builder()
+                .workflowInstanceId(command.getWorkflowInstanceId())
+                .command(command)
+                .workflowDefinitionCode(command.getWorkflowDefinitionCode())
+                .workflowDefinitionVersion(command.getWorkflowDefinitionVersion())
+                .state(State.WAITING)
+                .createTime(new Date())
+                .updateTime(new Date())
+                .build();
+    }
+
+    public static SerialCommandDto fromEntity(SerialCommand serialCommand) {
+        return SerialCommandDto.builder()
+                .id(serialCommand.getId())
+                .workflowInstanceId(serialCommand.getWorkflowInstanceId())
+                .workflowDefinitionCode(serialCommand.getWorkflowDefinitionCode())
+                .workflowDefinitionVersion(serialCommand.getWorkflowDefinitionVersion())
+                .command(JSONUtils.parseObject(serialCommand.getCommand(), new TypeReference<Command>() {
+                }))
+                .state(State.of(serialCommand.getState()))
+                .createTime(serialCommand.getCreateTime())
+                .updateTime(serialCommand.getUpdateTime())
+                .build();
+    }
+
+    public SerialCommand toEntity() {
+        return SerialCommand.builder()
+                .id(this.id)
+                .workflowInstanceId(this.workflowInstanceId)
+                .workflowDefinitionCode(this.workflowDefinitionCode)
+                .workflowDefinitionVersion(this.workflowDefinitionVersion)
+                .command(JSONUtils.toJsonString(this.command))
+                .state(this.state.getValue())
+                .createTime(this.createTime)
+                .updateTime(this.updateTime)
+                .build();
+    }
+
+    @Getter
+    public enum State {
+
+        // If the workflow instance is finished, then we directly delete the item from the queue
+        // so there are no finished state here
+        WAITING(0),
+        LAUNCHED(1),
+        ;
+        private final int value;
+
+        State(int value) {
+            this.value = value;
+        }
+
+        public static State of(int value) {
+            for (State state : values()) {
+                if (state.value == value) {
+                    return state;
+                }
+            }
+            throw new IllegalArgumentException("Invalid State value: " + value);
+        }
+    }
+
+}

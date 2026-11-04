@@ -1,0 +1,31 @@
+# MySQL CDC -> MySQL JDBC Pipeline
+# Create the target database and grant DDL/DML permissions before running.
+source:
+  type: mysql
+  hostname: 127.0.0.1
+  port: 3306
+  username: root
+  password: 123456
+  tables: cdc_lab.orders_type_probe
+  server-id: 5400-5404
+  server-time-zone: Asia/Shanghai
+
+sink:
+  type: jdbc
+  url: jdbc:mysql://127.0.0.1:3306
+  username: root
+  password: 123456
+  driver-class-name: com.mysql.cj.jdbc.Driver
+  write.batch.size: 1
+  write.batch.interval.ms: 1000
+  write.max.retries: 3
+
+route:
+  - source-table: cdc_lab.orders_type_probe
+    sink-table: yak_e2e_target.orders_type_probe_flink_cdc
+
+pipeline:
+  name: mysql-orders-to-jdbc-mysql
+  parallelism: 1
+  flink-conf:
+    rest.bind-address: "127.0.0.1"

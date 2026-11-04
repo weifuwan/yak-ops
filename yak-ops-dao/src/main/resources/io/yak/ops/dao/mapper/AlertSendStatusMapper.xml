@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.AlertSendStatusMapper">
+
+    <insert id="batchInsert">
+        insert into t_ds_alert_send_status (alert_id, alert_plugin_instance_id, send_status, log, create_time)
+        values
+        <foreach collection="alertSendStatuses" item="alertSendStatus" separator=",">
+            (#{alertSendStatus.alertId},
+            #{alertSendStatus.alertPluginInstanceId},
+            #{alertSendStatus.sendStatus},
+            #{alertSendStatus.log},
+            #{alertSendStatus.createTime})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByAlertIds">
+        delete
+        from t_ds_alert_send_status
+        where alert_id in
+        <foreach collection="alertIds" item="alertId" separator="," open="(" close=")">
+            #{alertId}
+        </foreach>
+    </delete>
+
+</mapper>

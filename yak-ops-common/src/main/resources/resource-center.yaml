@@ -1,0 +1,13 @@
+resource:
+  # Alibaba Cloud Storage (OSS) setup, required if you set resource.storage.type=OSS
+  alibaba:
+    cloud:
+      access:
+        key:
+          id: <your-access-key-id>
+          secret: <your-access-key-secret>
+      region: cn-hangzhou
+      oss:
+        bucket:
+          name: yak-ops
+        endpoint: https://oss-cn-hangzhou.aliyuncs.com

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.ClusterMapper">
+    <sql id="baseSql">
+        id, code, name, config, description, operator, create_time, update_time
+    </sql>
+    <select id="queryByClusterName" resultType="io.yak.ops.dao.entity.Cluster">
+        select
+        <include refid="baseSql"/>
+        from t_ds_cluster
+        WHERE name = #{clusterName}
+    </select>
+    <select id="queryAllClusterList" resultType="io.yak.ops.dao.entity.Cluster">
+        select
+        <include refid="baseSql"/>
+        from t_ds_cluster
+        order by create_time desc
+    </select>
+    <select id="queryClusterListPaging" resultType="io.yak.ops.dao.entity.Cluster">
+        select
+        <include refid="baseSql"/>
+        from t_ds_cluster
+        where 1=1
+        <if test="searchName!=null and searchName != ''">
+            and name like concat('%', #{searchName}, '%')
+        </if>
+        order by create_time desc
+    </select>
+    <select id="queryByClusterCode" resultType="io.yak.ops.dao.entity.Cluster">
+        select
+        <include refid="baseSql"/>
+        from t_ds_cluster
+        where code = #{clusterCode}
+    </select>
+    <delete id="deleteByCode">
+        delete from t_ds_cluster where code = #{code}
+    </delete>
+</mapper>

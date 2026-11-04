@@ -1,0 +1,92 @@
+package io.yak.ops.api.service;
+
+import io.yak.ops.api.dto.workflow.WorkflowBackFillRequest;
+import io.yak.ops.api.dto.workflow.WorkflowTriggerRequest;
+import io.yak.ops.api.dto.workflowInstance.WorkflowExecuteResponse;
+import io.yak.ops.api.enums.ExecuteType;
+import io.yak.ops.common.enums.TaskDependType;
+import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.WorkflowDefinition;
+
+import java.util.List;
+import java.util.Map;
+
+public interface ExecutorService {
+
+    /**
+     * Trigger the workflow and return the workflow instance id.
+     */
+    Integer triggerWorkflowDefinition(final WorkflowTriggerRequest workflowTriggerRequest);
+
+    /**
+     * Backfill the workflow and return the workflow instance ids.
+     */
+    List<Integer> backfillWorkflowDefinition(final WorkflowBackFillRequest workflowBackFillRequest);
+
+    /**
+     * check whether the workflow definition can be executed
+     *
+     * @param projectCode       project code
+     * @param workflowDefinition workflow definition
+     * @param workflowDefinitionCode workflow definition code
+     * @param version           workflow definition version
+     */
+    void checkWorkflowDefinitionValid(long projectCode, WorkflowDefinition workflowDefinition,
+                                      long workflowDefinitionCode,
+                                      Integer version);
+
+    /**
+     * do action to execute task in workflow instance
+     *
+     * @param loginUser         login user
+     * @param projectCode       project code
+     * @param workflowInstanceId workflow instance id
+     * @param startNodeList     start node list
+     * @param taskDependType    task depend type
+     * @return execute result code
+     */
+    WorkflowExecuteResponse executeTask(User loginUser,
+                                        long projectCode,
+                                        Integer workflowInstanceId,
+                                        String startNodeList,
+                                        TaskDependType taskDependType);
+
+    /**
+     * Control workflow instance, you can use this interface to pause, stop, repeat, recover a workflow instance.
+     */
+    void controlWorkflowInstance(User loginUser, Integer workflowInstanceId, ExecuteType executeType);
+
+    /**
+     * check if the current workflow has sub workflows and all sub workflows are valid
+     *
+     * @param workflowDefinition
+     * @return check result
+     */
+    boolean checkSubWorkflowDefinitionValid(WorkflowDefinition workflowDefinition);
+
+    /**
+     * force start Task Instance
+     */
+    void forceStartTaskInstance(User loginUser, int queueId);
+
+    /**
+     * execute stream task instance
+     *
+     * @param loginUser       login user
+     * @param projectCode     project code
+     * @param warningGroupId  notify group id
+     * @param workerGroup     worker group name
+     * @param tenantCode      tenant code
+     * @param environmentCode environment code
+     * @param startParams     the global param values which pass to new workflow instance
+     * @return execute workflow instance code
+     */
+    void execStreamTaskInstance(User loginUser, long projectCode,
+                                long taskDefinitionCode, int taskDefinitionVersion,
+                                int warningGroupId,
+                                String workerGroup,
+                                String tenantCode,
+                                Long environmentCode,
+                                Map<String, String> startParams,
+                                int dryRun);
+}

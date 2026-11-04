@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.yak.ops.scheduler.quartz.QuartzSchedulerDataSourceAutoConfiguration,\
+  io.yak.ops.scheduler.quartz.QuartzSchedulerAutoConfiguration

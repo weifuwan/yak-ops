@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.EnvironmentMapper">
+    <sql id="baseSql">
+        id, code, name, config, description, operator, create_time, update_time
+    </sql>
+    <select id="queryByEnvironmentName" resultType="io.yak.ops.dao.entity.Environment">
+        select
+        <include refid="baseSql"/>
+        from t_ds_environment
+        WHERE name = #{environmentName}
+    </select>
+    <select id="queryAllEnvironmentList" resultType="io.yak.ops.dao.entity.Environment">
+        select
+        <include refid="baseSql"/>
+        from t_ds_environment
+        order by create_time desc
+    </select>
+    <select id="queryEnvironmentListPaging" resultType="io.yak.ops.dao.entity.Environment">
+        select
+        <include refid="baseSql"/>
+        from t_ds_environment
+        where 1=1
+        <if test="searchName!=null and searchName != ''">
+            and name like concat('%', #{searchName}, '%')
+        </if>
+        order by create_time desc
+    </select>
+    <select id="queryEnvironmentListPagingByIds" resultType="io.yak.ops.dao.entity.Environment">
+        select
+        <include refid="baseSql"/>
+        from t_ds_environment
+        where 1=1
+        <if test="ids != null and ids.size() > 0">
+            and id  in
+            <foreach item="id" index="index" collection="ids" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="searchName!=null and searchName != ''">
+            and name like concat('%', #{searchName}, '%')
+        </if>
+        order by create_time desc
+    </select>
+
+    <select id="queryByEnvironmentCode" resultType="io.yak.ops.dao.entity.Environment">
+        select
+        <include refid="baseSql"/>
+        from t_ds_environment
+        where code = #{environmentCode}
+    </select>
+    <delete id="deleteByCode">
+        delete from t_ds_environment where code = #{code}
+    </delete>
+</mapper>

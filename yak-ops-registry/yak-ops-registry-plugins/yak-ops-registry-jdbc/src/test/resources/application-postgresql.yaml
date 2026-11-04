@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/yak-ops
+    username: root
+    password: root
+
+registry:
+  type: jdbc
+  heartbeat-refresh-interval: 1s
+  session-timeout: 3s
+

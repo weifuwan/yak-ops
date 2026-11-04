@@ -1,0 +1,18 @@
+remote.logging:
+  # if remote.logging.enable = true, set the target of remote logging
+  target: OSS
+  # if remote.logging.enable = true, set the log base directory
+  base.dir: logs
+  # if remote.logging.enable = true, set the number of threads to send logs to remote storage
+  thread.pool.size: 10
+  # required if you set remote.logging.target=OSS
+  oss:
+    # oss access key id, required if you set remote.logging.target=OSS
+    access.key.id: <access.key.id>
+    # oss access key secret, required if you set remote.logging.target=OSS
+    access.key.secret: <access.key.secret>
+    # oss bucket name, required if you set remote.logging.target=OSS
+    bucket.name: <bucket.name>
+    # oss endpoint, required if you set remote.logging.target=OSS
+    endpoint: <endpoint>
+  # Available targets after optional-plugin cleanup: OSS or S3.

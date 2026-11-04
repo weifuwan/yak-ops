@@ -1,0 +1,77 @@
+package io.yak.ops.api.service;
+
+import io.yak.ops.api.dto.ClusterDto;
+import io.yak.ops.api.utils.PageInfo;
+import io.yak.ops.dao.entity.Cluster;
+import io.yak.ops.dao.entity.User;
+
+import java.util.List;
+
+public interface ClusterService {
+
+    /**
+     * create cluster
+     *
+     * @param loginUser login user
+     * @param name      cluster name
+     * @param config    cluster config
+     * @param desc      cluster desc
+     * @return cluster code
+     */
+    Long createCluster(User loginUser, String name, String config, String desc);
+
+    /**
+     * query cluster
+     *
+     * @param name cluster name
+     */
+    ClusterDto queryClusterByName(String name);
+
+    /**
+     * delete cluster
+     *
+     * @param loginUser login user
+     * @param code      cluster code
+     */
+    void deleteClusterByCode(User loginUser, Long code);
+
+    /**
+     * update cluster
+     *
+     * @param loginUser login user
+     * @param code      cluster code
+     * @param name      cluster name
+     * @param config    cluster config
+     * @param desc      cluster desc
+     */
+    Cluster updateClusterByCode(User loginUser, Long code, String name, String config, String desc);
+
+    /**
+     * query cluster paging
+     *
+     * @param loginUser login user
+     * @param pageNo    page number
+     * @param searchVal search value
+     * @param pageSize  page size
+     * @return cluster list page
+     */
+    PageInfo<ClusterDto> queryClusterListPaging(User loginUser, Integer pageNo, Integer pageSize, String searchVal);
+
+    /**
+     * query all cluster
+     *
+     * @param loginUser login user
+     * @return all cluster list
+     */
+    List<ClusterDto> queryAllClusterList(User loginUser);
+
+    /**
+     * verify cluster name
+     *
+     * @param loginUser   login user
+     * @param clusterName cluster name
+     * @return true if the cluster name not exists, otherwise return false
+     */
+    void verifyCluster(User loginUser, String clusterName);
+
+}

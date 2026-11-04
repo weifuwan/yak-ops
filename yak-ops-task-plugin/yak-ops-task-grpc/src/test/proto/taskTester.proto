@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package io.yak.ops.task.grpc.proto;
+
+option java_package = "io.yak.ops.plugin.task.grpc.generated";
+option java_multiple_files = true;
+option java_outer_classname = "TaskTesterProto";
+
+service TaskTester {
+  rpc TestOK (StringRequest) returns (StringReply) {}
+  rpc TestUNIMPLEMENTED (StringRequest) returns (StringReply) {}
+}
+
+message StringRequest {
+  string username = 1;
+}
+
+message StringReply {
+  string message = 1;
+}

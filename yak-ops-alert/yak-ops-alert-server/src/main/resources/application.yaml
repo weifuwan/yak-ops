@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: alert-server
+  profiles:
+    active: postgresql
+  jackson:
+    time-zone: UTC
+    date-format: "yyyy-MM-dd HH:mm:ss"
+  banner:
+    charset: UTF-8
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
+    username: root
+    password: root
+    hikari:
+      connection-test-query: select 1
+      pool-name: YakOps
+
+# Mybatis-plus configuration, you don't need to change it
+mybatis-plus:
+  mapper-locations: classpath:io/yak/ops/dao/mapper/*Mapper.xml
+  type-aliases-package: io.yak.ops.dao.entity
+  configuration:
+    cache-enabled: false
+    call-setters-on-nulls: true
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+  global-config:
+    db-config:
+      id-type: auto
+    banner: false
+
+server:
+  port: 50053
+
+management:
+  security:
+    enabled: false
+    username: username
+    password: password
+    exclude: [health,metrics]
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+  health:
+    db:
+      enabled: true
+    defaults:
+      enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+alert:
+  port: 50052
+  # Mark each alert of alert server if late after x milliseconds as failed.
+  # Define value is (0 = infinite), and alert server would be waiting alert result.
+  wait-timeout: 0
+  max-heartbeat-interval: 60s
+  # The maximum number of alerts that can be processed in parallel
+  sender-parallelism: 100
+
+registry:
+  type: zookeeper
+  zookeeper:
+    namespace: yak-ops
+    connect-string: localhost:2181
+    retry-policy:
+      base-sleep-time: 1s
+      max-sleep: 3s
+      max-retries: 5
+    session-timeout: 60s
+    connection-timeout: 15s
+    block-until-connected: 15s
+    digest: ~
+
+# Override by profile
+
+---
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/yak-ops
+    username: root
+    password: root

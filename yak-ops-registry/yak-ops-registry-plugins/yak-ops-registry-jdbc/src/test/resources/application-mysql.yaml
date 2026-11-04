@@ -1,0 +1,14 @@
+spring:
+  sql:
+    init:
+      schema-locations: classpath:mysql_registry_init.sql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: root
+
+registry:
+  type: jdbc
+  heartbeat-refresh-interval: 1s
+  session-timeout: 3s

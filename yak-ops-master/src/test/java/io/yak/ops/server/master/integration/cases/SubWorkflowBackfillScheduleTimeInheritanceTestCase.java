@@ -1,0 +1,71 @@
+package io.yak.ops.server.master.integration.cases;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
+import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.extract.master.command.BackfillWorkflowCommandParam;
+import io.yak.ops.server.master.AbstractMasterIntegrationTestCase;
+import io.yak.ops.server.master.integration.WorkflowOperator;
+import io.yak.ops.server.master.integration.WorkflowTestCaseContext;
+
+import org.apache.commons.lang3.time.DateUtils;
+
+import java.time.Duration;
+import java.util.List;
+
+import org.assertj.core.util.Lists;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class SubWorkflowBackfillScheduleTimeInheritanceTestCase extends AbstractMasterIntegrationTestCase {
+
+    @Test
+    @DisplayName("Test sub workflow inherits parent backfill schedule time")
+    void testSubWorkflowInheritsParentBackfillScheduleTime() throws Exception {
+        final String yaml = "/it/start/workflow_with_sub_workflow_task_success.yaml";
+        final WorkflowTestCaseContext context = workflowTestCaseContextFactory.initializeContextFromYaml(yaml);
+        final WorkflowDefinition parentWorkflow = context.getWorkflow("parent_workflow");
+        final WorkflowDefinition childWorkflow = context.getWorkflow("child_workflow");
+        final String backfillTime = "2026-04-08 00:00:00";
+
+        final BackfillWorkflowCommandParam backfillWorkflowCommandParam = BackfillWorkflowCommandParam.builder()
+                .backfillTimeList(Lists.newArrayList(backfillTime))
+                .build();
+        final WorkflowOperator.WorkflowBackfillDTO workflowBackfillDTO = WorkflowOperator.WorkflowBackfillDTO.builder()
+                .workflow(parentWorkflow)
+                .backfillWorkflowCommandParam(backfillWorkflowCommandParam)
+                .build();
+
+        workflowOperator.backfillWorkflow(workflowBackfillDTO);
+
+        await()
+                .atMost(Duration.ofMinutes(1))
+                .untilAsserted(() -> {
+                    final List<WorkflowInstance> parentWorkflowInstances =
+                            repository.queryWorkflowInstance(parentWorkflow);
+                    final List<WorkflowInstance> childWorkflowInstances =
+                            repository.queryWorkflowInstance(childWorkflow);
+
+                    assertThat(parentWorkflowInstances)
+                            .singleElement()
+                            .satisfies(workflowInstance -> {
+                                assertThat(workflowInstance.getState()).isEqualTo(WorkflowExecutionStatus.SUCCESS);
+                                assertThat(workflowInstance.getScheduleTime())
+                                        .isEqualTo(DateUtils.parseDate(backfillTime, "yyyy-MM-dd HH:mm:ss"));
+                            });
+
+                    assertThat(childWorkflowInstances)
+                            .singleElement()
+                            .satisfies(workflowInstance -> {
+                                assertThat(workflowInstance.getState()).isEqualTo(WorkflowExecutionStatus.SUCCESS);
+                                assertThat(workflowInstance.getScheduleTime())
+                                        .isEqualTo(DateUtils.parseDate(backfillTime, "yyyy-MM-dd HH:mm:ss"));
+                            });
+                });
+
+        masterContainer.assertAllResourceReleased();
+    }
+}

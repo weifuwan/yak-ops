@@ -1,0 +1,82 @@
+package io.yak.ops.service.utils;
+
+import io.yak.ops.common.graph.DAG;
+import io.yak.ops.common.model.TaskNodeRelation;
+import io.yak.ops.dao.entity.WorkflowTaskRelation;
+import io.yak.ops.service.model.TaskNode;
+import io.yak.ops.service.process.WorkflowDag;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * dag tools
+ */
+@Slf4j
+public class DagHelper {
+
+    /***
+     * build dag graph
+     * @param workflowDag workflowDag
+     * @return dag
+     */
+    public static DAG<Long, TaskNode, TaskNodeRelation> buildDagGraph(WorkflowDag workflowDag) {
+
+        DAG<Long, TaskNode, TaskNodeRelation> dag = new DAG<>();
+
+        // add vertex
+        if (CollectionUtils.isNotEmpty(workflowDag.getNodes())) {
+            for (TaskNode node : workflowDag.getNodes()) {
+                dag.addNode(node.getCode(), node);
+            }
+        }
+
+        // add edge
+        if (CollectionUtils.isNotEmpty(workflowDag.getEdges())) {
+            for (TaskNodeRelation edge : workflowDag.getEdges()) {
+                dag.addEdge(edge.getStartNode(), edge.getEndNode());
+            }
+        }
+        return dag;
+    }
+
+    /**
+     * get workflow dag
+     *
+     * @param taskNodeList task node list
+     * @return workflow dag
+     */
+    public static WorkflowDag getWorkflowDag(List<TaskNode> taskNodeList,
+                                             List<WorkflowTaskRelation> workflowTaskRelations) {
+        Map<Long, TaskNode> taskNodeMap = new HashMap<>();
+
+        taskNodeList.forEach(taskNode -> {
+            taskNodeMap.putIfAbsent(taskNode.getCode(), taskNode);
+        });
+
+        List<TaskNodeRelation> taskNodeRelations = new ArrayList<>();
+        for (WorkflowTaskRelation workflowTaskRelation : workflowTaskRelations) {
+            long preTaskCode = workflowTaskRelation.getPreTaskCode();
+            long postTaskCode = workflowTaskRelation.getPostTaskCode();
+
+            if (workflowTaskRelation.getPreTaskCode() != 0
+                    && taskNodeMap.containsKey(preTaskCode) && taskNodeMap.containsKey(postTaskCode)) {
+                TaskNode preNode = taskNodeMap.get(preTaskCode);
+                TaskNode postNode = taskNodeMap.get(postTaskCode);
+                taskNodeRelations
+                        .add(new TaskNodeRelation(preNode.getCode(), postNode.getCode()));
+            }
+        }
+        WorkflowDag workflowDag = new WorkflowDag();
+        workflowDag.setEdges(taskNodeRelations);
+        workflowDag.setNodes(taskNodeList);
+        return workflowDag;
+    }
+
+}

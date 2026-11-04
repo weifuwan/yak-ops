@@ -1,27 +1,49 @@
-# Yak Ops Agent Instructions
+# Yak Ops AI Agent Instructions
 
-## Scope
+## Repository boundaries
 
-The repository contains only two product modules:
+Yak Ops has one root Maven reactor containing Scheduler's first-level modules plus the CDC and UI workspaces:
 
-- `yak-ops-cdc`: Flink CDC-inspired pipeline CLI, composer, runtime, MySQL source and JDBC sink; preserve its internal Maven modules, upstream source attribution and Flink 1.20.3 alignment.
-- `yak-ops-ui`: existing frontend workspace. Do not assume that its previous backend API exists.
+- yak-ops-ui: existing frontend, currently not connected to the imported Scheduler backend.
+- yak-ops-cdc: Flink CDC CLI/runtime/connectors, kept independent and aligned with Flink 1.20.3.
+- root Scheduler modules: imported Apache DolphinScheduler 3.4.3-release source (pinned commit 26228f9c5bff24b3ded7095484caf7a5ecffa050).
 
-The root `pom.xml` is a Maven reactor/parent, not a separate backend application. Do not reintroduce the removed Business, Boot, DAO, Platform, Plugin, Worker, Distribution or Registry modules without an explicit product decision.
+The root pom.xml is the unified Scheduler-derived parent. CDC keeps Java 17 and Spring Boot 3.x dependency management in yak-ops-cdc/pom.xml; preserve its isolated build and format rules.
 
-## Commands
+## Preserve upstream source fidelity
 
-- Java 21, Git and the Maven wrapper. For Windows use Git Bash/WSL to run `mvnw`.
-- CDC CLI build: `bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package`.
-- CDC formatting: `bash mvnw -B -ntp -pl '!yak-ops-ui' com.diffplug.spotless:spotless-maven-plugin:3.10.2:check`.
-- UI setup and checks: `cd yak-ops-ui && npm ci && npm run format:check && npm run typecheck && npm run build`.
-- See [DEVELOPMENT.md](DEVELOPMENT.md) and [UI tooling](yak-ops-ui/docs/tooling.md).
+- Start with docs/scheduler/MIGRATION_MANIFEST.json and docs/scheduler/UPSTREAM_ROOT_POM.xml before editing upstream-derived code.
+- Preserve io.yak.ops Java packages and repository-level Apache-2.0 attribution in LICENSE/NOTICE. Standard ASF boilerplate file headers were removed in the subsequent cleanup; keep file-specific third-party copyright and license notices.
+- Distinguish source import from successful compilation, runtime integration and feature support.
+- Avoid changing Master/Worker execution graphs, state machines, lifecycle handling, checkpoint/recovery or scheduler semantics while doing Maven/build adaptation.
+- Keep all imported module Java tests/resources, even when tests are not selected in automatic CI.
+- Excluded optional modules and Maven dependencies are listed in the manifest; do not silently restore big-data plugins through all-artifact dependencies.
+- Do not add an alternative Scheduler execution model or shortcut Master/Worker communication without an explicit decision.
 
-## Engineering Rules
+## Build and verification
 
-- Read current source, callers, parent POMs and affected Maven reactor dependencies before editing.
-- Prefer upstream Flink/Flink CDC models when semantics match. Do not accidentally mix incompatible Flink versions or replace upstream source with unsupported custom behavior.
-- Keep Source, Transform, Sink, schema events, data events, checkpoint and JDBC behavior explicit. Preserve error causes and cleanup; do not claim exactly-once guarantees without evidence.
-- Do not expose credentials, sensitive row values or serialized state in diagnostic logs.
-- Prefer small, complete changes; distinguish verified facts, assumptions and recommendations. Clearly state commands run, results and unexecuted checks.
-- CDC and UI are currently independent. Do not claim that the frontend is served by, or controls, the CDC CLI.
+- Java 21 and checked-in Maven wrapper for Yak Ops; Scheduler source upstream targets Java 8/Spring Boot 2.x and needs separate verification.
+- Scheduler JDK 11 status: full 99-module compile, targeted Master + EventBus tests, H2-backed Workflow integration and Standalone health smoke passed in CI. Java 21 compatibility and all-plugin coverage remain unverified.
+- Scheduler startup (JDK 11): bash scripts/run-scheduler-standalone.sh
+- Scheduler model: bash mvnw -B -ntp -pl :yak-ops validate
+- Scheduler smoke (JDK 11 to avoid upstream Lombok / JDK 21 incompatibility): bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests package
+- CDC formatting check (manual): bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+- CDC build: bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
+- UI checks (manual): cd yak-ops-ui && npm ci && npm run format:check && npm run typecheck && npm run build
+- Record exact commands and results; tests not run must not be reported as successful.
+
+## Local formatting
+
+- Scheduler Maven modules: `bash mvnw -B -ntp spotless:apply` (verify with `bash mvnw -B -ntp spotless:check`).
+- CDC Java: `bash mvnw -B -ntp -f yak-ops-cdc/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply` (verify with the corresponding `:check` goal).
+- UI: run `npm run format` in `yak-ops-ui` (verify with `npm run format:check`).
+- Formatting is a local developer responsibility, not a GitHub Actions gate. Apply the formatter before committing relevant changes.
+
+## CI policy
+
+- Maintain exactly one long-lived GitHub Actions workflow: `.github/workflows/backend-tests.yml`. Do not add a new workflow, formatting gate, or automated migration without explicit approval.
+- Automatic CI runs only a bounded set of real Scheduler unit tests using JDK 11. UI, CDC and Scheduler formatting is handled locally, not in CI. Backend test reports must prove that tests executed.
+- CDC unit/integration tests, frontend unit/E2E tests, complete Scheduler/CDC compilation, Windows builds, database integration, Standalone smoke tests, dependency audits and source-import jobs are manual-only. Run the relevant local commands when needed; do not leave one-off workflows in the repository.
+- Keep Scheduler's JDK 11 verification separate from CDC's toolchain and dependency baseline. A successful scoped CI run does not certify a full reactor or integration test.
+
+Never log credentials or sensitive CDC row payloads. Read current code, callers and dependencies before modifying them. Keep changes minimal, reviewable and upstream-comparable.

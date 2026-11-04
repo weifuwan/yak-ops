@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.yak.ops.dao.mapper.FavTaskMapper">
+
+    <select id="getUserFavTaskTypes" resultType="string">
+        select task_type
+        from t_ds_fav_task
+        where user_id = #{userId}
+    </select>
+
+    <delete id="deleteUserFavTask">
+        delete
+        from t_ds_fav_task
+        where user_id = #{userId}
+          and task_type = #{taskType}
+    </delete>
+</mapper>

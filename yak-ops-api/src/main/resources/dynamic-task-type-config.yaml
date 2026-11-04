@@ -1,0 +1,11 @@
+dynamic-task:
+  universal:
+    - {name: SHELL,icon: /static/shell/shell-icon.png,hover: /static/shell/shell-hover.png,json: /static/shell/shell.json}
+  cloud:
+    - {name: EMR,icon: shell-icon.png,hover: shell-hover.png}
+  logic:
+    - {name: SUB_WORKFLOW,icon: shell-icon.png,hover: shell-hover.png}
+  dataIntegration:
+    - {name: SEATUNNEL,icon: shell-icon.png,hover: shell-hover.png}
+  machineLearning:
+    - {name: JUPYTER,icon: shell-icon.png,hover: shell-hover.png}

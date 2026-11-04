@@ -1,0 +1,116 @@
+package io.yak.ops.plugin.alert.email;
+
+import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.plugin.alert.email.exception.AlertEmailException;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.poi.ss.SpreadsheetVersion;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public final class ExcelUtils {
+
+    private static final int XLSX_WINDOW_ROW = 10000;
+    private ExcelUtils() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
+    /**
+     * generate excel file
+     *
+     * @param content the content
+     * @param title the title
+     * @param xlsFilePath the xls path
+     */
+    static void genExcelFile(String content, String title, String xlsFilePath) {
+        File file = new File(xlsFilePath);
+        if (!file.exists() && !file.mkdirs()) {
+            log.error("Create xlsx directory error, path:{}", xlsFilePath);
+            throw new AlertEmailException("Create xlsx directory error");
+        }
+
+        List<LinkedHashMap> itemsList = JSONUtils.toList(content, LinkedHashMap.class);
+
+        if (CollectionUtils.isEmpty(itemsList)) {
+            log.error("itemsList is null");
+            throw new AlertEmailException("itemsList is null");
+        }
+
+        LinkedHashMap<String, Object> headerMap = itemsList.get(0);
+
+        List<String> headerList = new ArrayList<>();
+
+        for (Map.Entry<String, Object> en : headerMap.entrySet()) {
+            headerList.add(en.getKey());
+        }
+        try (
+                SXSSFWorkbook wb = new SXSSFWorkbook(XLSX_WINDOW_ROW);
+                FileOutputStream fos = new FileOutputStream(String.format("%s/%s.xlsx", xlsFilePath, title))) {
+            // declare a workbook
+            // generate a table
+            Sheet sheet = wb.createSheet();
+            Row row = sheet.createRow(0);
+            // set the height of the first line
+            row.setHeight((short) 500);
+
+            // set Horizontal right
+            CellStyle cellStyle = wb.createCellStyle();
+            cellStyle.setAlignment(HorizontalAlignment.RIGHT);
+
+            // setting excel headers
+            for (int i = 0; i < headerList.size(); i++) {
+                Cell cell = row.createCell(i);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(headerList.get(i));
+            }
+
+            // setting excel body
+            int rowIndex = 1;
+            for (LinkedHashMap<String, Object> itemsMap : itemsList) {
+                Object[] values = itemsMap.values().toArray();
+                row = sheet.createRow(rowIndex);
+                // setting excel body height
+                row.setHeight((short) 500);
+                rowIndex++;
+                for (int j = 0; j < values.length; j++) {
+                    Cell cell1 = row.createCell(j);
+                    cell1.setCellStyle(cellStyle);
+                    if (values[j] instanceof Number) {
+                        cell1.setCellValue(((Number) values[j]).doubleValue());
+                    } else {
+                        String cellValue = String.valueOf(values[j]);
+                        int maxLen = SpreadsheetVersion.EXCEL2007.getMaxTextLength();
+                        if (cellValue.length() > maxLen) {
+                            cellValue = cellValue.substring(0, maxLen - 67) + "...(truncated)";
+                        }
+                        cell1.setCellValue(cellValue);
+                    }
+                }
+            }
+
+            for (int i = 0; i < headerList.size(); i++) {
+                sheet.setColumnWidth(i, headerList.get(i).length() * 800);
+            }
+
+            // setting file output
+            wb.write(fos);
+        } catch (Exception e) {
+            throw new AlertEmailException("generate excel error", e);
+        }
+    }
+
+}

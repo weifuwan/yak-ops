@@ -1,0 +1,73 @@
+package io.yak.ops.server.master.engine.task.execution;
+
+import io.yak.ops.common.enums.Flag;
+import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.dao.repository.TaskInstanceDao;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
+
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+public class FailedRecoverTaskInstanceFactory
+        extends
+            AbstractTaskInstanceFactory<FailedRecoverTaskInstanceFactory.FailedRecoverTaskInstanceBuilder> {
+
+    @Autowired
+    private TaskInstanceDao taskInstanceDao;
+
+    @Override
+    public FailedRecoverTaskInstanceFactory.FailedRecoverTaskInstanceBuilder builder() {
+        return new FailedRecoverTaskInstanceBuilder(this);
+    }
+
+    @Transactional
+    @Override
+    public TaskInstance createTaskInstance(FailedRecoverTaskInstanceBuilder builder) {
+        final TaskInstance needRecoverTaskInstance = builder.needRecoverTaskInstance;
+        final TaskInstance taskInstance = cloneTaskInstance(needRecoverTaskInstance);
+        taskInstance.setId(null);
+        taskInstance.setState(TaskExecutionStatus.SUBMITTED_SUCCESS);
+        taskInstance.setHost(null);
+        taskInstance.setVarPool(null);
+        taskInstance.setSubmitTime(new Date());
+        taskInstance.setStartTime(null);
+        taskInstance.setEndTime(null);
+        taskInstance.setLogPath(null);
+        taskInstance.setExecutePath(null);
+        taskInstance.setPid(0);
+        // The recreated task instance is a new attempt, it should get the whole retry budget back, otherwise a task
+        // which already exhausted its retry times will never be retried again in the recovered workflow.
+        taskInstance.setRetryTimes(0);
+        taskInstance.setAlertFlag(Flag.NO);
+        taskInstanceDao.insert(taskInstance);
+
+        needRecoverTaskInstance.setFlag(Flag.NO);
+        taskInstanceDao.updateById(needRecoverTaskInstance);
+        return taskInstance;
+    }
+
+    public static class FailedRecoverTaskInstanceBuilder implements ITaskInstanceFactory.ITaskInstanceBuilder {
+
+        private final FailedRecoverTaskInstanceFactory failedRecoverTaskInstanceFactory;
+
+        private TaskInstance needRecoverTaskInstance;
+
+        public FailedRecoverTaskInstanceBuilder(FailedRecoverTaskInstanceFactory failedRecoverTaskInstanceFactory) {
+            this.failedRecoverTaskInstanceFactory = failedRecoverTaskInstanceFactory;
+        }
+
+        public FailedRecoverTaskInstanceBuilder withTaskInstance(TaskInstance needRecoverTaskInstance) {
+            this.needRecoverTaskInstance = needRecoverTaskInstance;
+            return this;
+        }
+
+        @Override
+        public TaskInstance build() {
+            return failedRecoverTaskInstanceFactory.createTaskInstance(this);
+        }
+    }
+}
