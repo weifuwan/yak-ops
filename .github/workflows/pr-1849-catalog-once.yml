@@ -1,0 +1,36 @@
+name: PR 1849 MySQL catalog verification
+on:
+  push:
+    branches: [refactor/cdc-jdbc-writer-architecture-20261104]
+    paths: ['.github/workflows/pr-1849-catalog-once.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: fixture
+          MYSQL_ROOT_HOST: '%'
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Provision isolated MySQL test schemas
+        env:
+          MYSQL_PWD: fixture
+        run: mysql -h 127.0.0.1 -u root < yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc-mysql/src/test/resources/mysql-catalog-fixture.sql
+      - name: Run JDBC MySQL tests against Connector/J
+        env:
+          JDBC_CATALOG_TEST_URL: jdbc:mysql://127.0.0.1:3306/yak_catalog_source?allowPublicKeyRetrieval=true&useSSL=false
+          JDBC_CATALOG_TEST_USER: root
+          JDBC_CATALOG_TEST_PASSWORD: fixture
+        run: bash mvnw -B -ntp -f yak-ops-cdc/pom.xml -pl :yak-ops-cdc-pipeline-connector-jdbc-mysql -am -Dtest=MySqlCatalogTest -Dsurefire.failIfNoSpecifiedTests=false test
