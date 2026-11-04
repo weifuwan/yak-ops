@@ -11,7 +11,7 @@ license and attribution notices.
 Portions of the schema-event and metadata-application contracts are derived
 from Apache Flink CDC 3.7.0 (release-3.7.0), commit
 045e8da45df4b1017849b04e2d8bfe8f0ed7936d.
-The adapted files retain their Apache license headers and modification notices.
+The adapted files remain Apache-2.0 licensed; see this NOTICE and LICENSE for source attribution. The ASF boilerplate headers were removed as a formatting-only change.
 
 Apache Flink CDC
 Copyright 2024-2026 The Apache Software Foundation
@@ -33,6 +33,12 @@ Copyright 2026 The Apache Software Foundation
 
 The Registry API SPI and JDBC Registry implementation are migrated from
 Apache DolphinScheduler 3.4.3, including upstream SQL resources. The upstream
-source files retain their Apache License 2.0 headers. See
+source files remain Apache-2.0 licensed, with attribution retained here. See
 `yak-ops-registry-jdbc/UPSTREAM.md` for the source baseline and the limited
 Yak Ops compatibility adaptations.
+
+Apache DolphinScheduler 3.4.3
+This product contains source derived from Apache DolphinScheduler 3.4.3,
+Copyright The Apache Software Foundation and original contributors.
+Removal of ASF boilerplate source headers is a formatting-only change;
+the original licensing and attribution obligations remain in effect.
