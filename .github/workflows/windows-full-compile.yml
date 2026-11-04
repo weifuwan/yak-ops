@@ -20,6 +20,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
+      - name: Enable Windows long paths for Git
+        shell: pwsh
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
