@@ -17,7 +17,6 @@
 
 package org.apache.flink.cdc.connectors.jdbc.internal;
 
-import org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.connectors.jdbc.internal.converter.JdbcRowConverter;
