@@ -1,0 +1,36 @@
+name: Windows Full Maven Compile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-full-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-full-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-compile:
+    name: Windows Maven clean compile (JDK 21)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Verify toolchain
+        shell: pwsh
+        run: |
+          java -version
+          .\mvnw.cmd -version
+      - name: Compile all Maven modules
+        shell: pwsh
+        run: .\mvnw.cmd clean compile
