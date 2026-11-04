@@ -34,7 +34,6 @@ limitations under the License.
     <properties>
         <!-- Use the JDBC Connector release compiled for Flink 1.20. -->
         <flink.jdbc.connector.version>3.3.0-1.20</flink.jdbc.connector.version>
-        <hikari.version>4.0.3</hikari.version>
         <mysql.driver.version>8.0.27</mysql.driver.version>
     </properties>
 
@@ -49,7 +48,7 @@ limitations under the License.
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>${hikari.version}</version>
+            <version>${cdc.hikari.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -53,7 +53,6 @@ limitations under the License.
     <scm><url>https://github.com/weifuwan/yak-ops</url></scm>
 
     <properties>
-        <revision>1.4.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- dependencies versions -->
@@ -61,14 +60,12 @@ limitations under the License.
         <shaded.guava.version>31.1-jre-17.0</shaded.guava.version>
         <debezium.version>1.9.8.Final</debezium.version>
         <geometry.version>2.2.0</geometry.version>
-        <slf4j.version>1.7.36</slf4j.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
-        <jackson.version>2.13.2</jackson.version>
-        <calcite.version>1.32.0</calcite.version>
+        <cdc.hikari.version>4.0.3</cdc.hikari.version>
+        <cdc.calcite.version>1.32.0</cdc.calcite.version>
         <!-- Calcite 1.32.0 depends on 3.1.8,
         at the same time minimum 3.1.x Janino version passing Flink tests without WAs is 3.1.10,
         more details are in FLINK-27995 -->
-        <janino.version>3.1.10</janino.version>
+        <cdc.janino.version>3.1.10</cdc.janino.version>
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <java.version>17</java.version>
@@ -77,18 +74,10 @@ limitations under the License.
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${jackson.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-
-            <dependency>
                 <!-- Used for code generation -->
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
-                <version>${janino.version}</version>
+                <version>${cdc.janino.version}</version>
             </dependency>
 
             <dependency>
@@ -96,7 +85,7 @@ limitations under the License.
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-core</artifactId>
                 <!-- When updating the Calcite version, make sure to update the dependency exclusions -->
-                <version>${calcite.version}</version>
+                <version>${cdc.calcite.version}</version>
                 <exclusions>
                     <!--
                     "mvn dependency:tree" as of Calcite 1.32.0:
@@ -248,7 +237,6 @@ limitations under the License.
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
         </dependency>
 
         <dependency>
@@ -260,7 +248,6 @@ limitations under the License.
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.15</version>
         </dependency>
     </dependencies>
 
