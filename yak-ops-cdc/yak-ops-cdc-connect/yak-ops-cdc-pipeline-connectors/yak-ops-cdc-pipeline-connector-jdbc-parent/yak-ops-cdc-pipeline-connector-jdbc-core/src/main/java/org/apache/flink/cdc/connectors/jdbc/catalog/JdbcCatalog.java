@@ -25,6 +25,7 @@ import org.apache.flink.cdc.common.event.DropTableEvent;
 import org.apache.flink.cdc.common.event.RenameColumnEvent;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.event.TruncateTableEvent;
+import org.apache.flink.cdc.common.schema.Schema;
 
 import java.io.Serializable;
 
@@ -35,6 +36,9 @@ import java.io.Serializable;
  */
 public interface JdbcCatalog extends Serializable {
     boolean tableExists(TableId tableId);
+
+    /** Reads the current physical target-table schema through JDBC metadata. */
+    Schema getTableSchema(TableId tableId);
 
     void createTable(CreateTableEvent event, boolean ignoreIfExists);
 
