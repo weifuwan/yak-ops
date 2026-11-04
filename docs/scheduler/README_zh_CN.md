@@ -10,7 +10,7 @@
 - 迁移后 Maven 坐标：`io.yak.ops:yak-ops-*:1.4.0`；上游 POM 版本为 `3.4.4-SNAPSHOT`。
 - 当前包含 22 个顶层模块；第四阶段插件收敛后剩余 82 个 Maven POM。
 - 原生依赖基线为 Spring Boot 2.x 及较早的 Java 工具链。暂时使用 **JDK 11** 编译和验证 Scheduler，避免将其依赖直接合并到根项目或 CDC 的版本体系。
-- Java 包名暂保留 `org.apache.dolphinscheduler`，便于与上游源码对照。
+- 已将导入的 Java 包名从 `org.apache.dolphinscheduler` 迁移到 `io.yak.ops`，保留上游执行体系、版权声明及历史来源清单。
 
 `MIGRATION_MANIFEST.json` 是**最初迁移时的历史清单**，用于记录源码 SHA256 和被排除的内容；后续删除文档不会同步改写这份基线。迁移说明和原始根 POM 分别保留在 `UPSTREAM.md`、`UPSTREAM_ROOT_POM.xml`。Apache `LICENSE`、`NOTICE`、源码版权头和相关第三方许可证需要保留。
 
