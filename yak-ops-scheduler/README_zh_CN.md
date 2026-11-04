@@ -1,74 +1,65 @@
-# Apache DolphinScheduler
+# Yak Ops Scheduler
 
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![codecov](https://codecov.io/gh/apache/dolphinscheduler/branch/dev/graph/badge.svg)](https://codecov.io/gh/apache/dolphinscheduler)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=apache-dolphinscheduler&metric=alert_status)](https://sonarcloud.io/dashboard?id=apache-dolphinscheduler)
-[![Twitter Follow](https://img.shields.io/twitter/follow/dolphinschedule.svg?style=social&label=Follow)](https://twitter.com/dolphinschedule) <!-- markdown-link-check-disable-line -->
-[![EN doc](https://img.shields.io/badge/document-English-blue.svg)](README.md)
+[English](README.md)
 
-## 关于
+`yak-ops-scheduler` 是从 **Apache DolphinScheduler 3.4.3-release** 迁移而来的源码模块，目前仍然保留原有工作流执行体系。它不是重新实现的轻量调度器，也尚未直接接入 `yak-ops-cdc` 和 `yak-ops-ui`。
 
-一个分布式易扩展的可视化 DAG 工作流任务调度系统。致力于解决数据处理流程中错综复杂的依赖关系，使调度系统在数据处理流程中`开箱即用`。
+## 迁移来源与范围
 
-DolphinScheduler 的主要特性如下：
+- 上游基线：[apache/dolphinscheduler 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050)，分支 `3.4.3-release`。
+- 迁移后 Maven 坐标：`io.yak.ops:yak-ops-*:1.4.0`；上游 POM 版本为 `3.4.4-SNAPSHOT`。
+- 当前包含 22 个顶层模块、99 个 Maven POM。
+- 原生依赖基线为 Spring Boot 2.x 及较早的 Java 工具链。暂时使用 **JDK 11** 编译和验证 Scheduler，避免将其依赖直接合并到根项目或 CDC 的版本体系。
+- Java 包名暂保留 `org.apache.dolphinscheduler`，便于与上游源码对照。
 
-- 易于部署，提供四种部署方式，包括 Standalone、Cluster、Docker 和 Kubernetes
-- 易于使用，可以通过多种方式创建和管理工作流，包括 Web UI、[Python SDK](https://dolphinscheduler.apache.org/python/main/index.html) 和 Open API
-- 高可靠高可用，多主多从的去中心化架构，原生支持横向扩展
-- 高性能，性能比其他编排平台快N倍，每天可支持千万级任务
-- Cloud Native，DolphinScheduler支持编排多云/数据中心工作流，支持自定义任务类型
-- 对工作流和工作流实例（包括任务）进行版本控制
-- 工作流和任务的多种状态控制，支持随时暂停/停止/恢复它们
-- 多租户支持
-- 其他如补数支持（Web UI 原生），包括项目和数据源的权限控制
+`MIGRATION_MANIFEST.json` 是**最初迁移时的历史清单**，用于记录源码 SHA256 和被排除的内容；后续删除文档不会同步改写这份基线。迁移说明和原始根 POM 分别保留在 `UPSTREAM.md`、`UPSTREAM_ROOT_POM.xml`。Apache `LICENSE`、`NOTICE`、源码版权头和相关第三方许可证需要保留。
 
-## 快速开始
+## 模块与职责
 
-- 如果想要体验
-    - [standalone 启动](https://dolphinscheduler.apache.org/zh-cn/docs/3.3.0-alpha/guide/installation/standalone)
-    - [Docker 启动](https://dolphinscheduler.apache.org/zh-cn/docs/3.3.0-alpha/guide/start/docker)
-- 想 Kubernetes 部署
-    - [Kubernetes 部署](https://dolphinscheduler.apache.org/zh-cn/docs/3.3.0-alpha/guide/installation/kubernetes)
+| 模块 | 主要职责 |
+| --- | --- |
+| `yak-ops-master` | Workflow 命令、执行图、状态机、任务派发、故障恢复 |
+| `yak-ops-worker`、`yak-ops-task-executor` | Task 执行与生命周期管理 |
+| `yak-ops-scheduler-plugin` | `SchedulerApi` 抽象与 Quartz 定时触发 |
+| `yak-ops-api`、`yak-ops-service` | Workflow、Schedule 等管理接口与服务 |
+| `yak-ops-dao`、`yak-ops-dao-plugin` | 数据持久化、初始化 SQL 与数据库方言 |
+| `yak-ops-registry`、`yak-ops-extract`、`yak-ops-eventbus` | 服务注册协调、RPC 契约和内部事件 |
+| `yak-ops-spi`、`yak-ops-task-plugin`、`yak-ops-datasource-plugin`、`yak-ops-storage-plugin`、`yak-ops-alert` | 插件接口及具体扩展 |
+| `yak-ops-standalone-server` | 单 JVM 集成启动入口，主要用于开发和冒烟验证 |
 
-## 系统部分截图
+**Quartz 触发器不会直接运行 CDC Pipeline。** 当前实现将 Schedule 绑定到 DolphinScheduler 的 Workflow Definition；触发后生成 Workflow Command，由 Master 推进 Workflow，再派发 Task 给 Worker。
 
-* **主页**：项目和工作流概览，包括最新的工作流实例和任务实例状态统计。
-![home](images/home.png)
+Standalone 是开发和冒烟验证入口，不等于已经完成 Yak Ops 生产集成。默认内存 H2 的状态不会在重启后保留。
 
-* **工作流定义**： 通过拖拉拽创建和管理工作流，轻松构建和维护复杂的工作流，[内置支持多种任务类型](https://dolphinscheduler.apache.org/zh-cn/docs/3.3.0-alpha/guide/task/builtin-task)，开箱即用。
-![workflow-definition](images/workflow-definition.png)
+## 当前验证与集成状态
 
-* **工作流树状图**： 抽象的树形结构可以更清晰地理解任务之间的关系。
-![workflow-tree](images/workflow-tree.png)
+已有 JDK 11 CI 记录显示：所选的 99 个 Maven 模块完成编译，部分 Master/EventBus 测试、H2 Workflow 集成测试通过，Standalone 能启动且健康检查覆盖 API、Master、Worker、Alert 和 DB。
 
-* **数据源**： 支持管理多种外部数据源，为MySQL、PostgreSQL、Hive、Trino等，并提供统一的数据访问能力。
-![data-source](images/data-source.png)
+**这些记录不代表所有插件、JDK 21 兼容性或 Yak Ops UI/CDC 集成已经验证通过。** 上游的独立 UI、distribution 和部分大数据插件并未迁移；公共 API 内仍可能存在 K8s、YARN、Hadoop 残留代码。
 
-* **监控**：实时查看master、worker和数据库的状态，包括服务器资源使用情况和负载情况，无需登录服务器即可快速进行健康检查。
-![monitor](images/monitor.png)
+## 编译与启动
 
-## 建议和报告 bugs
+在仓库根目录执行：
 
-根据 [这个步骤](https://github.com/apache/dolphinscheduler/issues/new/choose) 来报告你的 bug 或者提交建议。
+```sh
+# 检查 Scheduler Maven 模块模型
+bash mvnw -B -ntp -pl :yak-ops-scheduler validate
 
-## 参与贡献
+# 使用 JDK 11 编译所选 Scheduler 模块
+bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+  -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true \
+  -Danalyze.skip=true compile
 
-社区欢迎大家贡献，请参考此页面了解更多：[如何贡献](docs/docs/zh/contribute/join/contribute.md)，如果你是首次贡献 DolphinScheduler，在[这里](https://github.com/apache/dolphinscheduler/contribute)可以找到good first issue
+# 使用 JDK 11 启动本地 H2 Standalone
+bash scripts/run-scheduler-standalone.sh
+```
 
-## 社区
+Standalone 成功启动后，健康检查地址：
 
-欢迎通过以下方式加入社区：
+`http://127.0.0.1:12345/dolphinscheduler/actuator/health`
 
-- 讨论和提问请通过 [GitHub Issues](https://github.com/apache/dolphinscheduler/issues)
-- 关注 [DolphinScheduler Twitter](https://twitter.com/dolphinschedule) 来获取最新消息 <!-- markdown-link-check-disable-line -->
-- 订阅 DolphinScheduler 邮件列表, 用户订阅 [users@dolphinscheduler.apache.org](mailto:users-subscribe@dolphinscheduler.apache.org) 开发者请订阅 [dev@dolphinscheduler.apache.org](mailto:dev-subscribe@dolphinscheduler.apache.org)
+更详细的测试命令、架构约束和模块职责参见根目录 [DEVELOPMENT.md](../DEVELOPMENT.md)，仓库修改约束参见 [AGENTS.md](../AGENTS.md)。
 
-# Landscapes
+## 维护原则
 
-<p align="center">
-<br/><br/>
-<img src="./images/cncf-landscape-white-bg.jpg" width="175" alt="cncf-landscape"/>&nbsp;&nbsp;<img src="./images/cncf-white-bg.jpg" width="200" alt="cncf-logo"/>
-<br/><br/>
-DolphinScheduler enriches the <a href="https://landscape.cncf.io/?item=orchestration-management--scheduling-orchestration--dolphinscheduler">CNCF CLOUD NATIVE Landscape.</a >
-
-</p >
+第一阶段只删除过期文档和旧插件清单，不改动 Java 源码、测试、POM 和运行资源。删除的模块级 `CLAUDE.md` 中有价值的共性说明已集中到 `DEVELOPMENT.md`。保留历史迁移清单作为溯源基线，不把它误当作当前目录快照。

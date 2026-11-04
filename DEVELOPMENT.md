@@ -8,6 +8,21 @@
 
 This is an upstream-preserving source migration with scoped CI acceptance: all 99 Maven reactor modules compile on JDK 11, one H2-backed Workflow integration test and selected Master/EventBus tests pass, and Standalone's H2 health endpoint reports UP for API, Master, Worker, Alert and database. This does not certify all plugins, Java 21 compatibility or CDC integration. Java source, resource and test files in the selected modules are preserved as upstream. Only Maven module coordinates, module inclusion and dependencies on excluded optional plugin modules have been adapted. Consult yak-ops-scheduler/MIGRATION_MANIFEST.json before changing or deleting migrated code.
 
+## Scheduler architecture notes (consolidated)
+
+The module-level `yak-ops-scheduler/**/CLAUDE.md` files were removed because many described upstream modules and deployment paths that were not imported. Keep shared design and maintenance notes here instead.
+
+- **Workflow execution:** `yak-ops-master` consumes persisted workflow commands and owns workflow/task state machines, execution graph, dispatch, event handlers, and failover. `yak-ops-worker` uses `yak-ops-task-executor` and task plugins to execute dispatched tasks. Do not bypass workflow lifecycle events with direct ad-hoc state changes.
+- **Scheduling:** `yak-ops-scheduler-plugin` exposes `SchedulerApi` with a Quartz implementation. The current schedule is bound to a DolphinScheduler workflow definition: cron fires -> workflow command is inserted -> Master processes the workflow -> Worker executes tasks. Do not present Quartz as directly scheduling Yak Ops CDC until the separate integration is implemented. Keep Quartz types behind the scheduler abstraction.
+- **Communication and coordination:** `yak-ops-registry` provides server registration and coordination; `yak-ops-extract` contains Master/Worker/Alert RPC contracts; `yak-ops-eventbus` handles in-process engine events. Changing RPC contracts, leader/failover behavior, or workflow lifecycle requires targeted tests.
+- **Persistence:** `yak-ops-dao` contains entities, mappers, repositories, SQL schema/upgrade assets; `yak-ops-dao-plugin` supplies H2/MySQL/PostgreSQL dialect implementations. Preserve database entity/column mappings and evaluate schema upgrade paths together with code changes.
+- **Extension points:** `yak-ops-spi`, task/data-source/storage/scheduler/alert plugins are separate concerns. Task factories are discovered through SPI and task type names may be persisted in the database; removing or renaming one is a compatibility decision. `yak-ops-bom` manages imported dependency versions; `yak-ops-common`, `yak-ops-service`, `yak-ops-meter`, and `yak-ops-authentication` provide shared infrastructure.
+- **Standalone:** `yak-ops-standalone-server` starts the imported API/Master/Worker/Alert services in one JVM for development and smoke testing. Default H2 state is ephemeral. Standalone's Maven module declares many dependencies as `provided`; use the documented launcher/classpath rather than assuming a standalone jar can run alone. Independent service launch scripts are a separate deployment concern.
+- **Tools and provenance:** `yak-ops-tools` has schema initialization/upgrade plus legacy resource/lineage migrations; these were not removed in the first stage. `yak-ops-scheduler/MIGRATION_MANIFEST.json` records the **original import baseline**, not subsequent changes to the checked-in tree. Keep Apache `LICENSE`, `NOTICE`, and relevant third-party license files. The obsolete original-distribution `config/plugins_config` inventory was removed in the documentation cleanup.
+- **Security:** `TaskExecutionContext` and datasource parameters can contain passwords, tokens, and access keys. Avoid logging raw task contexts or credentials.
+
+These notes describe the imported architecture, **not** a completed Yak Ops UI/CDC integration. Do not delete Master, Worker, registry, extract, Quartz, or runtime modules based only on a standalone deployment preference; first identify their callers and replace the relevant execution contracts.
+
 ## Build commands
 
 Use Java 21, Git and the checked-in Maven wrapper for the existing Yak Ops modules. On Windows, run the shell wrapper under Git Bash or WSL.

@@ -1,77 +1,64 @@
-# Apache Dolphinscheduler
+# Yak Ops Scheduler
 
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-![codecov](https://codecov.io/gh/apache/dolphinscheduler/branch/dev/graph/badge.svg)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=apache-dolphinscheduler&metric=alert_status)](https://sonarcloud.io/dashboard?id=apache-dolphinscheduler)
-[![Twitter Follow](https://img.shields.io/twitter/follow/dolphinschedule.svg?style=social&label=Follow)](https://twitter.com/dolphinschedule) <!-- markdown-link-check-disable-line -->
-[![CN doc](https://img.shields.io/badge/文档-中文版-blue.svg)](README_zh_CN.md)
+[简体中文](README_zh_CN.md)
 
-## About
+Yak Ops Scheduler is a **source-based import of Apache DolphinScheduler 3.4.3-release**, not a new scheduler implementation or a CDC task integration. The imported Java packages and execution model remain upstream-oriented. It is developed independently from `yak-ops-cdc` and `yak-ops-ui`.
 
-Apache DolphinScheduler is a modern data orchestration platform that empowers agile, low-code development of high-performance workflows.
-It is dedicated to handling complex task dependencies in data pipelines and provides a wide range of built-in job types **out of the box**.
+## Source and scope
 
-Key features for DolphinScheduler are as follows:
+- Upstream: [apache/dolphinscheduler commit 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050) on `3.4.3-release`.
+- Imported Maven coordinates: `io.yak.ops:yak-ops-*:1.4.0` (upstream POM uses `3.4.4-SNAPSHOT`).
+- This subtree has 22 top-level modules and 99 Maven POMs.
+- The upstream Maven baseline uses Spring Boot 2.x and an older Java toolchain. Use **JDK 11** for the imported Scheduler build/runtime checks while the upstream Lombok baseline is retained. Do not automatically align its dependencies with the root Yak Ops/CDC build.
+- Core Java packages remain under `org.apache.dolphinscheduler` for upstream comparison.
 
-- Easy to deploy, providing four deployment modes including Standalone, Cluster, Docker, and Kubernetes.
-- Easy to use, workflows can be created and managed via Web UI, [Python SDK](https://dolphinscheduler.apache.org/python/main/index.html) or Open API
-- Highly reliable and high availability, with a decentralized, multi-master and multi-worker architecture and native support for horizontal scaling.
-- High performance, its performance is several times faster than other orchestration platforms, and it is capable of handling tens of millions of tasks per day
-- Cloud Native, DolphinScheduler supports orchestrating workflows across multiple clouds and data centers, and allows custom task types
-- Workflow Versioning, provides version control for both workflows and individual workflow instances, including tasks.
-- Flexible state control of workflows and tasks, supports pausing, stopping, and recovering them at any time.
-- Multi-tenancy support
-- Additional features, backfill support(Web UI native), permission control including project and data source etc.
+`MIGRATION_MANIFEST.json` is the **historical import inventory**, with upstream file checksums and exclusions; it is not a live inventory of subsequent cleanup changes. `UPSTREAM.md` and `UPSTREAM_ROOT_POM.xml` retain the source provenance. Keep Apache `LICENSE`, `NOTICE`, file headers, and applicable third-party license files.
 
-## QuickStart
+## Architecture
 
-- For quick experience
-  - Want to [start with standalone](https://dolphinscheduler.apache.org/en-us/docs/3.3.0-alpha/guide/installation/standalone)
-  - Want to [start with Docker](https://dolphinscheduler.apache.org/en-us/docs/3.3.0-alpha/guide/start/docker)
-- For Kubernetes
-  - [Start with Kubernetes](https://dolphinscheduler.apache.org/en-us/docs/3.3.0-alpha/guide/installation/kubernetes)
-- For Terraform
-  - [Start with Terraform](deploy/terraform/README.md) 
+| Area | Responsibility |
+| --- | --- |
+| `yak-ops-master` | Workflow command processing, execution graph, lifecycle/state machine, dispatch, and failover |
+| `yak-ops-worker`, `yak-ops-task-executor` | Task execution and lifecycle handling |
+| `yak-ops-scheduler-plugin` | `SchedulerApi` and Quartz cron triggers |
+| `yak-ops-api`, `yak-ops-service` | Workflow, schedule, and management services |
+| `yak-ops-dao`, `yak-ops-dao-plugin` | Persistence, SQL schema, and database dialects |
+| `yak-ops-registry`, `yak-ops-extract`, `yak-ops-eventbus` | Registration/coordination, RPC contracts, and internal events |
+| `yak-ops-spi`, `yak-ops-task-plugin`, `yak-ops-datasource-plugin`, `yak-ops-storage-plugin`, `yak-ops-alert` | Extension points and plugin implementations |
+| `yak-ops-standalone-server` | Single-JVM startup combining the imported services for development and smoke testing |
 
-## User Interface Screenshots
+**Quartz does not directly run Yak Ops CDC pipelines.** The imported scheduler associates a schedule with a DolphinScheduler workflow definition. Quartz triggers a workflow command, then Master drives the workflow lifecycle and sends tasks to Worker.
 
-* **Homepage:** Project and workflow overview, including the latest workflow instance and task instance status statistics.
-![home](images/home.png)
+The imported Standalone mode is a development/smoke-test entry point with H2; it is not a production-ready integrated Yak Ops server. H2 in-memory state does not survive a restart.
 
-* **Workflow Definition:** Create and manage workflows by drag and drop, easy to build and maintain complex workflows, support [a wide range of tasks](https://dolphinscheduler.apache.org/en-us/docs/3.3.0-alpha/introduction-to-functions_menu/task_menu) out of box.
-![workflow-definition](images/workflow-definition.png)
+## Current integration status
 
-* **Workflow Tree View:** Abstract tree structure could provide a clearer understanding of task relationships
-![workflow-tree](images/workflow-tree.png)
+Earlier CI checks on JDK 11 compiled the selected 99-module reactor, exercised selected Master/EventBus tests and an H2-backed workflow, and started Standalone with a healthy API/Master/Worker/Alert/DB response. **These checks do not establish that all plugins work, Java 21 is compatible, or Yak Ops UI/CDC is integrated.**
 
-* **Data source:** Supports multiple external data sources, provides unified data access capabilities for MySQL, PostgreSQL, Hive, Trino, etc.
-![data-source](images/data-source.png)
+The separate DolphinScheduler UI, distribution, and several optional big-data task/data-source plugins were not imported. Some residual Kubernetes/YARN/Hadoop code may still exist in common APIs; do not infer that their integrations are supported.
 
-* **Monitor:** View the status of the master, worker and database in real time, including server resource usage and load, do a quick health check without logging in to the server.
-![monitor](images/monitor.png)
+## Build and run
 
-## Suggestions & Bug Reports
+From the repository root:
 
-Follow [this guide](https://github.com/apache/dolphinscheduler/issues/new/choose) to report your suggestions or bugs.
+```sh
+# Inspect the imported Maven reactor
+bash mvnw -B -ntp -pl :yak-ops-scheduler validate
 
-## Contributing
+# With JDK 11: compile the imported Scheduler modules
+bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+  -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true \
+  -Danalyze.skip=true compile
 
-The community welcomes contributions from everyone. Please refer to this page to find out more details: [How to contribute](docs/docs/en/contribute/join/contribute.md).
-Check out good first issues [here](https://github.com/apache/dolphinscheduler/contribute) if you are new to DolphinScheduler.
+# With JDK 11: development smoke startup using H2
+bash scripts/run-scheduler-standalone.sh
+```
 
-## Community
+After a successful Standalone startup, the health endpoint is:
+`http://127.0.0.1:12345/dolphinscheduler/actuator/health`.
 
-Welcome to join the Apache DolphinScheduler community by:
+See [DEVELOPMENT.md](../DEVELOPMENT.md) for the verified test commands, module responsibilities, and maintenance rules, and [AGENTS.md](../AGENTS.md) for repository constraints.
 
-- Use [GitHub Issues](https://github.com/apache/dolphinscheduler/issues) for questions, discussions, and bug reports
-- Follow the [DolphinScheduler Twitter](https://twitter.com/dolphinschedule) and get the latest news <!-- markdown-link-check-disable-line -->
-- Subscribe DolphinScheduler mail list, [users@dolphinscheduler.apache.org](mailto:users-subscribe@dolphinscheduler.apache.org) for users and [dev@dolphinscheduler.apache.org](mailto:dev-subscribe@dolphinscheduler.apache.org) for developers
+## Maintenance notes
 
-# Landscapes
-
-<p align="center">
-<br/><br/>
-<img src="./images/cncf-landscape-white-bg.jpg" width="175" alt="cncf-landscape"/>&nbsp;&nbsp;<img src="./images/cncf-white-bg.jpg" width="200" alt="cncf-logo"/>
-<br/><br/>
-DolphinScheduler enriches the <a href="https://landscape.cncf.io/?item=orchestration-management--scheduling-orchestration--dolphinscheduler">CNCF CLOUD NATIVE Landscape.</a >
-</p >
+The imported Java/test/resource trees are intentionally left untouched by the first-stage documentation cleanup. The obsolete upstream distribution plugin inventory (`config/plugins_config`) and module-level `CLAUDE.md` files were removed; maintain shared architecture notes in `DEVELOPMENT.md`. Keep the migration manifest for historical comparison, not as a current-file-existence assertion.
