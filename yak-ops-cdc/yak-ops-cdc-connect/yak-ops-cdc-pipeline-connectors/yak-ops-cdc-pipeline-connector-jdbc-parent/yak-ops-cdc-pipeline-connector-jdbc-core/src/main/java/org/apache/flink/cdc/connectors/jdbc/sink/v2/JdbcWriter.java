@@ -23,8 +23,8 @@ import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.internal.JdbcOutputFormatBuilder;
-import org.apache.flink.cdc.connectors.jdbc.internal.converter.DefaultJdbcRowConverter;
 import org.apache.flink.cdc.connectors.jdbc.internal.converter.JdbcRowConverter;
+import org.apache.flink.cdc.connectors.jdbc.internal.writer.JdbcTableWriterRegistry;
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
@@ -36,9 +36,7 @@ import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterSta
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -58,7 +56,7 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
     private final JdbcDialect dialect;
     private final JdbcRowConverter rowConverter;
 
-    private final Map<TableId, JdbcTableWriter> tableWriters = new LinkedHashMap<>();
+    private final JdbcTableWriterRegistry<JdbcTableWriter> tableWriters;
 
     public JdbcWriter(
             Sink.InitContext initContext,
@@ -80,7 +78,12 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         this.serializationSchema = checkNotNull(serializationSchema);
         this.dialect = checkNotNull(dialect);
         checkNotNull(sinkConfig, "sinkConfig must be defined");
-        this.rowConverter = new DefaultJdbcRowConverter();
+        this.rowConverter = checkNotNull(dialect.createRowConverter(), "JDBC row converter is required");
+        int maxOpenTables =
+                connectionOptions == null ? 1 : sinkConfig.getWriteMaxOpenTables();
+        this.tableWriters =
+                new JdbcTableWriterRegistry<>(
+                        maxOpenTables, this::createTableWriter, JdbcTableWriter::flush);
     }
 
     @Override
@@ -95,56 +98,47 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
             TableId tableId = row.getTableId();
             if (RowKind.SCHEMA_CHANGE.is(row.getRowKind())) {
                 flush(false);
-                JdbcTableWriter oldWriter = tableWriters.remove(tableId);
-                if (oldWriter != null) {
-                    oldWriter.close();
-                }
+                tableWriters.invalidate(tableId);
             } else {
-                getOrCreateTableWriter(tableId, row.getSchema()).write(row);
+                tableWriters.getOrCreate(tableId, row.getSchema()).write(row);
             }
         }
     }
 
-    private JdbcTableWriter getOrCreateTableWriter(TableId tableId, Schema schema)
+    private JdbcTableWriter createTableWriter(TableId tableId, Schema schema)
             throws IOException {
-        JdbcTableWriter existing = tableWriters.get(tableId);
-        if (existing != null) {
-            return existing;
-        }
-
-        // The YAML / JDBC options path gives every table independent connection ownership.
-        // Direct-provider callers cannot safely share a provider between multiple table formats.
-        if (connectionOptions == null) {
-            checkArgument(
-                    tableWriters.isEmpty(),
-                    "Multi-table JDBC writer requires connection options, not one shared provider");
-        }
-        JdbcConnectionProvider connectionProvider =
+        JdbcConnectionProvider provider =
                 connectionOptions != null
                         ? new SimpleJdbcConnectionProvider(connectionOptions)
                         : suppliedConnectionProvider;
         JdbcOutputFormatBuilder builder =
                 new JdbcOutputFormatBuilder(
-                        executionOptions,
-                        connectionProvider,
-                        outputSerializer,
-                        dialect,
-                        rowConverter);
-        JdbcTableWriter created = new JdbcTableWriter(tableId, schema, builder);
-        tableWriters.put(tableId, created);
-        return created;
+                        executionOptions, provider, outputSerializer, dialect, rowConverter);
+        return new JdbcTableWriter(tableId, schema, builder);
     }
 
     @Override
     public void flush(boolean endOfInput) throws IOException {
+        IOException failure = null;
         try {
-            for (JdbcTableWriter writer : tableWriters.values()) {
-                writer.flush();
-            }
+            tableWriters.flushAll();
+        } catch (IOException e) {
+            failure = e;
         } finally {
             if (endOfInput) {
-                closeTableWriters();
+                try {
+                    tableWriters.close();
+                } catch (IOException e) {
+                    if (failure == null) {
+                        failure = e;
+                    } else {
+                        failure.addSuppressed(e);
+                    }
+                }
             }
+        }
+        if (failure != null) {
+            throw failure;
         }
     }
 
@@ -153,20 +147,10 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         flush(true);
     }
 
-    private void closeTableWriters() {
-        try {
-            for (JdbcTableWriter writer : tableWriters.values()) {
-                writer.close();
-            }
-        } finally {
-            tableWriters.clear();
-        }
-    }
-
     // Preserve the package-level pure helper entry points for existing JDBC regression coverage.
     static JdbcStatementBuilder<JdbcRowData> getStatementBuilder(
             List<String> statementColumns, List<String> rowColumns) {
-        return new DefaultJdbcRowConverter()
+        return new org.apache.flink.cdc.connectors.jdbc.internal.converter.DefaultJdbcRowConverter()
                 .createStatementBuilder(statementColumns, rowColumns);
     }
 
