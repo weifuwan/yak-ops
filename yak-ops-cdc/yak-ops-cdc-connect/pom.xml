@@ -33,49 +33,4 @@ limitations under the License.
         <module>yak-ops-cdc-pipeline-connectors</module>
     </modules>
 
-    <profiles>
-        <profile>
-            <id>flink1</id>
-            <properties>
-                <paimon.flink.major.version>1.20</paimon.flink.major.version>
-                <iceberg.flink.major.version>1.20</iceberg.flink.major.version>
-            </properties>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-        <profile>
-            <id>flink2</id>
-            <properties>
-                <flink.version>${flink.2.x.version}</flink.version>
-                <iceberg.flink.major.version>2.0</iceberg.flink.major.version>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-streaming-java</artifactId>
-                    <version>${flink.2.x.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-cdc-flink2-compat</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>io.yak.ops</groupId>
-                    <artifactId>yak-ops-cdc-flink1-compat</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>*</groupId>
-                            <artifactId>*</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 </project>
