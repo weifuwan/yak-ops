@@ -91,7 +91,14 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
                                         jdbcSchema(tableId),
                                         tableId.getTableName(),
                                         new String[] {"TABLE"})) {
-            return tables.next();
+            // getTables accepts a JDBC search pattern: '_' and '%' are wildcards.
+            // Check the actual table name to avoid matching a similarly named table.
+            while (tables.next()) {
+                if (tableId.getTableName().equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+                    return true;
+                }
+            }
+            return false;
         } catch (SQLException exception) {
             throw new JdbcCatalogException("Failed to inspect JDBC table " + tableId, exception);
         }
