@@ -17,6 +17,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +37,7 @@ public class ApiApplicationServer {
         SpringApplication.run(ApiApplicationServer.class);
     }
 
+    @Order(100)
     @EventListener
     public void run(ApplicationReadyEvent readyEvent) {
         ServerLifeCycleManager.toRunning();
