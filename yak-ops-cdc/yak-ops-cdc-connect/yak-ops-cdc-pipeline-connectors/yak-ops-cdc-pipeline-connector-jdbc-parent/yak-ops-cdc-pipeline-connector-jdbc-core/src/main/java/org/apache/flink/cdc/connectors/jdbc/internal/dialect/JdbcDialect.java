@@ -21,6 +21,7 @@ import org.apache.flink.cdc.common.event.AddColumnEvent;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataType;
+import org.apache.flink.cdc.connectors.jdbc.internal.converter.JdbcRowConverter;
 
 import java.io.Serializable;
 import java.util.List;
@@ -32,6 +33,9 @@ import java.util.List;
  */
 public interface JdbcDialect extends Serializable {
     String dialectName();
+
+    /** Creates the destination-specific JDBC row converter. */
+    JdbcRowConverter createRowConverter();
 
     String quoteIdentifier(String identifier);
 
