@@ -124,6 +124,7 @@ jobs:
               if 'yak-ops-cdc' in path.parts or 'yak-ops-ui' in path.parts:
                   continue
               data = path.read_bytes()
+              data = data.replace(b'\r\n', b'\n')
               normalized = b'\n'.join(line.rstrip(b' \t') for line in data.split(b'\n'))
               if normalized != data:
                   path.write_bytes(normalized)
