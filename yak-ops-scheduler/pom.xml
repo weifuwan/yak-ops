@@ -21,6 +21,7 @@
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>25</version>
+        <relativePath/>
     </parent>
     <groupId>io.yak.ops</groupId>
     <artifactId>yak-ops-scheduler</artifactId>

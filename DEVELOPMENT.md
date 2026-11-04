@@ -17,7 +17,8 @@ Use Java 21, Git and the checked-in Maven wrapper for the existing Yak Ops modul
 bash mvnw -B -ntp -pl :yak-ops-scheduler validate
 
 # Target one imported module with its dependencies
-bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests package
+# Use JDK 11 for the unmodified upstream Lombok/compiler combination
+bash mvnw -B -ntp -pl :yak-ops-eventbus -am -DskipTests -Dspotless.skip=true package
 
 # Build CDC CLI without tests
 bash mvnw -B -ntp -pl :yak-ops-cdc-cli -am -DskipTests package
@@ -30,7 +31,7 @@ npm run typecheck
 npm run build
 ```
 
-DolphinScheduler originally targets Java 8, Maven version 3.4.4-SNAPSHOT and Spring Boot 2.x. The imported module coordinates use 1.4.0 and an independent upstream-based Maven parent. Do not silently align these dependencies with the CDC Java 17/Flink 1.20.3 baseline or the root Spring Boot 3.3.x parent.
+Use JDK 11 for Scheduler compilation while its upstream Lombok baseline is retained; JDK 21 currently fails on older Lombok javac internals. DolphinScheduler originally targets Java 8, Maven version 3.4.4-SNAPSHOT and Spring Boot 2.x. The imported module coordinates use 1.4.0 and an independent upstream-based Maven parent. Do not silently align these dependencies with the CDC Java 17/Flink 1.20.3 baseline or the root Spring Boot 3.3.x parent.
 
 ## Migration and testing policy
 
