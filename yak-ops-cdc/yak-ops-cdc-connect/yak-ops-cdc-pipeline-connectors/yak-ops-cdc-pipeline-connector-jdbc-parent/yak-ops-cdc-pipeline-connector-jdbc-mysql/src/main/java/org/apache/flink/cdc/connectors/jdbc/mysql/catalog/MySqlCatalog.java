@@ -27,11 +27,13 @@ import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
 import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Locale;
 
 /**
- * MySQL target catalog: JDBC uses the database name as TABLE_CAT, not TABLE_SCHEM.
+ * MySQL target catalog using the connection's databaseTerm setting.
  *
  * <p>Metadata is mapped through CDC's cross-database logical types; vendor-only types such as
  * MEDIUMINT and unsigned integers are widened just as in MySQL CDC source metadata.
@@ -47,13 +49,13 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String jdbcCatalog(TableId tableId) {
-        return tableId.getSchemaName();
+    protected String jdbcCatalog(DatabaseMetaData metadata, TableId tableId) throws SQLException {
+        return metadata.supportsSchemasInTableDefinitions() ? null : tableId.getSchemaName();
     }
 
     @Override
-    protected String jdbcSchema(TableId tableId) {
-        return null;
+    protected String jdbcSchema(DatabaseMetaData metadata, TableId tableId) throws SQLException {
+        return metadata.supportsSchemasInTableDefinitions() ? tableId.getSchemaName() : null;
     }
 
     @Override
@@ -62,16 +64,15 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
         String sqlType = nativeType == null ? "" : nativeType.toUpperCase(Locale.ROOT);
         boolean unsigned = sqlType.contains("UNSIGNED");
         int length = Math.max(1, precision);
-        int timePrecision = Math.max(0, Math.min(scale, 9));
         if (sqlType.contains("TEXT") || sqlType.equals("JSON")
                 || sqlType.startsWith("ENUM") || sqlType.startsWith("SET")) {
             return DataTypes.STRING();
         }
         if (sqlType.startsWith("DATETIME")) {
-            return DataTypes.TIMESTAMP(timePrecision);
+            return DataTypes.TIMESTAMP(temporalPrecision(precision, scale, 19));
         }
         if (sqlType.startsWith("TIMESTAMP")) {
-            return DataTypes.TIMESTAMP_LTZ(timePrecision);
+            return DataTypes.TIMESTAMP_LTZ(temporalPrecision(precision, scale, 19));
         }
         switch (jdbcType) {
             case Types.BOOLEAN:
@@ -135,9 +136,9 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
             case Types.DATE:
                 return DataTypes.DATE();
             case Types.TIME:
-                return DataTypes.TIME(timePrecision);
+                return DataTypes.TIME(temporalPrecision(precision, scale, 8));
             case Types.TIMESTAMP:
-                return DataTypes.TIMESTAMP(timePrecision);
+                return DataTypes.TIMESTAMP(temporalPrecision(precision, scale, 19));
             default:
                 throw new IllegalArgumentException(
                         "Unsupported MySQL JDBC metadata type: "
@@ -146,5 +147,11 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
                                 + jdbcType
                                 + ")");
         }
+    }
+
+    private static int temporalPrecision(int columnSize, int scale, int wholeSecondsWidth) {
+        // Connector/J may leave DECIMAL_DIGITS null. COLUMN_SIZE includes the decimal point
+        // and fractional digits after the 8-character time or 19-character date-time.
+        return scale > 0 ? scale : Math.max(0, Math.min(6, columnSize - wholeSecondsWidth - 1));
     }
 }

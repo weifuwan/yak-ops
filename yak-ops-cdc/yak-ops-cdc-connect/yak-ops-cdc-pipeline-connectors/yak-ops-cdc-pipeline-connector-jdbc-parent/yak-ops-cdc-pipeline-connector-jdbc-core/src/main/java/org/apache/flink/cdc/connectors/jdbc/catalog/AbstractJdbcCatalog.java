@@ -67,11 +67,11 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
     }
 
     /** JDBC catalogs and schemas are different concepts; subclasses map TableId appropriately. */
-    protected String jdbcCatalog(TableId tableId) {
+    protected String jdbcCatalog(DatabaseMetaData metadata, TableId tableId) throws SQLException {
         return null;
     }
 
-    protected String jdbcSchema(TableId tableId) {
+    protected String jdbcSchema(DatabaseMetaData metadata, TableId tableId) throws SQLException {
         return tableId.getSchemaName();
     }
 
@@ -82,26 +82,29 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
     @Override
     public boolean tableExists(TableId tableId) {
         checkTableId(tableId);
-        try (Connection connection = connectionFactory.connect();
-                ResultSet tables =
-                        connection
-                                .getMetaData()
-                                .getTables(
-                                        jdbcCatalog(tableId),
-                                        jdbcSchema(tableId),
-                                        tableId.getTableName(),
-                                        new String[] {"TABLE"})) {
-            // getTables accepts a JDBC search pattern: '_' and '%' are wildcards.
-            // Check the actual table name to avoid matching a similarly named table.
-            while (tables.next()) {
-                if (tableId.getTableName().equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
-                    return true;
+        try (Connection connection = connectionFactory.connect()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            String catalog = jdbcCatalog(metadata, tableId);
+            String schemaName = jdbcSchema(metadata, tableId);
+            try (ResultSet tables =
+                    metadata.getTables(catalog, schemaName, tableId.getTableName(), new String[] {"TABLE"})) {
+                while (tables.next()) {
+                    if (matchesTable(tables, tableId, schemaName)) {
+                        return true;
+                    }
                 }
+                return false;
             }
-            return false;
         } catch (SQLException exception) {
             throw new JdbcCatalogException("Failed to inspect JDBC table " + tableId, exception);
         }
+    }
+
+    // JDBC treats both the schema and the table arguments as patterns in getTables/getColumns.
+    private static boolean matchesTable(ResultSet row, TableId tableId, String schemaName)
+            throws SQLException {
+        return tableId.getTableName().equalsIgnoreCase(row.getString("TABLE_NAME"))
+                && (schemaName == null || schemaName.equals(row.getString("TABLE_SCHEM")));
     }
 
     @Override
@@ -109,13 +112,15 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
         checkTableId(tableId);
         try (Connection connection = connectionFactory.connect()) {
             DatabaseMetaData metadata = connection.getMetaData();
+            String catalog = jdbcCatalog(metadata, tableId);
+            String schemaName = jdbcSchema(metadata, tableId);
             Schema.Builder schema = Schema.newBuilder();
             boolean hasColumns = false;
             try (ResultSet columns =
                     metadata.getColumns(
-                            jdbcCatalog(tableId), jdbcSchema(tableId), tableId.getTableName(), "%")) {
+                            catalog, schemaName, tableId.getTableName(), "%")) {
                 while (columns.next()) {
-                    if (!tableId.getTableName().equalsIgnoreCase(columns.getString("TABLE_NAME"))) {
+                    if (!matchesTable(columns, tableId, schemaName)) {
                         continue;
                     }
                     hasColumns = true;
@@ -150,7 +155,7 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
             Map<Short, String> orderedKeys = new TreeMap<>();
             try (ResultSet keys =
                     metadata.getPrimaryKeys(
-                            jdbcCatalog(tableId), jdbcSchema(tableId), tableId.getTableName())) {
+                            catalog, schemaName, tableId.getTableName())) {
                 while (keys.next()) {
                     orderedKeys.put(keys.getShort("KEY_SEQ"), keys.getString("COLUMN_NAME"));
                 }

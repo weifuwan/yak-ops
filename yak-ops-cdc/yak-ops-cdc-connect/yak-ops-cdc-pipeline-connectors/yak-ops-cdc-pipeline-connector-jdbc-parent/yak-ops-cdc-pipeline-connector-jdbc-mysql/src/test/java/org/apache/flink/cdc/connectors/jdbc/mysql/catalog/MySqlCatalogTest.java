@@ -21,16 +21,19 @@ import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataTypeRoot;
 import org.apache.flink.cdc.common.types.DecimalType;
+import org.apache.flink.cdc.common.types.DataTypes;
 import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalogException;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
 import org.apache.flink.cdc.connectors.jdbc.mysql.dialect.MySqlDialect;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -82,6 +85,87 @@ class MySqlCatalogTest {
         assertEquals("orders", metadata.columnArgs[2]);
         assertEquals("%", metadata.columnArgs[3]);
         assertTrue(metadata.connectionClosed);
+    }
+
+    @Test
+    void readsTemporalPrecisionFromConnectorJDisplayWidths() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.columns.add(column("elapsed", Types.TIME, "TIME", 12, null, true));
+        metadata.columns.add(column("created", Types.TIMESTAMP, "DATETIME", 26, null, true));
+        metadata.columns.add(column("updated", Types.TIMESTAMP, "TIMESTAMP", 26, null, true));
+        metadata.columns.add(column("whole", Types.TIMESTAMP, "DATETIME", 19, null, true));
+
+        Schema schema = createCatalog(metadata).getTableSchema(TABLE);
+
+        assertEquals(DataTypes.TIME(3), schema.getColumn("elapsed").get().getType());
+        assertEquals(DataTypes.TIMESTAMP(6), schema.getColumn("created").get().getType());
+        assertEquals(DataTypes.TIMESTAMP_LTZ(6), schema.getColumn("updated").get().getType());
+        assertEquals(DataTypes.TIMESTAMP(0), schema.getColumn("whole").get().getType());
+    }
+
+    @Test
+    void schemaModeScopesTablesColumnsAndKeysToTheRequestedDatabase() {
+        FakeMetadata metadata = new FakeMetadata();
+        metadata.schemaMode = true;
+        // The underscores in the target database also match this sibling in a JDBC LIKE pattern.
+        String sibling = "yakXe2eXtarget";
+        metadata.tables.add(Map.of("TABLE_SCHEM", sibling, "TABLE_NAME", "orders"));
+        MySqlCatalog catalog = createCatalog(metadata);
+        assertFalse(catalog.tableExists(TABLE));
+        metadata.tables.add(Map.of("TABLE_SCHEM", TABLE.getSchemaName(), "TABLE_NAME", "orders"));
+        assertTrue(catalog.tableExists(TABLE));
+        Map<String, Object> foreignColumn = column("foreign_id", Types.INTEGER, "INT", 10, 0, false);
+        foreignColumn.put("TABLE_SCHEM", sibling);
+        metadata.columns.add(foreignColumn);
+        Map<String, Object> localColumn = column("id", Types.INTEGER, "INT", 10, 0, false);
+        localColumn.put("TABLE_SCHEM", TABLE.getSchemaName());
+        metadata.columns.add(localColumn);
+        metadata.keys.add(key("id", 1));
+
+        Schema schema = catalog.getTableSchema(TABLE);
+
+        assertEquals(List.of("id"), schema.getColumnNames());
+        assertEquals(List.of("id"), schema.primaryKeys());
+        for (Object[] args : List.of(metadata.tableArgs, metadata.columnArgs, metadata.keyArgs)) {
+            assertEquals(null, args[0]);
+            assertEquals(TABLE.getSchemaName(), args[1]);
+        }
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "JDBC_CATALOG_TEST_URL", matches = ".+")
+    void readsRealMySqlMetadataInBothDatabaseModes() {
+        // The fixture has different orders tables in the default database and yak_e2e_target.
+        String url = System.getenv("JDBC_CATALOG_TEST_URL");
+        for (String term : List.of("CATALOG", "SCHEMA")) {
+            for (boolean informationSchema : List.of(true, false)) {
+                String connectionUrl = url + (url.contains("?") ? "&" : "?")
+                        + "databaseTerm=" + term + "&useInformationSchema=" + informationSchema
+                        + "&nullDatabaseMeansCurrent=true";
+                JdbcSinkConfig config = new JdbcSinkConfig.Builder<>()
+                        .connUrl(connectionUrl)
+                        .username(System.getenv("JDBC_CATALOG_TEST_USER"))
+                        .password(System.getenv("JDBC_CATALOG_TEST_PASSWORD"))
+                        .build();
+                // Open a fresh driver connection for each URL, independent of pooled connections.
+                JdbcConnectionFactory factory = new JdbcConnectionFactory(config) {
+                    @Override
+                    public Connection connect() throws SQLException {
+                        return DriverManager.getConnection(
+                                connectionUrl, config.getUsername(), config.getPassword());
+                    }
+                };
+                MySqlCatalog catalog = new MySqlCatalog(new MySqlDialect(), factory);
+                assertTrue(catalog.tableExists(TABLE));
+                assertFalse(catalog.tableExists(TableId.tableId(TABLE.getSchemaName(), "source_only")));
+                Schema schema = catalog.getTableSchema(TABLE);
+                assertEquals(List.of("id", "elapsed", "created", "updated"), schema.getColumnNames());
+                assertEquals(List.of("id"), schema.primaryKeys());
+                assertEquals(DataTypes.TIME(3), schema.getColumn("elapsed").get().getType());
+                assertEquals(DataTypes.TIMESTAMP(6), schema.getColumn("created").get().getType());
+                assertEquals(DataTypes.TIMESTAMP_LTZ(6), schema.getColumn("updated").get().getType());
+            }
+        }
     }
 
     @Test
@@ -245,7 +329,7 @@ class MySqlCatalogTest {
     }
 
     private static Map<String, Object> column(
-            String name, int type, String typeName, int precision, int scale, boolean nullable) {
+            String name, int type, String typeName, int precision, Integer scale, boolean nullable) {
         Map<String, Object> values = new HashMap<>();
         values.put("TABLE_NAME", "orders");
         values.put("COLUMN_NAME", name);
@@ -268,6 +352,8 @@ class MySqlCatalogTest {
         private final List<Map<String, Object>> keys = new ArrayList<>();
         private Object[] columnArgs;
         private Object[] tableArgs;
+        private Object[] keyArgs;
+        private boolean schemaMode;
         private boolean connectionClosed;
 
         Connection connection() {
@@ -277,6 +363,8 @@ class MySqlCatalogTest {
                             new Class<?>[] {DatabaseMetaData.class},
                             (proxy, method, args) -> {
                                 switch (method.getName()) {
+                                    case "supportsSchemasInTableDefinitions":
+                                        return schemaMode;
                                     case "getTables":
                                         tableArgs = args;
                                         return rows(tables);
@@ -284,6 +372,7 @@ class MySqlCatalogTest {
                                         columnArgs = args;
                                         return rows(columns);
                                     case "getPrimaryKeys":
+                                        keyArgs = args;
                                         return rows(keys);
                                     default:
                                         throw new UnsupportedOperationException(method.getName());
@@ -316,8 +405,8 @@ class MySqlCatalogTest {
                             case "getString":
                                 return records.get(position[0]).get((String) args[0]);
                             case "getInt":
-                                return ((Number) records.get(position[0]).get((String) args[0]))
-                                        .intValue();
+                                Number value = (Number) records.get(position[0]).get((String) args[0]);
+                                return value == null ? 0 : value.intValue();
                             case "getShort":
                                 return ((Number) records.get(position[0]).get((String) args[0]))
                                         .shortValue();
