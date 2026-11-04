@@ -26,36 +26,27 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import lombok.extern.slf4j.Slf4j;
-
 @Import(DaoConfiguration.class)
 @SpringBootApplication
-public class UpgradeDolphinScheduler {
+public class InitializeDolphinScheduler {
 
     public static void main(String[] args) {
-        SpringApplication.run(UpgradeDolphinScheduler.class, args);
+        SpringApplication.run(InitializeDolphinScheduler.class, args);
     }
 
     @Component
-    @Profile("upgrade")
-    @Slf4j
-    static class UpgradeRunner implements CommandLineRunner {
+    @Profile("init")
+    static class InitializeRunner implements CommandLineRunner {
 
         private final DolphinSchedulerManager dolphinSchedulerManager;
 
-        UpgradeRunner(DolphinSchedulerManager dolphinSchedulerManager) {
+        InitializeRunner(DolphinSchedulerManager dolphinSchedulerManager) {
             this.dolphinSchedulerManager = dolphinSchedulerManager;
         }
 
         @Override
         public void run(String... args) throws Exception {
-            if (dolphinSchedulerManager.schemaIsInitialized()) {
-                dolphinSchedulerManager.upgradeDolphinScheduler();
-                log.info("upgrade DolphinScheduler finished");
-            } else {
-                dolphinSchedulerManager.initDolphinScheduler();
-                log.info("init DolphinScheduler finished");
-            }
+            dolphinSchedulerManager.initializeOrValidate();
         }
     }
 }

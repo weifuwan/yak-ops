@@ -17,61 +17,13 @@
 
 package org.apache.dolphinscheduler.tools.datasource.utils;
 
-import org.apache.commons.collections4.CollectionUtils;
-
-import java.io.IOException;
-import java.util.List;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class SchemaUtilsTest {
 
     @Test
-    void testIsAGreatVersion() {
-        // param is null
-        try {
-            SchemaUtils.isAGreatVersion(null, null);
-        } catch (RuntimeException e) {
-            Assertions.assertEquals("schemaVersion or version is empty", e.getMessage());
-        }
-
-        // param is ""
-        try {
-            SchemaUtils.isAGreatVersion("", "");
-        } catch (RuntimeException e) {
-            Assertions.assertEquals("schemaVersion or version is empty", e.getMessage());
-        }
-        Assertions.assertFalse(SchemaUtils.isAGreatVersion("1", "1"));
-        Assertions.assertTrue(SchemaUtils.isAGreatVersion("2", "1"));
-        Assertions.assertTrue(SchemaUtils.isAGreatVersion("1.1", "1"));
-        Assertions.assertTrue(SchemaUtils.isAGreatVersion("1.1", "1.0.1"));
-        Assertions.assertFalse(SchemaUtils.isAGreatVersion("1.1", "1.2"));
-        Assertions.assertTrue(SchemaUtils.isAGreatVersion("1.1.1", "1.1"));
-        Assertions.assertTrue(SchemaUtils.isAGreatVersion("10.1.1", "1.01.100"));
-        try {
-            SchemaUtils.isAGreatVersion("10.1.1", ".1");
-            Assertions.fail("Should fail");
-        } catch (Exception ignored) {
-            // This is expected
-        }
-        try {
-            SchemaUtils.isAGreatVersion("a.1.1", "b.1");
-            Assertions.fail("Should fail");
-        } catch (Exception ignored) {
-            // This is expected
-        }
+    void testDatabaseBaseline() throws Exception {
+        Assertions.assertEquals("3.4.3", SchemaUtils.getSoftVersion());
     }
-
-    @Test
-    void testGetAllSchemaList() {
-        List<String> list = null;
-        try {
-            list = SchemaUtils.getAllSchemaList();
-        } catch (IOException ex) {
-            Assertions.fail(ex.getMessage());
-        }
-        Assertions.assertFalse(CollectionUtils.isEmpty(list), "Can not find any schema files");
-    }
-
 }

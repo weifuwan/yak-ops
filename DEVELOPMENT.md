@@ -15,10 +15,10 @@ The module-level `former Scheduler subtree's CLAUDE.md` files were removed becau
 - **Workflow execution:** `yak-ops-master` consumes persisted workflow commands and owns workflow/task state machines, execution graph, dispatch, event handlers, and failover. `yak-ops-worker` uses `yak-ops-task-executor` and task plugins to execute dispatched tasks. Do not bypass workflow lifecycle events with direct ad-hoc state changes.
 - **Scheduling:** `yak-ops-scheduler-plugin` exposes `SchedulerApi` with a Quartz implementation. The current schedule is bound to a DolphinScheduler workflow definition: cron fires -> workflow command is inserted -> Master processes the workflow -> Worker executes tasks. Do not present Quartz as directly scheduling Yak Ops CDC until the separate integration is implemented. Keep Quartz types behind the scheduler abstraction.
 - **Communication and coordination:** `yak-ops-registry` provides server registration and coordination; `yak-ops-extract` contains Master/Worker/Alert RPC contracts; `yak-ops-eventbus` handles in-process engine events. Changing RPC contracts, leader/failover behavior, or workflow lifecycle requires targeted tests.
-- **Persistence:** `yak-ops-dao` contains entities, mappers, repositories, SQL schema/upgrade assets; `yak-ops-dao-plugin` supplies H2/MySQL/PostgreSQL dialect implementations. Preserve database entity/column mappings and evaluate schema upgrade paths together with code changes.
+- **Persistence:** `yak-ops-dao` contains entities, mappers, repositories, 3.4.3 baseline SQL schemas; `yak-ops-dao-plugin` supplies H2/MySQL/PostgreSQL dialect implementations. Preserve database entity/column mappings; databases older than the 3.4.3 baseline are unsupported.
 - **Extension points:** `yak-ops-spi`, task/data-source/storage/scheduler/alert plugins are separate concerns. Task factories are discovered through SPI and task type names may be persisted in the database; removing or renaming one is a compatibility decision. `yak-ops-bom` manages imported dependency versions; `yak-ops-common`, `yak-ops-service`, `yak-ops-meter`, and `yak-ops-authentication` provide shared infrastructure.
 - **Standalone:** `yak-ops-standalone-server` starts the imported API/Master/Worker/Alert services in one JVM for development and smoke testing. Default H2 state is ephemeral. Standalone's Maven module declares many dependencies as `provided`; use the documented launcher/classpath rather than assuming a standalone jar can run alone. Stage 2 removed the independent API/Master/Worker/Alert launch scripts and their assembly distributions, but retained the service JARs required by Standalone. The Maven-based `scripts/run-scheduler-standalone.sh` development entry point remains the supported smoke-test path. Standalone's original distribution `bin/start.sh` is retained for provenance; its assembled runtime/classpath has not been separately validated.
-- **Tools and provenance:** `yak-ops-tools` retains schema initialization/upgrade code, SQL and `upgrade-schema.sh`; the one-off lineage/resource migration classes and launchers were removed in stage 2. Its assembly now points at the imported `yak-ops-dao` and `yak-ops-common` resource trees. `docs/scheduler/MIGRATION_MANIFEST.json` records the **original import baseline**, not subsequent changes to the checked-in tree. Keep Apache `LICENSE`, `NOTICE`, and relevant third-party license files. The obsolete original-distribution `config/plugins_config` inventory was removed in the documentation cleanup.
+- **Tools and provenance:** `yak-ops-tools` retains 3.4.3 schema initialization and version checks, SQL and `init-schema.sh`; the one-off lineage/resource migration classes and launchers were removed in stage 2. Its assembly now points at the imported `yak-ops-dao` and `yak-ops-common` resource trees. `docs/scheduler/MIGRATION_MANIFEST.json` records the **original import baseline**, not subsequent changes to the checked-in tree. Keep Apache `LICENSE`, `NOTICE`, and relevant third-party license files. The obsolete original-distribution `config/plugins_config` inventory was removed in the documentation cleanup.
 - **Security:** `TaskExecutionContext` and datasource parameters can contain passwords, tokens, and access keys. Avoid logging raw task contexts or credentials.
 
 These notes describe the imported architecture, **not** a completed Yak Ops UI/CDC integration. Do not delete Master, Worker, registry, extract, Quartz, or runtime modules based only on a standalone deployment preference; first identify their callers and replace the relevant execution contracts.
@@ -26,8 +26,8 @@ These notes describe the imported architecture, **not** a completed Yak Ops UI/C
 ## Scheduler stage 2 cleanup
 
 - Removed the four *independent service distributions* (API, Master, Worker, Alert) and their shell launchers, not the underlying service Java classes or POM modules.
-- Removed the one-time DolphinScheduler lineage/resource migration applications and launchers; kept the schema manager, SQL migrations, integration test sources and tools assembly.
-- Corrected the `yak-ops-tools` assembly source paths to the `yak-ops-*` modules and made `upgrade-schema.sh` usable without the obsolete global DolphinScheduler environment script. Specify the database profile with `DATABASE=mysql` or `DATABASE=postgresql` and Spring datasource environment variables.
+- Removed the one-time DolphinScheduler lineage/resource migration applications and launchers; kept the schema manager, SQL baseline, integration test sources and tools assembly.
+- Corrected the `yak-ops-tools` assembly source paths to the `yak-ops-*` modules and made `init-schema.sh` usable without the obsolete global DolphinScheduler environment script. Specify the database profile with `DATABASE=mysql` or `DATABASE=postgresql` and Spring datasource environment variables.
 - Preserved `yak-ops-standalone-server`, its source launcher/configuration, and `scripts/run-scheduler-standalone.sh`. The Maven exec Standalone smoke path remains authoritative. The archived original standalone directory distribution has **not** been certified to run independently after removal of the separate service distributions.
 - `MIGRATION_MANIFEST.json` continues to record historical import provenance, not a list of files guaranteed to exist after cleanup.
 
@@ -36,7 +36,7 @@ These notes describe the imported architecture, **not** a completed Yak Ops UI/C
 - Removed unused Kubernetes and YARN application managers, Kubernetes task execution classes and Kubernetes task context fields. The shell command executor now cancels the local process tree only; this does **not** kill remote YARN/Kubernetes jobs.
 - Removed Kubernetes Namespace management endpoints, permission/audit objects, mapper/repository Java code, namespace tests and the direct Fabric8 Kubernetes client dependencies.
 - Removed Master’s explicit Hadoop client/common dependencies, while keeping Hadoop in the datasource API where `CommonUtils` still implements Kerberos `UserGroupInformation` logic.
-- Preserved workflow, Master, Worker, Quartz, standalone startup, data source Kerberos support, and historical SQL upgrades (including old namespace tables for compatibility).
+- Preserved workflow, Master, Worker, Quartz, standalone startup, data source Kerberos support, and 3.4.3 baseline schema (including old namespace tables for compatibility).
 - Legacy `Queue` CRUD and `YARN_QUEUE` audit labels remain because user/tenant queue metadata and their APIs are still coupled to these models. They do not provide a YARN application client.
 - The original import manifest is historical provenance; removed files will still appear in its original source list. Revalidate compilation and selected workflow tests after this change.
 
@@ -125,3 +125,15 @@ CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-o
 - The automatic backend test command is `bash mvnw -B -ntp -pl :yak-ops-common,:yak-ops-spi -am -Dtest=DAGTest,WorkflowExecutionStatusTest,MaskUtilsTest,PluginParamsTransferTest,PrioritySPIFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test` (JDK 11). The CI also requires nonempty Surefire XML reports in both selected modules.
 
 The original DolphinScheduler root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the one-time importer is blocked when the historical manifest exists.
+
+## Database schema baseline
+
+Yak Ops uses the complete DolphinScheduler 3.4.3 SQL schema as its first supported database version.
+Historical `sql/upgrade/` migrations and the old 3.0.0 upgrade test fixtures were removed.
+The tools launcher is now `init-schema.sh`: it initializes an empty MySQL/PostgreSQL
+schema or validates an existing 3.4.3 schema without modifying it. Earlier versions,
+missing version metadata, and partial installations are rejected rather than overwritten.
+Run H2 initialization tests with `InitializeH2SchemaTest`; MySQL/PostgreSQL
+`InitializeSchemaIT` classes require a local Docker daemon.
+
+To compile the tools module and prerequisites, use `bash mvnw -B -ntp -pl :yak-ops-tools -am -DskipTests -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true package`.

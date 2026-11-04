@@ -18,21 +18,10 @@
 package org.apache.dolphinscheduler.tools.datasource;
 
 import org.apache.dolphinscheduler.dao.plugin.api.dialect.DatabaseDialect;
-import org.apache.dolphinscheduler.tools.datasource.upgrader.DolphinSchedulerUpgrader;
-import org.apache.dolphinscheduler.tools.datasource.upgrader.DolphinSchedulerVersion;
-import org.apache.dolphinscheduler.tools.datasource.upgrader.UpgradeDao;
 import org.apache.dolphinscheduler.tools.datasource.utils.SchemaUtils;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,74 +30,63 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DolphinSchedulerManager {
 
-    @Autowired
-    private UpgradeDao upgradeDao;
+    private final SchemaDao schemaDao;
 
-    @Autowired
-    private DatabaseDialect databaseDialect;
+    private final DatabaseDialect databaseDialect;
 
-    private Map<DolphinSchedulerVersion, DolphinSchedulerUpgrader> upgraderMap = new HashMap<>();
-
-    public DolphinSchedulerManager(List<DolphinSchedulerUpgrader> dolphinSchedulerUpgraders) throws Exception {
-        if (CollectionUtils.isNotEmpty(dolphinSchedulerUpgraders)) {
-            upgraderMap = dolphinSchedulerUpgraders.stream()
-                    .collect(Collectors.toMap(DolphinSchedulerUpgrader::getCurrentVersion, Function.identity()));
-        }
-    }
-
-    public void initDolphinScheduler() {
-        this.initDolphinSchedulerSchema();
+    public DolphinSchedulerManager(SchemaDao schemaDao, DatabaseDialect databaseDialect) {
+        this.schemaDao = schemaDao;
+        this.databaseDialect = databaseDialect;
     }
 
     /**
-     * whether schema is initialized
-     * @return true if schema is initialized
+     * Initialize a new database from the 3.4.3 schema or validate an existing database.
+     * Historical database upgrades are intentionally unsupported.
      */
-    public boolean schemaIsInitialized() {
-        // Determines whether the dolphinscheduler table structure has been init
+    public void initializeOrValidate() throws IOException {
+        if (databaseDialect.tableExists("t_ds_version")) {
+            validateCurrentVersion();
+            log.info("Database schema is already initialized at version {}", SchemaUtils.getSoftVersion());
+            return;
+        }
+
+        // The full initialization SQL contains DROP TABLE statements. Never execute it over
+        // a partially initialized database or an unsupported historical installation.
         if (databaseDialect.tableExists("t_escheduler_version")
-                || databaseDialect.tableExists("t_ds_version")
-                || databaseDialect.tableExists("t_escheduler_queue")) {
-            log.info("The database has been initialized. Skip the initialization step");
-            return true;
-        }
-        return false;
-    }
-
-    public void initDolphinSchedulerSchema() {
-        log.info("Start initializing the DolphinScheduler manager table structure");
-        upgradeDao.initSchema();
-    }
-
-    public void upgradeDolphinScheduler() throws IOException {
-        // Gets a list of all upgrades
-        List<String> schemaList = SchemaUtils.getAllSchemaList();
-        if (schemaList == null || schemaList.isEmpty()) {
-            log.info("There is no schema to upgrade!");
-        } else {
-            String version;
-            // Get the version of the current system
-            if (databaseDialect.tableExists("t_ds_version")) {
-                version = upgradeDao.getCurrentVersion("t_ds_version");
-            } else {
-                log.error("Unable to determine current software version, so cannot upgrade");
-                throw new RuntimeException("Unable to determine current software version, so cannot upgrade");
-            }
-            // The target version of the upgrade
-            String schemaVersion;
-            for (String schemaDir : schemaList) {
-                schemaVersion = schemaDir.split("_")[0];
-                if (SchemaUtils.isAGreatVersion(schemaVersion, version)) {
-                    log.info("upgrade DolphinScheduler metadata version from {} to {}", version, schemaVersion);
-                    log.info("Begin upgrading DolphinScheduler's table structure");
-                    upgradeDao.upgradeDolphinScheduler(schemaDir);
-                    DolphinSchedulerVersion.getVersion(schemaVersion).ifPresent(v -> upgraderMap.get(v).doUpgrade());
-                    version = schemaVersion;
-                }
-            }
+                || databaseDialect.tableExists("t_escheduler_queue")
+                || databaseDialect.tableExists("t_ds_user")
+                || databaseDialect.tableExists("t_ds_workflow_instance")
+                || databaseDialect.tableExists("QRTZ_JOB_DETAILS")) {
+            throw new IllegalStateException(
+                    "Existing DolphinScheduler tables detected without t_ds_version; "
+                            + "refusing destructive schema initialization");
         }
 
-        // Assign the value of the version field in the version table to the version of the product
-        upgradeDao.updateVersion(SchemaUtils.getSoftVersion());
+        log.info("Initializing database schema from the 3.4.3 baseline");
+        schemaDao.initSchema();
+        validateCurrentVersion();
+        log.info("Database schema initialization finished");
+    }
+
+    public void validateCurrentVersion() throws IOException {
+        if (!databaseDialect.tableExists("t_ds_version")) {
+            throw new IllegalStateException("Required t_ds_version table is missing");
+        }
+
+        String expectedVersion = SchemaUtils.getSoftVersion();
+        String actualVersion = schemaDao.getCurrentVersion();
+        if (!expectedVersion.equals(actualVersion)) {
+            throw new IllegalStateException(
+                    "Unsupported database schema version " + actualVersion
+                            + "; Yak Ops requires " + expectedVersion
+                            + " and does not support historical database upgrades");
+        }
+
+        if (!databaseDialect.tableExists("t_ds_user")
+                || !databaseDialect.tableExists("t_ds_workflow_instance")
+                || !databaseDialect.tableExists("t_ds_task_instance")) {
+            throw new IllegalStateException(
+                    "Database schema version matches but required 3.4.3 tables are missing");
+        }
     }
 }

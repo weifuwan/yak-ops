@@ -18,7 +18,7 @@
 package org.apache.dolphinscheduler.tools.datasource.postgresql;
 
 import org.apache.dolphinscheduler.dao.DaoConfiguration;
-import org.apache.dolphinscheduler.tools.datasource.UpgradeDolphinScheduler;
+import org.apache.dolphinscheduler.tools.datasource.InitializeDolphinScheduler;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -33,7 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ActiveProfiles("postgresql")
-@SpringBootTest(classes = {UpgradeDolphinScheduler.class, DaoConfiguration.class})
+@SpringBootTest(classes = {InitializeDolphinScheduler.class, DaoConfiguration.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public @interface DolphinSchedulerPostgresqlProfile {
 

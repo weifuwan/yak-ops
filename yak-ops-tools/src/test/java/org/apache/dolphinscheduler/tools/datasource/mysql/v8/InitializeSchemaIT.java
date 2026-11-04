@@ -17,46 +17,51 @@
 
 package org.apache.dolphinscheduler.tools.datasource.mysql.v8;
 
-import org.apache.dolphinscheduler.common.sql.SqlScriptRunner;
 import org.apache.dolphinscheduler.tools.datasource.DolphinSchedulerManager;
 import org.apache.dolphinscheduler.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
 import org.apache.dolphinscheduler.tools.datasource.mysql.DolphinSchedulerMysqlProfile;
 
-import java.io.IOException;
-import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import javax.sql.DataSource;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @DolphinSchedulerMysqlProfile
 @DolphinSchedulerDatabaseContainer(imageName = "mysql:8.0")
-class UpgradeWithMysqlIT {
+class InitializeSchemaIT {
 
     @Autowired
-    private DolphinSchedulerManager dolphinSchedulerManager;
+    private DolphinSchedulerManager manager;
 
     @Autowired
     private DataSource dataSource;
 
     @Test
-    @DisplayName("Test Upgrade DolphinScheduler database in MySQL")
-    void testUpgradeWithMysqlProfile() throws SQLException, IOException {
+    void initializeBaselineAndPreserveExistingData() throws Exception {
+        manager.initializeOrValidate();
 
-        // initialize the 3.0.0 schema
-        SqlScriptRunner sqlScriptRunner = new SqlScriptRunner(dataSource, "3.0.0_schema/mysql_3.0.0.sql");
-        sqlScriptRunner.execute();
-        log.info("Initialize the 3.0.0 schema successfully.");
+        try (Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT version FROM t_ds_version")) {
+                Assertions.assertTrue(resultSet.next());
+                Assertions.assertEquals("3.4.3", resultSet.getString(1));
+            }
+            Assertions.assertEquals(1, statement.executeUpdate(
+                    "UPDATE t_ds_user SET user_name = 'baseline_preserved' WHERE id = 1"));
+        }
 
-        Assertions.assertDoesNotThrow(() -> dolphinSchedulerManager.upgradeDolphinScheduler());
-        // todo: Assert table count
-
+        // An initialized database must not be replaced by the DROP TABLE-based full SQL.
+        manager.initializeOrValidate();
+        try (Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery("SELECT user_name FROM t_ds_user WHERE id = 1")) {
+            Assertions.assertTrue(resultSet.next());
+            Assertions.assertEquals("baseline_preserved", resultSet.getString(1));
+        }
     }
-
 }

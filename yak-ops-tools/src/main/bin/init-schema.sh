@@ -18,8 +18,6 @@
 
 set -euo pipefail
 
-# This script runs from the standalone tools assembly, without requiring the
-# removed DolphinScheduler distribution's global bin/env directory.
 BIN_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_HOME="$(cd -- "${BIN_DIR}/.." && pwd)"
 DATABASE="${DATABASE:-postgresql}"
@@ -47,5 +45,5 @@ read -r -a JVM_OPTS <<< "${JAVA_OPTS:--server -Xms256m -Xmx1g -XX:+HeapDumpOnOut
 
 exec "${JAVA_BIN}" "${JVM_OPTS[@]}" \
   -cp "${TOOLS_HOME}/conf:${TOOLS_HOME}/sql:${TOOLS_HOME}/libs/*" \
-  -Dspring.profiles.active="upgrade,${DATABASE}" \
-  org.apache.dolphinscheduler.tools.datasource.UpgradeDolphinScheduler "$@"
+  -Dspring.profiles.active="init,${DATABASE}" \
+  org.apache.dolphinscheduler.tools.datasource.InitializeDolphinScheduler "$@"
