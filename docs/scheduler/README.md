@@ -32,7 +32,7 @@ The historical import manifest retains paths from the former `yak-ops-scheduler/
 **Quartz does not directly run Yak Ops CDC pipelines.** The imported scheduler associates a schedule with a DolphinScheduler workflow definition. Quartz triggers a workflow command, then Master drives the workflow lifecycle and sends tasks to Worker.
 
 The imported Standalone mode is a development/smoke-test entry point with H2; it is not a production-ready integrated Yak Ops server. H2 in-memory state does not survive a restart.
-For an existing Quartz database, run the **read-only** [class-name compatibility query](../../scripts/check-quartz-job-classes.sql) before starting the renamed Scheduler. It lists any persisted `org.apache.dolphinscheduler.*` Job classes that need a deliberate, backed-up migration. Do not automatically rewrite arbitrary serialized records; a fresh 3.4.3 baseline database needs no historical class-name migration.
+For an existing Quartz database, run the **read-only** [class-name compatibility query](../../scripts/check-quartz-job-classes.sql) before starting the renamed Scheduler. It checks both persisted `org.apache.dolphinscheduler.*` Job classes and old Quartz `SCHED_NAME = 'DolphinScheduler'` triggers. The renamed config uses `SCHED_NAME = 'YakOps'`; changing only `JOB_CLASS_NAME` is insufficient when existing jobs/triggers are still associated with the old scheduler name. Do not automatically rewrite arbitrary serialized records; a fresh 3.4.3 baseline database needs no historical class-name migration.
 
 
 ## Current integration status

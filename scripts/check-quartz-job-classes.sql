@@ -7,3 +7,11 @@ FROM QRTZ_JOB_DETAILS
 WHERE JOB_CLASS_NAME LIKE 'org.apache.dolphinscheduler.%'
 GROUP BY JOB_CLASS_NAME
 ORDER BY JOB_CLASS_NAME;
+
+-- Check old Quartz scheduler identity separately: the renamed configuration uses YakOps.
+-- Old SCHED_NAME values can prevent new instances from seeing existing triggers.
+-- Do not UPDATE SCHED_NAME in one table only: Quartz references it across QRTZ_* tables.
+SELECT SCHED_NAME, COUNT(*) AS TRIGGER_COUNT
+FROM QRTZ_TRIGGERS
+WHERE SCHED_NAME = 'DolphinScheduler'
+GROUP BY SCHED_NAME;

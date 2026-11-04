@@ -79,7 +79,7 @@ npm run typecheck
 npm run build
 ```
 
-Use JDK 11 for Scheduler compilation while its upstream Lombok baseline is retained; JDK 21 currently fails on older Lombok javac internals. YakOps originally targets Java 8, Maven version 3.4.4-SNAPSHOT and Spring Boot 2.x. The imported module coordinates use 1.4.0 and an independent upstream-based Maven parent. Do not silently align these dependencies with the CDC Java 17/Flink 1.20.3 baseline or the root Spring Boot 3.3.x parent.
+Use JDK 11 for Scheduler compilation while its upstream Lombok baseline is retained; JDK 21 currently fails on older Lombok javac internals. The imported Apache DolphinScheduler source originally targets Java 8, Maven version 3.4.4-SNAPSHOT and Spring Boot 2.x. The imported module coordinates use 1.4.0 and an independent upstream-based Maven parent. Do not silently align these dependencies with the CDC Java 17/Flink 1.20.3 baseline or the root Spring Boot 3.3.x parent.
 
 ## Scheduler Stage 6 acceptance (JDK 11)
 
@@ -119,12 +119,12 @@ CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-o
 - Preserve the `io.yak.ops` Java package structure and Apache-2.0 obligations through LICENSE/NOTICE; standard ASF file headers were removed in the post-rename cleanup. Preserve file-specific third-party notices and keep runtime resource/class-name references aligned.
 - Keep tests and resources for all imported modules. An unexecuted test is not a pass.
 - Native Scheduler Maven validation, dependency resolution, compilation and Standalone runtime acceptance are separate milestones.
-- Optional YARN, Spark, Hadoop, Hive, Kubernetes and original YakOps UI features are not declared operational.
+- Optional YARN, Spark, Hadoop, Hive, Kubernetes and original DolphinScheduler UI features are not declared operational.
 - The Yak Ops UI and CDC modules are not yet wired to the imported Scheduler API and Task Engine.
 - GitHub Actions has one workflow: **Backend Tests** (selected Scheduler common/SPI JUnit tests on JDK 11). UI, CDC and Scheduler formatting is handled locally with Oxfmt/Spotless and is not a CI gate. CDC test suites, frontend checks, Windows/full reactor compilation, Scheduler integration/Standalone smoke and migration jobs are manual-only. Do not restore formatting or stage-specific workflows.
 - The automatic backend test command is `bash mvnw -B -ntp -pl :yak-ops-common,:yak-ops-spi -am -Dtest=DAGTest,WorkflowExecutionStatusTest,MaskUtilsTest,PluginParamsTransferTest,PrioritySPIFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test` (JDK 11). The CI also requires nonempty Surefire XML reports in both selected modules.
 
-The original YakOps root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the one-time importer is blocked when the historical manifest exists.
+The original Apache DolphinScheduler root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the one-time importer is blocked when the historical manifest exists.
 
 ## Database schema baseline
 

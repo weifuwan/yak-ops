@@ -30,7 +30,7 @@
 **Quartz 触发器不会直接运行 CDC Pipeline。** 当前实现将 Schedule 绑定到 DolphinScheduler 的 Workflow Definition；触发后生成 Workflow Command，由 Master 推进 Workflow，再派发 Task 给 Worker。
 
 Standalone 是开发和冒烟验证入口，不等于已经完成 Yak Ops 生产集成。默认内存 H2 的状态不会在重启后保留。
-使用现有 Quartz 数据库升级时，启动改名后的 Scheduler 前，先执行[只读的 Job 类名兼容检查 SQL](../../scripts/check-quartz-job-classes.sql)，检查是否仍保存 `org.apache.dolphinscheduler.*` 类名。若有命中，先停调度实例、备份数据库，再逐项迁移；不要自动替换序列化字段。全新的 3.4.3 基线数据库无需历史类名迁移。
+使用现有 Quartz 数据库升级时，启动改名后的 Scheduler 前，先执行[只读的 Job 类名兼容检查 SQL](../../scripts/check-quartz-job-classes.sql)，检查是否仍保存 `org.apache.dolphinscheduler.*` 类名，以及旧 Quartz 调度器名 `SCHED_NAME = 'DolphinScheduler'`。新配置使用 `YakOps`，若旧调度器标识仍存在，仅更新 `JOB_CLASS_NAME` 不足以恢复原有触发器。若有命中，先停调度实例、备份数据库，再逐项迁移；不要自动替换序列化字段。全新的 3.4.3 基线数据库无需历史类名迁移。
 
 
 ## 当前验证与集成状态
