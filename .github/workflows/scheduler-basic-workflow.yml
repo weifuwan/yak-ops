@@ -24,7 +24,7 @@ jobs:
           cache: maven
       - name: Run one upstream WorkflowStartBasicTestCase
         run: |
-          bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+          bash mvnw -B -ntp -f pom.xml \
             -pl :yak-ops-master -am \
             -Dtest=WorkflowStartBasicTestCase#testStartWorkflow_with_oneSuccessTask \
             -Dsurefire.failIfNoSpecifiedTests=false \
@@ -34,6 +34,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: scheduler-basic-workflow-test-report
-          path: 'yak-ops-scheduler/**/target/surefire-reports/**'
+          path: 'yak-ops-*/**/target/surefire-reports/**'
           if-no-files-found: warn
           retention-days: 7

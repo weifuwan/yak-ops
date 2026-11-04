@@ -4,12 +4,16 @@ on:
   push:
     branches: [main, dev]
     paths:
-      - 'yak-ops-scheduler/**'
+      - 'yak-ops-*/**'
+      - '!yak-ops-cdc/**'
+      - '!yak-ops-ui/**'
       - 'pom.xml'
       - '.github/workflows/scheduler-build.yml'
   pull_request:
     paths:
-      - 'yak-ops-scheduler/**'
+      - 'yak-ops-*/**'
+      - '!yak-ops-cdc/**'
+      - '!yak-ops-ui/**'
       - 'pom.xml'
       - '.github/workflows/scheduler-build.yml'
   workflow_dispatch:
@@ -19,7 +23,7 @@ permissions:
 
 jobs:
   maven-model:
-    name: Validate imported Maven reactor
+    name: Validate unified Maven reactor
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
@@ -30,7 +34,7 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Validate Scheduler POM and reactor
-        run: bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+        run: bash mvnw -B -ntp -pl :yak-ops validate
 
   eventbus-smoke:
     name: Compile Scheduler EventBus

@@ -70,10 +70,23 @@ limitations under the License.
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <java.version>17</java.version>
+        <!-- Keep CDC's Java and formatter independent from the Scheduler parent. -->
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <jacoco.skip>true</jacoco.skip>
+        <analyze.skip>true</analyze.skip>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Replaces dependency versions formerly inherited from the Spring Boot 3 parent. -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>3.3.13</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <dependency>
                 <!-- Used for code generation -->
                 <groupId>org.codehaus.janino</groupId>
@@ -255,12 +268,21 @@ limitations under the License.
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration combine.self="override">
+                    <release>${java.version}</release>
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <configuration>
-                    <!-- Do not inherit the application's Palantir format rules for
-                         the upstream Flink CDC source tree. -->
-                    <java combine.self="override">
+                <version>3.10.2</version>
+                <configuration combine.self="override">
+                    <!-- Preserve the imported Flink CDC source's existing format. -->
+                    <java>
                         <includes>
                             <include>src/main/java/**/*.java</include>
                         </includes>
@@ -268,6 +290,17 @@ limitations under the License.
                         <endWithNewline/>
                     </java>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>scheduler-spotless-check</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>cdc-spotless-check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

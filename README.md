@@ -4,7 +4,7 @@ Yak Ops maintains three independently evolving workspaces:
 
 - [yak-ops-ui](yak-ops-ui/) — the existing React frontend, unchanged by the scheduler import.
 - [yak-ops-cdc](yak-ops-cdc/) — Flink CDC 1.20.3 pipeline CLI, runtime, MySQL CDC source and JDBC sink.
-- [yak-ops-scheduler](yak-ops-scheduler/) — source-preserving migration of Apache DolphinScheduler 3.4.3-release.
+- [Scheduler modules](docs/scheduler/README.md) — source-preserving migration of Apache DolphinScheduler 3.4.3-release.
 
 ## DolphinScheduler import status
 
@@ -12,18 +12,18 @@ The Scheduler source baseline is [apache/dolphinscheduler commit 26228f9c](https
 
 Core Master, Worker, Task Executor, Workflow Engine, DAO, Service, SPI, Registry, Scheduler, EventBus, Extract, Alert, Authentication, API and Standalone source trees have been imported without changing Java packages or source bodies. Tests and resources are retained. The separate DolphinScheduler UI, distribution and optional big-data-specific plugins are not included in the active source tree.
 
-See [the full manifest](yak-ops-scheduler/MIGRATION_MANIFEST.json) for each imported source path, its original SHA-256, and exclusions, and [the migration notes](yak-ops-scheduler/UPSTREAM.md) for provenance. Most source files remain upstream-identical; Maven metadata and one legacy StAX dependency exclusion were adapted. Separate CI now verifies all 99 imported Maven modules compile, a basic H2-backed Workflow executes, and Standalone starts with H2 and reports health UP.
+See [the full manifest](docs/scheduler/MIGRATION_MANIFEST.json) for each imported source path, its original SHA-256, and exclusions, and [the migration notes](docs/scheduler/UPSTREAM.md) for provenance. Most source files remain upstream-identical; Maven metadata and one legacy StAX dependency exclusion were adapted. Historical CI verified the imported Scheduler Maven modules compile, a basic H2-backed Workflow executes, and Standalone starts with H2 and reports health UP.
 
 ## Local development
 
-Java 21 and the checked-in Maven wrapper are used for the existing Yak Ops reactor. The migrated Scheduler subtree retains the upstream Java 8 / Spring Boot 2.x conventions and has been compiled and started under JDK 11 in CI. It is still not integrated with the separate Flink CDC runtime.
+The shared reactor keeps Scheduler's Java 8 / Spring Boot 2.x baseline and its JDK 11 verification workflow. CDC separately targets Java 17 with Spring Boot 3.3 dependency management and is built on JDK 21. It is still not integrated with the separate Flink CDC runtime.
 
 ```sh
 # Inspect newly imported Scheduler Maven reactor
-bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+bash mvnw -B -ntp -pl :yak-ops validate
 
 # With JDK 11: full Scheduler source compile and standalone H2 startup
-# bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile
+# bash scripts/compile-scheduler.sh
 # bash scripts/run-scheduler-standalone.sh
 
 # Build CDC CLI and runtime dependencies without tests

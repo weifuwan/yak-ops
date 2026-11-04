@@ -24,7 +24,7 @@ jobs:
           cache: maven
       - name: Identify the transitive stax-api source
         run: |
-          bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+          bash mvnw -B -ntp -f pom.xml \
             -pl :yak-ops-standalone-server -am \
             org.apache.maven.plugins:maven-dependency-plugin:3.6.1:tree \
             -Dverbose -Dincludes=stax:stax-api

@@ -5,11 +5,11 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/scheduler-standalone-smoke.yml'
-      - 'yak-ops-scheduler/yak-ops-common/pom.xml'
-      - 'yak-ops-scheduler/yak-ops-standalone-server/pom.xml'
-      - 'yak-ops-scheduler/yak-ops-api/pom.xml'
-      - 'yak-ops-scheduler/yak-ops-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/**'
-      - 'yak-ops-scheduler/yak-ops-bom/pom.xml'
+      - 'yak-ops-common/pom.xml'
+      - 'yak-ops-standalone-server/pom.xml'
+      - 'yak-ops-api/pom.xml'
+      - 'yak-ops-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/**'
+      - 'yak-ops-bom/pom.xml'
   workflow_dispatch:
 
 permissions:
@@ -29,24 +29,24 @@ jobs:
           cache: maven
       - name: Build all Standalone dependencies
         run: |
-          bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+          bash mvnw -B -ntp -f pom.xml \
             -pl :yak-ops-bom,:yak-ops-standalone-server -am \
             -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true \
             -Danalyze.skip=true -Dbuild.assembly.skip=true install
       - name: Assemble standalone classpath resources
         run: |
-          conf=yak-ops-scheduler/yak-ops-standalone-server/target/classes
+          conf=yak-ops-standalone-server/target/classes
           mkdir -p "$conf/sql"
-          cp yak-ops-scheduler/yak-ops-api/src/main/resources/task-type-config.yaml "$conf/"
-          cp yak-ops-scheduler/yak-ops-api/src/main/resources/dynamic-task-type-config.yaml "$conf/"
-          cp yak-ops-scheduler/yak-ops-dao/src/main/resources/sql/dolphinscheduler_h2.sql "$conf/sql/"
+          cp yak-ops-api/src/main/resources/task-type-config.yaml "$conf/"
+          cp yak-ops-api/src/main/resources/dynamic-task-type-config.yaml "$conf/"
+          cp yak-ops-dao/src/main/resources/sql/dolphinscheduler_h2.sql "$conf/sql/"
       - name: Run Standalone and probe HTTP health
         shell: bash
         run: |
           set -euo pipefail
           set +e
           timeout 100s bash mvnw -B -ntp \
-            -f yak-ops-scheduler/yak-ops-standalone-server/pom.xml \
+            -f yak-ops-standalone-server/pom.xml \
             -Dexec.mainClass=org.apache.dolphinscheduler.StandaloneServer \
             -Dexec.classpathScope=compile \
             org.codehaus.mojo:exec-maven-plugin:3.1.0:java > /tmp/standalone.log 2>&1 &

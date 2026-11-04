@@ -102,6 +102,10 @@ def main():
     actual = subprocess.check_output(["git","-C",str(upstream),"rev-parse","HEAD"], text=True).strip()
     if actual != SHA:
         raise RuntimeError("Unexpected upstream commit " + actual)
+    # Historical one-time import tool. Never recreate the removed umbrella module
+    # inside an already flattened Yak Ops workspace.
+    if (repo / "docs/scheduler/MIGRATION_MANIFEST.json").exists():
+        raise RuntimeError("Scheduler is already imported and flattened; see docs/scheduler/UPSTREAM.md")
     target = repo / "yak-ops-scheduler"
     if target.exists():
         raise RuntimeError("Refusing to overwrite " + str(target))

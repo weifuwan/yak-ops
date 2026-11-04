@@ -4,13 +4,13 @@
 
 - yak-ops-ui: existing frontend application
 - yak-ops-cdc: standalone Flink CDC pipeline implementation
-- yak-ops-scheduler: Apache DolphinScheduler 3.4.3-release source migration at commit 26228f9c5bff24b3ded7095484caf7a5ecffa050
+- root-level Scheduler modules: Apache DolphinScheduler 3.4.3-release source migration at commit 26228f9c5bff24b3ded7095484caf7a5ecffa050
 
 The initial 99-module Scheduler import passed scoped JDK 11 CI (full compilation, a selected H2 Workflow integration test, and Master/EventBus tests); Standalone's H2 health endpoint also reported UP for API, Master, Worker, Alert and DB. Subsequent cleanup explicitly removed stale launchers, Kubernetes/YARN code and optional plugins. The current Stage 4 reactor contains 82 Maven POMs. Re-run current CI to establish its status; those historical checks do not certify every plugin, Java 21, or Yak Ops UI/CDC integration. The migration manifest is a provenance snapshot, not a list of files currently present.
 
 ## Scheduler architecture notes (consolidated)
 
-The module-level `yak-ops-scheduler/**/CLAUDE.md` files were removed because many described upstream modules and deployment paths that were not imported. Keep shared design and maintenance notes here instead.
+The module-level `former Scheduler subtree's CLAUDE.md` files were removed because many described upstream modules and deployment paths that were not imported. Keep shared design and maintenance notes here instead.
 
 - **Workflow execution:** `yak-ops-master` consumes persisted workflow commands and owns workflow/task state machines, execution graph, dispatch, event handlers, and failover. `yak-ops-worker` uses `yak-ops-task-executor` and task plugins to execute dispatched tasks. Do not bypass workflow lifecycle events with direct ad-hoc state changes.
 - **Scheduling:** `yak-ops-scheduler-plugin` exposes `SchedulerApi` with a Quartz implementation. The current schedule is bound to a DolphinScheduler workflow definition: cron fires -> workflow command is inserted -> Master processes the workflow -> Worker executes tasks. Do not present Quartz as directly scheduling Yak Ops CDC until the separate integration is implemented. Keep Quartz types behind the scheduler abstraction.
@@ -18,7 +18,7 @@ The module-level `yak-ops-scheduler/**/CLAUDE.md` files were removed because man
 - **Persistence:** `yak-ops-dao` contains entities, mappers, repositories, SQL schema/upgrade assets; `yak-ops-dao-plugin` supplies H2/MySQL/PostgreSQL dialect implementations. Preserve database entity/column mappings and evaluate schema upgrade paths together with code changes.
 - **Extension points:** `yak-ops-spi`, task/data-source/storage/scheduler/alert plugins are separate concerns. Task factories are discovered through SPI and task type names may be persisted in the database; removing or renaming one is a compatibility decision. `yak-ops-bom` manages imported dependency versions; `yak-ops-common`, `yak-ops-service`, `yak-ops-meter`, and `yak-ops-authentication` provide shared infrastructure.
 - **Standalone:** `yak-ops-standalone-server` starts the imported API/Master/Worker/Alert services in one JVM for development and smoke testing. Default H2 state is ephemeral. Standalone's Maven module declares many dependencies as `provided`; use the documented launcher/classpath rather than assuming a standalone jar can run alone. Stage 2 removed the independent API/Master/Worker/Alert launch scripts and their assembly distributions, but retained the service JARs required by Standalone. The Maven-based `scripts/run-scheduler-standalone.sh` development entry point remains the supported smoke-test path. Standalone's original distribution `bin/start.sh` is retained for provenance; its assembled runtime/classpath has not been separately validated.
-- **Tools and provenance:** `yak-ops-tools` retains schema initialization/upgrade code, SQL and `upgrade-schema.sh`; the one-off lineage/resource migration classes and launchers were removed in stage 2. Its assembly now points at the imported `yak-ops-dao` and `yak-ops-common` resource trees. `yak-ops-scheduler/MIGRATION_MANIFEST.json` records the **original import baseline**, not subsequent changes to the checked-in tree. Keep Apache `LICENSE`, `NOTICE`, and relevant third-party license files. The obsolete original-distribution `config/plugins_config` inventory was removed in the documentation cleanup.
+- **Tools and provenance:** `yak-ops-tools` retains schema initialization/upgrade code, SQL and `upgrade-schema.sh`; the one-off lineage/resource migration classes and launchers were removed in stage 2. Its assembly now points at the imported `yak-ops-dao` and `yak-ops-common` resource trees. `docs/scheduler/MIGRATION_MANIFEST.json` records the **original import baseline**, not subsequent changes to the checked-in tree. Keep Apache `LICENSE`, `NOTICE`, and relevant third-party license files. The obsolete original-distribution `config/plugins_config` inventory was removed in the documentation cleanup.
 - **Security:** `TaskExecutionContext` and datasource parameters can contain passwords, tokens, and access keys. Avoid logging raw task contexts or credentials.
 
 These notes describe the imported architecture, **not** a completed Yak Ops UI/CDC integration. Do not delete Master, Worker, registry, extract, Quartz, or runtime modules based only on a standalone deployment preference; first identify their callers and replace the relevant execution contracts.
@@ -55,7 +55,7 @@ Use Java 21, Git and the checked-in Maven wrapper for the existing Yak Ops modul
 
 ```sh
 # Validate Scheduler Maven model
-bash mvnw -B -ntp -pl :yak-ops-scheduler validate
+bash mvnw -B -ntp -pl :yak-ops validate
 
 # Target one imported module with its dependencies
 # Use JDK 11 for the unmodified upstream Lombok/compiler combination
@@ -83,18 +83,17 @@ The Maven compile and test commands below were exercised in GitHub Actions. The 
 
 ```sh
 # Compile all selected Scheduler modules, skipping test source compilation
-bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
-  -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile
+bash scripts/compile-scheduler.sh
 
 # Selected Master lifecycle / state-machine tests
-bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+bash mvnw -B -ntp -f pom.xml \
   -pl :yak-ops-master -am \
   -Dtest=TaskRetryLifecycleEventTest,TaskForceSuccessStateActionTest,WorkflowInstanceRepeatTriggerTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
   -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
 
 # Execute one real H2-backed Workflow with an upstream Fake Task
-bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+bash mvnw -B -ntp -f pom.xml \
   -pl :yak-ops-master -am \
   -Dtest=WorkflowStartBasicTestCase#testStartWorkflow_with_oneSuccessTask \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -120,4 +119,4 @@ CI evidence: [full compile and EventBus tests](https://github.com/weifuwan/yak-o
 - The Yak Ops UI and CDC modules are not yet wired to the imported Scheduler API and Task Engine.
 - Use GitHub Actions Code Format for the original UI/CDC code and Scheduler Build for imported Maven verification.
 
-The original DolphinScheduler root POM remains under yak-ops-scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the importer overwrites nothing: it fails if the destination exists.
+The original DolphinScheduler root POM remains under docs/scheduler/UPSTREAM_ROOT_POM.xml for provenance. Re-running the one-time importer is blocked when the historical manifest exists.

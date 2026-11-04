@@ -1,48 +1,22 @@
-name: Import DolphinScheduler 3.4.3-release
+name: Verify DolphinScheduler import provenance
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/import-ds343.yml
-      - scripts/migrate_ds343.py
   workflow_dispatch:
 permissions:
-  contents: write
-concurrency:
-  group: import-dolphinscheduler-343
-  cancel-in-progress: false
+  contents: read
 jobs:
-  import:
-    if: github.actor != 'github-actions[bot]'
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-          fetch-depth: 1
-      - name: Get pinned upstream commit
+      - uses: actions/checkout@v5
+      - name: Verify retained upstream manifest
         run: |
-          git clone --depth 1 --single-branch --branch 3.4.3-release https://github.com/apache/dolphinscheduler.git /tmp/ds343
-          test "$(git -C /tmp/ds343 rev-parse HEAD)" = 26228f9c5bff24b3ded7095484caf7a5ecffa050
-      - name: Migrate original source and audit file integrity
-        run: |
-          python3 -m py_compile scripts/migrate_ds343.py
-          python3 scripts/migrate_ds343.py /tmp/ds343
           python3 - <<'PY'
           import json
           from pathlib import Path
-          d=json.loads(Path('yak-ops-scheduler/MIGRATION_MANIFEST.json').read_text())
-          assert d['pom_count'] >= 40
-          assert d['imported_files'] >= 1000
-          print(d['imported_files'],'files and',d['pom_count'],'POMs imported')
+          manifest = Path('docs/scheduler/MIGRATION_MANIFEST.json')
+          assert manifest.is_file(), 'Missing upstream import manifest'
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          assert data['pom_count'] >= 40
+          assert data['imported_files'] >= 1000
+          print('Historical upstream source inventory verified:', data['pom_count'], 'POMs')
           PY
-      - name: Commit to main without force
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pom.xml yak-ops-scheduler
-          git diff --cached --stat | tail -n 25
-          git diff --cached --quiet && exit 0
-          git commit -m "refactor(scheduler): import DolphinScheduler 3.4.3-release core"
-          git push origin HEAD:main

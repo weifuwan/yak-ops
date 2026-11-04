@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~   http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  ~
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.yak.ops</groupId>
+        <artifactId>yak-ops</artifactId>
+        <version>1.4.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>yak-ops-master</artifactId>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- dolphinscheduler -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-meter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-service</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-spi</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-registry-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-scheduler-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-datasource-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-datasource-all</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-all</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-storage-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-storage-all</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-extract-master</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-extract-worker</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-eventbus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-executor</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-worker</artifactId>
+            <scope>test</scope>
+            <!-- master should never depend on worker, this is only for tests -->
+        </dependency>
+        <!-- dolphinscheduler -->
+
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-to-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.javassist</groupId>
+                    <artifactId>javassist</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.javadelight</groupId>
+            <artifactId>delight-nashorn-sandbox</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.webjars.npm</groupId>
+                    <artifactId>brace-expansion</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>brace-expansion</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-actuator-authentication</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <testResources>
+            <testResource>
+                <directory>${project.basedir}/../yak-ops-dao/src/main/resources</directory>
+                <includes>
+                    <include>sql/**</include>
+                </includes>
+            </testResource>
+            <testResource>
+                <directory>${project.basedir}/src/test/resources</directory>
+            </testResource>
+        </testResources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>*.yaml</exclude>
+                        <exclude>*.xml</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/integration/cases/*TestCase.java</exclude>
+                            </excludes>
+                            <properties>
+                                <configurationParameters>junit.jupiter.execution.parallel.enabled = false</configurationParameters>
+                            </properties>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>spring-boot-integration-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <phase>test</phase>
+                        <configuration>
+                            <includes>
+                                <include>**/integration/cases/*TestCase.java</include>
+                            </includes>
+                            <forkCount>2</forkCount>
+                            <reuseForks>true</reuseForks>
+                            <properties>
+                                <configurationParameters>junit.jupiter.execution.parallel.enabled = false</configurationParameters>
+                            </properties>
+                            <systemPropertyVariables>
+                                <jacoco-agent.destfile>${project.build.directory}/jacoco-${surefire.forkNumber}.exec</jacoco-agent.destfile>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

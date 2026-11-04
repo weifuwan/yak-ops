@@ -24,7 +24,7 @@ jobs:
           cache: maven
       - name: Test selected workflow/task lifecycle behavior
         run: |
-          bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml \
+          bash mvnw -B -ntp -f pom.xml \
             -pl :yak-ops-master -am \
             -Dtest=TaskRetryLifecycleEventTest,TaskForceSuccessStateActionTest,WorkflowInstanceRepeatTriggerTest \
             -Dsurefire.failIfNoSpecifiedTests=false \

@@ -4,7 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'yak-ops-scheduler/**'
+      - 'yak-ops-*/**'
+      - '!yak-ops-cdc/**'
+      - '!yak-ops-ui/**'
       - '.github/workflows/scheduler-stage6.yml'
   workflow_dispatch:
 
@@ -28,7 +30,7 @@ jobs:
           java-version: '11'
           cache: maven
       - name: Run EventBus tests
-        run: bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml -pl :yak-ops-eventbus -am -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+        run: bash mvnw -B -ntp -f pom.xml -pl :yak-ops-eventbus -am -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
 
   full-compile:
     name: Compile all imported Scheduler modules (JDK 11)
@@ -42,4 +44,4 @@ jobs:
           java-version: '11'
           cache: maven
       - name: Compile full selected upstream reactor
-        run: bash mvnw -B -ntp -f yak-ops-scheduler/pom.xml -Dmaven.test.skip=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile
+        run: bash scripts/compile-scheduler.sh

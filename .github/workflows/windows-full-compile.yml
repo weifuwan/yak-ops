@@ -1,4 +1,4 @@
-name: Windows Full Maven Compile
+name: Windows CDC Maven Compile
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/windows-full-compile.yml'
       - 'pom.xml'
-      - 'yak-ops-scheduler/pom.xml'
+      - 'yak-ops-cdc/**'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   full-compile:
-    name: Windows Maven clean compile (JDK 21)
+    name: Windows CDC clean compile (JDK 21)
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
