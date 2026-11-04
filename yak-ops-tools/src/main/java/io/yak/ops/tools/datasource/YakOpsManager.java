@@ -35,13 +35,9 @@ public class YakOpsManager {
 
         // The full initialization SQL contains DROP TABLE statements. Never execute it over
         // a partially initialized database or an unsupported historical installation.
-        if (databaseDialect.tableExists("t_escheduler_version")
-                || databaseDialect.tableExists("t_escheduler_queue")
-                || databaseDialect.tableExists("t_ds_user")
-                || databaseDialect.tableExists("t_ds_workflow_instance")
-                || databaseDialect.tableExists("QRTZ_JOB_DETAILS")) {
+        if (schemaDao.hasExistingTables()) {
             throw new IllegalStateException(
-                    "Existing YakOps tables detected without t_ds_version; "
+                    "Existing database tables detected without t_ds_version; "
                             + "refusing destructive schema initialization");
         }
 

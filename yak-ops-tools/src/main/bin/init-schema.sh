@@ -3,7 +3,7 @@ set -euo pipefail
 
 BIN_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_HOME="$(cd -- "${BIN_DIR}/.." && pwd)"
-DATABASE="${DATABASE:-postgresql}"
+DATABASE="${DATABASE:-mysql}"
 
 case "${DATABASE}" in
   mysql|postgresql) ;;

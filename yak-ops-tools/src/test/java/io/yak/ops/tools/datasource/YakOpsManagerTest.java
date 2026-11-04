@@ -71,7 +71,7 @@ class YakOpsManagerTest {
 
     @Test
     void partialSchemaIsNotOverwritten() {
-        when(databaseDialect.tableExists("t_ds_user")).thenReturn(true);
+        when(schemaDao.hasExistingTables()).thenReturn(true);
         Assertions.assertThrows(IllegalStateException.class, () -> manager.initializeOrValidate());
         verify(schemaDao, never()).initSchema();
     }

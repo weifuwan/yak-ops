@@ -24,6 +24,20 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- Bootstrap schema initialization before starting the standalone services. -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-tools</artifactId>
+        </dependency>
+        <!-- Include MySQL dialect and JDBC driver in standalone IDE and packaged runtimes. -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-dao-mysql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-master</artifactId>

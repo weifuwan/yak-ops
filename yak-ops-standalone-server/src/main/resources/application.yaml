@@ -2,7 +2,7 @@ spring:
   application:
     name: standalone-server
   profiles:
-    active: h2
+    active: ${DATABASE:mysql}
   jackson:
     time-zone: UTC
     date-format: "yyyy-MM-dd HH:mm:ss"
@@ -11,15 +11,15 @@ spring:
     location: classpath:standalone-banner.txt
   sql:
     init:
-      schema-locations: classpath:sql/yak-ops_h2.sql
+      mode: never
   datasource:
-      driver-class-name: org.h2.Driver
-      url: jdbc:h2:mem:yak-ops;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true
-      username: sa
-      password: ""
-      hikari:
-        connection-test-query: select 1
-        pool-name: YakOpsDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    hikari:
+      connection-test-query: select 1
+      pool-name: YakOpsDataSource
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -335,11 +335,19 @@ spring:
   config:
     activate:
       on-profile: mysql
-  sql:
-     init:
-       schema-locations: classpath:sql/yak-ops_mysql.sql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8
-    username: root
-    password: root@123
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: h2
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:yak-ops;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true
+    username: sa
+    password: ""

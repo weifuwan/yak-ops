@@ -3,6 +3,7 @@ package io.yak.ops.tools.datasource;
 import io.yak.ops.common.sql.SqlScriptRunner;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,6 +33,21 @@ public class SchemaDao {
      * Execute the complete baseline schema on an empty database only.
      * Call through YakOpsManager to enforce the safety checks.
      */
+    /**
+     * The baseline SQL contains DROP TABLE statements. Only run it in an empty schema.
+     */
+    public boolean hasExistingTables() {
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            try (ResultSet tables = metadata.getTables(
+                    connection.getCatalog(), connection.getSchema(), "%", new String[] {"TABLE"})) {
+                return tables.next();
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to inspect existing database tables", ex);
+        }
+    }
+
     public void initSchema() {
         String sqlFilePath = String.format("sql/yak-ops_%s.sql", dbType.getDb());
         try {
