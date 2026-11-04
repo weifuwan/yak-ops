@@ -45,7 +45,8 @@ class InitializeSchemaIT {
     void initializeBaselineAndPreserveExistingData() throws Exception {
         manager.initializeOrValidate();
 
-        try (Connection connection = dataSource.getConnection();
+        try (
+                Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery("SELECT version FROM t_ds_version")) {
                 Assertions.assertTrue(resultSet.next());
@@ -57,7 +58,8 @@ class InitializeSchemaIT {
 
         // An initialized database must not be replaced by the DROP TABLE-based full SQL.
         manager.initializeOrValidate();
-        try (Connection connection = dataSource.getConnection();
+        try (
+                Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery("SELECT user_name FROM t_ds_user WHERE id = 1")) {
             Assertions.assertTrue(resultSet.next());

@@ -17,7 +17,6 @@
 
 package io.yak.ops.plugin.task.api.parser;
 
-import static org.apache.commons.lang3.time.DateUtils.addWeeks;
 import static io.yak.ops.common.utils.DateUtils.addDays;
 import static io.yak.ops.common.utils.DateUtils.addMinutes;
 import static io.yak.ops.common.utils.DateUtils.addMonths;
@@ -50,6 +49,7 @@ import static io.yak.ops.plugin.task.api.TaskConstants.WEEK_END;
 import static io.yak.ops.plugin.task.api.TaskConstants.WEEK_FIRST_DAY;
 import static io.yak.ops.plugin.task.api.TaskConstants.WEEK_LAST_DAY;
 import static io.yak.ops.plugin.task.api.TaskConstants.YEAR_WEEK;
+import static org.apache.commons.lang3.time.DateUtils.addWeeks;
 
 import io.yak.ops.common.utils.DateUtils;
 

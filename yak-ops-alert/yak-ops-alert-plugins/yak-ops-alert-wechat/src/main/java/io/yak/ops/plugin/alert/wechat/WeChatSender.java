@@ -17,10 +17,10 @@
 
 package io.yak.ops.plugin.alert.wechat;
 
-import static java.util.Objects.requireNonNull;
 import static io.yak.ops.plugin.alert.wechat.WeChatAlertConstants.WE_CHAT_DUPLICATE_CHECK_INTERVAL_ZERO;
 import static io.yak.ops.plugin.alert.wechat.WeChatAlertConstants.WE_CHAT_ENABLE_ID_TRANS;
 import static io.yak.ops.plugin.alert.wechat.WeChatAlertConstants.WE_CHAT_MESSAGE_SAFE_PUBLICITY;
+import static java.util.Objects.requireNonNull;
 
 import io.yak.ops.alert.api.AlertConstants;
 import io.yak.ops.alert.api.AlertResult;

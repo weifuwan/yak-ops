@@ -17,7 +17,6 @@
 
 package io.yak.ops.spi.params.base;
 
-import static java.util.Objects.requireNonNull;
 import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_EMIT;
 import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_FIELD;
 import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_NAME;
@@ -26,6 +25,7 @@ import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_TITLE;
 import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_TYPE;
 import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_VALIDATE;
 import static io.yak.ops.common.constants.Constants.STRING_PLUGIN_PARAM_VALUE;
+import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 

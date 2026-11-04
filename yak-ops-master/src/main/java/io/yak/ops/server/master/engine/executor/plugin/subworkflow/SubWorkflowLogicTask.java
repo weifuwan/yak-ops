@@ -17,8 +17,8 @@
 
 package io.yak.ops.server.master.engine.executor.plugin.subworkflow;
 
-import static java.util.Arrays.asList;
 import static io.yak.ops.plugin.task.api.utils.VarPoolUtils.deserializeVarPool;
+import static java.util.Arrays.asList;
 
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.utils.JSONUtils;

@@ -60,7 +60,8 @@ public class SchemaDao {
     }
 
     public String getCurrentVersion() {
-        try (Connection connection = dataSource.getConnection();
+        try (
+                Connection connection = dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement("SELECT version FROM t_ds_version");
                 ResultSet resultSet = statement.executeQuery()) {
             return resultSet.next() ? resultSet.getString(1) : null;

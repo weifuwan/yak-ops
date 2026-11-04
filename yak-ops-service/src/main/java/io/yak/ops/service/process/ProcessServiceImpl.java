@@ -17,8 +17,8 @@
 
 package io.yak.ops.service.process;
 
-import static java.util.stream.Collectors.toSet;
 import static io.yak.ops.common.constants.CommandKeyConstants.CMD_PARAM_SUB_WORKFLOW_DEFINITION_CODE;
+import static java.util.stream.Collectors.toSet;
 
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.AuthorizationType;

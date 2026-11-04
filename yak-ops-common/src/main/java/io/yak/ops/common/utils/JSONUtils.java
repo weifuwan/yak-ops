@@ -22,8 +22,8 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 import static com.fasterxml.jackson.databind.DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL;
 import static com.fasterxml.jackson.databind.MapperFeature.REQUIRE_SETTERS_FOR_GETTERS;
 import static com.fasterxml.jackson.databind.SerializationFeature.FAIL_ON_EMPTY_BEANS;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static io.yak.ops.common.constants.DateConstants.YYYY_MM_DD_HH_MM_SS;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.yak.ops.common.constants.SystemConstants;
 
