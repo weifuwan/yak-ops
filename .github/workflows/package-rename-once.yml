@@ -123,10 +123,10 @@ jobs:
           for path in Path('.').rglob('spring.factories'):
               if 'yak-ops-cdc' in path.parts or 'yak-ops-ui' in path.parts:
                   continue
-              data = path.read_bytes()
-              data = data.replace(b'\r\n', b'\n')
+              original = path.read_bytes()
+              data = original.replace(b'\r\n', b'\n')
               normalized = b'\n'.join(line.rstrip(b' \t') for line in data.split(b'\n'))
-              if normalized != data:
+              if normalized != original:
                   path.write_bytes(normalized)
           PY
           git add -A
