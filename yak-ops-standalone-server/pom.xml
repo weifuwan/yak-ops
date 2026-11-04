@@ -33,6 +33,7 @@
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-dao-mysql</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
