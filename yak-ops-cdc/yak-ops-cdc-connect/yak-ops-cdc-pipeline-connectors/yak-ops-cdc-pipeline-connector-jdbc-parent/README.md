@@ -61,7 +61,7 @@ Run the targeted JDBC tests manually (they are intentionally excluded from the
 normal backend CI):
 
 ```bash
-bash mvnw -B -ntp -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql -am -Dtest=JdbcTableWriterRegistryTest,JdbcOutputFormatBuilderTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,MySqlStmtCreatorFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test
+bash mvnw -B -ntp -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql -am -Dtest=JdbcTableWriterRegistryTest,JdbcSinkConfigTest,JdbcOutputFormatBuilderTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,MySqlStmtCreatorFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 The CDC connector is based on the JDBC Pipeline Sink from Apache Flink CDC
