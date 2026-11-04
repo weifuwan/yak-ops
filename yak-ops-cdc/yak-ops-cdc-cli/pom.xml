@@ -63,6 +63,22 @@ limitations under the License.
             <scope>provided</scope>
         </dependency>
 
+        <!-- MySQL CDC Pipeline Source -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-pipeline-connector-mysql</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- MySQL JDBC Pipeline Sink -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-pipeline-connector-jdbc</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
 
     </dependencies>
 
