@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/scheduler-standalone-smoke.yml'
+      - 'yak-ops-scheduler/yak-ops-common/pom.xml'
+      - 'yak-ops-scheduler/yak-ops-standalone-server/pom.xml'
   workflow_dispatch:
 
 permissions:
