@@ -71,4 +71,4 @@ The Maven reactor retains all task plugins and the SPI/APIs for datasource, stor
 - **Storage:** GCS, Azure Blob (ABS), Huawei OBS, Tencent COS. Retained: S3 and Alibaba OSS, including their remote task-log handlers.
 - **Alerts:** PagerDuty, Slack, Webex Teams, Telegram, Aliyun Voice, and Prometheus. Retained: email, HTTP, script, DingTalk, Feishu, and WeChat.
 
-Existing database enum values and historical SQL migrations remain for compatibility, but removing a plugin means that backend can no longer load that implementation. Quartz, the task executor and Standalone still use their original integration model.
+Existing database enum values and historical SQL migrations remain for compatibility, but removing a plugin means that backend can no longer load that implementation. The unsupported Azure Data Factory Cloud API (controller, service and Azure SDK dependencies) was also removed after it prevented credential-free Standalone startup. Quartz, the task executor and Standalone still use their original integration model.

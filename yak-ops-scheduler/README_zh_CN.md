@@ -72,4 +72,4 @@ Standalone 成功启动后，健康检查地址：
 - **存储**：GCS、Azure Blob（ABS）、华为 OBS、腾讯 COS。保留 S3、阿里 OSS 及其远程任务日志功能。
 - **告警**：PagerDuty、Slack、Webex Teams、Telegram、阿里云语音、Prometheus。保留邮件、HTTP、脚本、钉钉、飞书和微信。
 
-为兼容历史数据库数据，保留原有数据源类型枚举和数据库升级 SQL；但是被删除的插件实现已不可加载。Quartz、Task Executor 和 Standalone 的执行模型保持不变。
+为兼容历史数据库数据，保留原有数据源类型枚举和数据库升级 SQL；但是被删除的插件实现已不可加载。另移除会因缺少 Azure 凭证而阻止 Standalone 启动的旧版 Azure Data Factory Cloud API 及其专用 SDK。Quartz、Task Executor 和 Standalone 的执行模型保持不变。

@@ -221,13 +221,6 @@ public class TaskConstants {
 
     public static final Set<String> TASK_TYPE_SET_K8S = Sets.newHashSet("K8S", "KUBEFLOW");
 
-    /**
-     * azure config
-     */
-    public static final String AZURE_CLIENT_ID = "resource.azure.client.id";
-    public static final String AZURE_CLIENT_SECRET = "resource.azure.client.secret";
-    public static final String AZURE_ACCESS_SUB_ID = "resource.azure.subId";
-    public static final String AZURE_SECRET_TENANT_ID = "resource.azure.tenant.id";
     public static final String QUERY_INTERVAL = "resource.query.interval";
 
     /**

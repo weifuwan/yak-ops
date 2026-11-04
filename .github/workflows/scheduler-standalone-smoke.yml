@@ -7,6 +7,9 @@ on:
       - '.github/workflows/scheduler-standalone-smoke.yml'
       - 'yak-ops-scheduler/yak-ops-common/pom.xml'
       - 'yak-ops-scheduler/yak-ops-standalone-server/pom.xml'
+      - 'yak-ops-scheduler/yak-ops-api/pom.xml'
+      - 'yak-ops-scheduler/yak-ops-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/**'
+      - 'yak-ops-scheduler/yak-ops-bom/pom.xml'
   workflow_dispatch:
 
 permissions:

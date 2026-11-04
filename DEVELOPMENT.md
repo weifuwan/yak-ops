@@ -43,10 +43,10 @@ These notes describe the imported architecture, **not** a completed Yak Ops UI/C
 ## Scheduler stage 4: optional-plugin cleanup
 
 - Removed 17 standalone plugin implementation modules: 7 niche/cloud datasource connectors (Redshift, Snowflake, Azure SQL, SAP HANA, Vertica, DolphinDB, Databend), 4 object storage backends (GCS, ABS, OBS, COS), and 6 alert channels (PagerDuty, Slack, Webex Teams, Telegram, Aliyun Voice, Prometheus).
-- Updated the three plugin Maven module parents and their `*-all` aggregators, removed unused cloud SDK dependencies from `yak-ops-common`, and pruned the related BOM coordinates and version properties. Azure Identity and Azure Resource Manager remain because the independent Cloud API still uses them; LZ4 remains because ClickHouse uses it.
+- Updated the three plugin Maven module parents and their `*-all` aggregators, removed unused cloud SDK dependencies from `yak-ops-common`, and pruned the related BOM coordinates and version properties. The subsequent smoke test uncovered an eagerly initialized Azure Data Factory Cloud API that failed without credentials, so that unrelated controller/service and its Azure SDK dependencies were removed as well. LZ4 remains because ClickHouse uses it.
 - Removed GCS/ABS/COS task-log handlers and obsolete remote-log/resource-center sample configurations. S3 and OSS remote log handling stays available.
 - Preserved every task plugin, core Master/Worker/Quartz/Standalone services, the datasource/storage/alert SPI APIs, persistence enums, and historical SQL migrations. Persisted identifiers for an uninstalled plugin remain recognizable but that implementation is no longer loadable without adding the module back.
-- The Stage 4 Maven reactor should have 82 POMs instead of the original 99. Use the full Scheduler JDK 11 compile CI and smoke tests to validate the new classpath and service-loader behavior.
+- The Stage 4 Maven reactor contains 82 POMs instead of the original 99. Full Scheduler JDK 11 compilation, package validation and the H2 Standalone smoke run are the verification gates. The Standalone workflow now monitors relevant API/BOM changes in addition to its own configuration.
 
 ## Build commands
 

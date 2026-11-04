@@ -97,12 +97,8 @@
         <springdoc-openapi-ui.version>1.6.9</springdoc-openapi-ui.version>
         <aspectj.version>1.9.7</aspectj.version>
         <trino-jdbc.version>402</trino-jdbc.version>
-        <azure-identity.version>1.7.1</azure-identity.version>
-        <azure-resourcemanager.version>2.21.0</azure-resourcemanager.version>
-        <azure-resourcemanager-datafactory.version>1.0.0-beta.19</azure-resourcemanager-datafactory.version>
         <sshd.version>2.8.0</sshd.version>
         <casdoor.version>1.6.0</casdoor.version>
-        <azure-sdk-bom.version>1.2.10</azure-sdk-bom.version>
         <protobuf.version>3.17.2</protobuf.version>
         <system-lambda.version>1.2.1</system-lambda.version>
         <zeppelin-client.version>0.10.1</zeppelin-client.version>
@@ -753,13 +749,6 @@
             </dependency>
 
 
-            <dependency>
-                <groupId>com.azure</groupId>
-                <artifactId>azure-sdk-bom</artifactId>
-                <version>${azure-sdk-bom.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
 
             <dependency>
                 <groupId>joda-time</groupId>
@@ -837,22 +826,7 @@
                 <artifactId>springdoc-openapi-ui</artifactId>
                 <version>${springdoc-openapi-ui.version}</version>
             </dependency>
-
             <dependency>
-                <groupId>com.azure</groupId>
-                <artifactId>azure-identity</artifactId>
-                <version>${azure-identity.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.azure.resourcemanager</groupId>
-                <artifactId>azure-resourcemanager</artifactId>
-                <version>${azure-resourcemanager.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.azure.resourcemanager</groupId>
-                <artifactId>azure-resourcemanager-datafactory</artifactId>
-                <version>${azure-resourcemanager-datafactory.version}</version>
-            </dependency>            <dependency>
                 <groupId>org.casbin</groupId>
                 <artifactId>casdoor-spring-boot-starter</artifactId>
                 <version>${casdoor.version}</version>
