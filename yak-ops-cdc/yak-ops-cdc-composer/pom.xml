@@ -46,18 +46,6 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-test-utils</artifactId>
-            <version>${flink.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.testcontainers</groupId>
-                    <artifactId>testcontainers</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
             <artifactId>flink-kubernetes</artifactId>
             <version>${flink.version}</version>
             <scope>provided</scope>
@@ -68,53 +56,8 @@ limitations under the License.
             <version>${flink.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-cdc-pipeline-udf-examples</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-cdc-pipeline-model-dummy</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
 
-        <!-- This is for testing Scala UDF.-->
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <!-- Upstream tests using the excluded Values connector are preserved as source but not compiled. -->
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-compiler-plugin</artifactId>
-                            <configuration>
-                                <testExcludes>
-                                        <testExclude>**/RecoveryDataSink.java</testExclude>
-                                        <testExclude>**/RecoveryDataSinkFactory.java</testExclude>
-                                        <testExclude>**/FlinkPipelineAiFunctionITCase.java</testExclude>
-                                        <testExclude>**/TransformSpecsITCase.java</testExclude>
-                                        <testExclude>**/FlinkPipelineComposerTest.java</testExclude>
-                                        <testExclude>**/FlinkPipelineUdfITCase.java</testExclude>
-                                        <testExclude>**/FlinkPipelineComposerLenientITCase.java</testExclude>
-                                        <testExclude>**/FlinkPipelineComposerITCase.java</testExclude>
-                                        <testExclude>**/FlinkSchemaCoordinatorRecoveryITCase.java</testExclude>
-                                        <testExclude>**/FlinkPipelineBatchComposerITCase.java</testExclude>
-                                        <testExclude>**/FlinkParallelizedPipelineITCase.java</testExclude>
-                                        <testExclude>**/FlinkPipelineTransformITCase.java</testExclude>
-                                </testExcludes>
-                            </configuration>
-                        </plugin>
-        </plugins>
-    </build>
 
     <profiles>
         <profile>
@@ -122,19 +65,6 @@ limitations under the License.
             <properties>
                 <flink.version>${flink.2.x.version}</flink.version>
             </properties>
-            <build>
-                <plugins>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.flink</groupId>

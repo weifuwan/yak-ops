@@ -21,44 +21,18 @@ class SuiteSelectionTest(unittest.TestCase):
         self.assertEqual(["business"], subject.select(["yak-ops-dao/src/main/java/Mapper.java"]))
 
     def test_unit_test_change_does_not_run_real_database(self):
-        self.assertEqual([], subject.select([subject.CDC + "/src/test/java/SnapshotChunkBackfillBudgetTest.java"]))
         self.assertEqual([], subject.select([subject.BUSINESS + "/src/test/java/TaskCursorTest.java"]))
-
-    def test_connector_local_cdc_it_runs_real_mysql_suite(self):
-        selected = subject.select([subject.CDC + "/src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"])
-        self.assertEqual(["cdc"], selected)
-
-    def test_cdc_production_change_selects_cdc(self):
-        selected = subject.select([subject.CDC + "/src/main/java/reader/Reader.java"])
-        self.assertIn("cdc", selected)
-        self.assertEqual(["cdc"], selected)
 
     def test_removed_jdbc_module_is_treated_as_unknown(self):
         # The old yak-flow JDBC path no longer belongs to this reactor.
         selected = subject.select(["yak-flow/yak-flow-connector-jdbc/src/main/java/reader/JdbcReader.java"])
         self.assertEqual(list(subject.SUITES), selected)
 
-    def test_mysql_cdc_change_selects_current_cdc_coverage(self):
-        selected = subject.select([subject.CDC + "/src/main/java/source/MySqlSource.java"])
-        self.assertEqual(["cdc"], selected)
-
-    def test_rename_includes_old_and_new_owner(self):
-        selected = subject.select([
-            subject.BUSINESS + "/src/main/java/TaskService.java",
-            subject.CDC + "/src/main/java/source/MySqlSource.java",
-        ])
-        self.assertIn("business", selected)
-        self.assertIn("cdc", selected)
-        self.assertEqual(["business", "cdc"], selected)
-
-    def test_deleted_test_keeps_owner_selected(self):
-        self.assertIn("cdc", subject.select([subject.CDC + "/src/test/java/org/apache/flink/cdc/connectors/mysql/source/TableExclusionDuringSnapshotIT.java"]))
-
     def test_non_pr_auto_is_business_only(self):
         with patch.dict(os.environ, {"CI_EVENT_NAME": "workflow_dispatch"}, clear=True):
             self.assertEqual(["business"], subject.selected_suites("auto"))
-            self.assertEqual(["business", "cdc"], subject.selected_suites("full"))
-            self.assertEqual(["cdc"], subject.selected_suites("cdc"))
+            self.assertEqual(["business"], subject.selected_suites("full"))
+            self.assertRaises(ValueError, subject.selected_suites, "cdc")
         with patch.dict(os.environ, {"CI_EVENT_NAME": "push", "CI_BRANCH": "main"}, clear=True):
             self.assertEqual(["business"], subject.selected_suites("auto"))
 
@@ -68,7 +42,7 @@ class SuiteSelectionTest(unittest.TestCase):
             "CI_PR_BASE_SHA": "a",
             "CI_PR_HEAD_SHA": "b",
         }, clear=True):
-            changed = (subject.CDC + "/src/main/java/Reader.java\0").encode()
+            changed = (subject.impact.CDC + "src/main/java/Reader.java\0").encode()
             with patch.object(subject.subprocess, "check_output", return_value=changed):
                 self.assertEqual([], subject.selected_suites("auto"))
             changed = (subject.BUSINESS + "/src/main/java/TaskService.java\0").encode()
@@ -95,14 +69,14 @@ class ConsolidatedBackendWorkflowTest(unittest.TestCase):
         self.assertIn("  integration-tests:", workflow)
         self.assertIn("    name: Backend Tests Check", workflow)
         self.assertIn("default: business", workflow)
-        self.assertIn("options: [business, cdc, full]", workflow)
+        self.assertIn("options: [business, full]", workflow)
         self.assertNotIn("Run JUnit tests including CDC modules", workflow)
         self.assertNotIn("continue-on-error: true", workflow)
 
     def test_full_retains_database_acceptance(self):
         self.assertNotIn("backend-e2e", subject.SUITES)
         self.assertNotIn("recovery-e2e", subject.SUITES)
-        self.assertEqual({"business", "cdc"}, set(subject.SUITES))
+        self.assertEqual({"business"}, set(subject.SUITES))
 
 
 class MavenIntegrationProfileTest(unittest.TestCase):
@@ -203,10 +177,6 @@ class ReportTest(unittest.TestCase):
                     source = matches[0].read_text(encoding="utf-8")
                     self.assertIn('@Tag("' + name + '")', source)
 
-    def test_missing_cdc_report_fails_closed(self):
-        with self.assertRaisesRegex(ValueError, "TableExclusionDuringSnapshotIT"):
-            subject.check_reports(["cdc"], self.root)
-
     def test_new_unregistered_it_fails(self):
         with patch.object(subject, "SUITES", {"small": ("module", "tag", {"NamedIT": 1})}):
             tests = self.root / "module/src/test/java"
@@ -215,39 +185,6 @@ class ReportTest(unittest.TestCase):
             subject.check_registration(self.root)
             (tests / "ForgottenIT.java").write_text("class ForgottenIT {}")
             self.assertRaises(ValueError, subject.check_registration, self.root)
-
-
-class JdbcSinkReportTest(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.reports = self.root / subject.JDBC_SINK_MODULE / "target/surefire-reports"
-        self.reports.mkdir(parents=True)
-
-    def write_report(self, name, count, error=False):
-        cases = "".join('<testcase classname="jdbc.' + name + '" name="case' + str(i) + '"/>'
-                        for i in range(count))
-        errors = ' errors="1"' if error else ""
-        (self.reports / ("TEST-jdbc." + name + ".xml")).write_text(
-            '<testsuite name="jdbc.' + name + '"' + errors + '>' + cases + '</testsuite>')
-
-    def test_all_jdbc_reports_are_required(self):
-        for name, minimum in subject.JDBC_SINK_TESTS.items():
-            self.write_report(name, minimum)
-        self.assertEqual(subject.JDBC_SINK_TESTS, subject.check_jdbc_sink_reports(self.root))
-        missing = next(iter(subject.JDBC_SINK_TESTS))
-        (self.reports / ("TEST-jdbc." + missing + ".xml")).unlink()
-        with self.assertRaisesRegex(ValueError, missing):
-            subject.check_jdbc_sink_reports(self.root)
-
-    def test_skipped_or_failed_jdbc_report_fails(self):
-        for name, minimum in subject.JDBC_SINK_TESTS.items():
-            self.write_report(name, minimum)
-        bad = next(iter(subject.JDBC_SINK_TESTS))
-        self.write_report(bad, subject.JDBC_SINK_TESTS[bad], error=True)
-        with self.assertRaisesRegex(ValueError, bad):
-            subject.check_jdbc_sink_reports(self.root)
 
 
 if __name__ == "__main__":

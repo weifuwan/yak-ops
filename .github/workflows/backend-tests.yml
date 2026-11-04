@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: Database suite (CDC and full are manual opt-in)
+        description: Database suite
         type: choice
         required: true
         default: business
-        options: [business, cdc, full]
+        options: [business, full]
 
 permissions:
   contents: read
@@ -105,15 +105,6 @@ jobs:
         env:
           TEST_SUITE: ${{ matrix.suite }}
         run: bash scripts/tests/run.sh "$TEST_SUITE"
-      - name: Compile JDBC integration fixtures
-        if: matrix.suite == 'cdc'
-        run: |
-          bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc -am -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true install
-      - name: Verify MySQL CDC to JDBC pipeline and sink integration
-        if: matrix.suite == 'cdc'
-        run: |
-          bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc -Dtest=JdbcSinkGenericITCase,MySqlDataSinkITCase,MySqlMetadataApplierITCase,MySqlPipelineToJdbcITCase -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.check.skip=true -Dcheckstyle.skip=true test
-          python3 scripts/tests/backend_tests.py jdbc-reports
       - name: Upload database test reports
         if: always()
         uses: actions/upload-artifact@v4

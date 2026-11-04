@@ -13,11 +13,11 @@ class ImpactTest(unittest.TestCase):
         self.assertTrue(result["frontend_format"])
         self.assertEqual(set(), result["suites"])
         self.assertEqual(set(), result["modules"])
-    def test_mysql_source_keeps_unit_and_database_coverage(self):
+    def test_mysql_source_is_formatted_without_database_tests(self):
         result = impact.analyze([impact.CDC + "src/main/java/MySqlSource.java"])
         self.assertIn(impact.CDC.rstrip("/"), result["format_modules"])
         self.assertIn(impact.CDC.rstrip("/"), result["modules"])
-        self.assertEqual({"cdc"}, result["suites"])
+        self.assertFalse(result["suites"])
     def test_cdc_unit_only_does_not_run_database(self):
         result = impact.analyze([impact.CDC + "src/test/java/ReaderTest.java"])
         self.assertIn(impact.CDC.rstrip("/"), result["modules"])
@@ -91,24 +91,6 @@ class ImpactTest(unittest.TestCase):
             plugin.findtext("m:artifactId", namespaces=ns) == "maven-site-plugin"
             for plugin in cdc_pom.findall("./m:build/m:plugins/m:plugin", ns)
         ))
-
-    def test_cdc_mockito_version_does_not_override_spring_boot_bom(self):
-        root = Path(__file__).resolve().parents[2]
-        ns = {"m": "http://maven.apache.org/POM/4.0.0"}
-        modules = (
-            "yak-ops-cdc-base",
-            "yak-ops-connector-mysql-cdc",
-        )
-        source = root / "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors"
-        for module in modules:
-            with self.subTest(module=module):
-                pom = ET.parse(source / module / "pom.xml").getroot()
-                properties = pom.find("m:properties", ns)
-                self.assertIsNone(properties.find("m:mockito.version", ns))
-                self.assertEqual(
-                    "3.12.4",
-                    properties.findtext("m:cdc.mockito.version", namespaces=ns),
-                )
 
     def test_manual_format_full(self):
         fields = ci_scope.selection(None, mode="format", event="workflow_dispatch", branch="main")

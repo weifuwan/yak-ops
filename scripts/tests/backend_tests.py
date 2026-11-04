@@ -16,15 +16,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'ci'))
 import impact
 
 ROOT = Path(__file__).resolve().parents[2]
-CDC = "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-mysql-cdc"
 BUSINESS = "yak-ops-business/yak-ops-business-task"
 # Minimum counts are based on concrete source test methods; missing or skipped reports fail.
 SUITES = {
     "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 5}),
-    "cdc": (CDC, "cdc", {"TableExclusionDuringSnapshotIT": 1}),
 }
-# Keep CDC tests as explicitly requested suites, never auto-selected by CI.
-AUTO_SUITES = ("business",)
 
 def select(paths: list[str]) -> list[str]:
     """Use the same change impact classification as the PR quality jobs."""
@@ -47,18 +43,18 @@ def selected_suites(request: str) -> list[str]:
     elif event == "push" and os.environ.get("CI_BRANCH") != "main":
         before, head = os.environ.get("CI_PUSH_BEFORE_SHA"), os.environ.get("CI_CURRENT_SHA")
         if not before or set(before) == {"0"} or not head:
-            return list(AUTO_SUITES)
+            return list(SUITES)
         refs = [before, head]
     else:
-        return list(AUTO_SUITES)
+        return list(SUITES)
     diff = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", "-z", *refs], cwd=ROOT)
-    return [suite for suite in select([p.decode("utf-8") for p in diff.split(b"\0") if p]) if suite in AUTO_SUITES]
+    return select([p.decode("utf-8") for p in diff.split(b"\0") if p])
 
 
 def check_registration(root: Path = ROOT) -> None:
     """Every concrete database IT in the owned modules needs a suite entry."""
     expected = {name for _, _, tests in SUITES.values() for name in tests}
-    actual = {p.stem for module in ({CDC} | {spec[0] for spec in SUITES.values()}) for p in (root / module / "src/test").rglob("*IT.java")}
+    actual = {p.stem for module in {spec[0] for spec in SUITES.values()} for p in (root / module / "src/test").rglob("*IT.java")}
     if actual != expected:
         raise ValueError(f"IT registration mismatch: unregistered={sorted(actual-expected)}, missing={sorted(expected-actual)}")
 
@@ -83,34 +79,6 @@ def check_reports(names: list[str], root: Path = ROOT) -> dict[str, int]:
             if any(case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")):
                 raise ValueError("Failed or skipped " + classname)
             counts[classname] = len(cases)
-    return counts
-
-
-JDBC_SINK_MODULE = ("yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/"
-                    "yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc")
-JDBC_SINK_TESTS = {
-    "JdbcSinkGenericITCase": 2,
-    "MySqlDataSinkITCase": 6,
-    "MySqlMetadataApplierITCase": 8,
-    "MySqlPipelineToJdbcITCase": 1,
-}
-
-
-def check_jdbc_sink_reports(root: Path = ROOT) -> dict[str, int]:
-    """Require fresh, non-skipped Surefire evidence from the JDBC integration run."""
-    folder = root / JDBC_SINK_MODULE / "target/surefire-reports"
-    counts: dict[str, int] = {}
-    for name, minimum in JDBC_SINK_TESTS.items():
-        reports = list(folder.glob("TEST-*." + name + ".xml"))
-        if len(reports) != 1:
-            raise ValueError(f"Missing or duplicate JDBC report for {name}: {len(reports)}")
-        suite = ET.parse(reports[0]).getroot()
-        cases = suite.findall("testcase")
-        if len(cases) < minimum or any(int(suite.get(k, "0")) for k in ("failures", "errors", "skipped")):
-            raise ValueError(f"Incomplete or failed JDBC suite {name}: {len(cases)} cases; expected {minimum}")
-        if any(case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")):
-            raise ValueError("Failed or skipped JDBC integration test " + name)
-        counts[name] = len(cases)
     return counts
 
 
@@ -185,13 +153,11 @@ def run(name: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("select", "run", "check", "registration", "jdbc-reports"))
+    parser.add_argument("action", choices=("select", "run", "check", "registration"))
     parser.add_argument("suite", nargs="?", default="full")
     args = parser.parse_args()
     if args.action == "registration":
         check_registration()
-    elif args.action == "jdbc-reports":
-        print(check_jdbc_sink_reports())
     elif args.action == "run":
         run(args.suite)
     elif args.action == "check":

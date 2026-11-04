@@ -32,7 +32,6 @@ limitations under the License.
         <module>yak-ops-cdc-base</module>
         <module>yak-ops-connector-debezium</module>
         <module>yak-ops-connector-mysql-cdc</module>
-        <module>yak-ops-connector-test-util</module>
         <module>yak-ops-sql-connector-mysql-cdc</module>
     </modules>
 

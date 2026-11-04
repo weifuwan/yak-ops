@@ -44,7 +44,6 @@ Use Java 21 and a working Docker daemon. Tests create their own disposable datab
 
 ```sh
 bash scripts/tests/run.sh business
-bash scripts/tests/run.sh cdc
 bash scripts/tests/run.sh full
 python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 ```
@@ -63,7 +62,7 @@ JUnit owns shared containers within one module's test execution. Data is isolate
 
 The [Backend Tests workflow](.github/workflows/backend-tests.yml) runs JUnit unit tests for affected native Maven modules and automatically selected Business database integration tests only. It does not include `yak-ops-cdc` (or any of its children) in the automatic unit-test reactor; main pushes run the full **native** unit-test scope and the Business database suite. Pull requests and dev pushes select affected native modules and the Business suite as appropriate. Maven or test-infrastructure changes expand native scope without enabling CDC tests.
 
-CDC Runtime, Composer, CLI and MySQL Source tests are preserved but **manual-only**. To run them use `bash scripts/tests/run.sh cdc`, or manually dispatch [Backend Tests](.github/workflows/backend-tests.yml) with `suite=cdc` (or explicitly choose `suite=full` for both Business and CDC). The manual workflow defaults to `business`, not `full`. CDC's upstream Surefire configuration can run expensive tests and is never part of the automatic backend CI. The independent Code Format workflow still checks CDC formatting when relevant.
+The manual workflow defaults to `business`. The `full` option runs all registered database suites, currently Business only. Code Format checks changed CDC Java.
 
 Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including container logs and database test diagnostics on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
 

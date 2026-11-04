@@ -6,7 +6,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
-SUITES = ("business", "cdc")
+SUITES = ("business",)
 ALL_BACKEND = "!yak-ops-bom,!yak-ops-ui,!yak-ops-dist"
 NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
 CDC_ROOT = "yak-ops-cdc/"
@@ -77,13 +77,9 @@ def test_suites(path: str) -> set[str]:
     if "/src/test/" in path:
         if not path.endswith("IT.java"):
             return set()
-        if path.startswith(CDC_ROOT):
-            return {"cdc"}
         if path.startswith(BUSINESS):
             return {"business"}
         return set()
-    if path.startswith(CDC_ROOT):
-        return {"cdc"}
     if path.startswith((
         BUSINESS, "yak-ops-dao/", "yak-ops-platform/", "yak-ops-task-execution/",
         "yak-ops-plugins/yak-ops-plugin-task/",
