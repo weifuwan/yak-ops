@@ -55,7 +55,8 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     public JdbcColumn.Builder visit(CharType charType) {
         builder.length(charType.getLength());
         builder.dataType(MysqlType.CHAR.name());
-        builder.columnType(charType.asSerializableString());
+        builder.columnType(String.format("CHAR(%d)", charType.getLength()));
+        builder.isNullable(charType.isNullable());
         return builder;
     }
 
@@ -97,9 +98,10 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
         int scale = decimalType.getScale();
 
         builder.dataType(MysqlType.DECIMAL.name());
-        builder.columnType(decimalType.asSerializableString());
+        builder.columnType(String.format("DECIMAL(%d,%d)", precision, scale));
         builder.length(precision);
         builder.scale(scale);
+        builder.isNullable(decimalType.isNullable());
 
         return builder;
     }
@@ -107,7 +109,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(TinyIntType tinyIntType) {
         builder.dataType(MysqlType.TINYINT.name());
-        builder.columnType(tinyIntType.asSerializableString());
+        builder.columnType(MysqlType.TINYINT.name());
         builder.isNullable(tinyIntType.isNullable());
 
         return builder;
@@ -116,7 +118,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(SmallIntType smallIntType) {
         builder.dataType(MysqlType.SMALLINT.name());
-        builder.columnType(smallIntType.asSerializableString());
+        builder.columnType(MysqlType.SMALLINT.name());
         builder.isNullable(smallIntType.isNullable());
 
         return builder;
@@ -125,7 +127,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(IntType intType) {
         builder.dataType(MysqlType.INT.name());
-        builder.columnType(intType.asSerializableString());
+        builder.columnType(MysqlType.INT.name());
         builder.isNullable(intType.isNullable());
 
         return builder;
@@ -134,7 +136,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(BigIntType bigIntType) {
         builder.dataType(MysqlType.BIGINT.name());
-        builder.columnType(bigIntType.asSerializableString());
+        builder.columnType(MysqlType.BIGINT.name());
         builder.isNullable(bigIntType.isNullable());
 
         return builder;
@@ -143,7 +145,8 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(FloatType floatType) {
         builder.dataType(MysqlType.FLOAT.name());
-        builder.columnType(floatType.asSerializableString());
+        builder.columnType(MysqlType.FLOAT.name());
+        builder.isNullable(floatType.isNullable());
 
         return builder;
     }
@@ -151,7 +154,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(DoubleType doubleType) {
         builder.dataType(MysqlType.DOUBLE.name());
-        builder.columnType(doubleType.asSerializableString());
+        builder.columnType(MysqlType.DOUBLE.name());
         builder.isNullable(doubleType.isNullable());
 
         return builder;
@@ -161,7 +164,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     public JdbcColumn.Builder visit(BinaryType binaryType) {
         builder.dataType(MysqlType.BINARY.name());
         builder.length(binaryType.getLength());
-        builder.columnType(binaryType.asSerializableString());
+        builder.columnType(String.format("BINARY(%d)", binaryType.getLength()));
         builder.isNullable(binaryType.isNullable());
 
         return builder;
@@ -194,7 +197,7 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
     @Override
     public JdbcColumn.Builder visit(DateType dateType) {
         builder.dataType(MysqlType.DATE.name());
-        builder.columnType(dateType.asSerializableString());
+        builder.columnType(MysqlType.DATE.name());
         builder.isNullable(dateType.isNullable());
 
         return builder;
@@ -206,10 +209,11 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
         builder.length(precision);
         builder.dataType(MysqlType.TIME.name());
         if (precision > 0) {
-            builder.columnType(timeType.asSerializableString());
+            builder.columnType(String.format("TIME(%d)", precision));
         } else {
             builder.columnType("TIME");
         }
+        builder.isNullable(timeType.isNullable());
 
         return builder;
     }
@@ -221,9 +225,9 @@ public class MySqlTypeTransformer extends DataTypeDefaultVisitor<JdbcColumn.Buil
         builder.length(precision);
         builder.isNullable(timestampType.isNullable());
         if (precision > 0) {
-            builder.columnType(timestampType.asSerializableString());
+            builder.columnType(String.format("DATETIME(%d)", precision));
         } else {
-            builder.columnType("TIMESTAMP");
+            builder.columnType("DATETIME");
         }
 
         return builder;
