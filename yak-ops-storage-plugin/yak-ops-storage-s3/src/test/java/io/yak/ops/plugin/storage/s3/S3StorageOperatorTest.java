@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.lifecycle.Startables;
+import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -50,9 +51,10 @@ public class S3StorageOperatorTest {
         String secretKey = "secretKey123";
         String region = "us-east-1";
 
-        minIOContainer = new MinIOContainer("minio/minio:RELEASE.2023-09-04T19-57-37Z")
-                .withEnv("MINIO_ACCESS_KEY", accessKey)
-                .withEnv("MINIO_SECRET_KEY", secretKey)
+        minIOContainer = new MinIOContainer(DockerImageName.parse("pgsty/silo:RELEASE.2026-09-16T00-00-00Z")
+                .asCompatibleSubstituteFor("minio/minio"))
+                .withUserName(accessKey)
+                .withPassword(secretKey)
                 .withEnv("MINIO_REGION", region)
                 .withNetworkAliases(bucketName + "." + "localhost");
 
