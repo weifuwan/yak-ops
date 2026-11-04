@@ -6,14 +6,12 @@ on:
     paths:
       - 'pom.xml'
       - 'yak-ops-*/**'
-      - '!yak-ops-cdc/**'
       - '!yak-ops-ui/**'
       - '.github/workflows/backend-tests.yml'
   pull_request:
     paths:
       - 'pom.xml'
       - 'yak-ops-*/**'
-      - '!yak-ops-cdc/**'
       - '!yak-ops-ui/**'
       - '.github/workflows/backend-tests.yml'
   workflow_dispatch:
@@ -26,10 +24,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scheduler-unit:
-    name: Scheduler Unit Tests (JDK 11)
+  backend-unit:
+    name: All Backend Unit Tests (JDK 11)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -37,42 +35,114 @@ jobs:
           distribution: temurin
           java-version: '11'
           cache: maven
-
-      - name: Run selected Scheduler unit tests
+      - name: Run all backend module tests (including test compilation)
+        shell: bash
         run: |
-          bash mvnw -B -ntp \
-            -pl :yak-ops-common,:yak-ops-spi -am \
-            -Dtest=DAGTest,WorkflowExecutionStatusTest,MaskUtilsTest,PluginParamsTransferTest,PrioritySPIFactoryTest \
-            -Dsurefire.failIfNoSpecifiedTests=false \
-            -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
-
-      - name: Require real executed unit tests
+          mapfile -t modules < <(find yak-ops-* -type f -name pom.xml \
+            ! -path 'yak-ops-cdc/*' ! -path 'yak-ops-ui/*' \
+            | sed 's@/pom.xml$@@' | sort)
+          module_csv=$(IFS=,; echo "${modules[*]}")
+          test -n "$module_csv"
+          bash mvnw -B -ntp -fae -pl "$module_csv" -am \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Summarize backend Surefire reports
+        if: always()
         run: |
           python3 - <<'PY'
           from pathlib import Path
           from xml.etree import ElementTree as ET
-
-          for module in ('yak-ops-common', 'yak-ops-spi'):
-              reports = list(Path(module, 'target', 'surefire-reports').glob('TEST-*.xml'))
-              if not reports:
-                  raise SystemExit(f'{module}: missing Surefire XML reports')
-              totals = {'tests': 0, 'failures': 0, 'errors': 0}
-              for report in reports:
-                  root = ET.parse(report).getroot()
-                  for key in totals:
-                      totals[key] += int(root.attrib.get(key, 0))
-              print(f'{module}: {totals}')
-              if totals['tests'] == 0 or totals['failures'] or totals['errors']:
-                  raise SystemExit(f'{module}: unit tests missing or failed')
+          reports = [p for p in Path('.').glob('yak-ops-*/**/target/surefire-reports/TEST-*.xml')
+                     if not str(p).startswith('yak-ops-cdc/')]
+          total = sum(int(ET.parse(p).getroot().attrib.get('tests', 0)) for p in reports)
+          print(f'Backend reports: {len(reports)}, tests: {total}')
+          if total == 0:
+              raise SystemExit('No backend tests executed')
+          if not list(Path('yak-ops-api/target/surefire-reports').glob('TEST-*.xml')):
+              raise SystemExit('yak-ops-api tests did not execute')
           PY
-
-      - name: Upload failed test reports
+      - name: Upload backend test reports
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: scheduler-unit-test-reports
-          path: |
-            yak-ops-common/target/surefire-reports/**
-            yak-ops-spi/target/surefire-reports/**
+          name: backend-test-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+  cdc-unit:
+    name: All CDC Unit Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run all CDC module tests (including test compilation)
+        shell: bash
+        run: |
+          mapfile -t modules < <(find yak-ops-cdc -type f -name pom.xml | sed 's@/pom.xml$@@' | sort)
+          module_csv=$(IFS=,; echo "${modules[*]}")
+          test -n "$module_csv"
+          bash mvnw -B -ntp -fae -pl "$module_csv" -am \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require executed CDC tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          reports = [p for p in Path('yak-ops-cdc').rglob('TEST-*.xml') if 'surefire-reports' in p.parts]
+          total = sum(int(ET.parse(p).getroot().attrib.get('tests', 0)) for p in reports)
+          print(f'CDC reports: {len(reports)}, tests: {total}')
+          if total == 0:
+              raise SystemExit('No CDC tests executed')
+          PY
+      - name: Upload CDC test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdc-test-reports
+          path: yak-ops-cdc/**/target/surefire-reports/**
+          if-no-files-found: warn
+          retention-days: 7
+
+  database-integration:
+    name: Database Testcontainers Integration (JDK 11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+      - name: Run all database integration test classes with Docker
+        shell: bash
+        run: |
+          bash mvnw -B -ntp -fae -pl :yak-ops-tools -am \
+            '-Dtest=*IT' -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require executed integration tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          reports = list(Path('yak-ops-tools/target/surefire-reports').glob('TEST-*IT.xml'))
+          total = sum(int(ET.parse(p).getroot().attrib.get('tests', 0)) for p in reports)
+          print(f'Database IT reports: {len(reports)}, tests: {total}')
+          if total == 0:
+              raise SystemExit('No database integration tests executed')
+          PY
+      - name: Upload database integration reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-integration-test-reports
+          path: yak-ops-tools/target/surefire-reports/**
           if-no-files-found: warn
           retention-days: 7
