@@ -25,6 +25,7 @@ import org.apache.flink.cdc.common.event.DropTableEvent;
 import org.apache.flink.cdc.common.event.RenameColumnEvent;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.event.TruncateTableEvent;
+import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.utils.StringUtils;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
@@ -35,10 +36,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static org.apache.flink.cdc.common.utils.Preconditions.checkArgument;
 
@@ -54,9 +58,26 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
     protected final JdbcConnectionFactory connectionFactory;
 
     protected AbstractJdbcCatalog(JdbcDialect dialect, JdbcSinkConfig config) {
-        this.dialect = dialect;
-        this.connectionFactory = new JdbcConnectionFactory(config);
+        this(dialect, new JdbcConnectionFactory(config));
     }
+
+    protected AbstractJdbcCatalog(JdbcDialect dialect, JdbcConnectionFactory factory) {
+        this.dialect = dialect;
+        this.connectionFactory = factory;
+    }
+
+    /** JDBC catalogs and schemas are different concepts; subclasses map TableId appropriately. */
+    protected String jdbcCatalog(TableId tableId) {
+        return null;
+    }
+
+    protected String jdbcSchema(TableId tableId) {
+        return tableId.getSchemaName();
+    }
+
+    /** Converts vendor JDBC metadata to CDC's logical type (with nullability added by the caller). */
+    protected abstract DataType fromJdbcColumn(
+            int jdbcType, String nativeType, int precision, int scale);
 
     @Override
     public boolean tableExists(TableId tableId) {
@@ -66,13 +87,61 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
                         connection
                                 .getMetaData()
                                 .getTables(
-                                        tableId.getSchemaName(),
-                                        null,
+                                        jdbcCatalog(tableId),
+                                        jdbcSchema(tableId),
                                         tableId.getTableName(),
                                         new String[] {"TABLE"})) {
             return tables.next();
         } catch (SQLException exception) {
             throw new JdbcCatalogException("Failed to inspect JDBC table " + tableId, exception);
+        }
+    }
+
+    @Override
+    public Schema getTableSchema(TableId tableId) {
+        checkTableId(tableId);
+        try (Connection connection = connectionFactory.connect()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            Schema.Builder schema = Schema.newBuilder();
+            boolean hasColumns = false;
+            try (ResultSet columns =
+                    metadata.getColumns(
+                            jdbcCatalog(tableId), jdbcSchema(tableId), tableId.getTableName(), "%")) {
+                while (columns.next()) {
+                    if (!tableId.getTableName().equalsIgnoreCase(columns.getString("TABLE_NAME"))) {
+                        continue;
+                    }
+                    hasColumns = true;
+                    String name = columns.getString("COLUMN_NAME");
+                    DataType dataType =
+                            fromJdbcColumn(
+                                    columns.getInt("DATA_TYPE"),
+                                    columns.getString("TYPE_NAME"),
+                                    columns.getInt("COLUMN_SIZE"),
+                                    columns.getInt("DECIMAL_DIGITS"));
+                    if (columns.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls) {
+                        dataType = dataType.notNull();
+                    }
+                    schema.physicalColumn(name, dataType);
+                }
+            }
+            if (!hasColumns) {
+                throw new JdbcCatalogException("Target JDBC table does not exist: " + tableId);
+            }
+            Map<Short, String> orderedKeys = new TreeMap<>();
+            try (ResultSet keys =
+                    metadata.getPrimaryKeys(
+                            jdbcCatalog(tableId), jdbcSchema(tableId), tableId.getTableName())) {
+                while (keys.next()) {
+                    orderedKeys.put(keys.getShort("KEY_SEQ"), keys.getString("COLUMN_NAME"));
+                }
+            }
+            if (!orderedKeys.isEmpty()) {
+                schema.primaryKey(new ArrayList<>(orderedKeys.values()));
+            }
+            return schema.build();
+        } catch (SQLException exception) {
+            throw new JdbcCatalogException("Failed to read JDBC schema for " + tableId, exception);
         }
     }
 
