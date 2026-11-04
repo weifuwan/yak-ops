@@ -54,7 +54,8 @@ limitations under the License.
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
+        <!-- Kafka dependencies aligned with Debezium 1.9.8.Final -->
+        <kafka.version>3.2.0</kafka.version>
         <!-- dependencies versions -->
         <flink.version>1.20.3</flink.version>
         <shaded.guava.version>31.1-jre-17.0</shaded.guava.version>
