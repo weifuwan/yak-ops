@@ -82,7 +82,7 @@ public class DefaultJdbcRowConverter implements JdbcRowConverter {
         };
     }
 
-    private static void setJdbcParameter(
+    protected void setJdbcParameter(
             PreparedStatement statement, int index, Object value, DataType dataType)
             throws SQLException {
         if (value == null && dataType != null) {
@@ -104,7 +104,7 @@ public class DefaultJdbcRowConverter implements JdbcRowConverter {
     }
 
     /** JDBC types for typed nulls; no driver-specific converters are required by the core. */
-    private static int jdbcType(DataTypeRoot root) {
+    protected int jdbcType(DataTypeRoot root) {
         switch (root) {
             case BOOLEAN:
                 return Types.BOOLEAN;
