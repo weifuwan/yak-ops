@@ -115,6 +115,20 @@ jobs:
               raise SystemExit("Remaining runtime references:\n" + "\n".join(remaining[:50]))
           print("Runtime reference scan passed")
           PY
+      - name: Normalize migrated spring.factories whitespace
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in Path('.').rglob('spring.factories'):
+              if 'yak-ops-cdc' in path.parts or 'yak-ops-ui' in path.parts:
+                  continue
+              data = path.read_bytes()
+              normalized = b'\n'.join(line.rstrip(b' \t') for line in data.split(b'\n'))
+              if normalized != data:
+                  path.write_bytes(normalized)
+          PY
+          git add -A
       - name: Check patch whitespace
         run: git diff --cached --check
       - name: Validate Maven project model
