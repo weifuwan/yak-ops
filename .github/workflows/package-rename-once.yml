@@ -102,8 +102,8 @@ jobs:
                   remaining.append(p + " [path]")
                   continue
               if src.suffix == ".md":
-        continue
-    if src.suffix not in exts and p != "style/eclipse.importorder" and src.name != "spring.factories":
+                  continue
+              if src.suffix not in exts and p != "style/eclipse.importorder" and src.name != "spring.factories":
                   continue
               data = src.read_bytes()
               if src.suffix == ".proto":
