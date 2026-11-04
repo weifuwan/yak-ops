@@ -32,16 +32,16 @@ import java.util.Objects;
 public class RichJdbcRowData implements JdbcRowData {
     protected final TableId tableId;
     protected final RowKind rowKind;
-    protected final @Nullable byte[] rows;
+    protected final @Nullable Object[] rows;
     protected final @Nullable Schema schema;
     protected final @Nullable Boolean hasPrimaryKey;
 
     protected RichJdbcRowData(
-            RowKind rowKind, TableId tableId, @Nullable Schema schema, @Nullable byte[] rows) {
+            RowKind rowKind, TableId tableId, @Nullable Schema schema, @Nullable Object[] rows) {
         this.tableId = tableId;
         this.schema = schema;
         this.rowKind = rowKind;
-        this.rows = rows;
+        this.rows = copyRows(rows);
 
         if (schema != null) {
             this.hasPrimaryKey = !schema.primaryKeys().isEmpty();
@@ -55,7 +55,7 @@ public class RichJdbcRowData implements JdbcRowData {
         private TableId tableId;
         private Schema schema;
         private RowKind rowKind;
-        private byte[] rows;
+        private Object[] rows;
 
         public Builder setTableId(TableId tableId) {
             this.tableId = tableId;
@@ -72,7 +72,7 @@ public class RichJdbcRowData implements JdbcRowData {
             return this;
         }
 
-        public Builder setRows(byte[] rows) {
+        public Builder setRows(Object[] rows) {
             this.rows = rows;
             return this;
         }
@@ -100,8 +100,21 @@ public class RichJdbcRowData implements JdbcRowData {
     }
 
     @Override
-    public byte[] getRows() {
-        return rows;
+    public Object[] getRows() {
+        return copyRows(rows);
+    }
+
+    private static Object[] copyRows(Object[] values) {
+        if (values == null) {
+            return null;
+        }
+        Object[] copy = values.clone();
+        for (int i = 0; i < copy.length; i++) {
+            if (copy[i] instanceof byte[]) {
+                copy[i] = ((byte[]) copy[i]).clone();
+            }
+        }
+        return copy;
     }
 
     public boolean hasPrimaryKey() {
@@ -117,8 +130,8 @@ public class RichJdbcRowData implements JdbcRowData {
                 + schema
                 + ", rowKind="
                 + rowKind
-                + ", rows="
-                + (rows != null ? new String(rows) : "null")
+                + ", columnCount="
+                + (rows != null ? rows.length : 0)
                 + ", hasPrimaryKey="
                 + hasPrimaryKey
                 + '}';
@@ -131,15 +144,15 @@ public class RichJdbcRowData implements JdbcRowData {
         }
 
         RichJdbcRowData that = (RichJdbcRowData) o;
-        return hasPrimaryKey == that.hasPrimaryKey
+        return Objects.equals(hasPrimaryKey, that.hasPrimaryKey)
                 && Objects.equals(tableId, that.tableId)
                 && Objects.equals(schema, that.schema)
                 && rowKind == that.rowKind
-                && Arrays.equals(rows, that.rows);
+                && Arrays.deepEquals(rows, that.rows);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tableId, schema, rowKind, Arrays.hashCode(rows), hasPrimaryKey);
+        return Objects.hash(tableId, schema, rowKind, Arrays.deepHashCode(rows), hasPrimaryKey);
     }
 }

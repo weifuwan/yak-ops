@@ -23,7 +23,6 @@ import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
 import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
-import org.apache.flink.cdc.connectors.jdbc.sink.utils.JsonWrapper;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
@@ -32,15 +31,19 @@ import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
 import org.apache.flink.connector.jdbc.internal.executor.JdbcBatchStatementExecutor;
 import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterState;
 
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,6 +52,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.cdc.connectors.jdbc.sink.v2.RowKind.PK_ROW;
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Implementation class of the {@link StatefulSink.StatefulSinkWriter} interface. */
@@ -59,7 +63,6 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
     private final JdbcConnectionProvider connectionProvider;
     private final JdbcOutputSerializer<Object> outputSerializer;
     private final RecordSerializationSchema<IN> serializationSchema;
-    private final JsonWrapper jsonWrapper;
 
     private final JdbcSinkDialect dialect;
     private final Map<TableId, RichJdbcOutputFormat> outputHandlers;
@@ -80,7 +83,6 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         checkNotNull(serializationSchema, "serializationSchema must be defined");
         checkNotNull(sinkConfig, "sinkConfig must be defined");
 
-        this.jsonWrapper = new JsonWrapper();
         this.executionOptions = executionOptions;
         this.connectionProvider = connectionProvider;
         this.outputSerializer = outputSerializer;
@@ -157,40 +159,65 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         return outputFormat;
     }
 
-    private JdbcStatementBuilder<JdbcRowData> getStatementBuilder(List<String> primaryKeys) {
-        return (ps, rowData) -> {
-            Map<String, Object> recordMap = parseRowData(rowData.getRows());
-
-            if (!recordMap.isEmpty()) {
-                for (int i = 0; i < primaryKeys.size(); i++) {
-                    String pk = primaryKeys.get(i);
-                    ps.setObject(i + 1, recordMap.get(pk));
-                }
+    private JdbcStatementBuilder<JdbcRowData> getStatementBuilder(
+            List<String> statementColumns, List<String> rowColumns) {
+        int[] indexes = new int[statementColumns.size()];
+        for (int i = 0; i < statementColumns.size(); i++) {
+            indexes[i] = rowColumns.indexOf(statementColumns.get(i));
+            checkArgument(
+                    indexes[i] >= 0, "Missing JDBC column %s in row schema", statementColumns.get(i));
+        }
+        return (statement, rowData) -> {
+            Object[] values = checkNotNull(rowData.getRows(), "JDBC row values must not be null");
+            checkArgument(
+                    values.length == rowColumns.size(),
+                    "JDBC row contains %s values but schema has %s columns",
+                    values.length,
+                    rowColumns.size());
+            for (int i = 0; i < indexes.length; i++) {
+                setJdbcParameter(statement, i + 1, values[indexes[i]]);
             }
         };
     }
 
-    private Map<String, Object> parseRowData(byte[] rowData) {
-        try {
-            return jsonWrapper.parseObject(rowData, new TypeReference<Map<String, Object>>() {});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private static void setJdbcParameter(PreparedStatement statement, int index, Object value)
+            throws SQLException {
+        if (value instanceof LocalDate) {
+            statement.setDate(index, Date.valueOf((LocalDate) value));
+        } else if (value instanceof Instant) {
+            statement.setTimestamp(index, Timestamp.from((Instant) value));
+        } else if (value instanceof ZonedDateTime) {
+            statement.setTimestamp(index, Timestamp.from(((ZonedDateTime) value).toInstant()));
+        } else if (value instanceof byte[]) {
+            statement.setBytes(index, (byte[]) value);
+        } else if (value instanceof BigDecimal) {
+            statement.setBigDecimal(index, (BigDecimal) value);
+        } else {
+            // Includes LocalTime and LocalDateTime, supported by JDBC 4.2 drivers.
+            statement.setObject(index, value);
         }
     }
 
     private BatchedStatementExecutor createBatchedStatementExecutor(
             JdbcSinkDialect dialect, TableId tableId, Schema schema) {
+        List<String> upsertColumns = schema.getColumnNames();
+        List<String> deleteColumns =
+                schema.primaryKeys().isEmpty() ? upsertColumns : schema.primaryKeys();
+        List<String> deleteRowColumns =
+                schema.primaryKeys().isEmpty()
+                        ? upsertColumns
+                        : upsertColumns.stream()
+                                .filter(deleteColumns::contains)
+                                .collect(Collectors.toList());
+
         JdbcBatchStatementExecutor<JdbcRowData> upsertExecutor =
                 JdbcBatchStatementExecutor.simple(
                         dialect.getUpsertStatement(tableId, schema),
-                        getStatementBuilder(schema.getColumnNames()));
+                        getStatementBuilder(upsertColumns, upsertColumns));
         JdbcBatchStatementExecutor<JdbcRowData> deleteExecutor =
                 JdbcBatchStatementExecutor.simple(
                         dialect.getDeleteStatement(tableId, schema),
-                        getStatementBuilder(
-                                schema.primaryKeys().isEmpty()
-                                        ? schema.getColumnNames()
-                                        : schema.primaryKeys()));
+                        getStatementBuilder(deleteColumns, deleteRowColumns));
         Function<JdbcRowData, JdbcRowData> keyExtractor = createRowKeyExtractor(tableId, schema);
         return new BatchedStatementExecutor(upsertExecutor, deleteExecutor, keyExtractor);
     }
@@ -217,23 +244,26 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
                                 .filter(col -> primaryKeys.contains(col.getName()))
                                 .collect(Collectors.toList()));
 
+        List<String> rowColumnNames = schema.getColumnNames();
+        List<String> keyColumnNames = pkOnlySchema.getColumnNames();
+        int[] keyIndexes = new int[keyColumnNames.size()];
+        for (int i = 0; i < keyColumnNames.size(); i++) {
+            keyIndexes[i] = rowColumnNames.indexOf(keyColumnNames.get(i));
+            checkArgument(keyIndexes[i] >= 0, "Missing primary key %s", keyColumnNames.get(i));
+        }
+
         return row -> {
-            Map<String, Object> rowData = parseRowData(row.getRows());
-            Map<String, Object> pkOnlyRowData = new HashMap<>();
-            for (String pk : schema.primaryKeys()) {
-                pkOnlyRowData.put(pk, rowData.get(pk));
+            Object[] values = checkNotNull(row.getRows(), "JDBC row values must not be null");
+            Object[] keyValues = new Object[keyIndexes.length];
+            for (int i = 0; i < keyIndexes.length; i++) {
+                keyValues[i] = values[keyIndexes[i]];
             }
-            try {
-                byte[] rowBytes = jsonWrapper.toJSONBytes(pkOnlyRowData);
-                return new RichJdbcRowData.Builder()
-                        .setRowKind(PK_ROW)
-                        .setTableId(tableId)
-                        .setSchema(pkOnlySchema)
-                        .setRows(rowBytes)
-                        .build();
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to extract primary key row from row: " + row, e);
-            }
+            return new RichJdbcRowData.Builder()
+                    .setRowKind(PK_ROW)
+                    .setTableId(tableId)
+                    .setSchema(pkOnlySchema)
+                    .setRows(keyValues)
+                    .build();
         };
     }
 }
