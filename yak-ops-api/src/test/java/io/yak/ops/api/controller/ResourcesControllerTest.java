@@ -48,7 +48,7 @@ public class ResourcesControllerTest extends AbstractControllerTest {
         paramsMap.add("pageNo", "1");
         paramsMap.add("searchVal", "test");
         paramsMap.add("pageSize", "1");
-        paramsMap.add("fullName", "dolphinscheduler/resourcePath");
+        paramsMap.add("fullName", "yak-ops/resourcePath");
         paramsMap.add("tenantCode", "123");
 
         MvcResult mvcResult = mockMvc.perform(get("/resources")
@@ -75,7 +75,7 @@ public class ResourcesControllerTest extends AbstractControllerTest {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add("skipLineNum", "2");
         paramsMap.add("limit", "100");
-        paramsMap.add("fullName", "dolphinscheduler/resourcePath");
+        paramsMap.add("fullName", "yak-ops/resourcePath");
         paramsMap.add("tenantCode", "123");
 
         MvcResult mvcResult = mockMvc.perform(get("/resources/view")
@@ -127,7 +127,7 @@ public class ResourcesControllerTest extends AbstractControllerTest {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add("id", "1");
         paramsMap.add("content", "echo test_1111");
-        paramsMap.add("fullName", "dolphinscheduler/resourcePath");
+        paramsMap.add("fullName", "yak-ops/resourcePath");
         paramsMap.add("tenantCode", "123");
 
         MvcResult mvcResult = mockMvc.perform(put("/resources/update-content")
@@ -150,7 +150,7 @@ public class ResourcesControllerTest extends AbstractControllerTest {
         Mockito.doNothing().when(resourcesService).downloadResource(Mockito.any(), Mockito.any());
 
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("fullName", "dolphinscheduler/resourcePath");
+        paramsMap.add("fullName", "yak-ops/resourcePath");
 
         MvcResult mvcResult = mockMvc.perform(get("/resources/download")
                 .params(paramsMap)
@@ -165,7 +165,7 @@ public class ResourcesControllerTest extends AbstractControllerTest {
     public void testDeleteResource() throws Exception {
         Mockito.doNothing().when(resourcesService).delete(Mockito.any());
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("fullName", "dolphinscheduler/resourcePath");
+        paramsMap.add("fullName", "yak-ops/resourcePath");
         paramsMap.add("tenantCode", "123");
         MvcResult mvcResult = mockMvc.perform(delete("/resources")
                 .header(SESSION_ID, sessionId)

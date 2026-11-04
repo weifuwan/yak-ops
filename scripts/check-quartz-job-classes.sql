@@ -4,6 +4,6 @@
 -- No database changes are performed by this query.
 SELECT JOB_CLASS_NAME, COUNT(*) AS JOB_COUNT
 FROM QRTZ_JOB_DETAILS
-WHERE JOB_CLASS_NAME LIKE 'org.apache.dolphinscheduler.%'
+WHERE JOB_CLASS_NAME LIKE 'io.yak.ops.%'
 GROUP BY JOB_CLASS_NAME
 ORDER BY JOB_CLASS_NAME;

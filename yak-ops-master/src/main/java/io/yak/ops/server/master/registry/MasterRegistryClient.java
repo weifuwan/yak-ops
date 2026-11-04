@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * <p>DolphinScheduler master register client, used to connect to registry and hand the registry events.
+ * <p>YakOps master register client, used to connect to registry and hand the registry events.
  * <p>When the Master node startup, it will register in registry center. And start a {@link MasterHeartBeatTask} to update its metadata in registry.
  */
 @Component

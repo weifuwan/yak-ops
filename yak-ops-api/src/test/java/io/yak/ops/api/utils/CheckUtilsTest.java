@@ -45,8 +45,8 @@ public class CheckUtilsTest {
         Assertions.assertFalse(CheckUtils.checkPassword("1234567890abcderfasdf2"));
         Assertions.assertTrue(CheckUtils.checkPassword("123456"));
         Assertions.assertFalse(CheckUtils.checkPasswordLength("1"));
-        Assertions.assertTrue(CheckUtils.checkPasswordLength("dolphinscheduler123"));
-        Assertions.assertFalse(CheckUtils.checkPasswordLength("dolphinscheduler123456"));
+        Assertions.assertTrue(CheckUtils.checkPasswordLength("yak-ops123"));
+        Assertions.assertFalse(CheckUtils.checkPasswordLength("yak-ops123456"));
     }
 
     /**

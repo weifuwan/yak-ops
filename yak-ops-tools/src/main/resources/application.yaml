@@ -3,12 +3,12 @@ spring:
     banner-mode: off
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/dolphinscheduler
+    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
     username: root
     password: root
     hikari:
       connection-test-query: select 1
-      pool-name: DolphinScheduler
+      pool-name: YakOps
 
 # Mybatis-plus configuration, you don't need to change it
 mybatis-plus:
@@ -33,7 +33,7 @@ spring:
       on-profile: mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/dolphinscheduler?useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8
     username: root
     password: root
 

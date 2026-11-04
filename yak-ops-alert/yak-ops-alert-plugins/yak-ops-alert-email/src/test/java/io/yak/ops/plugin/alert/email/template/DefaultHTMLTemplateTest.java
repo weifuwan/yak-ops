@@ -32,7 +32,7 @@ public class DefaultHTMLTemplateTest {
         String mapjson = "{\"taskInstanceId\":94,\"taskName\":\"000\",\"taskType\":\"DATA_QUALITY\","
                 + "\"processDefinitionId\":0,\"processInstanceId\":58,\"state\":\"RUNNING_EXECUTION\","
                 + "\"startTime\":\"2022-07-17 16:00:32\",\"host\":\"192.168.18.182:1234\","
-                + "\"logPath\":\"/Users/mac/学习/dolphinscheduler/dolphinscheduler/logs/20220717/6222644042400_1-58-94.log\"}";
+                + "\"logPath\":\"/Users/mac/学习/yak-ops/yak-ops/logs/20220717/6222644042400_1-58-94.log\"}";
         textTypeMessage = template.getMessageFromTemplate(mapjson, ShowType.TEXT, true);
         String result = textTypeMessage;
         Assertions.assertEquals(textTypeMessage, result);

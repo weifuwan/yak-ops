@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * This is one of the implementation of {@link Registry}, with this implementation, you need to rely on mysql database to
- * store the DolphinScheduler master/worker's metadata and do the server registry/unRegistry.
+ * store the YakOps master/worker's metadata and do the server registry/unRegistry.
  */
 @Slf4j
 public final class JdbcRegistry implements Registry {

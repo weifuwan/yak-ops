@@ -29,4 +29,4 @@ read -r -a JVM_OPTS <<< "${JAVA_OPTS:--server -Xms256m -Xmx1g -XX:+HeapDumpOnOut
 exec "${JAVA_BIN}" "${JVM_OPTS[@]}" \
   -cp "${TOOLS_HOME}/conf:${TOOLS_HOME}/sql:${TOOLS_HOME}/libs/*" \
   -Dspring.profiles.active="init,${DATABASE}" \
-  io.yak.ops.tools.datasource.InitializeDolphinScheduler "$@"
+  io.yak.ops.tools.datasource.InitializeYakOps "$@"

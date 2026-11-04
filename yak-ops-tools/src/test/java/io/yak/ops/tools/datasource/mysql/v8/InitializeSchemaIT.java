@@ -1,8 +1,8 @@
 package io.yak.ops.tools.datasource.mysql.v8;
 
-import io.yak.ops.tools.datasource.DolphinSchedulerManager;
-import io.yak.ops.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
-import io.yak.ops.tools.datasource.mysql.DolphinSchedulerMysqlProfile;
+import io.yak.ops.tools.datasource.YakOpsManager;
+import io.yak.ops.tools.datasource.jupiter.YakOpsDatabaseContainer;
+import io.yak.ops.tools.datasource.mysql.YakOpsMysqlProfile;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@DolphinSchedulerMysqlProfile
-@DolphinSchedulerDatabaseContainer(imageName = "mysql:8.0")
+@YakOpsMysqlProfile
+@YakOpsDatabaseContainer(imageName = "mysql:8.0")
 class InitializeSchemaIT {
 
     @Autowired
-    private DolphinSchedulerManager manager;
+    private YakOpsManager manager;
 
     @Autowired
     private DataSource dataSource;

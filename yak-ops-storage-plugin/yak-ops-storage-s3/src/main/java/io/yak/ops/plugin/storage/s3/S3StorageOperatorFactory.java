@@ -21,7 +21,7 @@ public class S3StorageOperatorFactory implements StorageOperatorFactory {
         return S3StorageProperties.builder()
                 .bucketName(PropertyUtils.getString(StorageConstants.AWS_S3_BUCKET_NAME))
                 .s3Configuration(PropertyUtils.getByPrefix("aws.s3.", ""))
-                .resourceUploadPath(PropertyUtils.getString(StorageConstants.RESOURCE_UPLOAD_PATH, "/dolphinscheduler"))
+                .resourceUploadPath(PropertyUtils.getString(StorageConstants.RESOURCE_UPLOAD_PATH, "/yak-ops"))
                 .build();
     }
 

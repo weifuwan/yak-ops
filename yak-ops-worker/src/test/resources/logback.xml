@@ -34,9 +34,9 @@
         </sift>
     </appender>
     <appender name="WORKERLOGFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.base}/dolphinscheduler-worker.log</file>
+        <file>${log.base}/yak-ops-worker.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${log.base}/dolphinscheduler-worker.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+            <fileNamePattern>${log.base}/yak-ops-worker.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
             <maxHistory>168</maxHistory>
             <maxFileSize>200MB</maxFileSize>
             <totalSizeCap>50GB</totalSizeCap>

@@ -3,12 +3,12 @@ spring:
     banner-mode: off
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/dolphinscheduler
+    url: jdbc:postgresql://localhost:5432/yak-ops
     username: root
     password: root
     hikari:
       connection-test-query: select 1
-      pool-name: DolphinScheduler
+      pool-name: YakOps
 
 mybatis-plus:
   mapper-locations: classpath:io/yak/ops/dao/mapper/*Mapper.xml

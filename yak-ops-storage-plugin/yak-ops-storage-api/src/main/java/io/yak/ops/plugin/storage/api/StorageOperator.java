@@ -14,7 +14,7 @@ public interface StorageOperator {
     /**
      * Get the absolute path of base directory.
      *
-     * @return the base directory. e.g. file:///tmp/dolphinscheduler/, /tmp/dolphinscheduler/
+     * @return the base directory. e.g. file:///tmp/yak-ops/, /tmp/yak-ops/
      */
     String getStorageBaseDirectory();
 
@@ -22,19 +22,19 @@ public interface StorageOperator {
      * Get the absolute path of directory which will be used by the given tenant. the tenant directory is under the base directory.
      *
      * @param tenantCode the tenant code, cannot be empty
-     * @return the tenant directory. e.g. file:///tmp/dolphinscheduler/default/
+     * @return the tenant directory. e.g. file:///tmp/yak-ops/default/
      */
     String getStorageBaseDirectory(String tenantCode);
 
     /**
      * Get the absolute path of directory which will be used by the given tenant and resource type. the resource directory is under the tenant directory.
-     * <p> If the resource type is FILE, will be 'file:///tmp/dolphinscheduler/default/resources/'.
-     * <p> If the resource type is UDF, will be 'is file:///tmp/dolphinscheduler/default/udfs/'.
-     * <p> If the resource type is ALL, will be 'is file:///tmp/dolphinscheduler/default/'.
+     * <p> If the resource type is FILE, will be 'file:///tmp/yak-ops/default/resources/'.
+     * <p> If the resource type is UDF, will be 'is file:///tmp/yak-ops/default/udfs/'.
+     * <p> If the resource type is ALL, will be 'is file:///tmp/yak-ops/default/'.
      *
      * @param tenantCode   the tenant code, cannot be empty
      * @param resourceType the resource type, cannot be null
-     * @return the resource directory. e.g. file:///tmp/dolphinscheduler/default/resources/
+     * @return the resource directory. e.g. file:///tmp/yak-ops/default/resources/
      */
     String getStorageBaseDirectory(String tenantCode, ResourceType resourceType);
 
@@ -43,7 +43,7 @@ public interface StorageOperator {
      *
      * @param tenantCode the tenant code, cannot be empty
      * @param fileName   the file name, cannot be empty
-     * @return the file absolute path. e.g. file:///tmp/dolphinscheduler/default/resources/test.sh
+     * @return the file absolute path. e.g. file:///tmp/yak-ops/default/resources/test.sh
      */
     String getStorageFileAbsolutePath(String tenantCode, String fileName);
 

@@ -11,13 +11,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-public class DolphinSchedulerManager {
+public class YakOpsManager {
 
     private final SchemaDao schemaDao;
 
     private final DatabaseDialect databaseDialect;
 
-    public DolphinSchedulerManager(SchemaDao schemaDao, DatabaseDialect databaseDialect) {
+    public YakOpsManager(SchemaDao schemaDao, DatabaseDialect databaseDialect) {
         this.schemaDao = schemaDao;
         this.databaseDialect = databaseDialect;
     }
@@ -41,7 +41,7 @@ public class DolphinSchedulerManager {
                 || databaseDialect.tableExists("t_ds_workflow_instance")
                 || databaseDialect.tableExists("QRTZ_JOB_DETAILS")) {
             throw new IllegalStateException(
-                    "Existing DolphinScheduler tables detected without t_ds_version; "
+                    "Existing YakOps tables detected without t_ds_version; "
                             + "refusing destructive schema initialization");
         }
 

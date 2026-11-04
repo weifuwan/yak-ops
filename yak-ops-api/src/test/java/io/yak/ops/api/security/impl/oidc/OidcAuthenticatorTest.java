@@ -100,7 +100,7 @@ public class OidcAuthenticatorTest {
         when(attributes.getRequest()).thenReturn(request);
         when(request.getSession()).thenReturn(session);
         RequestContextHolder.setRequestAttributes(attributes);
-        when(apiConfig.getBaseUrl()).thenReturn("http://localhost:12345/dolphinscheduler");
+        when(apiConfig.getBaseUrl()).thenReturn("http://localhost:12345/yak-ops");
     }
 
     @Test
@@ -685,7 +685,7 @@ public class OidcAuthenticatorTest {
         String state = providerId + ":" + UUID.randomUUID();
         when(session.getAttribute(Constants.SSO_LOGIN_USER_STATE)).thenReturn(state);
         mockOidcConfiguration(providerId, true, Collections.emptyList());
-        when(apiConfig.getBaseUrl()).thenReturn("http://localhost:12345/dolphinscheduler invalid");
+        when(apiConfig.getBaseUrl()).thenReturn("http://localhost:12345/yak-ops invalid");
 
         executeLoginWithMocks(() -> {
             User result = oidcAuthenticator.login(state, code);
@@ -836,7 +836,7 @@ public class OidcAuthenticatorTest {
         when(oidcConfigProperties.getProviders()).thenReturn(providers);
 
         String state = providerId + ":" + UUID.randomUUID();
-        when(apiConfig.getBaseUrl()).thenReturn("http://localhost:12345/dolphinscheduler");
+        when(apiConfig.getBaseUrl()).thenReturn("http://localhost:12345/yak-ops");
         String metadataJson = "{" +
                 "\"issuer\":\"http://fake-issuer.com\"," +
                 "\"authorization_endpoint\":\"http://fake/authorize\"," +

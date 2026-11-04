@@ -3,12 +3,12 @@ spring:
     banner-mode: off
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/dolphinscheduler?useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8
     username: root
     password: root
     hikari:
       connection-test-query: select 1
-      pool-name: DolphinScheduler
+      pool-name: YakOps
 
 mybatis-plus:
   mapper-locations: classpath:io/yak/ops/dao/mapper/*Mapper.xml

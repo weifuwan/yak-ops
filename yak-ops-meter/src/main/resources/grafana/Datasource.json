@@ -854,8 +854,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "DolphinScheduler",
-          "value": "DolphinScheduler"
+          "text": "YakOps",
+          "value": "YakOps"
         },
         "datasource": "Prometheus",
         "definition": "label_values(hikaricp_connections_min{application=\"$application\", instance=~\"$instance\"}, pool)",

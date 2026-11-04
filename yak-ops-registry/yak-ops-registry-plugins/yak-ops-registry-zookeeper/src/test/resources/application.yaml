@@ -1,7 +1,7 @@
 registry:
   type: zookeeper
   zookeeper:
-    namespace: dolphinscheduler
+    namespace: yak-ops
     connect-string: 127.0.0.1:2181
     retry-policy:
       base-sleep-time: 60ms

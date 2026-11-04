@@ -28,18 +28,18 @@ public class FileUtilsTest {
 
     @Test
     public void testGetDownloadFilename() {
-        Truth.assertThat(FileUtils.getDownloadFilename("test")).startsWith("/tmp/dolphinscheduler/tmp/");
+        Truth.assertThat(FileUtils.getDownloadFilename("test")).startsWith("/tmp/yak-ops/tmp/");
     }
 
     @Test
     public void testGetUploadFilename() {
-        Truth.assertThat(FileUtils.getUploadFileLocalTmpAbsolutePath()).startsWith("/tmp/dolphinscheduler/tmp/");
+        Truth.assertThat(FileUtils.getUploadFileLocalTmpAbsolutePath()).startsWith("/tmp/yak-ops/tmp/");
     }
 
     @Test
     public void testGetProcessExecDir() {
         String dir = FileUtils.getTaskInstanceWorkingDirectory(4);
-        Assertions.assertEquals("/tmp/dolphinscheduler/exec/process/4", dir);
+        Assertions.assertEquals("/tmp/yak-ops/exec/process/4", dir);
     }
 
     @Test

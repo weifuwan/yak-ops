@@ -4,7 +4,7 @@
       "nested": {
         "apache": {
           "nested": {
-            "dolphinscheduler": {
+            "yak-ops": {
               "nested": {
                 "task": {
                   "nested": {

@@ -226,7 +226,7 @@ public class TaskConstants {
     /**
      * spark / flink on k8s label name
      */
-    public static final String UNIQUE_LABEL_NAME = "dolphinscheduler-label";
+    public static final String UNIQUE_LABEL_NAME = "yak-ops-label";
 
     /**
      * conda config used by jupyter task plugin

@@ -1,8 +1,8 @@
 package io.yak.ops.tools.datasource.postgresql.v16;
 
-import io.yak.ops.tools.datasource.DolphinSchedulerManager;
-import io.yak.ops.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
-import io.yak.ops.tools.datasource.postgresql.DolphinSchedulerPostgresqlProfile;
+import io.yak.ops.tools.datasource.YakOpsManager;
+import io.yak.ops.tools.datasource.jupiter.YakOpsDatabaseContainer;
+import io.yak.ops.tools.datasource.postgresql.YakOpsPostgresqlProfile;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@DolphinSchedulerPostgresqlProfile
-@DolphinSchedulerDatabaseContainer(imageName = "postgres:16.0")
+@YakOpsPostgresqlProfile
+@YakOpsDatabaseContainer(imageName = "postgres:16.0")
 class InitializeSchemaIT {
 
     @Autowired
-    private DolphinSchedulerManager manager;
+    private YakOpsManager manager;
 
     @Autowired
     private DataSource dataSource;

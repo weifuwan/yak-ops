@@ -306,7 +306,7 @@ public class LoginController extends BaseController {
 
         if (!state.startsWith(providerId + ":")) {
             log.error("OIDC login failed: State parameter does not match the provider ID.");
-            response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_invalid_state");
+            response.sendRedirect("/yak-ops/ui/#/login?error=oidc_invalid_state");
             return;
         }
 
@@ -314,21 +314,21 @@ public class LoginController extends BaseController {
         if (error != null) {
             String sanitizedError = error.replaceAll("[\n\r\t]", "_");
             log.error("OIDC login failed with error: {}.", sanitizedError);
-            response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_login_failed");
+            response.sendRedirect("/yak-ops/ui/#/login?error=oidc_login_failed");
             return;
         }
 
         // Handle the case where code is missing without an error
         if (code == null) {
             log.error("OIDC login failed: The authorization code was not provided.");
-            response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_missing_code");
+            response.sendRedirect("/yak-ops/ui/#/login?error=oidc_missing_code");
             return;
         }
 
         try {
             if (!(authenticator instanceof OidcAuthenticator)) {
                 log.error("OIDC authentication is not active or authenticator type is incorrect.");
-                response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_not_enabled");
+                response.sendRedirect("/yak-ops/ui/#/login?error=oidc_not_enabled");
                 return;
             }
 
@@ -336,7 +336,7 @@ public class LoginController extends BaseController {
 
             if (user == null) {
                 log.error("OIDC authentication failed. User could not be authenticated or created.");
-                response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_authentication_failed");
+                response.sendRedirect("/yak-ops/ui/#/login?error=oidc_authentication_failed");
                 return;
             }
 
@@ -348,7 +348,7 @@ public class LoginController extends BaseController {
         } catch (Exception ex) {
             log.error("A critical error occurred during the OIDC callback process.", ex);
             try {
-                response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_critical_error");
+                response.sendRedirect("/yak-ops/ui/#/login?error=oidc_critical_error");
             } catch (IOException e) {
                 log.error("Failed to redirect to login page after a critical error.", e);
             }
@@ -364,7 +364,7 @@ public class LoginController extends BaseController {
         if (oidcConfigProperties == null || oidcConfigProperties.getProviders() == null
                 || !oidcConfigProperties.getProviders().containsKey(providerId)) {
             log.error("Invalid OIDC provider ID requested: {}", providerId);
-            response.sendRedirect("/dolphinscheduler/ui/#/login?error=invalid_provider");
+            response.sendRedirect("/yak-ops/ui/#/login?error=invalid_provider");
             return;
         }
 
@@ -374,7 +374,7 @@ public class LoginController extends BaseController {
 
         if (authorizationUrl == null) {
             log.error("OIDC authorization URL is null for providerId: {}", providerId);
-            response.sendRedirect("/dolphinscheduler/ui/#/login?error=oidc_authorization_url_null");
+            response.sendRedirect("/yak-ops/ui/#/login?error=oidc_authorization_url_null");
             return;
         }
 

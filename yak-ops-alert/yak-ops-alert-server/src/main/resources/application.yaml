@@ -10,12 +10,12 @@ spring:
     charset: UTF-8
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/dolphinscheduler
+    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
     username: root
     password: root
     hikari:
       connection-test-query: select 1
-      pool-name: DolphinScheduler
+      pool-name: YakOps
 
 # Mybatis-plus configuration, you don't need to change it
 mybatis-plus:
@@ -69,7 +69,7 @@ alert:
 registry:
   type: zookeeper
   zookeeper:
-    namespace: dolphinscheduler
+    namespace: yak-ops
     connect-string: localhost:2181
     retry-policy:
       base-sleep-time: 1s
@@ -89,6 +89,6 @@ spring:
       on-profile: mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/dolphinscheduler
+    url: jdbc:mysql://127.0.0.1:3306/yak-ops
     username: root
     password: root

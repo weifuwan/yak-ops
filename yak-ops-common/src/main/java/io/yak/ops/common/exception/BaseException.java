@@ -1,7 +1,7 @@
 package io.yak.ops.common.exception;
 
 /**
- * Base Exception class for DolphinScheduler
+ * Base Exception class for YakOps
  */
 public class BaseException extends Exception {
 

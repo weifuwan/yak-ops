@@ -40,7 +40,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class RemoteExecutorTest {
 
     private String connectJson =
-            "{\"user\":\"root\",\"password\":\"123456\",\"host\":\"dolphinscheduler.com\",\"port\":22, \"privateKey\":\"ssh-rsa AAAAB\"}";
+            "{\"user\":\"root\",\"password\":\"123456\",\"host\":\"yak-ops.com\",\"port\":22, \"privateKey\":\"ssh-rsa AAAAB\"}";
 
     SSHConnectionParam sshConnectionParam;
 
@@ -106,12 +106,12 @@ public class RemoteExecutorTest {
         RemoteExecutor remoteExecutor = spy(new RemoteExecutor(sshConnectionParam));
         doNothing().when(remoteExecutor).uploadScript(Mockito.anyString(), Mockito.anyString());
         String checkDirCommand =
-                "if [ ! -d /tmp/dolphinscheduler-remote-shell-root/ ]; then mkdir -p /tmp/dolphinscheduler-remote-shell-root/; fi";
-        String catScriptCommand = "cat /tmp/dolphinscheduler-remote-shell-root/1234.sh";
+                "if [ ! -d /tmp/yak-ops-remote-shell-root/ ]; then mkdir -p /tmp/yak-ops-remote-shell-root/; fi";
+        String catScriptCommand = "cat /tmp/yak-ops-remote-shell-root/1234.sh";
         doReturn("").when(remoteExecutor).runRemote(checkDirCommand);
         doReturn("").when(remoteExecutor).runRemote(catScriptCommand);
 
-        remoteExecutor.saveCommand("1234", "/tmp/dolphinscheduler/test.sh");
+        remoteExecutor.saveCommand("1234", "/tmp/yak-ops/test.sh");
         verify(remoteExecutor).runRemote(checkDirCommand);
     }
 
@@ -119,11 +119,11 @@ public class RemoteExecutorTest {
     void testCleanData() throws IOException {
         RemoteExecutor remoteExecutor = spy(new RemoteExecutor(sshConnectionParam));
         String cleanCommand =
-                "rm /tmp/dolphinscheduler-remote-shell-root/1234.sh /tmp/dolphinscheduler-remote-shell-root/1234.log";
+                "rm /tmp/yak-ops-remote-shell-root/1234.sh /tmp/yak-ops-remote-shell-root/1234.log";
         doReturn("").when(remoteExecutor).runRemote(cleanCommand);
         remoteExecutor.cleanData("1234");
         String cleanCommandError =
-                "rm /tmp/dolphinscheduler-remote-shell-root/abcd.sh /tmp/dolphinscheduler-remote-shell-root/abcd.log";
+                "rm /tmp/yak-ops-remote-shell-root/abcd.sh /tmp/yak-ops-remote-shell-root/abcd.log";
         doThrow(new TaskException()).when(remoteExecutor).runRemote(cleanCommandError);
         remoteExecutor.cleanData("abcd");
     }
@@ -133,11 +133,11 @@ public class RemoteExecutorTest {
         RemoteExecutor remoteExecutor = spy(new RemoteExecutor(sshConnectionParam));
         String taskId = "1234";
         doNothing().when(remoteExecutor).cleanData(taskId);
-        String trackCommand = "tail -n 1 /tmp/dolphinscheduler-remote-shell-root/1234.log";
-        doReturn("DOLPHINSCHEDULER-REMOTE-SHELL-TASK-STATUS-0").when(remoteExecutor).runRemote(trackCommand);
+        String trackCommand = "tail -n 1 /tmp/yak-ops-remote-shell-root/1234.log";
+        doReturn("YAK_OPS-REMOTE-SHELL-TASK-STATUS-0").when(remoteExecutor).runRemote(trackCommand);
         Assertions.assertEquals(0, remoteExecutor.getTaskExitCode(taskId));
 
-        doReturn("DOLPHINSCHEDULER-REMOTE-SHELL-TASK-STATUS-1").when(remoteExecutor).runRemote(trackCommand);
+        doReturn("YAK_OPS-REMOTE-SHELL-TASK-STATUS-1").when(remoteExecutor).runRemote(trackCommand);
         Assertions.assertEquals(1, remoteExecutor.getTaskExitCode(taskId));
     }
 

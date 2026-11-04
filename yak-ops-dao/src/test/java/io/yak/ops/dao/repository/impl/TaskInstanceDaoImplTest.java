@@ -77,8 +77,8 @@ class TaskInstanceDaoImplTest extends BaseDaoTest {
                 .startTime(new Date())
                 .endTime(endTime)
                 .host("192.168.1.50:5678")
-                .executePath("/tmp/dolphinscheduler/exec/" + WORKFLOW_INSTANCE_ID + "/" + taskCode)
-                .logPath("/tmp/dolphinscheduler/logs/" + WORKFLOW_INSTANCE_ID + "/" + taskCode + ".log")
+                .executePath("/tmp/yak-ops/exec/" + WORKFLOW_INSTANCE_ID + "/" + taskCode)
+                .logPath("/tmp/yak-ops/logs/" + WORKFLOW_INSTANCE_ID + "/" + taskCode + ".log")
                 .build();
         taskInstanceDao.upsertTaskInstance(ti);
     }

@@ -34,7 +34,7 @@ class CreateDirectoryDtoValidatorTest {
     @InjectMocks
     private CreateDirectoryDtoValidator createDirectoryDtoValidator;
 
-    private static final String BASE_DIRECTORY = "/tmp/dolphinscheduler";
+    private static final String BASE_DIRECTORY = "/tmp/yak-ops";
 
     private User loginUser;
 
@@ -61,10 +61,10 @@ class CreateDirectoryDtoValidatorTest {
     public void testValidate_directoryPathContainsIllegalSymbolic() {
         CreateDirectoryDto createDirectoryDto = CreateDirectoryDto.builder()
                 .loginUser(loginUser)
-                .directoryAbsolutePath("/tmp/dolphinscheduler/default/resources/..")
+                .directoryAbsolutePath("/tmp/yak-ops/default/resources/..")
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: Invalidated resource path: /tmp/dolphinscheduler/default/resources/..",
+                "Internal Server Error: Invalidated resource path: /tmp/yak-ops/default/resources/..",
                 () -> createDirectoryDtoValidator.validate(createDirectoryDto));
     }
 
@@ -72,11 +72,11 @@ class CreateDirectoryDtoValidatorTest {
     public void testValidate_directoryExist() {
         CreateDirectoryDto createDirectoryDto = CreateDirectoryDto.builder()
                 .loginUser(loginUser)
-                .directoryAbsolutePath("/tmp/dolphinscheduler/default/resources/demo")
+                .directoryAbsolutePath("/tmp/yak-ops/default/resources/demo")
                 .build();
         when(storageOperator.exists(createDirectoryDto.getDirectoryAbsolutePath())).thenReturn(true);
         assertThrowServiceException(
-                "Internal Server Error: The resource is already exist: /tmp/dolphinscheduler/default/resources/demo",
+                "Internal Server Error: The resource is already exist: /tmp/yak-ops/default/resources/demo",
                 () -> createDirectoryDtoValidator.validate(createDirectoryDto));
     }
 
@@ -88,7 +88,7 @@ class CreateDirectoryDtoValidatorTest {
 
         CreateDirectoryDto createDirectoryDto = CreateDirectoryDto.builder()
                 .loginUser(loginUser)
-                .directoryAbsolutePath("/tmp/dolphinscheduler/default/resources/demo")
+                .directoryAbsolutePath("/tmp/yak-ops/default/resources/demo")
                 .build();
         when(storageOperator.getResourceMetaData(createDirectoryDto.getDirectoryAbsolutePath()))
                 .thenReturn(ResourceMetadata.builder()
@@ -100,7 +100,7 @@ class CreateDirectoryDtoValidatorTest {
                         .build());
         when(storageOperator.exists(createDirectoryDto.getDirectoryAbsolutePath())).thenReturn(false);
         assertThrowServiceException(
-                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/dolphinscheduler/default/resources/demo",
+                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/yak-ops/default/resources/demo",
                 () -> createDirectoryDtoValidator.validate(createDirectoryDto));
     }
 
@@ -108,11 +108,11 @@ class CreateDirectoryDtoValidatorTest {
     public void testValidate_pathNotDirectory() {
         CreateDirectoryDto createDirectoryDto = CreateDirectoryDto.builder()
                 .loginUser(loginUser)
-                .directoryAbsolutePath("/tmp/dolphinscheduler/default/resources/demo.sql")
+                .directoryAbsolutePath("/tmp/yak-ops/default/resources/demo.sql")
                 .build();
         loginUser.setUserType(UserType.ADMIN_USER);
         assertThrowServiceException(
-                "Internal Server Error: The path is not a directory: /tmp/dolphinscheduler/default/resources/demo.sql",
+                "Internal Server Error: The path is not a directory: /tmp/yak-ops/default/resources/demo.sql",
                 () -> createDirectoryDtoValidator.validate(createDirectoryDto));
     }
 

@@ -13,16 +13,16 @@ delete the server's metadata when server down.
 
 At present, we have implements three registry: Zookeeper(Default),Etcd,Mysql. If you
 want to use them, you should config it at resource/application.yaml. The configuration details
-can be viewed in the README of plugin under Module dolphinscheduler-registry-plugins
+can be viewed in the README of plugin under Module yak-ops-registry-plugins
 
 ## Module
 
-### dolphinscheduler-registry-all
+### yak-ops-registry-all
 
 This module is used for exporting the implementation of registry.
 If you want to add new registry,you should add the dependency in the pom.xml
 
-### dolphinscheduler-registry-api
+### yak-ops-registry-api
 
 This module contains the relevant interfaces involved in the use of the registry.
 The following are several important interfaces
@@ -32,6 +32,6 @@ The connection state can be viewed in ConnectionState.java
 3. SubscribeListener Interface: This interface is responsible for monitoring the state changes of child nodes under the specified prefix.
 Event content can be viewed in event.java
 
-### dolphinscheduler-registry-plugins
+### yak-ops-registry-plugins
 
 This module contains all registry implementations in DS

@@ -11,15 +11,15 @@ spring:
     location: classpath:standalone-banner.txt
   sql:
     init:
-      schema-locations: classpath:sql/dolphinscheduler_h2.sql
+      schema-locations: classpath:sql/yak-ops_h2.sql
   datasource:
       driver-class-name: org.h2.Driver
-      url: jdbc:h2:mem:dolphinscheduler;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true
+      url: jdbc:h2:mem:yak-ops;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true
       username: sa
       password: ""
       hikari:
         connection-test-query: select 1
-        pool-name: DolphinSchedulerDataSource
+        pool-name: YakOpsDataSource
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -31,7 +31,7 @@ spring:
       org.quartz.scheduler.instanceId: AUTO
       org.quartz.jobStore.tablePrefix: QRTZ_
       org.quartz.jobStore.acquireTriggersWithinLock: true
-      org.quartz.scheduler.instanceName: DolphinScheduler
+      org.quartz.scheduler.instanceName: YakOps
       org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
       org.quartz.jobStore.useProperties: false
       org.quartz.threadPool.makeThreadsDaemons: true
@@ -109,7 +109,7 @@ security:
       provider:
         github:
           authorizationUri: "https://github.com/login/oauth/authorize"
-          redirectUri: "http://localhost:12345/dolphinscheduler/redirect/login/oauth2"
+          redirectUri: "http://localhost:12345/yak-ops/redirect/login/oauth2"
           clientId: ""
           clientSecret: ""
           tokenUri: "https://github.com/login/oauth/access_token"
@@ -119,7 +119,7 @@ security:
           provider: github
         gitee:
           authorizationUri: "https://gitee.com/oauth/authorize"
-          redirectUri: "http://127.0.0.1:12345/dolphinscheduler/redirect/login/oauth2"
+          redirectUri: "http://127.0.0.1:12345/yak-ops/redirect/login/oauth2"
           clientId: ""
           clientSecret: ""
           tokenUri: "https://gitee.com/oauth/token?grant_type=authorization_code"
@@ -133,10 +133,10 @@ security:
         # registrationId used in URLs and internal mapping
         keycloak:
           display-name: "Login with Keycloak" # Text for UI Button
-          issuer-uri: http://keycloak:8080/realms/dolphinscheduler
+          issuer-uri: http://keycloak:8080/realms/yak-ops
           icon-uri: "/images/providers-icon/keycloak.png"
-          client-id: dolphinscheduler-client
-          client-secret: dolphinscheduler-client-secret
+          client-id: yak-ops-client
+          client-secret: yak-ops-client-secret
           # Optional: Specify client auth method (e.g., client_secret_basic, client_secret_post). Defaults if omitted.
           # client-authentication-method: client_secret_basic
           scope: openid, profile, email, groups # Default: openid, profile, email
@@ -149,7 +149,7 @@ security:
         default-tenant-code: "default" # Tenant code for auto-created users
         default-queue: "default" # Queue for auto-created users (if needed by permissions)
         admin-group-mapping: # Groups that map to an administrator role
-          - dolphinscheduler-admins
+          - yak-ops-admins
 
 casdoor:
   # Your Casdoor server url
@@ -161,7 +161,7 @@ casdoor:
   # Your organization name added in Casdoor
   organization-name: built-in
   # Your application name added in Casdoor
-  application-name: dolphinscheduler
+  application-name: yak-ops
   # Doplhinscheduler login url
   redirect-url: http://localhost:5173/login
 
@@ -282,7 +282,7 @@ server:
   servlet:
     session:
       timeout: 120m
-    context-path: /dolphinscheduler/
+    context-path: /yak-ops/
   compression:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml
@@ -326,7 +326,7 @@ spring:
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/dolphinscheduler
+    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
     username: root
     password: root
 
@@ -337,9 +337,9 @@ spring:
       on-profile: mysql
   sql:
      init:
-       schema-locations: classpath:sql/dolphinscheduler_mysql.sql
+       schema-locations: classpath:sql/yak-ops_mysql.sql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/dolphinscheduler?useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8
     username: root
     password: root@123

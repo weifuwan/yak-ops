@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the imported DolphinScheduler standalone in H2 mode on JDK 11.
+# Start the imported YakOps standalone in H2 mode on JDK 11.
 # Java source and upstream execution model are not modified.
 set -euo pipefail
 
@@ -8,7 +8,7 @@ cd "$repo_root"
 
 version="$(java -version 2>&1 | sed -nE 's/.*version "([0-9]+)(\.[^"]*)?".*/\1/p' | head -n 1)"
 if [[ "$version" != "11" ]]; then
-  echo "The imported DolphinScheduler runtime requires JDK 11 for now; detected Java major version: ${version:-unknown}" >&2
+  echo "The imported YakOps runtime requires JDK 11 for now; detected Java major version: ${version:-unknown}" >&2
   exit 1
 fi
 
@@ -32,7 +32,7 @@ fi
 mkdir -p "$runtime_classes/sql"
 cp yak-ops-api/src/main/resources/task-type-config.yaml "$runtime_classes/"
 cp yak-ops-api/src/main/resources/dynamic-task-type-config.yaml "$runtime_classes/"
-cp yak-ops-dao/src/main/resources/sql/dolphinscheduler_h2.sql "$runtime_classes/sql/"
+cp yak-ops-dao/src/main/resources/sql/yak-ops_h2.sql "$runtime_classes/sql/"
 
 exec bash mvnw -B -ntp \
   -f yak-ops-standalone-server/pom.xml \

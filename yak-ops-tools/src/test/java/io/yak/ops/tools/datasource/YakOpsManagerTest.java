@@ -11,19 +11,19 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DolphinSchedulerManagerTest {
+class YakOpsManagerTest {
 
     private SchemaDao schemaDao;
 
     private DatabaseDialect databaseDialect;
 
-    private DolphinSchedulerManager manager;
+    private YakOpsManager manager;
 
     @BeforeEach
     void setUp() {
         schemaDao = mock(SchemaDao.class);
         databaseDialect = mock(DatabaseDialect.class);
-        manager = new DolphinSchedulerManager(schemaDao, databaseDialect);
+        manager = new YakOpsManager(schemaDao, databaseDialect);
     }
 
     private void mockRequiredTables() {

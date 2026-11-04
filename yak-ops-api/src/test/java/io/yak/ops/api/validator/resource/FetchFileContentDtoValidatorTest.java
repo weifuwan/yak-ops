@@ -37,7 +37,7 @@ class FetchFileContentDtoValidatorTest {
     @InjectMocks
     private FetchFileContentDtoValidator fetchFileContentDtoValidator;
 
-    private static final String BASE_DIRECTORY = "/tmp/dolphinscheduler";
+    private static final String BASE_DIRECTORY = "/tmp/yak-ops";
 
     private User loginUser;
 
@@ -94,12 +94,12 @@ class FetchFileContentDtoValidatorTest {
     public void testValidate_filePathContainsIllegalSymbolic() {
         FetchFileContentDto fetchFileContentDto = FetchFileContentDto.builder()
                 .loginUser(loginUser)
-                .resourceFileAbsolutePath("/tmp/dolphinscheduler/default/resources/..")
+                .resourceFileAbsolutePath("/tmp/yak-ops/default/resources/..")
                 .skipLineNum(0)
                 .limit(-1)
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: Invalidated resource path: /tmp/dolphinscheduler/default/resources/..",
+                "Internal Server Error: Invalidated resource path: /tmp/yak-ops/default/resources/..",
                 () -> fetchFileContentDtoValidator.validate(fetchFileContentDto));
     }
 
@@ -107,12 +107,12 @@ class FetchFileContentDtoValidatorTest {
     public void testValidate_IsNotFile() {
         FetchFileContentDto fetchFileContentDto = FetchFileContentDto.builder()
                 .loginUser(loginUser)
-                .resourceFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
+                .resourceFileAbsolutePath("/tmp/yak-ops/default/resources/a")
                 .skipLineNum(0)
                 .limit(-1)
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: The path is not a file: /tmp/dolphinscheduler/default/resources/a",
+                "Internal Server Error: The path is not a file: /tmp/yak-ops/default/resources/a",
                 () -> fetchFileContentDtoValidator.validate(fetchFileContentDto));
     }
 
@@ -124,7 +124,7 @@ class FetchFileContentDtoValidatorTest {
 
         FetchFileContentDto fetchFileContentDto = FetchFileContentDto.builder()
                 .loginUser(loginUser)
-                .resourceFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.sql")
+                .resourceFileAbsolutePath("/tmp/yak-ops/default/resources/a.sql")
                 .skipLineNum(0)
                 .limit(-1)
                 .build();
@@ -138,7 +138,7 @@ class FetchFileContentDtoValidatorTest {
                         .tenant("default")
                         .build());
         assertThrowServiceException(
-                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/dolphinscheduler/default/resources/a.sql",
+                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/yak-ops/default/resources/a.sql",
                 () -> fetchFileContentDtoValidator.validate(fetchFileContentDto));
     }
 
@@ -150,7 +150,7 @@ class FetchFileContentDtoValidatorTest {
 
         FetchFileContentDto fetchFileContentDto = FetchFileContentDto.builder()
                 .loginUser(loginUser)
-                .resourceFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.jar")
+                .resourceFileAbsolutePath("/tmp/yak-ops/default/resources/a.jar")
                 .skipLineNum(0)
                 .limit(-1)
                 .build();
@@ -176,7 +176,7 @@ class FetchFileContentDtoValidatorTest {
 
         FetchFileContentDto fetchFileContentDto = FetchFileContentDto.builder()
                 .loginUser(loginUser)
-                .resourceFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.sql")
+                .resourceFileAbsolutePath("/tmp/yak-ops/default/resources/a.sql")
                 .skipLineNum(0)
                 .limit(-1)
                 .build();

@@ -74,7 +74,7 @@ public class EmailAlertChannelTest {
 
         InputParam mailSender = InputParam.newBuilder(MailParamsConstants.NAME_MAIL_SENDER, "sender")
                 .addValidate(Validate.newBuilder().setRequired(true).build())
-                .setValue("dolphinscheduler@126.com")
+                .setValue("yak-ops@126.com")
                 .build();
 
         RadioParam enableSmtpAuth = RadioParam.newBuilder(MailParamsConstants.NAME_MAIL_SMTP_AUTH, "smtp.auth")
@@ -86,7 +86,7 @@ public class EmailAlertChannelTest {
 
         InputParam mailUser = InputParam.newBuilder(MailParamsConstants.NAME_MAIL_USER, "user")
                 .setPlaceholder("if enable use authentication, you need input user")
-                .setValue("dolphinscheduler@126.com")
+                .setValue("yak-ops@126.com")
                 .build();
 
         InputParam mailPassword = InputParam.newBuilder(MailParamsConstants.NAME_MAIL_PASSWD, "passwd")

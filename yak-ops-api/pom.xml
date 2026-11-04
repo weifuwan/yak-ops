@@ -25,7 +25,7 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-service</artifactId>
@@ -117,7 +117,7 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-extract-alert</artifactId>
         </dependency>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
 
         <dependency>
             <groupId>org.codehaus.janino</groupId>

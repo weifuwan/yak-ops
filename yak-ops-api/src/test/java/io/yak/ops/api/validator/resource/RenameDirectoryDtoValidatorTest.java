@@ -34,7 +34,7 @@ class RenameDirectoryDtoValidatorTest {
     @InjectMocks
     private RenameDirectoryDtoValidator renameDirectoryDtoValidator;
 
-    private static final String BASE_DIRECTORY = "/tmp/dolphinscheduler";
+    private static final String BASE_DIRECTORY = "/tmp/yak-ops";
 
     private User loginUser;
 
@@ -63,11 +63,11 @@ class RenameDirectoryDtoValidatorTest {
     public void testValidate_directoryPathContainsIllegalSymbolic() {
         RenameDirectoryDto renameDirectoryDto = RenameDirectoryDto.builder()
                 .loginUser(loginUser)
-                .originDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/..")
-                .targetDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
+                .originDirectoryAbsolutePath("/tmp/yak-ops/default/resources/..")
+                .targetDirectoryAbsolutePath("/tmp/yak-ops/default/resources/a")
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: Invalidated resource path: /tmp/dolphinscheduler/default/resources/..",
+                "Internal Server Error: Invalidated resource path: /tmp/yak-ops/default/resources/..",
                 () -> renameDirectoryDtoValidator.validate(renameDirectoryDto));
     }
 
@@ -75,11 +75,11 @@ class RenameDirectoryDtoValidatorTest {
     public void testValidate_originDirectoryNotExist() {
         RenameDirectoryDto renameDirectoryDto = RenameDirectoryDto.builder()
                 .loginUser(loginUser)
-                .originDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
-                .targetDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/b")
+                .originDirectoryAbsolutePath("/tmp/yak-ops/default/resources/a")
+                .targetDirectoryAbsolutePath("/tmp/yak-ops/default/resources/b")
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: Thr resource is not exists: /tmp/dolphinscheduler/default/resources/a",
+                "Internal Server Error: Thr resource is not exists: /tmp/yak-ops/default/resources/a",
                 () -> renameDirectoryDtoValidator.validate(renameDirectoryDto));
     }
 
@@ -91,8 +91,8 @@ class RenameDirectoryDtoValidatorTest {
 
         RenameDirectoryDto renameDirectoryDto = RenameDirectoryDto.builder()
                 .loginUser(loginUser)
-                .originDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
-                .targetDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/b")
+                .originDirectoryAbsolutePath("/tmp/yak-ops/default/resources/a")
+                .targetDirectoryAbsolutePath("/tmp/yak-ops/default/resources/b")
                 .build();
         when(storageOperator.exists(renameDirectoryDto.getOriginDirectoryAbsolutePath())).thenReturn(true);
         when(storageOperator.getResourceMetaData(renameDirectoryDto.getOriginDirectoryAbsolutePath()))
@@ -104,7 +104,7 @@ class RenameDirectoryDtoValidatorTest {
                         .tenant("default")
                         .build());
         assertThrowServiceException(
-                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/dolphinscheduler/default/resources/a",
+                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/yak-ops/default/resources/a",
                 () -> renameDirectoryDtoValidator.validate(renameDirectoryDto));
     }
 
@@ -116,8 +116,8 @@ class RenameDirectoryDtoValidatorTest {
 
         RenameDirectoryDto renameDirectoryDto = RenameDirectoryDto.builder()
                 .loginUser(loginUser)
-                .originDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
-                .targetDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/b")
+                .originDirectoryAbsolutePath("/tmp/yak-ops/default/resources/a")
+                .targetDirectoryAbsolutePath("/tmp/yak-ops/default/resources/b")
                 .build();
         when(storageOperator.exists(renameDirectoryDto.getOriginDirectoryAbsolutePath())).thenReturn(true);
         when(storageOperator.getResourceMetaData(renameDirectoryDto.getOriginDirectoryAbsolutePath()))
@@ -131,7 +131,7 @@ class RenameDirectoryDtoValidatorTest {
 
         when(storageOperator.exists(renameDirectoryDto.getTargetDirectoryAbsolutePath())).thenReturn(true);
         assertThrowServiceException(
-                "Internal Server Error: The resource is already exist: /tmp/dolphinscheduler/default/resources/b",
+                "Internal Server Error: The resource is already exist: /tmp/yak-ops/default/resources/b",
                 () -> renameDirectoryDtoValidator.validate(renameDirectoryDto));
     }
 
@@ -143,8 +143,8 @@ class RenameDirectoryDtoValidatorTest {
 
         RenameDirectoryDto renameDirectoryDto = RenameDirectoryDto.builder()
                 .loginUser(loginUser)
-                .originDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
-                .targetDirectoryAbsolutePath("/tmp/dolphinscheduler/default/resources/b")
+                .originDirectoryAbsolutePath("/tmp/yak-ops/default/resources/a")
+                .targetDirectoryAbsolutePath("/tmp/yak-ops/default/resources/b")
                 .build();
         when(storageOperator.exists(renameDirectoryDto.getOriginDirectoryAbsolutePath())).thenReturn(true);
         when(storageOperator.getResourceMetaData(renameDirectoryDto.getOriginDirectoryAbsolutePath()))

@@ -78,7 +78,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
         paramsMap.put("host", "192.168.xxxx.xx");
         paramsMap.put("port", 3306);
         paramsMap.put("principal", "");
-        paramsMap.put("database", "dolphinscheduler");
+        paramsMap.put("database", "yak-ops");
         paramsMap.put("userName", "root");
         paramsMap.put("password", "root@123");
         paramsMap.put("other", new HashMap<>());

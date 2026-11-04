@@ -9,5 +9,5 @@ resource:
       region: cn-hangzhou
       oss:
         bucket:
-          name: dolphinscheduler
+          name: yak-ops
         endpoint: https://oss-cn-hangzhou.aliyuncs.com

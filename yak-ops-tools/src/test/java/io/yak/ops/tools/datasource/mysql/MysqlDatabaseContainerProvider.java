@@ -1,7 +1,7 @@
 package io.yak.ops.tools.datasource.mysql;
 
 import io.yak.ops.tools.datasource.jupiter.DatabaseContainerProvider;
-import io.yak.ops.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
+import io.yak.ops.tools.datasource.jupiter.YakOpsDatabaseContainer;
 
 import java.util.stream.Stream;
 
@@ -23,11 +23,11 @@ public class MysqlDatabaseContainerProvider implements DatabaseContainerProvider
     private static final Network NETWORK = Network.newNetwork();
 
     @Override
-    public GenericContainer<?> getContainer(DolphinSchedulerDatabaseContainer dataSourceContainer) {
+    public GenericContainer<?> getContainer(YakOpsDatabaseContainer dataSourceContainer) {
         GenericContainer mysqlContainer = new MySQLContainer(DockerImageName.parse(dataSourceContainer.imageName()))
                 .withUsername("root")
                 .withPassword("root")
-                .withDatabaseName("dolphinscheduler")
+                .withDatabaseName("yak-ops")
                 .withNetwork(NETWORK)
                 .withExposedPorts(3306)
                 .waitingFor(Wait.forHealthcheck());
@@ -40,7 +40,7 @@ public class MysqlDatabaseContainerProvider implements DatabaseContainerProvider
         log.info("{} started", mysqlContainer.getDockerImageName());
 
         String jdbcUrl = "jdbc:mysql://localhost:" + mysqlContainer.getMappedPort(3306)
-                + "/dolphinscheduler?useUnicode=true&characterEncoding=UTF-8";
+                + "/yak-ops?useUnicode=true&characterEncoding=UTF-8";
         System.clearProperty("spring.datasource.url");
         System.setProperty("spring.datasource.url", jdbcUrl);
 

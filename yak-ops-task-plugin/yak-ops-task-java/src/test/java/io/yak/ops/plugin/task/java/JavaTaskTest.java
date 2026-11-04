@@ -39,7 +39,7 @@ class JavaTaskTest {
         JavaTask javaTask = runJarType();
         assertThat(javaTask.buildJarCommand())
                 .isEqualTo(
-                        "${JAVA_HOME}/bin/java -xms:50m -classpath .:/tmp/dolphinscheduler/test/executepath:/tmp/dolphinscheduler/test/executepath/opt/share/jar/resource2.jar -jar /tmp/dolphinscheduler/test/executepath/opt/share/jar/main.jar -host 127.0.0.1 -port 8080");
+                        "${JAVA_HOME}/bin/java -xms:50m -classpath .:/tmp/yak-ops/test/executepath:/tmp/yak-ops/test/executepath/opt/share/jar/resource2.jar -jar /tmp/yak-ops/test/executepath/opt/share/jar/main.jar -host 127.0.0.1 -port 8080");
     }
 
     /**
@@ -52,7 +52,7 @@ class JavaTaskTest {
         JavaTask javaTask = runNormalJarType();
         assertThat(javaTask.buildNormalJarCommand())
                 .isEqualTo(
-                        "${JAVA_HOME}/bin/java -xms:50m -classpath .:/tmp/dolphinscheduler/test/executepath:/tmp/dolphinscheduler/test/executepath/opt/share/jar/resource2.jar:/tmp/dolphinscheduler/test/executepath/opt/share/jar/main.jar Test -host 127.0.0.1 -port 8080");
+                        "${JAVA_HOME}/bin/java -xms:50m -classpath .:/tmp/yak-ops/test/executepath:/tmp/yak-ops/test/executepath/opt/share/jar/resource2.jar:/tmp/yak-ops/test/executepath/opt/share/jar/main.jar Test -host 127.0.0.1 -port 8080");
     }
 
     @Test
@@ -60,7 +60,7 @@ class JavaTaskTest {
         JavaTask javaTask = createJavaTaskWithCusVar();
         assertThat(javaTask.buildNormalJarCommand())
                 .isEqualTo(
-                        "${JAVA_HOME}/bin/java -xms:1G -classpath .:/tmp/dolphinscheduler/test/executepath:/tmp/dolphinscheduler/test/executepath/opt/share/jar/resource2.jar Test -host 0.0.0.0 -port 12345");
+                        "${JAVA_HOME}/bin/java -xms:1G -classpath .:/tmp/yak-ops/test/executepath:/tmp/yak-ops/test/executepath/opt/share/jar/resource2.jar Test -host 0.0.0.0 -port 12345");
     }
 
     /**
@@ -149,11 +149,11 @@ class JavaTaskTest {
         ResourceContext.ResourceItem resourceItem1 = new ResourceContext.ResourceItem();
         resourceItem1.setResourceAbsolutePathInStorage("/opt/share/jar/resource2.jar");
         resourceItem1
-                .setResourceAbsolutePathInLocal("/tmp/dolphinscheduler/test/executepath/opt/share/jar/resource2.jar");
+                .setResourceAbsolutePathInLocal("/tmp/yak-ops/test/executepath/opt/share/jar/resource2.jar");
 
         ResourceContext.ResourceItem resourceItem2 = new ResourceContext.ResourceItem();
         resourceItem2.setResourceAbsolutePathInStorage("/opt/share/jar/main.jar");
-        resourceItem2.setResourceAbsolutePathInLocal("/tmp/dolphinscheduler/test/executepath/opt/share/jar/main.jar");
+        resourceItem2.setResourceAbsolutePathInLocal("/tmp/yak-ops/test/executepath/opt/share/jar/main.jar");
 
         ResourceContext resourceContext = new ResourceContext();
         resourceContext.addResourceItem(resourceItem1);
@@ -169,7 +169,7 @@ class JavaTaskTest {
     private JavaTask runJarType() {
         TaskExecutionContext taskExecutionContext = new TaskExecutionContext();
         taskExecutionContext.setTaskParams(JSONUtils.toJsonString(createJavaParametersObject(RUN_TYPE_FAT_JAR)));
-        taskExecutionContext.setExecutePath("/tmp/dolphinscheduler/test/executepath");
+        taskExecutionContext.setExecutePath("/tmp/yak-ops/test/executepath");
         taskExecutionContext.setTaskAppId("runJavaType");
         ResourceContext resourceContext = createResourceContext();
         taskExecutionContext.setResourceContext(resourceContext);
@@ -187,7 +187,7 @@ class JavaTaskTest {
         packageTestJar();
         TaskExecutionContext taskExecutionContext = new TaskExecutionContext();
         taskExecutionContext.setTaskParams(JSONUtils.toJsonString(createNormalJarJavaParameters(RUN_TYPE_NORMAL_JAR)));
-        taskExecutionContext.setExecutePath("/tmp/dolphinscheduler/test/executepath");
+        taskExecutionContext.setExecutePath("/tmp/yak-ops/test/executepath");
         taskExecutionContext.setTaskAppId("runJavaType");
         ResourceContext resourceContext = createResourceContext();
         taskExecutionContext.setResourceContext(resourceContext);
@@ -199,7 +199,7 @@ class JavaTaskTest {
     private JavaTask createJavaTaskWithCusVar() {
         TaskExecutionContext taskExecutionContext = new TaskExecutionContext();
         taskExecutionContext.setTaskParams(JSONUtils.toJsonString(createJavaTaskWithCusVar(RUN_TYPE_NORMAL_JAR)));
-        taskExecutionContext.setExecutePath("/tmp/dolphinscheduler/test/executepath");
+        taskExecutionContext.setExecutePath("/tmp/yak-ops/test/executepath");
         taskExecutionContext.setTaskAppId("runJavaType");
         Property property = new Property();
         property.setProp("max_mem");
@@ -240,7 +240,7 @@ class JavaTaskTest {
         Attributes attributes = manifest.getMainAttributes();
         attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
         attributes.put(Attributes.Name.MAIN_CLASS, "Test");
-        String jarDirPath = "/tmp/dolphinscheduler/test/executepath/opt/share/jar";
+        String jarDirPath = "/tmp/yak-ops/test/executepath/opt/share/jar";
         File jarDir = new File(jarDirPath);
         if (!jarDir.exists() && jarDir.mkdirs()) {
             log.info("Created directory: {}", jarDirPath);

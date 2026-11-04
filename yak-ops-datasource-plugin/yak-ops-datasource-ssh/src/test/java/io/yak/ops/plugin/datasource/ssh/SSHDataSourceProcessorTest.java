@@ -21,7 +21,7 @@ public class SSHDataSourceProcessorTest {
     private SSHDataSourceProcessor sshDataSourceProcessor;
 
     private String connectJson =
-            "{\"user\":\"lucky\",\"password\":\"123456\",\"host\":\"dolphinscheduler.com\",\"port\":22, \"privateKey\":\"ssh-rsa AAAAB\"}";
+            "{\"user\":\"lucky\",\"password\":\"123456\",\"host\":\"yak-ops.com\",\"port\":22, \"privateKey\":\"ssh-rsa AAAAB\"}";
 
     @BeforeEach
     public void init() {
@@ -58,7 +58,7 @@ public class SSHDataSourceProcessorTest {
                 (SSHDataSourceParamDTO) sshDataSourceProcessor.createDatasourceParamDTO(connectJson);
         Assertions.assertEquals("lucky", sshDataSourceParamDTO.getUserName());
         Assertions.assertEquals("123456", sshDataSourceParamDTO.getPassword());
-        Assertions.assertEquals("dolphinscheduler.com", sshDataSourceParamDTO.getHost());
+        Assertions.assertEquals("yak-ops.com", sshDataSourceParamDTO.getHost());
         Assertions.assertEquals(22, sshDataSourceParamDTO.getPort());
         Assertions.assertEquals("ssh-rsa AAAAB", sshDataSourceParamDTO.getPrivateKey());
     }
@@ -70,7 +70,7 @@ public class SSHDataSourceProcessorTest {
         SSHConnectionParam sshConnectionParam = sshDataSourceProcessor.createConnectionParams(sshDataSourceParamDTO);
         Assertions.assertEquals("lucky", sshConnectionParam.getUser());
         Assertions.assertEquals("123456", sshConnectionParam.getPassword());
-        Assertions.assertEquals("dolphinscheduler.com", sshConnectionParam.getHost());
+        Assertions.assertEquals("yak-ops.com", sshConnectionParam.getHost());
         Assertions.assertEquals(22, sshConnectionParam.getPort());
         Assertions.assertEquals("ssh-rsa AAAAB", sshConnectionParam.getPrivateKey());
     }

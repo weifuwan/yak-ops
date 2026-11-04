@@ -6,11 +6,11 @@ Yak Ops maintains three independently evolving workspaces:
 - [yak-ops-cdc](yak-ops-cdc/) — Flink CDC 1.20.3 pipeline CLI, runtime, MySQL CDC source and JDBC sink.
 - [Scheduler modules](docs/scheduler/README.md) — source-preserving migration of Apache DolphinScheduler 3.4.3-release.
 
-## DolphinScheduler import status
+## YakOps import status
 
-The Scheduler source baseline is [apache/dolphinscheduler commit 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050), on the 3.4.3-release branch. Its upstream POM declares 3.4.4-SNAPSHOT; the imported Maven coordinates are io.yak.ops:yak-ops-*:1.4.0.
+The Scheduler source baseline is [apache/yak-ops commit 26228f9c](https://github.com/apache/dolphinscheduler/commit/26228f9c5bff24b3ded7095484caf7a5ecffa050), on the 3.4.3-release branch. Its upstream POM declares 3.4.4-SNAPSHOT; the imported Maven coordinates are io.yak.ops:yak-ops-*:1.4.0.
 
-Core Master, Worker, Task Executor, Workflow Engine, DAO, Service, SPI, Registry, Scheduler, EventBus, Extract, Alert, Authentication, API and Standalone source trees have been imported without changing Java packages or source bodies. Tests and resources are retained. The separate DolphinScheduler UI, distribution and optional big-data-specific plugins are not included in the active source tree.
+Core Master, Worker, Task Executor, Workflow Engine, DAO, Service, SPI, Registry, Scheduler, EventBus, Extract, Alert, Authentication, API and Standalone source trees have been imported without changing Java packages or source bodies. Tests and resources are retained. The separate YakOps UI, distribution and optional big-data-specific plugins are not included in the active source tree.
 
 See [the full manifest](docs/scheduler/MIGRATION_MANIFEST.json) for each imported source path, its original SHA-256, and exclusions, and [the migration notes](docs/scheduler/UPSTREAM.md) for provenance. Most source files remain upstream-identical; Maven metadata and one legacy StAX dependency exclusion were adapted. Historical CI verified the imported Scheduler Maven modules compile, a basic H2-backed Workflow executes, and Standalone starts with H2 and reports health UP.
 

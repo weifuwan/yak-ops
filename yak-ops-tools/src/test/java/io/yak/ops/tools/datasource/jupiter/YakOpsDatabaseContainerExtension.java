@@ -13,7 +13,7 @@ import org.testcontainers.utility.DockerImageName;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class DolphinSchedulerDatabaseContainerExtension implements BeforeAllCallback, AfterAllCallback {
+public class YakOpsDatabaseContainerExtension implements BeforeAllCallback, AfterAllCallback {
 
     private static GenericContainer<?> databaseContainer;
 
@@ -25,10 +25,10 @@ public class DolphinSchedulerDatabaseContainerExtension implements BeforeAllCall
 
     private GenericContainer<?> getDataSourceContainer(ExtensionContext context) {
         Class<?> requiredTestClass = context.getRequiredTestClass();
-        DolphinSchedulerDatabaseContainer annotation =
-                requiredTestClass.getAnnotation(DolphinSchedulerDatabaseContainer.class);
+        YakOpsDatabaseContainer annotation =
+                requiredTestClass.getAnnotation(YakOpsDatabaseContainer.class);
         if (annotation == null) {
-            throw new IllegalArgumentException("@DolphinSchedulerDataSourceContainer annotation not found");
+            throw new IllegalArgumentException("@YakOpsDataSourceContainer annotation not found");
         }
         Map<String, DatabaseContainerProvider> dataSourceContainerProviderMap = new HashMap<>();
         ServiceLoader.load(DatabaseContainerProvider.class)

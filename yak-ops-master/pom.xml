@@ -24,7 +24,7 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-common</artifactId>
@@ -113,7 +113,7 @@
             <scope>test</scope>
             <!-- master should never depend on worker, this is only for tests -->
         </dependency>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
 
         <dependency>
             <groupId>org.codehaus.janino</groupId>

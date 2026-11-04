@@ -3,7 +3,7 @@ server:
   servlet:
     session:
       timeout: 120m
-    context-path: /dolphinscheduler/
+    context-path: /yak-ops/
   compression:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml
@@ -31,12 +31,12 @@ spring:
     basename: i18n/messages
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/dolphinscheduler
+    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
     username: root
     password: root
     hikari:
       connection-test-query: select 1
-      pool-name: DolphinScheduler
+      pool-name: YakOps
   quartz:
     auto-startup: false
     job-store-type: jdbc
@@ -48,7 +48,7 @@ spring:
       org.quartz.scheduler.instanceId: AUTO
       org.quartz.jobStore.tablePrefix: QRTZ_
       org.quartz.jobStore.acquireTriggersWithinLock: true
-      org.quartz.scheduler.instanceName: DolphinScheduler
+      org.quartz.scheduler.instanceName: YakOps
       org.quartz.threadPool.class: io.yak.ops.scheduler.quartz.QuartzZeroSizeThreadPool
       org.quartz.jobStore.useProperties: false
       org.quartz.jobStore.misfireThreshold: 60000
@@ -108,7 +108,7 @@ management:
 registry:
   type: zookeeper
   zookeeper:
-    namespace: dolphinscheduler
+    namespace: yak-ops
     connect-string: localhost:2181
     retry-policy:
       base-sleep-time: 1s
@@ -121,8 +121,8 @@ registry:
 
 api:
   # The base URL for the API server, used for constructing callback URLs for features like OIDC.
-  # This should be the public-facing URL of the DolphinScheduler API.
-  base-url: http://127.0.0.1:12345/dolphinscheduler
+  # This should be the public-facing URL of the YakOps API.
+  base-url: http://127.0.0.1:12345/yak-ops
   ui-url: http://127.0.0.1:5173
   audit-enable: false
   # Traffic control, if you turn on this config, the maximum number of request/s will be limited.
@@ -216,10 +216,10 @@ security:
         # registrationId used in URLs and internal mapping
         keycloak:
           display-name: "Login with Keycloak" # Text for UI Button
-          issuer-uri: http://keycloak:8080/realms/dolphinscheduler
+          issuer-uri: http://keycloak:8080/realms/yak-ops
           icon-uri: "/images/providers-icon/keycloak.png"
-          client-id: dolphinscheduler-client
-          client-secret: dolphinscheduler-client-secret
+          client-id: yak-ops-client
+          client-secret: yak-ops-client-secret
           # Optional: Specify client auth method (e.g., client_secret_basic, client_secret_post). Defaults if omitted.
           # client-authentication-method: client_secret_basic
           scope: openid, profile, email, groups # Default: openid, profile, email
@@ -232,7 +232,7 @@ security:
         default-tenant-code: "default" # Tenant code for auto-created users
         default-queue: "default" # Queue for auto-created users (if needed by permissions)
         admin-group-mapping: # Groups that map to an administrator role
-          - dolphinscheduler-admins
+          - yak-ops-admins
 casdoor:
   # Your Casdoor server url
   endpoint: ""
@@ -257,7 +257,7 @@ spring:
       on-profile: mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/dolphinscheduler
+    url: jdbc:mysql://127.0.0.1:3306/yak-ops
     username: root
     password: root
   quartz:

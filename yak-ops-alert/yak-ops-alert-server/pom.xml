@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
     <dependencies>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-meter</artifactId>
@@ -52,7 +52,7 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-common</artifactId>
         </dependency>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
 
         <dependency>
             <groupId>com.google.guava</groupId>

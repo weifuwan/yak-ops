@@ -26,7 +26,7 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-aws-authentication</artifactId>

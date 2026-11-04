@@ -1,6 +1,6 @@
 apiVersion: 1
 providers:
   - name: general
-    folder: 'DolphinScheduler'
+    folder: 'YakOps'
     options:
       path: /dashboards

@@ -27,12 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NetUtils {
 
-    private static final String DOLPHIN_SCHEDULER_NETWORK_INTERFACE_PREFERRED =
+    private static final String YAK_OPS_NETWORK_INTERFACE_PREFERRED =
             "dolphin.scheduler.network.interface.preferred";
-    private static final String DOLPHIN_SCHEDULER_NETWORK_INTERFACE_RESTRICT =
+    private static final String YAK_OPS_NETWORK_INTERFACE_RESTRICT =
             "dolphin.scheduler.network.interface.restrict";
 
-    private static final String DOLPHIN_SCHEDULER_NETWORK_PRIORITY_STRATEGY =
+    private static final String YAK_OPS_NETWORK_PRIORITY_STRATEGY =
             "dolphin.scheduler.network.priority.strategy";
 
     private static final String NETWORK_PRIORITY_DEFAULT = "default";
@@ -322,12 +322,12 @@ public class NetUtils {
     }
 
     private static String specifyNetworkInterfaceName() {
-        return PropertyUtils.getString(DOLPHIN_SCHEDULER_NETWORK_INTERFACE_PREFERRED,
-                System.getProperty(DOLPHIN_SCHEDULER_NETWORK_INTERFACE_PREFERRED));
+        return PropertyUtils.getString(YAK_OPS_NETWORK_INTERFACE_PREFERRED,
+                System.getProperty(YAK_OPS_NETWORK_INTERFACE_PREFERRED));
     }
 
     private static Set<String> restrictNetworkInterfaceName() {
-        return PropertyUtils.getSet(DOLPHIN_SCHEDULER_NETWORK_INTERFACE_RESTRICT, value -> {
+        return PropertyUtils.getSet(YAK_OPS_NETWORK_INTERFACE_RESTRICT, value -> {
             if (StringUtils.isEmpty(value)) {
                 return Collections.emptySet();
             }
@@ -339,7 +339,7 @@ public class NetUtils {
         if (CollectionUtils.isEmpty(validNetworkInterfaces)) {
             return Collections.emptyList();
         }
-        String networkPriority = PropertyUtils.getString(DOLPHIN_SCHEDULER_NETWORK_PRIORITY_STRATEGY,
+        String networkPriority = PropertyUtils.getString(YAK_OPS_NETWORK_PRIORITY_STRATEGY,
                 NETWORK_PRIORITY_DEFAULT);
         switch (networkPriority) {
             case NETWORK_PRIORITY_DEFAULT:

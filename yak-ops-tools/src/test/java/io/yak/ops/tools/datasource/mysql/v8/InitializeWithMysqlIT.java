@@ -1,8 +1,8 @@
 package io.yak.ops.tools.datasource.mysql.v8;
 
-import io.yak.ops.tools.datasource.DolphinSchedulerManager;
-import io.yak.ops.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
-import io.yak.ops.tools.datasource.mysql.DolphinSchedulerMysqlProfile;
+import io.yak.ops.tools.datasource.YakOpsManager;
+import io.yak.ops.tools.datasource.jupiter.YakOpsDatabaseContainer;
+import io.yak.ops.tools.datasource.mysql.YakOpsMysqlProfile;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -12,17 +12,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@DolphinSchedulerMysqlProfile
-@DolphinSchedulerDatabaseContainer(imageName = "mysql:8.0")
+@YakOpsMysqlProfile
+@YakOpsDatabaseContainer(imageName = "mysql:8.0")
 class InitializeWithMysqlIT {
 
     @Autowired
-    private DolphinSchedulerManager dolphinSchedulerManager;
+    private YakOpsManager yakOpsManager;
 
     @Test
-    @DisplayName("Test Initialize DolphinScheduler database in MySQL")
+    @DisplayName("Test Initialize YakOps database in MySQL")
     void testInitializeWithMysqlProfile() {
-        Assertions.assertDoesNotThrow(() -> dolphinSchedulerManager.initDolphinScheduler());
+        Assertions.assertDoesNotThrow(() -> yakOpsManager.initYakOps());
         // todo: Assert table count
 
     }

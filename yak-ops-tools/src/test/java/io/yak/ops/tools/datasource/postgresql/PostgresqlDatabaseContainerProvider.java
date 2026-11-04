@@ -1,7 +1,7 @@
 package io.yak.ops.tools.datasource.postgresql;
 
 import io.yak.ops.tools.datasource.jupiter.DatabaseContainerProvider;
-import io.yak.ops.tools.datasource.jupiter.DolphinSchedulerDatabaseContainer;
+import io.yak.ops.tools.datasource.jupiter.YakOpsDatabaseContainer;
 
 import java.util.stream.Stream;
 
@@ -23,13 +23,13 @@ public class PostgresqlDatabaseContainerProvider implements DatabaseContainerPro
 
     @SuppressWarnings("unchecked")
     @Override
-    public GenericContainer<?> getContainer(DolphinSchedulerDatabaseContainer dataSourceContainer) {
+    public GenericContainer<?> getContainer(YakOpsDatabaseContainer dataSourceContainer) {
         // todo: test with multiple pg version
         GenericContainer<?> postgresqlContainer =
                 new PostgreSQLContainer(DockerImageName.parse(dataSourceContainer.imageName()))
                         .withUsername("root")
                         .withPassword("root")
-                        .withDatabaseName("dolphinscheduler")
+                        .withDatabaseName("yak-ops")
                         .withNetwork(NETWORK)
                         .withExposedPorts(5432);
 
@@ -41,7 +41,7 @@ public class PostgresqlDatabaseContainerProvider implements DatabaseContainerPro
         log.info("{} started", postgresqlContainer.getDockerImageName());
 
         String jdbcUrl = "jdbc:mysql://localhost:" + postgresqlContainer.getMappedPort(5432)
-                + "/dolphinscheduler?useUnicode=true&characterEncoding=UTF-8";
+                + "/yak-ops?useUnicode=true&characterEncoding=UTF-8";
         System.clearProperty("spring.datasource.url");
         System.setProperty("spring.datasource.url", jdbcUrl);
         return postgresqlContainer;

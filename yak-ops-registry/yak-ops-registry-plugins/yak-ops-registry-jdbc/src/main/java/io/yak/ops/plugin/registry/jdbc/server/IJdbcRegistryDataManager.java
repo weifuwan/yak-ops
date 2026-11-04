@@ -23,7 +23,7 @@ public interface IJdbcRegistryDataManager {
     /**
      * List all the {@link JdbcRegistryDataDTO} children by key.
      * <p>
-     * e.g. key = "/dolphinscheduler/master", and data exist in db is "/dolphinscheduler/master/master1", "/dolphinscheduler/master/master2"
+     * e.g. key = "/yak-ops/master", and data exist in db is "/yak-ops/master/master1", "/yak-ops/master/master2"
      * <p>
      * then the return value will be ["master1", "master2"]
      */

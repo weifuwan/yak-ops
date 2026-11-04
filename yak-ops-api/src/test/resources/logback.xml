@@ -13,9 +13,9 @@
     </appender>
 
     <appender name="APILOGFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.base}/dolphinscheduler-api.log</file>
+        <file>${log.base}/yak-ops-api.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${log.base}/dolphinscheduler-api.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+            <fileNamePattern>${log.base}/yak-ops-api.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
             <maxHistory>168</maxHistory>
             <maxFileSize>64MB</maxFileSize>
             <totalSizeCap>50GB</totalSizeCap>

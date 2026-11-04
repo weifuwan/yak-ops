@@ -31,7 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class RemoteShellTaskTest {
 
     private String connectJson =
-            "{\"user\":\"root\",\"password\":\"123456\",\"host\":\"dolphinscheduler.com\",\"port\":22, \"privateKey\":\"ssh-rsa AAAAB\"}";
+            "{\"user\":\"root\",\"password\":\"123456\",\"host\":\"yak-ops.com\",\"port\":22, \"privateKey\":\"ssh-rsa AAAAB\"}";
 
     SSHConnectionParam sshConnectionParam;
 
@@ -63,7 +63,7 @@ public class RemoteShellTaskTest {
         String script = "#!/bin/bash\n" +
                 "export PATH=/opt/anaconda3/bin:$PATH\n" +
                 "echo 1\n" +
-                "echo DOLPHINSCHEDULER-REMOTE-SHELL-TASK-STATUS-$?";
+                "echo YAK_OPS-REMOTE-SHELL-TASK-STATUS-$?";
         Path path = Paths.get("/tmp/1_node.sh");
         filesMockedStatic.when(() -> Files.write(path, script.getBytes(), StandardOpenOption.APPEND))
                 .thenThrow(new IOException("script match"));

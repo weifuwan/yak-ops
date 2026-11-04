@@ -37,7 +37,7 @@ scheduler-plugin:
   quartz:
     using-separate-datasource: true
     hikari:
-      jdbc-url: jdbc:mysql://localhost:3306/dolphinscheduler
+      jdbc-url: jdbc:mysql://localhost:3306/yak-ops
       username: root
       password: root
       minimum-idle: 8

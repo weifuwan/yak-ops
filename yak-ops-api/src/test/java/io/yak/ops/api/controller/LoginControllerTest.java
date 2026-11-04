@@ -69,7 +69,7 @@ public class LoginControllerTest extends AbstractControllerTest {
     public void testLogin() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add("userName", "admin");
-        paramsMap.add("userPassword", "dolphinscheduler123");
+        paramsMap.add("userPassword", "yak-ops123");
 
         MvcResult mvcResult = mockMvc.perform(post("/login")
                 .params(paramsMap))
@@ -89,7 +89,7 @@ public class LoginControllerTest extends AbstractControllerTest {
     public void testLogin_withNullUserName() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add("userName", "");
-        paramsMap.add("userPassword", "dolphinscheduler123");
+        paramsMap.add("userPassword", "yak-ops123");
 
         mockMvc.perform(post("/login").params(paramsMap))
                 .andExpect(status().isOk())

@@ -52,7 +52,7 @@ public class ShellTaskChannelTest {
                 +
                 "  \"resourceList\": [\n" +
                 "    {\n" +
-                "      \"resourceName\": \"hdfs://abc/dolphinscheduler/default/123.sql\"\n" +
+                "      \"resourceName\": \"hdfs://abc/yak-ops/default/123.sql\"\n" +
                 "    }\n" +
                 "  ]\n" +
                 "}";
@@ -80,7 +80,7 @@ public class ShellTaskChannelTest {
 
         ResourceInfo resource = params.getResourceList().get(0);
         assertEquals(
-                "hdfs://abc/dolphinscheduler/default/123.sql",
+                "hdfs://abc/yak-ops/default/123.sql",
                 resource.getResourceName(),
                 "Resource name does not match");
     }

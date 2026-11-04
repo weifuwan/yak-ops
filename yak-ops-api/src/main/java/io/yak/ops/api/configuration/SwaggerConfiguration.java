@@ -16,7 +16,7 @@ import io.swagger.v3.oas.models.info.Info;
 
 /**
  * Swagger configuration, only enabled when the configuration item api.swagger.enable is true.
- * The swagger ui is under <a href="http://${host}:${port}/dolphinscheduler/swagger-ui.html">http://${host}:${port}/dolphinscheduler/swagger-ui.html</a>
+ * The swagger ui is under <a href="http://${host}:${port}/yak-ops/swagger-ui.html">http://${host}:${port}/yak-ops/swagger-ui.html</a>
  */
 @Configuration
 @ConditionalOnWebApplication

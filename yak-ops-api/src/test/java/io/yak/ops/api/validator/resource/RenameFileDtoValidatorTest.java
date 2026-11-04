@@ -34,7 +34,7 @@ public class RenameFileDtoValidatorTest {
     @InjectMocks
     private RenameFileDtoValidator renameFileDtoValidator;
 
-    private static final String BASE_DIRECTORY = "/tmp/dolphinscheduler";
+    private static final String BASE_DIRECTORY = "/tmp/yak-ops";
 
     private User loginUser;
 
@@ -63,11 +63,11 @@ public class RenameFileDtoValidatorTest {
     public void testValidate_fileAbsolutePathContainsIllegalSymbolic() {
         RenameFileDto renameFileDto = RenameFileDto.builder()
                 .loginUser(loginUser)
-                .originFileAbsolutePath("/tmp/dolphinscheduler/default/resources/../a.txt")
-                .targetFileAbsolutePath("/tmp/dolphinscheduler/default/resources/b.txt")
+                .originFileAbsolutePath("/tmp/yak-ops/default/resources/../a.txt")
+                .targetFileAbsolutePath("/tmp/yak-ops/default/resources/b.txt")
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: Invalidated resource path: /tmp/dolphinscheduler/default/resources/../a.txt",
+                "Internal Server Error: Invalidated resource path: /tmp/yak-ops/default/resources/../a.txt",
                 () -> renameFileDtoValidator.validate(renameFileDto));
     }
 
@@ -75,11 +75,11 @@ public class RenameFileDtoValidatorTest {
     public void testValidate_originFileNotExist() {
         RenameFileDto renameFileDto = RenameFileDto.builder()
                 .loginUser(loginUser)
-                .originFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.txt")
-                .targetFileAbsolutePath("/tmp/dolphinscheduler/default/resources/b.txt")
+                .originFileAbsolutePath("/tmp/yak-ops/default/resources/a.txt")
+                .targetFileAbsolutePath("/tmp/yak-ops/default/resources/b.txt")
                 .build();
         assertThrowServiceException(
-                "Internal Server Error: Thr resource is not exists: /tmp/dolphinscheduler/default/resources/a.txt",
+                "Internal Server Error: Thr resource is not exists: /tmp/yak-ops/default/resources/a.txt",
                 () -> renameFileDtoValidator.validate(renameFileDto));
     }
 
@@ -87,12 +87,12 @@ public class RenameFileDtoValidatorTest {
     public void testValidate_originFileIsNotFile() {
         RenameFileDto renameFileDto = RenameFileDto.builder()
                 .loginUser(loginUser)
-                .originFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a")
-                .targetFileAbsolutePath("/tmp/dolphinscheduler/default/resources/b.txt")
+                .originFileAbsolutePath("/tmp/yak-ops/default/resources/a")
+                .targetFileAbsolutePath("/tmp/yak-ops/default/resources/b.txt")
                 .build();
         when(storageOperator.exists(renameFileDto.getOriginFileAbsolutePath())).thenReturn(true);
         assertThrowServiceException(
-                "Internal Server Error: The path is not a file: /tmp/dolphinscheduler/default/resources/a",
+                "Internal Server Error: The path is not a file: /tmp/yak-ops/default/resources/a",
                 () -> renameFileDtoValidator.validate(renameFileDto));
     }
 
@@ -104,8 +104,8 @@ public class RenameFileDtoValidatorTest {
 
         RenameFileDto renameFileDto = RenameFileDto.builder()
                 .loginUser(loginUser)
-                .originFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.txt")
-                .targetFileAbsolutePath("/tmp/dolphinscheduler/default/resources/b.txt")
+                .originFileAbsolutePath("/tmp/yak-ops/default/resources/a.txt")
+                .targetFileAbsolutePath("/tmp/yak-ops/default/resources/b.txt")
                 .build();
         when(storageOperator.exists(renameFileDto.getOriginFileAbsolutePath())).thenReturn(true);
         when(storageOperator.getResourceMetaData(renameFileDto.getOriginFileAbsolutePath()))
@@ -117,7 +117,7 @@ public class RenameFileDtoValidatorTest {
                         .tenant("default")
                         .build());
         assertThrowServiceException(
-                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/dolphinscheduler/default/resources/a.txt",
+                "Internal Server Error: The user's tenant is test have no permission to access the resource: /tmp/yak-ops/default/resources/a.txt",
                 () -> renameFileDtoValidator.validate(renameFileDto));
     }
 
@@ -129,8 +129,8 @@ public class RenameFileDtoValidatorTest {
 
         RenameFileDto renameDirectoryDto = RenameFileDto.builder()
                 .loginUser(loginUser)
-                .originFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.txt")
-                .targetFileAbsolutePath("/tmp/dolphinscheduler/default/resources/b.txt")
+                .originFileAbsolutePath("/tmp/yak-ops/default/resources/a.txt")
+                .targetFileAbsolutePath("/tmp/yak-ops/default/resources/b.txt")
                 .build();
         when(storageOperator.exists(renameDirectoryDto.getOriginFileAbsolutePath())).thenReturn(true);
         when(storageOperator.getResourceMetaData(renameDirectoryDto.getOriginFileAbsolutePath()))
@@ -144,7 +144,7 @@ public class RenameFileDtoValidatorTest {
 
         when(storageOperator.exists(renameDirectoryDto.getTargetFileAbsolutePath())).thenReturn(true);
         assertThrowServiceException(
-                "Internal Server Error: The resource is already exist: /tmp/dolphinscheduler/default/resources/b.txt",
+                "Internal Server Error: The resource is already exist: /tmp/yak-ops/default/resources/b.txt",
                 () -> renameFileDtoValidator.validate(renameDirectoryDto));
     }
 
@@ -156,8 +156,8 @@ public class RenameFileDtoValidatorTest {
 
         RenameFileDto renameDirectoryDto = RenameFileDto.builder()
                 .loginUser(loginUser)
-                .originFileAbsolutePath("/tmp/dolphinscheduler/default/resources/a.txt")
-                .targetFileAbsolutePath("/tmp/dolphinscheduler/default/resources/b.txt")
+                .originFileAbsolutePath("/tmp/yak-ops/default/resources/a.txt")
+                .targetFileAbsolutePath("/tmp/yak-ops/default/resources/b.txt")
                 .build();
         when(storageOperator.exists(renameDirectoryDto.getOriginFileAbsolutePath())).thenReturn(true);
         when(storageOperator.getResourceMetaData(renameDirectoryDto.getOriginFileAbsolutePath()))

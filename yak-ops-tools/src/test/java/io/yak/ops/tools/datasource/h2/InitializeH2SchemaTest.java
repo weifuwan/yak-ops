@@ -19,7 +19,7 @@ class InitializeH2SchemaTest {
         dataSource.setUser("sa");
         dataSource.setPassword("");
 
-        new SqlScriptRunner(dataSource, "sql/dolphinscheduler_h2.sql").execute();
+        new SqlScriptRunner(dataSource, "sql/yak-ops_h2.sql").execute();
 
         try (
                 Connection connection = dataSource.getConnection();

@@ -24,7 +24,7 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-common</artifactId>
@@ -98,7 +98,7 @@
             <artifactId>yak-ops-task-executor</artifactId>
         </dependency>
 
-        <!-- dolphinscheduler -->
+        <!-- yak-ops -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -14,8 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @TestMethodOrder(OrderAnnotation.class)
-@ExtendWith(DolphinSchedulerDatabaseContainerExtension.class)
-public @interface DolphinSchedulerDatabaseContainer {
+@ExtendWith(YakOpsDatabaseContainerExtension.class)
+public @interface YakOpsDatabaseContainer {
 
     String imageName();
 

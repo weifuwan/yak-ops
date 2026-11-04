@@ -11,25 +11,25 @@ import org.springframework.stereotype.Component;
 
 @Import(DaoConfiguration.class)
 @SpringBootApplication
-public class InitializeDolphinScheduler {
+public class InitializeYakOps {
 
     public static void main(String[] args) {
-        SpringApplication.run(InitializeDolphinScheduler.class, args);
+        SpringApplication.run(InitializeYakOps.class, args);
     }
 
     @Component
     @Profile("init")
     static class InitializeRunner implements CommandLineRunner {
 
-        private final DolphinSchedulerManager dolphinSchedulerManager;
+        private final YakOpsManager yakOpsManager;
 
-        InitializeRunner(DolphinSchedulerManager dolphinSchedulerManager) {
-            this.dolphinSchedulerManager = dolphinSchedulerManager;
+        InitializeRunner(YakOpsManager yakOpsManager) {
+            this.yakOpsManager = yakOpsManager;
         }
 
         @Override
         public void run(String... args) throws Exception {
-            dolphinSchedulerManager.initializeOrValidate();
+            yakOpsManager.initializeOrValidate();
         }
     }
 }

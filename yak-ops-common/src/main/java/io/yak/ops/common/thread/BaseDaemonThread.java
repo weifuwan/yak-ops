@@ -1,7 +1,7 @@
 package io.yak.ops.common.thread;
 
 /**
- * All thread used in DolphinScheduler should extend with this class to avoid the server hang issue.
+ * All thread used in YakOps should extend with this class to avoid the server hang issue.
  */
 public abstract class BaseDaemonThread extends Thread {
 

@@ -41,7 +41,7 @@ public class PropertyUtilsTest {
         assertThat(awsProperties).containsEntry("access.key.id", "minioadmin");
         assertThat(awsProperties).containsEntry("secret.access.key", "minioadmin");
         assertThat(awsProperties).containsEntry("region", "cn-north-1");
-        assertThat(awsProperties).containsEntry("s3.bucket.name", "dolphinscheduler");
+        assertThat(awsProperties).containsEntry("s3.bucket.name", "yak-ops");
         assertThat(awsProperties).containsEntry("endpoint", "http://localhost:9000");
     }
 }

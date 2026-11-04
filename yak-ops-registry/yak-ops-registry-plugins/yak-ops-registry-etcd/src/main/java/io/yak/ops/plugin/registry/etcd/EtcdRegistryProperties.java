@@ -13,7 +13,7 @@ import lombok.Data;
 public class EtcdRegistryProperties {
 
     private String endpoints;
-    private String namespace = "dolphinscheduler";
+    private String namespace = "yak-ops";
     private Duration connectionTimeout = Duration.ofSeconds(9);
 
     private Duration ttl = Duration.ofSeconds(30);

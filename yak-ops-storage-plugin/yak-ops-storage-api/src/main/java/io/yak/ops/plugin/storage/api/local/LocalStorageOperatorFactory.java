@@ -17,7 +17,7 @@ public class LocalStorageOperatorFactory implements StorageOperatorFactory {
     @Override
     public StorageOperator createStorageOperate() {
         return new LocalStorageOperator(
-                PropertyUtils.getString(StorageConstants.RESOURCE_UPLOAD_PATH, "/tmp/dolphinscheduler"));
+                PropertyUtils.getString(StorageConstants.RESOURCE_UPLOAD_PATH, "/tmp/yak-ops"));
     }
 
     @Override

@@ -26,7 +26,7 @@ public final class EmailConstants {
             "<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN' 'http://www.w3.org/TR/html4/loose.dtd'>"
                     + "<html>"
                     + "<head>"
-                    + "<title>dolphinscheduler</title>"
+                    + "<title>yak-ops</title>"
                     + "<meta name='Keywords' content=''>"
                     + "<meta name='Description' content=''>"
                     + "<style type=\"text/css\">"

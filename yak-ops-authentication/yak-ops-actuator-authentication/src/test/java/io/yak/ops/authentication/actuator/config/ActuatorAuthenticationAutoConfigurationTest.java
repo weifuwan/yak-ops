@@ -21,7 +21,7 @@ import org.springframework.http.ResponseEntity;
 
 class ActuatorAuthenticationAutoConfigurationTest {
 
-    private static final String CONTEXT_PATH = "/dolphinscheduler";
+    private static final String CONTEXT_PATH = "/yak-ops";
     private static final String USERNAME = "actuator-user";
     private static final String PASSWORD = "actuator-password";
 

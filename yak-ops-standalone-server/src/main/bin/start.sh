@@ -2,11 +2,11 @@
 set -eo pipefail
 
 BIN_DIR=$(dirname $(readlink -f "$0"))
-DOLPHINSCHEDULER_HOME=$(cd ${BIN_DIR}/../..;pwd)
+YAK_OPS_HOME=$(cd ${BIN_DIR}/../..;pwd)
 STANDALONE_HOME=$(cd ${BIN_DIR}/..;pwd)
 
 export DATABASE=${DATABASE:-h2}
-source "$STANDALONE_HOME/conf/dolphinscheduler_env.sh"
+source "$STANDALONE_HOME/conf/yak-ops_env.sh"
 
 JVM_ARGS_ENV_FILE=${STANDALONE_HOME}/bin/jvm_args_env.sh
 JVM_ARGS="-server"
@@ -38,7 +38,7 @@ alert-server
 
 CP=""
 for module in ${MODULES_PATH[@]}; do
-  CP=$CP:"$DOLPHINSCHEDULER_HOME/$module/libs/*"
+  CP=$CP:"$YAK_OPS_HOME/$module/libs/*"
 done
 
 PLUGINS_PATH=(
@@ -49,8 +49,8 @@ task-plugins
 )
 
 for plugin in ${PLUGINS_PATH[@]}; do
-  if [ -d "$DOLPHINSCHEDULER_HOME/plugins/$plugin" ]; then
-    CP=$CP:"$DOLPHINSCHEDULER_HOME/plugins/$plugin/*"
+  if [ -d "$YAK_OPS_HOME/plugins/$plugin" ]; then
+    CP=$CP:"$YAK_OPS_HOME/plugins/$plugin/*"
   fi
 done
 

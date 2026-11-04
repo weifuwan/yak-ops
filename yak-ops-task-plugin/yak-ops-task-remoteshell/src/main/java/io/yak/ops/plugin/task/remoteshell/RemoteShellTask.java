@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RemoteShellTask extends AbstractTask {
 
-    static final String TASK_ID_PREFIX = "dolphinscheduler-remoteshell-";
+    static final String TASK_ID_PREFIX = "yak-ops-remoteshell-";
 
     /**
      * shell parameters

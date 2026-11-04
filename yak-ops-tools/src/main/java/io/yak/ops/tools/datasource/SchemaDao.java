@@ -30,10 +30,10 @@ public class SchemaDao {
 
     /**
      * Execute the complete baseline schema on an empty database only.
-     * Call through DolphinSchedulerManager to enforce the safety checks.
+     * Call through YakOpsManager to enforce the safety checks.
      */
     public void initSchema() {
-        String sqlFilePath = String.format("sql/dolphinscheduler_%s.sql", dbType.getDb());
+        String sqlFilePath = String.format("sql/yak-ops_%s.sql", dbType.getDb());
         try {
             new SqlScriptRunner(dataSource, sqlFilePath).execute();
             log.info("Initialized database using {}", sqlFilePath);

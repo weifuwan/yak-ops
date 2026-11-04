@@ -33,13 +33,13 @@ public class PostgresqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
         postgresqlContainer = new PostgreSQLContainer(DockerImageName.parse("postgres:16.0"))
                 .withUsername("root")
                 .withPassword("root")
-                .withDatabaseName("dolphinscheduler")
+                .withDatabaseName("yak-ops")
                 .withNetwork(Network.newNetwork())
                 .withExposedPorts(5432);
 
         Startables.deepStart(Stream.of(postgresqlContainer)).join();
 
-        String jdbcUrl = "jdbc:postgresql://localhost:" + postgresqlContainer.getMappedPort(5432) + "/dolphinscheduler";
+        String jdbcUrl = "jdbc:postgresql://localhost:" + postgresqlContainer.getMappedPort(5432) + "/yak-ops";
         System.clearProperty("spring.datasource.url");
         System.setProperty("spring.datasource.url", jdbcUrl);
 

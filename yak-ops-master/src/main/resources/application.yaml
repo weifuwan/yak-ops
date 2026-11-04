@@ -10,12 +10,12 @@ spring:
     date-format: "yyyy-MM-dd HH:mm:ss"
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/dolphinscheduler
+    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
     username: root
     password: root
     hikari:
       connection-test-query: select 1
-      pool-name: DolphinScheduler
+      pool-name: YakOps
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -27,7 +27,7 @@ spring:
       org.quartz.scheduler.instanceId: AUTO
       org.quartz.jobStore.tablePrefix: QRTZ_
       org.quartz.jobStore.acquireTriggersWithinLock: true
-      org.quartz.scheduler.instanceName: DolphinScheduler
+      org.quartz.scheduler.instanceName: YakOps
       org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
       org.quartz.jobStore.useProperties: false
       org.quartz.threadPool.makeThreadsDaemons: true
@@ -64,7 +64,7 @@ scheduler-plugin:
 registry:
   type: zookeeper
   zookeeper:
-    namespace: dolphinscheduler
+    namespace: yak-ops
     connect-string: localhost:2181
     retry-policy:
       base-sleep-time: 1s
@@ -159,7 +159,7 @@ spring:
       on-profile: mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/dolphinscheduler
+    url: jdbc:mysql://127.0.0.1:3306/yak-ops
     username: root
     password: root
   quartz:

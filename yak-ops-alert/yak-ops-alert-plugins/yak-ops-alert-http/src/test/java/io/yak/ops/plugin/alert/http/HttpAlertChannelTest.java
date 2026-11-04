@@ -57,7 +57,7 @@ public class HttpAlertChannelTest {
 
         List<PluginParams> paramsList = new ArrayList<>();
         InputParam urlParam = InputParam.newBuilder("url", "url")
-                .setValue("http://www.dolphinscheduler-not-exists-web.com")
+                .setValue("http://www.yak-ops-not-exists-web.com")
                 .addValidate(Validate.newBuilder().setRequired(true).build())
                 .build();
 

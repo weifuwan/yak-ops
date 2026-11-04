@@ -37,8 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RemoteExecutor implements AutoCloseable {
 
-    static final String REMOTE_SHELL_HOME = "/tmp/dolphinscheduler-remote-shell-%s/";
-    static final String STATUS_TAG_MESSAGE = "DOLPHINSCHEDULER-REMOTE-SHELL-TASK-STATUS-";
+    static final String REMOTE_SHELL_HOME = "/tmp/yak-ops-remote-shell-%s/";
+    static final String STATUS_TAG_MESSAGE = "YAK_OPS-REMOTE-SHELL-TASK-STATUS-";
     static final int TRACK_INTERVAL = 5000;
 
     protected Map<String, String> taskOutputParams = new HashMap<>();

@@ -254,7 +254,7 @@ public class ResourcesController extends BaseController {
 
     @Operation(summary = "deleteResource", description = "DELETE_RESOURCE_BY_ID_NOTES")
     @Parameters({
-            @Parameter(name = "fullName", description = "RESOURCE_FULLNAME", required = true, schema = @Schema(implementation = String.class, example = "file:////tmp/dolphinscheduler/storage/default/resources/demo.sql"))
+            @Parameter(name = "fullName", description = "RESOURCE_FULLNAME", required = true, schema = @Schema(implementation = String.class, example = "file:////tmp/yak-ops/storage/default/resources/demo.sql"))
     })
     @DeleteMapping()
     @ResponseStatus(HttpStatus.OK)

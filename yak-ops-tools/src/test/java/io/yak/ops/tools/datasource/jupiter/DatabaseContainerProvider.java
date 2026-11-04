@@ -4,7 +4,7 @@ import org.testcontainers.containers.GenericContainer;
 
 public interface DatabaseContainerProvider {
 
-    GenericContainer<?> getContainer(DolphinSchedulerDatabaseContainer dataSourceContainer);
+    GenericContainer<?> getContainer(YakOpsDatabaseContainer dataSourceContainer);
 
     String getType();
 

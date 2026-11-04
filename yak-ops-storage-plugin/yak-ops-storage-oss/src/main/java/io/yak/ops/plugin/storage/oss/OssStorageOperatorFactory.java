@@ -14,7 +14,7 @@ public class OssStorageOperatorFactory implements StorageOperatorFactory {
     @Override
     public StorageOperator createStorageOperate() {
         return new OssStorageOperator(
-                PropertyUtils.getString(StorageConstants.RESOURCE_UPLOAD_PATH, "/dolphinscheduler"));
+                PropertyUtils.getString(StorageConstants.RESOURCE_UPLOAD_PATH, "/yak-ops"));
     }
 
     @Override

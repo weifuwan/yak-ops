@@ -82,7 +82,7 @@ public class ZookeeperRegistryProperties implements Validator {
     @Data
     public static final class ZookeeperProperties {
 
-        private String namespace = "dolphinscheduler";
+        private String namespace = "yak-ops";
         private String connectString;
         private RetryPolicy retryPolicy = new RetryPolicy();
         private String digest;

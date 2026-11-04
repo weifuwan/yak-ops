@@ -31,7 +31,7 @@ class MysqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
         mysqlContainer = new MySQLContainer(DockerImageName.parse("mysql:8.0"))
                 .withUsername("root")
                 .withPassword("root")
-                .withDatabaseName("dolphinscheduler")
+                .withDatabaseName("yak-ops")
                 .withNetwork(Network.newNetwork())
                 .withExposedPorts(3306)
                 .waitingFor(Wait.forHealthcheck().withStartupTimeout(Duration.ofSeconds(300)));
@@ -39,7 +39,7 @@ class MysqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
         Startables.deepStart(Stream.of(mysqlContainer)).join();
 
         String jdbcUrl = "jdbc:mysql://localhost:" + mysqlContainer.getMappedPort(3306)
-                + "/dolphinscheduler?useSSL=false&serverTimezone=UTC";
+                + "/yak-ops?useSSL=false&serverTimezone=UTC";
         System.clearProperty("spring.datasource.url");
         System.setProperty("spring.datasource.url", jdbcUrl);
 

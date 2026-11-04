@@ -28,8 +28,8 @@ public class NetUtilsTest {
     public void testGetHostInNonKubernetesMode() {
         InetAddress address = mock(InetAddress.class);
         when(address.getCanonicalHostName())
-                .thenReturn("dolphinscheduler-worker-0.dolphinscheduler-worker-headless.default.svc.cluster.local");
-        when(address.getHostName()).thenReturn("dolphinscheduler-worker-0");
+                .thenReturn("yak-ops-worker-0.yak-ops-worker-headless.default.svc.cluster.local");
+        when(address.getHostName()).thenReturn("yak-ops-worker-0");
         when(address.getHostAddress()).thenReturn("172.17.0.15");
         Assertions.assertEquals("172.17.0.15", NetUtils.getHost(address));
     }

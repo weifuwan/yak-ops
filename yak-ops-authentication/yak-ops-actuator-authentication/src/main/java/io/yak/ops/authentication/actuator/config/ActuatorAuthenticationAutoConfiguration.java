@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  * This configuration applies security rules to Actuator paths such as:
  * <ul>
  *   <li>/actuator/</li>
- *   <li>/dolphinscheduler/actuator/</li>
+ *   <li>/yak-ops/actuator/</li>
  * </ul>
  * Security can be enabled/disabled via {@code management.security.enabled}.
  * When enabled, HTTP Basic authentication is required with a configured username and password.

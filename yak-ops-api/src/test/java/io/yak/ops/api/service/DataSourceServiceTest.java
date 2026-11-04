@@ -105,7 +105,7 @@ public class DataSourceServiceTest {
         postgreSqlDatasourceParam.setNote(dataSourceDesc);
         postgreSqlDatasourceParam.setHost("172.16.133.200");
         postgreSqlDatasourceParam.setPort(5432);
-        postgreSqlDatasourceParam.setDatabase("dolphinscheduler");
+        postgreSqlDatasourceParam.setDatabase("yak-ops");
         postgreSqlDatasourceParam.setUserName("postgres");
         postgreSqlDatasourceParam.setPassword("");
         postgreSqlDatasourceParam.setName(dataSourceName);
@@ -163,7 +163,7 @@ public class DataSourceServiceTest {
         postgreSqlDatasourceParam.setNote(dataSourceDesc);
         postgreSqlDatasourceParam.setHost("172.16.133.200");
         postgreSqlDatasourceParam.setPort(5432);
-        postgreSqlDatasourceParam.setDatabase("dolphinscheduler");
+        postgreSqlDatasourceParam.setDatabase("yak-ops");
         postgreSqlDatasourceParam.setUserName("postgres");
         postgreSqlDatasourceParam.setPassword("");
         postgreSqlDatasourceParam.setName(dataSourceUpdateName);
@@ -560,7 +560,7 @@ public class DataSourceServiceTest {
         postgreSqlDatasourceParam.setNote(dataSourceDesc);
         postgreSqlDatasourceParam.setHost("172.16.133.200");
         postgreSqlDatasourceParam.setPort(5432);
-        postgreSqlDatasourceParam.setDatabase("dolphinscheduler");
+        postgreSqlDatasourceParam.setDatabase("yak-ops");
         postgreSqlDatasourceParam.setUserName("postgres");
         postgreSqlDatasourceParam.setPassword("");
         ConnectionParam connectionParam = DataSourceUtils.buildConnectionParams(postgreSqlDatasourceParam);
