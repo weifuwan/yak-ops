@@ -19,11 +19,10 @@ package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
-import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
+import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
-import org.apache.flink.connector.jdbc.datasource.connections.SimpleJdbcConnectionProvider;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -31,7 +30,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @PublicEvolving
 public class JdbcSinkBuilder<IN> {
     private JdbcExecutionOptions executionOptions;
-    private JdbcSinkDialect dialect;
+    private JdbcConnectionOptions connectionOptions;
+    private JdbcDialect dialect;
     private JdbcSinkConfig sinkConfig;
     private RecordSerializationSchema<IN> serializationSchema;
 
@@ -44,7 +44,7 @@ public class JdbcSinkBuilder<IN> {
         return this;
     }
 
-    public JdbcSinkBuilder<IN> withDialect(JdbcSinkDialect dialect) {
+    public JdbcSinkBuilder<IN> withDialect(JdbcDialect dialect) {
         this.dialect = checkNotNull(dialect, "dialect cannot be null");
         return this;
     }
@@ -64,18 +64,25 @@ public class JdbcSinkBuilder<IN> {
     public JdbcSink<IN> buildAtLeastOnce(JdbcConnectionOptions connectionOptions) {
         checkNotNull(connectionOptions, "connectionOptions cannot be null");
 
-        return buildAtLeastOnce(new SimpleJdbcConnectionProvider(connectionOptions));
+        this.connectionOptions = connectionOptions;
+        return build(null);
     }
 
     public JdbcSink<IN> buildAtLeastOnce(JdbcConnectionProvider connectionProvider) {
         checkNotNull(connectionProvider, "connectionProvider cannot be null");
 
+        this.connectionOptions = null;
         return build(checkNotNull(connectionProvider, "connectionProvider cannot be null"));
     }
 
     private JdbcSink<IN> build(JdbcConnectionProvider connectionProvider) {
 
         return new JdbcSink<>(
-                executionOptions, connectionProvider, serializationSchema, dialect, sinkConfig);
+                executionOptions,
+                connectionOptions,
+                connectionProvider,
+                serializationSchema,
+                dialect,
+                sinkConfig);
     }
 }
