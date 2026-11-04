@@ -39,5 +39,5 @@ jobs:
           bash mvnw -B -ntp -f yak-ops-cdc/pom.xml \
             -pl :yak-ops-cdc-pipeline-connector-jdbc-core,:yak-ops-cdc-pipeline-connector-jdbc-mysql \
             -am \
-            -Dtest=RichJdbcOutputFormatLifecycleTest,JdbcOutputFormatBuilderTest,JdbcTableWriterRegistryTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,JdbcSinkConfigTest,MySqlStmtCreatorFactoryTest \
+            -Dtest=RichJdbcOutputFormatLifecycleTest,JdbcOutputFormatBuilderTest,JdbcTableWriterRegistryTest,DefaultJdbcRowConverterTest,MySqlCatalogTest,MySqlJdbcDialectFactoryTest,JdbcWriterTypeBindingTest,BatchedStatementExecutorTest,EventRecordSerializationSchemaTest,JdbcSinkConfigTest,MySqlStmtCreatorFactoryTest \
             -Dsurefire.failIfNoSpecifiedTests=false test
