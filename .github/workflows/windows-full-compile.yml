@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/windows-full-compile.yml'
+      - 'pom.xml'
+      - 'yak-ops-scheduler/pom.xml'
   workflow_dispatch:
 
 permissions:
