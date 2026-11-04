@@ -58,18 +58,12 @@ limitations under the License.
 
         <!-- dependencies versions -->
         <flink.version>1.20.3</flink.version>
-        <flink.major.version>1.20</flink.major.version>
         <shaded.guava.version>31.1-jre-17.0</shaded.guava.version>
-        <flink.shaded.version>17.0</flink.shaded.version>
         <debezium.version>1.9.8.Final</debezium.version>
-        <tikv.version>3.2.0</tikv.version>
         <geometry.version>2.2.0</geometry.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <spotless.version>2.43.0</spotless.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <jackson.version>2.13.2</jackson.version>
-        <markBundledAsOptional>true</markBundledAsOptional>
-        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
         <calcite.version>1.32.0</calcite.version>
         <!-- Calcite 1.32.0 depends on 3.1.8,
         at the same time minimum 3.1.x Janino version passing Flink tests without WAs is 3.1.10,
@@ -77,21 +71,7 @@ limitations under the License.
         <janino.version>3.1.10</janino.version>
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
-        <iceberg.version>1.10.1</iceberg.version>
-        <iceberg.flink.major.version>1.20</iceberg.flink.major.version>
-        <hive.version>2.3.9</hive.version>
-        <hadoop.version>3.3.4</hadoop.version>
-        <java.version>11</java.version>
-        <source.java.version>11</source.java.version>
-        <target.java.version>11</target.java.version>
-        <!-- Overwrite default values from parent pom.
-             IntelliJ IDEA is (sometimes?) using those values to choose target language level
-             and thus is changing back to java 1.6 on each maven re-import -->
-        <maven.compiler.source>${source.java.version}</maven.compiler.source>
-        <maven.compiler.target>${target.java.version}</maven.compiler.target>
-        <flink.kafka.connector.version>3.3.0-1.20</flink.kafka.connector.version>
-        <paimon.flink.major.version>1.20</paimon.flink.major.version>
-        <fluss.flink.major.version>1.20</fluss.flink.major.version>
+        <java.version>17</java.version>
     </properties>
 
     <dependencyManagement>
@@ -278,13 +258,6 @@ limitations under the License.
         </dependency>
 
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-shaded-force-shading</artifactId>
-            <version>${flink.shaded.version}</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
             <version>1.15</version>
@@ -293,12 +266,9 @@ limitations under the License.
 
     <build>
         <plugins>
-            <!-- The CDC subtree retains upstream Java formatting. Check whitespace without
-                 rewriting imported upstream sources to the app's Palantir style. -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.10.2</version>
                 <configuration>
                     <!-- Do not inherit the application's Palantir format rules for
                          the upstream Flink CDC source tree. -->
@@ -311,272 +281,6 @@ limitations under the License.
                     </java>
                 </configuration>
             </plugin>
-
-            <!-- Due to the Flink build setup, "mvn spotless:apply" and "mvn spotless:check"
-				don't work. You have to use the fully qualified name, i.e.
-				"mvn com.diffplug.spotless:spotless-maven-plugin:apply" -->
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>${maven.shade.plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>shade-flink</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <createDependencyReducedPom>true</createDependencyReducedPom>
-                            <filters combine.children="append">
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>module-info.class</exclude>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <artifactSet>
-                                <includes>
-                                    <!--
-                                        We need the next line to enforce all submodules to execute shade and generate
-                                        dependency-reduced-pom.xml, to erase all properties defined in parent pom and
-                                        pin them to a fixed value. For example in the dependency-reduced-pom.xml of
-                                        submodules, ${flink.version} will be resolved as the actual Flink version.
-                                    -->
-                                    <include>org.apache.flink:flink-shaded-force-shading</include>
-                                </includes>
-                            </artifactSet>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9.1</version>
-                <configuration>
-                    <quiet>true</quiet>
-                    <detectOfflineLinks>false</detectOfflineLinks>
-                    <additionalJOptions combine.children="append">
-                        <additionalJOption>-Xdoclint:none</additionalJOption>
-                    </additionalJOptions>
-                </configuration>
-            </plugin>
-
-            <!-- This plugin takes effect for Maven version upper more than 3.5.0 -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>flatten-maven-plugin</artifactId>
-                <version>${flatten-maven-plugin.version}</version>
-                <configuration>
-                    <updatePomFile>true</updatePomFile>
-                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>flatten</id>
-                        <goals>
-                            <goal>flatten</goal>
-                        </goals>
-                        <phase>process-resources</phase>
-                    </execution>
-                    <execution>
-                        <id>flatten.clean</id>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                        <phase>clean</phase>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${source.java.version}</source>
-                    <target>${target.java.version}</target>
-                </configuration>
-            </plugin>
-
-            <!-- Allow modification of pom.xml properties using Maven commands. -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <generateBackupPoms>false</generateBackupPoms>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>dependency-convergence</id>
-                        <!-- Disabled because it conflicts with upstream Flink shading. -->
-                        <phase>none</phase>
-                        <goals><goal>enforce</goal></goals>
-                        <configuration>
-                            <rules><dependencyConvergence/></rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-maven</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireMavenVersion>
-                                    <!-- enforce at least mvn version 3.1.1 (see FLINK-12447) -->
-                                    <version>[3.1.1,)</version>
-                                </requireMavenVersion>
-                                <requireJavaVersion>
-                                    <version>${source.java.version}</version>
-                                </requireJavaVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>fast</id>
-            <activation>
-                <property>
-                    <name>fast</name>
-                </property>
-            </activation>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.rat</groupId>
-                            <artifactId>apache-rat-plugin</artifactId>
-                            <configuration>
-                                <skip>true</skip>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-checkstyle-plugin</artifactId>
-                            <configuration>
-                                <skip>true</skip>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>com.diffplug.spotless</groupId>
-                            <artifactId>spotless-maven-plugin</artifactId>
-                            <configuration>
-                                <skip>true</skip>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-enforcer-plugin</artifactId>
-                            <configuration>
-                                <skip>true</skip>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-javadoc-plugin</artifactId>
-                            <configuration>
-                                <skip>true</skip>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
-        <profile>
-            <!--
-              We're reusing the apache-release build profile defined in the Apache Parent POM,
-              with one exclusion: do not run the source-release-assembly execution goal.
-              We have our own scripts to create the source release, which correctly excludes
-              binaries from distribution tarball.
-              The script can be found under tools/releasing/create_source_release.sh.
-            -->
-            <id>apache-release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.apache.apache.resources</groupId>
-                                <artifactId>apache-source-release-assembly-descriptor</artifactId>
-                                <version>1.0.6</version>
-                            </dependency>
-                        </dependencies>
-                        <executions>
-                            <execution>
-                                <id>source-release-assembly</id>
-                                <!-- disable the execution -->
-                                <phase>none</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>java-11-target</id>
-            <activation>
-                <jdk>[11,17)</jdk>
-            </activation>
-            <properties>
-                <java.version>11</java.version>
-                <maven.compiler.source>${java.version}</maven.compiler.source>
-                <maven.compiler.target>${java.version}</maven.compiler.target>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <source>11</source>
-                            <target>11</target>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>java-17-target</id>
-            <activation>
-                <jdk>[17,)</jdk>
-            </activation>
-            <properties>
-                <java.version>17</java.version>
-                <maven.compiler.source>${java.version}</maven.compiler.source>
-                <maven.compiler.target>${java.version}</maven.compiler.target>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <source>17</source>
-                            <target>17</target>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>
