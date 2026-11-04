@@ -25,7 +25,7 @@ import org.apache.flink.cdc.common.sink.DataSink;
 import org.apache.flink.cdc.common.utils.Preconditions;
 import org.apache.flink.cdc.connectors.base.utils.OptionUtils;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
-import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialectFactory;
+import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialectFactory;
 import org.apache.flink.cdc.connectors.jdbc.options.JdbcSinkOptions;
 import org.apache.flink.cdc.connectors.jdbc.sink.JdbcDataSink;
 import org.apache.flink.configuration.ConfigurationUtils;
@@ -73,7 +73,7 @@ public class JdbcDataSinkFactory implements DataSinkFactory {
         final Configuration config = context.getFactoryConfiguration();
         JdbcSinkConfig.Builder<?> builder = new JdbcSinkConfig.Builder<>();
 
-        List<JdbcSinkDialectFactory<JdbcSinkConfig>> dialectFactories =
+        List<JdbcDialectFactory<JdbcSinkConfig>> dialectFactories =
                 discoverDialectFactories(getClass().getClassLoader());
 
         builder.connUrl(config.get(CONN_URL))
@@ -100,7 +100,7 @@ public class JdbcDataSinkFactory implements DataSinkFactory {
         // Discover corresponding factory
         String dialect = jdbcSinkConfig.getDialect();
 
-        List<JdbcSinkDialectFactory<JdbcSinkConfig>> availableFactories =
+        List<JdbcDialectFactory<JdbcSinkConfig>> availableFactories =
                 dialectFactories.stream()
                         .filter(d -> dialect.equalsIgnoreCase(d.identifier()))
                         .collect(Collectors.toList());
@@ -112,17 +112,22 @@ public class JdbcDataSinkFactory implements DataSinkFactory {
                 availableFactories.size(),
                 availableFactories.stream().map(Object::getClass).collect(Collectors.toList()),
                 dialectFactories.stream()
-                        .map(JdbcSinkDialectFactory::identifier)
+                        .map(JdbcDialectFactory::identifier)
                         .collect(Collectors.toList()));
 
-        JdbcSinkDialectFactory<JdbcSinkConfig> dialectFactory = availableFactories.get(0);
+        JdbcDialectFactory<JdbcSinkConfig> dialectFactory = availableFactories.get(0);
 
         if (LOG.isInfoEnabled()) {
             OptionUtils.printOptions(
                     IDENTIFIER, ConfigurationUtils.hideSensitiveValues(config.toMap()));
         }
 
-        return new JdbcDataSink(dialectFactory.createDialect(jdbcSinkConfig), jdbcSinkConfig);
+        org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect targetDialect =
+                dialectFactory.createDialect(jdbcSinkConfig);
+        return new JdbcDataSink(
+                targetDialect,
+                dialectFactory.createCatalog(jdbcSinkConfig, targetDialect),
+                jdbcSinkConfig);
     }
 
     @Override
@@ -153,17 +158,17 @@ public class JdbcDataSinkFactory implements DataSinkFactory {
         return options;
     }
 
-    private List<JdbcSinkDialectFactory<JdbcSinkConfig>> discoverDialectFactories(
+    private List<JdbcDialectFactory<JdbcSinkConfig>> discoverDialectFactories(
             ClassLoader classLoader) {
         try {
-            final List<JdbcSinkDialectFactory<JdbcSinkConfig>> result = new LinkedList<>();
-            ServiceLoader.load(JdbcSinkDialectFactory.class, classLoader)
+            final List<JdbcDialectFactory<JdbcSinkConfig>> result = new LinkedList<>();
+            ServiceLoader.load(JdbcDialectFactory.class, classLoader)
                     .iterator()
                     .forEachRemaining(result::add);
             return result;
         } catch (ServiceConfigurationError e) {
             throw new RuntimeException(
-                    "Could not load service provider for JdbcSinkDialectFactory.", e);
+                    "Could not load service provider for JdbcDialectFactory.", e);
         }
     }
 }
