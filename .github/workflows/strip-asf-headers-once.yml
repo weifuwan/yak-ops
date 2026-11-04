@@ -1,0 +1,36 @@
+name: One-time ASF boilerplate removal
+
+on:
+  push:
+    paths:
+      - '.github/workflows/strip-asf-headers-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  strip-headers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Remove ASF boilerplate headers
+        run: |
+          python3 -m py_compile scripts/strip_asf_headers.py
+          python3 scripts/strip_asf_headers.py
+      - name: Validate source-only changes
+        run: |
+          python3 -c 'import xml.etree.ElementTree as ET; ET.parse("pom.xml")'
+          git diff --check
+          git diff --stat | tail -n 35
+      - name: Commit cleanup directly to main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: remove ASF boilerplate source headers across modules'
+          git push origin HEAD:main
