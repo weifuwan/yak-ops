@@ -226,6 +226,13 @@ limitations under the License.
     </dependencyManagement>
 
     <dependencies>
+        <!-- JSR-305 annotations used by the migrated Flink CDC sources. -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+
         <!-- Apache Flink dependencies -->
         <!-- These dependencies are provided, because they should not be packaged into the JAR file. -->
         <dependency>
