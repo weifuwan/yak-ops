@@ -33,10 +33,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <scm>
-        <url>https://github.com/weifuwan/yak-ops</url>
-    </scm>
-
     <modules>
         <module>yak-ops-bom</module>
         <module>yak-ops-alert</module>
@@ -802,9 +798,9 @@
         </mailingList>
     </mailingLists>
     <scm>
-        <connection>scm:git:https://github.com/apache/dolphinscheduler.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/dolphinscheduler.git</developerConnection>
-        <url>https://github.com/apache/dolphinscheduler</url>
+        <connection>scm:git:https://github.com/weifuwan/yak-ops.git</connection>
+        <developerConnection>scm:git:https://github.com/weifuwan/yak-ops.git</developerConnection>
+        <url>https://github.com/weifuwan/yak-ops</url>
         <tag>HEAD</tag>
     </scm>
 
