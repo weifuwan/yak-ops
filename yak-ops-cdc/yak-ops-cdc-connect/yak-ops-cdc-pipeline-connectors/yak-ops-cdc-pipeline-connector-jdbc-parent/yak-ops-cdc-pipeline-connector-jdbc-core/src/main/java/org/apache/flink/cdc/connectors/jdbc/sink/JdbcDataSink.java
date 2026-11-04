@@ -23,7 +23,8 @@ import org.apache.flink.cdc.common.sink.EventSinkProvider;
 import org.apache.flink.cdc.common.sink.FlinkSinkProvider;
 import org.apache.flink.cdc.common.sink.MetadataApplier;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
-import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
+import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalog;
+import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
 import org.apache.flink.cdc.connectors.jdbc.sink.v2.EventRecordSerializationSchema;
 import org.apache.flink.cdc.connectors.jdbc.sink.v2.JdbcSink;
 import org.apache.flink.cdc.connectors.jdbc.sink.v2.JdbcSinkBuilder;
@@ -34,11 +35,13 @@ import java.io.Serializable;
 
 /** Writing data to JDBC-like sinks. */
 public class JdbcDataSink implements DataSink, Serializable {
-    private final JdbcSinkDialect dialect;
+    private final JdbcDialect dialect;
+    private final JdbcCatalog catalog;
     private final JdbcSinkConfig sinkConfig;
 
-    public JdbcDataSink(JdbcSinkDialect dialect, JdbcSinkConfig sinkConfig) {
+    public JdbcDataSink(JdbcDialect dialect, JdbcCatalog catalog, JdbcSinkConfig sinkConfig) {
         this.dialect = dialect;
+        this.catalog = catalog;
         this.sinkConfig = sinkConfig;
     }
 
@@ -70,6 +73,6 @@ public class JdbcDataSink implements DataSink, Serializable {
 
     @Override
     public MetadataApplier getMetadataApplier() {
-        return new JdbcMetadataApplier(dialect);
+        return new JdbcMetadataApplier(catalog);
     }
 }
