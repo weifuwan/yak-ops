@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_queue")
+@TableName("t_yak_ops_queue")
 public class Queue {
 
     @TableId(value = "id", type = IdType.AUTO)

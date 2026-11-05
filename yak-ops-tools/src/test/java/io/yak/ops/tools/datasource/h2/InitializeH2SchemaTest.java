@@ -24,16 +24,16 @@ class InitializeH2SchemaTest {
         try (
                 Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery("SELECT version FROM t_ds_version")) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT version FROM t_yak_ops_version")) {
                 Assertions.assertTrue(resultSet.next());
                 Assertions.assertEquals("3.4.3", resultSet.getString(1));
             }
             try (
                     ResultSet resultSet = statement.executeQuery(
-                            "SELECT COUNT(*) FROM t_ds_workflow_instance")) {
+                            "SELECT COUNT(*) FROM t_yak_ops_workflow_instance")) {
                 Assertions.assertTrue(resultSet.next());
             }
-            statement.executeQuery("SELECT missed_fire_policy FROM t_ds_schedules WHERE 1 = 0").close();
+            statement.executeQuery("SELECT missed_fire_policy FROM t_yak_ops_schedules WHERE 1 = 0").close();
         }
     }
 }

@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_audit_log")
+@TableName("t_yak_ops_audit_log")
 public class AuditLog {
 
     @TableId(value = "id", type = IdType.AUTO)

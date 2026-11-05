@@ -54,7 +54,7 @@
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <java.version>17</java.version>
-        <!-- Keep CDC's Java and formatter independent from the Scheduler parent. -->
+        <!-- Keep CDC's Java compilation target independent from the Scheduler's Java 8 baseline. -->
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <jacoco.skip>true</jacoco.skip>
         <analyze.skip>true</analyze.skip>
@@ -62,6 +62,34 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Keep Kafka Connect aligned with Debezium 1.9.8.Final.
+                 Spring Boot 3's imported BOM otherwise selects a newer Connect API
+                 that requires methods not implemented by the migrated Flink CDC source. -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-api</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-runtime</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-json</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-transforms</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
             <!-- Replaces dependency versions formerly inherited from the Spring Boot 3 parent. -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -263,9 +291,9 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.10.2</version>
+                <!-- Inherit the shared plugin version; preserve CDC's upstream POM and Java format. -->
                 <configuration combine.self="override">
-                    <!-- Preserve the imported Flink CDC source's existing format. -->
+                    <!-- Preserve the imported Flink CDC source's existing Java format. -->
                     <java>
                         <includes>
                             <include>src/main/java/**/*.java</include>

@@ -16,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@ActiveProfiles("mysql")
+@ActiveProfiles({"init", "mysql"})
 @SpringBootTest(classes = {InitializeYakOps.class, DaoConfiguration.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public @interface YakOpsMysqlProfile {

@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS t_ds_jdbc_registry_data;
-create table t_ds_jdbc_registry_data
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_data;
+create table t_yak_ops_jdbc_registry_data
 (
     id               bigserial not null,
     data_key         varchar   not null,
@@ -10,11 +10,11 @@ create table t_ds_jdbc_registry_data
     last_update_time timestamp not null default current_timestamp,
     primary key (id)
 );
-create unique index uk_t_ds_jdbc_registry_dataKey on t_ds_jdbc_registry_data (data_key);
+create unique index uk_t_yak_ops_jdbc_registry_dataKey on t_yak_ops_jdbc_registry_data (data_key);
 
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_lock;
-create table t_ds_jdbc_registry_lock
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_lock;
+create table t_yak_ops_jdbc_registry_lock
 (
     id          bigserial not null,
     lock_key    varchar   not null,
@@ -23,11 +23,11 @@ create table t_ds_jdbc_registry_lock
     create_time timestamp not null default current_timestamp,
     primary key (id)
 );
-create unique index uk_t_ds_jdbc_registry_lockKey on t_ds_jdbc_registry_lock (lock_key);
+create unique index uk_t_yak_ops_jdbc_registry_lockKey on t_yak_ops_jdbc_registry_lock (lock_key);
 
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_client_heartbeat;
-create table t_ds_jdbc_registry_client_heartbeat
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_client_heartbeat;
+create table t_yak_ops_jdbc_registry_client_heartbeat
 (
     id                  bigint    not null,
     client_name         varchar   not null,
@@ -37,8 +37,8 @@ create table t_ds_jdbc_registry_client_heartbeat
     primary key (id)
 );
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_data_change_event;
-create table t_ds_jdbc_registry_data_change_event
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_data_change_event;
+create table t_yak_ops_jdbc_registry_data_change_event
 (
     id                 bigserial not null,
     event_type         varchar   not null,

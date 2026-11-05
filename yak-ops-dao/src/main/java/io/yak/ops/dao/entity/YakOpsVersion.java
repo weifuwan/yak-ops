@@ -7,8 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_version")
-public class DsVersion {
+@TableName("t_yak_ops_version")
+public class YakOpsVersion {
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

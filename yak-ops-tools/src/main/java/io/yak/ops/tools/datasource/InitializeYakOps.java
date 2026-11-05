@@ -5,12 +5,14 @@ import io.yak.ops.dao.DaoConfiguration;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Import(DaoConfiguration.class)
-@SpringBootApplication
+@Profile("init")
+@SpringBootApplication(exclude = QuartzAutoConfiguration.class)
 public class InitializeYakOps {
 
     public static void main(String[] args) {

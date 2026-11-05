@@ -9,10 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-// StorageEntity is an entity representing a resource in the third-part storage service.
-// It is only stored in t_ds_relation_resources_task if the resource is used by a task.
-// It is not put in the model module because it has more attributes than corresponding objects stored
-//  in table t_ds_relation_resources_task.
+// StorageEntity represents a resource in a third-party storage service.
+// It is separate from DAO resource models because it has additional storage attributes.
 
 @Data
 @NoArgsConstructor

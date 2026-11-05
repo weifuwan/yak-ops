@@ -6,8 +6,8 @@
             cmd.command_type as command_type
             ,count(1) as count
         from
-        t_ds_error_command cmd
-        JOIN t_ds_workflow_definition tdwd ON tdwd.code = cmd.workflow_definition_code
+        t_yak_ops_error_command cmd
+        JOIN t_yak_ops_workflow_definition tdwd ON tdwd.code = cmd.workflow_definition_code
         where 1=1
         <if test="projectCodes != null and projectCodes.size() != 0">
             and tdwd.project_code in
@@ -24,14 +24,14 @@
     <select id="queryErrorCommandPage" resultType="io.yak.ops.dao.entity.ErrorCommand">
         select
         *
-        from t_ds_error_command
+        from t_yak_ops_error_command
         order by workflow_instance_priority, id asc
     </select>
 
     <select id="queryErrorCommandPageByIds" resultType="io.yak.ops.dao.entity.ErrorCommand">
         select
         *
-        from t_ds_error_command
+        from t_yak_ops_error_command
         where workflow_definition_code in
             <foreach item="id" index="index" collection="workflowDefinitionCodes" open="(" separator="," close=")">
                 #{id}

@@ -5,7 +5,7 @@
         id, parent_workflow_instance_id, parent_task_code, sub_workflow_instance_id
     </sql>
     <insert id="batchInsert">
-        insert into t_ds_relation_sub_workflow (parent_workflow_instance_id, parent_task_code, sub_workflow_instance_id)
+        insert into t_yak_ops_relation_sub_workflow (parent_workflow_instance_id, parent_task_code, sub_workflow_instance_id)
         values
         <foreach collection="relationSubWorkflows" item="relationSubWorkflow" separator=",">
             (#{relationSubWorkflow.parentWorkflowInstanceId}, #{relationSubWorkflow.parentTaskCode}, #{relationSubWorkflow.subWorkflowInstanceId})
@@ -14,7 +14,7 @@
     <select id="queryParentWorkflowInstance" resultType="io.yak.ops.dao.entity.RelationSubWorkflow">
         select
             id, parent_workflow_instance_id, parent_task_code, sub_workflow_instance_id
-        FROM t_ds_relation_sub_workflow
+        FROM t_yak_ops_relation_sub_workflow
         WHERE sub_workflow_instance_id = #{subWorkflowInstanceId}
     </select>
 </mapper>

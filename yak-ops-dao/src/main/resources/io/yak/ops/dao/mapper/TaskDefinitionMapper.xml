@@ -18,8 +18,8 @@
         <include refid="baseSqlV2">
             <property name="alias" value="td"/>
         </include>
-        from t_ds_task_definition td
-        join t_ds_workflow_task_relation ptr on ptr.project_code = td.project_code
+        from t_yak_ops_task_definition td
+        join t_yak_ops_workflow_task_relation ptr on ptr.project_code = td.project_code
         where td.project_code = #{projectCode}
         and td.name = #{name}
         and ptr.workflow_definition_code = #{workflowDefinitionCode}
@@ -29,15 +29,15 @@
     <select id="queryAllTaskDefinitionWorkerGroups" resultType="java.lang.String">
         select
             worker_group
-        from t_ds_task_definition
+        from t_yak_ops_task_definition
         where project_code = #{projectCode}
         group by worker_group
     </select>
 
     <select id="countDefinitionGroupByUser" resultType="io.yak.ops.dao.model.WorkflowDefinitionCountDto">
         SELECT td.user_id as user_id, tu.user_name as user_name, count(0) as count
-        FROM t_ds_task_definition td
-        JOIN t_ds_user tu on tu.id=td.user_id
+        FROM t_yak_ops_task_definition td
+        JOIN t_yak_ops_user tu on tu.id=td.user_id
         where 1 = 1
         <if test="projectCodes != null and projectCodes.length != 0">
             and td.project_code in
@@ -51,24 +51,24 @@
     <select id="queryByCode" resultType="io.yak.ops.dao.entity.TaskDefinition">
         select
         <include refid="baseSql"/>
-        from t_ds_task_definition
+        from t_yak_ops_task_definition
         where code = #{code}
     </select>
 
     <delete id="deleteByCode">
-        delete from t_ds_task_definition
+        delete from t_yak_ops_task_definition
         where code = #{code}
     </delete>
 
     <delete id="deleteByBatchCodes">
-        delete from t_ds_task_definition where code in
+        delete from t_yak_ops_task_definition where code in
         <foreach collection="taskCodeList" item="taskCode" open="(" separator="," close=")">
             #{taskCode}
         </foreach>
     </delete>
 
     <insert id="batchInsert">
-        insert into t_ds_task_definition (code, name, version, description, project_code, user_id,
+        insert into t_yak_ops_task_definition (code, name, version, description, project_code, user_id,
         task_type, task_params, flag, task_priority, worker_group, environment_code, fail_retry_times, fail_retry_interval,
         timeout_flag, timeout_notify_strategy, timeout, delay_time, resource_ids, create_time, update_time,task_group_id, task_execute_type)
         values
@@ -86,10 +86,10 @@
         select td.name task_name,td.code task_code,td.version task_version,td.task_type,td.create_time task_create_time,td.update_time task_update_time,
         pd.code workflow_definition_code,pd.version workflow_definition_version,pd.name workflow_definition_name,pd.release_state workflow_release_state,
         pt.pre_task_code upstream_task_code,up.name upstream_task_name
-        from t_ds_task_definition td
-        LEFT JOIN t_ds_workflow_task_relation pt ON td.code	= pt.post_task_code and td.version=pt.post_task_version
-        LEFT JOIN t_ds_workflow_definition pd ON pt.workflow_definition_code = pd.code and pt.workflow_definition_version=pd.version
-        LEFT JOIN t_ds_task_definition up on pt.pre_task_code=up.code and pt.pre_task_version=up.version
+        from t_yak_ops_task_definition td
+        LEFT JOIN t_yak_ops_workflow_task_relation pt ON td.code	= pt.post_task_code and td.version=pt.post_task_version
+        LEFT JOIN t_yak_ops_workflow_definition pd ON pt.workflow_definition_code = pd.code and pt.workflow_definition_version=pd.version
+        LEFT JOIN t_yak_ops_task_definition up on pt.pre_task_code=up.code and pt.pre_task_version=up.version
         WHERE td.project_code = #{projectCode} and td.code in
         <foreach collection="codeList" item="code" open="(" separator="," close=")">
             #{code}
@@ -99,7 +99,7 @@
     <select id="queryByCodeList" resultType="io.yak.ops.dao.entity.TaskDefinition">
         select
         <include refid="baseSql"/>
-        from t_ds_task_definition
+        from t_yak_ops_task_definition
         where 1 = 1
         <if test="codes != null and codes.size != 0">
             and code in
@@ -114,7 +114,7 @@
     >
         SELECT
         <include refid="baseSql"/>
-        FROM t_ds_task_definition
+        FROM t_yak_ops_task_definition
         <where>
             <if test=" task.projectCode != 0">
                 and project_code = #{task.projectCode}
@@ -132,7 +132,7 @@
     <select id="queryDefinitionsByTaskType" resultType="io.yak.ops.dao.entity.TaskDefinition">
         select
             <include refid="baseSql"/>
-        from t_ds_task_definition
+        from t_yak_ops_task_definition
         where task_type = #{taskType}
     </select>
 

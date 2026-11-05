@@ -14,28 +14,28 @@
         </include>
         ,
         q.queue_name,q.queue
-        FROM t_ds_tenant t,t_ds_queue q
+        FROM t_yak_ops_tenant t,t_yak_ops_queue q
         WHERE t.queue_id = q.id
         and t.id = #{tenantId}
     </select>
     <select id="queryByTenantCode" resultType="io.yak.ops.dao.entity.Tenant">
         select
         <include refid="baseSql"/>
-        from t_ds_tenant
+        from t_yak_ops_tenant
         where tenant_code = #{tenantCode}
     </select>
 
     <select id="queryTenantListByQueueId" resultType="io.yak.ops.dao.entity.Tenant">
         select
         <include refid="baseSql"/>
-        from t_ds_tenant
+        from t_yak_ops_tenant
         where queue_id = #{queueId}
     </select>
 
     <select id="queryAll" resultType="io.yak.ops.dao.entity.Tenant">
         select
         <include refid="baseSql"/>
-        from t_ds_tenant
+        from t_yak_ops_tenant
     </select>
 
     <select id="queryTenantPaging" resultType="io.yak.ops.dao.entity.Tenant">
@@ -44,7 +44,7 @@
             <property name="alias" value="t"/>
         </include>
         , q.queue_name
-        FROM t_ds_tenant t,t_ds_queue q
+        FROM t_yak_ops_tenant t,t_yak_ops_queue q
         WHERE t.queue_id = q.id
         <if test="searchVal != null and searchVal != ''">
             and t.tenant_code like concat('%', #{searchVal}, '%')
@@ -64,7 +64,7 @@
             <property name="alias" value="t"/>
         </include>
         , q.queue_name
-        FROM t_ds_tenant t,t_ds_queue q
+        FROM t_yak_ops_tenant t,t_yak_ops_queue q
         WHERE 1=1 and t.queue_id = q.id
         <if test="ids != null and ids.size() > 0">
             and t.id in
@@ -80,7 +80,7 @@
 
     <select id="existTenant" resultType="java.lang.Boolean">
         select 1
-        from t_ds_tenant
+        from t_yak_ops_tenant
         where tenant_code = #{tenantCode} limit 1
     </select>
 </mapper>

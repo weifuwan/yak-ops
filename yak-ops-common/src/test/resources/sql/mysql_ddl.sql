@@ -1,9 +1,8 @@
-ALTER TABLE t_ds_workflow_definition DROP tenant_id;
-ALTER TABLE t_ds_workflow_definition_log DROP tenant_id;
-ALTER TABLE t_ds_workflow_instance DROP tenant_id;
+ALTER TABLE t_yak_ops_workflow_definition DROP tenant_id;
+ALTER TABLE t_yak_ops_workflow_definition_log DROP tenant_id;
+ALTER TABLE t_yak_ops_workflow_instance DROP tenant_id;
 
 SET FOREIGN_KEY_CHECKS = 0;
--- auto detect by atlas, see more detail in https://github.com/apache/dolphinscheduler/pull/14620
 ALTER TABLE `QRTZ_BLOB_TRIGGERS` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` varchar(120) NOT NULL, MODIFY COLUMN `TRIGGER_NAME` varchar(200) NOT NULL, MODIFY COLUMN `TRIGGER_GROUP` varchar(200) NOT NULL;
 ALTER TABLE `QRTZ_CALENDARS` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` varchar(120) NOT NULL, MODIFY COLUMN `CALENDAR_NAME` varchar(200) NOT NULL;
 ALTER TABLE `QRTZ_CRON_TRIGGERS` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` varchar(120) NOT NULL, MODIFY COLUMN `TRIGGER_NAME` varchar(200) NOT NULL, MODIFY COLUMN `TRIGGER_GROUP` varchar(200) NOT NULL, MODIFY COLUMN `CRON_EXPRESSION` varchar(120) NOT NULL, MODIFY COLUMN `TIME_ZONE_ID` varchar(80) NULL;
@@ -15,10 +14,10 @@ ALTER TABLE `QRTZ_SCHEDULER_STATE` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` 
 ALTER TABLE `QRTZ_SIMPLE_TRIGGERS` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` varchar(120) NOT NULL, MODIFY COLUMN `TRIGGER_NAME` varchar(200) NOT NULL, MODIFY COLUMN `TRIGGER_GROUP` varchar(200) NOT NULL;
 ALTER TABLE `QRTZ_SIMPROP_TRIGGERS` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` varchar(120) NOT NULL, MODIFY COLUMN `TRIGGER_NAME` varchar(200) NOT NULL, MODIFY COLUMN `TRIGGER_GROUP` varchar(200) NOT NULL, MODIFY COLUMN `STR_PROP_1` varchar(512) NULL, MODIFY COLUMN `STR_PROP_2` varchar(512) NULL, MODIFY COLUMN `STR_PROP_3` varchar(512) NULL, MODIFY COLUMN `BOOL_PROP_1` varchar(1) NULL, MODIFY COLUMN `BOOL_PROP_2` varchar(1) NULL;
 ALTER TABLE `QRTZ_TRIGGERS` COLLATE utf8_bin, MODIFY COLUMN `SCHED_NAME` varchar(120) NOT NULL, MODIFY COLUMN `TRIGGER_NAME` varchar(200) NOT NULL, MODIFY COLUMN `TRIGGER_GROUP` varchar(200) NOT NULL, MODIFY COLUMN `JOB_NAME` varchar(200) NOT NULL, MODIFY COLUMN `JOB_GROUP` varchar(200) NOT NULL, MODIFY COLUMN `DESCRIPTION` varchar(250) NULL, MODIFY COLUMN `TRIGGER_STATE` varchar(16) NOT NULL, MODIFY COLUMN `TRIGGER_TYPE` varchar(8) NOT NULL, MODIFY COLUMN `CALENDAR_NAME` varchar(200) NULL;
-ALTER TABLE `t_ds_plugin_define` AUTO_INCREMENT 2;
-ALTER TABLE `t_ds_workflow_instance` MODIFY COLUMN `state_history` text NULL COMMENT 'state history desc';
-ALTER TABLE `t_ds_project` MODIFY COLUMN `description` varchar(255) NULL;
-ALTER TABLE `t_ds_task_group` MODIFY COLUMN `description` varchar(255) NULL;
-ALTER TABLE `t_ds_worker_group` MODIFY COLUMN `description` text NULL COMMENT 'description';
-ALTER TABLE `t_ds_fav_task` MODIFY COLUMN `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id';
+ALTER TABLE `t_yak_ops_plugin_define` AUTO_INCREMENT 2;
+ALTER TABLE `t_yak_ops_workflow_instance` MODIFY COLUMN `state_history` text NULL COMMENT 'state history desc';
+ALTER TABLE `t_yak_ops_project` MODIFY COLUMN `description` varchar(255) NULL;
+ALTER TABLE `t_yak_ops_task_group` MODIFY COLUMN `description` varchar(255) NULL;
+ALTER TABLE `t_yak_ops_worker_group` MODIFY COLUMN `description` text NULL COMMENT 'description';
+ALTER TABLE `t_yak_ops_fav_task` MODIFY COLUMN `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id';
 SET FOREIGN_KEY_CHECKS = 1;

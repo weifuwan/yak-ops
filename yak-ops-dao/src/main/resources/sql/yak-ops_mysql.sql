@@ -236,10 +236,10 @@ CREATE TABLE `QRTZ_SIMPROP_TRIGGERS` (
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_access_token
+-- Table structure for t_yak_ops_access_token
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_access_token`;
-CREATE TABLE `t_ds_access_token` (
+DROP TABLE IF EXISTS `t_yak_ops_access_token`;
+CREATE TABLE `t_yak_ops_access_token` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `user_id` int(11) DEFAULT NULL COMMENT 'user id',
   `token` varchar(64) DEFAULT NULL COMMENT 'token',
@@ -250,14 +250,14 @@ CREATE TABLE `t_ds_access_token` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_access_token
+-- Records of t_yak_ops_access_token
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_alert
+-- Table structure for t_yak_ops_alert
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_alert`;
-CREATE TABLE `t_ds_alert` (
+DROP TABLE IF EXISTS `t_yak_ops_alert`;
+CREATE TABLE `t_yak_ops_alert` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `title` varchar(512) DEFAULT NULL COMMENT 'title',
   `sign` char(40) NOT NULL DEFAULT '' COMMENT 'sign=sha1(content)',
@@ -278,14 +278,14 @@ CREATE TABLE `t_ds_alert` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_alert
+-- Records of t_yak_ops_alert
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_alertgroup
+-- Table structure for t_yak_ops_alertgroup
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_alertgroup`;
-CREATE TABLE `t_ds_alertgroup`(
+DROP TABLE IF EXISTS `t_yak_ops_alertgroup`;
+CREATE TABLE `t_yak_ops_alertgroup`(
   `id`             int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `alert_instance_ids` varchar (255) DEFAULT NULL COMMENT 'alert instance ids',
   `create_user_id` int(11) DEFAULT NULL COMMENT 'create user id',
@@ -294,18 +294,18 @@ CREATE TABLE `t_ds_alertgroup`(
   `create_time`    datetime     DEFAULT NULL COMMENT 'create time',
   `update_time`    datetime     DEFAULT NULL COMMENT 'update time',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `t_ds_alertgroup_name_un` (`group_name`)
+  UNIQUE KEY `t_yak_ops_alertgroup_name_un` (`group_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_alertgroup
+-- Records of t_yak_ops_alertgroup
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_command
+-- Table structure for t_yak_ops_command
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_command`;
-CREATE TABLE `t_ds_command` (
+DROP TABLE IF EXISTS `t_yak_ops_command`;
+CREATE TABLE `t_yak_ops_command` (
   `id`                        int(11)    NOT NULL AUTO_INCREMENT COMMENT 'key',
   `command_type`              tinyint(4) DEFAULT NULL COMMENT 'Command type: 0 start workflow, 1 start execution from current node, 2 resume fault-tolerant workflow, 3 resume pause workflow, 4 start execution from failed node, 5 complement, 6 schedule, 7 rerun, 8 pause, 9 stop, 10 resume waiting thread',
   `workflow_definition_code`   bigint(20) NOT NULL COMMENT 'workflow definition code',
@@ -330,14 +330,14 @@ CREATE TABLE `t_ds_command` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_command
+-- Records of t_yak_ops_command
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_serial_command
+-- Table structure for t_yak_ops_serial_command
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_serial_command`;
-CREATE TABLE `t_ds_serial_command` (
+DROP TABLE IF EXISTS `t_yak_ops_serial_command`;
+CREATE TABLE `t_yak_ops_serial_command` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
   `workflow_definition_code` bigint(20) NOT NULL COMMENT 'workflow definition code',
   `workflow_definition_version` int(11) NOT NULL COMMENT 'workflow definition version',
@@ -351,14 +351,14 @@ CREATE TABLE `t_ds_serial_command` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_serial_command
+-- Table structure for t_yak_ops_serial_command
 -- ----------------------------
     
 -- ----------------------------
--- Table structure for t_ds_datasource
+-- Table structure for t_yak_ops_datasource
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_datasource`;
-CREATE TABLE `t_ds_datasource` (
+DROP TABLE IF EXISTS `t_yak_ops_datasource`;
+CREATE TABLE `t_yak_ops_datasource` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `name` varchar(64) NOT NULL COMMENT 'data source name',
   `note` varchar(255) DEFAULT NULL COMMENT 'description',
@@ -368,18 +368,18 @@ CREATE TABLE `t_ds_datasource` (
   `create_time` datetime NOT NULL COMMENT 'create time',
   `update_time` datetime DEFAULT NULL COMMENT 'update time',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `t_ds_datasource_name_un` (`name`, `type`)
+  UNIQUE KEY `t_yak_ops_datasource_name_un` (`name`, `type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_datasource
+-- Records of t_yak_ops_datasource
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_error_command
+-- Table structure for t_yak_ops_error_command
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_error_command`;
-CREATE TABLE `t_ds_error_command` (
+DROP TABLE IF EXISTS `t_yak_ops_error_command`;
+CREATE TABLE `t_yak_ops_error_command` (
   `id` int(11) NOT NULL COMMENT 'key',
   `command_type` tinyint(4) DEFAULT NULL COMMENT 'command type',
   `executor_id` int(11) DEFAULT NULL COMMENT 'executor id',
@@ -404,14 +404,14 @@ CREATE TABLE `t_ds_error_command` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_error_command
+-- Records of t_yak_ops_error_command
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_workflow_definition
+-- Table structure for t_yak_ops_workflow_definition
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_workflow_definition`;
-CREATE TABLE `t_ds_workflow_definition` (
+DROP TABLE IF EXISTS `t_yak_ops_workflow_definition`;
+CREATE TABLE `t_yak_ops_workflow_definition` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'self-increasing id',
   `code` bigint(20) NOT NULL COMMENT 'encoding',
   `name` varchar(255) DEFAULT NULL COMMENT 'workflow definition name',
@@ -435,10 +435,10 @@ CREATE TABLE `t_ds_workflow_definition` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_workflow_definition_log
+-- Table structure for t_yak_ops_workflow_definition_log
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_workflow_definition_log`;
-CREATE TABLE `t_ds_workflow_definition_log` (
+DROP TABLE IF EXISTS `t_yak_ops_workflow_definition_log`;
+CREATE TABLE `t_yak_ops_workflow_definition_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'self-increasing id',
   `code` bigint(20) NOT NULL COMMENT 'encoding',
   `name` varchar(255) DEFAULT NULL COMMENT 'workflow definition name',
@@ -463,10 +463,10 @@ CREATE TABLE `t_ds_workflow_definition_log` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_task_definition
+-- Table structure for t_yak_ops_task_definition
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_definition`;
-CREATE TABLE `t_ds_task_definition` (
+DROP TABLE IF EXISTS `t_yak_ops_task_definition`;
+CREATE TABLE `t_yak_ops_task_definition` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'self-increasing id',
   `code` bigint(20) NOT NULL COMMENT 'encoding',
   `name` varchar(255) DEFAULT NULL COMMENT 'task definition name',
@@ -499,10 +499,10 @@ CREATE TABLE `t_ds_task_definition` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_task_definition_log
+-- Table structure for t_yak_ops_task_definition_log
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_definition_log`;
-CREATE TABLE `t_ds_task_definition_log` (
+DROP TABLE IF EXISTS `t_yak_ops_task_definition_log`;
+CREATE TABLE `t_yak_ops_task_definition_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'self-increasing id',
   `code` bigint(20) NOT NULL COMMENT 'encoding',
   `name` varchar(255) DEFAULT NULL COMMENT 'task definition name',
@@ -538,10 +538,10 @@ CREATE TABLE `t_ds_task_definition_log` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_relation
+-- Table structure for t_yak_ops_workflow_task_relation
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_workflow_task_relation`;
-CREATE TABLE `t_ds_workflow_task_relation` (
+DROP TABLE IF EXISTS `t_yak_ops_workflow_task_relation`;
+CREATE TABLE `t_yak_ops_workflow_task_relation` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'self-increasing id',
   `name` varchar(255) DEFAULT NULL COMMENT 'relation name',
   `project_code` bigint(20) NOT NULL COMMENT 'project code',
@@ -562,10 +562,10 @@ CREATE TABLE `t_ds_workflow_task_relation` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_relation_log
+-- Table structure for t_yak_ops_workflow_task_relation_log
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_workflow_task_relation_log`;
-CREATE TABLE `t_ds_workflow_task_relation_log` (
+DROP TABLE IF EXISTS `t_yak_ops_workflow_task_relation_log`;
+CREATE TABLE `t_yak_ops_workflow_task_relation_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'self-increasing id',
   `name` varchar(255) DEFAULT NULL COMMENT 'relation name',
   `project_code` bigint(20) NOT NULL COMMENT 'project code',
@@ -586,10 +586,10 @@ CREATE TABLE `t_ds_workflow_task_relation_log` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_workflow_instance
+-- Table structure for t_yak_ops_workflow_instance
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_workflow_instance`;
-CREATE TABLE `t_ds_workflow_instance` (
+DROP TABLE IF EXISTS `t_yak_ops_workflow_instance`;
+CREATE TABLE `t_yak_ops_workflow_instance` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `name` varchar(255) DEFAULT NULL COMMENT 'workflow instance name',
   `workflow_definition_code` bigint(20) NOT NULL COMMENT 'workflow definition code',
@@ -634,10 +634,10 @@ CREATE TABLE `t_ds_workflow_instance` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_project
+-- Table structure for t_yak_ops_project
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_project`;
-CREATE TABLE `t_ds_project` (
+DROP TABLE IF EXISTS `t_yak_ops_project`;
+CREATE TABLE `t_yak_ops_project` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `name` varchar(255) DEFAULT NULL COMMENT 'project name',
   `code` bigint(20) NOT NULL COMMENT 'encoding',
@@ -653,14 +653,14 @@ CREATE TABLE `t_ds_project` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_project
+-- Records of t_yak_ops_project
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_project_parameter
+-- Table structure for t_yak_ops_project_parameter
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_project_parameter`;
-CREATE TABLE `t_ds_project_parameter` (
+DROP TABLE IF EXISTS `t_yak_ops_project_parameter`;
+CREATE TABLE `t_yak_ops_project_parameter` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `param_name` varchar(255) NOT NULL COMMENT 'project parameter name',
   `param_value` text NOT NULL COMMENT 'project parameter value',
@@ -677,14 +677,14 @@ CREATE TABLE `t_ds_project_parameter` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_project_parameter
+-- Records of t_yak_ops_project_parameter
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_project_preference
+-- Table structure for t_yak_ops_project_preference
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_project_preference`;
-CREATE TABLE `t_ds_project_preference` (
+DROP TABLE IF EXISTS `t_yak_ops_project_preference`;
+CREATE TABLE `t_yak_ops_project_preference` (
    `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
    `code` bigint(20) NOT NULL COMMENT 'encoding',
    `project_code` bigint(20) NOT NULL COMMENT 'project code',
@@ -699,14 +699,14 @@ CREATE TABLE `t_ds_project_preference` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_project_preference
+-- Records of t_yak_ops_project_preference
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_queue
+-- Table structure for t_yak_ops_queue
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_queue`;
-CREATE TABLE `t_ds_queue` (
+DROP TABLE IF EXISTS `t_yak_ops_queue`;
+CREATE TABLE `t_yak_ops_queue` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `queue_name` varchar(64) DEFAULT NULL COMMENT 'queue name',
   `queue` varchar(64) DEFAULT NULL COMMENT 'yarn queue name',
@@ -717,15 +717,15 @@ CREATE TABLE `t_ds_queue` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_queue
+-- Records of t_yak_ops_queue
 -- ----------------------------
-INSERT IGNORE INTO `t_ds_queue` VALUES ('1', 'default', 'default', null, null);
+INSERT IGNORE INTO `t_yak_ops_queue` VALUES ('1', 'default', 'default', null, null);
 
 -- ----------------------------
--- Table structure for t_ds_relation_datasource_user
+-- Table structure for t_yak_ops_relation_datasource_user
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_relation_datasource_user`;
-CREATE TABLE `t_ds_relation_datasource_user` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_datasource_user`;
+CREATE TABLE `t_yak_ops_relation_datasource_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `user_id` int(11) NOT NULL COMMENT 'user id',
   `datasource_id` int(11) DEFAULT NULL COMMENT 'data source id',
@@ -736,14 +736,14 @@ CREATE TABLE `t_ds_relation_datasource_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_relation_datasource_user
+-- Records of t_yak_ops_relation_datasource_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_workflow_instance
+-- Table structure for t_yak_ops_relation_workflow_instance
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_relation_workflow_instance`;
-CREATE TABLE `t_ds_relation_workflow_instance` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_workflow_instance`;
+CREATE TABLE `t_yak_ops_relation_workflow_instance` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `parent_workflow_instance_id` int(11) DEFAULT NULL COMMENT 'parent workflow instance id',
   `parent_task_instance_id` int(11) DEFAULT NULL COMMENT 'parent workflow instance id',
@@ -754,10 +754,10 @@ CREATE TABLE `t_ds_relation_workflow_instance` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_relation_project_user
+-- Table structure for t_yak_ops_relation_project_user
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_relation_project_user`;
-CREATE TABLE `t_ds_relation_project_user` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_project_user`;
+CREATE TABLE `t_yak_ops_relation_project_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `user_id` int(11) NOT NULL COMMENT 'user id',
   `project_id` int(11) DEFAULT NULL COMMENT 'project id',
@@ -769,15 +769,15 @@ CREATE TABLE `t_ds_relation_project_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_relation_project_user
+-- Records of t_yak_ops_relation_project_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_resources_user
+-- Table structure for t_yak_ops_relation_resources_user
 -- ----------------------------
 -- Deprecated
-DROP TABLE IF EXISTS `t_ds_relation_resources_user`;
-CREATE TABLE `t_ds_relation_resources_user` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_resources_user`;
+CREATE TABLE `t_yak_ops_relation_resources_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL COMMENT 'user id',
   `resources_id` int(11) DEFAULT NULL COMMENT 'resource id',
@@ -788,14 +788,14 @@ CREATE TABLE `t_ds_relation_resources_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_relation_resources_user
+-- Records of t_yak_ops_relation_resources_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_udfs_user
+-- Table structure for t_yak_ops_relation_udfs_user
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_relation_udfs_user`;
-CREATE TABLE `t_ds_relation_udfs_user` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_udfs_user`;
+CREATE TABLE `t_yak_ops_relation_udfs_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `user_id` int(11) NOT NULL COMMENT 'userid',
   `udf_id` int(11) DEFAULT NULL COMMENT 'udf id',
@@ -806,11 +806,11 @@ CREATE TABLE `t_ds_relation_udfs_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_resources
+-- Table structure for t_yak_ops_resources
 -- ----------------------------
 -- Deprecated
-DROP TABLE IF EXISTS `t_ds_resources`;
-CREATE TABLE `t_ds_resources` (
+DROP TABLE IF EXISTS `t_yak_ops_resources`;
+CREATE TABLE `t_yak_ops_resources` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `alias` varchar(64) DEFAULT NULL COMMENT 'alias',
   `file_name` varchar(64) DEFAULT NULL COMMENT 'file name',
@@ -824,18 +824,18 @@ CREATE TABLE `t_ds_resources` (
   `full_name` varchar(128) DEFAULT NULL,
   `is_directory` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `t_ds_resources_un` (`full_name`,`type`)
+  UNIQUE KEY `t_yak_ops_resources_un` (`full_name`,`type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_resources
+-- Records of t_yak_ops_resources
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_schedules
+-- Table structure for t_yak_ops_schedules
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_schedules`;
-CREATE TABLE `t_ds_schedules` (
+DROP TABLE IF EXISTS `t_yak_ops_schedules`;
+CREATE TABLE `t_yak_ops_schedules` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `workflow_definition_code` bigint(20) NOT NULL COMMENT 'workflow definition code',
   `start_time` datetime NOT NULL COMMENT 'start time',
@@ -859,14 +859,14 @@ CREATE TABLE `t_ds_schedules` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_schedules
+-- Records of t_yak_ops_schedules
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_session
+-- Table structure for t_yak_ops_session
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_session`;
-CREATE TABLE `t_ds_session` (
+DROP TABLE IF EXISTS `t_yak_ops_session`;
+CREATE TABLE `t_yak_ops_session` (
   `id` varchar(64) NOT NULL COMMENT 'key',
   `user_id` int(11) DEFAULT NULL COMMENT 'user id',
   `ip` varchar(45) DEFAULT NULL COMMENT 'ip',
@@ -875,14 +875,14 @@ CREATE TABLE `t_ds_session` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_session
+-- Records of t_yak_ops_session
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_task_instance
+-- Table structure for t_yak_ops_task_instance
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_instance`;
-CREATE TABLE `t_ds_task_instance` (
+DROP TABLE IF EXISTS `t_yak_ops_task_instance`;
+CREATE TABLE `t_yak_ops_task_instance` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `name` varchar(255) DEFAULT NULL COMMENT 'task name',
   `task_type` varchar(50) NOT NULL COMMENT 'task type',
@@ -927,14 +927,14 @@ CREATE TABLE `t_ds_task_instance` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_task_instance
+-- Records of t_yak_ops_task_instance
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_task_instance_context
+-- Table structure for t_yak_ops_task_instance_context
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_instance_context`;
-CREATE TABLE `t_ds_task_instance_context` (
+DROP TABLE IF EXISTS `t_yak_ops_task_instance_context`;
+CREATE TABLE `t_yak_ops_task_instance_context` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
     `task_instance_id` int(11) NOT NULL,
     `context` text NOT NULL,
@@ -946,10 +946,10 @@ CREATE TABLE `t_ds_task_instance_context` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_tenant
+-- Table structure for t_yak_ops_tenant
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_tenant`;
-CREATE TABLE `t_ds_tenant` (
+DROP TABLE IF EXISTS `t_yak_ops_tenant`;
+CREATE TABLE `t_yak_ops_tenant` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `tenant_code` varchar(64) DEFAULT NULL COMMENT 'tenant code',
   `description` varchar(255) DEFAULT NULL,
@@ -961,17 +961,17 @@ CREATE TABLE `t_ds_tenant` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_tenant
+-- Records of t_yak_ops_tenant
 -- ----------------------------
 
-INSERT IGNORE INTO `t_ds_tenant`
+INSERT IGNORE INTO `t_yak_ops_tenant`
 VALUES ('-1', 'default', 'default tenant', '1', current_timestamp, current_timestamp);
 
 -- ----------------------------
--- Table structure for t_ds_udfs
+-- Table structure for t_yak_ops_udfs
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_udfs`;
-CREATE TABLE `t_ds_udfs` (
+DROP TABLE IF EXISTS `t_yak_ops_udfs`;
+CREATE TABLE `t_yak_ops_udfs` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `user_id` int(11) NOT NULL COMMENT 'user id',
   `func_name` varchar(255) NOT NULL COMMENT 'UDF function name',
@@ -989,14 +989,14 @@ CREATE TABLE `t_ds_udfs` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_udfs
+-- Records of t_yak_ops_udfs
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_user
+-- Table structure for t_yak_ops_user
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_user`;
-CREATE TABLE `t_ds_user` (
+DROP TABLE IF EXISTS `t_yak_ops_user`;
+CREATE TABLE `t_yak_ops_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'user id',
   `user_name` varchar(64) DEFAULT NULL COMMENT 'user name',
   `user_password` varchar(64) DEFAULT NULL COMMENT 'user password',
@@ -1014,14 +1014,14 @@ CREATE TABLE `t_ds_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_user
+-- Records of t_yak_ops_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_worker_group
+-- Table structure for t_yak_ops_worker_group
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_worker_group`;
-CREATE TABLE `t_ds_worker_group` (
+DROP TABLE IF EXISTS `t_yak_ops_worker_group`;
+CREATE TABLE `t_yak_ops_worker_group` (
   `id` bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(255) NOT NULL COMMENT 'worker group name',
   `addr_list` text NULL DEFAULT NULL COMMENT 'worker addr list. split by [,]',
@@ -1033,14 +1033,14 @@ CREATE TABLE `t_ds_worker_group` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Records of t_ds_worker_group
+-- Records of t_yak_ops_worker_group
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_version
+-- Table structure for t_yak_ops_version
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_version`;
-CREATE TABLE `t_ds_version` (
+DROP TABLE IF EXISTS `t_yak_ops_version`;
+CREATE TABLE `t_yak_ops_version` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `version` varchar(63) NOT NULL,
   PRIMARY KEY (`id`),
@@ -1048,28 +1048,28 @@ CREATE TABLE `t_ds_version` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE = utf8_bin COMMENT='version';
 
 -- ----------------------------
--- Records of t_ds_version
+-- Records of t_yak_ops_version
 -- ----------------------------
-INSERT IGNORE INTO `t_ds_version` VALUES ('1', '3.4.3');
+INSERT IGNORE INTO `t_yak_ops_version` VALUES ('1', '3.4.3');
 
 
 -- ----------------------------
--- Records of t_ds_alertgroup
+-- Records of t_yak_ops_alertgroup
 -- ----------------------------
-INSERT IGNORE INTO `t_ds_alertgroup`(alert_instance_ids, create_user_id, group_name, description, create_time, update_time)
+INSERT IGNORE INTO `t_yak_ops_alertgroup`(alert_instance_ids, create_user_id, group_name, description, create_time, update_time)
 VALUES (NULL, 1, 'default admin warning group', 'default admin warning group', current_timestamp, current_timestamp);
 
 -- ----------------------------
--- Records of t_ds_user
+-- Records of t_yak_ops_user
 -- ----------------------------
-INSERT IGNORE INTO `t_ds_user`
+INSERT IGNORE INTO `t_yak_ops_user`
 VALUES ('1', 'admin', '7ad2410b2f4c074479a8937a28a22b8f', '0', 'xxx@qq.com', '', '-1', current_timestamp, current_timestamp, null, 1, null);
 
 -- ----------------------------
--- Table structure for t_ds_plugin_define
+-- Table structure for t_yak_ops_plugin_define
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_plugin_define`;
-CREATE TABLE `t_ds_plugin_define` (
+DROP TABLE IF EXISTS `t_yak_ops_plugin_define`;
+CREATE TABLE `t_yak_ops_plugin_define` (
   `id` int NOT NULL AUTO_INCREMENT,
   `plugin_name` varchar(255) NOT NULL COMMENT 'the name of plugin eg: email',
   `plugin_type` varchar(63) NOT NULL COMMENT 'plugin type . alert=alert plugin, job=job plugin',
@@ -1077,14 +1077,14 @@ CREATE TABLE `t_ds_plugin_define` (
   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `t_ds_plugin_define_UN` (`plugin_name`,`plugin_type`)
+  UNIQUE KEY `t_yak_ops_plugin_define_UN` (`plugin_name`,`plugin_type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_alert_plugin_instance
+-- Table structure for t_yak_ops_alert_plugin_instance
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_alert_plugin_instance`;
-CREATE TABLE `t_ds_alert_plugin_instance` (
+DROP TABLE IF EXISTS `t_yak_ops_alert_plugin_instance`;
+CREATE TABLE `t_yak_ops_alert_plugin_instance` (
   `id` int NOT NULL AUTO_INCREMENT,
   `plugin_define_id` int NOT NULL,
   `plugin_instance_params` text COMMENT 'plugin instance params. Also contain the params value which user input in web ui.',
@@ -1096,10 +1096,10 @@ CREATE TABLE `t_ds_alert_plugin_instance` (
 
 
 -- ----------------------------
--- Table structure for t_ds_relation_project_worker_group
+-- Table structure for t_yak_ops_relation_project_worker_group
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_relation_project_worker_group`;
-CREATE TABLE `t_ds_relation_project_worker_group` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_project_worker_group`;
+CREATE TABLE `t_yak_ops_relation_project_worker_group` (
     `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
     `project_code` bigint(20) NOT NULL COMMENT 'project code',
     `worker_group` varchar(255) DEFAULT NULL COMMENT 'worker group',
@@ -1111,10 +1111,10 @@ CREATE TABLE `t_ds_relation_project_worker_group` (
 
 
 -- ----------------------------
--- Table structure for t_ds_environment
+-- Table structure for t_yak_ops_environment
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_environment`;
-CREATE TABLE `t_ds_environment` (
+DROP TABLE IF EXISTS `t_yak_ops_environment`;
+CREATE TABLE `t_yak_ops_environment` (
   `id` bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
   `code` bigint(20)  DEFAULT NULL COMMENT 'encoding',
   `name` varchar(255) NOT NULL COMMENT 'environment name',
@@ -1129,10 +1129,10 @@ CREATE TABLE `t_ds_environment` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_environment_worker_group_relation
+-- Table structure for t_yak_ops_environment_worker_group_relation
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_environment_worker_group_relation`;
-CREATE TABLE `t_ds_environment_worker_group_relation` (
+DROP TABLE IF EXISTS `t_yak_ops_environment_worker_group_relation`;
+CREATE TABLE `t_yak_ops_environment_worker_group_relation` (
   `id` bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
   `environment_code` bigint(20) NOT NULL COMMENT 'environment code',
   `worker_group` varchar(255) NOT NULL COMMENT 'worker group id',
@@ -1144,10 +1144,10 @@ CREATE TABLE `t_ds_environment_worker_group_relation` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_task_group_queue
+-- Table structure for t_yak_ops_task_group_queue
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_group_queue`;
-CREATE TABLE `t_ds_task_group_queue` (
+DROP TABLE IF EXISTS `t_yak_ops_task_group_queue`;
+CREATE TABLE `t_yak_ops_task_group_queue` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT'key',
   `task_id` int(11) DEFAULT NULL COMMENT 'taskintanceid',
   `task_name` varchar(255) DEFAULT NULL COMMENT 'TaskInstance name',
@@ -1160,7 +1160,7 @@ CREATE TABLE `t_ds_task_group_queue` (
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY( `id` ),
-  KEY `idx_t_ds_task_group_queue_in_queue` (`in_queue`),
+  KEY `idx_t_yak_ops_task_group_queue_in_queue` (`in_queue`),
   KEY `idx_task_id` (`task_id`),
   KEY `idx_group_id` (`group_id`),
   KEY `idx_status` (`status`),
@@ -1168,10 +1168,10 @@ CREATE TABLE `t_ds_task_group_queue` (
 )ENGINE= INNODB AUTO_INCREMENT= 1 DEFAULT CHARSET= utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_task_group
+-- Table structure for t_yak_ops_task_group
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_group`;
-CREATE TABLE `t_ds_task_group` (
+DROP TABLE IF EXISTS `t_yak_ops_task_group`;
+CREATE TABLE `t_yak_ops_task_group` (
    `id`  int(11)  NOT NULL AUTO_INCREMENT COMMENT'key',
    `name` varchar(255) DEFAULT NULL COMMENT 'task_group name',
    `description` varchar(255) DEFAULT NULL,
@@ -1186,10 +1186,10 @@ CREATE TABLE `t_ds_task_group` (
 ) ENGINE= INNODB AUTO_INCREMENT= 1 DEFAULT CHARSET= utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_audit_log
+-- Table structure for t_yak_ops_audit_log
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_audit_log`;
-CREATE TABLE `t_ds_audit_log` (
+DROP TABLE IF EXISTS `t_yak_ops_audit_log`;
+CREATE TABLE `t_yak_ops_audit_log` (
   `id` bigint(11) NOT NULL AUTO_INCREMENT COMMENT'key',
   `user_id` int(11) NOT NULL COMMENT 'user id',
   `model_id` bigint(20) DEFAULT NULL COMMENT 'model id',
@@ -1204,10 +1204,10 @@ CREATE TABLE `t_ds_audit_log` (
 ) ENGINE=InnoDB AUTO_INCREMENT= 1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_k8s
+-- Table structure for t_yak_ops_k8s
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_k8s`;
-CREATE TABLE `t_ds_k8s` (
+DROP TABLE IF EXISTS `t_yak_ops_k8s`;
+CREATE TABLE `t_yak_ops_k8s` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `k8s_name` varchar(255) DEFAULT NULL,
   `k8s_config` text DEFAULT NULL,
@@ -1217,10 +1217,10 @@ CREATE TABLE `t_ds_k8s` (
 ) ENGINE= INNODB AUTO_INCREMENT= 1 DEFAULT CHARSET= utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_k8s_namespace
+-- Table structure for t_yak_ops_k8s_namespace
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_k8s_namespace`;
-CREATE TABLE `t_ds_k8s_namespace` (
+DROP TABLE IF EXISTS `t_yak_ops_k8s_namespace`;
+CREATE TABLE `t_yak_ops_k8s_namespace` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `code` bigint(20) NOT NULL DEFAULT '0',
   `namespace` varchar(255) DEFAULT NULL,
@@ -1233,10 +1233,10 @@ CREATE TABLE `t_ds_k8s_namespace` (
 ) ENGINE= INNODB AUTO_INCREMENT= 1 DEFAULT CHARSET= utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_relation_namespace_user
+-- Table structure for t_yak_ops_relation_namespace_user
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_relation_namespace_user`;
-CREATE TABLE `t_ds_relation_namespace_user` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_namespace_user`;
+CREATE TABLE `t_yak_ops_relation_namespace_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
   `user_id` int(11) NOT NULL COMMENT 'user id',
   `namespace_id` int(11) DEFAULT NULL COMMENT 'namespace id',
@@ -1248,10 +1248,10 @@ CREATE TABLE `t_ds_relation_namespace_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT= 1 DEFAULT CHARSET= utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_alert_send_status
+-- Table structure for t_yak_ops_alert_send_status
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_alert_send_status;
-CREATE TABLE t_ds_alert_send_status (
+DROP TABLE IF EXISTS t_yak_ops_alert_send_status;
+CREATE TABLE t_yak_ops_alert_send_status (
   `id`                            int(11) NOT NULL AUTO_INCREMENT,
   `alert_id`                      int(11) NOT NULL,
   `alert_plugin_instance_id`      int(11) NOT NULL,
@@ -1264,10 +1264,10 @@ CREATE TABLE t_ds_alert_send_status (
 
 
 -- ----------------------------
--- Table structure for t_ds_cluster
+-- Table structure for t_yak_ops_cluster
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_cluster`;
-CREATE TABLE `t_ds_cluster`(
+DROP TABLE IF EXISTS `t_yak_ops_cluster`;
+CREATE TABLE `t_yak_ops_cluster`(
    `id`          bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
    `code`        bigint(20) DEFAULT NULL COMMENT 'encoding',
    `name`        varchar(255) NOT NULL COMMENT 'cluster name',
@@ -1282,10 +1282,10 @@ CREATE TABLE `t_ds_cluster`(
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------
--- Table structure for t_ds_fav_task
+-- Table structure for t_yak_ops_fav_task
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_fav_task`;
-CREATE TABLE `t_ds_fav_task`
+DROP TABLE IF EXISTS `t_yak_ops_fav_task`;
+CREATE TABLE `t_yak_ops_fav_task`
 (
     `id`        bigint      NOT NULL AUTO_INCREMENT COMMENT 'id',
     `task_type` varchar(64) NOT NULL COMMENT 'favorite task type name',
@@ -1296,8 +1296,8 @@ CREATE TABLE `t_ds_fav_task`
   DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 
-DROP TABLE IF EXISTS `t_ds_relation_sub_workflow`;
-CREATE TABLE `t_ds_relation_sub_workflow` (
+DROP TABLE IF EXISTS `t_yak_ops_relation_sub_workflow`;
+CREATE TABLE `t_yak_ops_relation_sub_workflow` (
     `id` bigint NOT NULL AUTO_INCREMENT,
     `parent_workflow_instance_id` bigint  NOT NULL,
     `parent_task_code` bigint  NOT NULL,
@@ -1309,10 +1309,10 @@ CREATE TABLE `t_ds_relation_sub_workflow` (
 );
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_lineage
+-- Table structure for t_yak_ops_workflow_task_lineage
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_workflow_task_lineage`;
-CREATE TABLE `t_ds_workflow_task_lineage` (
+DROP TABLE IF EXISTS `t_yak_ops_workflow_task_lineage`;
+CREATE TABLE `t_yak_ops_workflow_task_lineage` (
     `id` int NOT NULL AUTO_INCREMENT,
     `workflow_definition_code` bigint NOT NULL DEFAULT 0,
     `workflow_definition_version` int NOT NULL DEFAULT 0,
@@ -1329,8 +1329,8 @@ CREATE TABLE `t_ds_workflow_task_lineage` (
     KEY `idx_dept_code` (`dept_project_code`,`dept_workflow_definition_code`,`dept_task_definition_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_data`;
-CREATE TABLE `t_ds_jdbc_registry_data`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_data`;
+CREATE TABLE `t_yak_ops_jdbc_registry_data`
 (
     `id`               bigint(11)   NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `data_key`         varchar(256) NOT NULL COMMENT 'key, like zookeeper node path',
@@ -1340,13 +1340,13 @@ CREATE TABLE `t_ds_jdbc_registry_data`
     `create_time`      timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
     `last_update_time` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'last update time',
     PRIMARY KEY (`id`),
-    unique Key `uk_t_ds_jdbc_registry_dataKey` (`data_key`)
+    unique Key `uk_t_yak_ops_jdbc_registry_dataKey` (`data_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_lock`;
-CREATE TABLE `t_ds_jdbc_registry_lock`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_lock`;
+CREATE TABLE `t_yak_ops_jdbc_registry_lock`
 (
     `id`          bigint(11)   NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `lock_key`    varchar(256) NOT NULL COMMENT 'lock path',
@@ -1354,12 +1354,12 @@ CREATE TABLE `t_ds_jdbc_registry_lock`
     `client_id`   bigint(11)   NOT NULL COMMENT 'client id',
     `create_time` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
     PRIMARY KEY (`id`),
-    unique Key `uk_t_ds_jdbc_registry_lockKey` (`lock_key`)
+    unique Key `uk_t_yak_ops_jdbc_registry_lockKey` (`lock_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_client_heartbeat`;
-CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_client_heartbeat`;
+CREATE TABLE `t_yak_ops_jdbc_registry_client_heartbeat`
 (
     `id`                  bigint(11)   NOT NULL COMMENT 'primary key',
     `client_name`         varchar(256) NOT NULL COMMENT 'client name, ip_processId',
@@ -1370,8 +1370,8 @@ CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_data_change_event`;
-CREATE TABLE `t_ds_jdbc_registry_data_change_event`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_data_change_event`;
+CREATE TABLE `t_yak_ops_jdbc_registry_data_change_event`
 (
     `id`                 bigint(11)  NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `event_type`         varchar(64) NOT NULL COMMENT 'ADD, UPDATE, DELETE',

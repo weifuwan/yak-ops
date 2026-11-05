@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_project_preference")
+@TableName("t_yak_ops_project_preference")
 public class ProjectPreference {
 
     @TableId(value = "id", type = IdType.AUTO)

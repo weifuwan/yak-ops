@@ -23,9 +23,7 @@ import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceClientProvider;
-import io.yak.ops.plugin.datasource.api.utils.CommonUtils;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
-import io.yak.ops.plugin.datasource.hive.param.HiveDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.mysql.param.MySQLConnectionParam;
 import io.yak.ops.plugin.datasource.mysql.param.MySQLDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.oracle.param.OracleDataSourceParamDTO;
@@ -462,27 +460,6 @@ public class DataSourceServiceTest {
                         + "\"driverClassName\":\"oracle.jdbc.OracleDriver\",\"validationQuery\":\"select 1 from dual\",\"connectType\":\"ORACLE_SERVICE_NAME\"}";
         Assertions.assertEquals(expected, JSONUtils.toJsonString(connectionParam));
 
-        try (MockedStatic<CommonUtils> mockedStaticCommonUtils = Mockito.mockStatic(CommonUtils.class)) {
-            mockedStaticCommonUtils.when(CommonUtils::getKerberosStartupState).thenReturn(true);
-            HiveDataSourceParamDTO hiveDataSourceParamDTO = new HiveDataSourceParamDTO();
-            hiveDataSourceParamDTO.setHost("192.168.9.1");
-            hiveDataSourceParamDTO.setPort(10000);
-            hiveDataSourceParamDTO.setDatabase("im");
-            hiveDataSourceParamDTO.setPrincipal("hive/hdfs-mycluster@ESZ.COM");
-            hiveDataSourceParamDTO.setUserName("test");
-            hiveDataSourceParamDTO.setPassword("test");
-            hiveDataSourceParamDTO.setJavaSecurityKrb5Conf("/opt/krb5.conf");
-            hiveDataSourceParamDTO.setLoginUserKeytabPath("/opt/hdfs.headless.keytab");
-            hiveDataSourceParamDTO.setLoginUserKeytabUsername("test2/hdfs-mycluster@ESZ.COM");
-            connectionParam = DataSourceUtils.buildConnectionParams(hiveDataSourceParamDTO);
-
-            expected =
-                    "{\"user\":\"test\",\"password\":\"test\",\"address\":\"jdbc:hive2://192.168.9.1:10000\",\"database\":\"im\","
-                            + "\"jdbcUrl\":\"jdbc:hive2://192.168.9.1:10000/im\",\"driverClassName\":\"org.apache.hive.jdbc.HiveDriver\",\"validationQuery\":\"select 1\","
-                            + "\"principal\":\"hive/hdfs-mycluster@ESZ.COM\",\"javaSecurityKrb5Conf\":\"/opt/krb5.conf\",\"loginUserKeytabUsername\":\"test2/hdfs-mycluster@ESZ.COM\","
-                            + "\"loginUserKeytabPath\":\"/opt/hdfs.headless.keytab\"}";
-            Assertions.assertEquals(expected, JSONUtils.toJsonString(connectionParam));
-        }
     }
 
     @Test

@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_alert")
+@TableName("t_yak_ops_alert")
 public class Alert {
 
     @TableId(value = "id", type = IdType.AUTO)

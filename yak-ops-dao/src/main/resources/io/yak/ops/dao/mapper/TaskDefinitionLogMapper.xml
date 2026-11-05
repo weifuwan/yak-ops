@@ -8,20 +8,20 @@
     </sql>
     <select id="queryMaxVersionForDefinition" resultType="java.lang.Integer">
         select max(version)
-        from t_ds_task_definition_log
+        from t_yak_ops_task_definition_log
         WHERE code = #{code}
     </select>
     <select id="queryByDefinitionCodeAndVersion" resultType="io.yak.ops.dao.entity.TaskDefinitionLog">
         select
         <include refid="baseSql"/>
-        from t_ds_task_definition_log
+        from t_yak_ops_task_definition_log
         WHERE code = #{code}
         and version = #{version}
     </select>
     <select id="queryByTaskDefinitions" resultType="io.yak.ops.dao.entity.TaskDefinitionLog">
         select
         <include refid="baseSql"/>
-        from t_ds_task_definition_log
+        from t_yak_ops_task_definition_log
         WHERE  1 = 1
         <if test="taskDefinitions != null and taskDefinitions.size != 0">
             and
@@ -32,7 +32,7 @@
         </if>
     </select>
     <insert id="batchInsert">
-        insert into t_ds_task_definition_log (code, name, version, description, project_code, user_id,
+        insert into t_yak_ops_task_definition_log (code, name, version, description, project_code, user_id,
         task_type, task_params, flag, task_priority, worker_group, environment_code, fail_retry_times, fail_retry_interval,
         timeout_flag, timeout_notify_strategy, timeout, delay_time, resource_ids, operator, operate_time, create_time,
         update_time, task_group_id, task_group_priority, cpu_quota, memory_max, task_execute_type)
@@ -50,7 +50,7 @@
     </insert>
     <delete id="deleteByCodeAndVersion">
         delete
-        from t_ds_task_definition_log
+        from t_yak_ops_task_definition_log
         where code = #{code}
           and version = #{version}
     </delete>
@@ -58,7 +58,7 @@
             resultType="io.yak.ops.dao.entity.TaskDefinitionLog">
         select
         <include refid="baseSql"/>
-        from t_ds_task_definition_log
+        from t_yak_ops_task_definition_log
         where code = #{code}
         <if test="projectCode != 0">
             and project_code = #{projectCode}
@@ -67,7 +67,7 @@
     </select>
     <delete id="deleteByTaskDefinitionCodes">
         delete
-        from t_ds_task_definition_log
+        from t_yak_ops_task_definition_log
         where code in
         <foreach collection="taskDefinitionCodes" item="taskDefinitionCode" separator="," open="(" close=")">
             #{taskDefinitionCode}

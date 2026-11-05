@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_alert_plugin_instance")
+@TableName("t_yak_ops_alert_plugin_instance")
 public class AlertPluginInstance {
 
     @TableId(value = "id", type = IdType.AUTO)

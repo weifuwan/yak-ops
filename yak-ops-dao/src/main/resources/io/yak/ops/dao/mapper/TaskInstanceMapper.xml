@@ -28,7 +28,7 @@
     <select id="findValidTaskListByWorkflowInstanceId" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="baseSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         WHERE workflow_instance_id = #{workflowInstanceId}
         and flag = #{flag}
         order by start_time desc
@@ -36,13 +36,13 @@
     <select id="findByWorkflowInstanceId" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="baseSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         WHERE workflow_instance_id = #{workflowInstanceId}
     </select>
 
     <select id="countTaskInstanceStateByProjectCodes" resultType="io.yak.ops.dao.model.TaskInstanceStatusCountDto">
         select state, count(0) as count
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where 1=1
         <if test="projectCodes != null and projectCodes.size() != 0">
             and project_code in
@@ -61,9 +61,9 @@
 
     <select id="countTaskInstanceStateByProjectIdsV2" resultType="io.yak.ops.dao.entity.ExecuteStatusCount">
         select state, count(0) as count
-        from t_ds_task_instance t
-        left join t_ds_task_definition_log d on d.code=t.task_code and d.version=t.task_definition_version
-        left join t_ds_project p on p.code=d.project_code
+        from t_yak_ops_task_instance t
+        left join t_yak_ops_task_definition_log d on d.code=t.task_code and d.version=t.task_definition_version
+        left join t_yak_ops_project p on p.code=d.project_code
         where 1=1
         <if test="projectIds != null and projectIds.size() != 0">
             and d.id in
@@ -83,10 +83,10 @@
     <select id="countTaskInstanceStateByProjectCodesAndStatesBySubmitTimeV2" resultType="io.yak.ops.dao.entity.ExecuteStatusCount">
         select
         state, count(0) as count
-        from t_ds_task_instance t
-        left join t_ds_task_definition_log d on d.code=t.task_code and d.version=t.task_definition_version
-        left join t_ds_project p on p.code=d.project_code
-        left join t_ds_workflow_task_relation r on r.post_task_code = d.code
+        from t_yak_ops_task_instance t
+        left join t_yak_ops_task_definition_log d on d.code=t.task_code and d.version=t.task_definition_version
+        left join t_yak_ops_project p on p.code=d.project_code
+        left join t_yak_ops_workflow_task_relation r on r.post_task_code = d.code
         where 1=1
         <if test="states != null and states.size != 0">
             and t.state in
@@ -121,7 +121,7 @@
     <select id="queryByInstanceIdAndCode" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="listSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where workflow_instance_id = #{workflowInstanceId}
         and task_code = #{taskCode}
         and flag = 1
@@ -130,7 +130,7 @@
     <select id="queryByWorkflowInstanceIdsAndTaskCodes" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="listSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where flag = 1
         <if test="workflowInstanceIds != null and workflowInstanceIds.size() != 0">
             and workflow_instance_id in
@@ -149,7 +149,7 @@
     <select id="queryTaskInstanceListPaging" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="listSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where project_code = #{projectCode}
         <if test="startTime != null">
             and start_time <![CDATA[ >=]]> #{startTime}
@@ -192,7 +192,7 @@
     <select id="queryStreamTaskInstanceListPaging" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="listSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where project_code = #{projectCode}
         <if test="startTime != null">
             and start_time <![CDATA[ >=]]> #{startTime}
@@ -234,10 +234,10 @@
         <include refid="listSqlV2">
             <property name="alias" value="instance"/>
         </include>
-        from t_ds_task_instance instance
+        from t_yak_ops_task_instance instance
         join (
         select task_code, max(end_time) as max_end_time, workflow_instance_id
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where 1=1
         and workflow_instance_id = #{workflowInstanceId}
         and state != 8
@@ -256,7 +256,7 @@
     <select id="findLastTaskInstance" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="baseSql"/>
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where workflow_instance_id = #{workflowInstanceId}
         and task_code = #{taskCode}
         and state != 8
@@ -264,14 +264,14 @@
     </select>
 
     <delete id="updateTaskInstanceState">
-        update t_ds_task_instance
+        update t_yak_ops_task_instance
         set state = #{targetState}
         where id = #{taskInstanceId} and state = #{originState}
     </delete>
 
     <delete id="deleteByWorkflowInstanceId">
         delete
-        from t_ds_task_instance
+        from t_yak_ops_task_instance
         where workflow_instance_id = #{workflowInstanceId}
     </delete>
 </mapper>

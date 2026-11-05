@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_workflow_task_relation_log")
+@TableName("t_yak_ops_workflow_task_relation_log")
 public class WorkflowTaskRelationLog extends WorkflowTaskRelation {
 
     private int operator;

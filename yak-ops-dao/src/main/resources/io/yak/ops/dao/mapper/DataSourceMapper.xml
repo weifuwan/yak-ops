@@ -7,15 +7,15 @@
     <select id="queryDataSourceByType" resultType="io.yak.ops.dao.entity.DataSource">
         select
         <include refid="baseSql"/>
-        from t_ds_datasource
+        from t_yak_ops_datasource
         where type=#{type}
         <if test="userId != 0">
             and id in
             (select datasource_id
-            from t_ds_relation_datasource_user
+            from t_yak_ops_relation_datasource_user
             where user_id=#{userId}
             union select id as datasource_id
-            from t_ds_datasource
+            from t_yak_ops_datasource
             where user_id=#{userId}
             )
         </if>
@@ -26,16 +26,16 @@
         d.id, d.name, d.note, d.type, d.user_id, connection_params, d.create_time, d.update_time
         ,
         u.user_name as user_name
-        from t_ds_datasource d
-        join t_ds_user u on d.user_id = u.id
+        from t_yak_ops_datasource d
+        join t_yak_ops_user u on d.user_id = u.id
         where 1 =1
         <if test="userId != 0">
             and d.id in
             (select datasource_id
-            from t_ds_relation_datasource_user
+            from t_yak_ops_relation_datasource_user
             where user_id=#{userId}
             union select id as datasource_id
-            from t_ds_datasource
+            from t_yak_ops_datasource
             where user_id=#{userId}
             )
         </if>
@@ -47,33 +47,33 @@
     <select id="queryDataSourceByName" resultType="io.yak.ops.dao.entity.DataSource">
         select
         <include refid="baseSql"/>
-        from t_ds_datasource
+        from t_yak_ops_datasource
         where name=#{name}
     </select>
     <select id="queryAuthedDatasource" resultType="io.yak.ops.dao.entity.DataSource">
         select ds.id, ds.name
-        from t_ds_datasource ds, t_ds_relation_datasource_user rel
+        from t_yak_ops_datasource ds, t_yak_ops_relation_datasource_user rel
         where ds.id = rel.datasource_id AND rel.user_id = #{userId}
     </select>
     <select id="queryDatasourceExceptUserId" resultType="io.yak.ops.dao.entity.DataSource">
         select id, name
-        from t_ds_datasource
+        from t_yak_ops_datasource
         where user_id <![CDATA[ <> ]]> #{userId}
     </select>
     <select id="listAllDataSourceByType" resultType="io.yak.ops.dao.entity.DataSource">
         select
         <include refid="baseSql"/>
-        from t_ds_datasource
+        from t_yak_ops_datasource
         where type = #{type}
     </select>
     <select id="listAuthorizedDataSource" resultType="io.yak.ops.dao.entity.DataSource">
         select
         <include refid="baseSql"/>
-        from t_ds_datasource
+        from t_yak_ops_datasource
         where 1=1
         <if test="userId != 0">
-            and id in (select datasource_id from t_ds_relation_datasource_user where user_id=#{userId}
-            union select id as datasource_id from t_ds_datasource where user_id=#{userId})
+            and id in (select datasource_id from t_yak_ops_relation_datasource_user where user_id=#{userId}
+            union select id as datasource_id from t_yak_ops_datasource where user_id=#{userId})
         </if>
         <if test="dataSourceIds != null and dataSourceIds.length > 0">
             and id in
@@ -88,8 +88,8 @@
         ds.id as id,
         ds.name as name,
         ds.type as type
-        from t_ds_datasource ds
-        join t_ds_relation_datasource_user rel
+        from t_yak_ops_datasource ds
+        join t_yak_ops_relation_datasource_user rel
         on ds.id = rel.datasource_id
         where ds.name = #{name,jdbcType=VARCHAR}
         and rel.user_id = #{userId}
@@ -100,8 +100,8 @@
         d.id, d.name, d.note, d.type, d.user_id, connection_params, d.create_time, d.update_time
         ,
         u.user_name as user_name
-        from t_ds_datasource d
-        join t_ds_user u on d.user_id = u.id
+        from t_yak_ops_datasource d
+        join t_yak_ops_user u on d.user_id = u.id
         where 1 =1
         <if test="name != null and name != ''">
             and d.name like concat ('%', #{name}, '%')

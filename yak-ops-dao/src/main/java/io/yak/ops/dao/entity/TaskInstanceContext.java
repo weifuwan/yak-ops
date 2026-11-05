@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_task_instance_context")
+@TableName("t_yak_ops_task_instance_context")
 public class TaskInstanceContext {
 
     @TableId(value = "id", type = IdType.AUTO)

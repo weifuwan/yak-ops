@@ -8,13 +8,13 @@
     <select id="queryByWorkflowDefinitionCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE workflow_definition_code = #{workflowDefinitionCode}
     </select>
     <select id="queryByTaskCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE pre_task_code = #{taskCode}
         <if test="taskCode != 0">
             or post_task_code = #{taskCode}
@@ -23,7 +23,7 @@
     <select id="queryByTaskCodes" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE 1 = 1
         <if test="taskCodes != null and taskCodes.length != 0">
             and pre_task_code in
@@ -37,12 +37,12 @@
         </if>
     </select>
     <delete id="deleteByWorkflowDefinitionCode">
-        delete from t_ds_workflow_task_relation
+        delete from t_yak_ops_workflow_task_relation
         WHERE project_code = #{projectCode}
           and workflow_definition_code = #{workflowDefinitionCode}
     </delete>
     <insert id="batchInsert">
-        insert into t_ds_workflow_task_relation (name, workflow_definition_version, project_code, workflow_definition_code,
+        insert into t_yak_ops_workflow_task_relation (name, workflow_definition_version, project_code, workflow_definition_code,
         pre_task_code, pre_task_version, post_task_code, post_task_version, condition_type, condition_params, create_time, update_time)
         values
         <foreach collection="taskRelationList" item="relation" separator=",">
@@ -54,21 +54,21 @@
     <select id="queryDownstreamByWorkflowDefinitionCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         where workflow_definition_code = #{workflowDefinitionCode}
         and pre_task_version >= 1
     </select>
     <select id="queryDownstreamByTaskCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE pre_task_code = #{taskCode}
     </select>
 
     <select id="queryDownstreamByCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE project_code = #{projectCode}
         and pre_task_code = #{taskCode}
     </select>
@@ -76,7 +76,7 @@
     <select id="queryUpstreamByCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE project_code = #{projectCode}
         and post_task_code = #{taskCode}
     </select>
@@ -84,7 +84,7 @@
     <select id="queryUpstreamByCodes" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE project_code = #{projectCode}
         and post_task_code = #{taskCode}
         <if test="preTaskCodes != null and preTaskCodes.length != 0">
@@ -99,7 +99,7 @@
         SELECT
         <include refid="baseSql"/>
         FROM
-        t_ds_workflow_task_relation
+        t_yak_ops_workflow_task_relation
         WHERE 1=1
         AND workflow_definition_code = #{workflowDefinitionCode}
         AND workflow_definition_version = #{workflowDefinitionVersion}
@@ -108,7 +108,7 @@
     <select id="queryByCode" resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         select
         <include refid="baseSql"/>
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         WHERE 1=1
         <if test="projectCode != 0">
             and project_code = #{projectCode}
@@ -125,7 +125,7 @@
     </select>
 
     <delete id="deleteRelation">
-        delete from t_ds_workflow_task_relation
+        delete from t_yak_ops_workflow_task_relation
         WHERE project_code = #{workflowTaskRelationLog.projectCode}
           and workflow_definition_code = #{workflowTaskRelationLog.workflowDefinitionCode}
           and workflow_definition_version = #{workflowTaskRelationLog.workflowDefinitionVersion}
@@ -142,7 +142,7 @@
             resultType="io.yak.ops.dao.entity.WorkflowTaskRelation">
         SELECT
         <include refid="baseSql"/>
-        FROM t_ds_workflow_task_relation
+        FROM t_yak_ops_workflow_task_relation
         <where>
             <if test=" relation.projectCode != 0">
                 and project_code = #{relation.projectCode}
@@ -161,14 +161,14 @@
     </select>
     <select id="queryTaskCodeByTaskName" resultType="java.lang.Long">
         select r.post_task_code
-        from t_ds_workflow_task_relation r
-                 left join t_ds_task_definition d on d.code = r.post_task_code
+        from t_yak_ops_workflow_task_relation r
+                 left join t_yak_ops_task_definition d on d.code = r.post_task_code
         where r.workflow_definition_code = #{workflowCode}
           and d.name = #{taskName}
     </select>
     <delete id="deleteByWorkflowDefinitionCodeAndVersion">
         delete
-        from t_ds_workflow_task_relation
+        from t_yak_ops_workflow_task_relation
         where workflow_definition_code = #{workflowDefinitionCode}
         and workflow_definition_version = #{workflowDefinitionVersion}
     </delete>

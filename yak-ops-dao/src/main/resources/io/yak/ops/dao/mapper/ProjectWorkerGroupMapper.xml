@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="io.yak.ops.dao.mapper.ProjectWorkerGroupMapper">
     <delete id="deleteByProjectCode">
-        delete from t_ds_relation_project_worker_group
+        delete from t_yak_ops_relation_project_worker_group
         where 1=1
         and project_code = #{projectCode}
     </delete>
@@ -11,14 +11,14 @@
         select
             worker_group
         from
-        t_ds_relation_project_worker_group
+        t_yak_ops_relation_project_worker_group
         where 1=1
         and project_code = #{projectCode}
         group by worker_group
     </select>
 
     <delete id="deleteByProjectCodeAndWorkerGroups">
-        delete from t_ds_relation_project_worker_group
+        delete from t_yak_ops_relation_project_worker_group
         where 1=1
         and project_code = #{projectCode}
         and worker_group in
@@ -35,7 +35,7 @@
             ,create_time
             ,update_time
         from
-        t_ds_relation_project_worker_group
+        t_yak_ops_relation_project_worker_group
         where 1=1
         and project_code = #{projectCode}
     </select>

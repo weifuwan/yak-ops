@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("t_ds_alert_send_status")
+@TableName("t_yak_ops_alert_send_status")
 public class AlertSendStatus {
 
     /**

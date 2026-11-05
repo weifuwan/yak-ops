@@ -229,10 +229,10 @@ CREATE TABLE QRTZ_SIMPROP_TRIGGERS
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_access_token
+-- Table structure for t_yak_ops_access_token
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_access_token CASCADE;
-CREATE TABLE t_ds_access_token
+DROP TABLE IF EXISTS t_yak_ops_access_token CASCADE;
+CREATE TABLE t_yak_ops_access_token
 (
     id          int(11) NOT NULL AUTO_INCREMENT,
     user_id     int(11) DEFAULT NULL,
@@ -244,14 +244,14 @@ CREATE TABLE t_ds_access_token
 );
 
 -- ----------------------------
--- Records of t_ds_access_token
+-- Records of t_yak_ops_access_token
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_alert
+-- Table structure for t_yak_ops_alert
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_alert CASCADE;
-CREATE TABLE t_ds_alert
+DROP TABLE IF EXISTS t_yak_ops_alert CASCADE;
+CREATE TABLE t_yak_ops_alert
 (
     id            int(11) NOT NULL AUTO_INCREMENT,
     title         varchar(512) DEFAULT NULL,
@@ -272,14 +272,14 @@ CREATE TABLE t_ds_alert
 );
 
 -- ----------------------------
--- Records of t_ds_alert
+-- Records of t_yak_ops_alert
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_alertgroup
+-- Table structure for t_yak_ops_alertgroup
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_alertgroup CASCADE;
-CREATE TABLE t_ds_alertgroup
+DROP TABLE IF EXISTS t_yak_ops_alertgroup CASCADE;
+CREATE TABLE t_yak_ops_alertgroup
 (
     id                 int(11) NOT NULL AUTO_INCREMENT,
     alert_instance_ids varchar(255) DEFAULT NULL,
@@ -289,14 +289,14 @@ CREATE TABLE t_ds_alertgroup
     create_time        datetime     DEFAULT NULL,
     update_time        datetime     DEFAULT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY t_ds_alertgroup_name_un (group_name)
+    UNIQUE KEY t_yak_ops_alertgroup_name_un (group_name)
 );
 
 -- ----------------------------
--- Table structure for t_ds_command
+-- Table structure for t_yak_ops_command
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_command CASCADE;
-CREATE TABLE t_ds_command
+DROP TABLE IF EXISTS t_yak_ops_command CASCADE;
+CREATE TABLE t_yak_ops_command
 (
     id                         int(11) NOT NULL AUTO_INCREMENT,
     command_type               tinyint(4) DEFAULT NULL,
@@ -322,14 +322,14 @@ CREATE TABLE t_ds_command
 );
 
 -- ----------------------------
--- Records of t_ds_command
+-- Records of t_yak_ops_command
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_serial_command
+-- Table structure for t_yak_ops_serial_command
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_serial_command`;
-CREATE TABLE `t_ds_serial_command` (
+DROP TABLE IF EXISTS `t_yak_ops_serial_command`;
+CREATE TABLE `t_yak_ops_serial_command` (
    `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
    `workflow_definition_code` bigint(20) NOT NULL COMMENT 'workflow definition code',
    `workflow_definition_version` int(11) NOT NULL COMMENT 'workflow definition code',
@@ -343,14 +343,14 @@ CREATE TABLE `t_ds_serial_command` (
 );
 
 -- ----------------------------
--- Table structure for t_ds_serial_command
+-- Table structure for t_yak_ops_serial_command
 -- ----------------------------
     
 -- ----------------------------
--- Table structure for t_ds_datasource
+-- Table structure for t_yak_ops_datasource
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_datasource CASCADE;
-CREATE TABLE t_ds_datasource
+DROP TABLE IF EXISTS t_yak_ops_datasource CASCADE;
+CREATE TABLE t_yak_ops_datasource
 (
     id                int(11) NOT NULL AUTO_INCREMENT,
     name              varchar(64) NOT NULL,
@@ -361,18 +361,18 @@ CREATE TABLE t_ds_datasource
     create_time       datetime    NOT NULL,
     update_time       datetime     DEFAULT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY t_ds_datasource_name_un (name, type)
+    UNIQUE KEY t_yak_ops_datasource_name_un (name, type)
 );
 
 -- ----------------------------
--- Records of t_ds_datasource
+-- Records of t_yak_ops_datasource
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_error_command
+-- Table structure for t_yak_ops_error_command
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_error_command CASCADE;
-CREATE TABLE t_ds_error_command
+DROP TABLE IF EXISTS t_yak_ops_error_command CASCADE;
+CREATE TABLE t_yak_ops_error_command
 (
     id                         int(11) NOT NULL,
     command_type               tinyint(4) DEFAULT NULL,
@@ -398,14 +398,14 @@ CREATE TABLE t_ds_error_command
 );
 
 -- ----------------------------
--- Records of t_ds_error_command
+-- Records of t_yak_ops_error_command
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_workflow_definition
+-- Table structure for t_yak_ops_workflow_definition
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_definition CASCADE;
-CREATE TABLE t_ds_workflow_definition
+DROP TABLE IF EXISTS t_yak_ops_workflow_definition CASCADE;
+CREATE TABLE t_yak_ops_workflow_definition
 (
     id               int(11) NOT NULL AUTO_INCREMENT,
     code             bigint(20) NOT NULL,
@@ -429,10 +429,10 @@ CREATE TABLE t_ds_workflow_definition
 );
 
 -- ----------------------------
--- Table structure for t_ds_workflow_definition_log
+-- Table structure for t_yak_ops_workflow_definition_log
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_definition_log CASCADE;
-CREATE TABLE t_ds_workflow_definition_log
+DROP TABLE IF EXISTS t_yak_ops_workflow_definition_log CASCADE;
+CREATE TABLE t_yak_ops_workflow_definition_log
 (
     id               int(11) NOT NULL AUTO_INCREMENT,
     code             bigint(20) NOT NULL,
@@ -457,10 +457,10 @@ CREATE TABLE t_ds_workflow_definition_log
 );
 
 -- ----------------------------
--- Table structure for t_ds_task_definition
+-- Table structure for t_yak_ops_task_definition
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_task_definition CASCADE;
-CREATE TABLE t_ds_task_definition
+DROP TABLE IF EXISTS t_yak_ops_task_definition CASCADE;
+CREATE TABLE t_yak_ops_task_definition
 (
     id                      int(11) NOT NULL AUTO_INCREMENT,
     code                    bigint(20) NOT NULL,
@@ -493,10 +493,10 @@ CREATE TABLE t_ds_task_definition
 );
 
 -- ----------------------------
--- Table structure for t_ds_task_definition_log
+-- Table structure for t_yak_ops_task_definition_log
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_task_definition_log CASCADE;
-CREATE TABLE t_ds_task_definition_log
+DROP TABLE IF EXISTS t_yak_ops_task_definition_log CASCADE;
+CREATE TABLE t_yak_ops_task_definition_log
 (
     id                      int(11) NOT NULL AUTO_INCREMENT,
     code                    bigint(20) NOT NULL,
@@ -531,10 +531,10 @@ CREATE TABLE t_ds_task_definition_log
 );
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_relation
+-- Table structure for t_yak_ops_workflow_task_relation
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_task_relation CASCADE;
-CREATE TABLE t_ds_workflow_task_relation
+DROP TABLE IF EXISTS t_yak_ops_workflow_task_relation CASCADE;
+CREATE TABLE t_yak_ops_workflow_task_relation
 (
     id                         int(11) NOT NULL AUTO_INCREMENT,
     name                       varchar(255) DEFAULT NULL,
@@ -553,10 +553,10 @@ CREATE TABLE t_ds_workflow_task_relation
 );
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_relation_log
+-- Table structure for t_yak_ops_workflow_task_relation_log
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_task_relation_log CASCADE;
-CREATE TABLE t_ds_workflow_task_relation_log
+DROP TABLE IF EXISTS t_yak_ops_workflow_task_relation_log CASCADE;
+CREATE TABLE t_yak_ops_workflow_task_relation_log
 (
     id                         int(11) NOT NULL AUTO_INCREMENT,
     name                       varchar(255) DEFAULT NULL,
@@ -577,10 +577,10 @@ CREATE TABLE t_ds_workflow_task_relation_log
 );
 
 -- ----------------------------
--- Table structure for t_ds_workflow_instance
+-- Table structure for t_yak_ops_workflow_instance
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_instance CASCADE;
-CREATE TABLE t_ds_workflow_instance
+DROP TABLE IF EXISTS t_yak_ops_workflow_instance CASCADE;
+CREATE TABLE t_yak_ops_workflow_instance
 (
     id                         int(11) NOT NULL AUTO_INCREMENT,
     name                       varchar(255) DEFAULT NULL,
@@ -624,10 +624,10 @@ CREATE TABLE t_ds_workflow_instance
 );
 
 -- ----------------------------
--- Table structure for t_ds_project
+-- Table structure for t_yak_ops_project
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_project CASCADE;
-CREATE TABLE t_ds_project
+DROP TABLE IF EXISTS t_yak_ops_project CASCADE;
+CREATE TABLE t_yak_ops_project
 (
     id          int(11) NOT NULL AUTO_INCREMENT,
     name        varchar(255) DEFAULT NULL,
@@ -643,14 +643,14 @@ CREATE TABLE t_ds_project
 );
 
 -- ----------------------------
--- Records of t_ds_project
+-- Records of t_yak_ops_project
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_project_parameter
+-- Table structure for t_yak_ops_project_parameter
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_project_parameter CASCADE;
-CREATE TABLE t_ds_project_parameter
+DROP TABLE IF EXISTS t_yak_ops_project_parameter CASCADE;
+CREATE TABLE t_yak_ops_project_parameter
 (
     id              int(11) NOT NULL AUTO_INCREMENT,
     param_name      varchar(255) NOT NULL,
@@ -668,14 +668,14 @@ CREATE TABLE t_ds_project_parameter
 );
 
 -- ----------------------------
--- Records of t_ds_project_parameter
+-- Records of t_yak_ops_project_parameter
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_project_preference
+-- Table structure for t_yak_ops_project_preference
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_project_preference CASCADE;
-CREATE TABLE t_ds_project_preference
+DROP TABLE IF EXISTS t_yak_ops_project_preference CASCADE;
+CREATE TABLE t_yak_ops_project_preference
 (
     id              int(11) NOT NULL AUTO_INCREMENT,
     code            bigint(20) NOT NULL,
@@ -691,14 +691,14 @@ CREATE TABLE t_ds_project_preference
 );
 
 -- ----------------------------
--- Records of t_ds_project_preference
+-- Records of t_yak_ops_project_preference
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_queue
+-- Table structure for t_yak_ops_queue
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_queue CASCADE;
-CREATE TABLE t_ds_queue
+DROP TABLE IF EXISTS t_yak_ops_queue CASCADE;
+CREATE TABLE t_yak_ops_queue
 (
     id          int(11) NOT NULL AUTO_INCREMENT,
     queue_name  varchar(64) DEFAULT NULL,
@@ -710,16 +710,16 @@ CREATE TABLE t_ds_queue
 );
 
 -- ----------------------------
--- Records of t_ds_queue
+-- Records of t_yak_ops_queue
 -- ----------------------------
-INSERT INTO t_ds_queue
+INSERT INTO t_yak_ops_queue
 VALUES ('1', 'default', 'default', null, null);
 
 -- ----------------------------
--- Table structure for t_ds_relation_datasource_user
+-- Table structure for t_yak_ops_relation_datasource_user
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_relation_datasource_user CASCADE;
-CREATE TABLE t_ds_relation_datasource_user
+DROP TABLE IF EXISTS t_yak_ops_relation_datasource_user CASCADE;
+CREATE TABLE t_yak_ops_relation_datasource_user
 (
     id            int(11) NOT NULL AUTO_INCREMENT,
     user_id       int(11) NOT NULL,
@@ -731,14 +731,14 @@ CREATE TABLE t_ds_relation_datasource_user
 );
 
 -- ----------------------------
--- Records of t_ds_relation_datasource_user
+-- Records of t_yak_ops_relation_datasource_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_workflow_instance
+-- Table structure for t_yak_ops_relation_workflow_instance
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_relation_workflow_instance CASCADE;
-CREATE TABLE t_ds_relation_workflow_instance
+DROP TABLE IF EXISTS t_yak_ops_relation_workflow_instance CASCADE;
+CREATE TABLE t_yak_ops_relation_workflow_instance
 (
     id                         int(11) NOT NULL AUTO_INCREMENT,
     parent_workflow_instance_id int(11) DEFAULT NULL,
@@ -748,10 +748,10 @@ CREATE TABLE t_ds_relation_workflow_instance
 );
 
 -- ----------------------------
--- Table structure for t_ds_relation_project_user
+-- Table structure for t_yak_ops_relation_project_user
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_relation_project_user CASCADE;
-CREATE TABLE t_ds_relation_project_user
+DROP TABLE IF EXISTS t_yak_ops_relation_project_user CASCADE;
+CREATE TABLE t_yak_ops_relation_project_user
 (
     id          int(11) NOT NULL AUTO_INCREMENT,
     user_id     int(11) NOT NULL,
@@ -764,15 +764,15 @@ CREATE TABLE t_ds_relation_project_user
 );
 
 -- ----------------------------
--- Records of t_ds_relation_project_user
+-- Records of t_yak_ops_relation_project_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_resources_user
+-- Table structure for t_yak_ops_relation_resources_user
 -- ----------------------------
 -- Deprecated
-DROP TABLE IF EXISTS t_ds_relation_resources_user CASCADE;
-CREATE TABLE t_ds_relation_resources_user
+DROP TABLE IF EXISTS t_yak_ops_relation_resources_user CASCADE;
+CREATE TABLE t_yak_ops_relation_resources_user
 (
     id           int(11) NOT NULL AUTO_INCREMENT,
     user_id      int(11) NOT NULL,
@@ -784,14 +784,14 @@ CREATE TABLE t_ds_relation_resources_user
 );
 
 -- ----------------------------
--- Records of t_ds_relation_resources_user
+-- Records of t_yak_ops_relation_resources_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_udfs_user
+-- Table structure for t_yak_ops_relation_udfs_user
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_relation_udfs_user CASCADE;
-CREATE TABLE t_ds_relation_udfs_user
+DROP TABLE IF EXISTS t_yak_ops_relation_udfs_user CASCADE;
+CREATE TABLE t_yak_ops_relation_udfs_user
 (
     id          int(11) NOT NULL AUTO_INCREMENT,
     user_id     int(11) NOT NULL,
@@ -803,11 +803,11 @@ CREATE TABLE t_ds_relation_udfs_user
 );
 
 -- ----------------------------
--- Table structure for t_ds_resources
+-- Table structure for t_yak_ops_resources
 -- ----------------------------
 -- Deprecated
-DROP TABLE IF EXISTS t_ds_resources CASCADE;
-CREATE TABLE t_ds_resources
+DROP TABLE IF EXISTS t_yak_ops_resources CASCADE;
+CREATE TABLE t_yak_ops_resources
 (
     id           int(11) NOT NULL AUTO_INCREMENT,
     alias        varchar(64)  DEFAULT NULL,
@@ -822,18 +822,18 @@ CREATE TABLE t_ds_resources
     full_name    varchar(128)  DEFAULT NULL,
     is_directory tinyint(4) DEFAULT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY t_ds_resources_un (full_name, type)
+    UNIQUE KEY t_yak_ops_resources_un (full_name, type)
 );
 
 -- ----------------------------
--- Records of t_ds_resources
+-- Records of t_yak_ops_resources
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_schedules
+-- Table structure for t_yak_ops_schedules
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_schedules CASCADE;
-CREATE TABLE t_ds_schedules
+DROP TABLE IF EXISTS t_yak_ops_schedules CASCADE;
+CREATE TABLE t_yak_ops_schedules
 (
     id                        int(11) NOT NULL AUTO_INCREMENT,
     workflow_definition_code   bigint(20) NOT NULL,
@@ -858,14 +858,14 @@ CREATE TABLE t_ds_schedules
 );
 
 -- ----------------------------
--- Records of t_ds_schedules
+-- Records of t_yak_ops_schedules
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_session
+-- Table structure for t_yak_ops_session
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_session CASCADE;
-CREATE TABLE t_ds_session
+DROP TABLE IF EXISTS t_yak_ops_session CASCADE;
+CREATE TABLE t_yak_ops_session
 (
     id              varchar(64) NOT NULL,
     user_id         int(11) DEFAULT NULL,
@@ -875,14 +875,14 @@ CREATE TABLE t_ds_session
 );
 
 -- ----------------------------
--- Records of t_ds_session
+-- Records of t_yak_ops_session
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_task_instance
+-- Table structure for t_yak_ops_task_instance
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_task_instance CASCADE;
-CREATE TABLE t_ds_task_instance
+DROP TABLE IF EXISTS t_yak_ops_task_instance CASCADE;
+CREATE TABLE t_yak_ops_task_instance
 (
     id                      int(11) NOT NULL AUTO_INCREMENT,
     name                    varchar(255) DEFAULT NULL,
@@ -926,14 +926,14 @@ CREATE TABLE t_ds_task_instance
 );
 
 -- ----------------------------
--- Records of t_ds_task_instance
+-- Records of t_yak_ops_task_instance
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_task_instance_context
+-- Table structure for t_yak_ops_task_instance_context
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_task_instance_context`;
-CREATE TABLE `t_ds_task_instance_context` (
+DROP TABLE IF EXISTS `t_yak_ops_task_instance_context`;
+CREATE TABLE `t_yak_ops_task_instance_context` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
     `task_instance_id` int(11) NOT NULL,
     `context` text NOT NULL,
@@ -944,10 +944,10 @@ CREATE TABLE `t_ds_task_instance_context` (
 );
 
 -- ----------------------------
--- Table structure for t_ds_tenant
+-- Table structure for t_yak_ops_tenant
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_tenant CASCADE;
-CREATE TABLE t_ds_tenant
+DROP TABLE IF EXISTS t_yak_ops_tenant CASCADE;
+CREATE TABLE t_yak_ops_tenant
 (
     id          int(11) NOT NULL AUTO_INCREMENT,
     tenant_code varchar(64)  DEFAULT NULL,
@@ -960,16 +960,16 @@ CREATE TABLE t_ds_tenant
 );
 
 -- ----------------------------
--- Records of t_ds_tenant
+-- Records of t_yak_ops_tenant
 -- ----------------------------
-INSERT IGNORE INTO `t_ds_tenant`
+INSERT IGNORE INTO `t_yak_ops_tenant`
 VALUES ('-1', 'default', 'default tenant', '1', current_timestamp, current_timestamp);
 
 -- ----------------------------
--- Table structure for t_ds_udfs
+-- Table structure for t_yak_ops_udfs
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_udfs CASCADE;
-CREATE TABLE t_ds_udfs
+DROP TABLE IF EXISTS t_yak_ops_udfs CASCADE;
+CREATE TABLE t_yak_ops_udfs
 (
     id            int(11)      NOT NULL AUTO_INCREMENT,
     user_id       int(11)      NOT NULL,
@@ -988,14 +988,14 @@ CREATE TABLE t_ds_udfs
 );
 
 -- ----------------------------
--- Records of t_ds_udfs
+-- Records of t_yak_ops_udfs
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_user
+-- Table structure for t_yak_ops_user
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_user CASCADE;
-CREATE TABLE t_ds_user
+DROP TABLE IF EXISTS t_yak_ops_user CASCADE;
+CREATE TABLE t_yak_ops_user
 (
     id            int(11) NOT NULL AUTO_INCREMENT,
     user_name     varchar(64) DEFAULT NULL,
@@ -1014,14 +1014,14 @@ CREATE TABLE t_ds_user
 );
 
 -- ----------------------------
--- Records of t_ds_user
+-- Records of t_yak_ops_user
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_worker_group
+-- Table structure for t_yak_ops_worker_group
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_worker_group CASCADE;
-CREATE TABLE t_ds_worker_group
+DROP TABLE IF EXISTS t_yak_ops_worker_group CASCADE;
+CREATE TABLE t_yak_ops_worker_group
 (
     id          bigint(11) NOT NULL AUTO_INCREMENT,
     name        varchar(255) NOT NULL,
@@ -1034,14 +1034,14 @@ CREATE TABLE t_ds_worker_group
 );
 
 -- ----------------------------
--- Records of t_ds_worker_group
+-- Records of t_yak_ops_worker_group
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for t_ds_relation_project_worker_group
+-- Table structure for t_yak_ops_relation_project_worker_group
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_relation_project_worker_group CASCADE;
-CREATE TABLE t_ds_relation_project_worker_group
+DROP TABLE IF EXISTS t_yak_ops_relation_project_worker_group CASCADE;
+CREATE TABLE t_yak_ops_relation_project_worker_group
 (
     id            int(11) NOT NULL AUTO_INCREMENT,
     project_code  bigint(20) NOT NULL,
@@ -1053,10 +1053,10 @@ CREATE TABLE t_ds_relation_project_worker_group
 );
 
 -- ----------------------------
--- Table structure for t_ds_version
+-- Table structure for t_yak_ops_version
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_version CASCADE;
-CREATE TABLE t_ds_version
+DROP TABLE IF EXISTS t_yak_ops_version CASCADE;
+CREATE TABLE t_yak_ops_version
 (
     id      int(11) NOT NULL AUTO_INCREMENT,
     version varchar(63) NOT NULL,
@@ -1065,31 +1065,31 @@ CREATE TABLE t_ds_version
 );
 
 -- ----------------------------
--- Records of t_ds_version
+-- Records of t_yak_ops_version
 -- ----------------------------
-INSERT INTO t_ds_version
+INSERT INTO t_yak_ops_version
 VALUES ('1', '3.4.3');
 
 
 -- ----------------------------
--- Records of t_ds_alertgroup
+-- Records of t_yak_ops_alertgroup
 -- ----------------------------
-INSERT INTO t_ds_alertgroup(alert_instance_ids, create_user_id, group_name, description, create_time, update_time)
+INSERT INTO t_yak_ops_alertgroup(alert_instance_ids, create_user_id, group_name, description, create_time, update_time)
 VALUES (NULL, 1, 'default admin warning group', 'default admin warning group', '2018-11-29 10:20:39',
         '2018-11-29 10:20:39');
 
 -- ----------------------------
--- Records of t_ds_user
+-- Records of t_yak_ops_user
 -- ----------------------------
-INSERT INTO t_ds_user
+INSERT INTO t_yak_ops_user
 VALUES ('1', 'admin', '7ad2410b2f4c074479a8937a28a22b8f', '0', 'xxx@qq.com', '', '-1', '2018-03-27 15:48:50',
         '2018-10-24 17:40:22', null, 1, null);
 
 -- ----------------------------
--- Table structure for t_ds_plugin_define
+-- Table structure for t_yak_ops_plugin_define
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_plugin_define CASCADE;
-CREATE TABLE t_ds_plugin_define
+DROP TABLE IF EXISTS t_yak_ops_plugin_define CASCADE;
+CREATE TABLE t_yak_ops_plugin_define
 (
     id            int          NOT NULL AUTO_INCREMENT,
     plugin_name   varchar(255) NOT NULL,
@@ -1098,14 +1098,14 @@ CREATE TABLE t_ds_plugin_define
     create_time   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY t_ds_plugin_define_UN (plugin_name,plugin_type)
+    UNIQUE KEY t_yak_ops_plugin_define_UN (plugin_name,plugin_type)
 );
 
 -- ----------------------------
--- Table structure for t_ds_alert_plugin_instance
+-- Table structure for t_yak_ops_alert_plugin_instance
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_alert_plugin_instance CASCADE;
-CREATE TABLE t_ds_alert_plugin_instance
+DROP TABLE IF EXISTS t_yak_ops_alert_plugin_instance CASCADE;
+CREATE TABLE t_yak_ops_alert_plugin_instance
 (
     id                     int NOT NULL AUTO_INCREMENT,
     plugin_define_id       int NOT NULL,
@@ -1118,10 +1118,10 @@ CREATE TABLE t_ds_alert_plugin_instance
 
 
 --
--- Table structure for table t_ds_environment
+-- Table structure for table t_yak_ops_environment
 --
-DROP TABLE IF EXISTS t_ds_environment CASCADE;
-CREATE TABLE t_ds_environment
+DROP TABLE IF EXISTS t_yak_ops_environment CASCADE;
+CREATE TABLE t_yak_ops_environment
 (
     id          int       NOT NULL AUTO_INCREMENT,
     code        bigint(20) NOT NULL,
@@ -1137,10 +1137,10 @@ CREATE TABLE t_ds_environment
 );
 
 --
--- Table structure for table t_ds_environment_worker_group_relation
+-- Table structure for table t_yak_ops_environment_worker_group_relation
 --
-DROP TABLE IF EXISTS t_ds_environment_worker_group_relation CASCADE;
-CREATE TABLE t_ds_environment_worker_group_relation
+DROP TABLE IF EXISTS t_yak_ops_environment_worker_group_relation CASCADE;
+CREATE TABLE t_yak_ops_environment_worker_group_relation
 (
     id               int          NOT NULL AUTO_INCREMENT,
     environment_code bigint(20) NOT NULL,
@@ -1152,8 +1152,8 @@ CREATE TABLE t_ds_environment_worker_group_relation
     UNIQUE KEY environment_worker_group_unique (environment_code,worker_group)
 );
 
-DROP TABLE IF EXISTS t_ds_task_group_queue;
-CREATE TABLE t_ds_task_group_queue
+DROP TABLE IF EXISTS t_yak_ops_task_group_queue;
+CREATE TABLE t_yak_ops_task_group_queue
 (
    id           int(11) NOT NULL AUTO_INCREMENT ,
    task_id      int(11) DEFAULT NULL ,
@@ -1166,12 +1166,12 @@ CREATE TABLE t_ds_task_group_queue
    in_queue     int(4) DEFAULT '0' ,
    create_time  datetime DEFAULT NULL ,
    update_time  datetime DEFAULT NULL ,
-   KEY idx_t_ds_task_group_queue_in_queue (in_queue) ,
+   KEY idx_t_yak_ops_task_group_queue_in_queue (in_queue) ,
    PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS t_ds_task_group;
-CREATE TABLE t_ds_task_group
+DROP TABLE IF EXISTS t_yak_ops_task_group;
+CREATE TABLE t_yak_ops_task_group
 (
    id          int(11)  NOT NULL AUTO_INCREMENT ,
    name        varchar(255) DEFAULT NULL ,
@@ -1187,10 +1187,10 @@ CREATE TABLE t_ds_task_group
 );
 
 -- ----------------------------
--- Table structure for t_ds_audit_log
+-- Table structure for t_yak_ops_audit_log
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_audit_log;
-CREATE TABLE t_ds_audit_log
+DROP TABLE IF EXISTS t_yak_ops_audit_log;
+CREATE TABLE t_yak_ops_audit_log
 (
     id                  int(11) NOT NULL AUTO_INCREMENT,
     user_id             int(11) NOT NULL,
@@ -1206,8 +1206,8 @@ CREATE TABLE t_ds_audit_log
 );
 
 
-DROP TABLE IF EXISTS t_ds_k8s;
-CREATE TABLE t_ds_k8s
+DROP TABLE IF EXISTS t_yak_ops_k8s;
+CREATE TABLE t_yak_ops_k8s
 (
     id           int(11) NOT NULL AUTO_INCREMENT ,
     k8s_name     varchar(255) DEFAULT NULL ,
@@ -1217,8 +1217,8 @@ CREATE TABLE t_ds_k8s
     PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS t_ds_k8s_namespace;
-CREATE TABLE t_ds_k8s_namespace (
+DROP TABLE IF EXISTS t_yak_ops_k8s_namespace;
+CREATE TABLE t_yak_ops_k8s_namespace (
     id                 int(11) NOT NULL AUTO_INCREMENT ,
     code               bigint(20) NOT NULL,
     namespace          varchar(255) DEFAULT NULL,
@@ -1230,25 +1230,25 @@ CREATE TABLE t_ds_k8s_namespace (
     UNIQUE KEY k8s_namespace_unique (namespace,cluster_code)
 );
 -- ----------------------------
--- Records of t_ds_k8s_namespace
+-- Records of t_yak_ops_k8s_namespace
 -- ----------------------------
-INSERT INTO `t_ds_k8s_namespace`
+INSERT INTO `t_yak_ops_k8s_namespace`
 (`id`,`code`,`namespace`,`user_id`,`cluster_code`,`create_time`,`update_time`)
 VALUES (1, 990001, 'flink_test', 1, 0, '2022-03-03 11:31:24.0', '2022-03-03 11:31:24.0');
 
-INSERT INTO `t_ds_k8s_namespace`
+INSERT INTO `t_yak_ops_k8s_namespace`
 (`id`,`code`,`namespace`,`user_id`,`cluster_code`,`create_time`,`update_time`)
 VALUES (2, 990002, 'spark_test', 2, 0, '2021-03-03 11:31:24.0', '2021-03-03 11:31:24.0');
 
-INSERT INTO `t_ds_k8s_namespace`
+INSERT INTO `t_yak_ops_k8s_namespace`
 (`id`,`code`,`namespace`,`user_id`,`cluster_code`,`create_time`,`update_time`)
 VALUES (3, 990003, 'auth_test', 3, 0, '2020-03-03 11:31:24.0', '2020-03-03 11:31:24.0');
 
 -- ----------------------------
--- Table structure for t_ds_relation_namespace_user
+-- Table structure for t_yak_ops_relation_namespace_user
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_relation_namespace_user;
-CREATE TABLE t_ds_relation_namespace_user (
+DROP TABLE IF EXISTS t_yak_ops_relation_namespace_user;
+CREATE TABLE t_yak_ops_relation_namespace_user (
     id                int(11) NOT NULL AUTO_INCREMENT ,
     user_id           int(11) NOT NULL ,
     namespace_id      int(11) NOT NULL ,
@@ -1260,10 +1260,10 @@ CREATE TABLE t_ds_relation_namespace_user (
 );
 
 -- ----------------------------
--- Table structure for t_ds_alert_send_status
+-- Table structure for t_yak_ops_alert_send_status
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_alert_send_status CASCADE;
-CREATE TABLE t_ds_alert_send_status
+DROP TABLE IF EXISTS t_yak_ops_alert_send_status CASCADE;
+CREATE TABLE t_yak_ops_alert_send_status
 (
     id                            int NOT NULL AUTO_INCREMENT,
     alert_id                      int NOT NULL,
@@ -1277,10 +1277,10 @@ CREATE TABLE t_ds_alert_send_status
 
 
 --
--- Table structure for table t_ds_cluster
+-- Table structure for table t_yak_ops_cluster
 --
-DROP TABLE IF EXISTS t_ds_cluster CASCADE;
-CREATE TABLE t_ds_cluster
+DROP TABLE IF EXISTS t_yak_ops_cluster CASCADE;
+CREATE TABLE t_yak_ops_cluster
 (
     id          int       NOT NULL AUTO_INCREMENT,
     code        bigint(20) NOT NULL,
@@ -1295,15 +1295,15 @@ CREATE TABLE t_ds_cluster
     UNIQUE KEY cluster_code_unique (code)
 );
 
-INSERT INTO `t_ds_cluster`
+INSERT INTO `t_yak_ops_cluster`
 (`id`, `code`, `name`, `config`, `description`, `operator`, `create_time`, `update_time`)
 VALUES (100, 0, 'ds_null_k8s', '{"k8s":"ds_null_k8s"}', 'test', 1, '2021-03-03 11:31:24.0', '2021-03-03 11:31:24.0');
 
 --
--- Table structure for t_ds_fav_task
+-- Table structure for t_yak_ops_fav_task
 --
-DROP TABLE IF EXISTS t_ds_fav_task CASCADE;
-CREATE TABLE t_ds_fav_task
+DROP TABLE IF EXISTS t_yak_ops_fav_task CASCADE;
+CREATE TABLE t_yak_ops_fav_task
 (
     id        bigint(20) NOT NULL AUTO_INCREMENT,
     task_type varchar(64) NOT NULL,
@@ -1312,8 +1312,8 @@ CREATE TABLE t_ds_fav_task
 );
 
 
-DROP TABLE IF EXISTS t_ds_relation_sub_workflow;
-CREATE TABLE t_ds_relation_sub_workflow (
+DROP TABLE IF EXISTS t_yak_ops_relation_sub_workflow;
+CREATE TABLE t_yak_ops_relation_sub_workflow (
     id BIGINT AUTO_INCREMENT NOT NULL,
     parent_workflow_instance_id BIGINT NOT NULL,
     parent_task_code BIGINT NOT NULL,
@@ -1325,10 +1325,10 @@ CREATE TABLE t_ds_relation_sub_workflow (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_lineage
+-- Table structure for t_yak_ops_workflow_task_lineage
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_task_lineage;
-CREATE TABLE t_ds_workflow_task_lineage
+DROP TABLE IF EXISTS t_yak_ops_workflow_task_lineage;
+CREATE TABLE t_yak_ops_workflow_task_lineage
 (
     `id`                           int      NOT NULL AUTO_INCREMENT,
     `workflow_definition_code`      bigint(20)   NOT NULL DEFAULT 0,
@@ -1351,8 +1351,8 @@ CREATE TABLE t_ds_workflow_task_lineage
 -- Table structure for jdbc registry
 -- ----------------------------
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_data`;
-CREATE TABLE `t_ds_jdbc_registry_data`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_data`;
+CREATE TABLE `t_yak_ops_jdbc_registry_data`
 (
     `id`               bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `data_key`         varchar(256) NOT NULL COMMENT 'key, like zookeeper node path',
@@ -1362,13 +1362,13 @@ CREATE TABLE `t_ds_jdbc_registry_data`
     `create_time`      timestamp    NOT NULL default current_timestamp COMMENT 'create time',
     `last_update_time` timestamp    NOT NULL default current_timestamp COMMENT 'last update time',
     PRIMARY KEY (`id`),
-    unique KEY `uk_t_ds_jdbc_registry_dataKey`(`data_key`)
+    unique KEY `uk_t_yak_ops_jdbc_registry_dataKey`(`data_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_lock`;
-CREATE TABLE `t_ds_jdbc_registry_lock`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_lock`;
+CREATE TABLE `t_yak_ops_jdbc_registry_lock`
 (
     `id`          bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `lock_key`    varchar(256) NOT NULL COMMENT 'lock path',
@@ -1376,12 +1376,12 @@ CREATE TABLE `t_ds_jdbc_registry_lock`
     `client_id`   bigint       NOT NULL COMMENT 'client id',
     `create_time` timestamp    NOT NULL default current_timestamp COMMENT 'create time',
     PRIMARY KEY (`id`),
-    unique KEY `uk_t_ds_jdbc_registry_lockKey`(`lock_key`)
+    unique KEY `uk_t_yak_ops_jdbc_registry_lockKey`(`lock_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_client_heartbeat`;
-CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_client_heartbeat`;
+CREATE TABLE `t_yak_ops_jdbc_registry_client_heartbeat`
 (
     `id`                  bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `client_name`         varchar(256) NOT NULL COMMENT 'client name, ip_processId',
@@ -1392,8 +1392,8 @@ CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_data_change_event`;
-CREATE TABLE `t_ds_jdbc_registry_data_change_event`
+DROP TABLE IF EXISTS `t_yak_ops_jdbc_registry_data_change_event`;
+CREATE TABLE `t_yak_ops_jdbc_registry_data_change_event`
 (
     `id`                 bigint(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `event_type`         varchar(64) NOT NULL COMMENT 'ADD, UPDATE, DELETE',

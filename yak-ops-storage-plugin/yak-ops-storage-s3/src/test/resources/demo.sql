@@ -1,1 +1,1 @@
-select * from t_ds_version;
+select * from t_yak_ops_version;

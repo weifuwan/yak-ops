@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_workflow_task_lineage")
+@TableName("t_yak_ops_workflow_task_lineage")
 public class WorkflowTaskLineage {
 
     @TableId(value = "id", type = IdType.AUTO)

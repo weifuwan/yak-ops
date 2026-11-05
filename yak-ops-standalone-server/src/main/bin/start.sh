@@ -5,7 +5,7 @@ BIN_DIR=$(dirname $(readlink -f "$0"))
 YAK_OPS_HOME=$(cd ${BIN_DIR}/../..;pwd)
 STANDALONE_HOME=$(cd ${BIN_DIR}/..;pwd)
 
-export DATABASE=${DATABASE:-h2}
+export DATABASE=${DATABASE:-mysql}
 source "$STANDALONE_HOME/conf/yak-ops_env.sh"
 
 JVM_ARGS_ENV_FILE=${STANDALONE_HOME}/bin/jvm_args_env.sh

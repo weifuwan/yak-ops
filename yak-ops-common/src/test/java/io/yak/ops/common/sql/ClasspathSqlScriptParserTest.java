@@ -12,15 +12,15 @@ class ClasspathSqlScriptParserTest {
     void testMysqlDmlSql() throws IOException {
         ClasspathSqlScriptParser classpathSqlScriptParser = new ClasspathSqlScriptParser("sql/mysql_dml.sql");
         List<String> allSql = classpathSqlScriptParser.getAllSql();
-        Assertions.assertEquals("drop PROCEDURE if EXISTS dolphin_t_ds_tenant_insert_default;", allSql.get(0));
-        Assertions.assertEquals("CREATE PROCEDURE dolphin_t_ds_tenant_insert_default()\n" +
+        Assertions.assertEquals("drop PROCEDURE if EXISTS yak_ops_tenant_insert_default;", allSql.get(0));
+        Assertions.assertEquals("CREATE PROCEDURE yak_ops_tenant_insert_default()\n" +
                 "BEGIN\n" +
                 "    IF\n" +
                 "NOT EXISTS(SELECT 1\n" +
-                "                   FROM t_ds_tenant\n" +
+                "                   FROM t_yak_ops_tenant\n" +
                 "                   WHERE id = -1)\n" +
                 "    THEN\n" +
-                "        INSERT INTO `t_ds_tenant` VALUES ('-1', 'default', 'default tenant', '1', current_timestamp, current_timestamp);\n"
+                "        INSERT INTO `t_yak_ops_tenant` VALUES ('-1', 'default', 'default tenant', '1', current_timestamp, current_timestamp);\n"
                 +
                 "END IF;\n" +
                 "END;", String.join("", allSql.get(1)));
@@ -30,7 +30,7 @@ class ClasspathSqlScriptParserTest {
     void testMysqlDdlSql() throws IOException {
         ClasspathSqlScriptParser classpathSqlScriptParser = new ClasspathSqlScriptParser("sql/mysql_ddl.sql");
         List<String> allSql = classpathSqlScriptParser.getAllSql();
-        Assertions.assertEquals("ALTER TABLE t_ds_workflow_definition DROP tenant_id;", allSql.get(0));
+        Assertions.assertEquals("ALTER TABLE t_yak_ops_workflow_definition DROP tenant_id;", allSql.get(0));
     }
 
     @Test

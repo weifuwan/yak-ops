@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_relation_workflow_instance")
+@TableName("t_yak_ops_relation_workflow_instance")
 public class WorkflowInstanceRelation {
 
     @TableId(value = "id", type = IdType.AUTO)

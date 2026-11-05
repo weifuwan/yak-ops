@@ -1,1 +1,1 @@
-select * from t_ds_student;
+select * from t_yak_ops_student;

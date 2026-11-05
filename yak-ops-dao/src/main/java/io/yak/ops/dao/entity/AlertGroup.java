@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_alertgroup")
+@TableName("t_yak_ops_alertgroup")
 public class AlertGroup {
 
     /**

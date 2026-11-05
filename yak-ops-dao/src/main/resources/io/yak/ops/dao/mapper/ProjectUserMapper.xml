@@ -5,7 +5,7 @@
         id, user_id, project_id, perm, create_time, update_time
     </sql>
     <delete id="deleteProjectRelation">
-        delete from t_ds_relation_project_user
+        delete from t_yak_ops_relation_project_user
         where 1=1
         and user_id = #{userId}
         <if test="projectId != 0 ">
@@ -15,7 +15,7 @@
     <select id="queryProjectRelation" resultType="io.yak.ops.dao.entity.ProjectUser">
         select
         <include refid="baseSql"/>
-        from t_ds_relation_project_user
+        from t_yak_ops_relation_project_user
         where project_id = #{projectId}
         and user_id = #{userId}
         limit 1

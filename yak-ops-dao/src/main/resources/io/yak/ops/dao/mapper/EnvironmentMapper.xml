@@ -7,19 +7,19 @@
     <select id="queryByEnvironmentName" resultType="io.yak.ops.dao.entity.Environment">
         select
         <include refid="baseSql"/>
-        from t_ds_environment
+        from t_yak_ops_environment
         WHERE name = #{environmentName}
     </select>
     <select id="queryAllEnvironmentList" resultType="io.yak.ops.dao.entity.Environment">
         select
         <include refid="baseSql"/>
-        from t_ds_environment
+        from t_yak_ops_environment
         order by create_time desc
     </select>
     <select id="queryEnvironmentListPaging" resultType="io.yak.ops.dao.entity.Environment">
         select
         <include refid="baseSql"/>
-        from t_ds_environment
+        from t_yak_ops_environment
         where 1=1
         <if test="searchName!=null and searchName != ''">
             and name like concat('%', #{searchName}, '%')
@@ -29,7 +29,7 @@
     <select id="queryEnvironmentListPagingByIds" resultType="io.yak.ops.dao.entity.Environment">
         select
         <include refid="baseSql"/>
-        from t_ds_environment
+        from t_yak_ops_environment
         where 1=1
         <if test="ids != null and ids.size() > 0">
             and id  in
@@ -46,10 +46,10 @@
     <select id="queryByEnvironmentCode" resultType="io.yak.ops.dao.entity.Environment">
         select
         <include refid="baseSql"/>
-        from t_ds_environment
+        from t_yak_ops_environment
         where code = #{environmentCode}
     </select>
     <delete id="deleteByCode">
-        delete from t_ds_environment where code = #{code}
+        delete from t_yak_ops_environment where code = #{code}
     </delete>
 </mapper>

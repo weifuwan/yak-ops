@@ -7,7 +7,7 @@
     <select id="queryQueuePaging" resultType="io.yak.ops.dao.entity.Queue">
         select
         <include refid="baseSql"/>
-        from t_ds_queue
+        from t_yak_ops_queue
         where 1= 1
         <if test="searchVal != null and searchVal != ''">
             and queue_name like concat('%', #{searchVal}, '%')
@@ -23,7 +23,7 @@
     <select id="queryAllQueueList" resultType="io.yak.ops.dao.entity.Queue">
         select
         <include refid="baseSql"/>
-        from t_ds_queue
+        from t_yak_ops_queue
         where 1=1
         <if test="queue != null and queue != ''">
             and queue = #{queue}
@@ -34,7 +34,7 @@
     </select>
     <select id="existQueue" resultType="java.lang.Boolean">
         select 1 = 1
-        from t_ds_queue
+        from t_yak_ops_queue
         where 1 = 1
         <if test="queue != null and queue != ''">
             and queue = #{queue}
@@ -46,7 +46,7 @@
     <select id="queryQueueName" resultType="io.yak.ops.dao.entity.Queue">
         select
         <include refid="baseSql"/>
-        from t_ds_queue
+        from t_yak_ops_queue
         <where>
             <if test="queue != null and queue != ''">
                 and queue =#{queue}

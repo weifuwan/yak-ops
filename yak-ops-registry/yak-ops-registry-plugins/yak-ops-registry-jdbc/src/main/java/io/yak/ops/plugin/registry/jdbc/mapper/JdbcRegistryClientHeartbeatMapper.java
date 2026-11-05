@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 public interface JdbcRegistryClientHeartbeatMapper extends BaseMapper<JdbcRegistryClientHeartbeat> {
 
-    @Select("select * from t_ds_jdbc_registry_client_heartbeat")
+    @Select("select * from t_yak_ops_jdbc_registry_client_heartbeat")
     List<JdbcRegistryClientHeartbeat> selectAll();
 
 }

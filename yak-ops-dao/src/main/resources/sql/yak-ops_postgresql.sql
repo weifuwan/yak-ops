@@ -169,11 +169,11 @@ CREATE INDEX IDX_QRTZ_FT_TG ON QRTZ_FIRED_TRIGGERS(SCHED_NAME,TRIGGER_GROUP);
 
 
 --
--- Table structure for table t_ds_access_token
+-- Table structure for table t_yak_ops_access_token
 --
 
-DROP TABLE IF EXISTS t_ds_access_token;
-CREATE TABLE t_ds_access_token (
+DROP TABLE IF EXISTS t_yak_ops_access_token;
+CREATE TABLE t_yak_ops_access_token (
   id int NOT NULL  ,
   user_id int DEFAULT NULL ,
   token varchar(64) DEFAULT NULL ,
@@ -184,11 +184,11 @@ CREATE TABLE t_ds_access_token (
 ) ;
 
 --
--- Table structure for table t_ds_alert
+-- Table structure for table t_yak_ops_alert
 --
 
-DROP TABLE IF EXISTS t_ds_alert;
-CREATE TABLE t_ds_alert (
+DROP TABLE IF EXISTS t_yak_ops_alert;
+CREATE TABLE t_yak_ops_alert (
   id int NOT NULL  ,
   title varchar(512) DEFAULT NULL ,
   sign varchar(40) NOT NULL DEFAULT '',
@@ -205,17 +205,17 @@ CREATE TABLE t_ds_alert (
   alert_type int DEFAULT NULL ,
   PRIMARY KEY (id)
 );
-comment on column t_ds_alert.sign is 'sign=sha1(content)';
+comment on column t_yak_ops_alert.sign is 'sign=sha1(content)';
 
-create index idx_status on t_ds_alert (alert_status);
-create index idx_sign on t_ds_alert (sign);
+create index idx_status on t_yak_ops_alert (alert_status);
+create index idx_sign on t_yak_ops_alert (sign);
 
 --
--- Table structure for table t_ds_alertgroup
+-- Table structure for table t_yak_ops_alertgroup
 --
 
-DROP TABLE IF EXISTS t_ds_alertgroup;
-CREATE TABLE t_ds_alertgroup(
+DROP TABLE IF EXISTS t_yak_ops_alertgroup;
+CREATE TABLE t_yak_ops_alertgroup(
   id             int NOT NULL,
   alert_instance_ids varchar (255) DEFAULT NULL,
   create_user_id int4         DEFAULT NULL,
@@ -224,15 +224,15 @@ CREATE TABLE t_ds_alertgroup(
   create_time    timestamp    DEFAULT NULL,
   update_time    timestamp    DEFAULT NULL,
   PRIMARY KEY (id),
-  CONSTRAINT t_ds_alertgroup_name_un UNIQUE (group_name)
+  CONSTRAINT t_yak_ops_alertgroup_name_un UNIQUE (group_name)
 ) ;
 
 --
--- Table structure for table t_ds_command
+-- Table structure for table t_yak_ops_command
 --
 
-DROP TABLE IF EXISTS t_ds_command;
-CREATE TABLE t_ds_command (
+DROP TABLE IF EXISTS t_yak_ops_command;
+CREATE TABLE t_yak_ops_command (
   id int NOT NULL  ,
   command_type              int DEFAULT NULL ,
   workflow_definition_code   bigint NOT NULL ,
@@ -255,13 +255,13 @@ CREATE TABLE t_ds_command (
   PRIMARY KEY (id)
 ) ;
 
-create index priority_id_index on t_ds_command (workflow_instance_priority,id);
+create index priority_id_index on t_yak_ops_command (workflow_instance_priority,id);
 
 -- ----------------------------
--- Table structure for t_ds_serial_command
+-- Table structure for t_yak_ops_serial_command
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_serial_command;
-CREATE TABLE t_ds_serial_command (
+DROP TABLE IF EXISTS t_yak_ops_serial_command;
+CREATE TABLE t_yak_ops_serial_command (
      id SERIAL PRIMARY KEY,
      workflow_definition_code BIGINT NOT NULL,
      workflow_definition_version INT NOT NULL,
@@ -271,26 +271,26 @@ CREATE TABLE t_ds_serial_command (
      create_time TIMESTAMP NOT NULL DEFAULT now(),
      update_time TIMESTAMP NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_workflow_instance_id ON t_ds_serial_command (workflow_instance_id);
-COMMENT ON TABLE t_ds_serial_command IS 'serial command queue table';
-COMMENT ON COLUMN t_ds_serial_command.id IS 'primary key';
-COMMENT ON COLUMN t_ds_serial_command.workflow_definition_code IS 'workflow definition code';
-COMMENT ON COLUMN t_ds_serial_command.workflow_definition_version IS 'workflow definition version';
-COMMENT ON COLUMN t_ds_serial_command.workflow_instance_id IS 'workflow instance id';
-COMMENT ON COLUMN t_ds_serial_command.state IS 'state of the serial queue: 0 waiting, 1 fired';
-COMMENT ON COLUMN t_ds_serial_command.command IS 'command json';
-COMMENT ON COLUMN t_ds_serial_command.create_time IS 'create time';
-COMMENT ON COLUMN t_ds_serial_command.update_time IS 'update time';
+CREATE INDEX idx_workflow_instance_id ON t_yak_ops_serial_command (workflow_instance_id);
+COMMENT ON TABLE t_yak_ops_serial_command IS 'serial command queue table';
+COMMENT ON COLUMN t_yak_ops_serial_command.id IS 'primary key';
+COMMENT ON COLUMN t_yak_ops_serial_command.workflow_definition_code IS 'workflow definition code';
+COMMENT ON COLUMN t_yak_ops_serial_command.workflow_definition_version IS 'workflow definition version';
+COMMENT ON COLUMN t_yak_ops_serial_command.workflow_instance_id IS 'workflow instance id';
+COMMENT ON COLUMN t_yak_ops_serial_command.state IS 'state of the serial queue: 0 waiting, 1 fired';
+COMMENT ON COLUMN t_yak_ops_serial_command.command IS 'command json';
+COMMENT ON COLUMN t_yak_ops_serial_command.create_time IS 'create time';
+COMMENT ON COLUMN t_yak_ops_serial_command.update_time IS 'update time';
 -- ----------------------------
--- Table structure for t_ds_serial_command
+-- Table structure for t_yak_ops_serial_command
 -- ----------------------------
 
 --
--- Table structure for table t_ds_datasource
+-- Table structure for table t_yak_ops_datasource
 --
 
-DROP TABLE IF EXISTS t_ds_datasource;
-CREATE TABLE t_ds_datasource (
+DROP TABLE IF EXISTS t_yak_ops_datasource;
+CREATE TABLE t_yak_ops_datasource (
   id int NOT NULL  ,
   name varchar(64) NOT NULL ,
   note varchar(255) DEFAULT NULL ,
@@ -300,15 +300,15 @@ CREATE TABLE t_ds_datasource (
   create_time timestamp NOT NULL ,
   update_time timestamp DEFAULT NULL ,
   PRIMARY KEY (id),
-  CONSTRAINT t_ds_datasource_name_un UNIQUE (name, type)
+  CONSTRAINT t_yak_ops_datasource_name_un UNIQUE (name, type)
 ) ;
 
 --
--- Table structure for table t_ds_error_command
+-- Table structure for table t_yak_ops_error_command
 --
 
-DROP TABLE IF EXISTS t_ds_error_command;
-CREATE TABLE t_ds_error_command (
+DROP TABLE IF EXISTS t_yak_ops_error_command;
+CREATE TABLE t_yak_ops_error_command (
   id int NOT NULL  ,
   command_type              int DEFAULT NULL ,
   workflow_definition_code   bigint NOT NULL ,
@@ -333,11 +333,11 @@ CREATE TABLE t_ds_error_command (
 );
 
 --
--- Table structure for table t_ds_workflow_definition
+-- Table structure for table t_yak_ops_workflow_definition
 --
 
-DROP TABLE IF EXISTS t_ds_workflow_definition;
-CREATE TABLE t_ds_workflow_definition (
+DROP TABLE IF EXISTS t_yak_ops_workflow_definition;
+CREATE TABLE t_yak_ops_workflow_definition (
   id int NOT NULL  ,
   code bigint NOT NULL,
   name varchar(255) DEFAULT NULL ,
@@ -358,15 +358,15 @@ CREATE TABLE t_ds_workflow_definition (
   CONSTRAINT workflow_definition_unique UNIQUE (name, project_code)
 ) ;
 
-create unique index uniq_workflow_definition_code on t_ds_workflow_definition (code);
-create index workflow_definition_index_project_code on t_ds_workflow_definition (project_code);
+create unique index uniq_workflow_definition_code on t_yak_ops_workflow_definition (code);
+create index workflow_definition_index_project_code on t_yak_ops_workflow_definition (project_code);
 
 --
--- Table structure for table t_ds_workflow_definition_log
+-- Table structure for table t_yak_ops_workflow_definition_log
 --
 
-DROP TABLE IF EXISTS t_ds_workflow_definition_log;
-CREATE TABLE t_ds_workflow_definition_log (
+DROP TABLE IF EXISTS t_yak_ops_workflow_definition_log;
+CREATE TABLE t_yak_ops_workflow_definition_log (
   id int NOT NULL  ,
   code bigint NOT NULL,
   name varchar(255) DEFAULT NULL ,
@@ -388,15 +388,15 @@ CREATE TABLE t_ds_workflow_definition_log (
   PRIMARY KEY (id)
 ) ;
 
-create UNIQUE index uniq_idx_code_version on t_ds_workflow_definition_log (code,version);
-create index workflow_definition_log_index_project_code on t_ds_workflow_definition_log (project_code);
+create UNIQUE index uniq_idx_code_version on t_yak_ops_workflow_definition_log (code,version);
+create index workflow_definition_log_index_project_code on t_yak_ops_workflow_definition_log (project_code);
 
 --
--- Table structure for table t_ds_task_definition
+-- Table structure for table t_yak_ops_task_definition
 --
 
-DROP TABLE IF EXISTS t_ds_task_definition;
-CREATE TABLE t_ds_task_definition (
+DROP TABLE IF EXISTS t_yak_ops_task_definition;
+CREATE TABLE t_yak_ops_task_definition (
   id int NOT NULL  ,
   code bigint NOT NULL,
   name varchar(255) DEFAULT NULL ,
@@ -427,14 +427,14 @@ CREATE TABLE t_ds_task_definition (
   PRIMARY KEY (id)
 ) ;
 
-create index task_definition_index on t_ds_task_definition (project_code,id);
+create index task_definition_index on t_yak_ops_task_definition (project_code,id);
 
 --
--- Table structure for table t_ds_task_definition_log
+-- Table structure for table t_yak_ops_task_definition_log
 --
 
-DROP TABLE IF EXISTS t_ds_task_definition_log;
-CREATE TABLE t_ds_task_definition_log (
+DROP TABLE IF EXISTS t_yak_ops_task_definition_log;
+CREATE TABLE t_yak_ops_task_definition_log (
   id int NOT NULL  ,
   code bigint NOT NULL,
   name varchar(255) DEFAULT NULL ,
@@ -467,15 +467,15 @@ CREATE TABLE t_ds_task_definition_log (
   PRIMARY KEY (id)
 ) ;
 
-create index idx_task_definition_log_code_version on t_ds_task_definition_log (code,version);
-create index idx_task_definition_log_project_code on t_ds_task_definition_log (project_code);
+create index idx_task_definition_log_code_version on t_yak_ops_task_definition_log (code,version);
+create index idx_task_definition_log_project_code on t_yak_ops_task_definition_log (project_code);
 
 --
--- Table structure for table t_ds_workflow_task_relation
+-- Table structure for table t_yak_ops_workflow_task_relation
 --
 
-DROP TABLE IF EXISTS t_ds_workflow_task_relation;
-CREATE TABLE t_ds_workflow_task_relation (
+DROP TABLE IF EXISTS t_yak_ops_workflow_task_relation;
+CREATE TABLE t_yak_ops_workflow_task_relation (
   id int NOT NULL  ,
   name varchar(255) DEFAULT NULL ,
   project_code bigint DEFAULT NULL ,
@@ -492,16 +492,16 @@ CREATE TABLE t_ds_workflow_task_relation (
   PRIMARY KEY (id)
 ) ;
 
-create index workflow_task_relation_idx_project_code_workflow_definition_code on t_ds_workflow_task_relation (project_code,workflow_definition_code);
-create index workflow_task_relation_idx_pre_task_code_version on t_ds_workflow_task_relation (pre_task_code, pre_task_version);
-create index workflow_task_relation_idx_post_task_code_version on t_ds_workflow_task_relation (post_task_code, post_task_version);
+create index workflow_task_relation_idx_project_code_workflow_definition_code on t_yak_ops_workflow_task_relation (project_code,workflow_definition_code);
+create index workflow_task_relation_idx_pre_task_code_version on t_yak_ops_workflow_task_relation (pre_task_code, pre_task_version);
+create index workflow_task_relation_idx_post_task_code_version on t_yak_ops_workflow_task_relation (post_task_code, post_task_version);
 
 --
--- Table structure for table t_ds_workflow_task_relation_log
+-- Table structure for table t_yak_ops_workflow_task_relation_log
 --
 
-DROP TABLE IF EXISTS t_ds_workflow_task_relation_log;
-CREATE TABLE t_ds_workflow_task_relation_log (
+DROP TABLE IF EXISTS t_yak_ops_workflow_task_relation_log;
+CREATE TABLE t_yak_ops_workflow_task_relation_log (
   id int NOT NULL  ,
   name varchar(255) DEFAULT NULL ,
   project_code bigint DEFAULT NULL ,
@@ -520,14 +520,14 @@ CREATE TABLE t_ds_workflow_task_relation_log (
   PRIMARY KEY (id)
 ) ;
 
-create index workflow_task_relation_log_idx_project_code_workflow_definition_code on t_ds_workflow_task_relation_log (project_code,workflow_definition_code);
+create index workflow_task_relation_log_idx_project_code_workflow_definition_code on t_yak_ops_workflow_task_relation_log (project_code,workflow_definition_code);
 
 --
--- Table structure for table t_ds_workflow_instance
+-- Table structure for table t_yak_ops_workflow_instance
 --
 
-DROP TABLE IF EXISTS t_ds_workflow_instance;
-CREATE TABLE t_ds_workflow_instance (
+DROP TABLE IF EXISTS t_yak_ops_workflow_instance;
+CREATE TABLE t_yak_ops_workflow_instance (
   id int NOT NULL  ,
   name varchar(255) DEFAULT NULL ,
   workflow_definition_code bigint DEFAULT NULL ,
@@ -570,16 +570,16 @@ CREATE TABLE t_ds_workflow_instance (
   PRIMARY KEY (id)
 ) ;
 
-create index workflow_instance_index on t_ds_workflow_instance (workflow_definition_code,id);
-create index start_time_index on t_ds_workflow_instance (start_time,end_time);
-create index idx_project_start_time on t_ds_workflow_instance (project_code ASC, start_time DESC);
+create index workflow_instance_index on t_yak_ops_workflow_instance (workflow_definition_code,id);
+create index start_time_index on t_yak_ops_workflow_instance (start_time,end_time);
+create index idx_project_start_time on t_yak_ops_workflow_instance (project_code ASC, start_time DESC);
 
 --
--- Table structure for table t_ds_project
+-- Table structure for table t_yak_ops_project
 --
 
-DROP TABLE IF EXISTS t_ds_project;
-CREATE TABLE t_ds_project (
+DROP TABLE IF EXISTS t_yak_ops_project;
+CREATE TABLE t_yak_ops_project (
   id int NOT NULL  ,
   name varchar(255) DEFAULT NULL ,
   code bigint NOT NULL,
@@ -591,16 +591,16 @@ CREATE TABLE t_ds_project (
   PRIMARY KEY (id)
 ) ;
 
-create index user_id_index on t_ds_project (user_id);
-CREATE UNIQUE INDEX unique_name on t_ds_project (name);
-CREATE UNIQUE INDEX unique_code on t_ds_project (code);
+create index user_id_index on t_yak_ops_project (user_id);
+CREATE UNIQUE INDEX unique_name on t_yak_ops_project (name);
+CREATE UNIQUE INDEX unique_code on t_yak_ops_project (code);
 
 --
--- Table structure for table t_ds_project_parameter
+-- Table structure for table t_yak_ops_project_parameter
 --
 
-DROP TABLE IF EXISTS t_ds_project_parameter;
-CREATE TABLE t_ds_project_parameter (
+DROP TABLE IF EXISTS t_yak_ops_project_parameter;
+CREATE TABLE t_yak_ops_project_parameter (
   id int NOT NULL  ,
   param_name varchar(255) NOT NULL ,
   param_value text NOT NULL ,
@@ -614,15 +614,15 @@ CREATE TABLE t_ds_project_parameter (
   PRIMARY KEY (id)
 ) ;
 
-CREATE UNIQUE INDEX unique_project_parameter_name on t_ds_project_parameter (project_code, param_name);
-CREATE UNIQUE INDEX unique_project_parameter_code on t_ds_project_parameter (code);
+CREATE UNIQUE INDEX unique_project_parameter_name on t_yak_ops_project_parameter (project_code, param_name);
+CREATE UNIQUE INDEX unique_project_parameter_code on t_yak_ops_project_parameter (code);
 
 
 --
--- Table structure for table t_ds_project_preference
+-- Table structure for table t_yak_ops_project_preference
 --
-DROP TABLE IF EXISTS t_ds_project_preference;
-CREATE TABLE t_ds_project_preference
+DROP TABLE IF EXISTS t_yak_ops_project_preference;
+CREATE TABLE t_yak_ops_project_preference
 (
     id int NOT NULL  ,
     code bigint NOT NULL,
@@ -635,16 +635,16 @@ CREATE TABLE t_ds_project_preference
     PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX unique_project_preference_project_code on t_ds_project_preference (project_code);
-CREATE UNIQUE INDEX unique_project_preference_code on t_ds_project_preference (code);
+CREATE UNIQUE INDEX unique_project_preference_project_code on t_yak_ops_project_preference (project_code);
+CREATE UNIQUE INDEX unique_project_preference_code on t_yak_ops_project_preference (code);
 
 
 --
--- Table structure for table t_ds_queue
+-- Table structure for table t_yak_ops_queue
 --
 
-DROP TABLE IF EXISTS t_ds_queue;
-CREATE TABLE t_ds_queue (
+DROP TABLE IF EXISTS t_yak_ops_queue;
+CREATE TABLE t_yak_ops_queue (
   id int NOT NULL  ,
   queue_name varchar(64) DEFAULT NULL ,
   queue varchar(64) DEFAULT NULL ,
@@ -652,15 +652,15 @@ CREATE TABLE t_ds_queue (
   update_time timestamp DEFAULT NULL ,
   PRIMARY KEY (id)
 );
--- add unique key to t_ds_queue
-CREATE UNIQUE INDEX unique_queue_name on t_ds_queue (queue_name);
+-- add unique key to t_yak_ops_queue
+CREATE UNIQUE INDEX unique_queue_name on t_yak_ops_queue (queue_name);
 
 --
--- Table structure for table t_ds_relation_datasource_user
+-- Table structure for table t_yak_ops_relation_datasource_user
 --
 
-DROP TABLE IF EXISTS t_ds_relation_datasource_user;
-CREATE TABLE t_ds_relation_datasource_user (
+DROP TABLE IF EXISTS t_yak_ops_relation_datasource_user;
+CREATE TABLE t_yak_ops_relation_datasource_user (
   id int NOT NULL  ,
   user_id int NOT NULL ,
   datasource_id int DEFAULT NULL ,
@@ -671,27 +671,27 @@ CREATE TABLE t_ds_relation_datasource_user (
 ) ;
 
 --
--- Table structure for table t_ds_relation_workflow_instance
+-- Table structure for table t_yak_ops_relation_workflow_instance
 --
 
-DROP TABLE IF EXISTS t_ds_relation_workflow_instance;
-CREATE TABLE t_ds_relation_workflow_instance (
+DROP TABLE IF EXISTS t_yak_ops_relation_workflow_instance;
+CREATE TABLE t_yak_ops_relation_workflow_instance (
   id int NOT NULL  ,
   parent_workflow_instance_id int DEFAULT NULL ,
   parent_task_instance_id int DEFAULT NULL ,
   workflow_instance_id int DEFAULT NULL ,
   PRIMARY KEY (id)
 ) ;
-create index idx_relation_workflow_instance_parent_workflow_task on t_ds_relation_workflow_instance (parent_workflow_instance_id, parent_task_instance_id);
-create index idx_relation_workflow_instance_workflow_instance_id on t_ds_relation_workflow_instance (workflow_instance_id);
+create index idx_relation_workflow_instance_parent_workflow_task on t_yak_ops_relation_workflow_instance (parent_workflow_instance_id, parent_task_instance_id);
+create index idx_relation_workflow_instance_workflow_instance_id on t_yak_ops_relation_workflow_instance (workflow_instance_id);
 
 
 --
--- Table structure for table t_ds_relation_project_user
+-- Table structure for table t_yak_ops_relation_project_user
 --
 
-DROP TABLE IF EXISTS t_ds_relation_project_user;
-CREATE TABLE t_ds_relation_project_user (
+DROP TABLE IF EXISTS t_yak_ops_relation_project_user;
+CREATE TABLE t_yak_ops_relation_project_user (
   id int NOT NULL  ,
   user_id int NOT NULL ,
   project_id int DEFAULT NULL ,
@@ -699,16 +699,16 @@ CREATE TABLE t_ds_relation_project_user (
   create_time timestamp DEFAULT NULL ,
   update_time timestamp DEFAULT NULL ,
   PRIMARY KEY (id),
-  CONSTRAINT t_ds_relation_project_user_un UNIQUE (user_id, project_id)
+  CONSTRAINT t_yak_ops_relation_project_user_un UNIQUE (user_id, project_id)
 ) ;
-create index relation_project_user_id_index on t_ds_relation_project_user (user_id);
+create index relation_project_user_id_index on t_yak_ops_relation_project_user (user_id);
 
 --
--- Table structure for table t_ds_relation_resources_user
+-- Table structure for table t_yak_ops_relation_resources_user
 --
 -- Deprecated
-DROP TABLE IF EXISTS t_ds_relation_resources_user;
-CREATE TABLE t_ds_relation_resources_user (
+DROP TABLE IF EXISTS t_yak_ops_relation_resources_user;
+CREATE TABLE t_yak_ops_relation_resources_user (
   id int NOT NULL ,
   user_id int NOT NULL ,
   resources_id int DEFAULT NULL ,
@@ -719,11 +719,11 @@ CREATE TABLE t_ds_relation_resources_user (
 ) ;
 
 --
--- Table structure for table t_ds_relation_udfs_user
+-- Table structure for table t_yak_ops_relation_udfs_user
 --
 
-DROP TABLE IF EXISTS t_ds_relation_udfs_user;
-CREATE TABLE t_ds_relation_udfs_user (
+DROP TABLE IF EXISTS t_yak_ops_relation_udfs_user;
+CREATE TABLE t_yak_ops_relation_udfs_user (
   id int NOT NULL  ,
   user_id int NOT NULL ,
   udf_id int DEFAULT NULL ,
@@ -735,11 +735,11 @@ CREATE TABLE t_ds_relation_udfs_user (
 ;
 
 --
--- Table structure for table t_ds_resources
+-- Table structure for table t_yak_ops_resources
 --
 -- Deprecated
-DROP TABLE IF EXISTS t_ds_resources;
-CREATE TABLE t_ds_resources (
+DROP TABLE IF EXISTS t_yak_ops_resources;
+CREATE TABLE t_yak_ops_resources (
   id int NOT NULL  ,
   alias varchar(64) DEFAULT NULL ,
   file_name varchar(64) DEFAULT NULL ,
@@ -753,15 +753,15 @@ CREATE TABLE t_ds_resources (
   full_name varchar(128),
   is_directory boolean DEFAULT FALSE,
   PRIMARY KEY (id),
-  CONSTRAINT t_ds_resources_un UNIQUE (full_name, type)
+  CONSTRAINT t_yak_ops_resources_un UNIQUE (full_name, type)
 ) ;
 
 --
--- Table structure for table t_ds_schedules
+-- Table structure for table t_yak_ops_schedules
 --
 
-DROP TABLE IF EXISTS t_ds_schedules;
-CREATE TABLE t_ds_schedules (
+DROP TABLE IF EXISTS t_yak_ops_schedules;
+CREATE TABLE t_yak_ops_schedules (
   id int NOT NULL ,
   workflow_definition_code bigint NOT NULL ,
   start_time timestamp NOT NULL ,
@@ -782,14 +782,14 @@ CREATE TABLE t_ds_schedules (
   update_time timestamp NOT NULL ,
   PRIMARY KEY (id)
 );
-CREATE UNIQUE INDEX uniq_schedules_workflow_definition_code ON t_ds_schedules (workflow_definition_code);
+CREATE UNIQUE INDEX uniq_schedules_workflow_definition_code ON t_yak_ops_schedules (workflow_definition_code);
 
 --
--- Table structure for table t_ds_session
+-- Table structure for table t_yak_ops_session
 --
 
-DROP TABLE IF EXISTS t_ds_session;
-CREATE TABLE t_ds_session (
+DROP TABLE IF EXISTS t_yak_ops_session;
+CREATE TABLE t_yak_ops_session (
   id varchar(64) NOT NULL ,
   user_id int DEFAULT NULL ,
   ip varchar(45) DEFAULT NULL ,
@@ -798,11 +798,11 @@ CREATE TABLE t_ds_session (
 );
 
 --
--- Table structure for table t_ds_task_instance
+-- Table structure for table t_yak_ops_task_instance
 --
 
-DROP TABLE IF EXISTS t_ds_task_instance;
-CREATE TABLE t_ds_task_instance (
+DROP TABLE IF EXISTS t_yak_ops_task_instance;
+CREATE TABLE t_yak_ops_task_instance (
   id int NOT NULL  ,
   name varchar(255) DEFAULT NULL ,
   task_type varchar(50) DEFAULT NULL ,
@@ -843,14 +843,14 @@ CREATE TABLE t_ds_task_instance (
   PRIMARY KEY (id)
 ) ;
 
-create index idx_task_instance_code_version on t_ds_task_instance (task_code, task_definition_version);
-create index idx_project_submit_time on t_ds_task_instance (project_code ASC, submit_time DESC);
+create index idx_task_instance_code_version on t_yak_ops_task_instance (task_code, task_definition_version);
+create index idx_project_submit_time on t_yak_ops_task_instance (project_code ASC, submit_time DESC);
 
 --
--- Table structure for t_ds_task_instance_context
+-- Table structure for t_yak_ops_task_instance_context
 --
-DROP TABLE IF EXISTS t_ds_task_instance_context;
-CREATE TABLE t_ds_task_instance_context (
+DROP TABLE IF EXISTS t_yak_ops_task_instance_context;
+CREATE TABLE t_yak_ops_task_instance_context (
   id SERIAL NOT NULL,
   task_instance_id int NOT NULL,
   context text NOT NULL,
@@ -860,14 +860,14 @@ CREATE TABLE t_ds_task_instance_context (
   PRIMARY KEY (id)
 );
 
-create unique index idx_task_instance_id on t_ds_task_instance_context (task_instance_id, context_type);
+create unique index idx_task_instance_id on t_yak_ops_task_instance_context (task_instance_id, context_type);
 
 --
--- Table structure for table t_ds_tenant
+-- Table structure for table t_yak_ops_tenant
 --
 
-DROP TABLE IF EXISTS t_ds_tenant;
-CREATE TABLE t_ds_tenant (
+DROP TABLE IF EXISTS t_yak_ops_tenant;
+CREATE TABLE t_yak_ops_tenant (
   id int NOT NULL  ,
   tenant_code varchar(64) DEFAULT NULL ,
   description varchar(255) DEFAULT NULL ,
@@ -876,15 +876,15 @@ CREATE TABLE t_ds_tenant (
   update_time timestamp DEFAULT NULL ,
   PRIMARY KEY (id)
 ) ;
--- add unique key to t_ds_tenant
-CREATE UNIQUE INDEX unique_tenant_code on t_ds_tenant (tenant_code);
+-- add unique key to t_yak_ops_tenant
+CREATE UNIQUE INDEX unique_tenant_code on t_yak_ops_tenant (tenant_code);
 
 --
--- Table structure for table t_ds_udfs
+-- Table structure for table t_yak_ops_udfs
 --
 
-DROP TABLE IF EXISTS t_ds_udfs;
-CREATE TABLE t_ds_udfs (
+DROP TABLE IF EXISTS t_yak_ops_udfs;
+CREATE TABLE t_yak_ops_udfs (
   id int NOT NULL  ,
   user_id int NOT NULL ,
   func_name varchar(255) NOT NULL ,
@@ -899,15 +899,15 @@ CREATE TABLE t_ds_udfs (
   update_time timestamp NOT NULL ,
   PRIMARY KEY (id)
 ) ;
--- add unique key to t_ds_udfs
-CREATE UNIQUE INDEX unique_func_name on t_ds_udfs (func_name);
+-- add unique key to t_yak_ops_udfs
+CREATE UNIQUE INDEX unique_func_name on t_yak_ops_udfs (func_name);
 
 --
--- Table structure for table t_ds_user
+-- Table structure for table t_yak_ops_user
 --
 
-DROP TABLE IF EXISTS t_ds_user;
-CREATE TABLE t_ds_user (
+DROP TABLE IF EXISTS t_yak_ops_user;
+CREATE TABLE t_yak_ops_user (
   id int NOT NULL  ,
   user_name varchar(64) DEFAULT NULL ,
   user_password varchar(64) DEFAULT NULL ,
@@ -922,26 +922,26 @@ CREATE TABLE t_ds_user (
   time_zone varchar(32) DEFAULT NULL,
   PRIMARY KEY (id)
 );
-comment on column t_ds_user.state is 'state 0:disable 1:enable';
+comment on column t_yak_ops_user.state is 'state 0:disable 1:enable';
 
 --
--- Table structure for table t_ds_version
+-- Table structure for table t_yak_ops_version
 --
 
-DROP TABLE IF EXISTS t_ds_version;
-CREATE TABLE t_ds_version (
+DROP TABLE IF EXISTS t_yak_ops_version;
+CREATE TABLE t_yak_ops_version (
   id int NOT NULL ,
   version varchar(63) NOT NULL,
   PRIMARY KEY (id)
 ) ;
-create index version_index on t_ds_version(version);
+create index version_index on t_yak_ops_version(version);
 
 --
--- Table structure for table t_ds_worker_group
+-- Table structure for table t_yak_ops_worker_group
 --
 
-DROP TABLE IF EXISTS t_ds_worker_group;
-CREATE TABLE t_ds_worker_group (
+DROP TABLE IF EXISTS t_yak_ops_worker_group;
+CREATE TABLE t_yak_ops_worker_group (
   id bigint NOT NULL  ,
   name varchar(255) NOT NULL ,
   addr_list text DEFAULT NULL ,
@@ -953,178 +953,178 @@ CREATE TABLE t_ds_worker_group (
 ) ;
 
 --
--- Table structure for table t_ds_relation_project_worker_group
+-- Table structure for table t_yak_ops_relation_project_worker_group
 --
 
-DROP TABLE IF EXISTS t_ds_relation_project_worker_group;
-CREATE TABLE t_ds_relation_project_worker_group (
+DROP TABLE IF EXISTS t_yak_ops_relation_project_worker_group;
+CREATE TABLE t_yak_ops_relation_project_worker_group (
     id int NOT NULL  ,
     project_code bigint DEFAULT NULL ,
     worker_group varchar(255) NOT NULL,
     create_time timestamp DEFAULT NULL,
     update_time timestamp DEFAULT NULL,
     PRIMARY KEY (id),
-    CONSTRAINT t_ds_relation_project_worker_group_un UNIQUE (project_code, worker_group)
+    CONSTRAINT t_yak_ops_relation_project_worker_group_un UNIQUE (project_code, worker_group)
 );
 
-DROP SEQUENCE IF EXISTS t_ds_access_token_id_sequence;
-CREATE SEQUENCE  t_ds_access_token_id_sequence;
-ALTER TABLE t_ds_access_token ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_access_token_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_alert_id_sequence;
-CREATE SEQUENCE  t_ds_alert_id_sequence;
-ALTER TABLE t_ds_alert ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_alert_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_alertgroup_id_sequence;
-CREATE SEQUENCE  t_ds_alertgroup_id_sequence;
-ALTER TABLE t_ds_alertgroup ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_alertgroup_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_access_token_id_sequence;
+CREATE SEQUENCE  t_yak_ops_access_token_id_sequence;
+ALTER TABLE t_yak_ops_access_token ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_access_token_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_alert_id_sequence;
+CREATE SEQUENCE  t_yak_ops_alert_id_sequence;
+ALTER TABLE t_yak_ops_alert ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_alert_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_alertgroup_id_sequence;
+CREATE SEQUENCE  t_yak_ops_alertgroup_id_sequence;
+ALTER TABLE t_yak_ops_alertgroup ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_alertgroup_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_command_id_sequence;
-CREATE SEQUENCE  t_ds_command_id_sequence;
-ALTER TABLE t_ds_command ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_command_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_datasource_id_sequence;
-CREATE SEQUENCE  t_ds_datasource_id_sequence;
-ALTER TABLE t_ds_datasource ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_datasource_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_workflow_definition_id_sequence;
-CREATE SEQUENCE  t_ds_workflow_definition_id_sequence;
-ALTER TABLE t_ds_workflow_definition ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_workflow_definition_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_workflow_definition_log_id_sequence;
-CREATE SEQUENCE  t_ds_workflow_definition_log_id_sequence;
-ALTER TABLE t_ds_workflow_definition_log ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_workflow_definition_log_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_task_definition_id_sequence;
-CREATE SEQUENCE  t_ds_task_definition_id_sequence;
-ALTER TABLE t_ds_task_definition ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_task_definition_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_task_definition_log_id_sequence;
-CREATE SEQUENCE  t_ds_task_definition_log_id_sequence;
-ALTER TABLE t_ds_task_definition_log ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_task_definition_log_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_workflow_task_relation_id_sequence;
-CREATE SEQUENCE  t_ds_workflow_task_relation_id_sequence;
-ALTER TABLE t_ds_workflow_task_relation ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_workflow_task_relation_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_workflow_task_relation_log_id_sequence;
-CREATE SEQUENCE  t_ds_workflow_task_relation_log_id_sequence;
-ALTER TABLE t_ds_workflow_task_relation_log ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_workflow_task_relation_log_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_workflow_instance_id_sequence;
-CREATE SEQUENCE  t_ds_workflow_instance_id_sequence;
-ALTER TABLE t_ds_workflow_instance ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_workflow_instance_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_command_id_sequence;
+CREATE SEQUENCE  t_yak_ops_command_id_sequence;
+ALTER TABLE t_yak_ops_command ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_command_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_datasource_id_sequence;
+CREATE SEQUENCE  t_yak_ops_datasource_id_sequence;
+ALTER TABLE t_yak_ops_datasource ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_datasource_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_workflow_definition_id_sequence;
+CREATE SEQUENCE  t_yak_ops_workflow_definition_id_sequence;
+ALTER TABLE t_yak_ops_workflow_definition ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_workflow_definition_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_workflow_definition_log_id_sequence;
+CREATE SEQUENCE  t_yak_ops_workflow_definition_log_id_sequence;
+ALTER TABLE t_yak_ops_workflow_definition_log ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_workflow_definition_log_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_task_definition_id_sequence;
+CREATE SEQUENCE  t_yak_ops_task_definition_id_sequence;
+ALTER TABLE t_yak_ops_task_definition ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_task_definition_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_task_definition_log_id_sequence;
+CREATE SEQUENCE  t_yak_ops_task_definition_log_id_sequence;
+ALTER TABLE t_yak_ops_task_definition_log ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_task_definition_log_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_workflow_task_relation_id_sequence;
+CREATE SEQUENCE  t_yak_ops_workflow_task_relation_id_sequence;
+ALTER TABLE t_yak_ops_workflow_task_relation ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_workflow_task_relation_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_workflow_task_relation_log_id_sequence;
+CREATE SEQUENCE  t_yak_ops_workflow_task_relation_log_id_sequence;
+ALTER TABLE t_yak_ops_workflow_task_relation_log ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_workflow_task_relation_log_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_workflow_instance_id_sequence;
+CREATE SEQUENCE  t_yak_ops_workflow_instance_id_sequence;
+ALTER TABLE t_yak_ops_workflow_instance ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_workflow_instance_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_project_id_sequence;
-CREATE SEQUENCE  t_ds_project_id_sequence;
-ALTER TABLE t_ds_project ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_project_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_project_id_sequence;
+CREATE SEQUENCE  t_yak_ops_project_id_sequence;
+ALTER TABLE t_yak_ops_project ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_project_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_queue_id_sequence;
-CREATE SEQUENCE  t_ds_queue_id_sequence;
-ALTER TABLE t_ds_queue ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_queue_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_queue_id_sequence;
+CREATE SEQUENCE  t_yak_ops_queue_id_sequence;
+ALTER TABLE t_yak_ops_queue ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_queue_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_relation_datasource_user_id_sequence;
-CREATE SEQUENCE  t_ds_relation_datasource_user_id_sequence;
-ALTER TABLE t_ds_relation_datasource_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_relation_datasource_user_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_relation_workflow_instance_id_sequence;
-CREATE SEQUENCE  t_ds_relation_workflow_instance_id_sequence;
-ALTER TABLE t_ds_relation_workflow_instance ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_relation_workflow_instance_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_relation_project_user_id_sequence;
-CREATE SEQUENCE  t_ds_relation_project_user_id_sequence;
-ALTER TABLE t_ds_relation_project_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_relation_project_user_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_relation_resources_user_id_sequence;
-CREATE SEQUENCE  t_ds_relation_resources_user_id_sequence;
-ALTER TABLE t_ds_relation_resources_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_relation_resources_user_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_relation_udfs_user_id_sequence;
-CREATE SEQUENCE  t_ds_relation_udfs_user_id_sequence;
-ALTER TABLE t_ds_relation_udfs_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_relation_udfs_user_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_relation_datasource_user_id_sequence;
+CREATE SEQUENCE  t_yak_ops_relation_datasource_user_id_sequence;
+ALTER TABLE t_yak_ops_relation_datasource_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_relation_datasource_user_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_relation_workflow_instance_id_sequence;
+CREATE SEQUENCE  t_yak_ops_relation_workflow_instance_id_sequence;
+ALTER TABLE t_yak_ops_relation_workflow_instance ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_relation_workflow_instance_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_relation_project_user_id_sequence;
+CREATE SEQUENCE  t_yak_ops_relation_project_user_id_sequence;
+ALTER TABLE t_yak_ops_relation_project_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_relation_project_user_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_relation_resources_user_id_sequence;
+CREATE SEQUENCE  t_yak_ops_relation_resources_user_id_sequence;
+ALTER TABLE t_yak_ops_relation_resources_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_relation_resources_user_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_relation_udfs_user_id_sequence;
+CREATE SEQUENCE  t_yak_ops_relation_udfs_user_id_sequence;
+ALTER TABLE t_yak_ops_relation_udfs_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_relation_udfs_user_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_resources_id_sequence;
-CREATE SEQUENCE  t_ds_resources_id_sequence;
-ALTER TABLE t_ds_resources ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_resources_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_schedules_id_sequence;
-CREATE SEQUENCE  t_ds_schedules_id_sequence;
-ALTER TABLE t_ds_schedules ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_schedules_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_task_instance_id_sequence;
-CREATE SEQUENCE  t_ds_task_instance_id_sequence;
-ALTER TABLE t_ds_task_instance ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_task_instance_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_tenant_id_sequence;
-CREATE SEQUENCE  t_ds_tenant_id_sequence;
-ALTER TABLE t_ds_tenant ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_tenant_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_udfs_id_sequence;
-CREATE SEQUENCE  t_ds_udfs_id_sequence;
-ALTER TABLE t_ds_udfs ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_udfs_id_sequence');
-DROP SEQUENCE IF EXISTS t_ds_user_id_sequence;
-CREATE SEQUENCE  t_ds_user_id_sequence;
-ALTER TABLE t_ds_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_user_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_resources_id_sequence;
+CREATE SEQUENCE  t_yak_ops_resources_id_sequence;
+ALTER TABLE t_yak_ops_resources ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_resources_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_schedules_id_sequence;
+CREATE SEQUENCE  t_yak_ops_schedules_id_sequence;
+ALTER TABLE t_yak_ops_schedules ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_schedules_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_task_instance_id_sequence;
+CREATE SEQUENCE  t_yak_ops_task_instance_id_sequence;
+ALTER TABLE t_yak_ops_task_instance ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_task_instance_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_tenant_id_sequence;
+CREATE SEQUENCE  t_yak_ops_tenant_id_sequence;
+ALTER TABLE t_yak_ops_tenant ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_tenant_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_udfs_id_sequence;
+CREATE SEQUENCE  t_yak_ops_udfs_id_sequence;
+ALTER TABLE t_yak_ops_udfs ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_udfs_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_user_id_sequence;
+CREATE SEQUENCE  t_yak_ops_user_id_sequence;
+ALTER TABLE t_yak_ops_user ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_user_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_version_id_sequence;
-CREATE SEQUENCE  t_ds_version_id_sequence;
-ALTER TABLE t_ds_version ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_version_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_version_id_sequence;
+CREATE SEQUENCE  t_yak_ops_version_id_sequence;
+ALTER TABLE t_yak_ops_version ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_version_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_worker_group_id_sequence;
-CREATE SEQUENCE  t_ds_worker_group_id_sequence;
-ALTER TABLE t_ds_worker_group ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_worker_group_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_worker_group_id_sequence;
+CREATE SEQUENCE  t_yak_ops_worker_group_id_sequence;
+ALTER TABLE t_yak_ops_worker_group ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_worker_group_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_project_parameter_id_sequence;
-CREATE SEQUENCE  t_ds_project_parameter_id_sequence;
-ALTER TABLE t_ds_project_parameter ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_project_parameter_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_project_parameter_id_sequence;
+CREATE SEQUENCE  t_yak_ops_project_parameter_id_sequence;
+ALTER TABLE t_yak_ops_project_parameter ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_project_parameter_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_project_preference_id_sequence;
-CREATE SEQUENCE t_ds_project_preference_id_sequence;
-ALTER TABLE t_ds_project_preference ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_project_preference_id_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_project_preference_id_sequence;
+CREATE SEQUENCE t_yak_ops_project_preference_id_sequence;
+ALTER TABLE t_yak_ops_project_preference ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_project_preference_id_sequence');
 
-DROP SEQUENCE IF EXISTS t_ds_relation_project_worker_group_sequence;
-CREATE SEQUENCE  t_ds_relation_project_worker_group_sequence;
-ALTER TABLE t_ds_relation_project_worker_group ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_relation_project_worker_group_sequence');
+DROP SEQUENCE IF EXISTS t_yak_ops_relation_project_worker_group_sequence;
+CREATE SEQUENCE  t_yak_ops_relation_project_worker_group_sequence;
+ALTER TABLE t_yak_ops_relation_project_worker_group ALTER COLUMN id SET DEFAULT NEXTVAL('t_yak_ops_relation_project_worker_group_sequence');
 
--- Records of t_ds_user?user : admin , password : yak-ops123
-INSERT INTO t_ds_user(user_name, user_password, user_type, email, phone, tenant_id, state, create_time, update_time, time_zone)
+-- Records of t_yak_ops_user?user : admin , password : yak-ops123
+INSERT INTO t_yak_ops_user(user_name, user_password, user_type, email, phone, tenant_id, state, create_time, update_time, time_zone)
 VALUES ('admin', '7ad2410b2f4c074479a8937a28a22b8f', '0', 'xxx@qq.com', '', '-1', 1, '2018-03-27 15:48:50', '2018-10-24 17:40:22', null);
 
--- Records of t_ds_tenant
-INSERT INTO t_ds_tenant(id, tenant_code, description, queue_id, create_time, update_time)
+-- Records of t_yak_ops_tenant
+INSERT INTO t_yak_ops_tenant(id, tenant_code, description, queue_id, create_time, update_time)
 VALUES (-1, 'default', 'default tenant', '1', '2018-03-27 15:48:50', '2018-10-24 17:40:22');
 
--- Records of t_ds_alertgroup, default admin warning group
-INSERT INTO t_ds_alertgroup(alert_instance_ids, create_user_id, group_name, description, create_time, update_time)
+-- Records of t_yak_ops_alertgroup, default admin warning group
+INSERT INTO t_yak_ops_alertgroup(alert_instance_ids, create_user_id, group_name, description, create_time, update_time)
 VALUES (NULL, 1, 'default admin warning group', 'default admin warning group', '2018-11-29 10:20:39', '2018-11-29 10:20:39');
 
--- Records of t_ds_queue,default queue name : default
-INSERT INTO t_ds_queue(queue_name, queue, create_time, update_time)
+-- Records of t_yak_ops_queue,default queue name : default
+INSERT INTO t_yak_ops_queue(queue_name, queue, create_time, update_time)
 VALUES ('default', 'default', '2018-11-29 10:22:33', '2018-11-29 10:22:33');
 
--- Records of t_ds_queue,default queue name : default
-INSERT INTO t_ds_version(version) VALUES ('3.4.3');
+-- Records of t_yak_ops_queue,default queue name : default
+INSERT INTO t_yak_ops_version(version) VALUES ('3.4.3');
 
 --
--- Table structure for table t_ds_plugin_define
+-- Table structure for table t_yak_ops_plugin_define
 --
 
-DROP TABLE IF EXISTS t_ds_plugin_define;
-CREATE TABLE t_ds_plugin_define (
+DROP TABLE IF EXISTS t_yak_ops_plugin_define;
+CREATE TABLE t_yak_ops_plugin_define (
   id serial NOT NULL,
   plugin_name varchar(255) NOT NULL,
   plugin_type varchar(63) NOT NULL,
   plugin_params text NULL,
   create_time timestamp NULL,
   update_time timestamp NULL,
-  CONSTRAINT t_ds_plugin_define_pk PRIMARY KEY (id),
-  CONSTRAINT t_ds_plugin_define_un UNIQUE (plugin_name, plugin_type)
+  CONSTRAINT t_yak_ops_plugin_define_pk PRIMARY KEY (id),
+  CONSTRAINT t_yak_ops_plugin_define_un UNIQUE (plugin_name, plugin_type)
 );
 
 --
--- Table structure for table t_ds_alert_plugin_instance
+-- Table structure for table t_yak_ops_alert_plugin_instance
 --
 
-DROP TABLE IF EXISTS t_ds_alert_plugin_instance;
-CREATE TABLE t_ds_alert_plugin_instance (
+DROP TABLE IF EXISTS t_yak_ops_alert_plugin_instance;
+CREATE TABLE t_yak_ops_alert_plugin_instance (
 	id serial NOT NULL,
 	plugin_define_id int NOT NULL,
 	plugin_instance_params text NULL,
 	create_time timestamp NULL,
 	update_time timestamp NULL,
 	instance_name varchar(255) NULL,
-	CONSTRAINT t_ds_alert_plugin_instance_pk PRIMARY KEY (id)
+	CONSTRAINT t_yak_ops_alert_plugin_instance_pk PRIMARY KEY (id)
 );
 
 
 --
--- Table structure for table t_ds_environment
+-- Table structure for table t_yak_ops_environment
 --
 
-DROP TABLE IF EXISTS t_ds_environment;
-CREATE TABLE t_ds_environment (
+DROP TABLE IF EXISTS t_yak_ops_environment;
+CREATE TABLE t_yak_ops_environment (
   id serial NOT NULL,
   code bigint NOT NULL,
   name varchar(255) DEFAULT NULL,
@@ -1139,11 +1139,11 @@ CREATE TABLE t_ds_environment (
 );
 
 --
--- Table structure for table t_ds_environment_worker_group_relation
+-- Table structure for table t_yak_ops_environment_worker_group_relation
 --
 
-DROP TABLE IF EXISTS t_ds_environment_worker_group_relation;
-CREATE TABLE t_ds_environment_worker_group_relation (
+DROP TABLE IF EXISTS t_yak_ops_environment_worker_group_relation;
+CREATE TABLE t_yak_ops_environment_worker_group_relation (
   id serial NOT NULL,
   environment_code bigint NOT NULL,
   worker_group varchar(255) NOT NULL,
@@ -1155,11 +1155,11 @@ CREATE TABLE t_ds_environment_worker_group_relation (
 );
 
 --
--- Table structure for table t_ds_task_group_queue
+-- Table structure for table t_yak_ops_task_group_queue
 --
 
-DROP TABLE IF EXISTS t_ds_task_group_queue;
-CREATE TABLE t_ds_task_group_queue (
+DROP TABLE IF EXISTS t_yak_ops_task_group_queue;
+CREATE TABLE t_yak_ops_task_group_queue (
    id serial NOT NULL,
    task_id      int DEFAULT NULL ,
    task_name    VARCHAR(255) DEFAULT NULL ,
@@ -1174,18 +1174,18 @@ CREATE TABLE t_ds_task_group_queue (
    PRIMARY KEY (id)
 );
 
-create index idx_t_ds_task_group_queue_in_queue on t_ds_task_group_queue(in_queue);
-create index idx_t_ds_task_group_queue_task_id on t_ds_task_group_queue(task_id);
-create index idx_t_ds_task_group_queue_group_id on t_ds_task_group_queue(group_id);
-create index idx_t_ds_task_group_queue_status on t_ds_task_group_queue(status);
-create index idx_t_ds_task_group_queue_workflow_instance_id on t_ds_task_group_queue(workflow_instance_id);
+create index idx_t_yak_ops_task_group_queue_in_queue on t_yak_ops_task_group_queue(in_queue);
+create index idx_t_yak_ops_task_group_queue_task_id on t_yak_ops_task_group_queue(task_id);
+create index idx_t_yak_ops_task_group_queue_group_id on t_yak_ops_task_group_queue(group_id);
+create index idx_t_yak_ops_task_group_queue_status on t_yak_ops_task_group_queue(status);
+create index idx_t_yak_ops_task_group_queue_workflow_instance_id on t_yak_ops_task_group_queue(workflow_instance_id);
 
 --
--- Table structure for table t_ds_task_group
+-- Table structure for table t_yak_ops_task_group
 --
 
-DROP TABLE IF EXISTS t_ds_task_group;
-CREATE TABLE t_ds_task_group (
+DROP TABLE IF EXISTS t_yak_ops_task_group;
+CREATE TABLE t_yak_ops_task_group (
    id serial NOT NULL,
    name        varchar(255) DEFAULT NULL ,
    description varchar(255) DEFAULT NULL ,
@@ -1200,10 +1200,10 @@ CREATE TABLE t_ds_task_group (
 );
 
 -- ----------------------------
--- Table structure for t_ds_audit_log
+-- Table structure for t_yak_ops_audit_log
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_audit_log;
-CREATE TABLE t_ds_audit_log (
+DROP TABLE IF EXISTS t_yak_ops_audit_log;
+CREATE TABLE t_yak_ops_audit_log (
     id serial NOT NULL,
     user_id         int NOT NULL,
     model_id        bigint NOT NULL,
@@ -1218,11 +1218,11 @@ CREATE TABLE t_ds_audit_log (
 );
 
 --
--- Table structure for table t_ds_k8s
+-- Table structure for table t_yak_ops_k8s
 --
 
-DROP TABLE IF EXISTS t_ds_k8s;
-CREATE TABLE t_ds_k8s (
+DROP TABLE IF EXISTS t_yak_ops_k8s;
+CREATE TABLE t_yak_ops_k8s (
    id serial NOT NULL,
    k8s_name    VARCHAR(255) DEFAULT NULL ,
    k8s_config  text ,
@@ -1232,11 +1232,11 @@ CREATE TABLE t_ds_k8s (
 );
 
 --
--- Table structure for table t_ds_k8s_namespace
+-- Table structure for table t_yak_ops_k8s_namespace
 --
 
-DROP TABLE IF EXISTS t_ds_k8s_namespace;
-CREATE TABLE t_ds_k8s_namespace (
+DROP TABLE IF EXISTS t_yak_ops_k8s_namespace;
+CREATE TABLE t_yak_ops_k8s_namespace (
    id serial NOT NULL,
    code               bigint  NOT NULL,
    namespace          varchar(255) DEFAULT NULL ,
@@ -1250,11 +1250,11 @@ CREATE TABLE t_ds_k8s_namespace (
 
 
 --
--- Table structure for table t_ds_relation_namespace_user
+-- Table structure for table t_yak_ops_relation_namespace_user
 --
 
-DROP TABLE IF EXISTS t_ds_relation_namespace_user;
-CREATE TABLE t_ds_relation_namespace_user (
+DROP TABLE IF EXISTS t_yak_ops_relation_namespace_user;
+CREATE TABLE t_yak_ops_relation_namespace_user (
     id serial NOT NULL,
     user_id           int DEFAULT NULL ,
     namespace_id      int DEFAULT NULL ,
@@ -1266,10 +1266,10 @@ CREATE TABLE t_ds_relation_namespace_user (
 );
 
 -- ----------------------------
--- Table structure for t_ds_alert_send_status
+-- Table structure for t_yak_ops_alert_send_status
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_alert_send_status;
-CREATE TABLE t_ds_alert_send_status (
+DROP TABLE IF EXISTS t_yak_ops_alert_send_status;
+CREATE TABLE t_yak_ops_alert_send_status (
     id                           serial NOT NULL,
     alert_id                     int NOT NULL,
     alert_plugin_instance_id     int NOT NULL,
@@ -1282,11 +1282,11 @@ CREATE TABLE t_ds_alert_send_status (
 
 
 --
--- Table structure for table t_ds_cluster
+-- Table structure for table t_yak_ops_cluster
 --
 
-DROP TABLE IF EXISTS t_ds_cluster;
-CREATE TABLE t_ds_cluster(
+DROP TABLE IF EXISTS t_yak_ops_cluster;
+CREATE TABLE t_yak_ops_cluster(
                              id          serial NOT NULL,
                              code        bigint NOT NULL,
                              name        varchar(255) DEFAULT NULL,
@@ -1301,11 +1301,11 @@ CREATE TABLE t_ds_cluster(
 );
 
 --
--- Table structure for t_ds_fav_task
+-- Table structure for t_yak_ops_fav_task
 --
 
-DROP TABLE IF EXISTS t_ds_fav_task;
-CREATE TABLE t_ds_fav_task
+DROP TABLE IF EXISTS t_yak_ops_fav_task;
+CREATE TABLE t_yak_ops_fav_task
 (
     id        serial      NOT NULL,
     task_type varchar(64) NOT NULL,
@@ -1313,23 +1313,23 @@ CREATE TABLE t_ds_fav_task
     PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS t_ds_relation_sub_workflow;
-CREATE TABLE t_ds_relation_sub_workflow (
+DROP TABLE IF EXISTS t_yak_ops_relation_sub_workflow;
+CREATE TABLE t_yak_ops_relation_sub_workflow (
     id        serial      NOT NULL,
     parent_workflow_instance_id BIGINT NOT NULL,
     parent_task_code BIGINT NOT NULL,
     sub_workflow_instance_id BIGINT NOT NULL,
     PRIMARY KEY (id)
 );
-CREATE INDEX idx_parent_workflow_instance_id ON t_ds_relation_sub_workflow (parent_workflow_instance_id);
-CREATE INDEX idx_parent_task_code ON t_ds_relation_sub_workflow (parent_task_code);
-CREATE INDEX idx_sub_workflow_instance_id ON t_ds_relation_sub_workflow (sub_workflow_instance_id);
+CREATE INDEX idx_parent_workflow_instance_id ON t_yak_ops_relation_sub_workflow (parent_workflow_instance_id);
+CREATE INDEX idx_parent_task_code ON t_yak_ops_relation_sub_workflow (parent_task_code);
+CREATE INDEX idx_sub_workflow_instance_id ON t_yak_ops_relation_sub_workflow (sub_workflow_instance_id);
 
 -- ----------------------------
--- Table structure for t_ds_workflow_task_lineage
+-- Table structure for t_yak_ops_workflow_task_lineage
 -- ----------------------------
-DROP TABLE IF EXISTS t_ds_workflow_task_lineage;
-CREATE TABLE t_ds_workflow_task_lineage (
+DROP TABLE IF EXISTS t_yak_ops_workflow_task_lineage;
+CREATE TABLE t_yak_ops_workflow_task_lineage (
     id SERIAL NOT NULL,
     workflow_definition_code bigint NOT NULL DEFAULT 0,
     workflow_definition_version int NOT NULL DEFAULT 0,
@@ -1343,12 +1343,12 @@ CREATE TABLE t_ds_workflow_task_lineage (
     PRIMARY KEY (id)
 );
 
-create index idx_workflow_code_version on t_ds_workflow_task_lineage (workflow_definition_code,workflow_definition_version);
-create index idx_task_code_version on t_ds_workflow_task_lineage (task_definition_code,task_definition_version);
-create index idx_dept_code on t_ds_workflow_task_lineage (dept_project_code,dept_workflow_definition_code,dept_task_definition_code);
+create index idx_workflow_code_version on t_yak_ops_workflow_task_lineage (workflow_definition_code,workflow_definition_version);
+create index idx_task_code_version on t_yak_ops_workflow_task_lineage (task_definition_code,task_definition_version);
+create index idx_dept_code on t_yak_ops_workflow_task_lineage (dept_project_code,dept_workflow_definition_code,dept_task_definition_code);
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_data;
-create table t_ds_jdbc_registry_data
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_data;
+create table t_yak_ops_jdbc_registry_data
 (
     id               bigserial not null,
     data_key         varchar   not null,
@@ -1359,11 +1359,11 @@ create table t_ds_jdbc_registry_data
     last_update_time timestamp not null default current_timestamp,
     primary key (id)
 );
-create unique index uk_t_ds_jdbc_registry_dataKey on t_ds_jdbc_registry_data (data_key);
+create unique index uk_t_yak_ops_jdbc_registry_dataKey on t_yak_ops_jdbc_registry_data (data_key);
 
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_lock;
-create table t_ds_jdbc_registry_lock
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_lock;
+create table t_yak_ops_jdbc_registry_lock
 (
     id          bigserial not null,
     lock_key    varchar   not null,
@@ -1372,11 +1372,11 @@ create table t_ds_jdbc_registry_lock
     create_time timestamp not null default current_timestamp,
     primary key (id)
 );
-create unique index uk_t_ds_jdbc_registry_lockKey on t_ds_jdbc_registry_lock (lock_key);
+create unique index uk_t_yak_ops_jdbc_registry_lockKey on t_yak_ops_jdbc_registry_lock (lock_key);
 
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_client_heartbeat;
-create table t_ds_jdbc_registry_client_heartbeat
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_client_heartbeat;
+create table t_yak_ops_jdbc_registry_client_heartbeat
 (
     id                  bigint    not null,
     client_name         varchar   not null,
@@ -1386,8 +1386,8 @@ create table t_ds_jdbc_registry_client_heartbeat
     primary key (id)
 );
 
-DROP TABLE IF EXISTS t_ds_jdbc_registry_data_change_event;
-create table t_ds_jdbc_registry_data_change_event
+DROP TABLE IF EXISTS t_yak_ops_jdbc_registry_data_change_event;
+create table t_yak_ops_jdbc_registry_data_change_event
 (
     id                 bigserial not null,
     event_type         varchar   not null,

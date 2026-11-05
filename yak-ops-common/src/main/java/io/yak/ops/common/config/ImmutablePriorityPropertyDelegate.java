@@ -22,10 +22,20 @@ public class ImmutablePriorityPropertyDelegate implements IPropertyDelegate {
 
     private ImmutableYamlDelegate immutableYamlDelegate;
 
+    private final Map<String, String> environment;
+
     public ImmutablePriorityPropertyDelegate(ImmutablePropertyDelegate immutablePropertyDelegate,
                                              ImmutableYamlDelegate immutableYamlDelegate) {
+        this(immutablePropertyDelegate, immutableYamlDelegate, System.getenv());
+    }
+
+    // Allow tests to supply environment values without reflecting into JDK internals.
+    ImmutablePriorityPropertyDelegate(ImmutablePropertyDelegate immutablePropertyDelegate,
+                                      ImmutableYamlDelegate immutableYamlDelegate,
+                                      Map<String, String> environment) {
         this.immutablePropertyDelegate = immutablePropertyDelegate;
         this.immutableYamlDelegate = immutableYamlDelegate;
+        this.environment = environment;
     }
 
     @Override
@@ -74,17 +84,17 @@ public class ImmutablePriorityPropertyDelegate implements IPropertyDelegate {
         propertyKeys.addAll(this.immutablePropertyDelegate.getPropertyKeys());
         propertyKeys.addAll(this.immutableYamlDelegate.getPropertyKeys());
         propertyKeys.addAll(System.getProperties().stringPropertyNames());
-        propertyKeys.addAll(System.getenv().keySet());
+        propertyKeys.addAll(environment.keySet());
         return propertyKeys;
     }
 
     private Optional<ConfigValue<String>> getConfigValueFromEnv(String key) {
-        String value = System.getenv(key);
+        String value = environment.get(key);
         if (value != null) {
             return Optional.of(ConfigValue.fromEnv(key, value));
         }
         String envVarKey = String.valueOf(key).replaceAll("[.-]", "_").toUpperCase();
-        String envVarVal = System.getenv(envVarKey);
+        String envVarVal = environment.get(envVarKey);
         if (envVarVal != null) {
             return Optional.of(ConfigValue.fromEnv(key, envVarVal));
         }

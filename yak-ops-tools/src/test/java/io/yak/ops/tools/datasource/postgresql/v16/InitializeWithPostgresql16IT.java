@@ -20,10 +20,10 @@ class InitializeWithPostgresql16IT {
     private YakOpsManager yakOpsManager;
 
     @Test
-    @DisplayName("Test initYakOps database in PostgreSQL")
+    @DisplayName("Test initialize Yak Ops database in PostgreSQL")
     void testInitializeWithPostgreSQLProfile() {
         Assertions.assertDoesNotThrow(() -> {
-            yakOpsManager.initYakOps();
+            yakOpsManager.initializeOrValidate();
         });
         // todo: Assert table count
     }

@@ -25,7 +25,7 @@ class InitializeWithMysqlIT {
     @Test
     @DisplayName("Test Initialize YakOps database in MySQL")
     void testInitializeWithMysqlProfile() {
-        Assertions.assertDoesNotThrow(() -> yakOpsManager.initYakOps());
+        Assertions.assertDoesNotThrow(() -> yakOpsManager.initializeOrValidate());
         // todo: Assert table count
 
     }

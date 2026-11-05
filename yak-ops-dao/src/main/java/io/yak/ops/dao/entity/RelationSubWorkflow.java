@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("t_ds_relation_sub_workflow")
+@TableName("t_yak_ops_relation_sub_workflow")
 public class RelationSubWorkflow {
 
     @TableId(value = "id", type = IdType.AUTO)

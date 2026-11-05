@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_session")
+@TableName("t_yak_ops_session")
 public class Session {
 
     @TableId(value = "id", type = IdType.INPUT)

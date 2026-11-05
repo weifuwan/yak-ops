@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_ds_schedules")
+@TableName("t_yak_ops_schedules")
 public class Schedule {
 
     @TableId(value = "id", type = IdType.AUTO)
