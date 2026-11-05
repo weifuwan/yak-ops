@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -20,12 +21,15 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import lombok.SneakyThrows;
 
+@Tag("slow")
 @ActiveProfiles("postgresql")
 @SpringBootTest(classes = {JdbcRegistryProperties.class})
 @SpringBootApplication(scanBasePackageClasses = JdbcRegistryProperties.class)
 public class PostgresqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
 
     private static GenericContainer<?> postgresqlContainer;
+
+    private static final Network NETWORK = Network.newNetwork();
 
     @SneakyThrows
     @BeforeAll
@@ -34,7 +38,7 @@ public class PostgresqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
                 .withUsername("root")
                 .withPassword("root")
                 .withDatabaseName("yak-ops")
-                .withNetwork(Network.newNetwork())
+                .withNetwork(NETWORK)
                 .withExposedPorts(5432);
 
         Startables.deepStart(Stream.of(postgresqlContainer)).join();
@@ -57,6 +61,13 @@ public class PostgresqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
     @SneakyThrows
     @AfterAll
     public static void tearDownTestingServer() {
-        postgresqlContainer.close();
+        try {
+            if (postgresqlContainer != null) {
+                postgresqlContainer.close();
+            }
+        } finally {
+            System.clearProperty("spring.datasource.url");
+            NETWORK.close();
+        }
     }
 }

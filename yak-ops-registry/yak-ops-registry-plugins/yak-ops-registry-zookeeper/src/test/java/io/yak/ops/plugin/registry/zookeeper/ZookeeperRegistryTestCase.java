@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +17,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import lombok.SneakyThrows;
 
+@Tag("slow")
 @SpringBootTest(classes = ZookeeperRegistryProperties.class)
 @SpringBootApplication(scanBasePackageClasses = ZookeeperRegistryProperties.class)
 class ZookeeperRegistryTestCase extends RegistryTestCase<ZookeeperRegistry> {
@@ -47,6 +49,13 @@ class ZookeeperRegistryTestCase extends RegistryTestCase<ZookeeperRegistry> {
     @SneakyThrows
     @AfterAll
     public static void tearDownTestingServer() {
-        zookeeperContainer.close();
+        try {
+            if (zookeeperContainer != null) {
+                zookeeperContainer.close();
+            }
+        } finally {
+            System.clearProperty("registry.zookeeper.connect-string");
+            NETWORK.close();
+        }
     }
 }
