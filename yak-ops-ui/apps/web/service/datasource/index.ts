@@ -103,8 +103,6 @@ export async function getDataSource(id: DataSourceId, signal?: AbortSignal): Pro
 
 /** Suggested UI parameters; the backend is authoritative on accepted and rejected keys. */
 const PROPERTY_HINTS: Record<string, string[]> = {
-  MYSQL: ["serverTimezone", "useSSL", "connectTimeout", "socketTimeout", "characterEncoding"],
-  POSTGRESQL: ["sslmode", "connectTimeout", "socketTimeout", "ApplicationName"],
   ORACLE: ["oracle.net.CONNECT_TIMEOUT", "oracle.jdbc.ReadTimeout"],
   SQLSERVER: ["encrypt", "trustServerCertificate", "loginTimeout"],
   DB2: ["sslConnection", "currentSchema"],
@@ -116,9 +114,17 @@ const PROPERTY_HINTS: Record<string, string[]> = {
 };
 export const getDataSourceConnectionPropertyKeys = async (
   dbType: string,
-): Promise<DataSourceConnectionPropertyKeys> => ({
-  acceptedPropertyKeys: PROPERTY_HINTS[toBackendType(dbType)] || [],
-});
+): Promise<DataSourceConnectionPropertyKeys> => {
+  const type = toBackendType(dbType);
+  if (type === "MYSQL" || type === "POSTGRESQL") {
+    // Ask the installed JDBC driver; do not mix in stale frontend property hints.
+    return HttpUtils.getData<DataSourceConnectionPropertyKeys>(
+      API + "/connection-properties?" + qs({ type }),
+    );
+  }
+  // Other datasource plugins keep their existing suggestions in this phase.
+  return { acceptedPropertyKeys: PROPERTY_HINTS[type] || [] };
+};
 
 /** Driver choice is owned by the existing backend plugins, not a frontend dropdown. */
 export const getDataSourceOptionRules = async (dbType: string): Promise<DataSourceOptionRules> => ({

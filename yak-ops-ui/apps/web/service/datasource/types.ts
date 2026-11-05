@@ -69,8 +69,20 @@ export interface DataSourceConnectTestPayload {
   connectionParams: DataSourceConnectionParams;
 }
 
+export interface DataSourceDriverProperty {
+  name: string;
+  description: string;
+  defaultValue: string | null;
+  required: boolean;
+  choices: string[];
+}
+
 export interface DataSourceConnectionPropertyKeys {
   acceptedPropertyKeys: string[];
+  /** Provided by the installed JDBC Driver for MySQL and PostgreSQL. */
+  driverClassName?: string;
+  driverVersion?: string;
+  properties?: DataSourceDriverProperty[];
 }
 
 /** Safe provider-defined parameter field available to the datasource editor. */

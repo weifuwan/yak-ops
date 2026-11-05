@@ -14,6 +14,7 @@ import {
   type DataSourceConnectionParams,
   type DataSourceSavePayload,
   type DataSourceOptionRules,
+  type DataSourceDriverProperty,
 } from "@/service/datasource";
 import {
   listUserPreferences,
@@ -50,6 +51,7 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     [],
   );
   const [propertyKeyOptions, setPropertyKeyOptions] = useState<string[]>([]);
+  const [driverPropertyMetadata, setDriverPropertyMetadata] = useState<DataSourceDriverProperty[]>([]);
   const [optionRules, setOptionRules] = useState<DataSourceOptionRules | null>(null);
   const [propertyKeysLoading, setPropertyKeysLoading] = useState(false);
   const editing = Boolean(record?.id);
@@ -110,6 +112,7 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
       normalizeDataSourceType(values.dbType) === "ORACLE"
     ) {
       setPropertyKeyOptions([]);
+      setDriverPropertyMetadata([]);
       setPropertyKeysLoading(false);
       return;
     }
@@ -118,10 +121,16 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     setPropertyKeysLoading(true);
     void getDataSourceConnectionPropertyKeys(values.dbType)
       .then((result) => {
-        if (active) setPropertyKeyOptions(result?.acceptedPropertyKeys || []);
+        if (active) {
+          setPropertyKeyOptions(result?.acceptedPropertyKeys || []);
+          setDriverPropertyMetadata(result?.properties || []);
+        }
       })
       .catch(() => {
-        if (active) setPropertyKeyOptions([]);
+        if (active) {
+          setPropertyKeyOptions([]);
+          setDriverPropertyMetadata([]);
+        }
       })
       .finally(() => {
         if (active) setPropertyKeysLoading(false);
@@ -421,6 +430,7 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     setCreateCategory,
     frequentTypePreferences,
     propertyKeyOptions,
+    driverPropertyMetadata,
     propertyKeysLoading,
     optionRules,
     propertyKeyMap,
