@@ -11,6 +11,7 @@ import io.yak.ops.api.service.impl.BaseServiceImpl;
 import io.yak.ops.api.service.impl.DataSourceServiceImpl;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSourceSimpleInfoVO;
+import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.AuthorizationType;
 import io.yak.ops.common.enums.UserType;
 import io.yak.ops.common.utils.JSONUtils;
@@ -353,12 +354,63 @@ public class DataSourceServiceTest {
         DataSource dataSource = new DataSource();
         dataSource.setId(1);
         dataSource.setType(DbType.MYSQL);
+        dataSource.setConnectionParams("{\"password\":\"top-secret\",\"user\":\"example\"}");
         when(dataSourceDao.queryByIds(Collections.singleton(1)))
                 .thenReturn(Collections.singletonList(dataSource));
 
         List<DataSource> list =
                 dataSourceService.queryDataSourceList(generalUser, DbType.MYSQL.ordinal());
-        Assertions.assertNotNull(list);
+        Assertions.assertEquals(1, list.size());
+        Assertions.assertEquals(Constants.XXXXXX,
+                JSONUtils.parseObject(list.get(0).getConnectionParams()).path(Constants.PASSWORD).asText());
+        Assertions.assertFalse(list.get(0).getConnectionParams().contains("top-secret"));
+        Assertions.assertEquals("example",
+                JSONUtils.parseObject(list.get(0).getConnectionParams()).path("user").asText());
+    }
+
+    @Test
+    public void testQueryDataSourceListMasksMissingAndMalformedConnectionParams() {
+        DataSource missing = new DataSource();
+        missing.setId(10);
+        missing.setType(DbType.MYSQL);
+
+        DataSource malformed = new DataSource();
+        malformed.setId(11);
+        malformed.setType(DbType.MYSQL);
+        malformed.setConnectionParams("{invalid-secret-data");
+
+        List<DataSource> dataSources = new ArrayList<>();
+        dataSources.add(missing);
+        dataSources.add(malformed);
+        when(dataSourceDao.queryDataSourceByType(0, DbType.MYSQL.ordinal())).thenReturn(dataSources);
+
+        List<DataSource> result = dataSourceService.queryDataSourceList(getAdminUser(), DbType.MYSQL.ordinal());
+
+        Assertions.assertEquals(2, result.size());
+        for (DataSource dataSource : result) {
+            Assertions.assertEquals(Constants.XXXXXX,
+                    JSONUtils.parseObject(dataSource.getConnectionParams()).path(Constants.PASSWORD).asText());
+        }
+        Assertions.assertFalse(result.get(1).getConnectionParams().contains("invalid-secret-data"));
+    }
+
+    @Test
+    public void testQueryDataSourceListMasksSshPrivateKey() {
+        DataSource ssh = new DataSource();
+        ssh.setId(12);
+        ssh.setType(DbType.SSH);
+        ssh.setConnectionParams("{\"password\":\"secret-password\",\"privateKey\":\"secret-key\"}");
+        when(dataSourceDao.queryDataSourceByType(0, DbType.SSH.ordinal()))
+                .thenReturn(Collections.singletonList(ssh));
+
+        List<DataSource> result = dataSourceService.queryDataSourceList(getAdminUser(), DbType.SSH.ordinal());
+
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals(Constants.XXXXXX,
+                JSONUtils.parseObject(result.get(0).getConnectionParams()).path(Constants.PASSWORD).asText());
+        Assertions.assertEquals(Constants.XXXXXX,
+                JSONUtils.parseObject(result.get(0).getConnectionParams()).path("privateKey").asText());
+        Assertions.assertFalse(result.get(0).getConnectionParams().contains("secret-key"));
     }
 
     @Test

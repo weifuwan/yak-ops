@@ -226,9 +226,28 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
      * handle datasource connection password for safety
      */
     private void handlePasswd(List<DataSource> dataSourceList) {
+        if (CollectionUtils.isEmpty(dataSourceList)) {
+            return;
+        }
         for (DataSource dataSource : dataSourceList) {
+            if (dataSource == null) {
+                continue;
+            }
+
+            ObjectNode object = null;
             String connectionParams = dataSource.getConnectionParams();
-            ObjectNode object = JSONUtils.parseObject(connectionParams);
+            if (StringUtils.isNotBlank(connectionParams)) {
+                try {
+                    object = JSONUtils.parseObject(connectionParams);
+                } catch (RuntimeException ex) {
+                    // Never include malformed connection parameters in logs or API responses.
+                    log.warn("Invalid connection parameters for datasource id: {}, masking response",
+                            dataSource.getId());
+                }
+            }
+            if (object == null) {
+                object = JSONUtils.createObjectNode();
+            }
             object.put(Constants.PASSWORD, getHiddenPassword());
             if (dataSource.getType() == DbType.SSH) {
                 object.put("privateKey", getHiddenPassword());
