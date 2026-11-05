@@ -13,19 +13,18 @@ export function useFireHistory(
   scheduleId: string,
   { pageNo, outcome, from, until }: FireHistoryFilters,
 ) {
-  const { userId, workspaceId } = useScheduleScope();
+  const { userId } = useScheduleScope();
   const invalidRange = Boolean(from && until && from >= until);
   return useQuery({
     queryKey: scheduleQueryKeys.fires(
       userId,
-      workspaceId,
       scheduleId,
       pageNo,
       outcome,
       from,
       until,
     ),
-    enabled: Boolean(userId && workspaceId && scheduleId && !invalidRange),
+    enabled: Boolean(userId && scheduleId && !invalidRange),
     queryFn: ({ signal }) =>
       listScheduleFires(
         scheduleId,

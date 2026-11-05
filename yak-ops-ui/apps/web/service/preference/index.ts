@@ -10,12 +10,7 @@ export type * from "./types";
 
 const USER_PREFERENCE_API_PREFIX = "/api/v1/user-preferences";
 
-const WITHOUT_WORKSPACE_HEADER = {
-  workspaceHeader: "omit" as const,
-};
-
 const BACKGROUND_PREFERENCE_OPTIONS = {
-  ...WITHOUT_WORKSPACE_HEADER,
   skipErrorHandler: true,
 };
 
@@ -36,7 +31,6 @@ export const updateUserPreferenceFavorite = (
   HttpUtils.putData<UserPreferenceRecord>(
     `${USER_PREFERENCE_API_PREFIX}/${encodeURIComponent(scene)}/${encodeURIComponent(itemKey)}/favorite`,
     payload,
-    WITHOUT_WORKSPACE_HEADER,
   );
 
 export const recordUserPreferenceUsage = (

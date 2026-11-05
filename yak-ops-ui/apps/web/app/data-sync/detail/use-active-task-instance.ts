@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listLatestTaskInstances } from "@/service/task-execution";
 import { detailQueryKeys } from "./query-keys";
 
-/** Read the active Instance with user/Workspace isolation and query-owned polling. */
+/** Read the active Instance with user isolation and query-owned polling. */
 export function useActiveTaskInstance(scope: string, taskId?: string) {
   const query = useQuery({
     queryKey: detailQueryKeys.activeInstance(scope, taskId || ""),

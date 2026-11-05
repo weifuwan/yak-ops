@@ -2,23 +2,20 @@ import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import AccountMenu from "./account-menu";
-import WorkspaceSwitcher from "./workspace-switcher";
 
 type TopBarProps = {
   launcherOpen: boolean;
   onToggleLauncher: () => void;
   productLabel: string;
   productPath: string;
-  showWorkspaceSwitcher?: boolean;
 };
 
-/** The header composes navigation; the account and Workspace controls own their actions. */
+/** The header composes product navigation and account actions. */
 export default function TopBar({
   launcherOpen,
   onToggleLauncher,
   productLabel,
   productPath,
-  showWorkspaceSwitcher = false,
 }: TopBarProps) {
   return (
     <header className="relative z-50 flex h-10 shrink-0 items-center bg-[#14171a] text-white">
@@ -50,15 +47,7 @@ export default function TopBar({
         </Link>
       </div>
       <div className="flex min-w-0 flex-1 items-center justify-between px-4">
-        <div className="flex min-w-0 items-center gap-3 text-xs">
-          <span className="truncate font-semibold text-white/90">{productLabel}</span>
-          {showWorkspaceSwitcher ? (
-            <>
-              <span className="h-3 w-px shrink-0 bg-white/15" />
-              <WorkspaceSwitcher />
-            </>
-          ) : null}
-        </div>
+        <span className="truncate text-xs font-semibold text-white/90">{productLabel}</span>
         <AccountMenu />
       </div>
     </header>

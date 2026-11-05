@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import {
   listDataSourceSchemas,
   pageDataSourceTables,
@@ -15,13 +14,11 @@ export function useCatalogOptions(
   active = true,
 ): CatalogOptions {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const enabled = active && Boolean(currentUser?.id && currentWorkspace?.id && dataSourceId);
+  const enabled = active && Boolean(currentUser?.id && dataSourceId);
   const query = useQuery({
     queryKey: [
       "data-sync-catalog",
       currentUser?.id,
-      currentWorkspace?.id,
       dataSourceId,
       database,
       schema,

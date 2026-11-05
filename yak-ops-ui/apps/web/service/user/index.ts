@@ -12,17 +12,13 @@ import type {
 
 const USER_API_PREFIX = `${API_PREFIX}/user`;
 
-const MANAGEMENT_REQUEST = {
-  workspaceHeader: "omit" as const,
-};
-
 export const listUsers = (params: UserPageParams): Promise<UserPageResult> =>
-  HttpUtils.postData<UserPageResult>(`${USER_API_PREFIX}/page`, params, MANAGEMENT_REQUEST);
+  HttpUtils.postData<UserPageResult>(`${USER_API_PREFIX}/page`, params);
 
 export const getUsersByIds = (ids: readonly UserId[]): Promise<UserRecord[]> => {
   if (ids.length === 0) return Promise.resolve([]);
   const query = encodeURIComponent(JSON.stringify(ids));
-  return HttpUtils.getData<UserRecord[]>(`${USER_API_PREFIX}?ids=${query}`, MANAGEMENT_REQUEST);
+  return HttpUtils.getData<UserRecord[]>(`${USER_API_PREFIX}?ids=${query}`);
 };
 
 export const searchUsers = (keyword: string): Promise<UserBriefRecord[]> => {
@@ -30,20 +26,19 @@ export const searchUsers = (keyword: string): Promise<UserBriefRecord[]> => {
   if (!normalized) return Promise.resolve([]);
   return HttpUtils.getData<UserBriefRecord[]>(
     `${USER_API_PREFIX}/list/${encodeURIComponent(normalized)}`,
-    MANAGEMENT_REQUEST,
   );
 };
 
 export const createUser = async (payload: UserSavePayload): Promise<void> => {
-  await HttpUtils.putData<void>(`${USER_API_PREFIX}/add`, payload, MANAGEMENT_REQUEST);
+  await HttpUtils.putData<void>(`${USER_API_PREFIX}/add`, payload);
 };
 
 export const updateUser = async (payload: UserSavePayload): Promise<void> => {
-  await HttpUtils.postData<void>(`${USER_API_PREFIX}/edit`, payload, MANAGEMENT_REQUEST);
+  await HttpUtils.postData<void>(`${USER_API_PREFIX}/edit`, payload);
 };
 
 export const deleteUser = async (id: UserId): Promise<void> => {
-  await HttpUtils.deleteData<void>(`${USER_API_PREFIX}/${id}`, undefined, MANAGEMENT_REQUEST);
+  await HttpUtils.deleteData<void>(`${USER_API_PREFIX}/${id}`, undefined);
 };
 
 export type * from "./types";

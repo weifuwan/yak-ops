@@ -2,7 +2,6 @@ import {
   Activity,
   ArrowRightLeft,
   Database,
-  LayoutGrid,
   Settings,
   Users,
   Wrench,
@@ -66,11 +65,6 @@ export const MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     label: "用户管理",
     path: "/management/users",
     icon: Users,
-  },
-  {
-    label: "工作空间管理",
-    path: "/management/workspaces",
-    icon: LayoutGrid,
   },
 ];
 

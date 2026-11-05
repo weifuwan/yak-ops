@@ -1,13 +1,11 @@
 import request, {
   type ApiResponse,
   type BusinessErrorMode,
-  type WorkspaceHeaderMode,
 } from "@/service/http/request";
 
 export type HttpRequestOptions = RequestInit & {
   businessErrorMode?: BusinessErrorMode;
   skipErrorHandler?: boolean;
-  workspaceHeader?: WorkspaceHeaderMode;
 };
 
 const withEnvelopeBusinessErrors = (options?: HttpRequestOptions): HttpRequestOptions => ({

@@ -42,9 +42,9 @@ export function useScheduleSession({
   const [needsReload, setNeedsReload] = useState(false);
   const [confirmation, setConfirmation] = useState<"delete" | "discard" | "reload">();
   const session = useRef<AbortController>();
-  const { userId, workspaceId } = useScheduleScope();
+  const { userId } = useScheduleScope();
   const queryClient = useQueryClient();
-  const key = scheduleQueryKeys.detail(userId, workspaceId, targetId);
+  const key = scheduleQueryKeys.detail(userId, targetId);
   const dirty = !sameScheduleRule(draft.value, draft.base);
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
@@ -57,7 +57,7 @@ export function useScheduleSession({
 
   const query = useQuery({
     queryKey: key,
-    enabled: Boolean(userId && workspaceId && targetId && !historyOnly && !needsReload),
+    enabled: Boolean(userId && targetId && !historyOnly && !needsReload),
     queryFn: ({ signal }) => getTaskSchedule(targetId, signal),
     retry: false,
     refetchOnWindowFocus: false,

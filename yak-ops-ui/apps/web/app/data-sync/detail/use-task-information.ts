@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { getDataSource } from "@/service/datasource";
 import { getUsersByIds } from "@/service/user";
 import { getDataSyncTask } from "@/service/data-sync";
@@ -10,8 +9,7 @@ import { detailQueryKeys } from "./query-keys";
 
 export function useDetailScope() {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  return currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
+  return currentUser?.id ?? "";
 }
 
 export function useTaskInformation(taskId: string | undefined, scope: string) {

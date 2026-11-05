@@ -1,4 +1,4 @@
-/** Cache isolation: user and Workspace are part of every detail key. */
+/** Cache isolation: authenticated user identity is part of every detail key. */
 export const detailQueryKeys = {
   scope: (scope: string) => ["data-sync-detail", scope] as const,
   task: (scope: string, taskId: string) =>

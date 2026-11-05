@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 import { COMMON_DB_OPTIONS } from "@/app/datasource/constants";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import type { DataSyncDraft, DataSyncStep } from "@/service/data-sync";
 import { readTaskDraft, taskDraftKey, writeTaskDraft } from "@/service/data-sync/draft";
 
@@ -14,8 +13,7 @@ import { useSolutions } from "../solution/use-solutions";
 
 export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const key = taskDraftKey(currentUser!.id, currentWorkspace!.id);
+  const key = taskDraftKey(currentUser!.id);
   const stored = useRef(readTaskDraft(key));
   const [sourceType, setSourceType] = useState(stored.current?.sourceType || "");
   const [targetType, setTargetType] = useState(stored.current?.targetType || "");

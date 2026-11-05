@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { pageDataSourceTables, type DataSourceCatalogTable } from "@/service/datasource";
 import type {
   DataSyncMappingTemplate,
@@ -17,7 +16,6 @@ export function useResolveTableSelection(
   currentMappings: DataSyncTableMapping[],
 ) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
   const client = useQueryClient();
   const controller = useRef<AbortController>();
   const latest = useRef({ ruleIdentity, dataSourceId, mappings: currentMappings });
@@ -34,7 +32,7 @@ export function useResolveTableSelection(
     template: DataSyncMappingTemplate,
     apply: (mappings: DataSyncTableMapping[]) => void,
   ) => {
-    if (!dataSourceId || !currentUser?.id || !currentWorkspace?.id || !maxTables) return;
+    if (!dataSourceId || !currentUser?.id || !maxTables) return;
     controller.current?.abort();
     const request = new AbortController();
     controller.current = request;
@@ -47,7 +45,6 @@ export function useResolveTableSelection(
         queryKey: [
           "data-sync-regex-tables",
           currentUser.id,
-          currentWorkspace.id,
           dataSourceId,
           selection.databasePattern,
           selection.tablePattern,
