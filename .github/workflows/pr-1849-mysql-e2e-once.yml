@@ -30,11 +30,13 @@ jobs:
             -p 127.0.0.1:3306:3306 mysql:8.0 \
             --server-id=16749 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL
           for attempt in $(seq 1 90); do
-            if docker exec pr1849-mysql mysqladmin ping -uroot -ppr1849-root-password --silent >/dev/null 2>&1; then
+            if docker exec pr1849-mysql mysql -uroot -ppr1849-root-password -N -s -e 'SELECT 1' >/dev/null 2>&1; then
               break
             fi
             sleep 2
           done
+          # Confirm authenticated readiness even when mysqladmin reports the server alive.
+          docker exec pr1849-mysql mysql -uroot -ppr1849-root-password -N -s -e 'SELECT 1'
           docker exec pr1849-mysql mysql -uroot -ppr1849-root-password -e "
             CREATE DATABASE cdc_lab;
             CREATE DATABASE yak_e2e_target;
