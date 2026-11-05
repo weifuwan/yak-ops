@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DB2">
-  <defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#1C75BC"/><stop offset="1" stop-color="#174E9B"/></linearGradient></defs>
-  <rect x="3" y="3" width="58" height="58" rx="14" fill="url(#bg)"/>
-  <path d="M11 16 H53" stroke="#fff" stroke-opacity=".25" stroke-width="2" stroke-linecap="round"/>
-  
-  <text x="32" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="23" letter-spacing="-.5" fill="white">DB2</text>
-</svg>
