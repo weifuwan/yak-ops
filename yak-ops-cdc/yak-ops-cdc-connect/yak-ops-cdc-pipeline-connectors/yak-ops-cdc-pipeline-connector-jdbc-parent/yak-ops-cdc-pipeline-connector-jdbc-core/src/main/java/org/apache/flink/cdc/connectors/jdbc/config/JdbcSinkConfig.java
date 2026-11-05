@@ -21,6 +21,7 @@ public class JdbcSinkConfig implements Serializable {
     private final int connectionPoolSize;
     private final long writeBatchIntervalMs;
     private final int writeBatchSize;
+    private final int writeMaxOpenTables;
     private final int writeMaxRetries;
     private final Properties jdbcProperties;
 
@@ -40,6 +41,7 @@ public class JdbcSinkConfig implements Serializable {
         this.connectionPoolSize = builder.connectionPoolSize;
         this.writeBatchIntervalMs = builder.writeBatchIntervalMs;
         this.writeBatchSize = builder.writeBatchSize;
+        this.writeMaxOpenTables = builder.writeMaxOpenTables;
         this.writeMaxRetries = builder.writeMaxRetries;
         this.jdbcProperties = builder.jdbcProperties;
 
@@ -66,6 +68,7 @@ public class JdbcSinkConfig implements Serializable {
         private int connectionPoolSize;
         private long writeBatchIntervalMs;
         private int writeBatchSize;
+        private int writeMaxOpenTables = 32;
         private int writeMaxRetries;
         private Properties jdbcProperties;
 
@@ -121,6 +124,13 @@ public class JdbcSinkConfig implements Serializable {
 
         public T writeBatchSize(int writeBatchSize) {
             this.writeBatchSize = writeBatchSize;
+            return self();
+        }
+
+        public T writeMaxOpenTables(int writeMaxOpenTables) {
+            Preconditions.checkArgument(
+                    writeMaxOpenTables > 0, "write.max-open-tables must be positive");
+            this.writeMaxOpenTables = writeMaxOpenTables;
             return self();
         }
 
@@ -199,6 +209,10 @@ public class JdbcSinkConfig implements Serializable {
         return writeBatchSize;
     }
 
+    public int getWriteMaxOpenTables() {
+        return writeMaxOpenTables;
+    }
+
     public int getWriteMaxRetries() {
         return writeMaxRetries;
     }
@@ -218,6 +232,7 @@ public class JdbcSinkConfig implements Serializable {
                 && connectionPoolSize == that.connectionPoolSize
                 && writeBatchIntervalMs == that.writeBatchIntervalMs
                 && writeBatchSize == that.writeBatchSize
+                && writeMaxOpenTables == that.writeMaxOpenTables
                 && writeMaxRetries == that.writeMaxRetries
                 && port == that.port
                 && connUrl.equals(that.connUrl)
@@ -246,6 +261,7 @@ public class JdbcSinkConfig implements Serializable {
                 connectionPoolSize,
                 writeBatchIntervalMs,
                 writeBatchSize,
+                writeMaxOpenTables,
                 writeMaxRetries,
                 jdbcProperties,
                 dialect,

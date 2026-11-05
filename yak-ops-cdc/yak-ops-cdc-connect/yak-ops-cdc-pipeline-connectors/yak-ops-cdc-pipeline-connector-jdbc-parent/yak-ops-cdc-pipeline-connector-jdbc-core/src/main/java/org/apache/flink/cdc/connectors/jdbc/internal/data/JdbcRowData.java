@@ -1,4 +1,4 @@
-package org.apache.flink.cdc.connectors.jdbc.sink.v2;
+package org.apache.flink.cdc.connectors.jdbc.internal.data;
 
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;

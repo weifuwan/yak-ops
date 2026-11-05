@@ -1,130 +1,127 @@
 package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind;
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.api.connector.sink2.StatefulSink;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.connectors.jdbc.config.JdbcSinkConfig;
-import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
+import org.apache.flink.cdc.connectors.jdbc.internal.JdbcOutputFormatBuilder;
+import org.apache.flink.cdc.connectors.jdbc.internal.converter.JdbcRowConverter;
+import org.apache.flink.cdc.connectors.jdbc.internal.writer.JdbcTableWriterRegistry;
+import org.apache.flink.cdc.connectors.jdbc.internal.dialect.JdbcDialect;
+import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
-import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
 import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProvider;
-import org.apache.flink.connector.jdbc.internal.JdbcOutputFormat;
+import org.apache.flink.connector.jdbc.datasource.connections.SimpleJdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
-import org.apache.flink.connector.jdbc.internal.executor.JdbcBatchStatementExecutor;
 import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterState;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import static org.apache.flink.cdc.connectors.jdbc.sink.v2.RowKind.PK_ROW;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** Implementation class of the {@link StatefulSink.StatefulSinkWriter} interface. */
+/**
+ * Flink Sink V2 adapter that coordinates the lifecycle of table-scoped JDBC writers.
+ *
+ * <p>SQL assembly and parameter binding are deliberately delegated to the internal builder.
+ */
 public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcWriterState> {
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcWriter.class);
-
     private final JdbcExecutionOptions executionOptions;
-    private final JdbcConnectionProvider connectionProvider;
+    private final JdbcConnectionOptions connectionOptions;
+    private final JdbcConnectionProvider suppliedConnectionProvider;
     private final JdbcOutputSerializer<Object> outputSerializer;
     private final RecordSerializationSchema<IN> serializationSchema;
+    private final JdbcDialect dialect;
+    private final JdbcRowConverter rowConverter;
 
-    private final JdbcSinkDialect dialect;
-    private final Map<TableId, RichJdbcOutputFormat> outputHandlers;
+    private final JdbcTableWriterRegistry<JdbcTableWriter> tableWriters;
 
     public JdbcWriter(
             Sink.InitContext initContext,
             JdbcExecutionOptions executionOptions,
-            JdbcConnectionProvider connectionProvider,
+            JdbcConnectionOptions connectionOptions,
+            JdbcConnectionProvider suppliedConnectionProvider,
             JdbcOutputSerializer<Object> outputSerializer,
             RecordSerializationSchema<IN> serializationSchema,
-            JdbcSinkDialect dialect,
+            JdbcDialect dialect,
             JdbcSinkConfig sinkConfig) {
-
         checkNotNull(initContext, "initContext must be defined");
-        checkNotNull(executionOptions, "executionOptions must be defined");
-        checkNotNull(connectionProvider, "connectionProvider must be defined");
-        checkNotNull(outputSerializer, "outputSerializer must be defined");
-        checkNotNull(serializationSchema, "serializationSchema must be defined");
+        this.executionOptions = checkNotNull(executionOptions);
+        checkArgument(
+                connectionOptions != null || suppliedConnectionProvider != null,
+                "JDBC connection options or provider must be defined");
+        this.connectionOptions = connectionOptions;
+        this.suppliedConnectionProvider = suppliedConnectionProvider;
+        this.outputSerializer = checkNotNull(outputSerializer);
+        this.serializationSchema = checkNotNull(serializationSchema);
+        this.dialect = checkNotNull(dialect);
         checkNotNull(sinkConfig, "sinkConfig must be defined");
-
-        this.executionOptions = executionOptions;
-        this.connectionProvider = connectionProvider;
-        this.outputSerializer = outputSerializer;
-        this.serializationSchema = serializationSchema;
-        this.dialect = dialect;
-        this.outputHandlers = new ConcurrentHashMap<>();
+        this.rowConverter = checkNotNull(dialect.createRowConverter(), "JDBC row converter is required");
+        int maxOpenTables =
+                connectionOptions == null ? 1 : sinkConfig.getWriteMaxOpenTables();
+        this.tableWriters =
+                new JdbcTableWriterRegistry<>(
+                        maxOpenTables, this::createTableWriter, JdbcTableWriter::flush);
     }
 
     @Override
     public List<JdbcWriterState> snapshotState(long checkpointId) {
-        // Jdbc sink supports at-least-once semantic only. No state snapshotting & restoring
-        // required.
+        // Flink JDBC's at-least-once writer does not snapshot transactional state.
         return Collections.emptyList();
     }
 
     @Override
     public void write(IN event, Context context) throws IOException {
-        JdbcRowData[] rowDataElements = serializationSchema.serialize(event);
-        for (JdbcRowData rowData : rowDataElements) {
-            TableId tableId = rowData.getTableId();
-            if (RowKind.SCHEMA_CHANGE.is(rowData.getRowKind())) {
-                // All previous outputHandlers would expire after schema changes.
+        for (JdbcRowData row : serializationSchema.serialize(event)) {
+            TableId tableId = row.getTableId();
+            if (RowKind.SCHEMA_CHANGE.is(row.getRowKind())) {
                 flush(false);
-                Optional.ofNullable(outputHandlers.remove(tableId))
-                        .ifPresent(JdbcOutputFormat::close);
+                tableWriters.invalidate(tableId);
             } else {
-                RichJdbcOutputFormat outputFormat =
-                        getOrCreateHandler(tableId, rowData.getSchema());
-                outputFormat.writeRecord(rowData);
-                if (!rowData.hasPrimaryKey()) {
-                    // For non-PK table, we must flush immediately to avoid data consistency issues.
-                    outputFormat.flush();
-                }
+                tableWriters.getOrCreate(tableId, row.getSchema()).write(row);
             }
         }
     }
 
-    private RichJdbcOutputFormat getJdbcOutputFormat(
-            JdbcSinkDialect dialect, TableId tableId, Schema schema) {
-        RichJdbcOutputFormat jdbcOutputFormat =
-                new RichJdbcOutputFormat(
-                        connectionProvider,
-                        executionOptions,
-                        () -> createBatchedStatementExecutor(dialect, tableId, schema));
-        try {
-            jdbcOutputFormat.open(outputSerializer);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return jdbcOutputFormat;
+    private JdbcTableWriter createTableWriter(TableId tableId, Schema schema)
+            throws IOException {
+        JdbcConnectionProvider provider =
+                connectionOptions != null
+                        ? new SimpleJdbcConnectionProvider(connectionOptions)
+                        : suppliedConnectionProvider;
+        JdbcOutputFormatBuilder builder =
+                new JdbcOutputFormatBuilder(
+                        executionOptions, provider, outputSerializer, dialect, rowConverter);
+        return new JdbcTableWriter(tableId, schema, builder);
     }
 
     @Override
     public void flush(boolean endOfInput) throws IOException {
-        for (RichJdbcOutputFormat handler : outputHandlers.values()) {
-            handler.flush();
+        IOException failure = null;
+        try {
+            tableWriters.flushAll();
+        } catch (IOException e) {
+            failure = e;
+        } finally {
             if (endOfInput) {
-                handler.close();
+                try {
+                    tableWriters.close();
+                } catch (IOException e) {
+                    if (failure == null) {
+                        failure = e;
+                    } else {
+                        failure.addSuppressed(e);
+                    }
+                }
             }
+        }
+        if (failure != null) {
+            throw failure;
         }
     }
 
@@ -133,121 +130,4 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         flush(true);
     }
 
-    private RichJdbcOutputFormat getOrCreateHandler(TableId tableId, Schema schema) {
-        if (outputHandlers.containsKey(tableId)) {
-            return outputHandlers.get(tableId);
-        }
-        RichJdbcOutputFormat outputFormat = getJdbcOutputFormat(dialect, tableId, schema);
-        outputHandlers.put(tableId, outputFormat);
-        return outputFormat;
-    }
-
-    // Pure statement binding, shared by upsert and primary-key delete paths.
-    static JdbcStatementBuilder<JdbcRowData> getStatementBuilder(
-            List<String> statementColumns, List<String> rowColumns) {
-        int[] indexes = new int[statementColumns.size()];
-        for (int i = 0; i < statementColumns.size(); i++) {
-            indexes[i] = rowColumns.indexOf(statementColumns.get(i));
-            checkArgument(
-                    indexes[i] >= 0, "Missing JDBC column %s in row schema", statementColumns.get(i));
-        }
-        return (statement, rowData) -> {
-            Object[] values = checkNotNull(rowData.getRows(), "JDBC row values must not be null");
-            checkArgument(
-                    values.length == rowColumns.size(),
-                    "JDBC row contains %s values but schema has %s columns",
-                    values.length,
-                    rowColumns.size());
-            for (int i = 0; i < indexes.length; i++) {
-                setJdbcParameter(statement, i + 1, values[indexes[i]]);
-            }
-        };
-    }
-
-    private static void setJdbcParameter(PreparedStatement statement, int index, Object value)
-            throws SQLException {
-        if (value instanceof LocalDate) {
-            statement.setDate(index, Date.valueOf((LocalDate) value));
-        } else if (value instanceof Instant) {
-            statement.setTimestamp(index, Timestamp.from((Instant) value));
-        } else if (value instanceof ZonedDateTime) {
-            statement.setTimestamp(index, Timestamp.from(((ZonedDateTime) value).toInstant()));
-        } else if (value instanceof byte[]) {
-            statement.setBytes(index, (byte[]) value);
-        } else if (value instanceof BigDecimal) {
-            statement.setBigDecimal(index, (BigDecimal) value);
-        } else {
-            // Includes LocalTime and LocalDateTime, supported by JDBC 4.2 drivers.
-            statement.setObject(index, value);
-        }
-    }
-
-    private BatchedStatementExecutor createBatchedStatementExecutor(
-            JdbcSinkDialect dialect, TableId tableId, Schema schema) {
-        List<String> upsertColumns = schema.getColumnNames();
-        List<String> deleteColumns =
-                schema.primaryKeys().isEmpty() ? upsertColumns : schema.primaryKeys();
-        List<String> deleteRowColumns =
-                schema.primaryKeys().isEmpty()
-                        ? upsertColumns
-                        : upsertColumns.stream()
-                                .filter(deleteColumns::contains)
-                                .collect(Collectors.toList());
-
-        JdbcBatchStatementExecutor<JdbcRowData> upsertExecutor =
-                JdbcBatchStatementExecutor.simple(
-                        dialect.getUpsertStatement(tableId, schema),
-                        getStatementBuilder(upsertColumns, upsertColumns));
-        JdbcBatchStatementExecutor<JdbcRowData> deleteExecutor =
-                JdbcBatchStatementExecutor.simple(
-                        dialect.getDeleteStatement(tableId, schema),
-                        getStatementBuilder(deleteColumns, deleteRowColumns));
-        Function<JdbcRowData, JdbcRowData> keyExtractor = createRowKeyExtractor(tableId, schema);
-        return new BatchedStatementExecutor(upsertExecutor, deleteExecutor, keyExtractor);
-    }
-
-    static Function<JdbcRowData, JdbcRowData> createRowKeyExtractor(
-            TableId tableId, Schema schema) {
-
-        List<String> primaryKeys = schema.primaryKeys();
-
-        // Return full-line for non-PK tables
-        if (primaryKeys.isEmpty()) {
-            return row ->
-                    new RichJdbcRowData.Builder()
-                            .setRowKind(PK_ROW)
-                            .setTableId(row.getTableId())
-                            .setSchema(row.getSchema())
-                            .setRows(row.getRows())
-                            .build();
-        }
-
-        Schema pkOnlySchema =
-                schema.copy(
-                        schema.getColumns().stream()
-                                .filter(col -> primaryKeys.contains(col.getName()))
-                                .collect(Collectors.toList()));
-
-        List<String> rowColumnNames = schema.getColumnNames();
-        List<String> keyColumnNames = pkOnlySchema.getColumnNames();
-        int[] keyIndexes = new int[keyColumnNames.size()];
-        for (int i = 0; i < keyColumnNames.size(); i++) {
-            keyIndexes[i] = rowColumnNames.indexOf(keyColumnNames.get(i));
-            checkArgument(keyIndexes[i] >= 0, "Missing primary key %s", keyColumnNames.get(i));
-        }
-
-        return row -> {
-            Object[] values = checkNotNull(row.getRows(), "JDBC row values must not be null");
-            Object[] keyValues = new Object[keyIndexes.length];
-            for (int i = 0; i < keyIndexes.length; i++) {
-                keyValues[i] = values[keyIndexes[i]];
-            }
-            return new RichJdbcRowData.Builder()
-                    .setRowKind(PK_ROW)
-                    .setTableId(tableId)
-                    .setSchema(pkOnlySchema)
-                    .setRows(keyValues)
-                    .build();
-        };
-    }
 }

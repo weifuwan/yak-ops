@@ -1,6 +1,8 @@
-package org.apache.flink.cdc.connectors.jdbc.sink.v2;
+package org.apache.flink.cdc.connectors.jdbc.internal.executor;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind;
 import org.apache.flink.connector.jdbc.internal.executor.JdbcBatchStatementExecutor;
 
 import java.sql.Connection;

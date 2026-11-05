@@ -11,7 +11,7 @@ import org.apache.flink.cdc.common.event.TruncateTableEvent;
 import org.apache.flink.cdc.common.exceptions.SchemaEvolveException;
 import org.apache.flink.cdc.common.exceptions.UnsupportedSchemaChangeEventException;
 import org.apache.flink.cdc.common.sink.MetadataApplier;
-import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcSinkDialect;
+import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalog;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +20,10 @@ import org.slf4j.LoggerFactory;
 public class JdbcMetadataApplier implements MetadataApplier {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcMetadataApplier.class);
 
-    private final JdbcSinkDialect dialect;
+    private final JdbcCatalog catalog;
 
-    public JdbcMetadataApplier(JdbcSinkDialect dialect) {
-        this.dialect = dialect;
+    public JdbcMetadataApplier(JdbcCatalog catalog) {
+        this.catalog = catalog;
     }
 
     @Override
@@ -53,30 +53,30 @@ public class JdbcMetadataApplier implements MetadataApplier {
     }
 
     private void applyCreateTableEvent(CreateTableEvent event) {
-        dialect.createTable(event, true);
+        catalog.createTable(event, true);
     }
 
     private void applyAddColumnEvent(AddColumnEvent event) {
-        dialect.addColumn(event);
+        catalog.addColumn(event);
     }
 
     private void applyAlterColumnType(AlterColumnTypeEvent event) {
-        dialect.alterColumnType(event);
+        catalog.alterColumnType(event);
     }
 
     private void applyRenameColumnEvent(RenameColumnEvent event) {
-        dialect.renameColumn(event);
+        catalog.renameColumn(event);
     }
 
     private void applyDropColumnEvent(DropColumnEvent event) {
-        dialect.dropColumn(event);
+        catalog.dropColumn(event);
     }
 
     private void applyTruncateTableEvent(TruncateTableEvent event) {
-        dialect.truncateTable(event);
+        catalog.truncateTable(event);
     }
 
     private void applyDropTableEvent(DropTableEvent event) {
-        dialect.dropTable(event, true);
+        catalog.dropTable(event, true);
     }
 }

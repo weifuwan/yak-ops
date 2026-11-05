@@ -1,4 +1,4 @@
-package org.apache.flink.cdc.connectors.jdbc.sink.v2;
+package org.apache.flink.cdc.connectors.jdbc.internal.data;
 
 /** Row kind for event operator. */
 public enum RowKind {

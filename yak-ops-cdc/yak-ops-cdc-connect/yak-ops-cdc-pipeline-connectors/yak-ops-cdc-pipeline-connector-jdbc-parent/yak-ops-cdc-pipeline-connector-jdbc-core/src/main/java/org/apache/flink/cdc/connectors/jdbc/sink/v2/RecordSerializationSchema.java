@@ -1,5 +1,6 @@
 package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
 import java.io.IOException;
 import java.io.Serializable;
 

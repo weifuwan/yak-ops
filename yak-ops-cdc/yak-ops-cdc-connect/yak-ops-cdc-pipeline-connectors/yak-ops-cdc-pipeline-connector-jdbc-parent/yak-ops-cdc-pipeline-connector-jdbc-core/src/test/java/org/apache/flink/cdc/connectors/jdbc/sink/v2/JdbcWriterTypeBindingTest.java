@@ -1,5 +1,10 @@
 package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
+import org.apache.flink.cdc.connectors.jdbc.internal.JdbcOutputFormatBuilder;
+import org.apache.flink.cdc.connectors.jdbc.internal.converter.DefaultJdbcRowConverter;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RichJdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataTypes;
@@ -61,7 +66,7 @@ class JdbcWriterTypeBindingTest {
 
         RecordingStatement recording = new RecordingStatement();
         JdbcStatementBuilder<JdbcRowData> builder =
-                JdbcWriter.getStatementBuilder(sqlColumns, rowColumns);
+                new DefaultJdbcRowConverter().createStatementBuilder(sqlColumns, rowColumns);
         builder.accept(recording.statement, row);
 
         assertEquals(9, recording.calls.size());
@@ -103,14 +108,14 @@ class JdbcWriterTypeBindingTest {
                         .build();
 
         Function<JdbcRowData, JdbcRowData> keyExtractor =
-                JdbcWriter.createRowKeyExtractor(TABLE_ID, schema);
+                JdbcOutputFormatBuilder.createRowKeyExtractor(TABLE_ID, schema);
         JdbcRowData key = keyExtractor.apply(row);
         assertEquals(RowKind.PK_ROW, key.getRowKind());
         assertArrayEquals(new Object[] {42L, "primary-key"}, key.getRows());
         assertEquals(List.of("secondary_id", "primary_id"), key.getSchema().getColumnNames());
 
         RecordingStatement recording = new RecordingStatement();
-        JdbcWriter.getStatementBuilder(
+        new DefaultJdbcRowConverter().createStatementBuilder(
                         schema.primaryKeys(), key.getSchema().getColumnNames())
                 .accept(recording.statement, key);
 
@@ -171,11 +176,11 @@ class JdbcWriterTypeBindingTest {
     void rejectsMismatchedColumnsAndRowWidths() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> JdbcWriter.getStatementBuilder(
+                () -> new DefaultJdbcRowConverter().createStatementBuilder(
                         List.of("non_existent"), List.of("id")));
 
         JdbcStatementBuilder<JdbcRowData> builder =
-                JdbcWriter.getStatementBuilder(List.of("id"), List.of("id", "name"));
+                new DefaultJdbcRowConverter().createStatementBuilder(List.of("id"), List.of("id", "name"));
         JdbcRowData row =
                 new RichJdbcRowData.Builder()
                         .setRowKind(RowKind.INSERT)

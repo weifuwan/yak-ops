@@ -1,5 +1,10 @@
 package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
+import org.apache.flink.cdc.connectors.jdbc.internal.JdbcOutputFormatBuilder;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.JdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RichJdbcRowData;
+import org.apache.flink.cdc.connectors.jdbc.internal.data.RowKind;
+import org.apache.flink.cdc.connectors.jdbc.internal.executor.BatchedStatementExecutor;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataTypes;
@@ -32,7 +37,7 @@ class BatchedStatementExecutorTest {
         RecordingExecutor deletes = new RecordingExecutor();
         BatchedStatementExecutor batch =
                 new BatchedStatementExecutor(
-                        upserts, deletes, JdbcWriter.createRowKeyExtractor(TABLE_ID, schema));
+                        upserts, deletes, JdbcOutputFormatBuilder.createRowKeyExtractor(TABLE_ID, schema));
 
         batch.addToBatch(row(schema, RowKind.DELETE, 1L, "before"));
         batch.addToBatch(row(schema, RowKind.INSERT, 1L, "after"));
@@ -59,7 +64,7 @@ class BatchedStatementExecutorTest {
         RecordingExecutor deletes = new RecordingExecutor();
         BatchedStatementExecutor batch =
                 new BatchedStatementExecutor(
-                        upserts, deletes, JdbcWriter.createRowKeyExtractor(TABLE_ID, schema));
+                        upserts, deletes, JdbcOutputFormatBuilder.createRowKeyExtractor(TABLE_ID, schema));
 
         batch.addToBatch(row(schema, RowKind.DELETE, 1L, "before"));
         batch.addToBatch(row(schema, RowKind.INSERT, 2L, "after"));
@@ -83,7 +88,7 @@ class BatchedStatementExecutorTest {
         RecordingExecutor deletes = new RecordingExecutor();
         BatchedStatementExecutor batch =
                 new BatchedStatementExecutor(
-                        upserts, deletes, JdbcWriter.createRowKeyExtractor(TABLE_ID, schema));
+                        upserts, deletes, JdbcOutputFormatBuilder.createRowKeyExtractor(TABLE_ID, schema));
 
         batch.addToBatch(row(schema, RowKind.DELETE, new byte[] {1, 2, 3}, "before"));
         batch.addToBatch(row(schema, RowKind.INSERT, new byte[] {1, 2, 3}, "after"));
