@@ -3,7 +3,6 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 import { DataSourcePage } from "@/app/datasource/list/page";
 import LoginPage from "@/app/login";
 import { UserManagementPage } from "@/app/management/users/page";
-import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
 import { DataSyncPage } from "@/app/data-sync/list/page";
 import { DataSyncTaskEditorPage } from "@/app/data-sync/editor/page";
 import { DataSyncTaskDetailPage } from "@/app/data-sync/detail";
@@ -109,7 +108,7 @@ export default function AppRouter() {
               productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
               productPath="/data-source"
               navigation={DATA_INTEGRATION_NAVIGATION}
-              workspaceScoped
+
             />
           }
         >
@@ -126,7 +125,7 @@ export default function AppRouter() {
               productLabel={OPERATIONS_PRODUCT_LABEL}
               productPath="/operations/offline-tasks"
               navigation={OPERATIONS_NAVIGATION}
-              workspaceScoped
+
             />
           }
         >
@@ -154,7 +153,7 @@ export default function AppRouter() {
         >
           <Route path="/management" element={<Navigate replace to="/management/users" />} />
           <Route path="/management/users" element={<UserManagementPage />} />
-          <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
+          <Route path="/management/workspaces" element={<Navigate replace to="/management/users" />} />
         </Route>
 
         <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />

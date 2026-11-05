@@ -9,14 +9,12 @@ import { ChevronDown, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { logout } from "@/service/auth";
 import { useLeaveGuard } from "@/context/leave-guard-context";
 
 export default function AccountMenu() {
   const navigate = useNavigate();
   const { currentUser, clearCurrentUser } = useAuth();
-  const { clearWorkspace } = useWorkspace();
   const { confirmLeave } = useLeaveGuard();
   const [loggingOut, setLoggingOut] = useState(false);
   const displayName = currentUser?.name ?? currentUser?.userName ?? "当前用户";
@@ -28,7 +26,6 @@ export default function AccountMenu() {
     setLoggingOut(true);
     try {
       await logout();
-      clearWorkspace();
       clearCurrentUser();
       navigate("/login", { replace: true });
     } catch {

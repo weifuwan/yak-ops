@@ -2,9 +2,8 @@ import type { DataSyncDraft } from "./types";
 
 const PREFIX = "yak.data-sync.draft:";
 
-/** Session storage is tab-local; identity and Workspace are explicit in every draft key. */
-export const taskDraftKey = (userId: string, workspaceId: string) =>
-  PREFIX + encodeURIComponent(userId) + ":" + encodeURIComponent(workspaceId);
+/** Session storage is tab-local and drafts are isolated by the authenticated user. */
+export const taskDraftKey = (userId: string) => PREFIX + encodeURIComponent(userId);
 
 export function readTaskDraft(key: string): DataSyncDraft | undefined {
   try {
@@ -47,7 +46,7 @@ export function clearTaskDraft(key: string) {
   }
 }
 
-/** Clear sensitive workflow context on explicit logout or Workspace changes. No credentials are stored. */
+/** Clear sensitive workflow context on explicit logout. No credentials are stored. */
 export function clearTaskDrafts() {
   try {
     for (let i = window.sessionStorage.length - 1; i >= 0; i -= 1) {
