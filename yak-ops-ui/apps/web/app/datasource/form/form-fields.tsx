@@ -247,6 +247,7 @@ export function DataSourceFormFields({ form }: { form: ReturnType<typeof useData
     </div>
   );
 
+  // The Java MySQL plugin selects its installed JDBC driver; unavailable choices are hidden.
   const mysqlDriverItems: Record<MySqlDriverId, string> = {
     AUTO: intl.formatMessage({ id: "pages.datasource.form.versionAuto" }),
     MYSQL_8: intl.formatMessage({ id: "pages.datasource.form.versionMysql8" }),
@@ -256,7 +257,7 @@ export function DataSourceFormFields({ form }: { form: ReturnType<typeof useData
   const serverDriverIds = optionRules?.options.find(
     (option) => option.key === "driverId",
   )?.allowedValues;
-  const availableDriverIds = (serverDriverIds ?? ["AUTO", "MYSQL_8", "MYSQL_5"]).filter(
+  const availableDriverIds = (serverDriverIds ?? ["AUTO"]).filter(
     (driverId): driverId is MySqlDriverId =>
       driverId === "AUTO" || driverId === "MYSQL_8" || driverId === "MYSQL_5",
   );
@@ -296,6 +297,7 @@ export function DataSourceFormFields({ form }: { form: ReturnType<typeof useData
       {usernameField}
       {passwordField}
       {authOptionField}
+      <AdvancedProperties form={form} />
     </>
   ) : (
     <>

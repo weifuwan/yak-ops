@@ -149,7 +149,11 @@ export function DataSourcePage() {
       setBatchDeleteOpen(false);
       setSelectedRowKeys([]);
       refresh();
+    } catch (error) {
+      toast.warning(error instanceof Error ? error.message : "批量删除部分失败，请刷新后重试");
     } finally {
+      // A partially successful batch must still refresh the remaining records.
+      refresh();
       setBatchDeleting(false);
     }
   };
