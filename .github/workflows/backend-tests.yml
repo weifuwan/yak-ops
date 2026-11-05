@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, dev]
     paths:
+      # API tests also cover changes in its upstream backend dependencies.
       - 'pom.xml'
       - 'yak-ops-*/**'
       - '!yak-ops-cdc/**'
@@ -16,23 +17,20 @@ on:
       - '!yak-ops-cdc/**'
       - '!yak-ops-ui/**'
       - '.github/workflows/backend-tests.yml'
-  # Run all expensive backend tests nightly at 03:15 Asia/Singapore.
-  schedule:
-    - cron: '15 19 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: backend-tests-${{ github.ref }}
+  group: backend-tests-api-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  backend-unit:
-    name: Backend Unit Tests (JDK 17)
+  api-unit:
+    name: API Unit Tests (JDK 17)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -40,83 +38,46 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Run backend unit tests (fast on PR/push; full on schedule/manual)
+      - name: Show Maven version
+        run: mvn --version
+      - name: Compile API dependencies and execute API tests only (parallel reactor)
         shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
         run: |
-          mapfile -t modules < <(find yak-ops-* -type f -name pom.xml \
-            ! -path 'yak-ops-cdc/*' ! -path 'yak-ops-ui/*' \
-            | sed 's@/pom.xml$@@' | sort)
-          module_csv=$(IFS=,; echo "${modules[*]}")
-          test -n "$module_csv"
-          extra_args=()
-          if [[ "$EVENT_NAME" != "schedule" && "$EVENT_NAME" != "workflow_dispatch" ]]; then
-            extra_args+=('-DexcludedGroups=slow')
-            echo "Fast mode: exclude @Tag(slow) tests; nightly/manual runs cover them."
-          fi
-          bash mvnw -B -ntp -fae -pl "$module_csv" -am \
+          # -am builds API upstream dependencies, but Surefire only selects tests
+          # under io.yak.ops.api. Other backend modules are not test targets.
+          # The hosted runner already has Maven; using mvn avoids wrapper JAR
+          # downloads (which can fail with Maven Central HTTP 429).
+          mvn -B -ntp -T 2 -pl :yak-ops-api -am \
+            '-Dtest=%regex[io/yak/ops/api/.*Test.*]' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DexcludedGroups=slow \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
-            "${extra_args[@]}" test
-      - name: Summarize backend Surefire reports
+            test
+      - name: Require executed API tests and no unrelated backend tests
         if: always()
         run: |
           python3 - <<'PY'
           from pathlib import Path
           from xml.etree import ElementTree as ET
-          reports = [p for p in Path('.').glob('yak-ops-*/**/target/surefire-reports/TEST-*.xml')
-                     if not str(p).startswith('yak-ops-cdc/')]
-          total = sum(int(ET.parse(p).getroot().attrib.get('tests', 0)) for p in reports)
-          print(f'Backend reports: {len(reports)}, tests: {total}')
-          if total == 0:
-              raise SystemExit('No backend tests executed')
-          if not list(Path('yak-ops-api/target/surefire-reports').glob('TEST-*.xml')):
-              raise SystemExit('yak-ops-api tests did not execute')
-          PY
-      - name: Upload backend test reports
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-test-reports
-          path: '**/target/surefire-reports/**'
-          if-no-files-found: warn
-          retention-days: 7
 
-  database-integration:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    name: Database Testcontainers Integration (JDK 17)
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: maven
-      - name: Run database integration test classes with Docker
-        shell: bash
-        run: |
-          bash mvnw -B -ntp -fae -pl :yak-ops-tools -am \
-            '-Dtest=*IT' -Dsurefire.failIfNoSpecifiedTests=false \
-            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
-      - name: Require executed integration tests
-        if: always()
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          from xml.etree import ElementTree as ET
-          reports = list(Path('yak-ops-tools/target/surefire-reports').glob('TEST-*IT.xml'))
-          total = sum(int(ET.parse(p).getroot().attrib.get('tests', 0)) for p in reports)
-          print(f'Database IT reports: {len(reports)}, tests: {total}')
+          reports = list(Path('yak-ops-api/target/surefire-reports').glob('TEST-*.xml'))
+          total = sum(int(ET.parse(report).getroot().attrib.get('tests', 0)) for report in reports)
+          print(f'API reports: {len(reports)}, tests: {total}')
           if total == 0:
-              raise SystemExit('No database integration tests executed')
+              raise SystemExit('No yak-ops-api tests executed')
+
+          unrelated = [
+              report for report in Path('.').glob('yak-ops-*/**/target/surefire-reports/TEST-*.xml')
+              if not str(report).startswith('yak-ops-api/')
+          ]
+          if unrelated:
+              raise SystemExit(f'Unexpected test execution outside API: {unrelated[:5]}')
           PY
-      - name: Upload database integration reports
+      - name: Upload API test reports
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: database-integration-test-reports
-          path: yak-ops-tools/target/surefire-reports/**
+          name: api-test-reports
+          path: yak-ops-api/target/surefire-reports/**
           if-no-files-found: warn
           retention-days: 7

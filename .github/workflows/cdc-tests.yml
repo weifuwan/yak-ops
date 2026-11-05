@@ -35,13 +35,15 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+      - name: Show Maven version
+        run: mvn --version
       - name: Run all CDC module tests (including test compilation)
         shell: bash
         run: |
           mapfile -t modules < <(find yak-ops-cdc -type f -name pom.xml | sed 's@/pom.xml$@@' | sort)
           module_csv=$(IFS=,; echo "${modules[*]}")
           test -n "$module_csv"
-          bash mvnw -B -ntp -fae -pl "$module_csv" -am \
+          mvn -B -ntp -T 2 -fae -pl "$module_csv" -am \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
       - name: Require executed CDC tests
         if: always()

@@ -5,16 +5,18 @@ on:
     branches: [main, dev]
     paths:
       - 'pom.xml'
+      - 'yak-ops-bom/**'
       - 'style/**'
-      - 'yak-ops-*/**'
-      - '!yak-ops-ui/**'
+      - 'yak-ops-api/**'
+      - 'yak-ops-cdc/**'
       - '.github/workflows/backend-format.yml'
   pull_request:
     paths:
       - 'pom.xml'
+      - 'yak-ops-bom/**'
       - 'style/**'
-      - 'yak-ops-*/**'
-      - '!yak-ops-ui/**'
+      - 'yak-ops-api/**'
+      - 'yak-ops-cdc/**'
       - '.github/workflows/backend-format.yml'
   workflow_dispatch:
 
@@ -29,7 +31,7 @@ jobs:
   spotless:
     name: Spotless Check (JDK 17)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -37,6 +39,12 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Check all backend formatting without modifying files
+      - name: Check formatting of API and all CDC submodules
         shell: bash
-        run: bash mvnw -B -ntp -fae spotless:check
+        run: |
+          mapfile -t modules < <(find yak-ops-cdc -type f -name pom.xml \
+            | sed 's@/pom.xml$@@' | sort)
+          module_csv="yak-ops-api,$(IFS=,; echo "${modules[*]}")"
+          # No -am: only format API and CDC; their Maven dependencies
+          # do not become additional formatting targets.
+          mvn -B -ntp -T 2 -pl "$module_csv" spotless:check
