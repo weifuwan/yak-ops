@@ -1,3 +1,4 @@
+import { YAK_OPS_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
 
 import type {
@@ -8,7 +9,7 @@ import type {
 
 export type * from "./types";
 
-const USER_PREFERENCE_API_PREFIX = "/api/v1/user-preferences";
+const USER_PREFERENCE_API_PREFIX = `${YAK_OPS_API_PREFIX}/user-preferences`;
 
 const BACKGROUND_PREFERENCE_OPTIONS = {
   skipErrorHandler: true,

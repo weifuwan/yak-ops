@@ -87,6 +87,20 @@ public class SchemaDao {
         }
     }
 
+    /**
+     * Add only the user preference table, without executing the destructive baseline SQL.
+     * The script uses CREATE TABLE IF NOT EXISTS and is safe to repeat.
+     */
+    public void ensureUserPreferenceSchema() {
+        String sqlFilePath = String.format("sql/patches/user-preference_%s.sql", dbType.getDb());
+        try {
+            new SqlScriptRunner(dataSource, sqlFilePath).execute();
+            log.info("Ensured user preference schema using {}", sqlFilePath);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to initialize user preferences using " + sqlFilePath, ex);
+        }
+    }
+
     public String getCurrentVersion() {
         try (
                 Connection connection = dataSource.getConnection();

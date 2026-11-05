@@ -35,6 +35,7 @@ public class YakOpsManager {
 
         if (databaseDialect.tableExists("t_yak_ops_version")) {
             validateCurrentVersion();
+            schemaDao.ensureUserPreferenceSchema();
             log.info("Database schema is already initialized at version {}", SchemaUtils.getSoftVersion());
             return;
         }
@@ -50,6 +51,7 @@ public class YakOpsManager {
         log.info("Initializing database schema from the 3.4.3 baseline");
         schemaDao.initSchema();
         validateCurrentVersion();
+        schemaDao.ensureUserPreferenceSchema();
         log.info("Database schema initialization finished");
     }
 
