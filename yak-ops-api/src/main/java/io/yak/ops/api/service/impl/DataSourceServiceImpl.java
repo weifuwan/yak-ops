@@ -241,7 +241,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
                     object = JSONUtils.parseObject(connectionParams);
                 } catch (RuntimeException ex) {
                     // Never include malformed connection parameters in logs or API responses.
-                    log.warn("Invalid connection parameters for datasource id: {}, masking response", dataSource.getId());
+                    log.warn("Invalid connection parameters for datasource id: {}, masking response",
+                            dataSource.getId());
                 }
             }
             if (object == null) {
