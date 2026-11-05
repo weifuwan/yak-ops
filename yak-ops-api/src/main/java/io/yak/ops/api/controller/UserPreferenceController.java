@@ -38,25 +38,25 @@ public class UserPreferenceController {
 
     @GetMapping
     public Result<List<UserPreferenceRecord>> list(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @RequestParam("scene") UserPreferenceScene scene) {
+                                                   @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                   @RequestParam("scene") UserPreferenceScene scene) {
         return Result.success(service.list(scene, loginUser.getId()));
     }
 
     @PutMapping("/{scene}/{itemKey}/favorite")
     public Result<UserPreferenceRecord> favorite(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @PathVariable("scene") UserPreferenceScene scene,
-            @PathVariable("itemKey") String itemKey,
-            @Valid @RequestBody UserPreferenceFavoriteRequest body) {
+                                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                 @PathVariable("scene") UserPreferenceScene scene,
+                                                 @PathVariable("itemKey") String itemKey,
+                                                 @Valid @RequestBody UserPreferenceFavoriteRequest body) {
         return Result.success(service.updateFavorite(scene, itemKey, body.getFavorite(), loginUser.getId()));
     }
 
     @PostMapping("/{scene}/{itemKey}/use")
     public Result<UserPreferenceRecord> use(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @PathVariable("scene") UserPreferenceScene scene,
-            @PathVariable("itemKey") String itemKey) {
+                                            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                            @PathVariable("scene") UserPreferenceScene scene,
+                                            @PathVariable("itemKey") String itemKey) {
         return Result.success(service.recordUsage(scene, itemKey, loginUser.getId()));
     }
 }

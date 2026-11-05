@@ -42,9 +42,9 @@ class UserPreferenceControllerTest {
         when(service.list(UserPreferenceScene.PRODUCT_MENU, 7)).thenReturn(Collections.emptyList());
 
         mvc.perform(get("/user-preferences")
-                        .requestAttr(Constants.SESSION_USER, sessionUser)
-                        .param("scene", "PRODUCT_MENU")
-                        .param("userId", "99"))
+                .requestAttr(Constants.SESSION_USER, sessionUser)
+                .param("scene", "PRODUCT_MENU")
+                .param("userId", "99"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
 
@@ -58,9 +58,9 @@ class UserPreferenceControllerTest {
                 .thenReturn(saved);
 
         mvc.perform(put("/user-preferences/PRODUCT_MENU/management/favorite")
-                        .requestAttr(Constants.SESSION_USER, sessionUser)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"favorite\":true}"))
+                .requestAttr(Constants.SESSION_USER, sessionUser)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"favorite\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.itemKey").value("management"));
 
@@ -74,7 +74,7 @@ class UserPreferenceControllerTest {
                 .thenReturn(saved);
 
         mvc.perform(post("/user-preferences/DATASOURCE_CREATE_TYPE/MYSQL/use")
-                        .requestAttr(Constants.SESSION_USER, sessionUser))
+                .requestAttr(Constants.SESSION_USER, sessionUser))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.itemKey").value("MYSQL"));
 
