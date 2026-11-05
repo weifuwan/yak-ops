@@ -97,6 +97,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         dataSource.setUpdateTime(now);
         try {
             dataSourceDao.insert(dataSource);
+            // Do not return plaintext or recoverable datasource credentials from create.
+            handlePasswd(Collections.singletonList(dataSource));
             return dataSource;
         } catch (DuplicateKeyException ex) {
             throw new ServiceException(Status.DATASOURCE_EXIST);
@@ -145,6 +147,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         dataSource.setUpdateTime(now);
         try {
             dataSourceDao.updateById(dataSource);
+            // Update has already persisted the real params; mask only the response.
+            handlePasswd(Collections.singletonList(dataSource));
             return dataSource;
         } catch (DuplicateKeyException ex) {
             throw new ServiceException(Status.DATASOURCE_EXIST);

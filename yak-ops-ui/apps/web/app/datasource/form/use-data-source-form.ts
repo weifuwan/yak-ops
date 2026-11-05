@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { toast } from "@yak-ops/yak-ui";
 import { useIntl } from "../i18n";
 import { normalizeDataSourceType } from "../constants";
+import { parseOracleJdbcUrl } from "@/service/datasource/adapter";
 import {
   createDataSource,
   updateDataSource,
   testDataSourceConnectionWithParams,
+  testSavedDataSourceConnection,
   datasourceValidationErrors,
   getDataSourceConnectionPropertyKeys,
   getDataSourceOptionRules,
@@ -254,8 +256,13 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     if (isOracle) {
       if (!values.jdbcUrl.trim())
         next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlRequired" });
-      else if (!values.jdbcUrl.trim().startsWith("jdbc:oracle:"))
-        next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlInvalid" });
+      else {
+        try {
+          parseOracleJdbcUrl(values.jdbcUrl);
+        } catch {
+          next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlInvalid" });
+        }
+      }
     } else {
       if (!values.host.trim())
         next.host = intl.formatMessage({ id: "pages.datasource.form.hostRequired" });
@@ -313,14 +320,18 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     if (busy || !validate()) return;
     setTesting(true);
     try {
-      const connected = await testDataSourceConnectionWithParams({
-        dataSourceId: record?.id,
-        dbType: values.dbType,
-        connectionParams: connectionParams(),
-      });
+      const connected =
+        record?.id && !values.password.trim()
+          ? await testSavedDataSourceConnection(record.id)
+          : await testDataSourceConnectionWithParams({
+              dataSourceId: record?.id,
+              dbType: values.dbType,
+              connectionParams: connectionParams(),
+            });
       if (connected) toast.success(intl.formatMessage({ id: "pages.datasource.test.success" }));
     } catch (error) {
       applyValidationErrors(error);
+      // Preserve the dialog and the user's input after a rejected connection test.
     } finally {
       setTesting(false);
     }
