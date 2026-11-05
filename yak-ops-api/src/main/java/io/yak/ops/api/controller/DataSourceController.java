@@ -19,8 +19,8 @@ import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.exceptions.ServiceException;
-import io.yak.ops.api.service.DataSourceService;
 import io.yak.ops.api.service.DataSourceCatalogService;
+import io.yak.ops.api.service.DataSourceService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSourceSimpleInfoVO;
@@ -78,8 +78,8 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_DATASOURCE_ERROR)
     public Result<List<ConnectionProperty>> getConnectionProperties(
-                                                                      @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                      @RequestParam("type") DbType type) {
+                                                                    @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                                    @RequestParam("type") DbType type) {
         return Result.success(dataSourceCatalogService.getConnectionProperties(type));
     }
 
