@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSources } from "@/service/datasource";
 
 interface DataSourceListParams {
@@ -13,11 +12,10 @@ interface DataSourceListParams {
 
 export const dataSourceListKeys = {
   all: ["data-source", "list"] as const,
-  page: (userId: string, workspaceId: string, params: DataSourceListParams) =>
+  page: (userId: string, params: DataSourceListParams) =>
     [
       ...dataSourceListKeys.all,
       userId,
-      workspaceId,
       params.pageNo,
       params.pageSize,
       params.keyword,
@@ -27,7 +25,6 @@ export const dataSourceListKeys = {
 
 export function useDataSources({ pageNo, pageSize, keyword, dbType }: DataSourceListParams) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
   const [debouncedKeyword, setDebouncedKeyword] = useState(keyword.trim());
 
   useEffect(() => {
@@ -39,9 +36,8 @@ export function useDataSources({ pageNo, pageSize, keyword, dbType }: DataSource
   }, [keyword]);
 
   const userId = currentUser?.id ?? "";
-  const workspaceId = currentWorkspace?.id ?? "";
   return useQuery({
-    queryKey: dataSourceListKeys.page(userId, workspaceId, {
+    queryKey: dataSourceListKeys.page(userId, {
       pageNo,
       pageSize,
       keyword: debouncedKeyword,
@@ -49,6 +45,6 @@ export function useDataSources({ pageNo, pageSize, keyword, dbType }: DataSource
     }),
     queryFn: ({ signal }) =>
       listDataSources({ pageNo, pageSize, keyword: debouncedKeyword || undefined, dbType }, signal),
-    enabled: Boolean(userId && workspaceId),
+    enabled: Boolean(userId),
   });
 }

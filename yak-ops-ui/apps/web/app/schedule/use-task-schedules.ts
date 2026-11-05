@@ -5,12 +5,12 @@ import { scheduleQueryKeys, useScheduleScope, visiblePollInterval } from "./quer
 
 /** One bounded batch per visible task page, isolated by user, Workspace and target IDs. */
 export function useTaskSchedules(targetIds: string[]) {
-  const { userId, workspaceId } = useScheduleScope();
+  const { userId } = useScheduleScope();
   const queryClient = useQueryClient();
   const idsKey = JSON.stringify([...new Set(targetIds)].sort());
   const ids = useMemo(() => JSON.parse(idsKey) as string[], [idsKey]);
-  const key = scheduleQueryKeys.targets(userId, workspaceId, ids);
-  const enabled = Boolean(userId && workspaceId && ids.length);
+  const key = scheduleQueryKeys.targets(userId, ids);
+  const enabled = Boolean(userId && ids.length);
   const query = useQuery({
     queryKey: key,
     queryFn: ({ signal }) => listTaskSchedules(ids, signal),

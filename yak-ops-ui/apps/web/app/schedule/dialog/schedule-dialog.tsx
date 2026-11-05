@@ -10,7 +10,6 @@ import {
   TabsTab,
 } from "@yak-ops/yak-ui";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { ScheduleForm } from "../form/schedule-form";
 import { ScheduleFireHistory } from "../history/fire-history";
 import { formatScheduleTime, registrationText, scheduleReasonText } from "../schedule-presentation";
@@ -18,11 +17,10 @@ import { useScheduleSession } from "./use-schedule-session";
 import type { ScheduleDialogProps } from "./types";
 
 export function ScheduleDialog(props: ScheduleDialogProps) {
-  const { currentWorkspace } = useWorkspace();
   const { currentUser } = useAuth();
   return props.open ? (
     <ScheduleDialogSession
-      key={`${currentUser?.id}/${currentWorkspace?.id}/${props.targetId}/${props.historyScheduleId || "current"}`}
+      key={`${currentUser?.id}/${props.targetId}/${props.historyScheduleId || "current"}`}
       {...props}
     />
   ) : null;

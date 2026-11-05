@@ -1,18 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 export const scheduleQueryKeys = {
   all: ["schedule"] as const,
   tasks: () => [...scheduleQueryKeys.all, "tasks"] as const,
-  targets: (userId: string, workspaceId: string, ids: readonly string[]) =>
-    [...scheduleQueryKeys.tasks(), userId, workspaceId, ...ids] as const,
-  detail: (userId: string, workspaceId: string, targetId: string) =>
-    [...scheduleQueryKeys.all, "detail", userId, workspaceId, targetId] as const,
-  preview: (userId: string, workspaceId: string, cron: string, zone: string) =>
-    [...scheduleQueryKeys.all, "preview", userId, workspaceId, cron, zone] as const,
+  targets: (userId: string, ids: readonly string[]) =>
+    [...scheduleQueryKeys.tasks(), userId, ...ids] as const,
+  detail: (userId: string, targetId: string) =>
+    [...scheduleQueryKeys.all, "detail", userId, targetId] as const,
+  preview: (userId: string, cron: string, zone: string) =>
+    [...scheduleQueryKeys.all, "preview", userId, cron, zone] as const,
   fires: (
     userId: string,
-    workspaceId: string,
     scheduleId: string,
     pageNo: number,
     outcome: string,
@@ -23,7 +21,6 @@ export const scheduleQueryKeys = {
       ...scheduleQueryKeys.all,
       "fires",
       userId,
-      workspaceId,
       scheduleId,
       pageNo,
       outcome,
@@ -34,8 +31,7 @@ export const scheduleQueryKeys = {
 
 export function useScheduleScope() {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  return { userId: currentUser?.id ?? "", workspaceId: currentWorkspace?.id ?? "" };
+  return { userId: currentUser?.id ?? "" };
 }
 
 /** TanStack Query pauses hidden-tab requests while the polling timer stays active. */
