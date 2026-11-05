@@ -17,7 +17,7 @@
     "format:check": "oxfmt --check apps packages",
     "check": "npm run format:check",
     "test:auth": "node --experimental-strip-types --test tests/auth-contract.test.mjs",
-    "test:datasource": "node --experimental-strip-types --test tests/datasource-contract.test.mjs"
+    "test:datasource": "node --experimental-strip-types --test tests/datasource-contract.test.mjs tests/datasource-svg-icons.test.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
