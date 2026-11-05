@@ -41,6 +41,7 @@ class YakOpsManagerTest {
         when(schemaDao.getCurrentVersion()).thenReturn("3.4.3");
         manager.initializeOrValidate();
         verify(schemaDao).initSchema();
+        verify(schemaDao).ensureUserPreferenceSchema();
     }
 
     @Test
@@ -50,6 +51,7 @@ class YakOpsManagerTest {
         mockRequiredTables();
         manager.initializeOrValidate();
         verify(schemaDao, never()).initSchema();
+        verify(schemaDao).ensureUserPreferenceSchema();
     }
 
     @Test

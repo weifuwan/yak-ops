@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.yak.ops.dao.mapper.UserPreferenceMapper">
+
+    <insert id="upsertFavorite" databaseId="MySQL">
+        INSERT INTO t_yak_ops_user_preference
+            (user_id, scene, item_key, favorite, sort_order, use_count, create_time, update_time)
+        VALUES (#{userId}, #{scene}, #{itemKey}, #{favorite}, #{sortOrder}, 0, NOW(3), NOW(3))
+        ON DUPLICATE KEY UPDATE
+            favorite = VALUES(favorite),
+            sort_order = VALUES(sort_order),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <insert id="recordUsage" databaseId="MySQL">
+        INSERT INTO t_yak_ops_user_preference
+            (user_id, scene, item_key, favorite, sort_order, use_count,
+             last_used_time, create_time, update_time)
+        VALUES (#{userId}, #{scene}, #{itemKey}, 0, 0, 1, NOW(3), NOW(3), NOW(3))
+        ON DUPLICATE KEY UPDATE
+            use_count = use_count + 1,
+            last_used_time = VALUES(last_used_time),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <insert id="upsertFavorite" databaseId="PostgreSQL">
+        INSERT INTO t_yak_ops_user_preference
+            (user_id, scene, item_key, favorite, sort_order, use_count, create_time, update_time)
+        VALUES (#{userId}, #{scene}, #{itemKey}, #{favorite}, #{sortOrder}, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id, scene, item_key) DO UPDATE SET
+            favorite = EXCLUDED.favorite,
+            sort_order = EXCLUDED.sort_order,
+            update_time = EXCLUDED.update_time
+    </insert>
+
+    <insert id="recordUsage" databaseId="PostgreSQL">
+        INSERT INTO t_yak_ops_user_preference
+            (user_id, scene, item_key, favorite, sort_order, use_count,
+             last_used_time, create_time, update_time)
+        VALUES (#{userId}, #{scene}, #{itemKey}, FALSE, 0, 1,
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id, scene, item_key) DO UPDATE SET
+            use_count = t_yak_ops_user_preference.use_count + 1,
+            last_used_time = EXCLUDED.last_used_time,
+            update_time = EXCLUDED.update_time
+    </insert>
+
+    <insert id="upsertFavorite" databaseId="H2">
+        MERGE INTO t_yak_ops_user_preference AS target
+        USING (SELECT CAST(#{userId} AS INTEGER) AS user_id,
+                      CAST(#{scene} AS VARCHAR(64)) AS scene,
+                      CAST(#{itemKey} AS VARCHAR(128)) AS item_key) AS source
+        ON target.user_id = source.user_id
+           AND target.scene = source.scene
+           AND target.item_key = source.item_key
+        WHEN MATCHED THEN UPDATE SET
+            favorite = #{favorite},
+            sort_order = #{sortOrder},
+            update_time = CURRENT_TIMESTAMP
+        WHEN NOT MATCHED THEN INSERT
+            (user_id, scene, item_key, favorite, sort_order, use_count, create_time, update_time)
+        VALUES (source.user_id, source.scene, source.item_key,
+                #{favorite}, #{sortOrder}, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <insert id="recordUsage" databaseId="H2">
+        MERGE INTO t_yak_ops_user_preference AS target
+        USING (SELECT CAST(#{userId} AS INTEGER) AS user_id,
+                      CAST(#{scene} AS VARCHAR(64)) AS scene,
+                      CAST(#{itemKey} AS VARCHAR(128)) AS item_key) AS source
+        ON target.user_id = source.user_id
+           AND target.scene = source.scene
+           AND target.item_key = source.item_key
+        WHEN MATCHED THEN UPDATE SET
+            use_count = target.use_count + 1,
+            last_used_time = CURRENT_TIMESTAMP,
+            update_time = CURRENT_TIMESTAMP
+        WHEN NOT MATCHED THEN INSERT
+            (user_id, scene, item_key, favorite, sort_order, use_count,
+             last_used_time, create_time, update_time)
+        VALUES (source.user_id, source.scene, source.item_key, FALSE, 0, 1,
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+</mapper>
