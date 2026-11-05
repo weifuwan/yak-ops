@@ -50,6 +50,8 @@ export interface DataSourceConnectionParams {
   password: string;
   /** Provider-owned JDBC driver selection id. Only MySQL currently exposes this field. */
   driverId?: string;
+  compatibleMode?: "mysql" | "oracle";
+  privateKey?: string;
   properties: Record<string, string>;
 }
 

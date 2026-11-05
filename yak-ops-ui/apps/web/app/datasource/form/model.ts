@@ -31,6 +31,8 @@ export interface FormValues {
   username: string;
   password: string;
   driverId: MySqlDriverId;
+  compatibleMode: "mysql" | "oracle";
+  privateKey: string;
   properties: JdbcProperty[];
   remark: string;
 }
@@ -43,6 +45,7 @@ export type FormErrorKey =
   | "port"
   | "database"
   | "username"
+  | "compatibleMode"
   | "properties"
   | "remark";
 export type FormErrors = Partial<Record<FormErrorKey, string>>;
@@ -119,6 +122,8 @@ export const EMPTY_FORM: FormValues = {
   username: "",
   password: "",
   driverId: "AUTO",
+  compatibleMode: "mysql",
+  privateKey: "",
   properties: [],
   remark: "",
 };
@@ -202,6 +207,9 @@ export const parseOriginalJson = (record?: DataSourceRecord): Partial<FormValues
       password: typeof value.password === "string" ? value.password : undefined,
       driverId: normalizeMySqlDriverId(value.driverId),
       properties: parseProperties(value.properties),
+      compatibleMode: value.compatibleMode === "oracle" ? "oracle" : "mysql",
+      // Never populate sensitive SSH keys from masked backend records.
+      privateKey: "",
     };
   } catch {
     if (dbType === "ORACLE") return { jdbcUrl: recordJdbcUrl };
@@ -224,6 +232,28 @@ export const buildJdbcPreview = (values: FormValues) => {
     case "POSTGRE_SQL":
       jdbcUrl = "jdbc:postgresql://" + authority + "/" + database;
       break;
+    case "SQLSERVER":
+      jdbcUrl = "jdbc:sqlserver://" + authority + ";databaseName=" + database;
+      break;
+    case "DB2":
+      jdbcUrl = "jdbc:db2://" + authority + "/" + database;
+      break;
+    case "DAMENG":
+      jdbcUrl = "jdbc:dm://" + authority + "/" + database;
+      break;
+    case "OCEANBASE":
+      jdbcUrl = "jdbc:oceanbase://" + authority + "/" + database;
+      break;
+    case "CLICKHOUSE":
+      jdbcUrl = "jdbc:clickhouse://" + authority + "/" + database;
+      break;
+    case "DORIS":
+      jdbcUrl = "jdbc:mysql:loadbalance://" +
+        host.split(",").map((candidate) => candidate.trim() + ":" + port).join(",") +
+        "/" + database;
+      break;
+    case "SSH":
+      return "ssh://" + authority;
     default:
       jdbcUrl = "jdbc:mysql://" + authority + "/" + database;
   }

@@ -106,6 +106,13 @@ const PROPERTY_HINTS: Record<string, string[]> = {
   MYSQL: ["serverTimezone", "useSSL", "connectTimeout", "socketTimeout", "characterEncoding"],
   POSTGRESQL: ["sslmode", "connectTimeout", "socketTimeout", "ApplicationName"],
   ORACLE: ["oracle.net.CONNECT_TIMEOUT", "oracle.jdbc.ReadTimeout"],
+  SQLSERVER: ["encrypt", "trustServerCertificate", "loginTimeout"],
+  DB2: ["sslConnection", "currentSchema"],
+  DAMENG: ["schema"],
+  OCEANBASE: ["connectTimeout", "socketTimeout"],
+  CLICKHOUSE: ["socket_timeout", "connect_timeout"],
+  STARROCKS: ["connectTimeout", "socketTimeout"],
+  DORIS: ["connectTimeout", "socketTimeout"],
 };
 export const getDataSourceConnectionPropertyKeys = async (
   dbType: string,

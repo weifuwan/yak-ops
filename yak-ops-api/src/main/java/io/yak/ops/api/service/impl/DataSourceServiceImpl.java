@@ -20,6 +20,8 @@ import io.yak.ops.dao.repository.DataSourceUserDao;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
+import io.yak.ops.plugin.datasource.ssh.param.SSHConnectionParam;
+import io.yak.ops.plugin.datasource.ssh.param.SSHDataSourceParamDTO;
 import io.yak.ops.spi.datasource.BaseConnectionParam;
 import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
@@ -129,6 +131,15 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         // check password，if the password is not updated, set to the old password.
         ConnectionParam connectionParam = DataSourceUtils.buildConnectionParams(dataSourceParam);
 
+        // SSH private keys are write-only to the frontend: blank/masked means keep the existing key.
+        if (connectionParam instanceof SSHConnectionParam) {
+            SSHConnectionParam ssh = (SSHConnectionParam) connectionParam;
+            if (StringUtils.isBlank(ssh.getPrivateKey()) || Constants.XXXXXX.equals(ssh.getPrivateKey())) {
+                ObjectNode oldParams = JSONUtils.parseObject(dataSource.getConnectionParams());
+                ssh.setPrivateKey(oldParams.path("privateKey").asText(""));
+            }
+        }
+
         String password = connectionParam.getPassword();
 
         if (StringUtils.isBlank(password)) {
@@ -180,6 +191,9 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         baseDataSourceParamDTO.setName(dataSource.getName());
         baseDataSourceParamDTO.setNote(dataSource.getNote());
         baseDataSourceParamDTO.setPassword(getHiddenPassword());
+        if (baseDataSourceParamDTO instanceof SSHDataSourceParamDTO) {
+            ((SSHDataSourceParamDTO) baseDataSourceParamDTO).setPrivateKey(getHiddenPassword());
+        }
 
         return baseDataSourceParamDTO;
     }
@@ -216,6 +230,9 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             String connectionParams = dataSource.getConnectionParams();
             ObjectNode object = JSONUtils.parseObject(connectionParams);
             object.put(Constants.PASSWORD, getHiddenPassword());
+            if (dataSource.getType() == DbType.SSH) {
+                object.put("privateKey", getHiddenPassword());
+            }
             dataSource.setConnectionParams(object.toString());
         }
     }

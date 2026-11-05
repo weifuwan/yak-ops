@@ -16,9 +16,11 @@ export function DataSourceTypeSelector({ form }: { form: ReturnType<typeof useDa
     handleSelectType,
   } = form;
   const normalizedSearch = createSearch.trim().toLowerCase();
-  const relationalCount = COMMON_DB_OPTIONS.filter(
-    (option) => option.category === "RELATIONAL",
-  ).length;
+  const categories = [
+    { value: "RELATIONAL" as const, label: "pages.datasource.wizard.categoryRelational" },
+    { value: "ANALYTICAL" as const, label: "pages.datasource.wizard.categoryAnalytical" },
+    { value: "OTHER" as const, label: "pages.datasource.wizard.categoryOther" },
+  ];
   const visibleOptions = COMMON_DB_OPTIONS.filter((option) => {
     const matchesCategory = createCategory === "ALL" || option.category === createCategory;
     const matchesSearch =
@@ -66,20 +68,23 @@ export function DataSourceTypeSelector({ form }: { form: ReturnType<typeof useDa
               { count: COMMON_DB_OPTIONS.length },
             )}
           </button>
-          <button
-            type="button"
-            className={
-              createCategory === "RELATIONAL"
-                ? "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[var(--yak-color-primary)] bg-[var(--yak-color-primary)] px-3 text-xs text-white outline-none"
-                : "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-panel-border)] bg-white px-3 text-xs text-[var(--yak-components-muted-text)] outline-none hover:bg-[var(--yak-color-hover)] focus-visible:border-[var(--yak-color-primary)]"
-            }
-            onClick={() => setCreateCategory("RELATIONAL")}
-          >
-            {intl.formatMessage(
-              { id: "pages.datasource.wizard.categoryRelational" },
-              { count: relationalCount },
-            )}
-          </button>
+          {categories.map((category) => (
+            <button
+              key={category.value}
+              type="button"
+              className={
+                createCategory === category.value
+                  ? "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[var(--yak-color-primary)] bg-[var(--yak-color-primary)] px-3 text-xs text-white outline-none"
+                  : "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-panel-border)] bg-white px-3 text-xs text-[var(--yak-components-muted-text)] outline-none hover:bg-[var(--yak-color-hover)] focus-visible:border-[var(--yak-color-primary)]"
+              }
+              onClick={() => setCreateCategory(category.value)}
+            >
+              {intl.formatMessage(
+                { id: category.label },
+                { count: COMMON_DB_OPTIONS.filter((option) => option.category === category.value).length },
+              )}
+            </button>
+          ))}
         </div>
       </section>
 

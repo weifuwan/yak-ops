@@ -19,6 +19,8 @@ export interface BackendDataSourceParam {
   password: string;
   other: Record<string, string>;
   connectType?: "ORACLE_SID" | "ORACLE_SERVICE_NAME";
+  compatibleMode?: "mysql" | "oracle";
+  privateKey?: string;
 }
 
 export interface BackendDataSourceRecord {
@@ -33,6 +35,8 @@ export interface BackendDataSourceRecord {
   password?: string;
   other?: Record<string, string>;
   connectType?: string;
+  compatibleMode?: string;
+  privateKey?: string;
   connectionParams?: string;
   createTime?: string;
   updateTime?: string;
@@ -41,7 +45,15 @@ export interface BackendDataSourceRecord {
 const CODE_TYPES: Record<number, string> = {
   0: "MYSQL",
   1: "POSTGRE_SQL",
+  4: "CLICKHOUSE",
   5: "ORACLE",
+  6: "SQLSERVER",
+  7: "DB2",
+  13: "STARROCKS",
+  15: "DAMENG",
+  16: "OCEANBASE",
+  17: "SSH",
+  23: "DORIS",
 };
 const SECRET_QUERY_PARAM = /([?&](?:password|pwd|token|secret|accessKey)=)[^&]*/gi;
 
@@ -97,7 +109,7 @@ export function toBackendDataSource(
           port: Number(params.port),
           database: params.database?.trim() ?? "",
         };
-  if (!endpoint.host || !Number.isInteger(endpoint.port) || endpoint.port < 1 || endpoint.port > 65535 || !endpoint.database) {
+  if (!endpoint.host || !Number.isInteger(endpoint.port) || endpoint.port < 1 || endpoint.port > 65535 || (type !== "SSH" && !endpoint.database)) {
     throw new Error("请填写完整且有效的数据库地址、端口和数据库名称");
   }
   return {
@@ -114,6 +126,8 @@ export function toBackendDataSource(
     ...(type === "ORACLE"
       ? { connectType: (endpoint as ReturnType<typeof parseOracleJdbcUrl>).connectType }
       : {}),
+    ...(type === "OCEANBASE" ? { compatibleMode: params.compatibleMode || "mysql" } : {}),
+    ...(type === "SSH" ? { privateKey: params.privateKey?.trim() || "" } : {}),
   };
 }
 
@@ -152,8 +166,22 @@ function urlFromEndpoint(
       ? "jdbc:oracle:thin:@" + host + ":" + port + ":" + database
       : "jdbc:oracle:thin:@//" + host + ":" + port + "/" + database;
   }
-  return "jdbc:" + (type === "POSTGRE_SQL" ? "postgresql" : "mysql") +
-    "://" + host + ":" + port + "/" + database;
+  if (type === "SSH") return "ssh://" + host + ":" + port;
+  if (type === "SQLSERVER") return "jdbc:sqlserver://" + host + ":" + port + ";databaseName=" + database;
+  if (type === "DORIS") {
+    return "jdbc:mysql:loadbalance://" +
+      host.split(",").map((candidate) => candidate.trim() + ":" + port).join(",") + "/" + database;
+  }
+  const protocol: Record<string, string> = {
+    POSTGRE_SQL: "postgresql",
+    DB2: "db2",
+    CLICKHOUSE: "clickhouse",
+    OCEANBASE: "oceanbase",
+    DAMENG: "dm",
+    MYSQL: "mysql",
+    STARROCKS: "mysql",
+  };
+  return "jdbc:" + (protocol[type] || "mysql") + "://" + host + ":" + port + "/" + database;
 }
 
 export function fromBackendDataSource(raw: BackendDataSourceRecord): DataSourceRecord {
@@ -162,11 +190,13 @@ export function fromBackendDataSource(raw: BackendDataSourceRecord): DataSourceR
   const rawUrl = stringField(stored.jdbcUrl);
   const address = stringField(stored.address);
   const addressMatch = /\/\/(\[[^\]]+\]|[^:/?]+):(\d+)/.exec(address || rawUrl);
-  const host = raw.host || addressMatch?.[1] || "";
-  const port = raw.port ?? (addressMatch ? Number(addressMatch[2]) : undefined);
+  const host = raw.host || stringField(stored.host) || addressMatch?.[1] || "";
+  const port = raw.port ?? numberField(stored.port) ??
+    (addressMatch ? Number(addressMatch[2]) : undefined);
   const database = raw.database || stringField(stored.database);
   const username = raw.userName || stringField(stored.user);
   const connectType = raw.connectType || stringField(stored.connectType) || "ORACLE_SERVICE_NAME";
+  const compatibleMode = raw.compatibleMode || stringField(stored.compatibleMode) || "mysql";
   const properties = mapField(raw.other || stored.other);
   const jdbcUrl = rawUrl || urlFromEndpoint(type, host, port, database, connectType);
   // Never round-trip a masked password back to an update/test request.
@@ -178,6 +208,8 @@ export function fromBackendDataSource(raw: BackendDataSourceRecord): DataSourceR
     password: "",
     properties,
     connectType,
+    compatibleMode: compatibleMode === "oracle" ? "oracle" : "mysql",
+    privateKey: "",
     jdbcUrl: type === "ORACLE" ? urlFromEndpoint(type, host, port, database, connectType) || jdbcUrl : jdbcUrl,
   };
   const displayUrl = (jdbcUrl || safeEdit.jdbcUrl).replace(SECRET_QUERY_PARAM, "$1******");
