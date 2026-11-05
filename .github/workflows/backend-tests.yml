@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   backend-unit:
-    name: All Backend Unit Tests (JDK 11)
+    name: All Backend Unit Tests (JDK 17)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
           cache: maven
       - name: Run all backend module tests (including test compilation)
         shell: bash
@@ -110,7 +110,7 @@ jobs:
           retention-days: 7
 
   database-integration:
-    name: Database Testcontainers Integration (JDK 11)
+    name: Database Testcontainers Integration (JDK 17)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -118,7 +118,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
           cache: maven
       - name: Run all database integration test classes with Docker
         shell: bash

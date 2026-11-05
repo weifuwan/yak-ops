@@ -54,7 +54,7 @@
         <!-- Maven shade plugin prior to 3.2.0 could not correctly shade nested classes with JDK 8+. -->
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <java.version>17</java.version>
-        <!-- Keep CDC's Java and formatter independent from the Scheduler parent. -->
+        <!-- Keep CDC's Java compilation target independent from the Scheduler's Java 8 baseline. -->
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <jacoco.skip>true</jacoco.skip>
         <analyze.skip>true</analyze.skip>
@@ -291,10 +291,10 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.10.2</version>
-                <configuration combine.self="override">
-                    <!-- Preserve the imported Flink CDC source's existing format. -->
-                    <java>
+                <!-- Inherit the shared plugin version, POM and Markdown rules. -->
+                <configuration>
+                    <!-- Preserve the imported Flink CDC source's existing Java format. -->
+                    <java combine.self="override">
                         <includes>
                             <include>src/main/java/**/*.java</include>
                         </includes>

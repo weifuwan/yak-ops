@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <!-- Scheduler supplies the root build baseline; CDC explicitly overrides Java,
-         Spring Boot dependency versions, compiler and formatting in its own POM. -->
+    <!-- Scheduler supplies the root build baseline; CDC overrides its Java level,
+         Spring Boot dependency versions, compiler and Java formatting rules. -->
     <groupId>io.yak.ops</groupId>
     <artifactId>yak-ops</artifactId>
     <version>1.4.0</version>
@@ -55,7 +55,7 @@
         <maven-shade-plugin.version>3.3.0</maven-shade-plugin.version>
         <rpm-maven-plugion.version>2.2.0</rpm-maven-plugion.version>
         <aspectj-maven-plugin.version>1.14.0</aspectj-maven-plugin.version>
-        <spotless.version>2.27.2</spotless.version>
+        <spotless.version>3.10.2</spotless.version>
         <jacoco.version>0.8.14</jacoco.version>
         <sonar.maven.plugin.version>5.3.0.6276</sonar.maven.plugin.version>
         <cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
@@ -647,6 +647,8 @@
                     <skip>${spotless.skip}</skip>
                     <java>
                         <eclipse>
+                            <!-- Pin Eclipse JDT so formatter changes do not create unrelated source diffs. -->
+                            <version>4.26</version>
                             <file>${maven.multiModuleProjectDirectory}/style/spotless_yak-ops_formatter.xml</file>
                         </eclipse>
                         <removeUnusedImports />
@@ -727,7 +729,8 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
-                        <phase>compile</phase>
+                        <!-- Do not block compile/test with formatting; verify separately in CI. -->
+                        <phase>verify</phase>
                     </execution>
                 </executions>
             </plugin>
