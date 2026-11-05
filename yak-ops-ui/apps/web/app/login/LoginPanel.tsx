@@ -93,7 +93,7 @@ export default function LoginPanel({
 
       await login({
         userName,
-        pw: userPassword,
+        userPassword,
       });
 
       if (submission.signal.aborted) return;

@@ -28,10 +28,13 @@ export default function AccountMenu() {
     setLoggingOut(true);
     try {
       await logout();
-    } finally {
       clearWorkspace();
       clearCurrentUser();
       navigate("/login", { replace: true });
+    } catch {
+      // The request layer shows the error; keep the authenticated UI if sign-out failed.
+    } finally {
+      setLoggingOut(false);
     }
   };
 
