@@ -15,7 +15,8 @@
     "lint:fix": "oxlint apps packages --fix",
     "format": "oxfmt apps packages",
     "format:check": "oxfmt --check apps packages",
-    "check": "npm run format:check"
+    "check": "npm run format:check",
+    "test:auth": "node --experimental-strip-types --test tests/auth-contract.test.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",

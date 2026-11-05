@@ -1,20 +1,23 @@
 export interface AuthUserResponse {
-  id: string;
+  id: number;
   userName: string;
-  realName?: string | null;
-  deptId?: number | null;
-  phone?: string | null;
   email?: string | null;
+  phone?: string | null;
+  userType: "ADMIN_USER" | "GENERAL_USER";
+  tenantId: number;
+  state: number;
+  timeZone?: string | null;
 }
 
-export interface AuthUser extends AuthUserResponse {
+export interface AuthUser extends Omit<AuthUserResponse, "id"> {
+  id: string;
   name: string;
   userid: string;
 }
 
 export interface LoginCredentials {
   userName: string;
-  pw: string;
+  userPassword: string;
 }
 
 export interface GetCurrentUserOptions {

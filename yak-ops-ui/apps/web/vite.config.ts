@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 
 const webRoot = fileURLToPath(new URL(".", import.meta.url));
 const backendUrl = process.env.YAK_BACKEND_URL || "http://127.0.0.1:8080";
+const yakOpsBackendUrl = process.env.YAK_OPS_BACKEND_URL || "http://127.0.0.1:12345";
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export default defineConfig({
@@ -30,6 +31,10 @@ export default defineConfig({
     },
     proxy: {
       "/api": backendUrl,
+      "/yak-ops": {
+        target: yakOpsBackendUrl,
+        changeOrigin: true,
+      },
     },
   },
   build: {

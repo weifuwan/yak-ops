@@ -1,4 +1,4 @@
-export const API_SUCCESS_CODE = 200;
+export const API_SUCCESS_CODE = 0;
 
 export interface ApiResponse<T = unknown> {
   code: number;

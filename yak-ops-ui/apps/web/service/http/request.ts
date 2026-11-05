@@ -85,6 +85,16 @@ const handleBusinessError = (error: BizError, skipErrorHandler: boolean) => {
     return;
   }
 
+  if (isLoginPath()) {
+    notifyOnce(`login:${error.code}:${error.message}`, {
+      type: "error",
+      title: "登录失败",
+      description: error.message,
+      meta: "请检查账号密码或稍后重试",
+    });
+    return;
+  }
+
   notifyOnce(`business:${error.code}:${error.message}`, {
     type: "error",
     title: "操作失败",
