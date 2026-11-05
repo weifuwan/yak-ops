@@ -35,8 +35,8 @@ class YakOpsManagerTest {
     @Test
     void newDatabaseIsInitializedAndValidated() throws Exception {
         when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(false, true);
-        when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(false, true);
-        when(databaseDialect.tableExists("t_yak_ops_workflow_instance")).thenReturn(false, true);
+        when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_workflow_instance")).thenReturn(true);
         when(databaseDialect.tableExists("t_yak_ops_task_instance")).thenReturn(true);
         when(schemaDao.getCurrentVersion()).thenReturn("3.4.3");
         manager.initializeOrValidate();
