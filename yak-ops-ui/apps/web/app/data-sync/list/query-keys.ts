@@ -1,4 +1,4 @@
-/** Each list key includes the authenticated user and Workspace identity. */
+/** Each list key includes the authenticated user identity. */
 export const listQueryKeys = {
   scope: (scope: string) => ["data-sync-list", scope] as const,
   tasks: (scope: string) => [...listQueryKeys.scope(scope), "tasks"] as const,

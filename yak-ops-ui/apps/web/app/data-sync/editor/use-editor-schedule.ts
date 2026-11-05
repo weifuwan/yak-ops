@@ -1,7 +1,6 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import {
   getTaskSchedule,
   scheduleErrorMessage,
@@ -18,12 +17,11 @@ interface PendingSchedule {
 /** Existing schedule identity is independent of the currently edited task strategy. */
 export function useEditorSchedule(id: string | undefined, pendingSchedule: PendingSchedule | null) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
-  const queryKey = ["data-sync-editor-schedule", currentUser?.id, currentWorkspace?.id, id];
+  const queryKey = ["data-sync-editor-schedule", currentUser?.id, id];
   const query = useQuery({
     queryKey,
-    enabled: Boolean(id && currentUser && currentWorkspace),
+    enabled: Boolean(id && currentUser),
     queryFn: ({ signal }) => getTaskSchedule(id!, signal),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

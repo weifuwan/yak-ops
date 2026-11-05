@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Modal, Table, type TableColumns } from "@yak-ops/yak-ui";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSourceColumns, type DataSourceCatalogTablePath } from "@/service/datasource";
 import type { DataSyncTransform } from "@/service/data-sync";
 import {
@@ -36,13 +35,11 @@ interface Props {
 
 function useFieldColumns(endpoint: FieldEndpoint, enabled: boolean) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
   const { dataSourceId, database, schema, table } = endpoint;
   return useQuery({
     queryKey: [
       "data-sync-field-columns",
       currentUser?.id,
-      currentWorkspace?.id,
       dataSourceId,
       database ?? "",
       schema ?? "",
@@ -54,7 +51,7 @@ function useFieldColumns(endpoint: FieldEndpoint, enabled: boolean) {
         { database: database || undefined, schema: schema || undefined, table },
         signal,
       ),
-    enabled: Boolean(enabled && currentUser?.id && currentWorkspace?.id && dataSourceId && table),
+    enabled: Boolean(enabled && currentUser?.id && dataSourceId && table),
     retry: false,
   });
 }

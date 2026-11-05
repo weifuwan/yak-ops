@@ -1,14 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSources, type DataSourceRecord } from "@/service/datasource";
 
 export function useEditorDataSources(connections: DataSourceRecord[]) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const enabled = Boolean(currentUser?.id && currentWorkspace?.id);
+  const enabled = Boolean(currentUser?.id);
   const query = useQuery({
-    queryKey: ["data-sync-editor-connections", currentUser?.id, currentWorkspace?.id],
+    queryKey: ["data-sync-editor-connections", currentUser?.id],
     queryFn: ({ signal }) => listDataSources({ pageNo: 1, pageSize: 200 }, signal),
     enabled,
   });

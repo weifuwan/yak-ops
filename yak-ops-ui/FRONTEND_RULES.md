@@ -12,9 +12,9 @@ This document defines durable frontend engineering constraints. Current source c
 - `apps/web` owns the product application. `packages/yak-ui` owns domain-agnostic controls; `packages/yak-ui/src/index.ts` defines their public API.
 - `apps/web/app/<domain>` owns domain pages and interaction state. `app/layout` owns the shell; `app/router` owns route composition and historical URL redirects. `app/data-sync` is the unified offline/realtime synchronization feature.
 - Product requests flow from `app/<domain>` to `service/<domain>` to `service/http`. The HTTP transport is centralized, including consistent response and authentication error handling. Domain services own endpoint adaptation and request/response types and must never depend on App code.
-- UI dependencies flow from App to `@yak-ops/yak-ui`, then to Base UI/DOM. Yak UI must not contain product routes, Workspace policy, business copy, or domain data access.
+- UI dependencies flow from App to `@yak-ops/yak-ui`, then to Base UI/DOM. Yak UI must not contain product routes, business policy, business copy, or domain data access.
 - Organize components, hooks, and local types by real user workflow. Promote cross-domain code only after actual stable reuse. Do not create speculative `common` or `shared` layers.
-- Workspace-scoped queries must isolate user and Workspace identity. Pages must not invent Workspace headers; transport applies the real API contract.
+- User-scoped queries must isolate authenticated user identity. The HTTP transport must not invent product-specific scope headers.
 - Services expose only capabilities with real consumers. Components must not parse HTTP envelope details or turn API failures into successful empty results.
 
 ## Feature Ownership and Components
@@ -23,9 +23,9 @@ This document defines durable frontend engineering constraints. Current source c
 - In Data Sync, `list/`, `create/`, `editor/`, `detail/`, `execution/`, `detail/log/`, and `solution/` describe responsibilities. `components/` is reserved for genuinely reused domain controls. Keep a module at the lowest level that owns every actual consumer.
 - Route composition may import a feature page entrypoint. Other domains may not deep-import another feature implementation; do not create permanent forwarding modules simply to preserve an obsolete internal import path.
 - In Schedule, `dialog/` owns editing and write-recovery sessions, `form/` owns Cron configuration, and `history/` owns trigger filters and records. Public schedule controls expose explicit entrypoints; private query internals remain within Schedule.
-- Schedule server reads, previews, and fire history use user/Workspace-scoped TanStack Query with visibility-aware polling. Unknown write outcomes must require an explicit reload; do not silently retry revisions or rebase a dirty draft.
-- In Operations, `dashboard/` owns range selection, user/Workspace-scoped queries, summary cards, trend/status charts and recent failures. The router owns historical instance redirects; do not maintain pass-through page exports.
-- In App Shell, `TopBar` composes navigation; `account-menu` handles sign-out, `workspace-switcher` handles selection, `workspace-create-dialog` owns creation, and `ProductLauncher` owns menu interaction. Product favorites belong to a user-scoped Query, not a page-owned fetch cache. The Shell cannot import product feature implementations.
+- Schedule server reads, previews, and fire history use user-scoped TanStack Query with visibility-aware polling. Unknown write outcomes must require an explicit reload; do not silently retry revisions or rebase a dirty draft.
+- In Operations, `dashboard/` owns range selection, user-scoped queries, summary cards, trend/status charts and recent failures. The router owns historical instance redirects; do not maintain pass-through page exports.
+- In App Shell, `TopBar` composes navigation and `account-menu` handles sign-out; `ProductLauncher` owns product-menu interaction. Product favorites belong to a user-scoped Query, not a page-owned fetch cache. The Shell cannot import product feature implementations.
 - Router can import `AppLayout` and `navigation` but not private App Shell modules. Preserve supported historical redirects in the router, not in feature page forwarding files. Deleted compatibility entrypoints must not return.
 
 - The smallest behavior owner handles its loading, empty/error states, actions, and lifecycle. Parent components coordinate only genuinely shared selection, navigation, or submission state.
@@ -37,7 +37,7 @@ This document defines durable frontend engineering constraints. Current source c
 ## State, Queries, and Effects
 
 - Local interactions such as dialog visibility, drafts, input, and selection belong to the relevant lifecycle owner. Shareable filters, pagination, tabs, and instance selection belong in the URL, with no parallel independent identity state.
-- Server data belongs in the shared TanStack Query cache, not a page-owned `useState + useEffect` cache. Query keys must include every relevant parameter and user/Workspace scope.
+- Server data belongs in the shared TanStack Query cache, not a page-owned `useState + useEffect` cache. Query keys must include every relevant parameter and authenticated user scope where data is user-specific.
 - Keep API and version adaptation in services. Query and mutation ownership should be near consumers; invalidate relevant queries after mutations rather than creating duplicate refresh counters.
 - Use a shared store only when sibling components need a common authority or state must survive a workflow unmount. Do not introduce a global store for component nesting alone.
 - `useEffect` is for external synchronization, subscriptions, timers, and DOM integration. Do not use it to derive render state, handle submissions, or mirror query results. Polling must stop correctly after a state change, unmount, or visibility transition.
@@ -55,7 +55,7 @@ This document defines durable frontend engineering constraints. Current source c
 ## Verification and Architecture
 
 - Frontend formatting is local-only: use `npm run format` to apply Oxfmt and `npm run format:check` to verify it. GitHub Actions does not run frontend formatting or frontend tests; browser automation and frontend test cases have been removed from the repository.
-- Maintain service, HTTP, Workspace and component dependency boundaries during code review. Do not introduce deep imports across private features.
+- Maintain service, HTTP, and component dependency boundaries during code review. Do not introduce deep imports across private features.
 - For UI changes, developers may manually exercise affected interaction, focus, keyboard, responsive and error flows; record what was actually verified.
 - Local lint, TypeScript and production builds remain available but are not enforced by the GitHub CI.
 
@@ -81,7 +81,7 @@ Place necessary copy near the relevant action and keep it short. Do not explain 
 ## Quality and Verification
 
 - Keep Oxfmt available as the local formatter; it is not a CI gate. Oxlint, TypeScript and Vite build remain available locally; do not claim those checks ran unless executed.
-- Maintain real dependency, directory, HTTP, and Workspace boundaries. Fix incorrect implementation rather than loosening checks or adding broad lint disables.
+- Maintain real dependency, directory, HTTP, and component boundaries. Fix incorrect implementation rather than loosening checks or adding broad lint disables.
 - Run relevant local formatting, typing, and build commands as needed. Record actual manual UI verification when relevant, distinguishing passed, skipped, and not-run checks.
 
 ## Documentation and Proposals

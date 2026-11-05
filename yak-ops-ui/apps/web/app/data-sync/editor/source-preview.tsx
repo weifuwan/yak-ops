@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Modal, Table, type TableColumns } from "@yak-ops/yak-ui";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { previewDataSourceTable, type DataSourcePreviewQuery } from "@/service/datasource";
 
 export function SourcePreview({
@@ -16,14 +15,13 @@ export function SourcePreview({
 }) {
   const [request, setRequest] = useState<DataSourcePreviewQuery & { dataSourceId: string }>();
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
   const result = useQuery({
-    queryKey: ["data-sync-source-preview", currentUser?.id, currentWorkspace?.id, request],
+    queryKey: ["data-sync-source-preview", currentUser?.id, request],
     queryFn: ({ signal }) => {
       const { dataSourceId: id, ...payload } = request!;
       return previewDataSourceTable(id, payload, signal);
     },
-    enabled: Boolean(request && currentUser?.id && currentWorkspace?.id),
+    enabled: Boolean(request && currentUser?.id),
     retry: false,
     gcTime: 0,
   });

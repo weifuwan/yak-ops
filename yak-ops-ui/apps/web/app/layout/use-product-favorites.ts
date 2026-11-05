@@ -17,7 +17,7 @@ import {
 export const favoriteQueryKey = (userId: string) =>
   ["product-menu-favorites", userId, PRODUCT_MENU_SCENE] as const;
 
-/** Product menu preferences follow the signed-in user, never the selected Workspace. */
+/** Product menu preferences follow the signed-in user. */
 export function useProductFavorites(open: boolean) {
   const { currentUser } = useAuth();
   const userId = currentUser?.id ?? "";
