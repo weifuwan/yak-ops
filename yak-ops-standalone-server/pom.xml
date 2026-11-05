@@ -47,10 +47,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-master</artifactId>
             <scope>provided</scope>
