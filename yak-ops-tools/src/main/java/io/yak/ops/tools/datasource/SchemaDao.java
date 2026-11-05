@@ -36,8 +36,9 @@ public class SchemaDao {
     public boolean hasExistingTables() {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            try (ResultSet tables = metadata.getTables(
-                    connection.getCatalog(), connection.getSchema(), "%", new String[] {"TABLE"})) {
+            try (
+                    ResultSet tables = metadata.getTables(
+                            connection.getCatalog(), connection.getSchema(), "%", new String[]{"TABLE"})) {
                 return tables.next();
             }
         } catch (SQLException ex) {
@@ -51,8 +52,9 @@ public class SchemaDao {
     public boolean hasLegacySchemaTables() {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            try (ResultSet tables = metadata.getTables(
-                    connection.getCatalog(), connection.getSchema(), "%", null)) {
+            try (
+                    ResultSet tables = metadata.getTables(
+                            connection.getCatalog(), connection.getSchema(), "%", null)) {
                 while (tables.next()) {
                     String tableName = tables.getString("TABLE_NAME");
                     if (tableName == null) {

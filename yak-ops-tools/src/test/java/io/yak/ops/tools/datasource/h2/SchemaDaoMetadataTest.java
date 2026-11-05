@@ -25,7 +25,8 @@ class SchemaDaoMetadataTest {
         Assertions.assertFalse(schemaDao.hasLegacySchemaTables());
         Assertions.assertFalse(schemaDao.hasExistingTables());
 
-        try (Connection connection = dataSource.getConnection();
+        try (
+                Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE t_ds_user (id int)");
             Assertions.assertTrue(schemaDao.hasLegacySchemaTables());
