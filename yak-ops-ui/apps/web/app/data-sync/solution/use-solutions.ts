@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { listDataSyncSolutions } from "@/service/data-sync";
 
-/** Discovery is connection-independent and scoped to the active authenticated workspace. */
+/** Discovery is connection-independent and scoped to the authenticated user. */
 export function useSolutions(sourceType?: string, targetType?: string) {
   const { currentUser } = useAuth();
   const enabled = Boolean(currentUser?.id && sourceType && targetType);

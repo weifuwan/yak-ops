@@ -10,7 +10,7 @@ export const operationsQueryKey = (
   userId: string,
   syncType: DataSyncType,
   range: DataSyncOperationsRange,
- => ["operations", "dashboard", userId, syncType, range] as const;
+) => ["operations", "dashboard", userId, syncType, range] as const;
 
 /** One server-owned dashboard snapshot per user, sync type, and range. */
 export function useOperationsDashboard(syncType: DataSyncType, range: DataSyncOperationsRange) {

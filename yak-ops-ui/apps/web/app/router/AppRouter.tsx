@@ -108,7 +108,6 @@ export default function AppRouter() {
               productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
               productPath="/data-source"
               navigation={DATA_INTEGRATION_NAVIGATION}
-
             />
           }
         >
@@ -125,7 +124,6 @@ export default function AppRouter() {
               productLabel={OPERATIONS_PRODUCT_LABEL}
               productPath="/operations/offline-tasks"
               navigation={OPERATIONS_NAVIGATION}
-
             />
           }
         >

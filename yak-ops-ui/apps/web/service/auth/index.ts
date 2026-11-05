@@ -18,8 +18,7 @@ export const getCurrentUser = async (options?: GetCurrentUserOptions): Promise<A
 };
 
 export const logout = async (): Promise<void> => {
-  await HttpUtils.postData<void>(`${YAK_OPS_API_PREFIX}/signOut`, undefined, {
-  });
+  await HttpUtils.postData<void>(`${YAK_OPS_API_PREFIX}/signOut`);
   // The server invalidates the DB session first. Cookie cleanup is best-effort.
   try {
     await HttpUtils.delete<void>(`${YAK_OPS_API_PREFIX}/cookies`, undefined, {
