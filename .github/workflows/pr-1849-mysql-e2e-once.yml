@@ -1,0 +1,131 @@
+name: PR 1849 MySQL CDC to JDBC smoke (one-off)
+
+on:
+  push:
+    branches:
+      - refactor/cdc-jdbc-writer-architecture-20261104
+    paths:
+      - '.github/workflows/pr-1849-mysql-e2e-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mysql-to-mysql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run local MySQL 8 with row-based binary logging
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name pr1849-mysql -e MYSQL_ROOT_PASSWORD=pr1849-root-password \
+            -p 127.0.0.1:3306:3306 mysql:8.0 \
+            --server-id=16749 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL
+          for attempt in $(seq 1 90); do
+            if docker exec pr1849-mysql mysqladmin ping -uroot -ppr1849-root-password --silent >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec pr1849-mysql mysql -uroot -ppr1849-root-password -e "
+            CREATE DATABASE cdc_lab;
+            CREATE DATABASE yak_e2e_target;
+            CREATE TABLE cdc_lab.orders (
+              id BIGINT NOT NULL PRIMARY KEY,
+              order_no VARCHAR(64) NOT NULL,
+              amount DECIMAL(14,2) NOT NULL
+            );
+            INSERT INTO cdc_lab.orders VALUES (1, 'order-001', 12.34);
+          "
+      - name: Build CDC CLI with MySQL source and JDBC sink
+        shell: bash
+        run: |
+          bash mvnw -B -ntp -f yak-ops-cdc/pom.xml \
+            -pl :yak-ops-cdc-cli -am -DskipTests \
+            -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true install
+      - name: Verify snapshot, INSERT and UPDATE with real MySQL
+        shell: bash
+        env:
+          MAVEN_OPTS: --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/pr1849-pipeline.yaml" <<'YAML'
+          source:
+            type: mysql
+            hostname: 127.0.0.1
+            port: 3306
+            username: root
+            password: pr1849-root-password
+            tables: cdc_lab.orders
+            server-id: 5411-5415
+            server-time-zone: UTC
+
+          sink:
+            type: jdbc
+            url: jdbc:mysql://127.0.0.1:3306
+            username: root
+            password: pr1849-root-password
+            driver-class-name: com.mysql.cj.jdbc.Driver
+
+          route:
+            - source-table: cdc_lab.orders
+              sink-table: yak_e2e_target.orders
+
+          pipeline:
+            name: pr1849-live-mysql-to-mysql
+            parallelism: 1
+          YAML
+
+          log="$RUNNER_TEMP/pr1849-pipeline.log"
+          bash mvnw -B -ntp -f yak-ops-cdc/yak-ops-cdc-cli/pom.xml \
+            org.codehaus.mojo:exec-maven-plugin:3.5.1:java \
+            -Dexec.classpathScope=test \
+            -Dexec.mainClass=org.apache.flink.cdc.cli.CliFrontend \
+            "-Dexec.args=$RUNNER_TEMP/pr1849-pipeline.yaml" >"$log" 2>&1 &
+          cli_pid=$!
+          cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "---- Pipeline logs ----"
+              tail -n 180 "$log" || true
+              echo "---- MySQL container logs ----"
+              docker logs --tail=80 pr1849-mysql || true
+            fi
+            kill "$cli_pid" 2>/dev/null || true
+            wait "$cli_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          read_count() {
+            docker exec pr1849-mysql mysql -uroot -ppr1849-root-password -N -s \
+              -e "$1" 2>/dev/null || true
+          }
+          wait_for_count() {
+            expected="$1"
+            statement="$2"
+            for attempt in $(seq 1 120); do
+              if [ "$(read_count "$statement")" = "$expected" ]; then
+                return 0
+              fi
+              sleep 2
+            done
+            return 1
+          }
+          wait_for_count 1 "SELECT COUNT(*) FROM yak_e2e_target.orders WHERE id = 1 AND amount = 12.34"
+          echo "Snapshot row successfully created in JDBC target."
+          docker exec pr1849-mysql mysql -uroot -ppr1849-root-password \
+            -e "INSERT INTO cdc_lab.orders VALUES (2, 'order-002', 22.50);"
+          wait_for_count 1 "SELECT COUNT(*) FROM yak_e2e_target.orders WHERE id = 2 AND amount = 22.50"
+          echo "Binlog INSERT was replicated."
+          docker exec pr1849-mysql mysql -uroot -ppr1849-root-password \
+            -e "UPDATE cdc_lab.orders SET amount = 99.99 WHERE id = 1;"
+          wait_for_count 1 "SELECT COUNT(*) FROM yak_e2e_target.orders WHERE id = 1 AND amount = 99.99"
+          echo "Binlog UPDATE was replicated."
