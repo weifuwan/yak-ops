@@ -5,8 +5,8 @@ import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.UiPluginService;
 import io.yak.ops.common.enums.PluginType;
-import io.yak.ops.dao.entity.YakOpsVersion;
 import io.yak.ops.dao.entity.PluginDefine;
+import io.yak.ops.dao.entity.YakOpsVersion;
 import io.yak.ops.dao.mapper.PluginDefineMapper;
 import io.yak.ops.dao.repository.YakOpsVersionDao;
 
