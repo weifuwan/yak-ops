@@ -5,6 +5,7 @@ import { normalizeDataSourceType } from "../constants";
 import MysqlIcon from "./MysqlIcon";
 import OracleIcon from "./OracleIcon";
 import PsSqlIcon from "./PsSqlIcon";
+import { DATASOURCE_ICON_ASSETS } from "./icon-assets";
 
 interface DatabaseIconsProps {
   dbType?: string;
@@ -22,6 +23,18 @@ const DatabaseIcons = ({ dbType, width = "20px", height = "20px" }: DatabaseIcon
     alignItems: "center",
     justifyContent: "center",
   };
+
+  const assetSrc = DATASOURCE_ICON_ASSETS[normalizedType.toUpperCase()];
+  if (assetSrc) {
+    return (
+      <img
+        src={assetSrc}
+        alt=""
+        aria-hidden="true"
+        style={{ width, height, display: "inline-block", objectFit: "contain", flexShrink: 0 }}
+      />
+    );
+  }
 
   switch (normalizedType) {
     case "mysql":
