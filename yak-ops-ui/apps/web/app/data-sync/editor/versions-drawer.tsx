@@ -11,7 +11,6 @@ import {
 } from "@yak-ops/yak-ui";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import {
   getTaskParameterVersion,
   listTaskParameterVersions,
@@ -127,14 +126,13 @@ export function VersionsDrawer({
   allowRestore?: boolean;
 }) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
   const [search, setSearch] = useSearchParams();
   const tab = search.get("versionsTab") === "publications" ? "publications" : "development";
   const page = positiveInteger(search.get("versionsPage"), 1);
   const version = positiveInteger(search.get("version"));
   const compareVersion = positiveInteger(search.get("compareVersion"));
-  const scope = [currentUser?.id, currentWorkspace?.id, task?.id];
-  const enabled = Boolean(task && currentUser && currentWorkspace);
+  const scope = [currentUser?.id, task?.id];
+  const enabled = Boolean(task && currentUser);
   const updateSearch = (values: Record<string, string | undefined>) =>
     setSearch(
       (current) => {

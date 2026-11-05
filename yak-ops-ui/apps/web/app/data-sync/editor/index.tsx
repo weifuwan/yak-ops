@@ -2,7 +2,6 @@ import { Alert, Button } from "@yak-ops/yak-ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { taskDraftKey } from "@/service/data-sync/draft";
 import { offlineIncremental } from "@/service/data-sync/parameters";
 import type {
@@ -70,8 +69,7 @@ export function TaskEditor({
   const navigate = useNavigate();
   const pendingSchedule = useEditorHandoff(id);
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const draftKey = taskDraftKey(currentUser!.id, currentWorkspace!.id);
+  const draftKey = taskDraftKey(currentUser!.id);
   const {
     choices,
     loading: solutionsLoading,
@@ -342,7 +340,7 @@ export function TaskEditor({
   const submission = useEditorSubmission({
     draftKey,
     recovery: pendingSchedule?.writeRecovery,
-    scope: { userId: currentUser!.id, workspaceId: currentWorkspace!.id },
+    scope: { userId: currentUser!.id },
     taskDirty,
     parametersDirty,
     supportsScheduling,

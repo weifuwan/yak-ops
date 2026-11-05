@@ -33,7 +33,7 @@ import { EMPTY_SCHEDULE, sameScheduleRule } from "@/app/schedule/schedule-presen
 
 interface SaveInput {
   draftKey: string;
-  scope: { userId: string; workspaceId: string };
+  scope: { userId: string };
   taskDirty: boolean;
   parametersDirty: boolean;
   supportsScheduling: boolean;
@@ -82,10 +82,10 @@ export function useEditorSubmission(input: SaveInput) {
   }, []);
   const invalidate = () => {
     void queryClient.invalidateQueries({
-      queryKey: ["data-sync-list", `${input.scope.userId}:${input.scope.workspaceId}`],
+      queryKey: ["data-sync-list", input.scope.userId],
     });
     void queryClient.invalidateQueries({
-      queryKey: ["data-sync-versions", input.scope.userId, input.scope.workspaceId],
+      queryKey: ["data-sync-versions", input.scope.userId],
     });
   };
   const persisted = (task: DataSyncTaskRecord, request?: DataSyncTaskSavePayload) => {

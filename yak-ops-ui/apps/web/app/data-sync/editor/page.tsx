@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Alert, Button } from "@yak-ops/yak-ui";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { readTaskDraft, taskDraftKey } from "@/service/data-sync/draft";
 import { getDataSource } from "@/service/datasource";
 import { getTaskDefinition, type DataSyncDraft } from "@/service/data-sync";
@@ -11,17 +10,16 @@ import { toSyncTaskRecord } from "@/service/data-sync/definition";
 import { TaskEditor } from "./index";
 import { ReadonlyTaskEditor } from "./readonly-editor";
 
-/** Resolve the workflow from its saved definition and isolate reads by identity and workspace. */
+/** Resolve the workflow from its saved definition and isolate reads by authenticated identity. */
 export function DataSyncTaskEditorPage() {
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const key = taskDraftKey(currentUser!.id, currentWorkspace!.id);
+  const key = taskDraftKey(currentUser!.id);
   const activeQuery = useQuery({
-    queryKey: ["data-sync-editor-active", currentUser?.id, currentWorkspace?.id, id],
+    queryKey: ["data-sync-editor-active", currentUser?.id, id],
     queryFn: ({ signal }) => listLatestTaskInstances([id!], true, signal),
-    enabled: Boolean(id && currentUser?.id && currentWorkspace?.id),
+    enabled: Boolean(id && currentUser?.id),
     refetchInterval: (result) => (result.state.data?.length ? 2000 : 5000),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -34,8 +32,8 @@ export function DataSyncTaskEditorPage() {
     ? "任务正在执行，完成或停止后才能修改配置。"
     : "正在确认任务运行状态，暂不可修改配置。";
   const query = useQuery({
-    queryKey: ["data-sync-editor", currentUser?.id, currentWorkspace?.id, id],
-    enabled: Boolean(id && currentUser?.id && currentWorkspace?.id),
+    queryKey: ["data-sync-editor", currentUser?.id, id],
+    enabled: Boolean(id && currentUser?.id),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     gcTime: 0,

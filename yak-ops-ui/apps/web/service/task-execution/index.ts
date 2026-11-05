@@ -31,7 +31,7 @@ export const listTaskInstances = (
 ): Promise<TaskInstancePageResult> =>
   HttpUtils.postData<TaskInstancePageResult>(`${TASK_INSTANCES_API}/page`, params);
 
-/** Returns newest Workspace-owned instances for the visible Definition page. */
+/** Returns newest task instances for the visible Definition page. */
 export const listLatestTaskInstances = (
   definitionIds: string[],
   activeOnly = false,

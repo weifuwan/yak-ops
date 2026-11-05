@@ -1,6 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSourceColumns, type DataSourceCatalogColumn } from "@/service/datasource";
 import type { DataSyncTableMapping } from "@/service/data-sync";
 import { tableKey } from "./table-catalog";
@@ -11,14 +10,12 @@ export function useReplicationMetadata(
   enabled: boolean,
 ) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const active = enabled && Boolean(dataSourceId && currentUser?.id && currentWorkspace?.id);
+  const active = enabled && Boolean(dataSourceId && currentUser?.id);
   const queries = useQueries({
     queries: (active ? mappings : []).map(({ source }) => ({
       queryKey: [
         "data-sync-columns",
         currentUser?.id,
-        currentWorkspace?.id,
         dataSourceId,
         source.database,
         source.schema,

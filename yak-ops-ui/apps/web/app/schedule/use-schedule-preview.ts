@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { isInvalidScheduleRule, previewSchedule } from "@/service/schedule";
 import { scheduleQueryKeys, useScheduleScope } from "./query-keys";
 
-/** Delayed candidate reads are cached by user, Workspace, Cron expression and time zone. */
+/** Delayed candidate reads are cached by user, Cron expression and time zone. */
 export function useSchedulePreview(cronExpression: string, timeZone: string) {
-  const { userId, workspaceId } = useScheduleScope();
+  const { userId } = useScheduleScope();
   const [debounced, setDebounced] = useState({ cronExpression, timeZone });
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced({ cronExpression, timeZone }), 250);
@@ -17,12 +17,11 @@ export function useSchedulePreview(cronExpression: string, timeZone: string) {
   const query = useQuery({
     queryKey: scheduleQueryKeys.preview(
       userId,
-      workspaceId,
       debounced.cronExpression,
       debounced.timeZone,
     ),
     queryFn: ({ signal }) => previewSchedule(debounced, signal),
-    enabled: Boolean(userId && workspaceId && hasRule && settled),
+    enabled: Boolean(userId && hasRule && settled),
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -30,7 +29,7 @@ export function useSchedulePreview(cronExpression: string, timeZone: string) {
     ? "empty"
     : !timeZone
       ? "invalid"
-      : !userId || !workspaceId || !settled || query.isPending
+      : !userId || !settled || query.isPending
         ? "loading"
         : query.isError
           ? isInvalidScheduleRule(query.error)
