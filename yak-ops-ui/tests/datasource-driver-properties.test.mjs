@@ -9,17 +9,20 @@ const service = readFileSync(join(root, "service/datasource/index.ts"), "utf8");
 const hook = readFileSync(join(root, "app/datasource/form/use-data-source-form.ts"), "utf8");
 const field = readFileSync(join(root, "app/datasource/form/advanced-properties.tsx"), "utf8");
 
-test("MySQL and PostgreSQL request installed JDBC driver metadata only", () => {
-  assert.match(service, /type === "MYSQL" \|\| type === "POSTGRESQL"/);
-  assert.match(service, /API \+ "\/connection-properties\?" \+ qs\(\{ type \}\)/);
-  assert.doesNotMatch(service, /MYSQL: \["serverTimezone"/);
-  assert.doesNotMatch(service, /POSTGRESQL: \["sslmode"/);
-  assert.match(service, /PROPERTY_HINTS\[type\] \|\| \[\]/);
+test("all datasource types read optional connection properties from the backend", () => {
+  assert.match(service, /getDataSourceConnectionProperties = async/);
+  assert.match(service, /HttpUtils\.getData<DataSourceDriverProperty\[\]>/);
+  assert.match(service, /API \+ "\/connection-properties\?" \+ qs\(\{ type: toBackendType\(dbType\) \}\)/);
+  assert.doesNotMatch(service, /PROPERTY_HINTS/);
 });
 
-test("parameter editors still support custom values", () => {
-  assert.match(hook, /setDriverPropertyMetadata\(result\?\.properties \|\| \[\]\)/);
-  assert.match(hook, /const addProperty = \(\) =>/);
-  assert.match(field, /driverProperty\?\.choices\?\.length/);
+test("empty property array hides suggestions without disabling custom input", () => {
+  assert.match(hook, /setPropertyKeyOptions\(properties\.map\(\(property\) => property\.name\)\)/);
+  assert.match(hook, /setDriverPropertyMetadata\(properties\)/);
+  assert.match(hook, /setPropertyKeysError\(true\)/);
+  assert.match(field, /propertyKeysLoading \|\| propertyKeyOptions\.length > 0/);
+  assert.match(field, /const driverPropertyMap = new Map/);
+  assert.match(field, /propertyKeysError/);
   assert.match(field, /patchProperty\(index, "value", event\.target\.value\)/);
+  assert.match(hook, /const addProperty = \(\) =>/);
 });

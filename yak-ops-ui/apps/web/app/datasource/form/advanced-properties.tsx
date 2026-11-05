@@ -20,6 +20,7 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
     propertyKeyOptions,
     driverPropertyMetadata,
     propertyKeysLoading,
+    propertyKeysError,
     propertyKeyMap,
     selectedSuggestedPropertyKeys,
     syncSuggestedProperties,
@@ -43,8 +44,9 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
       </span>
       <Field invalid={Boolean(errors.properties)} className="min-w-0 !gap-0">
         <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <Combobox<string, true>
+          {propertyKeysLoading || propertyKeyOptions.length > 0 ? (
+            <div className="min-w-0 flex-1">
+              <Combobox<string, true>
               multiple
               size="small"
               items={propertyKeyOptions}
@@ -79,12 +81,19 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
                   </ComboboxItem>
                 )}
               </ComboboxContent>
-            </Combobox>
-          </div>
+              </Combobox>
+            </div>
+          ) : null}
           <Button size="small" onClick={addProperty}>
             {intl.formatMessage({ id: "pages.datasource.form.addCustomProperty" })}
           </Button>
         </div>
+
+        {propertyKeysError ? (
+          <p role="alert" className="mt-1 text-xs text-[var(--yak-color-danger)]">
+            {intl.formatMessage({ id: "pages.datasource.form.propertyKeysLoadFailed" })}
+          </p>
+        ) : null}
 
         {values.properties.length > 0 ? (
           <div className="mt-2 overflow-hidden border border-[var(--yak-components-panel-border)]">

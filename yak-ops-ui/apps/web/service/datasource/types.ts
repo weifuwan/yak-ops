@@ -77,14 +77,6 @@ export interface DataSourceDriverProperty {
   choices: string[];
 }
 
-export interface DataSourceConnectionPropertyKeys {
-  acceptedPropertyKeys: string[];
-  /** Provided by the installed JDBC Driver for MySQL and PostgreSQL. */
-  driverClassName?: string;
-  driverVersion?: string;
-  properties?: DataSourceDriverProperty[];
-}
-
 /** Safe provider-defined parameter field available to the datasource editor. */
 export interface DataSourceOptionDefinition {
   key: string;

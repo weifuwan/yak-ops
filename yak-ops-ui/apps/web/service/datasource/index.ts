@@ -15,7 +15,7 @@ import type {
   DataSourceCatalogQuery,
   DataSourceCatalogTable,
   DataSourceCatalogTablePath,
-  DataSourceConnectionPropertyKeys,
+  DataSourceDriverProperty,
   DataSourceOptionRules,
   DataSourceValidationError,
   DataSourceId,
@@ -101,30 +101,13 @@ export async function getDataSource(id: DataSourceId, signal?: AbortSignal): Pro
   return fromBackendDataSource(raw);
 }
 
-/** Suggested UI parameters; the backend is authoritative on accepted and rejected keys. */
-const PROPERTY_HINTS: Record<string, string[]> = {
-  ORACLE: ["oracle.net.CONNECT_TIMEOUT", "oracle.jdbc.ReadTimeout"],
-  SQLSERVER: ["encrypt", "trustServerCertificate", "loginTimeout"],
-  DB2: ["sslConnection", "currentSchema"],
-  DAMENG: ["schema"],
-  OCEANBASE: ["connectTimeout", "socketTimeout"],
-  CLICKHOUSE: ["socket_timeout", "connect_timeout"],
-  STARROCKS: ["connectTimeout", "socketTimeout"],
-  DORIS: ["connectTimeout", "socketTimeout"],
-};
-export const getDataSourceConnectionPropertyKeys = async (
+/** Each datasource plugin decides whether it exposes connection property metadata. */
+export const getDataSourceConnectionProperties = async (
   dbType: string,
-): Promise<DataSourceConnectionPropertyKeys> => {
-  const type = toBackendType(dbType);
-  if (type === "MYSQL" || type === "POSTGRESQL") {
-    // Ask the installed JDBC driver; do not mix in stale frontend property hints.
-    return HttpUtils.getData<DataSourceConnectionPropertyKeys>(
-      API + "/connection-properties?" + qs({ type }),
-    );
-  }
-  // Other datasource plugins keep their existing suggestions in this phase.
-  return { acceptedPropertyKeys: PROPERTY_HINTS[type] || [] };
-};
+): Promise<DataSourceDriverProperty[]> =>
+  HttpUtils.getData<DataSourceDriverProperty[]>(
+    API + "/connection-properties?" + qs({ type: toBackendType(dbType) }),
+  );
 
 /** Driver choice is owned by the existing backend plugins, not a frontend dropdown. */
 export const getDataSourceOptionRules = async (dbType: string): Promise<DataSourceOptionRules> => ({
