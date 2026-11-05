@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listTaskSchedules, type ScheduleSummary } from "@/service/schedule";
 import { scheduleQueryKeys, useScheduleScope, visiblePollInterval } from "./query-keys";
 
-/** One bounded batch per visible task page, isolated by user, Workspace and target IDs. */
+/** One bounded batch per visible task page, isolated by user and target IDs. */
 export function useTaskSchedules(targetIds: string[]) {
   const { userId } = useScheduleScope();
   const queryClient = useQueryClient();

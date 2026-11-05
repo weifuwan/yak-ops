@@ -32,8 +32,8 @@ export function DataSyncTaskEditorPage() {
     ? "任务正在执行，完成或停止后才能修改配置。"
     : "正在确认任务运行状态，暂不可修改配置。";
   const query = useQuery({
-    queryKey: ["data-sync-editor", currentUser?.id, currentWorkspace?.id, id],
-    enabled: Boolean(id && currentUser?.id && currentWorkspace?.id),
+    queryKey: ["data-sync-editor", currentUser?.id, id],
+    enabled: Boolean(id && currentUser?.id),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     gcTime: 0,
