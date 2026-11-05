@@ -5,11 +5,11 @@ import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
-import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
-import io.yak.ops.plugin.datasource.mysql.catalog.MySQLDataSourceCatalog;
+import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.JdbcDriverConnectionProvider;
 import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
+import io.yak.ops.plugin.datasource.mysql.catalog.MySQLDataSourceCatalog;
 import io.yak.ops.spi.datasource.BaseConnectionParam;
 import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
@@ -133,12 +133,12 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
                 .jdbcUrl(getJdbcUrl(mysqlConnectionParam))
                 .username(user)
                 .password(PasswordUtils.decodePassword(password))
-                .properties(getConnectionProperties(mysqlConnectionParam))
+                .properties(buildJdbcProperties(mysqlConnectionParam))
                 .build()
                 .getConnection();
     }
 
-    private Properties getConnectionProperties(MySQLConnectionParam mysqlConnectionParam) {
+    private Properties buildJdbcProperties(MySQLConnectionParam mysqlConnectionParam) {
         Properties connectionProperties = new Properties();
         Map<String, String> paramMap = mysqlConnectionParam.getOther();
         if (MapUtils.isNotEmpty(paramMap)) {

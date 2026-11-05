@@ -16,27 +16,20 @@ public class JdbcDriverConnectionProvider implements JdbcConnectionProvider {
     private final String password;
     private final Properties properties;
 
-    /**
-     * Instantiate only JDBC driver class names selected by backend datasource plugins.
-     */
-    public static Driver instantiateDriver(String driverClassName) throws SQLException {
-        try {
-            return (Driver) Class.forName(driverClassName).getDeclaredConstructor().newInstance();
-        } catch (ReflectiveOperationException e) {
-            throw new SQLException("Failed to instantiate driver: " + driverClassName, e);
-        }
-    }
-
     @Override
     public Connection getConnection() throws SQLException {
-        Driver driver = instantiateDriver(jdbcDriverClassName);
-        Properties p = new Properties(properties);
-        if (username != null) {
-            p.setProperty("user", username);
+        try {
+            Driver driver = (Driver) Class.forName(jdbcDriverClassName).getDeclaredConstructor().newInstance();
+            Properties p = new Properties(properties);
+            if (username != null) {
+                p.setProperty("user", username);
+            }
+            if (password != null) {
+                p.setProperty("password", password);
+            }
+            return driver.connect(jdbcUrl, p);
+        } catch (ReflectiveOperationException e) {
+            throw new SQLException("Failed to create driver: " + jdbcDriverClassName, e);
         }
-        if (password != null) {
-            p.setProperty("password", password);
-        }
-        return driver.connect(jdbcUrl, p);
     }
 }
