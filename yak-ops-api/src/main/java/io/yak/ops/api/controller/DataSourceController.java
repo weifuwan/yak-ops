@@ -77,8 +77,8 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_DATASOURCE_ERROR)
     public Result<JdbcDriverPropertyService.DriverProperties> getConnectionProperties(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @RequestParam("type") DbType type) {
+                                                                                      @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                                                      @RequestParam("type") DbType type) {
         if (type != DbType.MYSQL && type != DbType.POSTGRESQL) {
             throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Driver properties are supported only for MYSQL and POSTGRESQL");

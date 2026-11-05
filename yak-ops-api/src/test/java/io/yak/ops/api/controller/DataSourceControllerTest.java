@@ -127,7 +127,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetConnectionPropertiesFromInstalledDrivers() throws Exception {
-        for (String type : new String[] { "MYSQL", "POSTGRESQL" }) {
+        for (String type : new String[]{"MYSQL", "POSTGRESQL"}) {
             MvcResult response = mockMvc.perform(get("/datasources/connection-properties")
                     .header("sessionId", sessionId)
                     .param("type", type))

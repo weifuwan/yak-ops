@@ -15,9 +15,9 @@ public class JdbcDriverPropertyServiceTest {
     public void testFiltersCredentialAndUnsafeProperties() {
         DriverPropertyInfo timeout = new DriverPropertyInfo("connectTimeout", "10000");
         timeout.description = "Timeout in milliseconds";
-        timeout.choices = new String[] { "1000", "10000" };
+        timeout.choices = new String[]{"1000", "10000"};
         List<JdbcDriverPropertyService.Property> properties = JdbcDriverPropertyService.toProperties(
-                new DriverPropertyInfo[] {
+                new DriverPropertyInfo[]{
                         new DriverPropertyInfo("password", "secret"),
                         new DriverPropertyInfo("user", "admin"),
                         new DriverPropertyInfo("allowLoadLocalInfile", "true"),
@@ -44,7 +44,7 @@ public class JdbcDriverPropertyServiceTest {
     @Test
     public void testInstalledDriverMetadataWithoutConnecting() {
         JdbcDriverPropertyService service = new JdbcDriverPropertyService();
-        for (DbType type : new DbType[] { DbType.MYSQL, DbType.POSTGRESQL }) {
+        for (DbType type : new DbType[]{DbType.MYSQL, DbType.POSTGRESQL}) {
             JdbcDriverPropertyService.DriverProperties metadata = service.getProperties(type);
             Assertions.assertEquals(type.name(), metadata.getDbType());
             Assertions.assertNotNull(metadata.getDriverClassName());
