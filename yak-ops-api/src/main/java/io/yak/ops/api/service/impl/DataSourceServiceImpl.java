@@ -262,6 +262,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
                     .filter(dataSource -> dataSource.getType().getCode() == type).collect(Collectors.toList());
         }
 
+        // /datasources/list is a public API response: never expose credentials.
+        handlePasswd(datasourceList);
         return datasourceList;
     }
 

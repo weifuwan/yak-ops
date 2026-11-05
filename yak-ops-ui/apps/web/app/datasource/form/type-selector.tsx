@@ -105,7 +105,7 @@ export function DataSourceTypeSelector({ form }: { form: ReturnType<typeof useDa
         />
       </div>
 
-      <section className="mt-5 min-h-0 flex-1">
+      <section className="mt-5 min-h-0 flex-1 overflow-y-auto">
         <div className="mb-2.5 text-[13px] font-medium text-[var(--yak-components-field-label)]">
           {intl.formatMessage({ id: "pages.datasource.wizard.datasourceList" })}
         </div>

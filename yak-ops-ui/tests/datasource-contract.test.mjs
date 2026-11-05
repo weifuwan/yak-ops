@@ -160,4 +160,20 @@ test("SSH masked private keys are not returned to editable form state", () => {
   assert.equal(saved.privateKey, "");
   assert.equal(saved.password, "");
   assert.equal(saved.host, "ssh.example");
+  assert.equal(record.displayJdbcUrl, "ssh://ssh.example:22");
+});
+
+test("Doris multi-host endpoints survive the read-edit round-trip", () => {
+  const record = fromBackendDataSource({
+    id: 81, type: 23, name: "doris",
+    connectionParams: JSON.stringify({
+      address: "jdbc:mysql:loadbalance://fe1.example:9030,fe2.example:9030",
+      database: "analytics",
+      user: "reader",
+      password: "******",
+    }),
+  });
+  const saved = JSON.parse(record.originalJson);
+  assert.equal(saved.host, "fe1.example,fe2.example");
+  assert.equal(saved.port, 9030);
 });
