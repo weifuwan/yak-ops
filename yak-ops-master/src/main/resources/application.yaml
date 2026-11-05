@@ -10,7 +10,7 @@ spring:
     date-format: "yyyy-MM-dd HH:mm:ss"
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/yak-ops
+    url: jdbc:postgresql://127.0.0.1:5432/yak_ops
     username: root
     password: root
     hikari:
@@ -159,7 +159,7 @@ spring:
       on-profile: mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/yak-ops
+    url: jdbc:mysql://127.0.0.1:3306/yak_ops
     username: root
     password: root
   quartz:

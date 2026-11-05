@@ -16,7 +16,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:123456}
     hikari:
       connection-test-query: select 1
       pool-name: YakOpsDataSource
@@ -337,9 +337,9 @@ spring:
       on-profile: mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yak-ops?useUnicode=true&characterEncoding=UTF-8}
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yak_ops?useUnicode=true&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:123456}
 
 ---
 spring:
