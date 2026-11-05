@@ -76,7 +76,7 @@ jobs:
 
           sink:
             type: jdbc
-            url: jdbc:mysql://127.0.0.1:3306?allowPublicKeyRetrieval=true\&useSSL=false
+            url: jdbc:mysql://127.0.0.1:3306?allowPublicKeyRetrieval=true&useSSL=false
             username: root
             password: pr1849-root-password
             driver-class-name: com.mysql.cj.jdbc.Driver
