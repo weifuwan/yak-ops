@@ -126,8 +126,8 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     }
 
     @Test
-    public void testGetConnectionPropertiesFromInstalledDrivers() throws Exception {
-        for (String type : new String[]{"MYSQL", "POSTGRESQL"}) {
+    public void testGetConnectionPropertiesFromDatasourcePlugins() throws Exception {
+        for (String type : new String[]{"MYSQL", "POSTGRESQL", "ORACLE"}) {
             MvcResult response = mockMvc.perform(get("/datasources/connection-properties")
                     .header("sessionId", sessionId)
                     .param("type", type))
@@ -136,7 +136,15 @@ public class DataSourceControllerTest extends AbstractControllerTest {
                     .andReturn();
             Result result = JSONUtils.parseObject(response.getResponse().getContentAsString(), Result.class);
             Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
-            Assertions.assertTrue(response.getResponse().getContentAsString().contains("acceptedPropertyKeys"));
+            com.fasterxml.jackson.databind.JsonNode properties =
+                    JSONUtils.parseObject(response.getResponse().getContentAsString()).path("data");
+            Assertions.assertTrue(properties.isArray());
+            if ("ORACLE".equals(type)) {
+                Assertions.assertEquals(0, properties.size());
+            } else {
+                Assertions.assertTrue(properties.size() > 0);
+                Assertions.assertTrue(properties.get(0).has("name"));
+            }
         }
     }
 

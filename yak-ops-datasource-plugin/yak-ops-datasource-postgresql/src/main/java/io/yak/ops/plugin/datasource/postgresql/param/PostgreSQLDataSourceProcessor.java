@@ -6,6 +6,8 @@ import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
+import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
+import io.yak.ops.plugin.datasource.postgresql.catalog.PostgreSQLDataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.datasource.JdbcDriverConnectionProvider;
 import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
 import io.yak.ops.spi.datasource.BaseConnectionParam;
@@ -25,6 +27,13 @@ import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceProcessor.class)
 public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {
+
+    private final PostgreSQLDataSourceCatalog catalog = new PostgreSQLDataSourceCatalog();
+
+    @Override
+    public List<ConnectionProperty> getConnectionProperties() {
+        return catalog.getConnectionProperties();
+    }
 
     @Override
     public BaseDataSourceParamDTO castDatasourceParamDTO(String paramJson) {

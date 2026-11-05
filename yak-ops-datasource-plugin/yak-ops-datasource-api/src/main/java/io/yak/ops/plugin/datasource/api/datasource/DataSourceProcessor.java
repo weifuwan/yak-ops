@@ -6,6 +6,7 @@ import io.yak.ops.spi.enums.DbType;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 public interface DataSourceProcessor {
@@ -100,4 +101,12 @@ public interface DataSourceProcessor {
     DataSourceProcessor create();
 
     List<String> splitAndRemoveComment(String sql);
+
+    /**
+     * Optional datasource connection properties for the UI.
+     * Plugins without this capability return no suggested properties.
+     */
+    default List<ConnectionProperty> getConnectionProperties() {
+        return Collections.emptyList();
+    }
 }

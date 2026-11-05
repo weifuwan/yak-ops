@@ -6,6 +6,8 @@ import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
+import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
+import io.yak.ops.plugin.datasource.mysql.catalog.MySQLDataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.datasource.JdbcDriverConnectionProvider;
 import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
 import io.yak.ops.spi.datasource.BaseConnectionParam;
@@ -29,6 +31,13 @@ import lombok.extern.slf4j.Slf4j;
 @AutoService(DataSourceProcessor.class)
 @Slf4j
 public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
+
+    private final MySQLDataSourceCatalog catalog = new MySQLDataSourceCatalog();
+
+    @Override
+    public List<ConnectionProperty> getConnectionProperties() {
+        return catalog.getConnectionProperties();
+    }
 
     private static final String ALLOW_LOAD_LOCAL_IN_FILE_NAME = "allowLoadLocalInfile";
 
