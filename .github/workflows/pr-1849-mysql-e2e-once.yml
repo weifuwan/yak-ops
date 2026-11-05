@@ -80,6 +80,8 @@ jobs:
             username: root
             password: pr1849-root-password
             driver-class-name: com.mysql.cj.jdbc.Driver
+            write.batch.size: 1
+            write.batch.interval.ms: 1000
 
           route:
             - source-table: cdc_lab.orders
@@ -102,6 +104,10 @@ jobs:
             if [ "$status" -ne 0 ]; then
               echo "---- Pipeline logs ----"
               tail -n 180 "$log" || true
+              echo "---- Relevant pipeline diagnostics ----"
+              grep -E 'ERROR|WARN|Exception|Caused by|Jdbc|JDBC|sink|Sink|checkpoint|schema change' "$log" | tail -n 120 || true
+              echo "---- Target database status ----"
+              docker exec pr1849-mysql mysql -uroot -ppr1849-root-password -e "SHOW TABLES FROM yak_e2e_target; SELECT * FROM yak_e2e_target.orders;" 2>&1 || true
               echo "---- MySQL container logs ----"
               docker logs --tail=80 pr1849-mysql || true
             fi
