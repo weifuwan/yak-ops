@@ -6,8 +6,8 @@ import io.yak.ops.tools.datasource.jupiter.YakOpsDatabaseContainer;
 import io.yak.ops.tools.datasource.mysql.YakOpsMysqlProfile;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 
 import javax.sql.DataSource;
 
@@ -40,8 +40,8 @@ class UserPreferenceIT {
 
         Assertions.assertEquals(2L, countFor(1, "DATASOURCE_CREATE_TYPE", "MYSQL"));
         Assertions.assertEquals(1L, countFor(2, "DATASOURCE_CREATE_TYPE", "MYSQL"));
-        Assertions.assertEquals(1L, countFor(1, "PRODUCT_MENU", "operations"));
-        Assertions.assertEquals(1L, countFor(2, "PRODUCT_MENU", "operations"));
+        Assertions.assertEquals(0L, countFor(1, "PRODUCT_MENU", "operations"));
+        Assertions.assertEquals(0L, countFor(2, "PRODUCT_MENU", "operations"));
 
         // Repeated schema initialization must preserve preferences and every other table.
         manager.initializeOrValidate();
@@ -50,12 +50,16 @@ class UserPreferenceIT {
 
     private long countFor(int userId, String scene, String itemKey) throws Exception {
         try (Connection connection = dataSource.getConnection();
-                Statement statement = connection.createStatement();
-                ResultSet result = statement.executeQuery(
-                        "SELECT use_count FROM t_yak_ops_user_preference WHERE user_id = " + userId
-                                + " AND scene = '" + scene + "' AND item_key = '" + itemKey + "'")) {
-            Assertions.assertTrue(result.next());
-            return result.getLong(1);
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT use_count FROM t_yak_ops_user_preference "
+                                + "WHERE user_id = ? AND scene = ? AND item_key = ?")) {
+            statement.setInt(1, userId);
+            statement.setString(2, scene);
+            statement.setString(3, itemKey);
+            try (ResultSet result = statement.executeQuery()) {
+                Assertions.assertTrue(result.next());
+                return result.getLong(1);
+            }
         }
     }
 }

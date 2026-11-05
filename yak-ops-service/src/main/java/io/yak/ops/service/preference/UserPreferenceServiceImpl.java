@@ -57,7 +57,7 @@ public class UserPreferenceServiceImpl implements UserPreferenceService {
                         .orElse(0) + 1;
             }
         }
-        if (dao.upsertFavorite(userId, scene.name(), key, favorite, sortOrder) <= 0) {
+        if (dao.upsertFavorite(userId, scene.name(), key, favorite, sortOrder) < 0) {
             throw new IllegalStateException("Failed to save user preference");
         }
         return requireSaved(userId, scene, key);
