@@ -20,6 +20,7 @@ import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSourceService;
+import io.yak.ops.api.service.JdbcDriverPropertyService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSourceSimpleInfoVO;
@@ -63,6 +64,27 @@ public class DataSourceController extends BaseController {
 
     @Autowired
     private DataSourceService dataSourceService;
+
+    @Autowired
+    private JdbcDriverPropertyService jdbcDriverPropertyService;
+
+    /**
+     * Discover only MySQL/PostgreSQL JDBC properties from the installed driver.
+     * Metadata lookup never establishes a remote database connection.
+     */
+    @Operation(summary = "getConnectionProperties")
+    @GetMapping(value = "/connection-properties")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_DATASOURCE_ERROR)
+    public Result<JdbcDriverPropertyService.DriverProperties> getConnectionProperties(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @RequestParam("type") DbType type) {
+        if (type != DbType.MYSQL && type != DbType.POSTGRESQL) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Driver properties are supported only for MYSQL and POSTGRESQL");
+        }
+        return Result.success(jdbcDriverPropertyService.getProperties(type));
+    }
 
     /**
      * create a new data source

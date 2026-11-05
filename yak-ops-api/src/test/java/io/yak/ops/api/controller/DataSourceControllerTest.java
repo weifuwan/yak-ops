@@ -126,6 +126,21 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     }
 
     @Test
+    public void testGetConnectionPropertiesFromInstalledDrivers() throws Exception {
+        for (String type : new String[] { "MYSQL", "POSTGRESQL" }) {
+            MvcResult response = mockMvc.perform(get("/datasources/connection-properties")
+                    .header("sessionId", sessionId)
+                    .param("type", type))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            Result result = JSONUtils.parseObject(response.getResponse().getContentAsString(), Result.class);
+            Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+            Assertions.assertTrue(response.getResponse().getContentAsString().contains("acceptedPropertyKeys"));
+        }
+    }
+
+    @Test
     public void testQueryDataSourceListPaging() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add("searchVal", "mysql");
