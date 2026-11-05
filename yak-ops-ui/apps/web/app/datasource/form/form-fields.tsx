@@ -20,7 +20,7 @@ import type { useDataSourceForm } from "./use-data-source-form";
 import { AdvancedProperties } from "./advanced-properties";
 
 export function DataSourceFormFields({ form }: { form: ReturnType<typeof useDataSourceForm> }) {
-  const { intl, values, errors, patch, isOracle, optionRules } = form;
+  const { intl, values, errors, patch, isOracle, isSSH, isOceanBase, optionRules } = form;
 
   const nameField = (
     <Field
@@ -290,7 +290,52 @@ export function DataSourceFormFields({ form }: { form: ReturnType<typeof useData
     </div>
   );
 
-  const connectionFields = isOracle ? (
+  const oceanBaseModeField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[var(--yak-components-field-label)]">
+        {intl.formatMessage({ id: "pages.datasource.form.compatibleMode" })}
+      </span>
+      <Select
+        size="small"
+        items={{ mysql: "MySQL", oracle: "Oracle" }}
+        value={values.compatibleMode}
+        onValueChange={(mode) => {
+          if (mode === "mysql" || mode === "oracle") patch("compatibleMode", mode);
+        }}
+      >
+        <SelectTrigger variant="outlined"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="mysql"><SelectItemText>MySQL</SelectItemText><SelectItemIndicator /></SelectItem>
+          <SelectItem value="oracle"><SelectItemText>Oracle</SelectItemText><SelectItemIndicator /></SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const sshPrivateKeyField = (
+    <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
+      <FieldLabel htmlFor="datasource-private-key" className="pt-1.5 text-xs leading-4">
+        {intl.formatMessage({ id: "pages.datasource.form.privateKey" })}
+      </FieldLabel>
+      <Textarea
+        id="datasource-private-key"
+        size="small"
+        rows={3}
+        value={values.privateKey}
+        placeholder={intl.formatMessage({ id: "pages.datasource.form.privateKeyPlaceholder" })}
+        onValueChange={(key) => patch("privateKey", key)}
+      />
+    </Field>
+  );
+
+  const connectionFields = isSSH ? (
+    <>
+      {connectionAddressField}
+      {usernameField}
+      {passwordField}
+      {sshPrivateKeyField}
+    </>
+  ) : isOracle ? (
     <>
       {oracleJdbcUrlField}
       {accessIdentityField}
@@ -304,6 +349,7 @@ export function DataSourceFormFields({ form }: { form: ReturnType<typeof useData
       {jdbcPreviewField}
       {connectionAddressField}
       {databaseField}
+      {isOceanBase ? oceanBaseModeField : null}
       {accessIdentityField}
       {usernameField}
       {passwordField}

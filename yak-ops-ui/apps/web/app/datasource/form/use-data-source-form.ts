@@ -55,6 +55,8 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
   const editing = Boolean(record?.id);
   const busy = testing || submitting;
   const isOracle = normalizeDataSourceType(values.dbType) === "ORACLE";
+  const isSSH = normalizeDataSourceType(values.dbType) === "SSH";
+  const isOceanBase = normalizeDataSourceType(values.dbType) === "OCEANBASE";
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +73,8 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
       username: original.username || "",
       password: original.password || "",
       driverId: original.driverId || "AUTO",
+      compatibleMode: original.compatibleMode || "mysql",
+      privateKey: "",
       properties: original.properties || [],
       remark: record?.remark || "",
     });
@@ -270,7 +274,7 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
         next.port = intl.formatMessage({ id: "pages.datasource.form.portRequired" });
       else if (!Number.isInteger(port) || port < 1 || port > 65535)
         next.port = intl.formatMessage({ id: "pages.datasource.form.portInvalid" });
-      if (!values.database.trim())
+      if (!isSSH && !values.database.trim())
         next.database = intl.formatMessage({ id: "pages.datasource.form.databaseRequired" });
 
       const propertyKeys = values.properties.map((property) => property.key.trim());
@@ -308,10 +312,12 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     return {
       host: values.host.trim(),
       port: Number(values.port),
-      database: values.database.trim(),
+      database: isSSH ? "" : values.database.trim(),
       username: values.username.trim(),
       password: values.password,
       ...(normalizeDataSourceType(values.dbType) === "MYSQL" ? { driverId: values.driverId } : {}),
+      ...(isOceanBase ? { compatibleMode: values.compatibleMode } : {}),
+      ...(isSSH ? { privateKey: values.privateKey } : {}),
       properties,
     };
   };
@@ -388,6 +394,8 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
             username: "",
             password: "",
             driverId: "AUTO",
+            compatibleMode: "mysql",
+            privateKey: "",
             properties: [],
           },
     );
@@ -401,6 +409,8 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     editing,
     busy,
     isOracle,
+    isSSH,
+    isOceanBase,
     testing,
     submitting,
     createStep,
