@@ -49,7 +49,8 @@ class UserPreferenceIT {
     }
 
     private long countFor(int userId, String scene, String itemKey) throws Exception {
-        try (Connection connection = dataSource.getConnection();
+        try (
+                Connection connection = dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "SELECT use_count FROM t_yak_ops_user_preference "
                                 + "WHERE user_id = ? AND scene = ? AND item_key = ?")) {

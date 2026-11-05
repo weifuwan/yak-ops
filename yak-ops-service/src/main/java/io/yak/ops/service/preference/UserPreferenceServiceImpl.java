@@ -35,7 +35,8 @@ public class UserPreferenceServiceImpl implements UserPreferenceService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserPreferenceRecord updateFavorite(UserPreferenceScene scene, String itemKey, boolean favorite, int userId) {
+    public UserPreferenceRecord updateFavorite(UserPreferenceScene scene, String itemKey, boolean favorite,
+                                               int userId) {
         checkUser(userId);
         checkScene(scene);
         if (scene != UserPreferenceScene.PRODUCT_MENU) {

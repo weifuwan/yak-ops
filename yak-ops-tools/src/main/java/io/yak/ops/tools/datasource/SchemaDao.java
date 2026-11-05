@@ -87,7 +87,6 @@ public class SchemaDao {
         }
     }
 
-
     /**
      * Add only the user preference table, without executing the destructive baseline SQL.
      * The script uses CREATE TABLE IF NOT EXISTS and is safe to repeat.
