@@ -160,7 +160,8 @@ function urlFromEndpoint(
   database: string,
   connectType: string,
 ): string {
-  if (!host || !port || !database) return "";
+  if (!host || !port) return "";
+  if (type !== "SSH" && !database) return "";
   if (type === "ORACLE") {
     return connectType === "ORACLE_SID"
       ? "jdbc:oracle:thin:@" + host + ":" + port + ":" + database
@@ -190,7 +191,10 @@ export function fromBackendDataSource(raw: BackendDataSourceRecord): DataSourceR
   const rawUrl = stringField(stored.jdbcUrl);
   const address = stringField(stored.address);
   const addressMatch = /\/\/(\[[^\]]+\]|[^:/?]+):(\d+)/.exec(address || rawUrl);
-  const host = raw.host || stringField(stored.host) || addressMatch?.[1] || "";
+  const multiHost = type === "DORIS" ? /\/\/([^/?;]+)/.exec(address || rawUrl)?.[1] : undefined;
+  const dorisHosts = multiHost
+    ?.split(",").map((entry) => entry.trim().split(":")[0]).join(",");
+  const host = raw.host || stringField(stored.host) || dorisHosts || addressMatch?.[1] || "";
   const port = raw.port ?? numberField(stored.port) ??
     (addressMatch ? Number(addressMatch[2]) : undefined);
   const database = raw.database || stringField(stored.database);
