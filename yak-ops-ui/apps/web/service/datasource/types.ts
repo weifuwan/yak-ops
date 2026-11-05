@@ -69,8 +69,12 @@ export interface DataSourceConnectTestPayload {
   connectionParams: DataSourceConnectionParams;
 }
 
-export interface DataSourceConnectionPropertyKeys {
-  acceptedPropertyKeys: string[];
+export interface DataSourceDriverProperty {
+  name: string;
+  description: string;
+  defaultValue: string | null;
+  required: boolean;
+  choices: string[];
 }
 
 /** Safe provider-defined parameter field available to the datasource editor. */

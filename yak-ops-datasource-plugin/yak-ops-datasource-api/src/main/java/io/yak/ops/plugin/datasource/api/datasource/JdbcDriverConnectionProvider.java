@@ -29,7 +29,7 @@ public class JdbcDriverConnectionProvider implements JdbcConnectionProvider {
             }
             return driver.connect(jdbcUrl, p);
         } catch (ReflectiveOperationException e) {
-            throw new SQLException("Failed to instantiate driver: " + jdbcDriverClassName, e);
+            throw new SQLException("Failed to create driver: " + jdbcDriverClassName, e);
         }
     }
 }

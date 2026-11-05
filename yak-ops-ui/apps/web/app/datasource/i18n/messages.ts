@@ -111,6 +111,7 @@ export default {
   "pages.datasource.form.propertySelectPlaceholder": "选择参数，支持多选",
   "pages.datasource.form.propertySelectEmpty": "没有匹配的参数",
   "pages.datasource.form.propertyKeysLoading": "正在加载参数...",
+  "pages.datasource.form.propertyKeysLoadFailed": "无法获取数据源参数建议，请检查后端插件或稍后重试。仍可添加自定义属性。",
   "pages.datasource.form.propertyKey": "参数",
   "pages.datasource.form.propertyValue": "值",
   "pages.datasource.form.propertyKeyPlaceholder": "请输入参数名",

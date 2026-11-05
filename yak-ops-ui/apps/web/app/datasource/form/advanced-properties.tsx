@@ -18,7 +18,9 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
     values,
     errors,
     propertyKeyOptions,
+    driverPropertyMetadata,
     propertyKeysLoading,
+    propertyKeysError,
     propertyKeyMap,
     selectedSuggestedPropertyKeys,
     syncSuggestedProperties,
@@ -26,6 +28,10 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
     addProperty,
     removeProperty,
   } = form;
+
+  const driverPropertyMap = new Map(
+    driverPropertyMetadata.map((property) => [normalizePropertyKey(property.name), property] as const),
+  );
 
   const selectedSuggestedPropertyKeySet = new Set(
     selectedSuggestedPropertyKeys.map(normalizePropertyKey),
@@ -38,8 +44,9 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
       </span>
       <Field invalid={Boolean(errors.properties)} className="min-w-0 !gap-0">
         <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <Combobox<string, true>
+          {propertyKeysLoading || propertyKeyOptions.length > 0 ? (
+            <div className="min-w-0 flex-1">
+              <Combobox<string, true>
               multiple
               size="small"
               items={propertyKeyOptions}
@@ -64,17 +71,29 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
               >
                 {(key: string) => (
                   <ComboboxItem key={key} value={key}>
-                    <span className="min-w-0 flex-1 truncate">{key}</span>
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      title={driverPropertyMap.get(normalizePropertyKey(key))?.description || key}
+                    >
+                      {key}
+                    </span>
                     <ComboboxItemIndicator />
                   </ComboboxItem>
                 )}
               </ComboboxContent>
-            </Combobox>
-          </div>
+              </Combobox>
+            </div>
+          ) : null}
           <Button size="small" onClick={addProperty}>
             {intl.formatMessage({ id: "pages.datasource.form.addCustomProperty" })}
           </Button>
         </div>
+
+        {propertyKeysError ? (
+          <p role="alert" className="mt-1 text-xs text-[var(--yak-color-danger)]">
+            {intl.formatMessage({ id: "pages.datasource.form.propertyKeysLoadFailed" })}
+          </p>
+        ) : null}
 
         {values.properties.length > 0 ? (
           <div className="mt-2 overflow-hidden border border-[var(--yak-components-panel-border)]">
@@ -92,6 +111,7 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
             {values.properties.map((property, index) => {
               const normalizedKey = normalizePropertyKey(property.key);
               const suggestedKey = propertyKeyMap.get(normalizedKey);
+              const driverProperty = driverPropertyMap.get(normalizedKey);
               const rowPropertyKeyOptions = propertyKeyOptions.filter(
                 (key) =>
                   normalizePropertyKey(key) === normalizedKey ||
@@ -126,7 +146,12 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
                       >
                         {(key: string) => (
                           <ComboboxItem key={key} value={key}>
-                            <span className="min-w-0 flex-1 truncate">{key}</span>
+                            <span
+                      className="min-w-0 flex-1 truncate"
+                      title={driverPropertyMap.get(normalizePropertyKey(key))?.description || key}
+                    >
+                      {key}
+                    </span>
                             <ComboboxItemIndicator />
                           </ComboboxItem>
                         )}
@@ -147,9 +172,12 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
                     size="small"
                     variant="outlined"
                     value={property.value}
-                    placeholder={intl.formatMessage({
-                      id: "pages.datasource.form.propertyValuePlaceholder",
-                    })}
+                    title={driverProperty?.description || undefined}
+                    placeholder={
+                      driverProperty?.choices?.length
+                        ? driverProperty.choices.join(" / ")
+                        : intl.formatMessage({ id: "pages.datasource.form.propertyValuePlaceholder" })
+                    }
                     onChange={(event) => patchProperty(index, "value", event.target.value)}
                   />
                   <Button

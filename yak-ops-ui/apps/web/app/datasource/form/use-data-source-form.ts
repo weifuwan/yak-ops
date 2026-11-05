@@ -9,11 +9,12 @@ import {
   testDataSourceConnectionWithParams,
   testSavedDataSourceConnection,
   datasourceValidationErrors,
-  getDataSourceConnectionPropertyKeys,
+  getDataSourceConnectionProperties,
   getDataSourceOptionRules,
   type DataSourceConnectionParams,
   type DataSourceSavePayload,
   type DataSourceOptionRules,
+  type DataSourceDriverProperty,
 } from "@/service/datasource";
 import {
   listUserPreferences,
@@ -50,8 +51,10 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     [],
   );
   const [propertyKeyOptions, setPropertyKeyOptions] = useState<string[]>([]);
+  const [driverPropertyMetadata, setDriverPropertyMetadata] = useState<DataSourceDriverProperty[]>([]);
   const [optionRules, setOptionRules] = useState<DataSourceOptionRules | null>(null);
   const [propertyKeysLoading, setPropertyKeysLoading] = useState(false);
+  const [propertyKeysError, setPropertyKeysError] = useState(false);
   const editing = Boolean(record?.id);
   const busy = testing || submitting;
   const isOracle = normalizeDataSourceType(values.dbType) === "ORACLE";
@@ -106,22 +109,36 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     if (
       !open ||
       createStep !== "config" ||
-      !values.dbType ||
-      normalizeDataSourceType(values.dbType) === "ORACLE"
+      !values.dbType
     ) {
       setPropertyKeyOptions([]);
+      setDriverPropertyMetadata([]);
       setPropertyKeysLoading(false);
+      setPropertyKeysError(false);
       return;
     }
 
     let active = true;
+    setPropertyKeyOptions([]);
+    setDriverPropertyMetadata([]);
+    setPropertyKeysError(false);
     setPropertyKeysLoading(true);
-    void getDataSourceConnectionPropertyKeys(values.dbType)
-      .then((result) => {
-        if (active) setPropertyKeyOptions(result?.acceptedPropertyKeys || []);
+    void getDataSourceConnectionProperties(values.dbType)
+      .then((properties) => {
+        if (!Array.isArray(properties)) {
+          throw new Error("Invalid datasource connection-property metadata response");
+        }
+        if (active) {
+          setPropertyKeyOptions(properties.map((property) => property.name));
+          setDriverPropertyMetadata(properties);
+        }
       })
       .catch(() => {
-        if (active) setPropertyKeyOptions([]);
+        if (active) {
+          setPropertyKeyOptions([]);
+          setDriverPropertyMetadata([]);
+          setPropertyKeysError(true);
+        }
       })
       .finally(() => {
         if (active) setPropertyKeysLoading(false);
@@ -421,7 +438,9 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
     setCreateCategory,
     frequentTypePreferences,
     propertyKeyOptions,
+    driverPropertyMetadata,
     propertyKeysLoading,
+    propertyKeysError,
     optionRules,
     propertyKeyMap,
     selectedSuggestedPropertyKeys,

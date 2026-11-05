@@ -19,6 +19,7 @@ import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.exceptions.ServiceException;
+import io.yak.ops.api.service.DataSourceCatalogService;
 import io.yak.ops.api.service.DataSourceService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
@@ -27,6 +28,7 @@ import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
+import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
 import io.yak.ops.plugin.datasource.api.utils.CommonUtils;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
 import io.yak.ops.plugin.task.api.utils.ParameterUtils;
@@ -63,6 +65,23 @@ public class DataSourceController extends BaseController {
 
     @Autowired
     private DataSourceService dataSourceService;
+
+    @Autowired
+    private DataSourceCatalogService dataSourceCatalogService;
+
+    /**
+     * Delegate metadata lookup to the registered datasource plugin.
+     * Plugins without a connection-property catalog return an empty array.
+     */
+    @Operation(summary = "getConnectionProperties")
+    @GetMapping(value = "/connection-properties")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_DATASOURCE_ERROR)
+    public Result<List<ConnectionProperty>> getConnectionProperties(
+                                                                    @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                                    @RequestParam("type") DbType type) {
+        return Result.success(dataSourceCatalogService.getConnectionProperties(type));
+    }
 
     /**
      * create a new data source
