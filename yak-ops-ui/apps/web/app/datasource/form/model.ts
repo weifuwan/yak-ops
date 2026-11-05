@@ -265,7 +265,15 @@ export const buildJdbcPreview = (values: FormValues) => {
         encodeURIComponent(property.key.trim()) + "=" + encodeURIComponent(property.value),
     )
     .join("&");
-  return query ? jdbcUrl + "?" + query : jdbcUrl;
+  if (!query) return jdbcUrl;
+  // SQL Server uses semicolon properties, unlike JDBC URL query-string drivers.
+  if (normalizeDataSourceType(values.dbType) === "SQLSERVER") {
+    return jdbcUrl + ";" + values.properties
+      .filter((property) => property.key.trim())
+      .map((property) => property.key.trim() + "=" + property.value)
+      .join(";");
+  }
+  return jdbcUrl + "?" + query;
 };
 
 export const normalizePropertyKey = (value: string) => value.trim().toLowerCase();
