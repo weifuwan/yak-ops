@@ -48,6 +48,8 @@ jobs:
       - name: Build CDC CLI with MySQL source and JDBC sink
         shell: bash
         run: |
+          # The independent CLI Maven invocation must resolve the root reactor parent.
+          bash mvnw -B -ntp -N -DskipTests -Dspotless.skip=true install
           bash mvnw -B -ntp -f yak-ops-cdc/pom.xml \
             -pl :yak-ops-cdc-cli -am -DskipTests \
             -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true install
@@ -114,6 +116,10 @@ jobs:
             for attempt in $(seq 1 120); do
               if [ "$(read_count "$statement")" = "$expected" ]; then
                 return 0
+              fi
+              if ! kill -0 "$cli_pid" 2>/dev/null; then
+                echo "CDC CLI exited before the target row was observed."
+                return 1
               fi
               sleep 2
             done
