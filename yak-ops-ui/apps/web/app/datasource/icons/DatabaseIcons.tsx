@@ -12,6 +12,7 @@ import Db2Icon from "./Db2Icon";
 import OceanBaseIcon from "./OceanBaseIcon";
 import SqlServerIcon from "./SqlServerIcon";
 import DorisIcon from "./DorisIcon";
+import SshIcon from "./SshIcon";
 
 interface DatabaseIconsProps {
   dbType?: string;
@@ -51,6 +52,8 @@ const DatabaseIcons = ({ dbType, width = "20px", height = "20px" }: DatabaseIcon
       return <SqlServerIcon width={width} height={height} />;
     case "doris":
       return <DorisIcon width={width} height={height} />;
+    case "ssh":
+      return <SshIcon width={width} height={height} />;
     default:
       return <Database style={fallbackStyle} strokeWidth={1.7} />;
   }

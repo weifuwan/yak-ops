@@ -12,11 +12,12 @@ const components = [
   "Db2Icon",
   "OceanBaseIcon",
   "SqlServerIcon",
-  "DorisIcon"
+  "DorisIcon",
+  "SshIcon"
 ];
 const router = readFileSync(join(iconsRoot, "DatabaseIcons.tsx"), "utf8");
 
-test("seven supplied SVGs are wrapped by bounded, reusable React icon components", () => {
+test("eight supplied SVGs are wrapped by bounded, reusable React icon components", () => {
   for (const name of components) {
     const source = readFileSync(join(iconsRoot, name + ".tsx"), "utf8");
     assert.match(source, /height = "24"/);
@@ -32,7 +33,7 @@ test("seven supplied SVGs are wrapped by bounded, reusable React icon components
   }
 });
 
-test("existing MySQL / Oracle / PostgreSQL icons and SSH fallback remain intact", () => {
+test("existing MySQL / Oracle / PostgreSQL icons and generic fallback remain intact", () => {
   for (const name of ["MysqlIcon", "OracleIcon", "PsSqlIcon"]) {
     assert.ok(router.includes("<" + name + " width={width} height={height} />"));
   }
