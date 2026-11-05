@@ -4,7 +4,6 @@ import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
 
 import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,26 +19,22 @@ public class PostgreSQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public List<ConnectionProperty> getConnectionProperties() {
-        try {
-            DriverPropertyInfo[] properties = new org.postgresql.Driver()
-                    .getPropertyInfo(JDBC_URL, new Properties());
-            List<ConnectionProperty> result = new ArrayList<>();
-            for (DriverPropertyInfo property : properties) {
-                if (property.name == null
-                        || "user".equalsIgnoreCase(property.name)
-                        || "password".equalsIgnoreCase(property.name)) {
-                    continue;
-                }
-                result.add(new ConnectionProperty(
-                        property.name,
-                        property.description == null ? "" : property.description,
-                        property.value,
-                        property.required,
-                        property.choices == null ? Collections.emptyList() : Arrays.asList(property.choices)));
+        DriverPropertyInfo[] properties = new org.postgresql.Driver()
+                .getPropertyInfo(JDBC_URL, new Properties());
+        List<ConnectionProperty> result = new ArrayList<>();
+        for (DriverPropertyInfo property : properties) {
+            if (property.name == null
+                    || "user".equalsIgnoreCase(property.name)
+                    || "password".equalsIgnoreCase(property.name)) {
+                continue;
             }
-            return result;
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to read PostgreSQL JDBC properties", e);
+            result.add(new ConnectionProperty(
+                    property.name,
+                    property.description == null ? "" : property.description,
+                    property.value,
+                    property.required,
+                    property.choices == null ? Collections.emptyList() : Arrays.asList(property.choices)));
         }
+        return result;
     }
 }
