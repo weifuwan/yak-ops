@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +16,7 @@ import io.etcd.jetcd.launcher.EtcdCluster;
 import io.etcd.jetcd.test.EtcdClusterExtension;
 import lombok.SneakyThrows;
 
+@Tag("slow")
 @SpringBootTest(classes = EtcdRegistryProperties.class)
 @SpringBootApplication(scanBasePackageClasses = EtcdRegistryProperties.class)
 public class EtcdRegistryTestCase extends RegistryTestCase<EtcdRegistry> {
@@ -47,7 +49,12 @@ public class EtcdRegistryTestCase extends RegistryTestCase<EtcdRegistry> {
     @SneakyThrows
     @AfterAll
     public static void tearDownTestingServer() {
-        try (EtcdCluster cluster = etcdCluster) {
+        try {
+            if (etcdCluster != null) {
+                etcdCluster.close();
+            }
+        } finally {
+            System.clearProperty("registry.endpoints");
         }
     }
 }

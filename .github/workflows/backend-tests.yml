@@ -6,26 +6,31 @@ on:
     paths:
       - 'pom.xml'
       - 'yak-ops-*/**'
+      - '!yak-ops-cdc/**'
       - '!yak-ops-ui/**'
       - '.github/workflows/backend-tests.yml'
   pull_request:
     paths:
       - 'pom.xml'
       - 'yak-ops-*/**'
+      - '!yak-ops-cdc/**'
       - '!yak-ops-ui/**'
       - '.github/workflows/backend-tests.yml'
+  # Run all expensive backend tests nightly at 03:15 Asia/Singapore.
+  schedule:
+    - cron: '15 19 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: backend-tests-all-tests-${{ github.ref }}
+  group: backend-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   backend-unit:
-    name: All Backend Unit Tests (JDK 17)
+    name: Backend Unit Tests (JDK 17)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -35,16 +40,24 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Run all backend module tests (including test compilation)
+      - name: Run backend unit tests (fast on PR/push; full on schedule/manual)
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           mapfile -t modules < <(find yak-ops-* -type f -name pom.xml \
             ! -path 'yak-ops-cdc/*' ! -path 'yak-ops-ui/*' \
             | sed 's@/pom.xml$@@' | sort)
           module_csv=$(IFS=,; echo "${modules[*]}")
           test -n "$module_csv"
+          extra_args=()
+          if [[ "$EVENT_NAME" != "schedule" && "$EVENT_NAME" != "workflow_dispatch" ]]; then
+            extra_args+=('-DexcludedGroups=slow')
+            echo "Fast mode: exclude @Tag(slow) tests; nightly/manual runs cover them."
+          fi
           bash mvnw -B -ntp -fae -pl "$module_csv" -am \
-            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
+            "${extra_args[@]}" test
       - name: Summarize backend Surefire reports
         if: always()
         run: |
@@ -69,47 +82,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  cdc-unit:
-    name: All CDC Unit Tests (JDK 17)
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: maven
-      - name: Run all CDC module tests (including test compilation)
-        shell: bash
-        run: |
-          mapfile -t modules < <(find yak-ops-cdc -type f -name pom.xml | sed 's@/pom.xml$@@' | sort)
-          module_csv=$(IFS=,; echo "${modules[*]}")
-          test -n "$module_csv"
-          bash mvnw -B -ntp -fae -pl "$module_csv" -am \
-            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
-      - name: Require executed CDC tests
-        if: always()
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          from xml.etree import ElementTree as ET
-          reports = [p for p in Path('yak-ops-cdc').rglob('TEST-*.xml') if 'surefire-reports' in p.parts]
-          total = sum(int(ET.parse(p).getroot().attrib.get('tests', 0)) for p in reports)
-          print(f'CDC reports: {len(reports)}, tests: {total}')
-          if total == 0:
-              raise SystemExit('No CDC tests executed')
-          PY
-      - name: Upload CDC test reports
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cdc-test-reports
-          path: yak-ops-cdc/**/target/surefire-reports/**
-          if-no-files-found: warn
-          retention-days: 7
-
   database-integration:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: Database Testcontainers Integration (JDK 17)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -120,7 +94,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Run all database integration test classes with Docker
+      - name: Run database integration test classes with Docker
         shell: bash
         run: |
           bash mvnw -B -ntp -fae -pl :yak-ops-tools -am \

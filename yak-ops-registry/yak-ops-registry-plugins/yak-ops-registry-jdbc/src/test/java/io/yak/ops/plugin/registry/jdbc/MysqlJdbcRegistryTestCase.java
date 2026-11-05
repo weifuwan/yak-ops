@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
@@ -20,10 +21,13 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import lombok.SneakyThrows;
 
+@Tag("slow")
 @ActiveProfiles("mysql")
 class MysqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
 
     private static GenericContainer<?> mysqlContainer;
+
+    private static final Network NETWORK = Network.newNetwork();
 
     @SneakyThrows
     @BeforeAll
@@ -32,7 +36,7 @@ class MysqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
                 .withUsername("root")
                 .withPassword("root")
                 .withDatabaseName("yak-ops")
-                .withNetwork(Network.newNetwork())
+                .withNetwork(NETWORK)
                 .withExposedPorts(3306)
                 .waitingFor(Wait.forHealthcheck().withStartupTimeout(Duration.ofSeconds(300)));
 
@@ -57,6 +61,13 @@ class MysqlJdbcRegistryTestCase extends JdbcRegistryTestCase {
     @SneakyThrows
     @AfterAll
     public static void tearDownTestingServer() {
-        mysqlContainer.close();
+        try {
+            if (mysqlContainer != null) {
+                mysqlContainer.close();
+            }
+        } finally {
+            System.clearProperty("spring.datasource.url");
+            NETWORK.close();
+        }
     }
 }

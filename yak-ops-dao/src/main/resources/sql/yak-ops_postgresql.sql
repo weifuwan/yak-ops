@@ -1070,7 +1070,7 @@ ALTER TABLE t_yak_ops_relation_project_worker_group ALTER COLUMN id SET DEFAULT 
 
 -- Records of t_yak_ops_user?user : admin , password : yak-ops123
 INSERT INTO t_yak_ops_user(user_name, user_password, user_type, email, phone, tenant_id, state, create_time, update_time, time_zone)
-VALUES ('admin', '7ad2410b2f4c074479a8937a28a22b8f', '0', 'xxx@qq.com', '', '-1', 1, '2018-03-27 15:48:50', '2018-10-24 17:40:22', null);
+VALUES ('admin', '2ab610cd98d9238d0f26cb09b9c9da8d', '0', 'xxx@qq.com', '', '-1', 1, '2018-03-27 15:48:50', '2018-10-24 17:40:22', null);
 
 -- Records of t_yak_ops_tenant
 INSERT INTO t_yak_ops_tenant(id, tenant_code, description, queue_id, create_time, update_time)

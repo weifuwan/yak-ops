@@ -164,6 +164,14 @@
             <artifactId>brace-expansion</artifactId>
         </dependency>
 
+        <!-- JDK 15+ no longer bundles Nashorn. Keep JDK 8 runtime dependencies unchanged. -->
+        <dependency>
+            <groupId>org.openjdk.nashorn</groupId>
+            <artifactId>nashorn-core</artifactId>
+            <version>15.4</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-actuator-authentication</artifactId>
