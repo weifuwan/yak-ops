@@ -310,19 +310,19 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             ensureStopped(workflow.getCode());
             Integer runId = executorService.triggerWorkflowDefinition(
                     io.yak.ops.api.dto.workflow.WorkflowTriggerRequest.builder()
-                        .loginUser(user)
-                        .projectCode(projectCode)
-                        .workflowDefinitionCode(workflow.getCode())
-                        .execType(CommandType.START_PROCESS)
-                        .failureStrategy(FailureStrategy.END)
-                        .taskDependType(TaskDependType.TASK_POST)
-                        .warningType(WarningType.NONE)
-                        .workflowInstancePriority(Priority.MEDIUM)
-                        .workerGroup(definition.getWorkerGroup())
-                        .tenantCode("default")
-                        .environmentCode(definition.getEnvironmentCode())
-                        .dryRun(Flag.NO)
-                        .build());
+                            .loginUser(user)
+                            .projectCode(projectCode)
+                            .workflowDefinitionCode(workflow.getCode())
+                            .execType(CommandType.START_PROCESS)
+                            .failureStrategy(FailureStrategy.END)
+                            .taskDependType(TaskDependType.TASK_POST)
+                            .warningType(WarningType.NONE)
+                            .workflowInstancePriority(Priority.MEDIUM)
+                            .workerGroup(definition.getWorkerGroup())
+                            .tenantCode("default")
+                            .environmentCode(definition.getEnvironmentCode())
+                            .dryRun(Flag.NO)
+                            .build());
             return runId;
         } finally {
             workflowDefinitionDao.releaseStart(workflow.getCode(), requestId);
