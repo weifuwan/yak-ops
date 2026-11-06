@@ -443,7 +443,7 @@ export interface DataSyncPipelineDefinition {
   transform?: Array<Record<string, unknown>>;
 }
 
-export interface DataSyncPipelineTaskParameters {
+export interface DataSyncParameters {
   definition: DataSyncPipelineDefinition;
 }
 
@@ -456,7 +456,7 @@ export interface TaskDefinitionRecord {
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
-  parameters: DataSyncPipelineTaskParameters;
+  parameters: DataSyncParameters;
   remark?: string;
   createTime?: string;
   updateTime?: string;
@@ -472,7 +472,7 @@ export interface TaskDefinitionVersionSummary {
 
 /** Historical definitions use the same Pipeline contract as the current task. */
 export interface TaskDefinitionVersion extends TaskDefinitionVersionSummary {
-  parameters: DataSyncPipelineTaskParameters;
+  parameters: DataSyncParameters;
 }
 
 export interface PublishTaskRequest {

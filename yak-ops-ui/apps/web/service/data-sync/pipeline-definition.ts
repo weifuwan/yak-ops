@@ -1,10 +1,10 @@
-import type { DataSyncEditorParameters, DataSyncPipelineTaskParameters } from "./types";
+import type { DataSyncEditorParameters, DataSyncParameters } from "./types";
 
 /**
  * The editor remains a form. Persist the native Flink CDC YAML mapping instead
  * of a second runtime configuration vocabulary.
  */
-export function encodeNativePipelineParameters(value: DataSyncEditorParameters): DataSyncPipelineTaskParameters {
+export function encodeNativePipelineParameters(value: DataSyncEditorParameters): DataSyncParameters {
   const source = value.source.tables;
   const sink = value.sink.tables;
   if (
@@ -62,7 +62,7 @@ export function decodeNativePipelineParameters(content: unknown): DataSyncEditor
       !("definition" in content)) {
     throw new Error("无效的 CDC Pipeline 定义");
   }
-  const definition = (content as DataSyncPipelineTaskParameters).definition;
+  const definition = (content as DataSyncParameters).definition;
   if (!definition || !Array.isArray(definition.route) || definition.route.length !== 1) {
     throw new Error("Pipeline 需要一条表映射");
   }

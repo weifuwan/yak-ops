@@ -1,5 +1,5 @@
 import { encodeNativePipelineParameters } from "./pipeline-definition.ts";
-import type { DataSyncPipelineTaskParameters } from "./types";
+import type { DataSyncParameters } from "./types";
 import type { PageInfo } from "@/service/http/page-info";
 
 import type {
@@ -168,7 +168,7 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expecte
   const request: {
     name: string;
     remark?: string;
-    parameters?: DataSyncPipelineTaskParameters;
+    parameters?: DataSyncParameters;
     expectedRevision: number;
   } = {
     name: task.name,
