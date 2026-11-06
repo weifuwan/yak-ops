@@ -203,44 +203,46 @@ export const runDataSyncTask = async (id: string): Promise<{ workflowInstanceId:
     url("/tasks/" + encodeURIComponent(id) + "/start"),
   );
 
-const instanceUrl = (id: string) => url("/instances/" + encodeURIComponent(id));
+const instanceUrl = (id: string, base = url("")) => base + "/instances/" + encodeURIComponent(id);
 
-const instanceDefinition = async (id: string): Promise<TaskInstanceDefinitionRecord> =>
-  HttpUtils.getData<TaskInstanceDefinitionRecord>((instanceUrl(id)) + "/definition");
+const instanceDefinition = async (id: string, base: string): Promise<TaskInstanceDefinitionRecord> =>
+  HttpUtils.getData<TaskInstanceDefinitionRecord>(instanceUrl(id, base) + "/definition");
 
 const projectInstances = async (
   instances: TaskInstanceRecord[],
+  base: string,
 ): Promise<DataSyncInstanceRecord[]> => {
   const cache = new Map<string, Promise<TaskInstanceDefinitionRecord>>();
   return Promise.all(
     instances.map(async (instance) => {
       const key = instance.definitionId + ":" + instance.definitionVersion;
-      if (!cache.has(key)) cache.set(key, instanceDefinition(instance.id));
+      if (!cache.has(key)) cache.set(key, instanceDefinition(instance.id, base));
       return toDataSyncInstanceRecord(instance, await cache.get(key)!);
     }),
   );
 };
 
 export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceRecord> => {
-  const record = await HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id));
-  return (await projectInstances([record]))[0];
+  const base = url("");
+  const record = await HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base));
+  return (await projectInstances([record], base))[0];
 };
 
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<DataSyncInstancePageResult> => {
+  const base = url("");
   const page = await HttpUtils.getData<TaskInstancePageResult>(
-    url(
+    base +
       "/instances?" +
-        qp({
-          pageNo: params.pageNo,
-          pageSize: params.pageSize,
-          taskCode: params.taskId,
-          status: params.status,
-        }),
-    ),
+      qp({
+        pageNo: params.pageNo,
+        pageSize: params.pageSize,
+        taskCode: params.taskId,
+        status: params.status,
+      }),
   );
-  return { ...page, bizData: await projectInstances(page.bizData) };
+  return { ...page, bizData: await projectInstances(page.bizData, base) };
 };
 
 export const listLatestDataSyncTaskInstances = async (

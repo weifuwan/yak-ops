@@ -23,6 +23,7 @@ import io.yak.ops.common.enums.TaskDependType;
 import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.common.enums.TimeoutFlag;
 import io.yak.ops.common.enums.WarningType;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.common.enums.WorkflowExecutionTypeEnum;
 import io.yak.ops.common.utils.CodeGenerateUtils;
 import io.yak.ops.common.utils.JSONUtils;
@@ -34,7 +35,6 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
-import io.yak.ops.dao.model.WorkflowInstanceSummaryDto;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskDefinitionLogDao;
@@ -431,10 +431,9 @@ public class DataSyncServiceImpl implements DataSyncService {
     }
 
     private void ensureStopped(long workflowCode) {
-        for (WorkflowInstanceSummaryDto run : workflowInstanceDao.queryByWorkflowDefinitionCode(workflowCode, 100)) {
-            if (!run.getState().isFinalState()) {
-                throw new IllegalStateException("Data synchronization is already running");
-            }
+        if (!workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(
+                workflowCode, WorkflowExecutionStatus.NOT_TERMINAL_STATES).isEmpty()) {
+            throw new IllegalStateException("Data synchronization is already running");
         }
     }
 
