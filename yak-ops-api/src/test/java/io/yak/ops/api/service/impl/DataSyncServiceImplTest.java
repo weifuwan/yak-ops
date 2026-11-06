@@ -253,7 +253,9 @@ class DataSyncServiceImplTest {
 
     @Test
     void publishRejectsStaleTaskVersion() {
-        prepareDataSyncTask(ReleaseState.OFFLINE);
+        TaskDefinition task = taskDefinition(99L);
+        task.setVersion(4);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.publish(testUser(), PROJECT_CODE, 99L, publication(3)));
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
@@ -262,7 +264,9 @@ class DataSyncServiceImplTest {
 
     @Test
     void publishRejectsOutdatedExpectedRevision() {
-        prepareDataSyncTask(ReleaseState.OFFLINE);
+        TaskDefinition task = taskDefinition(99L);
+        task.setVersion(4);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
         DataSyncPublishRequest request = publication(4);
         request.setExpectedRevision(3);
 
