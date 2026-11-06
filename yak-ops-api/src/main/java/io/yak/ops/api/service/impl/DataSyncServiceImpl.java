@@ -53,7 +53,9 @@ import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -304,18 +306,28 @@ public class DataSyncServiceImpl implements DataSyncService {
     public List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                                     List<Long> taskCodes, boolean activeOnly) {
         authorizeRead(user, projectCode);
-        List<DataSyncInstanceVO> rows = new ArrayList<>();
-        for (Long taskCode : taskCodes) {
-            DataSyncPageVO<DataSyncInstanceVO> page =
-                    listInstances(user, projectCode, 1, 50, taskCode, null);
-            for (DataSyncInstanceVO instance : page.getBizData()) {
-                if (!activeOnly || active(instance.getStatus())) {
-                    rows.add(instance);
-                    break;
-                }
-            }
+        if (taskCodes == null || taskCodes.isEmpty()) {
+            return Collections.emptyList();
         }
-        return rows;
+        Set<Long> requested = new HashSet<>(taskCodes);
+        if (requested.contains(null)) {
+            throw new IllegalArgumentException("Task code must not be null");
+        }
+        List<TaskDefinition> definitions = taskDefinitionDao.queryByCodes(requested);
+        if (definitions.size() != requested.size() || definitions.stream()
+                .anyMatch(definition -> definition.getProjectCode() != projectCode
+                        || !TASK_TYPE.equals(definition.getTaskType()))) {
+            throw new IllegalArgumentException("Data synchronization task not found in project");
+        }
+        int[] states = activeOnly ? new int[]{
+                TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
+                TaskExecutionStatus.DISPATCH.getCode(),
+                TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
+                TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()} : null;
+        return taskInstanceDao.queryLatestByTaskCodes(
+                projectCode, TASK_TYPE, new ArrayList<>(requested), states).stream()
+                .map(DataSyncServiceImpl::toInstanceVO)
+                .collect(Collectors.toList());
     }
 
     @Override

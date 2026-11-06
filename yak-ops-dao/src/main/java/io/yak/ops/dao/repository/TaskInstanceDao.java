@@ -15,6 +15,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface TaskInstanceDao extends IDao<TaskInstance> {
 
+    List<TaskInstance> queryLatestByTaskCodes(long projectCode, String taskType,
+                                              List<Long> taskCodes, int[] states);
+
     /**
      * Update or Insert task instance to DB.
      * ID is null -> Insert

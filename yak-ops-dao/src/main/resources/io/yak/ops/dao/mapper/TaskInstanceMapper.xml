@@ -291,4 +291,28 @@
         from t_yak_ops_task_instance
         where workflow_instance_id = #{workflowInstanceId}
     </delete>
+
+    <select id="queryLatestByTaskCodes" resultType="io.yak.ops.dao.entity.TaskInstance">
+        select <include refid="listSql"/>
+        from t_yak_ops_task_instance
+        where project_code = #{projectCode}
+          and task_type = #{taskType}
+          and id in (
+              select max(i.id) from t_yak_ops_task_instance i
+              where i.project_code = #{projectCode}
+                and i.task_type = #{taskType}
+                and i.task_code in
+                <foreach collection="taskCodes" item="code" open="(" separator="," close=")">
+                    #{code}
+                </foreach>
+                <if test="states != null and states.length != 0">
+                    and i.state in
+                    <foreach collection="states" item="state" open="(" separator="," close=")">
+                        #{state}
+                    </foreach>
+                </if>
+              group by i.task_code
+          )
+        order by id desc
+    </select>
 </mapper>

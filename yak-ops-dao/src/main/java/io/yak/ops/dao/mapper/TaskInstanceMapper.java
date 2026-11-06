@@ -19,6 +19,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface TaskInstanceMapper extends BaseMapper<TaskInstance> {
 
+    List<TaskInstance> queryLatestByTaskCodes(@Param("projectCode") long projectCode,
+                                               @Param("taskType") String taskType,
+                                               @Param("taskCodes") List<Long> taskCodes,
+                                               @Param("states") int[] states);
+
     List<TaskInstance> findValidTaskListByWorkflowInstanceId(@Param("workflowInstanceId") Integer workflowInstanceId,
                                                              @Param("flag") Flag flag);
 

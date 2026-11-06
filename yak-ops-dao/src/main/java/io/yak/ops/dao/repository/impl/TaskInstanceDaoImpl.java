@@ -43,6 +43,15 @@ public class TaskInstanceDaoImpl extends BaseDao<TaskInstance, TaskInstanceMappe
     }
 
     @Override
+    public List<TaskInstance> queryLatestByTaskCodes(long projectCode, String taskType,
+                                                     List<Long> taskCodes, int[] states) {
+        if (taskCodes.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return mybatisMapper.queryLatestByTaskCodes(projectCode, taskType, taskCodes, states);
+    }
+
+    @Override
     public boolean upsertTaskInstance(TaskInstance taskInstance) {
         if (taskInstance.getId() != null) {
             return updateById(taskInstance);
