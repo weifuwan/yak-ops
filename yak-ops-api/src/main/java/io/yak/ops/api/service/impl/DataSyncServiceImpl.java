@@ -436,8 +436,6 @@ public class DataSyncServiceImpl implements DataSyncService {
                 return "LAUNCHING";
             case RUNNING_EXECUTION:
                 return "RUNNING";
-            case READY_STOP:
-                return "CANCELLING";
             case SUCCESS:
                 return "FINISHED";
             case FAILURE:
