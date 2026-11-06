@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.common.utils.PropertyUtils;
+import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
+import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.enums.ResourceType;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
@@ -12,6 +15,8 @@ import io.yak.ops.plugin.task.api.parameters.resource.ResourceParametersHelper;
 import io.yak.ops.spi.enums.DbType;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -39,6 +44,25 @@ class DataSyncPipelineBuilderTest {
     }
 
     @Test
+    void decodesStoredCredentialsWhenDatasourceEncryptionIsEnabled() {
+        try (MockedStatic<PropertyUtils> properties = Mockito.mockStatic(PropertyUtils.class)) {
+            properties.when(() -> PropertyUtils.getBoolean(
+                    DataSourceConstants.DATASOURCE_ENCRYPTION_ENABLE, false)).thenReturn(true);
+            properties.when(() -> PropertyUtils.getString(
+                    DataSourceConstants.DATASOURCE_ENCRYPTION_SALT,
+                    DataSourceConstants.DATASOURCE_ENCRYPTION_SALT_DEFAULT)).thenReturn("test-salt");
+            String sourcePassword = PasswordUtils.encodePassword("secret_source");
+            String targetPassword = PasswordUtils.encodePassword("secret_target");
+            TaskExecutionContext context = context(sourcePassword, targetPassword);
+
+            JsonNode pipeline = JSONUtils.parseObject(new DataSyncPipelineBuilder().build(context,
+                    DataSyncParametersTest.parse("INITIAL", "STREAMING", "UPSERT")));
+            assertEquals("secret_source", pipeline.path("source").path("password").asText());
+            assertEquals("secret_target", pipeline.path("sink").path("password").asText());
+        }
+    }
+
+    @Test
     void preservesDisabledSchemaEvolution() {
         DataSyncParameters params = DataSyncParametersTest.parse("INITIAL", "STREAMING", "UPSERT");
         params.getSink().getSchemaPolicy().getEvolution().setEnabled(false);
@@ -61,8 +85,12 @@ class DataSyncPipelineBuilderTest {
     }
 
     private static TaskExecutionContext context() {
-        DataSourceParameters source = datasource("jdbc:mysql://127.0.0.1:3306/source_db", "cdc_reader", "secret_source");
-        DataSourceParameters target = datasource("jdbc:mysql://127.0.0.1:3307/target_db", "writer", "secret_target");
+        return context("secret_source", "secret_target");
+    }
+
+    private static TaskExecutionContext context(String sourcePassword, String targetPassword) {
+        DataSourceParameters source = datasource("jdbc:mysql://127.0.0.1:3306/source_db", "cdc_reader", sourcePassword);
+        DataSourceParameters target = datasource("jdbc:mysql://127.0.0.1:3307/target_db", "writer", targetPassword);
         ResourceParametersHelper helper = new ResourceParametersHelper();
         helper.put(ResourceType.DATASOURCE, 1, source);
         helper.put(ResourceType.DATASOURCE, 2, target);

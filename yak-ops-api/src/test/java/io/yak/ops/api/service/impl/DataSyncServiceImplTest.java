@@ -12,6 +12,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ExecutorService;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
@@ -92,13 +94,35 @@ class DataSyncServiceImplTest {
         source.setType(DbType.MYSQL);
         when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(source);
 
-        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+        ServiceException error = assertThrows(ServiceException.class,
                 () -> service.createTask(new User(), PROJECT_CODE, request));
 
-        assertTrue(error.getMessage().contains("current project"));
+        assertEquals(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION.getCode(), error.getCode());
         verify(dataSourceDao).queryByIdAndProjectCode(1, PROJECT_CODE);
         verify(dataSourceDao).queryByIdAndProjectCode(2, PROJECT_CODE);
         verifyNoInteractions(workflowDefinitionService);
+    }
+
+    @Test
+    void rejectsCredentialsEmbeddedInTaskDefinition() {
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setName("order_sync");
+        request.setParameters(JSONUtils.parseObject(
+                "{\"source\":{\"auth\":{\"token\":\"must-not-be-saved\"}}}"));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.createTask(new User(), PROJECT_CODE, request));
+
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verifyNoInteractions(dataSourceDao, workflowDefinitionService);
+    }
+
+    @Test
+    void rejectsUnsupportedStatusWithBusinessError() {
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.listTasks(new User(), PROJECT_CODE, 1, 20, null, "UNKNOWN"));
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verifyNoInteractions(taskDefinitionDao);
     }
 
     @Test
@@ -151,6 +175,29 @@ class DataSyncServiceImplTest {
         assertEquals(3, result.getTotalPage());
         assertTrue(result.getTotalList().isEmpty());
         verify(taskDefinitionLogDao).queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE));
+    }
+
+    @Test
+    void versionPageReturnsSummaryWithoutParameters() {
+        TaskDefinition definition = new TaskDefinition();
+        definition.setCode(99L);
+        definition.setProjectCode(PROJECT_CODE);
+        definition.setTaskType("DATA_SYNC");
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(definition);
+        TaskDefinitionLog version = new TaskDefinitionLog();
+        version.setCode(99L);
+        version.setVersion(3);
+        version.setTaskParams("{\"source\":{\"datasourceId\":\"1\"}}");
+        Page<TaskDefinitionLog> page = new Page<>(1, 20);
+        page.setRecords(Collections.singletonList(version));
+        page.setTotal(1);
+        when(taskDefinitionLogDao.queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE))).thenReturn(page);
+
+        DataSyncTaskVersionVO summary =
+                service.listVersions(new User(), PROJECT_CODE, 99L, 1, 20).getTotalList().get(0);
+
+        assertEquals(3, summary.getVersion());
+        assertEquals(null, summary.getParameters());
     }
 
     @Test
