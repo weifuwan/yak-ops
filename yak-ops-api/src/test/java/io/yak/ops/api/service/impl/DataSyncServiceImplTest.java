@@ -139,6 +139,7 @@ class DataSyncServiceImplTest {
     @Test
     void archiveHidesTaskWithoutDeletingHistoricalInstances() {
         TaskDefinition task = taskDefinition(99L);
+        task.setTaskParams("{}");
         WorkflowDefinition workflow = workflow(101L, 99L);
         WorkflowTaskRelation relation = relation(101L, 99L);
         when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
@@ -155,9 +156,23 @@ class DataSyncServiceImplTest {
 
         assertEquals(Flag.NO, task.getFlag());
         assertEquals(Flag.NO, workflow.getFlag());
-        assertThrows(ServiceException.class, () -> service.getTask(new User(), PROJECT_CODE, 99L));
+        assertTrue(service.getTask(new User(), PROJECT_CODE, 99L).isArchived());
+        assertThrows(ServiceException.class, () -> service.publish(new User(), PROJECT_CODE, 99L));
         verify(workflowDefinitionDao).lockByCode(101L);
         verifyNoInteractions(workflowDefinitionService, taskInstanceDao, taskDefinitionLogDao);
+    }
+
+    @Test
+    void archivedTaskInstancesRemainQueryableByTaskCode() {
+        TaskDefinition task = taskDefinition(99L);
+        task.setFlag(Flag.NO);
+        Page<TaskInstance> page = new Page<>(1, 20);
+        page.setTotal(2);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
+        when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                eq(99L), isNull())).thenReturn(page);
+
+        assertEquals(2, service.listInstances(new User(), PROJECT_CODE, 1, 20, 99L, null).getTotal());
     }
 
     @Test
