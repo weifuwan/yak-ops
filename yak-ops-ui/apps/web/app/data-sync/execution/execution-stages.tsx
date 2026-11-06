@@ -62,7 +62,7 @@ export function StageProgress({
   }
   let state = STATES[stage.status];
   if (stage.status !== "FINISHED") {
-    if (status === "KILL" || status === "KILL") state = status;
+    if (status === "KILL") state = status;
     else if (status === "FAILURE" && ["WAITING", "RUNNING"].includes(stage.status)) state = "FAILURE";
   }
   return (

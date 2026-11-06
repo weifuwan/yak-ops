@@ -29,3 +29,21 @@ jobs:
       - name: Contract tests
         working-directory: yak-ops-ui
         run: npm run test:datasource && npm run test:auth
+
+  formatted-diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Generate Spotless patch for changed backend Java
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl yak-ops-api,yak-ops-task-plugin/yak-ops-task-data-sync spotless:apply
+          echo 'BEGIN-SPOTLESS-PATCH'
+          git diff --no-ext-diff -- yak-ops-api/src/main/java/io/yak/ops/api/service/impl/DataSyncServiceImpl.java yak-ops-api/src/main/java/io/yak/ops/api/service/DataSyncService.java yak-ops-api/src/main/java/io/yak/ops/api/controller/DataSyncController.java yak-ops-api/src/main/java/io/yak/ops/api/vo/DataSyncInstanceVO.java yak-ops-api/src/main/java/io/yak/ops/api/vo/DataSyncTaskVO.java yak-ops-api/src/test/java/io/yak/ops/api/service/impl/DataSyncServiceImplTest.java
+          echo 'END-SPOTLESS-PATCH'
