@@ -247,10 +247,10 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
 
     @Override
     public PageInfo<DataSource> queryDataSourceListPaging(User loginUser, long projectCode, String searchVal,
-                                                          Integer pageNo, Integer pageSize) {
+                                                          Integer pageNo, Integer pageSize, Integer type) {
         checkProjectRead(loginUser, projectCode);
         Page<DataSource> page = new Page<>(pageNo, pageSize);
-        IPage<DataSource> result = dataSourceDao.queryByProjectCode(page, projectCode, searchVal);
+        IPage<DataSource> result = dataSourceDao.queryByProjectCode(page, projectCode, searchVal, type);
         List<DataSource> sources = result.getRecords();
         handlePasswd(sources);
         PageInfo<DataSource> info = new PageInfo<>(pageNo, pageSize);

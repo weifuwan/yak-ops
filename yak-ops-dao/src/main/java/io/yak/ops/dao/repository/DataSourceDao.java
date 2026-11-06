@@ -29,7 +29,7 @@ public interface DataSourceDao extends IDao<DataSource> {
 
     DataSource queryByIdAndProjectCode(int id, long projectCode);
 
-    IPage<DataSource> queryByProjectCode(Page<DataSource> page, long projectCode, String name);
+    IPage<DataSource> queryByProjectCode(Page<DataSource> page, long projectCode, String name, Integer type);
 
     List<DataSource> queryByProjectCodeAndType(long projectCode, Integer type);
 
