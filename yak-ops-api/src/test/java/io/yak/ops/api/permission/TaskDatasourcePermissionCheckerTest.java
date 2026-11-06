@@ -7,10 +7,10 @@ import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.common.enums.AuthorizationType;
 import io.yak.ops.common.enums.UserType;
-import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.DataSource;
-import io.yak.ops.dao.repository.DataSourceDao;
+import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.repository.DataSourceDao;
 
 import java.util.Collections;
 
@@ -42,7 +42,8 @@ public class TaskDatasourcePermissionCheckerTest {
 
     @BeforeEach
     public void setUp() {
-        taskDatasourcePermissionChecker = new TaskDatasourcePermissionChecker(resourcePermissionCheckService, dataSourceDao);
+        taskDatasourcePermissionChecker =
+                new TaskDatasourcePermissionChecker(resourcePermissionCheckService, dataSourceDao);
         loginUser = new User();
         loginUser.setId(USER_ID);
         loginUser.setUserType(UserType.GENERAL_USER);

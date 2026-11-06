@@ -8,14 +8,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.yak.ops.api.enums.Status;
-import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.service.ProjectService;
-import io.yak.ops.dao.entity.Project;
-import org.springframework.beans.factory.annotation.Autowired;
-import java.util.UUID;
+import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.Project;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -26,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.LinkedMultiValueMap;
@@ -240,7 +240,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isNotFound())
-                
+
                 .andReturn();
     }
 
@@ -252,7 +252,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isNotFound())
-                
+
                 .andReturn();
     }
 

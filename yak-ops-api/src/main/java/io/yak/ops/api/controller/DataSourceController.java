@@ -1,38 +1,29 @@
 package io.yak.ops.api.controller;
 
-import static io.yak.ops.api.enums.Status.AUTHORIZED_DATA_SOURCE;
 import static io.yak.ops.api.enums.Status.CONNECTION_TEST_FAILURE;
-import static io.yak.ops.api.enums.Status.CONNECT_DATASOURCE_FAILURE;
 import static io.yak.ops.api.enums.Status.CREATE_DATASOURCE_ERROR;
 import static io.yak.ops.api.enums.Status.DELETE_DATA_SOURCE_FAILURE;
 import static io.yak.ops.api.enums.Status.GET_DATASOURCE_DATABASES_ERROR;
 import static io.yak.ops.api.enums.Status.GET_DATASOURCE_TABLES_ERROR;
 import static io.yak.ops.api.enums.Status.GET_DATASOURCE_TABLE_COLUMNS_ERROR;
-import static io.yak.ops.api.enums.Status.KERBEROS_STARTUP_STATE;
 import static io.yak.ops.api.enums.Status.QUERY_DATASOURCE_ERROR;
-import static io.yak.ops.api.enums.Status.UNAUTHORIZED_DATASOURCE;
 import static io.yak.ops.api.enums.Status.UPDATE_DATASOURCE_ERROR;
 import static io.yak.ops.api.enums.Status.VERIFY_DATASOURCE_NAME_FAILURE;
 
 import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
-import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSourceCatalogService;
 import io.yak.ops.api.service.DataSourceService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
-import io.yak.ops.api.vo.DataSourceSimpleInfoVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
-import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
-import io.yak.ops.plugin.datasource.api.utils.CommonUtils;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
 import io.yak.ops.plugin.task.api.utils.ParameterUtils;
-import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
 import io.yak.ops.spi.params.base.ParamsOptions;
 
@@ -84,7 +75,7 @@ public class DataSourceController extends BaseController {
     @ApiException(CREATE_DATASOURCE_ERROR)
     @OperatorLog(auditType = AuditType.DATASOURCE_CREATE)
     public Result<DataSource> createDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                               @PathVariable("projectCode") long projectCode,
                                                @Parameter(name = "dataSourceParam", description = "DATA_SOURCE_PARAM", required = true) @RequestBody String jsonStr) {
         BaseDataSourceParamDTO dataSourceParam = DataSourceUtils.buildDatasourceParam(jsonStr);
         DataSource dataSource = dataSourceService.createDataSource(loginUser, projectCode, dataSourceParam);
@@ -111,7 +102,7 @@ public class DataSourceController extends BaseController {
     @ApiException(UPDATE_DATASOURCE_ERROR)
     @OperatorLog(auditType = AuditType.DATASOURCE_UPDATE)
     public Result<DataSource> updateDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                               @PathVariable("projectCode") long projectCode,
                                                @PathVariable(value = "id") Integer id,
                                                @RequestBody String jsonStr) {
         BaseDataSourceParamDTO dataSourceParam = DataSourceUtils.buildDatasourceParam(jsonStr);
@@ -136,7 +127,7 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_DATASOURCE_ERROR)
     public Result<Object> queryDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                          @PathVariable("projectCode") long projectCode,
                                           @PathVariable("id") int id) {
         BaseDataSourceParamDTO dataSource = dataSourceService.queryDataSource(loginUser, projectCode, id);
         return Result.success(dataSource);
@@ -157,7 +148,7 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_DATASOURCE_ERROR)
     public Result<Object> queryDataSourceList(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                              @PathVariable("projectCode") long projectCode,
                                               @RequestParam("type") DbType type) {
         List<DataSource> datasourceList = dataSourceService.queryDataSourceList(loginUser, projectCode, type.getCode());
         return Result.success(datasourceList);
@@ -182,7 +173,7 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_DATASOURCE_ERROR)
     public Result<Object> queryDataSourceListPaging(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                                    @PathVariable("projectCode") long projectCode,
                                                     @RequestParam(value = "searchVal", required = false) String searchVal,
                                                     @RequestParam("pageNo") Integer pageNo,
                                                     @RequestParam("pageSize") Integer pageSize) {
@@ -209,7 +200,7 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(CONNECTION_TEST_FAILURE)
     public Result<Boolean> connectionTest(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                          @PathVariable("projectCode") long projectCode,
                                           @PathVariable("id") int id) {
         dataSourceService.connectionTest(loginUser, projectCode, id);
         return Result.success(true);
@@ -232,7 +223,7 @@ public class DataSourceController extends BaseController {
     @ApiException(DELETE_DATA_SOURCE_FAILURE)
     @OperatorLog(auditType = AuditType.DATASOURCE_DELETE)
     public Result<Boolean> deleteDataSource(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                            @PathVariable("projectCode") long projectCode,
                                             @PathVariable("id") int id) {
         dataSourceService.delete(loginUser, projectCode, id);
         return Result.success(true);
@@ -253,9 +244,9 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(VERIFY_DATASOURCE_NAME_FAILURE)
     public Result<Boolean> verifyDataSourceName(
-            @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @PathVariable("projectCode") long projectCode,
-            @RequestParam(value = "name") String name) {
+                                                @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                @PathVariable("projectCode") long projectCode,
+                                                @RequestParam(value = "name") String name) {
         dataSourceService.verifyDataSourceName(projectCode, loginUser, name);
         return Result.success(true);
     }
@@ -277,7 +268,7 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_TABLES_ERROR)
     public Result<Object> getTables(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                    @PathVariable("projectCode") long projectCode,
                                     @RequestParam("datasourceId") Integer datasourceId,
                                     @RequestParam("database") String database) {
         List<ParamsOptions> options = dataSourceService.getTables(loginUser, projectCode, datasourceId, database);
@@ -303,11 +294,12 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_TABLE_COLUMNS_ERROR)
     public Result<Object> getTableColumns(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                          @PathVariable("projectCode") long projectCode,
                                           @RequestParam("datasourceId") Integer datasourceId,
                                           @RequestParam("database") String database,
                                           @RequestParam("tableName") String tableName) {
-        List<ParamsOptions> options = dataSourceService.getTableColumns(loginUser, projectCode, datasourceId, database, tableName);
+        List<ParamsOptions> options =
+                dataSourceService.getTableColumns(loginUser, projectCode, datasourceId, database, tableName);
         return Result.success(options);
     }
 
@@ -326,7 +318,7 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_DATABASES_ERROR)
     public Result<Object> getDatabases(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                @PathVariable("projectCode") long projectCode,
+                                       @PathVariable("projectCode") long projectCode,
                                        @RequestParam("datasourceId") Integer datasourceId) {
         List<ParamsOptions> options = dataSourceService.getDatabases(loginUser, projectCode, datasourceId);
         return Result.success(options);

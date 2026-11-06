@@ -176,9 +176,9 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         // check name can use or not
         if (!dataSourceParam.getName().trim().equals(dataSource.getName())
                 && (dataSource.getProjectCode() > 0
-                ? dataSourceDao.existsByProjectCodeAndName(dataSource.getProjectCode(),
-                        dataSourceParam.getName().trim(), dataSource.getId())
-                : checkName(dataSourceParam.getName()))) {
+                        ? dataSourceDao.existsByProjectCodeAndName(dataSource.getProjectCode(),
+                                dataSourceParam.getName().trim(), dataSource.getId())
+                        : checkName(dataSourceParam.getName()))) {
             throw new ServiceException(Status.DATASOURCE_EXIST);
         }
         if (checkDescriptionLength(dataSourceParam.getNote())) {
@@ -473,7 +473,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
 
     @Override
     public List<ParamsOptions> getTables(User loginUser, long projectCode,
-                                        Integer datasourceId, String database) {
+                                         Integer datasourceId, String database) {
         checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         return getTables(loginUser, datasourceId, database);
     }

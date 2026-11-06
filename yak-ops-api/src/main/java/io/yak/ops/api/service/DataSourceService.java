@@ -21,7 +21,7 @@ public interface DataSourceService {
     BaseDataSourceParamDTO queryDataSource(User loginUser, long projectCode, int id);
 
     PageInfo<DataSource> queryDataSourceListPaging(User loginUser, long projectCode,
-                                                  String searchVal, Integer pageNo, Integer pageSize);
+                                                   String searchVal, Integer pageNo, Integer pageSize);
 
     List<DataSource> queryDataSourceList(User loginUser, long projectCode, Integer type);
 
@@ -37,7 +37,6 @@ public interface DataSourceService {
                                         String database, String table);
 
     List<ParamsOptions> getDatabases(User loginUser, long projectCode, Integer id);
-
 
     /**
      * create a new datasource

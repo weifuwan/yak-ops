@@ -21,8 +21,8 @@ import io.yak.ops.dao.entity.Project;
 import io.yak.ops.dao.entity.ProjectUser;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
-import io.yak.ops.dao.repository.ProjectDao;
 import io.yak.ops.dao.repository.DataSourceDao;
+import io.yak.ops.dao.repository.ProjectDao;
 import io.yak.ops.dao.repository.ProjectUserDao;
 import io.yak.ops.dao.repository.UserDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
@@ -247,7 +247,8 @@ public class ProjectServiceTest {
         Mockito.when(workflowDefinitionDao.queryAllDefinitionList(1L)).thenReturn(new ArrayList<>());
         Mockito.when(dataSourceDao.countByProjectCode(1L)).thenReturn(2L);
         result = projectService.deleteProject(loginUser, 1L);
-        Assertions.assertEquals(Status.DELETE_PROJECT_ERROR_DATASOURCES_NOT_NULL.getCode(), result.getCode().intValue());
+        Assertions.assertEquals(Status.DELETE_PROJECT_ERROR_DATASOURCES_NOT_NULL.getCode(),
+                result.getCode().intValue());
 
         // success
         Mockito.when(dataSourceDao.countByProjectCode(1L)).thenReturn(0L);
