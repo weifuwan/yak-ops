@@ -47,23 +47,21 @@ import io.yak.ops.extract.common.ILogService;
 import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryRequest;
 import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
-import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
