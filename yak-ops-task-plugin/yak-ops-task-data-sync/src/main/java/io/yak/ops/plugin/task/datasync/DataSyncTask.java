@@ -18,7 +18,6 @@ import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.apache.flink.core.execution.JobClient;
 
 import java.util.Collections;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +50,8 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
         try {
             String pipelineJson = DataSyncPipeline.build(taskRequest, parameters);
             PipelineDef definition = new YamlPipelineDefinitionParser().parse(pipelineJson, new Configuration());
-            org.apache.flink.configuration.Configuration flinkConfig = new org.apache.flink.configuration.Configuration();
+            org.apache.flink.configuration.Configuration flinkConfig =
+                    new org.apache.flink.configuration.Configuration();
             flinkConfig.setString("rest.bind-address", "127.0.0.1");
             FlinkPipelineComposer composer = FlinkPipelineComposer.ofMiniCluster(flinkConfig, Collections.emptyList());
             FlinkPipelineExecution execution = (FlinkPipelineExecution) composer.compose(definition);

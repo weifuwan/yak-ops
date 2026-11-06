@@ -1,7 +1,6 @@
 package io.yak.ops.server.worker.executor;
 
 import io.yak.ops.common.constants.Constants;
-import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.common.utils.PropertyUtils;
 import io.yak.ops.plugin.storage.api.StorageOperator;
 import io.yak.ops.plugin.task.api.AbstractTask;

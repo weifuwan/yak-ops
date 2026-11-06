@@ -46,6 +46,7 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Endpoint {
+
         private String type;
         private String datasourceId;
         private List<Table> tables;
@@ -55,12 +56,14 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Startup {
+
         private String mode;
     }
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Table {
+
         private String database;
         private String schema;
         private String table;

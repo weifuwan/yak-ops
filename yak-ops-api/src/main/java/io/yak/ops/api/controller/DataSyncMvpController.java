@@ -38,19 +38,13 @@ import io.yak.ops.extract.base.client.Clients;
 import io.yak.ops.extract.common.ILogService;
 import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryRequest;
 import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
-import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -61,9 +55,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.Data;
 
@@ -101,7 +92,7 @@ public class DataSyncMvpController {
 
     @GetMapping("/projects")
     public Result<List<Map<String, String>>> projects(
-            @RequestAttribute(Constants.SESSION_USER) User user) {
+                                                      @RequestAttribute(Constants.SESSION_USER) User user) {
         List<Long> codes = projectService.getAuthorizedProjectCodes(user);
         List<Map<String, String>> result = new ArrayList<>();
         for (Project project : projectDao.queryByCodes(codes)) {
@@ -115,8 +106,8 @@ public class DataSyncMvpController {
 
     @GetMapping("/tasks")
     public Result<List<Map<String, Object>>> tasks(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @RequestParam("projectCode") long projectCode) {
+                                                   @RequestAttribute(Constants.SESSION_USER) User user,
+                                                   @RequestParam("projectCode") long projectCode) {
         projectService.checkHasProjectWritePermissionThrowException(user, projectCode);
         List<Map<String, Object>> tasks = new ArrayList<>();
         for (WorkflowDefinition workflow : workflowDefinitionDao.queryAllDefinitionList(projectCode)) {
@@ -141,8 +132,8 @@ public class DataSyncMvpController {
 
     @PostMapping("/tasks")
     public Result<Map<String, String>> create(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @RequestBody CreateRequest request) {
+                                              @RequestAttribute(Constants.SESSION_USER) User user,
+                                              @RequestBody CreateRequest request) {
         projectService.checkHasProjectWritePermissionThrowException(user, request.getProjectCode());
         requireText(request.getName(), "Task name");
         requireText(request.getSourceDatabase(), "Source database");
@@ -209,9 +200,9 @@ public class DataSyncMvpController {
 
     @PostMapping("/tasks/{id}/start")
     public Result<Map<String, String>> start(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable("id") long workflowCode,
-            @RequestParam("projectCode") long projectCode) {
+                                             @RequestAttribute(Constants.SESSION_USER) User user,
+                                             @PathVariable("id") long workflowCode,
+                                             @RequestParam("projectCode") long projectCode) {
         TaskDefinition definition = authorizedTask(user, projectCode, workflowCode);
         List<WorkflowInstanceSummaryDto> history =
                 workflowInstanceDao.queryByWorkflowDefinitionCode(workflowCode, 20);
@@ -243,8 +234,8 @@ public class DataSyncMvpController {
 
     @GetMapping("/instances")
     public Result<List<Map<String, Object>>> instances(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @RequestParam("projectCode") long projectCode) {
+                                                       @RequestAttribute(Constants.SESSION_USER) User user,
+                                                       @RequestParam("projectCode") long projectCode) {
         projectService.checkHasProjectWritePermissionThrowException(user, projectCode);
         List<Map<String, Object>> rows = new ArrayList<>();
         for (WorkflowDefinition workflow : workflowDefinitionDao.queryAllDefinitionList(projectCode)) {
@@ -266,7 +257,8 @@ public class DataSyncMvpController {
                     pending.put("workflowCode", String.valueOf(workflow.getCode()));
                     pending.put("taskName", task.getName());
                     pending.put("status", run.getState().isFinalState()
-                            ? run.getState().name() : "SUBMITTED");
+                            ? run.getState().name()
+                            : "SUBMITTED");
                     pending.put("startTime", run.getStartTime());
                     rows.add(pending);
                 } else {
@@ -293,9 +285,9 @@ public class DataSyncMvpController {
 
     @PostMapping("/instances/{id}/stop")
     public Result<Boolean> stop(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable("id") int instanceId,
-            @RequestParam("projectCode") long projectCode) {
+                                @RequestAttribute(Constants.SESSION_USER) User user,
+                                @PathVariable("id") int instanceId,
+                                @RequestParam("projectCode") long projectCode) {
         TaskInstance instance = authorizedInstance(user, projectCode, instanceId);
         executorService.controlWorkflowInstance(user, instance.getWorkflowInstanceId(), ExecuteType.STOP);
         return Result.success(true);
@@ -303,10 +295,10 @@ public class DataSyncMvpController {
 
     @GetMapping("/instances/{id}/logs")
     public Result<Map<String, Object>> logs(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable("id") int instanceId,
-            @RequestParam("projectCode") long projectCode,
-            @RequestParam(value = "offset", defaultValue = "0") int offset) {
+                                            @RequestAttribute(Constants.SESSION_USER) User user,
+                                            @PathVariable("id") int instanceId,
+                                            @RequestParam("projectCode") long projectCode,
+                                            @RequestParam(value = "offset", defaultValue = "0") int offset) {
         TaskInstance instance = authorizedInstance(user, projectCode, instanceId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("content", "");
@@ -386,6 +378,7 @@ public class DataSyncMvpController {
 
     @Data
     public static class CreateRequest {
+
         private long projectCode;
         private String name;
         private int sourceDataSourceId;
