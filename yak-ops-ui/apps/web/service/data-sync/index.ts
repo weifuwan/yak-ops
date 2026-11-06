@@ -54,6 +54,7 @@ export const isRejectedTaskWrite = (failure: unknown) => failure instanceof BizE
 export const listDataSyncSolutions = async (
   sourceType: string,
   targetType: string,
+  _signal?: AbortSignal,
 ): Promise<DataSyncSolution[]> => {
   if (sourceType.toUpperCase() !== "MYSQL" || targetType.toUpperCase() !== "MYSQL") return [];
   const pair: PipelineConnectorPair = {
