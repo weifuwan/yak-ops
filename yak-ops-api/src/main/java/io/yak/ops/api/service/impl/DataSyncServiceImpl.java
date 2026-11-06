@@ -88,7 +88,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                                    int pageNo, int pageSize, String keyword, String status) {
+                                              int pageNo, int pageSize, String keyword, String status) {
         authorizeRead(user, projectCode);
         if (status != null && !"PUBLISHED".equals(status) && !"UNPUBLISHED".equals(status)) {
             throw new IllegalArgumentException("Unsupported task status: " + status);
@@ -230,7 +230,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
-                                                              int pageNo, int pageSize) {
+                                                        int pageNo, int pageSize) {
         authorizeRead(user, projectCode);
         requireTask(projectCode, taskCode);
         IPage<TaskDefinitionLog> page = taskDefinitionLogDao.queryVersionsPaging(
@@ -295,7 +295,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                            int pageSize, Long taskCode, String status) {
+                                                      int pageSize, Long taskCode, String status) {
         authorizeRead(user, projectCode);
         if (taskCode != null) {
             requireTask(projectCode, taskCode);

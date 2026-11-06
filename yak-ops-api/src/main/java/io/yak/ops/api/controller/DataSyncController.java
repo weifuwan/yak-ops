@@ -36,12 +36,12 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/tasks")
     public Result<PageInfo<DataSyncTaskVO>> listTasks(
-                                                            @RequestAttribute(Constants.SESSION_USER) User user,
-                                                            @PathVariable long projectCode,
-                                                            @RequestParam(defaultValue = "1") int pageNo,
-                                                            @RequestParam(defaultValue = "20") int pageSize,
-                                                            @RequestParam(required = false) String keyword,
-                                                            @RequestParam(required = false) String status) {
+                                                      @RequestAttribute(Constants.SESSION_USER) User user,
+                                                      @PathVariable long projectCode,
+                                                      @RequestParam(defaultValue = "1") int pageNo,
+                                                      @RequestParam(defaultValue = "20") int pageSize,
+                                                      @RequestParam(required = false) String keyword,
+                                                      @RequestParam(required = false) String status) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status));
     }
@@ -87,11 +87,11 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/tasks/{taskCode}/versions")
     public Result<PageInfo<DataSyncTaskVersionVO>> versions(
-                                                                  @RequestAttribute(Constants.SESSION_USER) User user,
-                                                                  @PathVariable long projectCode,
-                                                                  @PathVariable long taskCode,
-                                                                  @RequestParam(defaultValue = "1") int pageNo,
-                                                                  @RequestParam(defaultValue = "20") int pageSize) {
+                                                            @RequestAttribute(Constants.SESSION_USER) User user,
+                                                            @PathVariable long projectCode,
+                                                            @PathVariable long taskCode,
+                                                            @RequestParam(defaultValue = "1") int pageNo,
+                                                            @RequestParam(defaultValue = "20") int pageSize) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listVersions(user, projectCode, taskCode, pageNo, pageSize));
     }
@@ -106,18 +106,18 @@ public class DataSyncController extends BaseController {
 
     @PostMapping("/tasks/{taskCode}/start")
     public Result<Map<String, Integer>> start(@RequestAttribute(Constants.SESSION_USER) User user,
-                                       @PathVariable long projectCode, @PathVariable long taskCode) {
+                                              @PathVariable long projectCode, @PathVariable long taskCode) {
         return Result.success(Map.of("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
     }
 
     @GetMapping("/instances")
     public Result<PageInfo<DataSyncInstanceVO>> instances(
-                                                                @RequestAttribute(Constants.SESSION_USER) User user,
-                                                                @PathVariable long projectCode,
-                                                                @RequestParam(defaultValue = "1") int pageNo,
-                                                                @RequestParam(defaultValue = "20") int pageSize,
-                                                                @RequestParam(required = false) Long taskCode,
-                                                                @RequestParam(required = false) String status) {
+                                                          @RequestAttribute(Constants.SESSION_USER) User user,
+                                                          @PathVariable long projectCode,
+                                                          @RequestParam(defaultValue = "1") int pageNo,
+                                                          @RequestParam(defaultValue = "20") int pageSize,
+                                                          @RequestParam(required = false) Long taskCode,
+                                                          @RequestParam(required = false) String status) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status));
     }
@@ -152,9 +152,9 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/instances/{id}/logs")
     public Result<Map<String, Object>> logs(@RequestAttribute(Constants.SESSION_USER) User user,
-                                      @PathVariable long projectCode, @PathVariable int id,
-                                      @RequestParam(defaultValue = "0") int offset,
-                                      @RequestParam(defaultValue = "200") int limit) {
+                                            @PathVariable long projectCode, @PathVariable int id,
+                                            @RequestParam(defaultValue = "0") int offset,
+                                            @RequestParam(defaultValue = "200") int limit) {
         return Result.success(dataSyncService.logs(user, projectCode, id, offset, limit));
     }
 }

@@ -14,7 +14,7 @@ import java.util.Map;
 public interface DataSyncService {
 
     PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                             int pageNo, int pageSize, String keyword, String status);
+                                       int pageNo, int pageSize, String keyword, String status);
 
     DataSyncTaskVO getTask(User user, long projectCode, long taskCode);
 
@@ -29,14 +29,14 @@ public interface DataSyncService {
     void deleteTask(User user, long projectCode, long taskCode);
 
     PageInfo<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
-                                                       int pageNo, int pageSize);
+                                                 int pageNo, int pageSize);
 
     DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version);
 
     Integer start(User user, long projectCode, long taskCode);
 
     PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                     int pageSize, Long taskCode, String status);
+                                               int pageSize, Long taskCode, String status);
 
     List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                              List<Long> taskCodes, boolean activeOnly);

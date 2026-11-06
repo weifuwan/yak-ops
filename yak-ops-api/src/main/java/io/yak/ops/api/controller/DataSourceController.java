@@ -173,11 +173,11 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_DATASOURCE_ERROR)
     public Result<PageInfo<DataSource>> queryDataSourceListPaging(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                    @PathVariable("projectCode") long projectCode,
-                                                    @RequestParam(value = "searchVal", required = false) String searchVal,
-                                                    @RequestParam(value = "type", required = false) DbType type,
-                                                    @RequestParam("pageNo") Integer pageNo,
-                                                    @RequestParam("pageSize") Integer pageSize) {
+                                                                  @PathVariable("projectCode") long projectCode,
+                                                                  @RequestParam(value = "searchVal", required = false) String searchVal,
+                                                                  @RequestParam(value = "type", required = false) DbType type,
+                                                                  @RequestParam("pageNo") Integer pageNo,
+                                                                  @RequestParam("pageSize") Integer pageSize) {
         checkPageParams(pageNo, pageSize);
         searchVal = ParameterUtils.handleEscapes(searchVal);
         PageInfo<DataSource> pageInfo =

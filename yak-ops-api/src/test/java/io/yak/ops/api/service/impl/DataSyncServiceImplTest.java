@@ -17,6 +17,8 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
+import io.yak.ops.dao.entity.TaskDefinition;
+import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.DataSourceDao;
@@ -36,6 +38,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import java.util.Collections;
 
 @ExtendWith(MockitoExtension.class)
 class DataSyncServiceImplTest {
@@ -101,10 +105,49 @@ class DataSyncServiceImplTest {
         User user = new User();
 
         assertEquals(0, service.listTasks(user, PROJECT_CODE, 1, 20, null, null)
-                .getPagination().getTotal());
+                .getTotal());
 
         verify(projectService).checkProjectAndAuthThrowException(user, PROJECT_CODE, null);
         verify(projectService, never()).checkHasProjectWritePermissionThrowException(user, PROJECT_CODE);
+    }
+
+    @Test
+    void taskPagePreservesBackendPaginationFields() {
+        Page<TaskDefinition> page = new Page<>(2, 20);
+        page.setTotal(45);
+        when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), isNull())).thenReturn(page);
+
+        var result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null);
+
+        assertEquals(45, result.getTotal());
+        assertEquals(2, result.getCurrentPage());
+        assertEquals(20, result.getPageNo());
+        assertEquals(3, result.getTotalPage());
+        assertTrue(result.getTotalList().isEmpty());
+        verifyNoInteractions(workflowTaskRelationDao);
+    }
+
+    @Test
+    void taskVersionsUseDatabasePagination() {
+        TaskDefinition definition = new TaskDefinition();
+        definition.setCode(99L);
+        definition.setProjectCode(PROJECT_CODE);
+        definition.setTaskType("DATA_SYNC");
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(definition);
+
+        Page<TaskDefinitionLog> page = new Page<>(2, 10);
+        page.setTotal(21);
+        page.setRecords(Collections.emptyList());
+        when(taskDefinitionLogDao.queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE))).thenReturn(page);
+
+        var result = service.listVersions(new User(), PROJECT_CODE, 99L, 2, 10);
+
+        assertEquals(21, result.getTotal());
+        assertEquals(2, result.getCurrentPage());
+        assertEquals(3, result.getTotalPage());
+        assertTrue(result.getTotalList().isEmpty());
+        verify(taskDefinitionLogDao).queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE));
     }
 
     @Test
