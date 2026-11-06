@@ -142,5 +142,4 @@ public class DataSyncController extends BaseController {
         return Result.success(dataSyncService.getInstanceDefinition(user, projectCode, id));
     }
 
-
 }

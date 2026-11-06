@@ -45,7 +45,6 @@ import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -121,7 +120,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         WorkflowDefinition workflow = workflowDefinitionService.createWorkflowDefinition(
                 user, projectCode, "data_sync_" + taskCode, request.getRemark() == null ? "" : request.getRemark(),
                 "[]", "[]", 0, JSONUtils.toJsonString(Collections.singletonList(relation)),
-                JSONUtils.toJsonString(Collections.singletonList(task)), "{}", WorkflowExecutionTypeEnum.SERIAL_DISCARD);
+                JSONUtils.toJsonString(Collections.singletonList(task)), "{}",
+                WorkflowExecutionTypeEnum.SERIAL_DISCARD);
         return toTaskVO(requireTask(projectCode, taskCode), workflow);
     }
 
