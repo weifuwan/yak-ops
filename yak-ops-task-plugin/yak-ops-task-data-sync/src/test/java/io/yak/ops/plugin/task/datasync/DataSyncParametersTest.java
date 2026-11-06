@@ -50,8 +50,8 @@ class DataSyncParametersTest {
         ((ObjectNode) parameters.getDefinition().path("sink")).remove("exclude.schema.changes");
         assertFalse(parameters.checkParameters());
         parameters = valid();
-        ((ObjectNode) parameters.getDefinition()).set("transform",
-                JSONUtils.parseObject("[{\"projection\":\"*\"}]"));
+        ((ObjectNode) parameters.getDefinition()).putArray("transform")
+                .addObject().put("projection", "*");
         assertFalse(parameters.checkParameters());
     }
 
