@@ -424,6 +424,17 @@ export interface DataSyncUnreadableTaskRecord {
 
 export type DataSyncTaskListRecord = DataSyncTaskRecord | DataSyncUnreadableTaskRecord;
 
+/** Persisted YAML tree. The runtime resolves datasource-id before submitting to Flink CDC. */
+export interface DataSyncPipelineTaskParameters {
+  definition: {
+    source: Record<string, unknown>;
+    sink: Record<string, unknown>;
+    route: Array<Record<string, unknown>>;
+    pipeline: Record<string, unknown>;
+    transform?: Array<Record<string, unknown>>;
+  };
+}
+
 export interface TaskDefinitionRecord {
   id: string;
   name: string;
@@ -434,7 +445,7 @@ export interface TaskDefinitionRecord {
   revision: number;
   publishedVersion: number | null;
   parameterSchemaVersion: number;
-  parameters: DataSyncParameters & { index?: Record<string, string> };
+  parameters: DataSyncParameters | DataSyncPipelineTaskParameters;
   remark?: string;
   createTime?: string;
   updateTime?: string;

@@ -1,3 +1,5 @@
+import { encodeNativePipelineParameters } from "./pipeline-definition.ts";
+import type { DataSyncPipelineTaskParameters } from "./types";
 import type { PageInfo } from "@/service/http/page-info";
 
 import type {
@@ -164,7 +166,7 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
     name: task.name,
     taskType: "DATA_SYNC",
     remark: task.remark,
-    parameters: buildSyncParameters(task),
+    parameters: encodeNativePipelineParameters(buildSyncParameters(task)),
   };
 }
 
@@ -173,14 +175,14 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expecte
   const request: {
     name: string;
     remark?: string;
-    parameters?: DataSyncParameters;
+    parameters?: DataSyncPipelineTaskParameters;
     expectedRevision: number;
   } = {
     name: task.name,
     remark: task.remark,
     expectedRevision,
   };
-  if ("productType" in task) request.parameters = buildSyncParameters(task);
+  if ("productType" in task) request.parameters = encodeNativePipelineParameters(buildSyncParameters(task));
   return request;
 }
 

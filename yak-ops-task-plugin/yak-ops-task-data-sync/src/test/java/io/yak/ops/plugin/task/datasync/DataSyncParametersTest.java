@@ -1,71 +1,89 @@
 package io.yak.ops.plugin.task.datasync;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.task.api.enums.ResourceType;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 class DataSyncParametersTest {
 
     @Test
-    void acceptsSingleTableInitialStreamingDefinition() {
-        DataSyncParameters parameters = parse("INITIAL", "STREAMING", "UPSERT");
+    void acceptsNativePipelineYamlTreeAndExtractsResources() {
+        DataSyncParameters parameters = valid();
         assertTrue(parameters.checkParameters());
         assertTrue(parameters.getResources().getResourceMap(ResourceType.DATASOURCE).containsKey(1));
         assertTrue(parameters.getResources().getResourceMap(ResourceType.DATASOURCE).containsKey(2));
     }
 
     @Test
-    void rejectsUnsupportedCDCStrategyAndWriteMode() {
-        assertFalse(parse("SNAPSHOT", "STREAMING", "UPSERT").checkParameters());
-        assertFalse(parse("INITIAL", "BATCH", "UPSERT").checkParameters());
-        assertFalse(parse("INITIAL", "STREAMING", "APPEND").checkParameters());
-    }
-
-    @Test
-    void acceptsSingleMappedTableWithDatabaseEditorScope() {
-        DataSyncParameters parameters = parse("INITIAL", "STREAMING", "UPSERT");
-        parameters.getPipeline().put("pipeline.table-scope", "DATABASE");
-
-        assertTrue(parameters.checkParameters());
-    }
-
-    @Test
-    void rejectsRouteMismatchAndAdditionalTransforms() {
-        DataSyncParameters parameters = parse("INITIAL", "STREAMING", "UPSERT");
-        parameters.getRoute().get(0).setSinkTable("target_db.other");
+    void rejectsUnsupportedConnectorsAndRuntimeModes() {
+        DataSyncParameters parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("source")).put("type", "postgres");
         assertFalse(parameters.checkParameters());
-        parameters = parse("INITIAL", "STREAMING", "UPSERT");
-        parameters.setTransform(java.util.Collections.singletonList(JSONUtils.parseObject("{\"projection\":\"*\"}")));
+
+        parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("pipeline")).put("execution.runtime-mode", "BATCH");
         assertFalse(parameters.checkParameters());
     }
 
     @Test
-    void rejectsDropColumnsForInitialPipeline() {
-        DataSyncParameters parameters = parse("INITIAL", "STREAMING", "UPSERT");
-        parameters.getSink().getSchemaPolicy().getEvolution().setAllowDropColumns(true);
+    void rejectsUnrecognizedOrSecretOptions() {
+        DataSyncParameters parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("source")).put("password", "do-not-save");
+        assertFalse(parameters.checkParameters());
+        assertThrows(IllegalArgumentException.class, parameters::validate);
+    }
+
+    @Test
+    void rejectsMissingDropProtectionAndTransform() {
+        DataSyncParameters parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("sink")).remove("exclude.schema.changes");
+        assertFalse(parameters.checkParameters());
+        parameters = valid();
+        ((ObjectNode) parameters.getDefinition()).set("transform",
+                JSONUtils.parseObject("[{\"projection\":\"*\"}]"));
         assertFalse(parameters.checkParameters());
     }
 
-    static DataSyncParameters parse(String startup, String mode, String writeMode) {
-        String json = "{"
-                + "\"source\":{\"type\":\"mysql-cdc\",\"datasourceId\":\"1\","
-                + "\"startup\":{\"mode\":\"" + startup + "\"},"
-                + "\"tables\":[{\"database\":\"source_db\",\"table\":\"orders\"}]},"
-                + "\"sink\":{\"type\":\"jdbc-mysql\",\"datasourceId\":\"2\","
-                + "\"schemaPolicy\":{\"initial\":\"CREATE_OR_ALTER\","
-                + "\"evolution\":{\"enabled\":true,\"allowDropColumns\":false}},"
-                + "\"tables\":[{\"database\":\"target_db\",\"table\":\"orders\","
-                + "\"write\":{\"mode\":\"" + writeMode + "\"}}]},"
-                + "\"route\":[{\"source-table\":\"source_db.orders\","
-                + "\"sink-table\":\"target_db.orders\"}],"
-                + "\"transform\":[],"
-                + "\"pipeline\":{\"execution.runtime-mode\":\"" + mode + "\","
-                + "\"pipeline.table-scope\":\"SINGLE\"}"
-                + "}";
-        return JSONUtils.parseObject(json, DataSyncParameters.class);
+    @Test
+    void rejectsRouteMismatches() {
+        DataSyncParameters parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("route").get(0)).put("source-table", "src_db.other");
+        assertFalse(parameters.checkParameters());
+    }
+
+    static DataSyncParameters valid() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("type", "mysql");
+        source.put("datasource-id", "1");
+        source.put("tables", "\\Qsrc_db.orders\\E");
+        source.put("scan.startup.mode", "initial");
+        Map<String, Object> sink = new LinkedHashMap<>();
+        sink.put("type", "jdbc");
+        sink.put("datasource-id", "2");
+        sink.put("exclude.schema.changes", List.of("drop.column"));
+        Map<String, Object> route = Map.of("source-table", "\\Qsrc_db.orders\\E",
+                "sink-table", "dst_db.orders");
+        Map<String, Object> pipeline = Map.of(
+                "execution.runtime-mode", "STREAMING",
+                "parallelism", 1,
+                "schema.change.behavior", "evolve");
+        Map<String, Object> definition = new LinkedHashMap<>();
+        definition.put("source", source);
+        definition.put("sink", sink);
+        definition.put("route", List.of(route));
+        definition.put("pipeline", pipeline);
+        return JSONUtils.parseObject(
+                JSONUtils.toJsonString(Map.of("definition", definition)), DataSyncParameters.class);
     }
 }

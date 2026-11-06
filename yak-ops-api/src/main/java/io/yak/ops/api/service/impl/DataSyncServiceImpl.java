@@ -50,7 +50,6 @@ import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
-import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,7 +78,7 @@ import lombok.RequiredArgsConstructor;
 public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncService {
 
     private static final String TASK_TYPE = "DATA_SYNC";
-    private static final int PARAMETER_SCHEMA_VERSION = 8;
+    private static final int PARAMETER_SCHEMA_VERSION = 9;
     private final ProjectService projectService;
     private final DataSourceDao dataSourceDao;
     private final TaskDefinitionDao taskDefinitionDao;
@@ -573,11 +572,12 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (params == null || !params.checkParameters()) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters");
         }
-        int sourceId = parameters.path("source").path("datasourceId").asInt();
-        int targetId = parameters.path("sink").path("datasourceId").asInt();
+        JsonNode definition = parameters.path("definition");
+        int sourceId = definition.path("source").path("datasource-id").asInt();
+        int targetId = definition.path("sink").path("datasource-id").asInt();
         DataSource source = dataSourceDao.queryByIdAndProjectCode(sourceId, projectCode);
         DataSource sink = dataSourceDao.queryByIdAndProjectCode(targetId, projectCode);
-        if (source == null || sink == null || source.getType() != DbType.MYSQL || sink.getType() != DbType.MYSQL) {
+        if (source == null || sink == null) {
             throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
         }
     }

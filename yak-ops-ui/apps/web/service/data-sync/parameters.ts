@@ -1,3 +1,4 @@
+import { decodeNativePipelineParameters } from "./pipeline-definition.ts";
 import type {
   DataSyncParameters,
   DataSyncIncrementalConfig,
@@ -93,6 +94,11 @@ export const validIncrementalConfig = (
 
 /** Parse the persisted Task JSON without converting YAML in the frontend. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
+  if (schemaVersion === 9) {
+    const value = decodeNativePipelineParameters(content);
+    validateSyncParameters(value, 8);
+    return value;
+  }
   if (schemaVersion !== 7 && schemaVersion !== 8) throw new Error("不支持的同步任务参数版本");
   if (!content || typeof content !== "object" || Array.isArray(content))
     throw new Error("无效的 JSON Pipeline 定义");
