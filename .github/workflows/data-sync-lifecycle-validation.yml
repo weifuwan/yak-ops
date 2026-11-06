@@ -1,0 +1,31 @@
+name: Data Sync Lifecycle Frontend Validation
+on:
+  push:
+    branches: [feature/data-sync-cdc-pipeline-mvp]
+    paths:
+      - 'yak-ops-ui/**'
+      - '.github/workflows/data-sync-lifecycle-validation.yml'
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Install dependencies
+        working-directory: yak-ops-ui
+        run: npm ci
+      - name: Typecheck
+        working-directory: yak-ops-ui
+        run: npm run typecheck
+      - name: Production build
+        working-directory: yak-ops-ui
+        run: npm run build
+      - name: Contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:datasource && npm run test:auth
