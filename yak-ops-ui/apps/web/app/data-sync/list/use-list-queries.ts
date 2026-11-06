@@ -45,13 +45,13 @@ export function useTaskPage(scope: string, filters: TaskListFilters) {
     placeholderData: (previous, previousQuery) =>
       previousQuery?.queryKey[1] === scope ? previous : undefined,
   });
-  const records = query.data?.bizData ?? EMPTY_TASKS;
+  const records = query.data?.totalList ?? EMPTY_TASKS;
   const validRecords = useMemo(() => records.filter(isReadableTask), [records]);
   return {
     records,
     validRecords,
     invalidCount: records.length - validRecords.length,
-    total: query.data?.pagination.total ?? 0,
+    total: query.data?.total ?? 0,
     loading: query.isPending || query.isFetching,
     error: query.isError,
     safeToAct: query.isSuccess && !query.isPlaceholderData && !query.isFetching,
@@ -69,7 +69,7 @@ export function useListDataSources(scope: string) {
   const dataSourceMap = useMemo(
     () =>
       new Map(
-        (query.data?.bizData ?? []).flatMap((item) => (item.id ? [[item.id, item] as const] : [])),
+        (query.data?.totalList ?? []).flatMap((item) => (item.id ? [[item.id, item] as const] : [])),
       ),
     [query.data],
   );

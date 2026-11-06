@@ -53,8 +53,8 @@ export function DataSourcePage() {
 
   const queryClient = useQueryClient();
   const pageQuery = useDataSources({ pageNo, pageSize, keyword, dbType });
-  const records = pageQuery.data?.bizData ?? [];
-  const total = pageQuery.data?.pagination?.total ?? 0;
+  const records = pageQuery.data?.totalList ?? [];
+  const total = pageQuery.data?.total ?? 0;
   const loading = pageQuery.isPending || pageQuery.isFetching;
 
   useEffect(() => {

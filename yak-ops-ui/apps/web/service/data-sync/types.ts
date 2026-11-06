@@ -53,13 +53,6 @@ export interface DataSyncMappingTemplate {
   write: DataSyncTableWrite;
 }
 
-export interface PaginationInfo {
-  pageNo: number;
-  pageSize: number;
-  total: number;
-  pages?: number;
-}
-
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
 export type DataSyncProductType = "SINGLE_TABLE_BATCH" | "DATABASE_REPLICATION";
@@ -434,11 +427,6 @@ export interface DataSyncUnreadableTaskRecord {
 
 export type DataSyncTaskListRecord = DataSyncTaskRecord | DataSyncUnreadableTaskRecord;
 
-export interface DataSyncTaskPageResult {
-  bizData: DataSyncTaskListRecord[];
-  pagination: PaginationInfo;
-}
-
 export interface TaskDefinitionRecord {
   id: string;
   name: string;
@@ -458,11 +446,6 @@ export interface TaskDefinitionRecord {
   updateBy?: string;
 }
 
-export interface TaskDefinitionPageResult {
-  bizData: TaskDefinitionRecord[];
-  pagination: PaginationInfo;
-}
-
 export interface TaskParameterVersionSummary {
   definitionId: string;
   version: number;
@@ -474,11 +457,6 @@ export interface TaskParameterVersionSummary {
 /** Historical JSON is inspected before schema-specific editing is allowed. */
 export interface TaskParameterVersion extends TaskParameterVersionSummary {
   parameters: unknown;
-}
-
-export interface TaskVersionPage<T> {
-  bizData: T[];
-  pagination: PaginationInfo;
 }
 
 export interface PublishTaskRequest {
@@ -595,7 +573,3 @@ export interface DataSyncInstancePageParams {
   startTimeEnd?: string;
 }
 
-export interface DataSyncInstancePageResult {
-  bizData: DataSyncInstanceRecord[];
-  pagination: PaginationInfo;
-}

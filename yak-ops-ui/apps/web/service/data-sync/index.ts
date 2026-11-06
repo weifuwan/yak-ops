@@ -1,11 +1,11 @@
 import HttpUtils from "@/service/http/HttpUtils";
+import type { PageInfo } from "@/service/http/page-info";
 import { BizError } from "@/service/http/request";
 import type {
   TaskInstanceRecord,
   TaskInstanceStatus,
   TaskSubmissionResult,
   TaskInstanceDefinitionRecord,
-  TaskInstancePageResult,
   TaskLogPageRecord,
 } from "@/service/task-execution/types";
 
@@ -22,18 +22,15 @@ import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type {
   DataSyncSolution,
   DataSyncInstancePageParams,
-  DataSyncInstancePageResult,
   DataSyncInstanceRecord,
   DataSyncTaskPageParams,
-  DataSyncTaskPageResult,
+  DataSyncTaskListRecord,
   DataSyncTaskRecord,
   DataSyncTaskSavePayload,
   DataSyncTaskUpdatePayload,
-  TaskDefinitionPageResult,
   TaskDefinitionRecord,
   TaskParameterVersion,
   TaskParameterVersionSummary,
-  TaskVersionPage,
   PublishTaskRequest,
 } from "./types";
 
@@ -99,8 +96,8 @@ export const listDataSyncSolutions = async (
 export const listDataSyncTasks = async (
   params: DataSyncTaskPageParams,
   signal?: AbortSignal,
-): Promise<DataSyncTaskPageResult> => {
-  const page = await HttpUtils.getData<TaskDefinitionPageResult>(
+): Promise<PageInfo<DataSyncTaskListRecord>> => {
+  const page = await HttpUtils.getData<PageInfo<TaskDefinitionRecord>>(
     url(
       "/tasks?" +
         qp({
@@ -187,7 +184,7 @@ export const listTaskParameterVersions = async (
   pageSize: number,
   signal?: AbortSignal,
 ) =>
-  HttpUtils.getData<TaskVersionPage<TaskParameterVersionSummary>>(
+  HttpUtils.getData<PageInfo<TaskParameterVersionSummary>>(
     url("/tasks/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize })),
     { signal },
   );
@@ -230,9 +227,9 @@ export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceR
 
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
-): Promise<DataSyncInstancePageResult> => {
+): Promise<PageInfo<DataSyncInstanceRecord>> => {
   const base = url("");
-  const page = await HttpUtils.getData<TaskInstancePageResult>(
+  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord>>(
     base +
       "/instances?" +
       qp({
@@ -242,7 +239,7 @@ export const listDataSyncInstances = async (
         status: params.status,
       }),
   );
-  return { ...page, bizData: await projectInstances(page.bizData, base) };
+  return { ...page, totalList: await projectInstances(page.totalList, base) };
 };
 
 export const listLatestDataSyncTaskInstances = async (

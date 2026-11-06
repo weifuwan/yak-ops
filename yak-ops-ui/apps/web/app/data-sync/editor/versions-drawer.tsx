@@ -193,7 +193,7 @@ export function VersionsDrawer({
   const pagination = {
     current: page,
     pageSize: PAGE_SIZE,
-    total: query.data?.pagination.total || 0,
+    total: query.data?.total || 0,
     onChange: (next: number) => updateSearch({ versionsPage: String(next) }),
   };
   return (
@@ -215,7 +215,7 @@ export function VersionsDrawer({
             <Table<TaskParameterVersionSummary>
               rowKey="version"
               columns={columns}
-              dataSource={versions.data?.bizData || []}
+              dataSource={versions.data?.totalList || []}
               loading={versions.isPending}
               size="small"
               pagination={pagination}

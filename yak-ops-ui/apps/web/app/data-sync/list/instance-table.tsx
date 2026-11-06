@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Table, type TableColumns } from "@yak-ops/yak-ui";
 import { listDataSyncInstances, type DataSyncInstanceRecord } from "@/service/data-sync";
 
 export function DataSyncInstanceTable({ scope }: { scope: string }) {
   const navigate = useNavigate();
+  const [pageNo, setPageNo] = useState(1);
+  const pageSize = 20;
   const query = useQuery({
-    queryKey: ["data-sync-instances", scope],
-    queryFn: () => listDataSyncInstances({ pageNo: 1, pageSize: 50 }),
+    queryKey: ["data-sync-instances", scope, pageNo, pageSize],
+    queryFn: () => listDataSyncInstances({ pageNo, pageSize }),
     enabled: Boolean(scope),
     refetchInterval: 3000,
   });
@@ -59,8 +62,14 @@ export function DataSyncInstanceTable({ scope }: { scope: string }) {
       <Table<DataSyncInstanceRecord>
         rowKey="id"
         columns={columns}
-        dataSource={query.data?.bizData ?? []}
+        dataSource={query.data?.totalList ?? []}
         loading={query.isPending}
+        pagination={{
+          current: pageNo,
+          pageSize,
+          total: query.data?.total ?? 0,
+          onChange: setPageNo,
+        }}
       />
     </div>
   );

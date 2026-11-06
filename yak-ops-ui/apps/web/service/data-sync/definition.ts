@@ -1,13 +1,14 @@
+import type { PageInfo } from "@/service/http/page-info";
+
 import type {
+  DataSyncTaskListRecord,
   DataSyncTaskPageParams,
-  DataSyncTaskPageResult,
   DataSyncTaskRecord,
   DataSyncTaskSavePayload,
   DataSyncTaskUpdatePayload,
   DataSyncParameters,
   DataSyncTableMapping,
   TaskDefinitionRecord,
-  TaskDefinitionPageResult,
 } from "./types";
 import {
   displaySyncSteps,
@@ -279,10 +280,10 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
  * into an empty/error page. Keep its identity visible; do not invent executable
  * parameters or silently interpret an older transaction contract as XA.
  */
-export function projectSyncTaskPage(page: TaskDefinitionPageResult): DataSyncTaskPageResult {
+export function projectSyncTaskPage(page: PageInfo<TaskDefinitionRecord>): PageInfo<DataSyncTaskListRecord> {
   return {
     ...page,
-    bizData: page.bizData.map((definition) => {
+    totalList: page.totalList.map((definition) => {
       try {
         return toSyncTaskRecord(definition);
       } catch (error) {
