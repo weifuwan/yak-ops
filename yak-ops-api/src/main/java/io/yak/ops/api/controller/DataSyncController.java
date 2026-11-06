@@ -4,6 +4,7 @@ import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
@@ -117,7 +118,7 @@ public class DataSyncController extends BaseController {
     }
 
     @GetMapping("/instances/{id}/definition")
-    public Result<Object> getInstanceDefinition(@RequestAttribute(Constants.SESSION_USER) User user,
+    public Result<DataSyncDefinitionVO> getInstanceDefinition(@RequestAttribute(Constants.SESSION_USER) User user,
                                                  @PathVariable long projectCode, @PathVariable int id) {
         return Result.success(dataSyncService.getInstanceDefinition(user, projectCode, id));
     }

@@ -2,6 +2,7 @@ package io.yak.ops.api.service;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
@@ -36,7 +37,7 @@ public interface DataSyncService {
 
     DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId);
 
-    Object getInstanceDefinition(User user, long projectCode, int instanceId);
+    DataSyncDefinitionVO getInstanceDefinition(User user, long projectCode, int instanceId);
 
     void stop(User user, long projectCode, int instanceId);
 

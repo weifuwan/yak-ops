@@ -102,6 +102,14 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     }
 
     @Override
+    public List<TaskDefinition> queryByProjectAndType(long projectCode, String taskType) {
+        return mybatisMapper.selectList(new QueryWrapper<TaskDefinition>().lambda()
+                .eq(TaskDefinition::getProjectCode, projectCode)
+                .eq(TaskDefinition::getTaskType, taskType)
+                .orderByDesc(TaskDefinition::getUpdateTime));
+    }
+
+    @Override
     public TaskDefinition queryByName(long projectCode, long workflowDefinitionCode, String taskName) {
         return mybatisMapper.queryByName(projectCode, workflowDefinitionCode, taskName);
     }

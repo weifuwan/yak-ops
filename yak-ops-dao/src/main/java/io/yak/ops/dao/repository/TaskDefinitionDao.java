@@ -40,6 +40,8 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      */
     TaskDefinition queryByCode(long taskCode);
 
+    List<TaskDefinition> queryByProjectAndType(long projectCode, String taskType);
+
     TaskDefinition queryByName(long projectCode, long workflowDefinitionCode, String taskName);
 
     List<TaskDefinition> queryByWorkerGroup(String workerGroup);
