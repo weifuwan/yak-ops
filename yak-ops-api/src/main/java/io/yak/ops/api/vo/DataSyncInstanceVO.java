@@ -11,6 +11,7 @@ public class DataSyncInstanceVO {
 
     private String id;
     private String definitionId;
+    private String taskName;
     private int definitionVersion;
     private boolean debug;
     private String taskType;

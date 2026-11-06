@@ -69,7 +69,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -241,7 +240,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 new Page<>(pageNo, pageSize), taskCode, projectCode);
         PageInfo<DataSyncTaskVersionVO> result = PageInfo.of(pageNo, pageSize);
         result.setTotalList(page.getRecords().stream()
-                .map(DataSyncServiceImpl::toTaskVersionVO).collect(Collectors.toList()));
+                .map(DataSyncServiceImpl::toTaskVersionSummary).collect(Collectors.toList()));
         result.setTotal((int) page.getTotal());
         return result;
     }
@@ -257,15 +256,20 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         return toTaskVersionVO(historical);
     }
 
-    private static DataSyncTaskVersionVO toTaskVersionVO(TaskDefinition definition) {
+    private static DataSyncTaskVersionVO toTaskVersionSummary(TaskDefinition definition) {
         return DataSyncTaskVersionVO.builder()
                 .definitionId(String.valueOf(definition.getCode()))
                 .version(definition.getVersion())
                 .parameterSchemaVersion(PARAMETER_SCHEMA_VERSION)
                 .createBy(String.valueOf(definition.getUserId()))
                 .createTime(definition.getCreateTime())
-                .parameters(visibleParameters(JSONUtils.parseObject(definition.getTaskParams())))
                 .build();
+    }
+
+    private static DataSyncTaskVersionVO toTaskVersionVO(TaskDefinition definition) {
+        DataSyncTaskVersionVO result = toTaskVersionSummary(definition);
+        result.setParameters(JSONUtils.parseObject(definition.getTaskParams()));
+        return result;
     }
 
     @Override
@@ -507,7 +511,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .publishedDebug(published ? false : null)
                 .hasUnpublishedChanges(false)
                 .parameterSchemaVersion(PARAMETER_SCHEMA_VERSION)
-                .parameters(visibleParameters(JSONUtils.parseObject(task.getTaskParams())))
+                .parameters(JSONUtils.parseObject(task.getTaskParams()))
                 .debug(false)
                 .remark(task.getDescription())
                 .createTime(task.getCreateTime())
@@ -516,37 +520,11 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .build();
     }
 
-    private static JsonNode visibleParameters(JsonNode original) {
-        // Convert the older first-iteration single-table structure without changing stored versions.
-        if (original.has("route") && original.path("sink").has("schemaPolicy")) {
-            return original;
-        }
-        ObjectNode parameters = original.deepCopy();
-        ObjectNode source = (ObjectNode) parameters.path("source");
-        ObjectNode sink = (ObjectNode) parameters.path("sink");
-        source.put("type", "mysql-cdc");
-        sink.put("type", "jdbc-mysql");
-        ObjectNode policy = sink.putObject("schemaPolicy");
-        policy.put("initial", "CREATE_OR_ALTER");
-        ObjectNode evolution = policy.putObject("evolution");
-        evolution.put("enabled", true);
-        evolution.put("allowDropColumns", false);
-        ObjectNode write = (ObjectNode) sink.path("tables").get(0);
-        write.putObject("write").put("mode", "UPSERT");
-        ObjectNode route = parameters.putArray("route").addObject();
-        JsonNode sourceTable = source.path("tables").get(0);
-        JsonNode sinkTable = sink.path("tables").get(0);
-        route.put("source-table", sourceTable.path("database").asText() + "." + sourceTable.path("table").asText());
-        route.put("sink-table", sinkTable.path("database").asText() + "." + sinkTable.path("table").asText());
-        parameters.putArray("transform");
-        ((ObjectNode) parameters.path("pipeline")).put("pipeline.table-scope", "SINGLE");
-        return parameters;
-    }
-
     private static DataSyncInstanceVO toInstanceVO(TaskInstance instance) {
         return DataSyncInstanceVO.builder()
                 .id(String.valueOf(instance.getId()))
                 .definitionId(String.valueOf(instance.getTaskCode()))
+                .taskName(instance.getName())
                 .definitionVersion(instance.getTaskDefinitionVersion())
                 .taskType(TASK_TYPE)
                 .triggerType("MANUAL")
