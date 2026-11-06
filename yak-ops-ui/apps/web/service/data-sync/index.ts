@@ -33,7 +33,6 @@ import type {
   TaskDefinitionRecord,
   TaskParameterVersion,
   TaskParameterVersionSummary,
-  TaskPublicationRecord,
   TaskVersionPage,
   PublishTaskRequest,
 } from "./types";
@@ -196,17 +195,6 @@ export const listTaskParameterVersions = async (
 export const getTaskParameterVersion = async (id: string, version: number, signal?: AbortSignal) =>
   HttpUtils.getData<TaskParameterVersion>(
     url("/tasks/" + encodeURIComponent(id) + "/versions/" + version),
-    { signal },
-  );
-
-export const listTaskPublications = async (
-  id: string,
-  pageNo: number,
-  pageSize: number,
-  signal?: AbortSignal,
-) =>
-  HttpUtils.getData<TaskVersionPage<TaskPublicationRecord>>(
-    url("/tasks/" + encodeURIComponent(id) + "/publications?" + qp({ pageNo, pageSize })),
     { signal },
   );
 

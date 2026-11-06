@@ -31,7 +31,6 @@ export function useTaskListActions(scope: string) {
           await publishDataSyncTask(command.task.id, {
             version: command.task.definitionVersion,
             expectedRevision: command.task.revision,
-            requestId: crypto.randomUUID(),
           });
           break;
         case "unpublish":

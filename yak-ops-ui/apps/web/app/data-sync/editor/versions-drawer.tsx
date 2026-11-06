@@ -4,9 +4,6 @@ import {
   Badge,
   Button,
   Table,
-  Tabs,
-  TabsList,
-  TabsTab,
   type TableColumns,
 } from "@yak-ops/yak-ui";
 import { useSearchParams } from "react-router-dom";
@@ -14,11 +11,9 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   getTaskParameterVersion,
   listTaskParameterVersions,
-  listTaskPublications,
   type DataSyncTaskRecord,
   type TaskParameterVersion,
   type TaskParameterVersionSummary,
-  type TaskPublicationRecord,
 } from "@/service/data-sync";
 import { compareParameterVersions, type ParameterChange } from "@/service/data-sync/versions";
 import { parseSyncParameters } from "@/service/data-sync/parameters";
@@ -127,7 +122,6 @@ export function VersionsDrawer({
 }) {
   const { currentUser } = useAuth();
   const [search, setSearch] = useSearchParams();
-  const tab = search.get("versionsTab") === "publications" ? "publications" : "development";
   const page = positiveInteger(search.get("versionsPage"), 1);
   const version = positiveInteger(search.get("version"));
   const compareVersion = positiveInteger(search.get("compareVersion"));
@@ -147,13 +141,8 @@ export function VersionsDrawer({
     );
   const versions = useQuery({
     queryKey: ["data-sync-versions", ...scope, "development", page],
-    enabled: enabled && tab === "development",
+    enabled,
     queryFn: ({ signal }) => listTaskParameterVersions(task!.id, page, PAGE_SIZE, signal),
-  });
-  const publications = useQuery({
-    queryKey: ["data-sync-versions", ...scope, "publications", page],
-    enabled: enabled && tab === "publications",
-    queryFn: ({ signal }) => listTaskPublications(task!.id, page, PAGE_SIZE, signal),
   });
   const detail = useQuery({
     queryKey: ["data-sync-versions", ...scope, "detail", version],
@@ -167,7 +156,7 @@ export function VersionsDrawer({
     queryFn: ({ signal }) => getTaskParameterVersion(task!.id, compareVersion, signal),
     staleTime: Infinity,
   });
-  const query = tab === "development" ? versions : publications;
+  const query = versions;
   const view = (number: number) =>
     updateSearch({ version: String(number), compareVersion: undefined });
   const compare = (number: number) =>
@@ -201,22 +190,6 @@ export function VersionsDrawer({
       ),
     },
   ];
-  const publicationColumns: TableColumns<TaskPublicationRecord> = [
-    { key: "version", title: "参数版本", render: (_, row) => `V${row.version}` },
-    { key: "debug", title: "Debug", render: (_, row) => (row.debug ? "开启" : "关闭") },
-    { key: "operator", title: "发布人", dataIndex: "createBy", width: 140 },
-    { key: "time", title: "发布时间", dataIndex: "createTime", width: 180 },
-    {
-      key: "actions",
-      title: "操作",
-      width: 85,
-      render: (_, row) => (
-        <Button size="small" variant="ghost" onClick={() => view(row.version)}>
-          查看
-        </Button>
-      ),
-    },
-  ];
   const pagination = {
     current: page,
     pageSize: PAGE_SIZE,
@@ -231,17 +204,6 @@ export function VersionsDrawer({
         </p>
       ) : (
         <>
-          <Tabs
-            value={tab}
-            onValueChange={(next) =>
-              updateSearch({ versionsTab: String(next), versionsPage: undefined })
-            }
-          >
-            <TabsList>
-              <TabsTab value="development">开发记录</TabsTab>
-              <TabsTab value="publications">发布记录</TabsTab>
-            </TabsList>
-          </Tabs>
           <div className="my-4 flex justify-end">
             <Button size="small" loading={query.isFetching} onClick={() => void query.refetch()}>
               刷新
@@ -249,7 +211,7 @@ export function VersionsDrawer({
           </div>
           {query.isError ? (
             <Alert>{query.error instanceof Error ? query.error.message : "版本记录加载失败"}</Alert>
-          ) : tab === "development" ? (
+          ) : (
             <Table<TaskParameterVersionSummary>
               rowKey="version"
               columns={columns}
@@ -269,16 +231,6 @@ export function VersionsDrawer({
                 },
               }}
               emptyText="暂无开发记录"
-            />
-          ) : (
-            <Table<TaskPublicationRecord>
-              rowKey="id"
-              columns={publicationColumns}
-              dataSource={publications.data?.bizData || []}
-              loading={publications.isPending}
-              size="small"
-              pagination={pagination}
-              emptyText="暂无发布记录"
             />
           )}
           {detail.isError || (compareVersion > 0 && comparison.isError) ? (

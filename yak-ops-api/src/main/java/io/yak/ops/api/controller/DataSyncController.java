@@ -105,19 +105,6 @@ public class DataSyncController extends BaseController {
         return Result.success(dataSyncService.getVersion(user, projectCode, taskCode, version));
     }
 
-    @GetMapping("/tasks/{taskCode}/publications")
-    public Result<DataSyncPageVO<Object>> publications(
-                                                       @RequestAttribute(Constants.SESSION_USER) User user,
-                                                       @PathVariable long projectCode, @PathVariable long taskCode,
-                                                       @RequestParam(defaultValue = "1") int pageNo,
-                                                       @RequestParam(defaultValue = "20") int pageSize) {
-        checkPageParams(pageNo, pageSize);
-        dataSyncService.getTask(user, projectCode, taskCode);
-        // Publishing currently changes the existing Workflow release state.
-        // It does not create a durable publication history record.
-        return Result.success(DataSyncPageVO.of(java.util.Collections.emptyList(), pageNo, pageSize));
-    }
-
     @PostMapping("/tasks/{taskCode}/start")
     public Result<DataSyncRunVO> start(@RequestAttribute(Constants.SESSION_USER) User user,
                                        @PathVariable long projectCode, @PathVariable long taskCode) {

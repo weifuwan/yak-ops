@@ -476,16 +476,6 @@ export interface TaskParameterVersion extends TaskParameterVersionSummary {
   parameters: unknown;
 }
 
-export interface TaskPublicationRecord {
-  id: string;
-  definitionId: string;
-  version: number;
-  debug: boolean;
-  requestId: string;
-  createBy: string;
-  createTime: string;
-}
-
 export interface TaskVersionPage<T> {
   bizData: T[];
   pagination: PaginationInfo;
@@ -494,7 +484,6 @@ export interface TaskVersionPage<T> {
 export interface PublishTaskRequest {
   version: number;
   expectedRevision: number;
-  requestId: string;
 }
 
 interface DataSyncTaskSaveBase {

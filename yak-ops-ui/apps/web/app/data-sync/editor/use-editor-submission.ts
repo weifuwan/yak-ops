@@ -14,7 +14,6 @@ import {
   updateDataSyncTask,
   publishDataSyncTask,
   getDataSyncTask,
-  listTaskPublications,
   isRejectedTaskWrite,
   type DataSyncTaskRecord,
   type DataSyncTaskSavePayload,
@@ -174,7 +173,6 @@ export function useEditorSubmission(input: SaveInput) {
         const publication = retryPublication || {
           version: saved.definitionVersion,
           expectedRevision: saved.revision,
-          requestId: crypto.randomUUID(),
         };
         attempted = { kind: "publish", id: saved.id, publication };
         saved = await publishDataSyncTask(saved.id, publication, signal, true);
@@ -237,9 +235,7 @@ export function useEditorSubmission(input: SaveInput) {
         toast.success("已确认任务保存成功");
       } else if (pendingWrite.kind === "publish") {
         const publication = pendingWrite.publication;
-        const history = await listTaskPublications(task.id, 1, 20, signal);
-        if (signal.aborted) return;
-        if (history.bizData.some((record) => record.requestId === publication.requestId)) {
+        if (task.status === "PUBLISHED" && task.publishedVersion === publication.version) {
           const adopted = persisted(task);
           if (adopted) setPendingWrite(undefined);
           setRetryPublication(undefined);
@@ -250,7 +246,7 @@ export function useEditorSubmission(input: SaveInput) {
         } else {
           setRetryPublication(publication);
           setPendingWrite(undefined);
-          setError("未查到本次发布记录，可重试同一次发布；本页参数已保留。");
+          setError("远端尚未发布目标版本，请确认任务状态后重试；本页参数已保留。");
         }
       }
     } catch (failure) {
