@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Modal, PageHeader, toast } from "@yak-ops/yak-ui";
 import { useAuth } from "@/hooks/use-auth";
@@ -50,7 +50,7 @@ function Field({
   children,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <label className="flex min-w-0 flex-col gap-1.5 text-xs text-[var(--yak-components-muted-text)]">
