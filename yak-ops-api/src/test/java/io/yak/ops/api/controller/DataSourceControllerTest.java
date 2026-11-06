@@ -16,7 +16,6 @@ import io.yak.ops.dao.entity.Project;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -42,15 +41,9 @@ public class DataSourceControllerTest extends AbstractControllerTest {
 
     @BeforeEach
     public void initSetUp() {
-        setUp();
         Result result = projectService.createProject(user, "datasource-test-" + UUID.randomUUID(), "");
         Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         projectCode = ((Project) result.getData()).getCode();
-    }
-
-    @AfterEach
-    public void afterEach() throws Exception {
-        after();
     }
 
     @Disabled("unknown yourself connection information")
