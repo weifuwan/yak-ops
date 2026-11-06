@@ -17,7 +17,6 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
-import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.DataSourceDao;
@@ -71,24 +70,17 @@ class DataSyncServiceImplTest {
     void rejectsDatasourceFromAnotherProjectBeforeCreatingTask() {
         DataSyncTaskRequest request = new DataSyncTaskRequest();
         request.setName("order_sync");
-        request.setParameters(JSONUtils.parseObject("""
-                {
-                  "source": {
-                    "type": "mysql-cdc",
-                    "datasourceId": "1",
-                    "startup": {"mode": "INITIAL"},
-                    "tables": [{"database": "src_db", "table": "orders"}]
-                  },
-                  "sink": {
-                    "type": "jdbc-mysql",
-                    "datasourceId": "2",
-                    "tables": [{"database": "dst_db", "table": "orders", "write": {"mode": "UPSERT"}}]
-                  },
-                  "route": [{"source-table": "src_db.orders", "sink-table": "dst_db.orders"}],
-                  "transform": [],
-                  "pipeline": {"execution.runtime-mode": "STREAMING", "pipeline.table-scope": "DATABASE"}
-                }
-                """));
+        request.setParameters(JSONUtils.parseObject(
+                "{\"source\":{"
+                + "\"type\":\"mysql-cdc\",\"datasourceId\":\"1\","
+                + "\"startup\":{\"mode\":\"INITIAL\"},"
+                + "\"tables\":[{\"database\":\"src_db\",\"table\":\"orders\"}]},"
+                + "\"sink\":{\"type\":\"jdbc-mysql\",\"datasourceId\":\"2\","
+                + "\"tables\":[{\"database\":\"dst_db\",\"table\":\"orders\","
+                + "\"write\":{\"mode\":\"UPSERT\"}}]},"
+                + "\"route\":[{\"source-table\":\"src_db.orders\",\"sink-table\":\"dst_db.orders\"}],"
+                + "\"transform\":[],"
+                + "\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\",\"pipeline.table-scope\":\"DATABASE\"}}"));
         DataSource source = new DataSource();
         source.setType(DbType.MYSQL);
         when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(source);
