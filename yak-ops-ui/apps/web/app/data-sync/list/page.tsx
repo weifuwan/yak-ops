@@ -15,7 +15,12 @@ import { TaskFilters } from "./task-filters";
 import { TaskTable } from "./task-table";
 import { DataSyncInstanceTable } from "./instance-table";
 import { useTaskListFilters } from "./use-list-filters";
-import { useTaskPage, useListDataSources, useListUpdateUsers, useListInstances } from "./use-list-queries";
+import {
+  useTaskPage,
+  useListDataSources,
+  useListUpdateUsers,
+  useListInstances,
+} from "./use-list-queries";
 import { useTaskListActions, type TaskCommand } from "./use-task-actions";
 
 export function DataSyncPage() {
@@ -79,34 +84,54 @@ export function DataSyncPage() {
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex gap-5 text-sm">
-                <button type="button" onClick={() => setTab("tasks")}
-                  className={tab === "tasks" ? "font-medium text-[var(--yak-color-primary)]" : ""}>
+                <button
+                  type="button"
+                  onClick={() => setTab("tasks")}
+                  className={tab === "tasks" ? "font-medium text-[var(--yak-color-primary)]" : ""}
+                >
                   任务定义
                 </button>
-                <button type="button" onClick={() => setTab("instances")}
-                  className={tab === "instances" ? "font-medium text-[var(--yak-color-primary)]" : ""}>
+                <button
+                  type="button"
+                  onClick={() => setTab("instances")}
+                  className={
+                    tab === "instances" ? "font-medium text-[var(--yak-color-primary)]" : ""
+                  }
+                >
                   执行实例
                 </button>
               </div>
-              <select value={projectCode} onChange={(event) => {
-                selectDataSyncProject(event.target.value);
-                setProjectCode(event.target.value);
-                void queryClient.invalidateQueries({ queryKey: ["data-sync-list"] });
-              }} className="h-8 min-w-40 rounded border border-[var(--yak-components-border)] bg-white px-2 text-sm">
+              <select
+                value={projectCode}
+                onChange={(event) => {
+                  selectDataSyncProject(event.target.value);
+                  setProjectCode(event.target.value);
+                  void queryClient.invalidateQueries({ queryKey: ["data-sync-list"] });
+                }}
+                className="h-8 min-w-40 rounded border border-[var(--yak-components-border)] bg-white px-2 text-sm"
+              >
                 {(projectQuery.data ?? []).map((project) => (
-                  <option key={project.code} value={project.code}>{project.name}</option>
+                  <option key={project.code} value={project.code}>
+                    {project.name}
+                  </option>
                 ))}
               </select>
             </div>
             {tab === "tasks" ? (
               <>
-                <TaskFilters filters={filters} keyword={filters.keywordInput}
-                  onKeywordChange={filters.setKeywordInput} onFilterChange={filters.update}
-                  onCreate={() => setCreateOpen(true)} />
+                <TaskFilters
+                  filters={filters}
+                  keyword={filters.keywordInput}
+                  onKeywordChange={filters.setKeywordInput}
+                  onFilterChange={filters.update}
+                  onCreate={() => setCreateOpen(true)}
+                />
                 {page.error ? (
                   <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
                     任务列表加载失败
-                    <Button size="small" onClick={page.retry}>重试</Button>
+                    <Button size="small" onClick={page.retry}>
+                      重试
+                    </Button>
                   </div>
                 ) : null}
                 {page.invalidCount > 0 ? (
@@ -115,8 +140,12 @@ export function DataSyncPage() {
                   </div>
                 ) : null}
                 <div className="mt-4 min-h-0 min-w-0 flex-1">
-                  <TaskTable records={page.records} pageNo={filters.pageNo} total={page.total}
-                    loading={page.loading} failed={page.error}
+                  <TaskTable
+                    records={page.records}
+                    pageNo={filters.pageNo}
+                    total={page.total}
+                    loading={page.loading}
+                    failed={page.error}
                     data={{
                       dataSourceMap: sources.dataSourceMap,
                       dataSourcesLoading: sources.loading,
@@ -130,7 +159,9 @@ export function DataSyncPage() {
                     }}
                     actions={{
                       command,
-                      delete: (task) => { if (canManage(task)) setPendingDelete(task); },
+                      delete: (task) => {
+                        if (canManage(task)) setPendingDelete(task);
+                      },
                       page: (pageNo) => filters.update({ pageNo }),
                     }}
                   />
@@ -143,25 +174,50 @@ export function DataSyncPage() {
         </div>
       </div>
 
-      {createOpen ? <CreateSyncTaskDialog onClose={() => {
-        setCreateOpen(false);
-        const query = new URLSearchParams(location.search);
-        if (query.has("create")) {
-          query.delete("create");
-          navigate({ pathname: "/data-sync", search: query.toString() }, { replace: true });
-        }
-      }} /> : null}
+      {createOpen ? (
+        <CreateSyncTaskDialog
+          onClose={() => {
+            setCreateOpen(false);
+            const query = new URLSearchParams(location.search);
+            if (query.has("create")) {
+              query.delete("create");
+              navigate({ pathname: "/data-sync", search: query.toString() }, { replace: true });
+            }
+          }}
+        />
+      ) : null}
 
-      <Modal open={Boolean(pendingDelete)} centered width={420} title="删除同步任务"
-        onClose={() => { if (!commands.pending) setPendingDelete(undefined); }}
-        footer={<>
-          <Button size="small" disabled={commands.pending} onClick={() => setPendingDelete(undefined)}>取消</Button>
-          <Button size="small" variant="danger"
-            loading={commands.actionKey === (pendingDelete?.id || "") + ":delete"}
-            onClick={() => { if (pendingDelete && canManage(pendingDelete)) command({ kind: "delete", task: pendingDelete }); }}>
-            删除
-          </Button>
-        </>}>
+      <Modal
+        open={Boolean(pendingDelete)}
+        centered
+        width={420}
+        title="删除同步任务"
+        onClose={() => {
+          if (!commands.pending) setPendingDelete(undefined);
+        }}
+        footer={
+          <>
+            <Button
+              size="small"
+              disabled={commands.pending}
+              onClick={() => setPendingDelete(undefined)}
+            >
+              取消
+            </Button>
+            <Button
+              size="small"
+              variant="danger"
+              loading={commands.actionKey === (pendingDelete?.id || "") + ":delete"}
+              onClick={() => {
+                if (pendingDelete && canManage(pendingDelete))
+                  command({ kind: "delete", task: pendingDelete });
+              }}
+            >
+              删除
+            </Button>
+          </>
+        }
+      >
         <div className="text-sm leading-6 text-[var(--yak-components-collapse-section-icon)]">
           确定删除任务“{pendingDelete?.name}”吗？历史任务实例不会在这里删除。
         </div>

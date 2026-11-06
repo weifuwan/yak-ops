@@ -14,8 +14,7 @@ import { listQueryKeys } from "./query-keys";
 
 export type TaskCommand =
   | { kind: "run" | "publish" | "unpublish" | "delete"; task: DataSyncTaskRecord }
-  | { kind: "stop"; task: DataSyncTaskRecord; instance: TaskInstanceRecord }
-;
+  | { kind: "stop"; task: DataSyncTaskRecord; instance: TaskInstanceRecord };
 
 export function useTaskListActions(scope: string) {
   const queryClient = useQueryClient();

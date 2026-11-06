@@ -15,19 +15,32 @@ export function DataSyncInstanceTable({ scope }: { scope: string }) {
     { key: "id", title: "实例 ID", width: 130 },
     { key: "taskName", title: "任务名称", minWidth: 230 },
     {
-      key: "status", title: "运行状态", width: 135,
-      render: (_, row) => ({
-        SUBMITTED: "已提交", LAUNCHING: "启动中", RUNNING: "运行中",
-        CANCELLING: "停止中", FINISHED: "已完成", FAILED: "失败",
-        CANCELED: "已停止", RECONCILING: "恢复中",
-      })[row.status] ?? row.status,
+      key: "status",
+      title: "运行状态",
+      width: 135,
+      render: (_, row) =>
+        ({
+          SUBMITTED: "已提交",
+          LAUNCHING: "启动中",
+          RUNNING: "运行中",
+          CANCELLING: "停止中",
+          FINISHED: "已完成",
+          FAILED: "失败",
+          CANCELED: "已停止",
+          RECONCILING: "恢复中",
+        })[row.status] ?? row.status,
     },
     { key: "startTime", title: "启动时间", width: 190, render: (_, row) => row.startTime ?? "—" },
     {
-      key: "detail", title: "操作", width: 110,
+      key: "detail",
+      title: "操作",
+      width: 110,
       render: (_, row) => (
-        <Button variant="ghost" size="small"
-          onClick={() => navigate("/data-sync/" + row.taskId + "/detail?executionId=" + row.id)}>
+        <Button
+          variant="ghost"
+          size="small"
+          onClick={() => navigate("/data-sync/" + row.taskId + "/detail?executionId=" + row.id)}
+        >
           查看日志
         </Button>
       ),
@@ -38,7 +51,9 @@ export function DataSyncInstanceTable({ scope }: { scope: string }) {
       {query.isError ? (
         <div className="mb-3 flex items-center gap-3 text-sm text-red-600">
           执行实例加载失败
-          <Button size="small" onClick={() => void query.refetch()}>重试</Button>
+          <Button size="small" onClick={() => void query.refetch()}>
+            重试
+          </Button>
         </div>
       ) : null}
       <Table<DataSyncInstanceRecord>

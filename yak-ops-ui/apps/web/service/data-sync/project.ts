@@ -28,4 +28,7 @@ export const currentDataSyncProject = async (): Promise<string> => {
 };
 
 export const dataSyncApi = async () =>
-  YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(await currentDataSyncProject()) + "/data-sync";
+  YAK_OPS_API_PREFIX +
+  "/projects/" +
+  encodeURIComponent(await currentDataSyncProject()) +
+  "/data-sync";
