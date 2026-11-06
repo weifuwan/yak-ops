@@ -261,6 +261,19 @@ class DataSyncServiceImplTest {
     }
 
     @Test
+    void publishRejectsOutdatedExpectedRevision() {
+        prepareDataSyncTask(ReleaseState.OFFLINE);
+        DataSyncPublishRequest request = publication(4);
+        request.setExpectedRevision(3);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.publish(testUser(), PROJECT_CODE, 99L, request));
+
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verifyNoInteractions(workflowDefinitionService);
+    }
+
+    @Test
     void publishCurrentVersionThroughWorkflowService() {
         prepareDataSyncTask(ReleaseState.OFFLINE);
         service.publish(testUser(), PROJECT_CODE, 99L, publication(4));

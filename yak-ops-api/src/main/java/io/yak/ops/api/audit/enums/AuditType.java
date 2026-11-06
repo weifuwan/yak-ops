@@ -137,8 +137,6 @@ public enum AuditType {
     DATA_SYNC_DELETE(TASK, DELETE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
     DATA_SYNC_PUBLISH(TASK, ONLINE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
     DATA_SYNC_UNPUBLISH(TASK, OFFLINE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
-    DATA_SYNC_START(TASK, START, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
-    DATA_SYNC_STOP(TASK_INSTANCE, STOP, TaskInstancesAuditOperatorImpl.class, new String[]{ID}, new String[]{}),
 
     SCHEDULE_CREATE(SCHEDULE, CREATE, ScheduleAuditOperatorImpl.class,
             new String[]{AuditLogConstants.WORKFLOW_DEFINITION_CODE},
