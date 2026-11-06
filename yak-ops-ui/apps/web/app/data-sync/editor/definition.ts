@@ -28,7 +28,6 @@ export function buildEditorPayload(
 ): DataSyncTaskSavePayload {
   const common = {
     name: form.name.trim(),
-    debug: form.debug,
     sourceDataSourceId: form.source.dataSourceId,
     sourceDatabase: form.source.database || undefined,
     sourceSchema: form.source.schema || undefined,

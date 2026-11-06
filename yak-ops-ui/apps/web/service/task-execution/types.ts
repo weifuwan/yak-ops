@@ -22,9 +22,9 @@ export interface TaskInstanceRecord {
   id: string;
   definitionId: string;
   definitionVersion: number;
-  debug: boolean;
+  debug?: boolean;
   taskType: string;
-  triggerType: "MANUAL" | "SCHEDULE" | "WORKFLOW";
+  triggerType?: string;
   scheduleId?: string | null;
   scheduleRevision?: number | null;
   scheduledTime?: string | null;

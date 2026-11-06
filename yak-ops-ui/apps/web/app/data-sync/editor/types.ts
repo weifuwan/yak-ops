@@ -43,7 +43,6 @@ export interface EditorForm {
   tableScope?: "SINGLE" | "DATABASE";
   name: string;
   remark: string;
-  debug: boolean;
   transforms: DataSyncTransform[];
   startup?: DataSyncStartupOptions;
   pipelineOptions?: DataSyncPipelineOptions;
@@ -66,7 +65,6 @@ export interface CatalogOptions {
 export const EMPTY_FORM: EditorForm = {
   name: "",
   remark: "",
-  debug: false,
   transforms: [],
   source: {
     dataSourceId: "",

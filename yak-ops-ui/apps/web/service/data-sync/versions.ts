@@ -27,7 +27,6 @@ export function matchesSavedTask(
   return (
     request.name === saved.name &&
     (request.remark || "") === (saved.remark || "") &&
-    request.debug === saved.debug &&
     parameterFingerprint(buildSyncParameters(request)) ===
       parameterFingerprint(
         buildSyncParameters({ ...saved, writeMode: saved.writeMode as DataSyncWriteMode }),

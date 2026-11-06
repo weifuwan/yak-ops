@@ -12,7 +12,6 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
     ...EMPTY_FORM,
     name: draft.name,
     remark: value?.remark || "",
-    debug: value?.debug ?? false,
     transforms: value?.transforms ?? [],
     startup: value?.startup,
     pipelineOptions: value?.pipelineOptions,

@@ -102,7 +102,6 @@ export function useDefinitionRestoration({
                 ...next.form,
                 name: current.form.name,
                 remark: current.form.remark,
-                debug: current.form.debug,
               },
             },
             connections,

@@ -236,8 +236,6 @@ export function AdvancedDrawer({
               <RunConfigurationSection
                 replication={replication}
                 continuous={continuous}
-                debug={form.debug}
-                onDebugChange={(debug) => update({ ...configuration, form: { ...form, debug } })}
                 schedule={
                   schedule && scheduleForm
                     ? {

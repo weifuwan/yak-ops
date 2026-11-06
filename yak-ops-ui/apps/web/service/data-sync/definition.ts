@@ -163,7 +163,6 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
   return {
     name: task.name,
     taskType: "DATA_SYNC",
-    debug: task.debug,
     remark: task.remark,
     parameters: buildSyncParameters(task),
   };
@@ -175,12 +174,10 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expecte
     name: string;
     remark?: string;
     parameters?: DataSyncParameters;
-    debug?: boolean;
     expectedRevision: number;
   } = {
     name: task.name,
     remark: task.remark,
-    debug: task.debug,
     expectedRevision,
   };
   if ("productType" in task) request.parameters = buildSyncParameters(task);
@@ -239,7 +236,6 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
     syncType: pipelineSyncType(parameters),
     status: definition.status,
-    debug: definition.debug ?? false,
     writeMode: mapping.writeMode,
     sourceRead: mapping.source.read ? { ...mapping.source.read } : undefined,
     sourceOptions: mapping.source.options ? { ...mapping.source.options } : undefined,
@@ -266,8 +262,6 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     definitionVersion: definition.definitionVersion,
     revision: definition.revision,
     publishedVersion: definition.publishedVersion,
-    publishedDebug: definition.publishedDebug,
-    hasUnpublishedChanges: definition.hasUnpublishedChanges,
     remark: definition.remark,
     createTime: definition.createTime,
     updateTime: definition.updateTime,
@@ -294,9 +288,7 @@ export function projectSyncTaskPage(page: PageInfo<TaskDefinitionRecord>): PageI
           definitionVersion: definition.definitionVersion,
           revision: definition.revision,
           publishedVersion: definition.publishedVersion,
-          publishedDebug: definition.publishedDebug,
-          hasUnpublishedChanges: definition.hasUnpublishedChanges,
-          updateBy: definition.updateBy,
+                      updateBy: definition.updateBy,
           updateTime: definition.updateTime,
           configurationError:
             error instanceof SyntaxError

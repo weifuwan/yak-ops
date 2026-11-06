@@ -378,7 +378,6 @@ export interface DataSyncTaskRecord {
   name: string;
   syncType: DataSyncType | string;
   status: DataSyncTaskStatus | string;
-  debug: boolean;
   writeMode: DataSyncWriteMode | string;
   sourceDataSourceId: string;
   sourceDatabase?: string;
@@ -391,8 +390,6 @@ export interface DataSyncTaskRecord {
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
-  publishedDebug: boolean | null;
-  hasUnpublishedChanges: boolean;
   remark?: string;
   updateBy?: string;
   createTime?: string;
@@ -418,8 +415,6 @@ export interface DataSyncUnreadableTaskRecord {
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
-  publishedDebug: boolean | null;
-  hasUnpublishedChanges: boolean;
   updateBy?: string;
   updateTime?: string;
   configurationError: string;
@@ -435,11 +430,8 @@ export interface TaskDefinitionRecord {
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
-  publishedDebug: boolean | null;
-  hasUnpublishedChanges: boolean;
   parameterSchemaVersion: number;
   parameters: DataSyncParameters & { index?: Record<string, string> };
-  debug: boolean;
   remark?: string;
   createTime?: string;
   updateTime?: string;
@@ -466,7 +458,6 @@ export interface PublishTaskRequest {
 
 interface DataSyncTaskSaveBase {
   name: string;
-  debug: boolean;
   sourceDataSourceId: string;
   sourceDatabase?: string;
   sourceSchema?: string;
@@ -506,7 +497,7 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
 
 export type DataSyncTaskUpdatePayload =
   | DataSyncTaskSavePayload
-  | Pick<DataSyncTaskSaveBase, "name" | "remark" | "debug">;
+  | Pick<DataSyncTaskSaveBase, "name" | "remark">;
 
 export type DataSyncInstanceStatus = TaskInstanceStatus;
 
@@ -541,7 +532,7 @@ export interface DataSyncInstanceRecord {
   taskName: string;
   taskVersion: number;
   syncType: DataSyncType | string;
-  triggerType?: "MANUAL" | "SCHEDULE" | "WORKFLOW";
+  triggerType?: string;
   scheduleId?: string | null;
   scheduleRevision?: number | null;
   scheduledTime?: string | null;
