@@ -49,6 +49,27 @@ test("native Pipeline definitions preserve datasource references and table routi
   assert.equal(reopened.pipeline.parallelism, 2);
 });
 
+test("native Connector options and route metadata survive editor round-trips", () => {
+  const value = valid();
+  value.source.pipelineOptions = {
+    "server-time-zone": "Asia/Shanghai",
+    "scan.incremental.snapshot.chunk.size": 4096,
+  };
+  value.sink.pipelineOptions = { "sink.buffer-flush.max-rows": 500 };
+  value.route[0].description = "订单表同步";
+
+  const saved = encodeNativePipelineParameters(value);
+  assert.equal(saved.definition.source["server-time-zone"], "Asia/Shanghai");
+  assert.equal(saved.definition.source["scan.incremental.snapshot.chunk.size"], 4096);
+  assert.equal(saved.definition.sink["sink.buffer-flush.max-rows"], 500);
+  assert.equal(saved.definition.route[0].description, "订单表同步");
+
+  const reopened = decodeNativePipelineParameters(saved);
+  assert.equal(reopened.source.pipelineOptions["server-time-zone"], "Asia/Shanghai");
+  assert.equal(reopened.sink.pipelineOptions["sink.buffer-flush.max-rows"], 500);
+  assert.equal(reopened.route[0].description, "订单表同步");
+});
+
 test("unsupported source, schema policy, and transforms cannot silently degrade", () => {
   const bad = valid();
   bad.source.type = "postgres-cdc";
