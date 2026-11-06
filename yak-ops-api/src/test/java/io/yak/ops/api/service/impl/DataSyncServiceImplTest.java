@@ -20,6 +20,7 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncTaskVO;
+import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.enums.ReleaseState;
 import io.yak.ops.common.utils.JSONUtils;

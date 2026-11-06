@@ -54,11 +54,12 @@ export function DataSyncTaskDetailPage() {
     refreshAfterCancel,
     listError,
   } = useExecutionHistory(scope, taskId, activeInstance, hasEnabledSchedule);
-  const { run, cancel, copyTaskId, running, canceling } = useExecutionActions({
+  const { run, cancel, copyTaskId, running, canceling, pendingWorkflowInstanceId } = useExecutionActions({
     taskId,
     task,
     canStart,
     selectedInstance,
+    activeInstance,
     refreshActiveInstances,
     refreshAfterCancel,
     selectSubmitted,
@@ -110,7 +111,7 @@ export function DataSyncTaskDetailPage() {
               {task.archived ? (
                 <span className="text-sm text-[var(--yak-components-muted-text)]">已归档 · 仅可查看历史</span>
               ) : task.status === "ONLINE" ? (
-                !activeInstance ? (
+                !activeInstance && !pendingWorkflowInstanceId ? (
                   <Button
                     size="small"
                     loading={running}
@@ -119,6 +120,15 @@ export function DataSyncTaskDetailPage() {
                   >
                     {realtime ? "启动" : "运行"}
                   </Button>
+                ) : pendingWorkflowInstanceId ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-[var(--yak-components-muted-text)]">
+                      已提交 · 等待任务派发
+                    </span>
+                    <Button size="small" loading={canceling} onClick={() => void cancel()}>
+                      停止
+                    </Button>
+                  </div>
                 ) : null
               ) : (
                 <Button

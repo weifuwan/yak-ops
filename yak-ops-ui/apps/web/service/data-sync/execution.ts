@@ -31,7 +31,8 @@ export const canCancelTaskInstance = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED_SUCCESS" ||
   status === "DISPATCH" ||
   status === "RUNNING_EXECUTION" ||
-  status === "DELAY_EXECUTION";
+  status === "DELAY_EXECUTION" ||
+  status === "NEED_FAULT_TOLERANCE";
 
 
 export function toDataSyncInstanceRecord(
