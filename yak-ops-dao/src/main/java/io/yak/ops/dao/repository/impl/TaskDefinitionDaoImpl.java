@@ -77,6 +77,11 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     }
 
     @Override
+    public boolean compareAndSetDataSyncRevision(long projectCode, long taskCode, int expectedRevision) {
+        return mybatisMapper.updateDataSyncRevision(projectCode, taskCode, expectedRevision, expectedRevision + 1) == 1;
+    }
+
+    @Override
     public void deleteByWorkflowDefinitionCodeAndVersion(long workflowDefinitionCode, int workflowDefinitionVersion) {
         mybatisMapper.deleteByWorkflowDefinitionCodeAndVersion(workflowDefinitionCode, workflowDefinitionVersion);
     }
