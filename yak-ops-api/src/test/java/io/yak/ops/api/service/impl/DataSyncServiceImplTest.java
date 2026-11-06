@@ -129,7 +129,20 @@ class DataSyncServiceImplTest {
         DataSyncTaskRequest request = new DataSyncTaskRequest();
         request.setName("order_sync");
         request.setParameters(JSONUtils.parseObject(
-                "{\"source\":{\"auth\":{\"token\":\"must-not-be-saved\"}}}"));
+                "{\"definition\":{\"source\":{\"auth\":{\"token\":\"must-not-be-saved\"}}}}"));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.createTask(new User(), PROJECT_CODE, request));
+
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verifyNoInteractions(dataSourceDao, workflowDefinitionService);
+    }
+
+    @Test
+    void rejectsTaskDefinitionWithoutPipelineDefinition() {
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setName("order_sync");
+        request.setParameters(JSONUtils.parseObject("{}"));
 
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.createTask(new User(), PROJECT_CODE, request));

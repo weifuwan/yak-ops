@@ -106,7 +106,7 @@ public final class DataSyncPipelineValidator {
     }
 
     private static void object(JsonNode value, String label) {
-        if (!value.isObject()) {
+        if (value == null || !value.isObject()) {
             throw new IllegalArgumentException(label + ": object required");
         }
     }
