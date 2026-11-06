@@ -56,9 +56,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -564,7 +562,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (parameters == null || !parameters.isObject()) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters");
         }
-        rejectCredentials(parameters);
         AbstractParameters params = TaskPluginManager.parseTaskParameters(TASK_TYPE,
                 JSONUtils.toJsonString(parameters));
         if (params == null || !params.checkParameters()) {
@@ -580,30 +577,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         }
         if (source.getType() != DbType.MYSQL || sink.getType() != DbType.MYSQL) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "datasource type");
-        }
-    }
-
-    private static void rejectCredentials(JsonNode parameters) {
-        if (parameters.isArray()) {
-            for (JsonNode item : parameters) {
-                rejectCredentials(item);
-            }
-            return;
-        }
-        if (!parameters.isObject()) {
-            return;
-        }
-        Iterator<Map.Entry<String, JsonNode>> fields = parameters.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> field = fields.next();
-            String key = field.getKey().replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
-            if ("password".equals(key) || "passwd".equals(key) || "token".equals(key)
-                    || "secret".equals(key) || "secretkey".equals(key)
-                    || "accesskey".equals(key) || "apikey".equals(key)
-                    || "privatekey".equals(key) || "credentials".equals(key)) {
-                throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, field.getKey());
-            }
-            rejectCredentials(field.getValue());
         }
     }
 
