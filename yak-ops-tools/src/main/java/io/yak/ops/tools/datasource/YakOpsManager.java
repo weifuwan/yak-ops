@@ -75,5 +75,6 @@ public class YakOpsManager {
             throw new IllegalStateException(
                     "Database schema version matches but required Yak Ops tables are missing");
         }
+        schemaDao.verifyDatasourceProjectSchema();
     }
 }

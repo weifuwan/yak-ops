@@ -101,6 +101,27 @@ public class SchemaDao {
         }
     }
 
+    /**
+     * Fail closed on an old schema or datasource rows without an owning Project.
+     * The bootstrapper must never silently assign historical secrets to a Project.
+     */
+    public void verifyDatasourceProjectSchema() {
+        String check = "SELECT COUNT(*) FROM t_yak_ops_datasource d "
+                + "LEFT JOIN t_yak_ops_project p ON d.project_code = p.code "
+                + "WHERE p.code IS NULL";
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(check);
+                ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next() && resultSet.getLong(1) != 0L) {
+                throw new IllegalStateException(
+                        "Unassigned datasources detected. Complete the manual datasource Project migration before starting Yak Ops");
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Datasource Project schema is missing or invalid. Apply the manual datasource migration first", ex);
+        }
+    }
+
     public String getCurrentVersion() {
         try (
                 Connection connection = dataSource.getConnection();

@@ -15,7 +15,7 @@ export function useEditorDataSources(connections: DataSourceRecord[]) {
   return {
     dataSources: [
       ...new Map(
-        [...connections.filter((source) => source.projectCode === currentWorkspace?.id), ...(query.data?.bizData ?? [])].map((value) => [value.id, value]),
+        [...connections.filter((source) => !source.projectCode || source.projectCode === currentWorkspace?.id), ...(query.data?.bizData ?? [])].map((value) => [value.id, value]),
       ).values(),
     ],
     dataSourcesLoading: enabled && query.isPending,

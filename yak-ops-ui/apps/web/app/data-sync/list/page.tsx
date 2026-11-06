@@ -6,6 +6,7 @@ import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
 import { ScheduleDialog } from "@/app/schedule/dialog/schedule-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
 
@@ -27,7 +28,8 @@ export function DataSyncPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
-  const scope = currentUser?.id ?? "";
+  const { currentWorkspace } = useWorkspace();
+  const scope = currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
 
   const filters = useTaskListFilters();
   const page = useTaskPage(scope, filters);
