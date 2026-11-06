@@ -56,8 +56,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -280,7 +280,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
-            throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(), definition.getVersion());
+            throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(),
+                        definition.getVersion());
         }
         ensureStopped(workflow.getCode());
         Integer runId = executorService.triggerWorkflowDefinition(
