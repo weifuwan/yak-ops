@@ -47,11 +47,11 @@ public abstract class AbstractSerialCommandHandler implements ISerialCommandHand
 
             @Override
             public Void doInTransaction(TransactionStatus status) {
+                if (!serialCommandDao.tryLaunch(serialCommand.getId())) {
+                    return null;
+                }
                 final Command command = serialCommand.getCommand();
                 commandDao.insert(command);
-
-                serialCommand.setState(SerialCommandDto.State.LAUNCHED);
-                serialCommandDao.updateById(serialCommand.toEntity());
                 return null;
             }
         });
