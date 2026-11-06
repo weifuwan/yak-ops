@@ -20,11 +20,8 @@ public class DataSyncTaskVO {
     private int definitionVersion;
     private int revision;
     private Integer publishedVersion;
-    private Boolean publishedDebug;
-    private boolean hasUnpublishedChanges;
     private int parameterSchemaVersion;
     private JsonNode parameters;
-    private boolean debug;
     private String remark;
     private Date createTime;
     private Date updateTime;

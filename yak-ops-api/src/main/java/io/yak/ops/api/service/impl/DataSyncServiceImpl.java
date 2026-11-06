@@ -33,6 +33,7 @@ import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.repository.DataSourceDao;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -316,9 +318,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         }
         IPage<TaskInstance> instances = taskInstanceDao.queryByProjectAndTaskType(
                 new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, taskCode, status == null ? null : new int[]{status.getCode()});
-        List<DataSyncInstanceVO> rows = instances.getRecords().stream()
-                .map(DataSyncServiceImpl::toInstanceVO)
-                .collect(Collectors.toList());
+        List<DataSyncInstanceVO> rows = toInstanceVOs(instances.getRecords());
         PageInfo<DataSyncInstanceVO> result = PageInfo.of(pageNo, pageSize);
         result.setTotalList(rows);
         result.setTotal((int) instances.getTotal());
@@ -349,15 +349,14 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
                 TaskExecutionStatus.DELAY_EXECUTION.getCode(),
                 TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()} : null;
-        return taskInstanceDao.queryLatestByTaskCodes(
-                projectCode, TASK_TYPE, new ArrayList<>(requested), states).stream()
-                .map(DataSyncServiceImpl::toInstanceVO)
-                .collect(Collectors.toList());
+        return toInstanceVOs(taskInstanceDao.queryLatestByTaskCodes(
+                projectCode, TASK_TYPE, new ArrayList<>(requested), states));
     }
 
     @Override
     public DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId) {
-        return toInstanceVO(requireInstance(user, projectCode, instanceId));
+        TaskInstance instance = requireInstance(user, projectCode, instanceId);
+        return toInstanceVO(instance, workflowInstanceDao.queryById(instance.getWorkflowInstanceId()));
     }
 
     @Override
@@ -505,11 +504,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .definitionVersion(task.getVersion())
                 .revision(task.getVersion())
                 .publishedVersion(published ? task.getVersion() : null)
-                .publishedDebug(published ? false : null)
-                .hasUnpublishedChanges(false)
                 .parameterSchemaVersion(PARAMETER_SCHEMA_VERSION)
                 .parameters(JSONUtils.parseObject(task.getTaskParams()))
-                .debug(false)
                 .remark(task.getDescription())
                 .createTime(task.getCreateTime())
                 .updateTime(task.getUpdateTime())
@@ -517,13 +513,28 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .build();
     }
 
-    private static DataSyncInstanceVO toInstanceVO(TaskInstance instance) {
+    private List<DataSyncInstanceVO> toInstanceVOs(List<TaskInstance> instances) {
+        Set<Integer> ids = instances.stream()
+                .map(TaskInstance::getWorkflowInstanceId)
+                .filter(id -> id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, WorkflowInstance> workflows = ids.isEmpty() ? Collections.emptyMap()
+                : workflowInstanceDao.queryByIds(ids).stream()
+                        .collect(Collectors.toMap(WorkflowInstance::getId, Function.identity()));
+        return instances.stream()
+                .map(instance -> toInstanceVO(instance, workflows.get(instance.getWorkflowInstanceId())))
+                .collect(Collectors.toList());
+    }
+
+    private static DataSyncInstanceVO toInstanceVO(TaskInstance instance, WorkflowInstance workflow) {
         return DataSyncInstanceVO.builder()
                 .id(String.valueOf(instance.getId()))
                 .definitionId(String.valueOf(instance.getTaskCode()))
                 .taskName(instance.getName())
                 .definitionVersion(instance.getTaskDefinitionVersion())
                 .taskType(TASK_TYPE)
+                .triggerType(workflow == null || workflow.getCommandType() == null ? null
+                        : workflow.getCommandType().name())
                 .status(instance.getState())
                 .createTime(instance.getFirstSubmitTime())
                 .startTime(instance.getStartTime())
