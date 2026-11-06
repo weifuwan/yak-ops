@@ -1,6 +1,7 @@
+import { YAK_OPS_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
 
-const API = "/api/v1/data-sync/mvp";
+const API = YAK_OPS_API_PREFIX + "/api/v1/data-sync/mvp";
 
 export interface SyncProject {
   code: string;
