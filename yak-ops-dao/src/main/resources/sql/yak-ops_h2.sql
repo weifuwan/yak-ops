@@ -1424,3 +1424,9 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_user_preference (
 );
 CREATE INDEX IF NOT EXISTS idx_pref_user_scene_fav
     ON t_yak_ops_user_preference (user_id, scene, favorite, sort_order);
+
+CREATE TABLE IF NOT EXISTS t_yak_ops_data_sync_start_guard (
+  workflow_code bigint NOT NULL PRIMARY KEY,
+  request_id varchar(36) NOT NULL,
+  create_time timestamp NOT NULL
+);
