@@ -1,7 +1,6 @@
 import { Button, Skeleton, Table, type TableColumns } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
 
-import { TaskScheduleCell } from "@/app/schedule/task-schedule-cell";
 import { ExecutionProgressBar } from "../execution/execution-progress-bar";
 import { ExecutionStages } from "../execution/execution-stages";
 import { TaskRoute } from "./task-route";
@@ -17,7 +16,6 @@ import type {
   DataSyncUnreadableTaskRecord,
 } from "@/service/data-sync";
 import type { TaskInstanceRecord } from "@/service/task-execution";
-import type { ScheduleSummary } from "@/service/schedule";
 import type { TaskCommand } from "./use-task-actions";
 
 const PAGE_SIZE = 20;
@@ -31,7 +29,6 @@ interface Data {
   dataSourcesLoading: boolean;
   updateUserMap: Map<string, UserRecord>;
   updateUsersLoading: boolean;
-  schedules: { records: Map<string, ScheduleSummary>; loading: boolean; error: boolean };
   latestByTask: Map<string, TaskInstanceRecord>;
   activeByTask: Map<string, TaskInstanceRecord>;
   instancesLoading: boolean;
@@ -40,8 +37,6 @@ interface Data {
 }
 
 interface Actions {
-  configureSchedule: (task: DataSyncTaskRecord) => void;
-  toggleSchedule: (task: DataSyncTaskRecord, enabled: boolean) => void;
   command: (value: TaskCommand) => void;
   delete: (task: DataSyncTaskRecord) => void;
   page: (page: number) => void;
@@ -64,7 +59,6 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     dataSourcesLoading,
     updateUserMap,
     updateUsersLoading,
-    schedules,
     latestByTask,
     activeByTask,
     instancesLoading,
@@ -146,27 +140,6 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
               {record.tableMappings.length} 张表
             </div>
           </div>
-        ),
-    },
-    {
-      key: "schedule",
-      title: "调度",
-      width: 200,
-      render: (_value, record) =>
-        !isUnreadable(record) &&
-        (record.syncType === "OFFLINE" || schedules.records.has(record.id)) ? (
-          <TaskScheduleCell
-            schedule={schedules.records.get(record.id)}
-            name={record.name}
-            published={record.status === "PUBLISHED"}
-            loading={schedules.loading}
-            error={schedules.error}
-            pending={Boolean(actionKey)}
-            onConfigure={() => actions.configureSchedule(record)}
-            onToggle={(enabled) => actions.toggleSchedule(record, enabled)}
-          />
-        ) : (
-          <span className="text-[var(--yak-components-muted-text)]">—</span>
         ),
     },
     {

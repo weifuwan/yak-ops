@@ -9,14 +9,13 @@ import {
   unpublishDataSyncTask,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import { scheduleErrorMessage, setScheduleEnabled, type ScheduleSummary } from "@/service/schedule";
 import type { TaskInstanceRecord } from "@/service/task-execution";
 import { listQueryKeys } from "./query-keys";
 
 export type TaskCommand =
   | { kind: "run" | "publish" | "unpublish" | "delete"; task: DataSyncTaskRecord }
   | { kind: "stop"; task: DataSyncTaskRecord; instance: TaskInstanceRecord }
-  | { kind: "schedule"; task: DataSyncTaskRecord; schedule: ScheduleSummary; enabled: boolean };
+;
 
 export function useTaskListActions(scope: string) {
   const queryClient = useQueryClient();
@@ -42,9 +41,6 @@ export function useTaskListActions(scope: string) {
         case "delete":
           await deleteDataSyncTask(command.task.id);
           break;
-        case "schedule":
-          await setScheduleEnabled(command.schedule.id, command.schedule.revision, command.enabled);
-          break;
       }
     },
     onSuccess: async (_, command) => {
@@ -54,17 +50,12 @@ export function useTaskListActions(scope: string) {
         publish: "同步任务已发布",
         unpublish: "同步任务已下线",
         delete: "同步任务已删除",
-        schedule: command.kind === "schedule" && command.enabled ? "调度已启用" : "调度已停止",
       };
       toast.success(messages[command.kind]);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listQueryKeys.tasks(scope) }),
         queryClient.invalidateQueries({ queryKey: listQueryKeys.instances(scope) }),
-        queryClient.invalidateQueries({ queryKey: listQueryKeys.schedules(scope) }),
       ]);
-    },
-    onError: (error, command) => {
-      if (command.kind === "schedule") toast.error(scheduleErrorMessage(error));
     },
   });
   const actionKey =

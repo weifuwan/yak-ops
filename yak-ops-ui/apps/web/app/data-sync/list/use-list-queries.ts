@@ -7,8 +7,7 @@ import {
   type DataSyncTaskListRecord,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import { listTaskSchedules } from "@/service/schedule";
-import { listLatestTaskInstances } from "@/service/task-execution";
+import { listLatestDataSyncTaskInstances } from "@/service/data-sync";
 import { getUsersByIds } from "@/service/user";
 
 import type { TaskListFilters } from "./filters";
@@ -95,32 +94,14 @@ export function useListUpdateUsers(scope: string, records: DataSyncTaskRecord[])
   return { users, loading: ids.length > 0 && query.isPending };
 }
 
-export function useListSchedules(scope: string, records: DataSyncTaskRecord[]) {
-  const ids = records
-    .filter((item) => item.syncType === "OFFLINE")
-    .map((item) => item.id)
-    .sort();
-  const query = useQuery({
-    queryKey: [...listQueryKeys.schedules(scope), ids],
-    queryFn: ({ signal }) => listTaskSchedules(ids, signal),
-    enabled: Boolean(scope) && ids.length > 0,
-    refetchInterval: 5000,
-  });
-  const schedules = useMemo(
-    () => new Map((query.data ?? []).map((row) => [row.targetId, row] as const)),
-    [query.data],
-  );
-  return { schedules, loading: ids.length > 0 && query.isPending, error: query.isError };
-}
-
 export function useListInstances(scope: string, records: DataSyncTaskRecord[], safeToAct: boolean) {
   const ids = records.map((item) => item.id).sort();
   const query = useQuery({
     queryKey: [...listQueryKeys.instances(scope), ids],
     queryFn: async ({ signal }) => {
       const [latest, active] = await Promise.all([
-        listLatestTaskInstances(ids, false, signal),
-        listLatestTaskInstances(ids, true, signal),
+        listLatestDataSyncTaskInstances(ids, false, signal),
+        listLatestDataSyncTaskInstances(ids, true, signal),
       ]);
       return { latest, active };
     },

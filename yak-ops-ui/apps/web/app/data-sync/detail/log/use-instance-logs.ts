@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getTaskInstanceLogs } from "@/service/task-execution";
+import { getDataSyncInstanceLogs } from "@/service/data-sync";
 import { parseLogContent, trimLogContent, type ParsedLogLine } from "./task-instance-log-parser";
 
 /** Cursor and accumulated lines belong to the selected Instance, never to the viewer DOM. */
@@ -45,7 +45,7 @@ export function useInstanceLogs(instanceId: string, active: boolean) {
         let pages = 0;
         let hasMore: boolean;
         do {
-          const page = await getTaskInstanceLogs(instanceId, position);
+          const page = await getDataSyncInstanceLogs(instanceId, position);
           if (disposed) return;
           position = page.nextCursor;
           if (page.content) {

@@ -7,7 +7,7 @@ import {
   type DataSyncInstanceRecord,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import { listLatestTaskInstances } from "@/service/task-execution";
+import { listLatestDataSyncTaskInstances } from "@/service/data-sync";
 
 interface ActionsInput {
   taskId?: string;
@@ -34,16 +34,17 @@ export function useExecutionActions({
       return;
     setRunning(true);
     try {
-      const active = await listLatestTaskInstances([taskId], true);
+      const active = await listLatestDataSyncTaskInstances([taskId], true);
       if (active.length > 0) {
         toast.error("任务正在执行，请先停止");
         await refreshActiveInstances();
         return;
       }
-      const submitted = await runDataSyncTask(taskId);
+      await runDataSyncTask(taskId);
       toast.success("运行请求已提交");
       await refreshActiveInstances();
-      selectSubmitted(submitted.instanceId);
+      const latest = await listLatestDataSyncTaskInstances([taskId], true);
+      if (latest[0]) selectSubmitted(latest[0].id);
     } finally {
       setRunning(false);
     }
