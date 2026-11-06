@@ -34,6 +34,8 @@ import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
+import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,8 +43,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
-import java.util.Collections;
 
 @ExtendWith(MockitoExtension.class)
 class DataSyncServiceImplTest {

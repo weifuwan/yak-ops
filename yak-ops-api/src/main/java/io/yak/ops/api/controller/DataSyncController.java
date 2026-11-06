@@ -108,7 +108,8 @@ public class DataSyncController extends BaseController {
     @PostMapping("/tasks/{taskCode}/start")
     public Result<Map<String, Integer>> start(@RequestAttribute(Constants.SESSION_USER) User user,
                                               @PathVariable long projectCode, @PathVariable long taskCode) {
-        return Result.success(Collections.singletonMap("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
+        return Result.success(
+                Collections.singletonMap("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
     }
 
     @GetMapping("/instances")
