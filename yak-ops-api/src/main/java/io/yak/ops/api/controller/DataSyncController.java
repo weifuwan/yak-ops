@@ -1,5 +1,7 @@
 package io.yak.ops.api.controller;
 
+import io.yak.ops.api.audit.OperatorLog;
+import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.PageInfo;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -54,6 +57,8 @@ public class DataSyncController extends BaseController {
     }
 
     @PostMapping("/tasks")
+    @Operation(summary = "createDataSyncTask", description = "Create data synchronization task")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_CREATE)
     public Result<DataSyncTaskVO> createTask(@RequestAttribute(Constants.SESSION_USER) User user,
                                              @PathVariable long projectCode,
                                              @RequestBody DataSyncTaskRequest request) {
@@ -61,6 +66,8 @@ public class DataSyncController extends BaseController {
     }
 
     @PutMapping("/tasks/{taskCode}")
+    @Operation(summary = "updateDataSyncTask", description = "Update data synchronization task")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_UPDATE)
     public Result<DataSyncTaskVO> updateTask(@RequestAttribute(Constants.SESSION_USER) User user,
                                              @PathVariable long projectCode, @PathVariable long taskCode,
                                              @RequestBody DataSyncTaskRequest request) {
@@ -68,18 +75,24 @@ public class DataSyncController extends BaseController {
     }
 
     @PostMapping("/tasks/{taskCode}/publish")
+    @Operation(summary = "publishDataSyncTask", description = "Publish data synchronization task")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_PUBLISH)
     public Result<DataSyncTaskVO> publish(@RequestAttribute(Constants.SESSION_USER) User user,
                                           @PathVariable long projectCode, @PathVariable long taskCode) {
         return Result.success(dataSyncService.publish(user, projectCode, taskCode));
     }
 
     @PostMapping("/tasks/{taskCode}/unpublish")
+    @Operation(summary = "unpublishDataSyncTask", description = "Unpublish data synchronization task")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_UNPUBLISH)
     public Result<DataSyncTaskVO> unpublish(@RequestAttribute(Constants.SESSION_USER) User user,
                                             @PathVariable long projectCode, @PathVariable long taskCode) {
         return Result.success(dataSyncService.unpublish(user, projectCode, taskCode));
     }
 
     @DeleteMapping("/tasks/{taskCode}")
+    @Operation(summary = "deleteDataSyncTask", description = "Delete data synchronization task")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_DELETE)
     public Result<Void> deleteTask(@RequestAttribute(Constants.SESSION_USER) User user,
                                    @PathVariable long projectCode, @PathVariable long taskCode) {
         dataSyncService.deleteTask(user, projectCode, taskCode);
@@ -106,6 +119,8 @@ public class DataSyncController extends BaseController {
     }
 
     @PostMapping("/tasks/{taskCode}/start")
+    @Operation(summary = "startDataSyncTask", description = "Start data synchronization task")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_START)
     public Result<Map<String, Integer>> start(@RequestAttribute(Constants.SESSION_USER) User user,
                                               @PathVariable long projectCode, @PathVariable long taskCode) {
         return Result.success(
@@ -146,6 +161,8 @@ public class DataSyncController extends BaseController {
     }
 
     @PostMapping("/instances/{id}/stop")
+    @Operation(summary = "stopDataSyncInstance", description = "Stop data synchronization instance")
+    @OperatorLog(auditType = AuditType.DATA_SYNC_STOP)
     public Result<Void> stop(@RequestAttribute(Constants.SESSION_USER) User user,
                              @PathVariable long projectCode, @PathVariable int id) {
         dataSyncService.stop(user, projectCode, id);

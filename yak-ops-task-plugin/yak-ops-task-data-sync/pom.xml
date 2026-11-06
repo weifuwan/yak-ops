@@ -15,6 +15,11 @@
     <dependencies>
         <dependency>
             <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-datasource-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-common</artifactId>
             <version>${project.version}</version>
         </dependency>

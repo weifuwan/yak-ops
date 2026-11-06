@@ -12,6 +12,7 @@ import static io.yak.ops.api.audit.constants.AuditLogConstants.NAME;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.PRIORITY;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.QUEUE_ID;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.TYPE;
+import static io.yak.ops.api.audit.constants.AuditLogConstants.TASK_CODE;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.USER_ID;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.VERSION;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.WORKFLOW_DEFINITION_CODE;
@@ -54,6 +55,7 @@ import static io.yak.ops.common.enums.AuditOperationType.OFFLINE;
 import static io.yak.ops.common.enums.AuditOperationType.ONLINE;
 import static io.yak.ops.common.enums.AuditOperationType.RELEASE;
 import static io.yak.ops.common.enums.AuditOperationType.START;
+import static io.yak.ops.common.enums.AuditOperationType.STOP;
 import static io.yak.ops.common.enums.AuditOperationType.SWITCH_VERSION;
 import static io.yak.ops.common.enums.AuditOperationType.UPDATE;
 
@@ -129,6 +131,14 @@ public enum AuditType {
     TASK_START(TASK, START, TaskAuditOperatorImpl.class, new String[]{CODE}, new String[]{}),
     TASK_INSTANCE_FORCE_SUCCESS(TASK_INSTANCE, FORCE_SUCCESS, TaskInstancesAuditOperatorImpl.class, new String[]{ID},
             new String[]{}),
+
+    DATA_SYNC_CREATE(TASK, CREATE, TaskAuditOperatorImpl.class, new String[]{}, new String[]{ID}),
+    DATA_SYNC_UPDATE(TASK, UPDATE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_DELETE(TASK, DELETE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_PUBLISH(TASK, ONLINE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_UNPUBLISH(TASK, OFFLINE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_START(TASK, START, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_STOP(TASK_INSTANCE, STOP, TaskInstancesAuditOperatorImpl.class, new String[]{ID}, new String[]{}),
 
     SCHEDULE_CREATE(SCHEDULE, CREATE, ScheduleAuditOperatorImpl.class,
             new String[]{AuditLogConstants.WORKFLOW_DEFINITION_CODE},

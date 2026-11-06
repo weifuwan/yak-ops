@@ -1,6 +1,7 @@
 package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.enums.ResourceType;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
@@ -39,7 +40,7 @@ final class DataSyncPipelineBuilder {
         sourceOptions.put("hostname", uri.getHost());
         sourceOptions.put("port", uri.getPort() < 0 ? 3306 : uri.getPort());
         sourceOptions.put("username", sourceConnection.path("user").asText());
-        sourceOptions.put("password", sourceConnection.path("password").asText());
+        sourceOptions.put("password", PasswordUtils.decodePassword(sourceConnection.path("password").asText()));
         sourceOptions.put("tables", Pattern.quote(input.path()));
         sourceOptions.put("server-id", serverId + "-" + (serverId + 4));
         sourceOptions.put("scan.startup.mode", "initial");
@@ -53,7 +54,7 @@ final class DataSyncPipelineBuilder {
         sinkOptions.put("type", "jdbc");
         sinkOptions.put("url", targetUrl);
         sinkOptions.put("username", targetConnection.path("user").asText());
-        sinkOptions.put("password", targetConnection.path("password").asText());
+        sinkOptions.put("password", PasswordUtils.decodePassword(targetConnection.path("password").asText()));
 
         Map<String, Object> route = new LinkedHashMap<>();
         route.put("source-table", Pattern.quote(input.path()));

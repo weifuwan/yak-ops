@@ -2,6 +2,8 @@ package io.yak.ops.api.service.impl;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.enums.ExecuteType;
+import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.service.ExecutorService;
 import io.yak.ops.api.service.ProjectService;
@@ -53,6 +55,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -91,7 +95,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                                               int pageNo, int pageSize, String keyword, String status) {
         authorizeRead(user, projectCode);
         if (status != null && !"PUBLISHED".equals(status) && !"UNPUBLISHED".equals(status)) {
-            throw new IllegalArgumentException("Unsupported task status: " + status);
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "status");
         }
         String search = keyword == null ? null : keyword.trim();
         Long taskCode = null;
@@ -132,7 +136,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             for (TaskDefinition definition : page.getRecords()) {
                 WorkflowDefinition workflow = workflowsByTask.get(definition.getCode());
                 if (workflow == null) {
-                    throw new IllegalStateException("Execution mapping not found for task: " + definition.getCode());
+                    throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST, definition.getCode());
                 }
                 rows.add(toTaskVO(definition, workflow));
             }
@@ -172,10 +176,10 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         TaskDefinition original = requireTask(projectCode, taskCode);
         WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
-            throw new IllegalStateException("Unpublish the data synchronization task before editing");
+            throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
         }
         if (request.getExpectedRevision() == null || request.getExpectedRevision() != original.getVersion()) {
-            throw new IllegalStateException("Task definition has changed; reload before updating");
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "expectedRevision");
         }
         JsonNode parameters = request.getParameters() == null
                 ? JSONUtils.parseObject(original.getTaskParams())
@@ -223,7 +227,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
-            throw new IllegalStateException("Unpublish the task before deletion");
+            throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
         }
         workflowDefinitionService.deleteWorkflowDefinitionByCode(user, workflow.getCode());
     }
@@ -248,7 +252,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         requireTask(projectCode, taskCode);
         TaskDefinition historical = taskDefinitionDao.findTaskDefinition(taskCode, version);
         if (historical == null) {
-            throw new IllegalArgumentException("Task version not found");
+            throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, taskCode);
         }
         return toTaskVersionVO(historical);
     }
@@ -272,7 +276,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
-            throw new IllegalStateException("Publish the data synchronization task before starting");
+            throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(), definition.getVersion());
         }
         ensureStopped(workflow.getCode());
         Integer runId = executorService.triggerWorkflowDefinition(
@@ -333,7 +337,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             case "CANCELLING":
                 return new int[]{-1};
             default:
-                throw new IllegalArgumentException("Unsupported task instance status: " + status);
+                throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "status");
         }
     }
 
@@ -346,13 +350,13 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         }
         Set<Long> requested = new HashSet<>(taskCodes);
         if (requested.contains(null)) {
-            throw new IllegalArgumentException("Task code must not be null");
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "taskCodes");
         }
         List<TaskDefinition> definitions = taskDefinitionDao.queryByCodes(requested);
         if (definitions.size() != requested.size() || definitions.stream()
                 .anyMatch(definition -> definition.getProjectCode() != projectCode
                         || !TASK_TYPE.equals(definition.getTaskType()))) {
-            throw new IllegalArgumentException("Data synchronization task not found in project");
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
         }
         int[] states = activeOnly ? new int[]{
                 TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
@@ -376,7 +380,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         TaskDefinition definition = taskDefinitionDao.findTaskDefinition(
                 instance.getTaskCode(), instance.getTaskDefinitionVersion());
         if (definition == null) {
-            throw new IllegalArgumentException("Task definition version not found");
+            throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, instance.getTaskCode());
         }
         return new DataSyncDefinitionVO(String.valueOf(definition.getCode()), definition.getVersion(),
                 definition.getName(), definition.getTaskType(), PARAMETER_SCHEMA_VERSION,
@@ -435,7 +439,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     private TaskDefinition requireTask(long projectCode, long taskCode) {
         TaskDefinition task = taskDefinitionDao.queryByCode(taskCode);
         if (task == null || task.getProjectCode() != projectCode || !TASK_TYPE.equals(task.getTaskType())) {
-            throw new IllegalArgumentException("Data synchronization task not found: " + taskCode);
+            throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, taskCode);
         }
         return task;
     }
@@ -462,13 +466,13 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         workflowDefinitionDao.lockByCode(workflow.getCode());
         return workflowDefinitionDao.queryByCode(workflow.getCode())
-                .orElseThrow(() -> new IllegalArgumentException("Workflow no longer exists"));
+                .orElseThrow(() -> new ServiceException(Status.WORKFLOW_DEFINITION_NOT_EXIST, workflow.getCode()));
     }
 
     private WorkflowDefinition requireWorkflow(long projectCode, long taskCode) {
         WorkflowDefinition workflow = findWorkflow(projectCode, taskCode);
         if (workflow == null) {
-            throw new IllegalArgumentException("Execution mapping not found for task: " + taskCode);
+            throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST, taskCode);
         }
         return workflow;
     }
@@ -476,7 +480,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     private void ensureStopped(long workflowCode) {
         if (!workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(
                 workflowCode, WorkflowExecutionStatus.NOT_TERMINAL_STATES).isEmpty()) {
-            throw new IllegalStateException("Data synchronization is already running");
+            throw new ServiceException(Status.WORKFLOW_INSTANCE_EXIST, workflowCode);
         }
     }
 
@@ -485,7 +489,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         TaskInstance instance = taskInstanceDao.queryById(instanceId);
         if (instance == null || !Objects.equals(instance.getProjectCode(), projectCode)
                 || !TASK_TYPE.equals(instance.getTaskType())) {
-            throw new IllegalArgumentException("Data synchronization instance not found");
+            throw new ServiceException(Status.TASK_INSTANCE_NOT_EXISTS, instanceId);
         }
         return instance;
     }
@@ -586,23 +590,47 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     private void validate(String name, JsonNode parameters, long projectCode) {
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Task name must not be empty");
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "name");
         }
         if (parameters == null || !parameters.isObject()) {
-            throw new IllegalArgumentException("Data synchronization parameters are required");
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters");
         }
+        rejectCredentials(parameters);
         AbstractParameters params = TaskPluginManager.parseTaskParameters(TASK_TYPE,
                 JSONUtils.toJsonString(parameters));
         if (params == null || !params.checkParameters()) {
-            throw new IllegalArgumentException(
-                    "Unsupported DATA_SYNC configuration: requires a MySQL table with initial snapshot and streaming updates");
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters");
         }
         int sourceId = parameters.path("source").path("datasourceId").asInt();
         int targetId = parameters.path("sink").path("datasourceId").asInt();
         DataSource source = dataSourceDao.queryByIdAndProjectCode(sourceId, projectCode);
         DataSource sink = dataSourceDao.queryByIdAndProjectCode(targetId, projectCode);
         if (source == null || sink == null || source.getType() != DbType.MYSQL || sink.getType() != DbType.MYSQL) {
-            throw new IllegalArgumentException("Source and target must be MySQL datasources in the current project");
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+    }
+
+    private static void rejectCredentials(JsonNode parameters) {
+        if (parameters.isArray()) {
+            for (JsonNode item : parameters) {
+                rejectCredentials(item);
+            }
+            return;
+        }
+        if (!parameters.isObject()) {
+            return;
+        }
+        Iterator<Map.Entry<String, JsonNode>> fields = parameters.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String key = field.getKey().replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+            if ("password".equals(key) || "passwd".equals(key) || "token".equals(key)
+                    || "secret".equals(key) || "secretkey".equals(key)
+                    || "accesskey".equals(key) || "apikey".equals(key)
+                    || "privatekey".equals(key) || "credentials".equals(key)) {
+                throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, field.getKey());
+            }
+            rejectCredentials(field.getValue());
         }
     }
 

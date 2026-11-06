@@ -7,6 +7,7 @@ public final class AuditLogConstants {
     }
 
     public static final String CODE = "code";
+    public static final String TASK_CODE = "taskCode";
     public static final String CODES = "codes";
     public static final String VERSION = "version";
     public static final String WORKFLOW_DEFINITION_CODES = "workflowDefinitionCodes";
