@@ -86,4 +86,12 @@ test("unsupported source, schema policy, and transforms cannot silently degrade"
   const transform = valid();
   transform.transform.push({ "source-table": "src_db.orders", projection: "*" });
   assert.throws(() => encodeNativePipelineParameters(transform), /MySQL/);
+
+  const sourceRead = valid();
+  sourceRead.source.tables[0].read = { where: "id > 0" };
+  assert.throws(() => encodeNativePipelineParameters(sourceRead), /MySQL/);
+
+  const sinkBatch = valid();
+  sinkBatch.sink.tables[0].write.batchSize = 500;
+  assert.throws(() => encodeNativePipelineParameters(sinkBatch), /MySQL/);
 });
