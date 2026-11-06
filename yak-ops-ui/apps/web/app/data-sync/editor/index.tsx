@@ -366,7 +366,7 @@ export function TaskEditor({
   });
   const { saving } = submission;
   const locked =
-    executionLocked || saving || Boolean(submission.pendingWrite || submission.retryPublication);
+    Boolean(saved?.archived) || executionLocked || saving || Boolean(submission.pendingWrite || submission.retryPublication);
   useEffect(() => {
     if (!executionLocked) return;
     setDrawer(undefined);

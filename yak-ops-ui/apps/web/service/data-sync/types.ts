@@ -378,6 +378,7 @@ export interface DataSyncTaskRecord {
   name: string;
   syncType: DataSyncType | string;
   status: DataSyncTaskStatus | string;
+  archived?: boolean;
   writeMode: DataSyncWriteMode | string;
   sourceDataSourceId: string;
   sourceDatabase?: string;
@@ -412,6 +413,7 @@ export interface DataSyncUnreadableTaskRecord {
   id: string;
   name: string;
   status: DataSyncTaskStatus | string;
+  archived?: boolean;
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
@@ -427,6 +429,7 @@ export interface TaskDefinitionRecord {
   name: string;
   taskType: string;
   status: DataSyncTaskStatus | string;
+  archived?: boolean;
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;

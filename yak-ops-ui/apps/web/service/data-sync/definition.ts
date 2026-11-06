@@ -236,6 +236,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
     syncType: pipelineSyncType(parameters),
     status: definition.status,
+    archived: definition.archived ?? false,
     writeMode: mapping.writeMode,
     sourceRead: mapping.source.read ? { ...mapping.source.read } : undefined,
     sourceOptions: mapping.source.options ? { ...mapping.source.options } : undefined,
@@ -285,10 +286,11 @@ export function projectSyncTaskPage(page: PageInfo<TaskDefinitionRecord>): PageI
           id: definition.id,
           name: definition.name,
           status: definition.status,
+          archived: definition.archived ?? false,
           definitionVersion: definition.definitionVersion,
           revision: definition.revision,
           publishedVersion: definition.publishedVersion,
-                      updateBy: definition.updateBy,
+          updateBy: definition.updateBy,
           updateTime: definition.updateTime,
           configurationError:
             error instanceof SyntaxError
