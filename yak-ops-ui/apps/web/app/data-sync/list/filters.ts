@@ -12,7 +12,7 @@ export function parseTaskListFilters(search: URLSearchParams): TaskListFilters {
   return {
     pageNo: Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1,
     keyword: search.get("keyword")?.trim() || "",
-    status: status === "PUBLISHED" || status === "UNPUBLISHED" ? status : "ALL",
+    status: status === "ONLINE" || status === "OFFLINE" ? status : "ALL",
   };
 }
 

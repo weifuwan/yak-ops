@@ -11,16 +11,16 @@ import {
 
 export const DATA_SYNC_TASK_STATUS_ITEMS: Record<DataSyncTaskStatus | "ALL", string> = {
   ALL: "全部状态",
-  PUBLISHED: "已上线",
-  UNPUBLISHED: "已下线",
+  ONLINE: "已上线",
+  UNONLINE: "已下线",
 };
 
-export const isPublishedTask = (record: DataSyncTaskRecord) => record.status === "PUBLISHED";
+export const isPublishedTask = (record: DataSyncTaskRecord) => record.status === "ONLINE";
 
 export const taskStatusMeta = (
   status: DataSyncTaskStatus | string,
 ): { label: string; tone: BadgeProps["tone"] } =>
-  status === "PUBLISHED"
+  status === "ONLINE"
     ? { label: "已上线", tone: "success" }
     : { label: "已下线", tone: "neutral" };
 

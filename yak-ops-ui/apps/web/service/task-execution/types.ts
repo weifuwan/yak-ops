@@ -1,13 +1,15 @@
 /** Public Task Execution responses from the Boot API. */
 export type TaskInstanceStatus =
-  | "SUBMITTED"
-  | "LAUNCHING"
-  | "RUNNING"
-  | "CANCELLING"
-  | "RECONCILING"
-  | "FINISHED"
-  | "FAILED"
-  | "CANCELED";
+  | "SUBMITTED_SUCCESS"
+  | "DISPATCH"
+  | "RUNNING_EXECUTION"
+  | "DELAY_EXECUTION"
+  | "NEED_FAULT_TOLERANCE"
+  | "SUCCESS"
+  | "FORCED_SUCCESS"
+  | "FAILURE"
+  | "PAUSE"
+  | "KILL";
 
 export interface TaskSubmissionResult {
   instanceId: string;

@@ -346,7 +346,7 @@ export interface DataSyncParameters {
 /** MySQL CDC startup position, including specific file/GTID/timestamp fields. */
 export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["startup"]>;
 
-export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
+export type DataSyncTaskStatus = "OFFLINE" | "ONLINE";
 
 export interface DataSyncTaskRecord {
   tableScope?: "SINGLE" | "DATABASE";

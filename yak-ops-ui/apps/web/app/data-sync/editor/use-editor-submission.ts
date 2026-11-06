@@ -235,7 +235,7 @@ export function useEditorSubmission(input: SaveInput) {
         toast.success("已确认任务保存成功");
       } else if (pendingWrite.kind === "publish") {
         const publication = pendingWrite.publication;
-        if (task.status === "PUBLISHED" && task.publishedVersion === publication.version) {
+        if (task.status === "ONLINE" && task.publishedVersion === publication.version) {
           const adopted = persisted(task);
           if (adopted) setPendingWrite(undefined);
           setRetryPublication(undefined);

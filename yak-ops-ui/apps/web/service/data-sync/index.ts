@@ -3,7 +3,6 @@ import type { PageInfo } from "@/service/http/page-info";
 import { BizError } from "@/service/http/request";
 import type {
   TaskInstanceRecord,
-  TaskInstanceStatus,
   TaskSubmissionResult,
   TaskInstanceDefinitionRecord,
   TaskLogPageRecord,
@@ -258,9 +257,8 @@ export const listLatestDataSyncTaskInstances = async (
   );
 };
 
-export const cancelDataSyncInstance = async (id: string): Promise<TaskInstanceStatus> => {
-  await HttpUtils.postData<void>((instanceUrl(id)) + "/stop");
-  return "CANCELLING";
+export const cancelDataSyncInstance = async (id: string): Promise<void> => {
+  await HttpUtils.postData<void>(instanceUrl(id) + "/stop");
 };
 
 export const getDataSyncInstanceLogs = async (

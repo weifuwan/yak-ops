@@ -30,7 +30,7 @@ export function useExecutionActions({
   const [running, setRunning] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const run = async () => {
-    if (!taskId || running || !canStart || task?.configurationError || task?.status !== "PUBLISHED")
+    if (!taskId || running || !canStart || task?.configurationError || task?.status !== "ONLINE")
       return;
     setRunning(true);
     try {

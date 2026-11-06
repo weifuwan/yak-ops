@@ -74,7 +74,7 @@ export function EditorFooter({
           variant="primary"
           loading={saving}
           disabled={
-            locked || (!dirty && task?.status === "PUBLISHED" && !task.hasUnpublishedChanges)
+            locked || (!dirty && task?.status === "ONLINE" && !task.hasUnpublishedChanges)
           }
           onClick={onPublish}
         >

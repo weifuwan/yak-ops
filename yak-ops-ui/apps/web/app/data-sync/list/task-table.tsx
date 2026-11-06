@@ -242,7 +242,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
                 !instancesReady ||
                 (activeByTask.has(record.id)
                   ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
-                  : record.status !== "PUBLISHED"),
+                  : record.status !== "ONLINE"),
               onClick: () => {
                 const active = activeByTask.get(record.id);
                 if (active) stopTask(record, active);
