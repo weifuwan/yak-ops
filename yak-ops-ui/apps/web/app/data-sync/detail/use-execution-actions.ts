@@ -40,7 +40,7 @@ export function useExecutionActions({
         await refreshActiveInstances();
         return;
       }
-      await runDataSyncTask(taskId);
+      await runDataSyncTask(task!.workflowCode);
       toast.success("运行请求已提交");
       await refreshActiveInstances();
       const latest = await listLatestDataSyncTaskInstances([taskId], true);
@@ -53,7 +53,8 @@ export function useExecutionActions({
     if (!selectedInstance || !canCancelTaskInstance(selectedInstance.status) || canceling) return;
     setCanceling(true);
     try {
-      await cancelDataSyncInstance(selectedInstance.id);
+      if (!selectedInstance.workflowInstanceId) throw new Error("缺少工作流实例编号");
+      await cancelDataSyncInstance(selectedInstance.workflowInstanceId);
       toast.success("已发送停止请求");
       await Promise.all([refreshAfterCancel(), refreshActiveInstances()]);
     } finally {

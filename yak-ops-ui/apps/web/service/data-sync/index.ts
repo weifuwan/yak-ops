@@ -153,14 +153,14 @@ export const deleteDataSyncTask = async (id: string) => {
 
 export const publishDataSyncTask = async (
   id: string,
-  _payload?: PublishTaskRequest,
+  payload: PublishTaskRequest,
   signal?: AbortSignal,
   locallyHandled = false,
 ): Promise<DataSyncTaskRecord> =>
   toSyncTaskRecord(
     await HttpUtils.postData<TaskDefinitionRecord>(
       url("/tasks/" + encodeURIComponent(id) + "/publish"),
-      undefined,
+      payload,
       { signal, skipErrorHandler: locallyHandled },
     ),
   );
@@ -207,10 +207,30 @@ export const getTaskDefinitionVersion = async (id: string, version: number, sign
     { signal },
   );
 
-export const runDataSyncTask = async (id: string): Promise<{ workflowInstanceId: number }> =>
-  HttpUtils.postData<{ workflowInstanceId: number }>(
-    url("/tasks/" + encodeURIComponent(id) + "/start"),
+export const runDataSyncTask = async (
+  workflowCode: string,
+  options?: { workerGroup?: string; startParams?: Record<string, string> },
+): Promise<{ workflowInstanceId: number }> => {
+  const ids = await HttpUtils.postData<number[]>(
+    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
+      "/executors/start-workflow-instance?" +
+      qp({
+        workflowDefinitionCode: workflowCode,
+        execType: "START_PROCESS",
+        failureStrategy: "END",
+        taskDependType: "TASK_POST",
+        warningType: "NONE",
+        workflowInstancePriority: "MEDIUM",
+        workerGroup: options?.workerGroup || "default",
+        tenantCode: "default",
+        dryRun: 0,
+        startParams: options?.startParams ? JSON.stringify(options.startParams) : undefined,
+      }),
+    undefined,
   );
+  if (!ids?.length) throw new Error("工作流启动未返回实例编号");
+  return { workflowInstanceId: ids[0] };
+};
 
 const instanceUrl = (id: string, base = url("")) => base + "/instances/" + encodeURIComponent(id);
 
@@ -247,6 +267,7 @@ export const listDataSyncInstances = async (
       taskId: instance.definitionId,
       taskName: instance.taskName,
       taskVersion: instance.definitionVersion,
+      workflowInstanceId: instance.workflowInstanceId,
       syncType: "REALTIME" as const,
       triggerType: instance.triggerType,
       status: instance.status,
@@ -269,8 +290,12 @@ export const listLatestDataSyncTaskInstances = async (
   );
 };
 
-export const cancelDataSyncInstance = async (id: string): Promise<void> => {
-  await HttpUtils.postData<void>(instanceUrl(id) + "/stop");
+export const cancelDataSyncInstance = async (workflowInstanceId: number): Promise<void> => {
+  await HttpUtils.postData<void>(
+    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
+      "/executors/execute?" + qp({ workflowInstanceId, executeType: "STOP" }),
+    undefined,
+  );
 };
 
 export const getDataSyncInstanceLogs = async (

@@ -22,6 +22,7 @@ export interface TaskInstanceRecord {
   id: string;
   definitionId: string;
   definitionVersion: number;
+  workflowInstanceId?: number;
   debug?: boolean;
   taskType: string;
   triggerType?: string;

@@ -67,6 +67,7 @@ export function toDataSyncInstanceRecord(
     taskId: instance.definitionId,
     taskName,
     taskVersion: instance.definitionVersion,
+    workflowInstanceId: instance.workflowInstanceId,
     syncType,
     triggerType: instance.triggerType,
     scheduleId: instance.scheduleId,

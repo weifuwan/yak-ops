@@ -559,6 +559,7 @@ export interface DataSyncDefinitionSnapshot {
 
 export interface DataSyncInstanceRecord {
   executionReport?: DataSyncExecutionReport;
+  workflowInstanceId?: number;
   id: string;
   productType: DataSyncProductType;
   steps: DataSyncStep[];
@@ -587,6 +588,7 @@ export interface DataSyncInstanceRecord {
 
 export interface DataSyncInstanceSummary {
   id: string;
+  workflowInstanceId?: number;
   taskId: string;
   taskName: string;
   taskVersion: number;

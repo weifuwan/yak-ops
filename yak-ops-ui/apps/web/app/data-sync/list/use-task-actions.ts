@@ -22,10 +22,11 @@ export function useTaskListActions(scope: string) {
     mutationFn: async (command: TaskCommand) => {
       switch (command.kind) {
         case "run":
-          await runDataSyncTask(command.task.id);
+          await runDataSyncTask(command.task.workflowCode);
           break;
         case "stop":
-          await cancelDataSyncInstance(command.instance.id);
+          if (!command.instance.workflowInstanceId) throw new Error("缺少工作流实例编号");
+          await cancelDataSyncInstance(command.instance.workflowInstanceId);
           break;
         case "publish":
           await publishDataSyncTask(command.task.id, {
