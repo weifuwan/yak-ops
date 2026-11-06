@@ -317,7 +317,11 @@ public class DataSyncMvpController {
                 .pageQueryTaskInstanceLog(request);
         String content = page.getLogContent() == null ? "" : page.getLogContent();
         result.put("content", content);
-        result.put("offset", offset + content.split("\\r?\\n", -1).length - (content.isEmpty() ? 1 : 0));
+        int count = content.isEmpty() ? 0 : content.split("\\r?\\n", -1).length;
+        if (content.endsWith("\\n")) {
+            count--;
+        }
+        result.put("offset", offset + count);
         return Result.success(result);
     }
 

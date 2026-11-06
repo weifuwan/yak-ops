@@ -212,6 +212,12 @@ export function DataSyncMvpPage() {
   const [tab, setTab] = useState<"tasks" | "instances">("tasks");
   const [createOpen, setCreateOpen] = useState(false);
   const [logInstance, setLogInstance] = useState<SyncMvpInstance | null>(null);
+  const [logText, setLogText] = useState("");
+  const [logOffset, setLogOffset] = useState(0);
+  useEffect(() => {
+    setLogText("");
+    setLogOffset(0);
+  }, [logInstance?.id]);
 
   const projects = useQuery({
     queryKey: ["sync-mvp-projects", currentUser?.id],
@@ -270,11 +276,18 @@ export function DataSyncMvpPage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "停止失败"),
   });
   const logs = useQuery({
-    queryKey: ["sync-mvp-logs", currentUser?.id, projectCode, logInstance?.id],
-    queryFn: () => getSyncMvpLogs(projectCode, logInstance!.id!),
+    queryKey: ["sync-mvp-logs", currentUser?.id, projectCode, logInstance?.id, logOffset],
+    queryFn: () => getSyncMvpLogs(projectCode, logInstance!.id!, logOffset),
     enabled: Boolean(projectCode && logInstance?.id),
     refetchInterval: 3000,
   });
+  useEffect(() => {
+    if (!logs.data) return;
+    if (logs.data.content) {
+      setLogText((current) => (current + logs.data!.content).slice(-100_000));
+    }
+    setLogOffset(logs.data.offset);
+  }, [logs.data]);
 
   const route = (task: SyncMvpTask) => {
     const source = task.parameters.source;
@@ -425,11 +438,11 @@ export function DataSyncMvpPage() {
           <div className="max-h-[60vh] overflow-auto rounded bg-[#101828] p-4 text-xs leading-5 text-gray-100">
             <pre className="whitespace-pre-wrap break-all">
               {logs.isError ? "日志暂不可用，请检查 Worker 是否在线。" :
-                logs.data?.content || "暂无日志，任务启动后会自动刷新。"}
+                logText || "暂无日志，任务启动后会自动刷新。"}
             </pre>
           </div>
           <p className="mt-2 text-xs text-[var(--yak-components-muted-text)]">
-            每 3 秒刷新；当前显示日志前 200 行。
+            每 3 秒获取新增日志，每次最多 200 行；窗口保留最近 100 KB。
           </p>
         </Modal>
       ) : null}

@@ -74,5 +74,5 @@ export const stopSyncMvpInstance = (projectCode: string, instanceId: string) =>
 export const getSyncMvpLogs = (projectCode: string, instanceId: string, offset = 0) =>
   HttpUtils.getData<{ content: string; offset: number }>(
     API + "/instances/" + encodeURIComponent(instanceId) + "/logs?" +
-      new URLSearchParams({ projectCode, offset: String(offset) }),
+      new URLSearchParams({ projectCode, offset: String(offset) }).toString(),
   );
