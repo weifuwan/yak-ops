@@ -14,6 +14,31 @@ import java.util.List;
 
 public interface DataSourceService {
 
+    DataSource createDataSource(User loginUser, long projectCode, BaseDataSourceParamDTO datasourceParam);
+
+    DataSource updateDataSource(User loginUser, long projectCode, BaseDataSourceParamDTO datasourceParam);
+
+    BaseDataSourceParamDTO queryDataSource(User loginUser, long projectCode, int id);
+
+    PageInfo<DataSource> queryDataSourceListPaging(User loginUser, long projectCode,
+                                                  String searchVal, Integer pageNo, Integer pageSize);
+
+    List<DataSource> queryDataSourceList(User loginUser, long projectCode, Integer type);
+
+    void verifyDataSourceName(long projectCode, User loginUser, String name);
+
+    void connectionTest(User loginUser, long projectCode, int id);
+
+    void delete(User loginUser, long projectCode, int datasourceId);
+
+    List<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database);
+
+    List<ParamsOptions> getTableColumns(User loginUser, long projectCode, Integer id,
+                                        String database, String table);
+
+    List<ParamsOptions> getDatabases(User loginUser, long projectCode, Integer id);
+
+
     /**
      * create a new datasource
      *

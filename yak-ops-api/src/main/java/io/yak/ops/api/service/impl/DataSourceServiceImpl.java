@@ -7,6 +7,7 @@ import io.yak.ops.api.constants.ApiFuncIdentificationConstant;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSourceService;
+import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSourceSimpleInfoVO;
 import io.yak.ops.common.constants.Constants;
@@ -63,6 +64,39 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     @Autowired
     private DataSourceUserDao datasourceUserDao;
 
+    @Autowired
+    private ProjectService projectService;
+
+    private void checkProjectRead(User user, long projectCode) {
+        projectService.checkProjectAndAuthThrowException(user, projectCode, null);
+    }
+
+    private DataSource checkProjectDataSource(User user, long projectCode, int id, boolean write) {
+        DataSource source = dataSourceDao.queryByIdAndProjectCode(id, projectCode);
+        if (source == null) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST);
+        }
+        if (write) {
+            projectService.checkHasProjectWritePermissionThrowException(user, projectCode);
+        } else {
+            checkProjectRead(user, projectCode);
+        }
+        return source;
+    }
+
+    private void checkDataSourcePermission(User user, DataSource source, boolean write, String permission) {
+        if (source.getProjectCode() > 0) {
+            if (write) {
+                projectService.checkHasProjectWritePermissionThrowException(user, source.getProjectCode());
+            } else {
+                checkProjectRead(user, source.getProjectCode());
+            }
+        } else if (!canOperatorPermissions(user, new Object[]{source.getId()},
+                AuthorizationType.DATASOURCE, permission)) {
+            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
+        }
+    }
+
     private static final String TABLE = "TABLE";
     private static final String VIEW = "VIEW";
     private static final String[] TABLE_TYPES = new String[]{TABLE, VIEW};
@@ -71,13 +105,26 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
 
     @Override
     public DataSource createDataSource(User loginUser, BaseDataSourceParamDTO datasourceParam) {
+        return createDataSourceRecord(loginUser, 0L, datasourceParam);
+    }
+
+    @Override
+    public DataSource createDataSource(User loginUser, long projectCode, BaseDataSourceParamDTO datasourceParam) {
+        projectService.checkHasProjectWritePermissionThrowException(loginUser, projectCode);
+        return createDataSourceRecord(loginUser, projectCode, datasourceParam);
+    }
+
+    private DataSource createDataSourceRecord(User loginUser, long projectCode,
+                                              BaseDataSourceParamDTO datasourceParam) {
         DataSourceUtils.checkDatasourceParam(datasourceParam);
         if (!canOperatorPermissions(loginUser, null, AuthorizationType.DATASOURCE,
                 ApiFuncIdentificationConstant.DATASOURCE_CREATE_DATASOURCE)) {
             throw new ServiceException(Status.USER_NO_OPERATION_PERM);
         }
         // check name can use or not
-        if (checkName(datasourceParam.getName())) {
+        if (projectCode > 0
+                ? dataSourceDao.existsByProjectCodeAndName(projectCode, datasourceParam.getName().trim(), null)
+                : checkName(datasourceParam.getName())) {
             throw new ServiceException(Status.DATASOURCE_EXIST);
         }
         if (checkDescriptionLength(datasourceParam.getNote())) {
@@ -92,6 +139,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         dataSource.setName(datasourceParam.getName().trim());
         dataSource.setNote(datasourceParam.getNote());
         dataSource.setUserId(loginUser.getId());
+        dataSource.setProjectCode(projectCode);
         dataSource.setUserName(loginUser.getUserName());
         dataSource.setType(datasourceParam.getType());
         dataSource.setConnectionParams(JSONUtils.toJsonString(connectionParam));
@@ -108,6 +156,13 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public DataSource updateDataSource(User loginUser, long projectCode,
+                                       BaseDataSourceParamDTO dataSourceParam) {
+        checkProjectDataSource(loginUser, projectCode, dataSourceParam.getId(), true);
+        return updateDataSource(loginUser, dataSourceParam);
+    }
+
+    @Override
     public DataSource updateDataSource(User loginUser, BaseDataSourceParamDTO dataSourceParam) {
         DataSourceUtils.checkDatasourceParam(dataSourceParam);
         // determine whether the data source exists
@@ -116,13 +171,14 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             throw new ServiceException(Status.RESOURCE_NOT_EXIST);
         }
 
-        if (!canOperatorPermissions(loginUser, new Object[]{dataSource.getId()}, AuthorizationType.DATASOURCE,
-                DATASOURCE_UPDATE)) {
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
+        checkDataSourcePermission(loginUser, dataSource, true, DATASOURCE_UPDATE);
 
         // check name can use or not
-        if (!dataSourceParam.getName().trim().equals(dataSource.getName()) && checkName(dataSourceParam.getName())) {
+        if (!dataSourceParam.getName().trim().equals(dataSource.getName())
+                && (dataSource.getProjectCode() > 0
+                ? dataSourceDao.existsByProjectCodeAndName(dataSource.getProjectCode(),
+                        dataSourceParam.getName().trim(), dataSource.getId())
+                : checkName(dataSourceParam.getName()))) {
             throw new ServiceException(Status.DATASOURCE_EXIST);
         }
         if (checkDescriptionLength(dataSourceParam.getNote())) {
@@ -172,6 +228,12 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public BaseDataSourceParamDTO queryDataSource(User loginUser, long projectCode, int id) {
+        checkProjectDataSource(loginUser, projectCode, id, false);
+        return queryDataSource(id, loginUser);
+    }
+
+    @Override
     public BaseDataSourceParamDTO queryDataSource(int id, User loginUser) {
         DataSource dataSource = dataSourceDao.queryById(id);
         if (dataSource == null) {
@@ -179,10 +241,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             throw new ServiceException(Status.RESOURCE_NOT_EXIST);
         }
 
-        if (!canOperatorPermissions(loginUser, new Object[]{id}, AuthorizationType.DATASOURCE,
-                ApiFuncIdentificationConstant.DATASOURCE)) {
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
+        checkDataSourcePermission(loginUser, dataSource, false, ApiFuncIdentificationConstant.DATASOURCE);
 
         // type
         BaseDataSourceParamDTO baseDataSourceParamDTO = DataSourceUtils.buildDatasourceParamDTO(
@@ -196,6 +255,20 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         }
 
         return baseDataSourceParamDTO;
+    }
+
+    @Override
+    public PageInfo<DataSource> queryDataSourceListPaging(User loginUser, long projectCode, String searchVal,
+                                                          Integer pageNo, Integer pageSize) {
+        checkProjectRead(loginUser, projectCode);
+        Page<DataSource> page = new Page<>(pageNo, pageSize);
+        IPage<DataSource> result = dataSourceDao.queryByProjectCode(page, projectCode, searchVal);
+        List<DataSource> sources = result.getRecords();
+        handlePasswd(sources);
+        PageInfo<DataSource> info = new PageInfo<>(pageNo, pageSize);
+        info.setTotal((int) result.getTotal());
+        info.setTotalList(sources);
+        return info;
     }
 
     @Override
@@ -266,6 +339,14 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public List<DataSource> queryDataSourceList(User loginUser, long projectCode, Integer type) {
+        checkProjectRead(loginUser, projectCode);
+        List<DataSource> sources = dataSourceDao.queryByProjectCodeAndType(projectCode, type);
+        handlePasswd(sources);
+        return sources;
+    }
+
+    @Override
     public List<DataSource> queryDataSourceList(User loginUser, Integer type) {
 
         List<DataSource> datasourceList;
@@ -287,6 +368,14 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public void verifyDataSourceName(long projectCode, User loginUser, String name) {
+        checkProjectRead(loginUser, projectCode);
+        if (dataSourceDao.existsByProjectCodeAndName(projectCode, name.trim(), null)) {
+            throw new ServiceException(Status.DATASOURCE_EXIST);
+        }
+    }
+
+    @Override
     public void verifyDataSourceName(String name) {
         List<DataSource> dataSourceList = dataSourceDao.queryDataSourceByName(name);
         if (dataSourceList != null && !dataSourceList.isEmpty()) {
@@ -302,6 +391,12 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             return;
         }
         throw new ServiceException(Status.CONNECTION_TEST_FAILURE);
+    }
+
+    @Override
+    public void connectionTest(User loginUser, long projectCode, int id) {
+        checkProjectDataSource(loginUser, projectCode, id, false);
+        connectionTest(loginUser, id);
     }
 
     @Override
@@ -323,6 +418,13 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
 
     @Override
     @Transactional
+    public void delete(User loginUser, long projectCode, int datasourceId) {
+        checkProjectDataSource(loginUser, projectCode, datasourceId, true);
+        delete(loginUser, datasourceId);
+    }
+
+    @Override
+    @Transactional
     public void delete(User loginUser, int datasourceId) {
         // query datasource by id
         DataSource dataSource = dataSourceDao.queryById(datasourceId);
@@ -331,10 +433,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             throw new ServiceException(Status.RESOURCE_NOT_EXIST);
         }
 
-        if (!canOperatorPermissions(loginUser, new Object[]{datasourceId}, AuthorizationType.DATASOURCE,
-                DATASOURCE_DELETE)) {
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
+        checkDataSourcePermission(loginUser, dataSource, true, DATASOURCE_DELETE);
 
         dataSourceDao.deleteById(datasourceId);
         datasourceUserDao.deleteByDatasourceId(datasourceId);
@@ -373,6 +472,13 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public List<ParamsOptions> getTables(User loginUser, long projectCode,
+                                        Integer datasourceId, String database) {
+        checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+        return getTables(loginUser, datasourceId, database);
+    }
+
+    @Override
     public List<ParamsOptions> getTables(User loginUser, Integer datasourceId, String database) {
         DataSource dataSource = dataSourceDao.queryById(datasourceId);
 
@@ -380,10 +486,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             throw new ServiceException(Status.QUERY_DATASOURCE_ERROR);
         }
 
-        if (!canOperatorPermissions(loginUser, new Object[]{datasourceId}, AuthorizationType.DATASOURCE,
-                ApiFuncIdentificationConstant.DATASOURCE)) {
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
+        checkDataSourcePermission(loginUser, dataSource, false, ApiFuncIdentificationConstant.DATASOURCE);
 
         List<String> tableList;
         BaseConnectionParam connectionParam =
@@ -442,6 +545,13 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public List<ParamsOptions> getTableColumns(User loginUser, long projectCode, Integer datasourceId,
+                                               String database, String table) {
+        checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+        return getTableColumns(loginUser, datasourceId, database, table);
+    }
+
+    @Override
     public List<ParamsOptions> getTableColumns(User loginUser, Integer datasourceId, String database,
                                                String tableName) {
         DataSource dataSource = dataSourceDao.queryById(datasourceId);
@@ -450,10 +560,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             throw new ServiceException(Status.QUERY_DATASOURCE_ERROR);
         }
 
-        if (!canOperatorPermissions(loginUser, new Object[]{datasourceId}, AuthorizationType.DATASOURCE,
-                ApiFuncIdentificationConstant.DATASOURCE)) {
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
+        checkDataSourcePermission(loginUser, dataSource, false, ApiFuncIdentificationConstant.DATASOURCE);
 
         BaseConnectionParam connectionParam =
                 (BaseConnectionParam) DataSourceUtils.buildConnectionParams(
@@ -499,6 +606,12 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
+    public List<ParamsOptions> getDatabases(User loginUser, long projectCode, Integer datasourceId) {
+        checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+        return getDatabases(loginUser, datasourceId);
+    }
+
+    @Override
     public List<ParamsOptions> getDatabases(User loginUser, Integer datasourceId) {
 
         DataSource dataSource = dataSourceDao.queryById(datasourceId);
@@ -507,10 +620,7 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
             throw new ServiceException(Status.QUERY_DATASOURCE_ERROR);
         }
 
-        if (!canOperatorPermissions(loginUser, new Object[]{datasourceId}, AuthorizationType.DATASOURCE,
-                ApiFuncIdentificationConstant.DATASOURCE)) {
-            throw new ServiceException(Status.USER_NO_OPERATION_PERM);
-        }
+        checkDataSourcePermission(loginUser, dataSource, false, ApiFuncIdentificationConstant.DATASOURCE);
 
         List<String> tableList;
         BaseConnectionParam connectionParam =
