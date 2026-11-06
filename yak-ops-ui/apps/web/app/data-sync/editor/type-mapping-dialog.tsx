@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, Button, Modal, Table, type TableColumns } from "@yak-ops/yak-ui";
 import type { DataSyncCapabilities, DataSyncTypeMapping } from "@/service/data-sync";
 import { validateTypeMappings } from "@/service/data-sync/table-configuration";
-import { parameterFingerprint } from "@/service/data-sync/versions";
+import { pipelineFingerprint } from "@/service/data-sync/versions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 
@@ -19,7 +19,7 @@ export function TypeMappingDialog({
 }) {
   const [mappings, setMappings] = useState(() => structuredClone(value ?? []));
   const [error, setError] = useState("");
-  useUnsavedChanges(parameterFingerprint(mappings) !== parameterFingerprint(value ?? []));
+  useUnsavedChanges(pipelineFingerprint(mappings) !== pipelineFingerprint(value ?? []));
   const patch = (index: number, change: Partial<DataSyncTypeMapping>) =>
     setMappings(
       mappings.map((rule, position) => (position === index ? { ...rule, ...change } : rule)),

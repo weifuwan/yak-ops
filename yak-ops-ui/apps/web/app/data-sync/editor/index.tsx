@@ -35,7 +35,7 @@ import { type TaskEditorInput, type EditorForm, type EditorSource, type EditorSi
 import { PropertiesDrawer } from "./properties-drawer";
 import { AdvancedDrawer, type AdvancedTab, type AdvancedParameterTab } from "./advanced-drawer";
 import { VersionsDrawer } from "./versions-drawer";
-import { parameterFingerprint } from "@/service/data-sync/versions";
+import { pipelineFingerprint } from "@/service/data-sync/versions";
 import { type DataSourceRecord } from "@/service/datasource";
 import { EMPTY_SCHEDULE, sameScheduleRule } from "@/app/schedule/schedule-presentation";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
@@ -302,10 +302,10 @@ export function TaskEditor({
     sourceCatalog,
   });
   const payload = buildEditorPayload(form, draft, replication, mappings);
-  const taskDirty = !saved || parameterFingerprint(payload) !== parameterFingerprint(baseline);
+  const taskDirty = !saved || pipelineFingerprint(payload) !== pipelineFingerprint(baseline);
   const parametersDirty =
     !saved ||
-    parameterFingerprint(parameterPart(payload)) !== parameterFingerprint(parameterPart(baseline));
+    pipelineFingerprint(parameterPart(payload)) !== pipelineFingerprint(parameterPart(baseline));
   const scheduleDirty = !sameScheduleRule(scheduleForm, schedule || EMPTY_SCHEDULE);
   const closeDrawer = () => {
     setDrawer((current) => (current ? { ...current, open: false } : undefined));

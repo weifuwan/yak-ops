@@ -13,7 +13,7 @@ import {
 } from "@yak-ops/yak-ui";
 import type { DataSyncSolution } from "@/service/data-sync";
 import type { ScheduleTimeRule } from "@/service/schedule";
-import { parameterFingerprint } from "@/service/data-sync/versions";
+import { pipelineFingerprint } from "@/service/data-sync/versions";
 import { findStepCombination } from "../solution/presentation";
 import { EditorDrawer } from "./editor-drawer";
 import {
@@ -84,8 +84,8 @@ export function AdvancedDrawer({
     setEngineText(JSON.stringify(editableEngineOptions(next.form.pipelineOptions), null, 2));
     setError("");
     onDirtyChange(
-      parameterFingerprint(next) !== parameterFingerprint(value) ||
-        parameterFingerprint(scheduleForm) !== parameterFingerprint(schedule?.scheduleForm),
+      pipelineFingerprint(next) !== pipelineFingerprint(value) ||
+        pipelineFingerprint(scheduleForm) !== pipelineFingerprint(schedule?.scheduleForm),
     );
   };
   const parseEngine = () => {
@@ -245,9 +245,9 @@ export function AdvancedDrawer({
                         onChange: (next) => {
                           setScheduleForm(next);
                           onDirtyChange(
-                            parameterFingerprint(configuration) !== parameterFingerprint(value) ||
-                              parameterFingerprint(next) !==
-                                parameterFingerprint(schedule.scheduleForm),
+                            pipelineFingerprint(configuration) !== pipelineFingerprint(value) ||
+                              pipelineFingerprint(next) !==
+                                pipelineFingerprint(schedule.scheduleForm),
                           );
                         },
                       }

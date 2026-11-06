@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Button, Modal, Table, type TableColumns } from "@yak-ops/yak-ui";
 import type { DataSyncTransform } from "@/service/data-sync";
-import { parameterFingerprint } from "@/service/data-sync/versions";
+import { pipelineFingerprint } from "@/service/data-sync/versions";
 import { transformEditingError } from "@/service/data-sync/transforms";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { TransformExpressionFields } from "./transform-expression-fields";
@@ -23,7 +23,7 @@ export function TransformRulesDialog({
   const [rules, setRules] = useState(initial);
   const [active, setActive] = useState(0);
   const [error, setError] = useState("");
-  useUnsavedChanges(parameterFingerprint(rules) !== parameterFingerprint(initial));
+  useUnsavedChanges(pipelineFingerprint(rules) !== pipelineFingerprint(initial));
   const columns: TableColumns<DataSyncTransform & { index: number }> = [
     { key: "source", title: "来源表规则", render: (_, row) => row["source-table"] },
     {
@@ -74,7 +74,7 @@ export function TransformRulesDialog({
                 return;
               }
               onApply(
-                !value.length && parameterFingerprint(rules) === parameterFingerprint(initial)
+                !value.length && pipelineFingerprint(rules) === pipelineFingerprint(initial)
                   ? value
                   : rules,
               );
