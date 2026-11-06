@@ -104,27 +104,15 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     private static final String COLUMN_NAME = "COLUMN_NAME";
 
     @Override
-    public DataSource createDataSource(User loginUser, BaseDataSourceParamDTO datasourceParam) {
-        return createDataSourceRecord(loginUser, 0L, datasourceParam);
-    }
-
-    @Override
     public DataSource createDataSource(User loginUser, long projectCode, BaseDataSourceParamDTO datasourceParam) {
         projectService.checkHasProjectWritePermissionThrowException(loginUser, projectCode);
-        return createDataSourceRecord(loginUser, projectCode, datasourceParam);
-    }
-
-    private DataSource createDataSourceRecord(User loginUser, long projectCode,
-                                              BaseDataSourceParamDTO datasourceParam) {
         DataSourceUtils.checkDatasourceParam(datasourceParam);
         if (!canOperatorPermissions(loginUser, null, AuthorizationType.DATASOURCE,
                 ApiFuncIdentificationConstant.DATASOURCE_CREATE_DATASOURCE)) {
             throw new ServiceException(Status.USER_NO_OPERATION_PERM);
         }
         // check name can use or not
-        if (projectCode > 0
-                ? dataSourceDao.existsByProjectCodeAndName(projectCode, datasourceParam.getName().trim(), null)
-                : checkName(datasourceParam.getName())) {
+        if (dataSourceDao.existsByProjectCodeAndName(projectCode, datasourceParam.getName().trim(), null)) {
             throw new ServiceException(Status.DATASOURCE_EXIST);
         }
         if (checkDescriptionLength(datasourceParam.getNote())) {

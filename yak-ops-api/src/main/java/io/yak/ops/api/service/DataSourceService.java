@@ -39,16 +39,6 @@ public interface DataSourceService {
     List<ParamsOptions> getDatabases(User loginUser, long projectCode, Integer id);
 
     /**
-     * create a new datasource
-     *
-     * @param loginUser login user
-     * @param datasourceParam datasource configuration DTO
-     * @return created {@link DataSource} entity (sensitive fields masked)
-     * @throws ServiceException if permission denied, security check fails, or connection test fails
-     */
-    DataSource createDataSource(User loginUser, BaseDataSourceParamDTO datasourceParam);
-
-    /**
      * update datasource
      *
      * @param loginUser login user
