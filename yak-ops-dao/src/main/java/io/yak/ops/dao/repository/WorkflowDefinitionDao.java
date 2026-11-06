@@ -29,12 +29,6 @@ public interface WorkflowDefinitionDao extends IDao<WorkflowDefinition> {
 
     Optional<WorkflowDefinition> queryByCode(long code);
 
-    boolean tryReserveStart(long code, String requestId);
-
-    void releaseStart(long code, String requestId);
-
-    boolean clearExpiredStart(long code, java.util.Date expiration);
-
     void deleteByWorkflowDefinitionCode(long workflowDefinitionCode);
 
     List<WorkflowDefinition> queryByCodes(Collection<Long> workflowDefinitionCodes);

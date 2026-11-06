@@ -1398,11 +1398,3 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_user_preference` (
     UNIQUE KEY `uk_pref_user_scene_item` (`user_id`, `scene`, `item_key`),
     KEY `idx_pref_user_scene_fav` (`user_id`, `scene`, `favorite`, `sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Prevent concurrent start requests from admitting the same data sync workflow.
-CREATE TABLE IF NOT EXISTS `t_yak_ops_data_sync_start_guard` (
-  `workflow_code` bigint(20) NOT NULL,
-  `request_id` varchar(36) NOT NULL,
-  `create_time` datetime NOT NULL,
-  PRIMARY KEY (`workflow_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

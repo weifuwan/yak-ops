@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -52,25 +51,6 @@ public class WorkflowDefinitionDaoImpl extends BaseDao<WorkflowDefinition, Workf
     @Override
     public Optional<WorkflowDefinition> queryByCode(long code) {
         return Optional.ofNullable(mybatisMapper.queryByCode(code));
-    }
-
-    @Override
-    public boolean tryReserveStart(long code, String requestId) {
-        try {
-            return mybatisMapper.insertStartGuard(code, requestId) == 1;
-        } catch (DuplicateKeyException exception) {
-            return false;
-        }
-    }
-
-    @Override
-    public void releaseStart(long code, String requestId) {
-        mybatisMapper.deleteStartGuard(code, requestId);
-    }
-
-    @Override
-    public boolean clearExpiredStart(long code, java.util.Date expiration) {
-        return mybatisMapper.deleteExpiredStartGuard(code, expiration) == 1;
     }
 
     @Override

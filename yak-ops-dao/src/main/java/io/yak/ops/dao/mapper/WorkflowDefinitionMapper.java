@@ -6,8 +6,6 @@ import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
 
 import java.util.Collection;
 import java.util.List;
@@ -24,18 +22,6 @@ public interface WorkflowDefinitionMapper extends BaseMapper<WorkflowDefinition>
      * @return workflow definition
      */
     WorkflowDefinition queryByCode(@Param("code") long code);
-
-    @Insert("INSERT INTO t_yak_ops_data_sync_start_guard (workflow_code, request_id, create_time) "
-            + "VALUES (#{code}, #{requestId}, CURRENT_TIMESTAMP)")
-    int insertStartGuard(@Param("code") long code, @Param("requestId") String requestId);
-
-    @Delete("DELETE FROM t_yak_ops_data_sync_start_guard WHERE workflow_code = #{code} "
-            + "AND request_id = #{requestId}")
-    int deleteStartGuard(@Param("code") long code, @Param("requestId") String requestId);
-
-    @Delete("DELETE FROM t_yak_ops_data_sync_start_guard WHERE workflow_code = #{code} "
-            + "AND create_time < #{expiration}")
-    int deleteExpiredStartGuard(@Param("code") long code, @Param("expiration") java.util.Date expiration);
 
     /**
      * update

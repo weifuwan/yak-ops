@@ -252,39 +252,41 @@ class DataSyncServiceImplTest {
     }
 
     @Test
-    void startRejectsConcurrentRequestWhileReservationIsHeld() {
+    void startRejectsRunningWorkflowBeforeSubmission() {
         prepareDataSyncTask(ReleaseState.ONLINE);
-        when(workflowDefinitionDao.tryReserveStart(eq(101L), any())).thenReturn(false);
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(
+                eq(101L), eq(WorkflowExecutionStatus.NOT_TERMINAL_STATES)))
+                .thenReturn(Collections.singletonList(new WorkflowInstance()));
 
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.start(new User(), PROJECT_CODE, 99L));
 
         assertEquals(Status.WORKFLOW_INSTANCE_EXIST.getCode(), error.getCode());
         verifyNoInteractions(executorService);
-        verify(workflowDefinitionDao, never()).releaseStart(eq(101L), any());
     }
 
     @Test
-    void startReleasesReservationAfterMasterAcceptsJob() {
+    void startDelegatesToExistingWorkflowExecutor() {
         prepareDataSyncTask(ReleaseState.ONLINE);
-        when(workflowDefinitionDao.tryReserveStart(eq(101L), any())).thenReturn(true);
         when(executorService.triggerWorkflowDefinition(any())).thenReturn(42);
 
         assertEquals(42, service.start(new User(), PROJECT_CODE, 99L));
 
-        verify(executorService).triggerWorkflowDefinition(any());
-        verify(workflowDefinitionDao).releaseStart(eq(101L), any());
+        verify(executorService).triggerWorkflowDefinition(argThat(request ->
+                request.getProjectCode() == PROJECT_CODE
+                        && request.getWorkflowDefinitionCode() == 101L
+                        && request.getExecType() == CommandType.START_PROCESS
+                        && request.getWorkerGroup().equals("default")
+                        && request.getTenantCode().equals("default")));
     }
 
     @Test
-    void startReleasesReservationWhenMasterFails() {
+    void startPropagatesWorkflowExecutorFailure() {
         prepareDataSyncTask(ReleaseState.ONLINE);
-        when(workflowDefinitionDao.tryReserveStart(eq(101L), any())).thenReturn(true);
-        when(executorService.triggerWorkflowDefinition(any())).thenThrow(new IllegalStateException("master failed"));
+        when(executorService.triggerWorkflowDefinition(any()))
+                .thenThrow(new IllegalStateException("master failed"));
 
         assertThrows(IllegalStateException.class, () -> service.start(new User(), PROJECT_CODE, 99L));
-
-        verify(workflowDefinitionDao).releaseStart(eq(101L), any());
     }
 
     private static User testUser() {

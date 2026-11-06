@@ -50,15 +50,12 @@ import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -297,36 +294,22 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(),
                     definition.getVersion());
         }
-        String requestId = UUID.randomUUID().toString();
-        if (!workflowDefinitionDao.tryReserveStart(workflow.getCode(), requestId)) {
-            ensureStopped(workflow.getCode());
-            Date expiration = new Date(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30));
-            if (!workflowDefinitionDao.clearExpiredStart(workflow.getCode(), expiration)
-                    || !workflowDefinitionDao.tryReserveStart(workflow.getCode(), requestId)) {
-                throw new ServiceException(Status.WORKFLOW_INSTANCE_EXIST, workflow.getCode());
-            }
-        }
-        try {
-            ensureStopped(workflow.getCode());
-            Integer runId = executorService.triggerWorkflowDefinition(
-                    io.yak.ops.api.dto.workflow.WorkflowTriggerRequest.builder()
-                            .loginUser(user)
-                            .projectCode(projectCode)
-                            .workflowDefinitionCode(workflow.getCode())
-                            .execType(CommandType.START_PROCESS)
-                            .failureStrategy(FailureStrategy.END)
-                            .taskDependType(TaskDependType.TASK_POST)
-                            .warningType(WarningType.NONE)
-                            .workflowInstancePriority(Priority.MEDIUM)
-                            .workerGroup(definition.getWorkerGroup())
-                            .tenantCode("default")
-                            .environmentCode(definition.getEnvironmentCode())
-                            .dryRun(Flag.NO)
-                            .build());
-            return runId;
-        } finally {
-            workflowDefinitionDao.releaseStart(workflow.getCode(), requestId);
-        }
+        ensureStopped(workflow.getCode());
+        return executorService.triggerWorkflowDefinition(
+                io.yak.ops.api.dto.workflow.WorkflowTriggerRequest.builder()
+                        .loginUser(user)
+                        .projectCode(projectCode)
+                        .workflowDefinitionCode(workflow.getCode())
+                        .execType(CommandType.START_PROCESS)
+                        .failureStrategy(FailureStrategy.END)
+                        .taskDependType(TaskDependType.TASK_POST)
+                        .warningType(WarningType.NONE)
+                        .workflowInstancePriority(Priority.MEDIUM)
+                        .workerGroup(definition.getWorkerGroup())
+                        .tenantCode("default")
+                        .environmentCode(definition.getEnvironmentCode())
+                        .dryRun(Flag.NO)
+                        .build());
     }
 
     @Override
