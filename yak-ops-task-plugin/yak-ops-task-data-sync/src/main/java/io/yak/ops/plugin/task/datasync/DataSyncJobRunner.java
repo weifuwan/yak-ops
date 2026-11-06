@@ -41,16 +41,18 @@ final class DataSyncJobRunner {
         FlinkPipelineComposer composer = FlinkPipelineComposer.ofMiniCluster(flinkConfig, Collections.emptyList());
         FlinkPipelineExecution execution = (FlinkPipelineExecution) composer.compose(pipeline);
         try {
-            execution.executeManaged(client -> {
-                jobClient = client;
-                log.info("DATA_SYNC started, taskInstanceId={}, jobId={}",
-                        context.getTaskInstanceId(), client.getJobID());
-                if (cancelRequested) {
-                    client.cancel();
-                }
-            });
+            execution.executeManaged(this::onSubmitted);
         } finally {
             jobClient = null;
+        }
+    }
+
+    void onSubmitted(JobClient client) {
+        jobClient = client;
+        log.info("DATA_SYNC started, taskInstanceId={}, jobId={}",
+                context.getTaskInstanceId(), client.getJobID());
+        if (cancelRequested) {
+            client.cancel();
         }
     }
 
