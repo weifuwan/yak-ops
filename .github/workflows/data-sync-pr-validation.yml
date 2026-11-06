@@ -33,7 +33,8 @@ jobs:
         run: npm run typecheck
       - name: Check formatting
         working-directory: yak-ops-ui
-        run: ./node_modules/.bin/oxfmt --check \
+        run: |
+          ./node_modules/.bin/oxfmt --check \
           apps/web/app/data-sync/list/instance-table.tsx \
           apps/web/app/data-sync/list/page.tsx \
           apps/web/app/data-sync/list/task-table.tsx \
@@ -60,7 +61,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Apply oxfmt only to changed data-sync files
         working-directory: yak-ops-ui
-        run: ./node_modules/.bin/oxfmt \
+        run: |
+          ./node_modules/.bin/oxfmt \
           apps/web/app/data-sync/list/instance-table.tsx \
           apps/web/app/data-sync/list/page.tsx \
           apps/web/app/data-sync/list/task-table.tsx \
