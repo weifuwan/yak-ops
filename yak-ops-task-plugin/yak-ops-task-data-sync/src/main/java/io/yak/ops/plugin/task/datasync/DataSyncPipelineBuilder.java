@@ -65,7 +65,11 @@ final class DataSyncPipelineBuilder {
         Object parallelism = parameters.getPipeline().get("parallelism");
         pipelineOptions.put("parallelism", parallelism == null ? 1 : parallelism);
         Object schema = parameters.getPipeline().get("schema.change.behavior");
-        pipelineOptions.put("schema.change.behavior", schema == null ? "evolve" : schema);
+        boolean evolution = parameters.getSink().getSchemaPolicy() == null
+                || parameters.getSink().getSchemaPolicy().getEvolution() == null
+                || parameters.getSink().getSchemaPolicy().getEvolution().isEnabled();
+        pipelineOptions.put("schema.change.behavior", schema == null
+                ? (evolution ? "evolve" : "exception") : schema);
         if (timeZone != null) {
             pipelineOptions.put("local-time-zone", timeZone);
         }

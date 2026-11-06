@@ -48,6 +48,11 @@ public class DataSyncParameters extends AbstractParameters {
         if (output.getWrite() != null && !"UPSERT".equalsIgnoreCase(output.getWrite().getMode())) {
             return false;
         }
+        if (sink.getSchemaPolicy() != null
+                && sink.getSchemaPolicy().getEvolution() != null
+                && sink.getSchemaPolicy().getEvolution().isAllowDropColumns()) {
+            return false;
+        }
         if (route != null && (route.size() != 1
                 || !input.path().equals(route.get(0).getSourceTable())
                 || !output.path().equals(route.get(0).getSinkTable()))) {
