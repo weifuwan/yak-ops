@@ -2,18 +2,17 @@ package io.yak.ops.api.controller;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.service.DataSyncService;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
-import io.yak.ops.api.vo.DataSyncLogVO;
-import io.yak.ops.api.vo.DataSyncPageVO;
-import io.yak.ops.api.vo.DataSyncRunVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.User;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +35,7 @@ public class DataSyncController extends BaseController {
     private final DataSyncService dataSyncService;
 
     @GetMapping("/tasks")
-    public Result<DataSyncPageVO<DataSyncTaskVO>> listTasks(
+    public Result<PageInfo<DataSyncTaskVO>> listTasks(
                                                             @RequestAttribute(Constants.SESSION_USER) User user,
                                                             @PathVariable long projectCode,
                                                             @RequestParam(defaultValue = "1") int pageNo,
@@ -87,7 +86,7 @@ public class DataSyncController extends BaseController {
     }
 
     @GetMapping("/tasks/{taskCode}/versions")
-    public Result<DataSyncPageVO<DataSyncTaskVersionVO>> versions(
+    public Result<PageInfo<DataSyncTaskVersionVO>> versions(
                                                                   @RequestAttribute(Constants.SESSION_USER) User user,
                                                                   @PathVariable long projectCode,
                                                                   @PathVariable long taskCode,
@@ -106,13 +105,13 @@ public class DataSyncController extends BaseController {
     }
 
     @PostMapping("/tasks/{taskCode}/start")
-    public Result<DataSyncRunVO> start(@RequestAttribute(Constants.SESSION_USER) User user,
+    public Result<Map<String, Integer>> start(@RequestAttribute(Constants.SESSION_USER) User user,
                                        @PathVariable long projectCode, @PathVariable long taskCode) {
-        return Result.success(dataSyncService.start(user, projectCode, taskCode));
+        return Result.success(Map.of("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
     }
 
     @GetMapping("/instances")
-    public Result<DataSyncPageVO<DataSyncInstanceVO>> instances(
+    public Result<PageInfo<DataSyncInstanceVO>> instances(
                                                                 @RequestAttribute(Constants.SESSION_USER) User user,
                                                                 @PathVariable long projectCode,
                                                                 @RequestParam(defaultValue = "1") int pageNo,
@@ -152,7 +151,7 @@ public class DataSyncController extends BaseController {
     }
 
     @GetMapping("/instances/{id}/logs")
-    public Result<DataSyncLogVO> logs(@RequestAttribute(Constants.SESSION_USER) User user,
+    public Result<Map<String, Object>> logs(@RequestAttribute(Constants.SESSION_USER) User user,
                                       @PathVariable long projectCode, @PathVariable int id,
                                       @RequestParam(defaultValue = "0") int offset,
                                       @RequestParam(defaultValue = "200") int limit) {

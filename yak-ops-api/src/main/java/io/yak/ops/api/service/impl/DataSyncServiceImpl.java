@@ -1,6 +1,7 @@
 package io.yak.ops.api.service.impl;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.service.ExecutorService;
@@ -8,9 +9,6 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
-import io.yak.ops.api.vo.DataSyncLogVO;
-import io.yak.ops.api.vo.DataSyncPageVO;
-import io.yak.ops.api.vo.DataSyncRunVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
@@ -55,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -71,7 +70,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class DataSyncServiceImpl implements DataSyncService {
+public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncService {
 
     private static final String TASK_TYPE = "DATA_SYNC";
     private static final int PARAMETER_SCHEMA_VERSION = 8;
@@ -87,7 +86,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     private final ExecutorService executorService;
 
     @Override
-    public DataSyncPageVO<DataSyncTaskVO> listTasks(User user, long projectCode,
+    public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
                                                     int pageNo, int pageSize, String keyword, String status) {
         authorizeRead(user, projectCode);
         if (status != null && !"PUBLISHED".equals(status) && !"UNPUBLISHED".equals(status)) {
@@ -112,7 +111,10 @@ public class DataSyncServiceImpl implements DataSyncService {
                 rows.add(toTaskVO(definition, workflow));
             }
         }
-        return DataSyncPageVO.page(rows, pageNo, pageSize, page.getTotal());
+        PageInfo<DataSyncTaskVO> result = PageInfo.of(pageNo, pageSize);
+        result.setTotalList(rows);
+        result.setTotal((int) page.getTotal());
+        return result;
     }
 
     @Override
@@ -201,13 +203,18 @@ public class DataSyncServiceImpl implements DataSyncService {
     }
 
     @Override
-    public DataSyncPageVO<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
+    public PageInfo<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
                                                               int pageNo, int pageSize) {
         authorizeRead(user, projectCode);
         requireTask(projectCode, taskCode);
         List<DataSyncTaskVersionVO> versions = taskDefinitionLogDao.queryVersions(taskCode)
                 .stream().map(DataSyncServiceImpl::toTaskVersionVO).collect(Collectors.toList());
-        return DataSyncPageVO.of(versions, pageNo, pageSize);
+        int start = Math.min((pageNo - 1) * pageSize, versions.size());
+        int end = Math.min(start + pageSize, versions.size());
+        PageInfo<DataSyncTaskVersionVO> result = PageInfo.of(pageNo, pageSize);
+        result.setTotalList(versions.subList(start, end));
+        result.setTotal(versions.size());
+        return result;
     }
 
     @Override
@@ -234,7 +241,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     @Transactional
-    public DataSyncRunVO start(User user, long projectCode, long taskCode) {
+    public Integer start(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
@@ -258,11 +265,11 @@ public class DataSyncServiceImpl implements DataSyncService {
                         .environmentCode(definition.getEnvironmentCode())
                         .dryRun(Flag.NO)
                         .build());
-        return new DataSyncRunVO(String.valueOf(taskCode), runId, definition.getVersion(), "SUBMITTED");
+        return runId;
     }
 
     @Override
-    public DataSyncPageVO<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
+    public PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
                                                             int pageSize, Long taskCode, String status) {
         authorizeRead(user, projectCode);
         if (taskCode != null) {
@@ -273,7 +280,10 @@ public class DataSyncServiceImpl implements DataSyncService {
         List<DataSyncInstanceVO> rows = instances.getRecords().stream()
                 .map(DataSyncServiceImpl::toInstanceVO)
                 .collect(Collectors.toList());
-        return DataSyncPageVO.page(rows, pageNo, pageSize, instances.getTotal());
+        PageInfo<DataSyncInstanceVO> result = PageInfo.of(pageNo, pageSize);
+        result.setTotalList(rows);
+        result.setTotal((int) instances.getTotal());
+        return result;
     }
 
     private static int[] taskStates(String status) {
@@ -359,10 +369,10 @@ public class DataSyncServiceImpl implements DataSyncService {
     }
 
     @Override
-    public DataSyncLogVO logs(User user, long projectCode, int instanceId, int offset, int limit) {
+    public Map<String, Object> logs(User user, long projectCode, int instanceId, int offset, int limit) {
         TaskInstance instance = requireInstance(user, projectCode, instanceId);
         if (instance.getHost() == null || instance.getLogPath() == null) {
-            return new DataSyncLogVO("", Math.max(0, offset), false);
+            return Map.of("content", "", "nextOffset", Math.max(0, offset), "hasMore", false);
         }
         int start = Math.max(0, offset);
         TaskInstanceLogPageQueryResponse page = Clients.withService(ILogService.class)
@@ -378,7 +388,8 @@ public class DataSyncServiceImpl implements DataSyncService {
         if (content.endsWith("\n")) {
             count--;
         }
-        return new DataSyncLogVO(content, start + count, count >= Math.max(1, Math.min(limit, 500)));
+        return Map.of("content", content, "nextOffset", start + count,
+                "hasMore", count >= Math.max(1, Math.min(limit, 500)));
     }
 
     private void authorizeRead(User user, long projectCode) {
