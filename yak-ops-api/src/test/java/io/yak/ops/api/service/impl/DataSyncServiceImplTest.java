@@ -213,7 +213,7 @@ class DataSyncServiceImplTest {
         request.setExpectedRevision(3);
 
         ServiceException error = assertThrows(ServiceException.class,
-                () -> service.updateTask(new User(), PROJECT_CODE, 99L, request));
+                () -> service.updateTask(testUser(), PROJECT_CODE, 99L, request));
 
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
         verifyNoInteractions(workflowDefinitionService, dataSourceDao);
@@ -229,7 +229,7 @@ class DataSyncServiceImplTest {
         request.setParameters(validParameters());
 
         ServiceException error = assertThrows(ServiceException.class,
-                () -> service.updateTask(new User(), PROJECT_CODE, 99L, request));
+                () -> service.updateTask(testUser(), PROJECT_CODE, 99L, request));
 
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
         verify(taskDefinitionDao).compareAndSetDataSyncRevision(PROJECT_CODE, 99L, 4);
@@ -245,7 +245,7 @@ class DataSyncServiceImplTest {
         request.setExpectedRevision(4);
         request.setParameters(validParameters());
 
-        service.updateTask(new User(), PROJECT_CODE, 99L, request);
+        service.updateTask(testUser(), PROJECT_CODE, 99L, request);
 
         verify(taskDefinitionDao, never()).compareAndSetDataSyncRevision(eq(PROJECT_CODE), eq(99L), eq(4));
         verifyNoInteractions(workflowDefinitionService);
@@ -285,6 +285,12 @@ class DataSyncServiceImplTest {
         assertThrows(IllegalStateException.class, () -> service.start(new User(), PROJECT_CODE, 99L));
 
         verify(workflowDefinitionDao).releaseStart(eq(101L), any());
+    }
+
+    private static User testUser() {
+        User user = new User();
+        user.setId(1);
+        return user;
     }
 
     private void prepareDataSyncTask(ReleaseState releaseState) {
