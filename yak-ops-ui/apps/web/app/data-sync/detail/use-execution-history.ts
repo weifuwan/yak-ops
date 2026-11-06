@@ -44,12 +44,12 @@ export function useExecutionHistory(
       autoRefresh &&
       (Boolean(activeInstance) ||
         hasEnabledSchedule ||
-        Boolean(query.state.data?.bizData.some(isActiveDataSyncInstance)))
+        Boolean(query.state.data?.totalList.some(isActiveDataSyncInstance)))
         ? POLL_MILLIS
         : false,
   });
-  const instances = instancesQuery.data?.bizData ?? EMPTY;
-  const total = instancesQuery.data?.pagination.total ?? 0;
+  const instances = instancesQuery.data?.totalList ?? EMPTY;
+  const total = instancesQuery.data?.total ?? 0;
   const instancesLoading = instancesQuery.isPending;
   const selectedQuery = useQuery({
     queryKey: detailQueryKeys.instance(scope, taskId || "", executionId || ""),

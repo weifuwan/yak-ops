@@ -52,6 +52,17 @@ export interface TaskInstanceDefinitionRecord {
   parameters: Record<string, unknown>;
 }
 
+/** Legacy task-execution API page contract; DataSync and DataSource use PageInfo instead. */
+export interface TaskInstancePageResult {
+  bizData: TaskInstanceRecord[];
+  pagination: {
+    pageNo: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+  };
+}
+
 export interface TaskInstancePageParams {
   pageNo: number;
   pageSize: number;
