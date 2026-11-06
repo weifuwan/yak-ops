@@ -1,7 +1,6 @@
 package io.yak.ops.api.controller;
 
 import io.yak.ops.api.ApiApplicationServer;
-import io.yak.ops.api.controller.AbstractControllerTest.RegistryServer;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.service.SessionService;
 import io.yak.ops.api.service.UsersService;
@@ -11,27 +10,21 @@ import io.yak.ops.dao.DaoConfiguration;
 import io.yak.ops.dao.entity.Session;
 import io.yak.ops.dao.entity.User;
 
-import org.apache.curator.test.TestingServer;
-
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {ApiApplicationServer.class, DaoConfiguration.class, RegistryServer.class})
+@SpringBootTest(classes = {ApiApplicationServer.class, DaoConfiguration.class})
 @AutoConfigureMockMvc
-@DirtiesContext
+@Transactional
 public abstract class AbstractControllerTest {
 
     public static final String SESSION_ID = "sessionId";
@@ -53,13 +46,6 @@ public abstract class AbstractControllerTest {
     public void setUp() {
         user = usersService.queryUser(1);
         createSession(user);
-    }
-
-    @AfterEach
-    public void after() throws Exception {
-        if (user != null) {
-            sessionService.expireSession(user.getId());
-        }
     }
 
     private void createSession(User loginUser) {
@@ -97,13 +83,4 @@ public abstract class AbstractControllerTest {
         }
     }
 
-    @Configuration
-    public static class RegistryServer {
-
-        @PostConstruct
-        public void startEmbedRegistryServer() throws Exception {
-            final TestingServer server = new TestingServer(true);
-            System.setProperty("registry.zookeeper.connect-string", server.getConnectString());
-        }
-    }
 }

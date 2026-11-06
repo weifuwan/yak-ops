@@ -1,14 +1,14 @@
 package io.yak.ops.api.configuration;
 
-import io.yak.ops.api.controller.AbstractControllerTest;
-
 import org.apache.commons.collections4.MapUtils;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-public class ApiConfigTest extends AbstractControllerTest {
+@SpringBootTest(classes = ApiConfig.class)
+public class ApiConfigTest {
 
     @Autowired
     private ApiConfig apiConfig;

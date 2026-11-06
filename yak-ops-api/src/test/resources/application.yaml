@@ -8,7 +8,7 @@ spring:
       schema-locations: classpath:sql/yak-ops_h2.sql
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:yak-ops;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true;
+    url: jdbc:h2:mem:yak-ops-${random.uuid};MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true;
     username: sa
     password: ""
 
@@ -26,18 +26,7 @@ mybatis-plus:
     banner: false
 
 registry:
-  type: zookeeper
-  zookeeper:
-    namespace: yak-ops
-    connect-string: localhost:2181
-    retry-policy:
-      base-sleep-time: 60ms
-      max-sleep: 300ms
-      max-retries: 5
-    session-timeout: 30s
-    connection-timeout: 9s
-    block-until-connected: 600ms
-    digest: ~
+  type: jdbc
 
 api:
   audit-enable: true
