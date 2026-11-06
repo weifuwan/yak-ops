@@ -1,6 +1,6 @@
 import { decodeNativePipelineParameters } from "./pipeline-definition.ts";
 import type {
-  DataSyncParameters,
+  DataSyncEditorParameters,
   DataSyncIncrementalConfig,
   DataSyncProductType,
   DataSyncStep,
@@ -41,23 +41,22 @@ const path = (table: DataSyncTablePath) =>
   [table.database, table.schema, table.table].filter(Boolean).join(".");
 
 /** Physical execution mode drives scheduling and instance actions. */
-export const pipelineSyncType = (value: DataSyncParameters) =>
+export const pipelineSyncType = (value: DataSyncEditorParameters) =>
   value.pipeline["execution.runtime-mode"] === "STREAMING" ? "REALTIME" : "OFFLINE";
 
 export const offlineIncremental = (product: DataSyncProductType, steps: DataSyncStep[]) =>
   product === "SINGLE_TABLE_BATCH" && steps.includes("INCREMENTAL");
 
 /** Streaming definitions use INITIAL when no CDC startup position is supplied. */
-export const usesCdcStartup = (value: DataSyncParameters) =>
+export const usesCdcStartup = (value: DataSyncEditorParameters) =>
   value.source.startup !== undefined || value.pipeline["execution.runtime-mode"] === "STREAMING";
 
-/** Execution scope is independent of the replication product and selected strategy. */
-export const pipelineTableScope = (value: DataSyncParameters) =>
-  value.pipeline["pipeline.table-scope"] ??
-  (value.source.tables.length > 1 ? "DATABASE" : "SINGLE");
+/** Execution scope is derived from the mapped source tables, not a custom Pipeline option. */
+export const pipelineTableScope = (value: DataSyncEditorParameters) =>
+  value.source.tables.length > 1 ? "DATABASE" : "SINGLE";
 
 /** Derive the application workflow from validated JSON, never from connector names. */
-export function pipelineProductType(value: DataSyncParameters): DataSyncProductType {
+export function pipelineProductType(value: DataSyncEditorParameters): DataSyncProductType {
   if (usesCdcStartup(value)) return "DATABASE_REPLICATION";
   if (pipelineTableScope(value) === "SINGLE") return "SINGLE_TABLE_BATCH";
   throw new Error("多表 JDBC 定义不属于当前同步产品，请使用整库实时或分别创建单表离线任务");
@@ -93,13 +92,13 @@ export const validIncrementalConfig = (
 };
 
 /** Read the single persisted Flink CDC Pipeline contract into the editor projection. */
-export function parseSyncParameters(content: unknown): DataSyncParameters {
+export function parseSyncParameters(content: unknown): DataSyncEditorParameters {
   const value = decodeNativePipelineParameters(content);
   validateSyncParameters(value);
   return value;
 }
 
-export function syncTableMappings(value: DataSyncParameters): DataSyncTableMapping[] {
+export function syncTableMappings(value: DataSyncEditorParameters): DataSyncTableMapping[] {
   const sources = new Map(value.source.tables.map((table) => [path(table), table]));
   const sinks = new Map(value.sink.tables.map((table) => [path(table), table]));
   return value.route.map((route) => {
@@ -131,7 +130,7 @@ export function syncTableMappings(value: DataSyncParameters): DataSyncTableMappi
   });
 }
 
-export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
+export function displaySyncSteps(value: DataSyncEditorParameters): DataSyncStep[] {
   const dataSteps: DataSyncStep[] = usesCdcStartup(value)
     ? value.source.startup?.mode === "SNAPSHOT"
       ? ["FULL"]
@@ -149,7 +148,7 @@ export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
   ];
 }
 
-export function validateSyncParameters(value: DataSyncParameters): void {
+export function validateSyncParameters(value: DataSyncEditorParameters): void {
   if (
     !value?.source ||
     !value.sink ||
@@ -186,9 +185,6 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     !value.pipeline ||
     typeof value.pipeline !== "object" ||
     Array.isArray(value.pipeline) ||
-    (value.pipeline["pipeline.table-scope"] !== undefined &&
-      !["SINGLE", "DATABASE"].includes(value.pipeline["pipeline.table-scope"])) ||
-    (value.pipeline["pipeline.table-scope"] === "SINGLE" && value.source.tables.length !== 1) ||
     !["BATCH", "STREAMING"].includes(value.pipeline["execution.runtime-mode"])
   ) {
     throw new Error("不支持的 Pipeline 定义");

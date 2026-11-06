@@ -1,10 +1,10 @@
-import type { DataSyncParameters, DataSyncPipelineTaskParameters } from "./types";
+import type { DataSyncEditorParameters, DataSyncPipelineTaskParameters } from "./types";
 
 /**
  * The editor remains a form. Persist the native Flink CDC YAML mapping instead
  * of a second runtime configuration vocabulary.
  */
-export function encodeNativePipelineParameters(value: DataSyncParameters): DataSyncPipelineTaskParameters {
+export function encodeNativePipelineParameters(value: DataSyncEditorParameters): DataSyncPipelineTaskParameters {
   const source = value.source.tables;
   const sink = value.sink.tables;
   if (
@@ -34,10 +34,7 @@ export function encodeNativePipelineParameters(value: DataSyncParameters): DataS
   }
   const sourcePattern = `\\Q${sourcePath}\\E`;
   const schemaBehavior = value.sink.schemaPolicy.evolution.enabled ? "evolve" : "exception";
-  const options: Record<string, unknown> = {};
-  for (const [key, setting] of Object.entries(value.pipeline)) {
-    if (key !== "pipeline.table-scope") options[key] = setting;
-  }
+  const options: Record<string, unknown> = { ...value.pipeline };
   options["execution.runtime-mode"] = "STREAMING";
   options["schema.change.behavior"] = schemaBehavior;
   return {
@@ -60,7 +57,7 @@ export function encodeNativePipelineParameters(value: DataSyncParameters): DataS
 }
 
 /** Rebuild form state from the single persisted Pipeline definition. */
-export function decodeNativePipelineParameters(content: unknown): DataSyncParameters {
+export function decodeNativePipelineParameters(content: unknown): DataSyncEditorParameters {
   if (!content || typeof content !== "object" || Array.isArray(content) ||
       !("definition" in content)) {
     throw new Error("无效的 CDC Pipeline 定义");
@@ -117,7 +114,6 @@ export function decodeNativePipelineParameters(content: unknown): DataSyncParame
     pipeline: {
       ...options,
       "execution.runtime-mode": "STREAMING",
-      "pipeline.table-scope": "SINGLE",
-    } as DataSyncParameters["pipeline"],
+    } as DataSyncEditorParameters["pipeline"],
   };
 }

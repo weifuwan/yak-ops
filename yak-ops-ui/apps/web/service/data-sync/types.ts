@@ -288,7 +288,7 @@ export interface DataSyncPipelineOptions {
 }
 
 /** Transient editor projection. It is never sent to the API or persisted as task parameters. */
-export interface DataSyncParameters {
+export interface DataSyncEditorParameters {
   source: {
     type: string;
     datasourceId: string;
@@ -338,13 +338,11 @@ export interface DataSyncParameters {
   transform: DataSyncTransform[];
   pipeline: DataSyncPipelineOptions & {
     "execution.runtime-mode": "BATCH" | "STREAMING";
-    /** Effective execution scope, independent of the application product profile. */
-    "pipeline.table-scope"?: "SINGLE" | "DATABASE";
   };
 }
 
 /** MySQL CDC startup position, including specific file/GTID/timestamp fields. */
-export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["startup"]>;
+export type DataSyncStartupOptions = NonNullable<DataSyncEditorParameters["source"]["startup"]>;
 
 export type DataSyncTaskStatus = "OFFLINE" | "ONLINE";
 

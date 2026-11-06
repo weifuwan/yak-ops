@@ -1,7 +1,7 @@
 import { parseSyncParameters } from "./parameters";
 import { buildSyncParameters, toSyncTaskRecord } from "./definition";
 import type {
-  DataSyncParameters,
+  DataSyncEditorParameters,
   DataSyncTaskRecord,
   DataSyncTaskSavePayload,
   DataSyncWriteMode,
@@ -88,7 +88,6 @@ const LABELS: Record<string, string> = {
   parallelism: "并行度",
   "local-time-zone": "时区",
   "execution.runtime-mode": "运行模式",
-  "pipeline.table-scope": "表范围",
   "schema.change.behavior": "结构变更行为",
 };
 
@@ -99,7 +98,7 @@ function flatten(value: unknown, prefix: string, result: Map<string, unknown>) {
   } else result.set(prefix, value);
 }
 
-function parameterFields(parameters: DataSyncParameters) {
+function parameterFields(parameters: DataSyncEditorParameters) {
   const result = new Map<string, unknown>();
   const { tables: sourceTables, ...source } = parameters.source;
   const { tables: sinkTables, ...sink } = parameters.sink;

@@ -8,7 +8,7 @@ import type {
   DataSyncTaskRecord,
   DataSyncTaskSavePayload,
   DataSyncTaskUpdatePayload,
-  DataSyncParameters,
+  DataSyncEditorParameters,
   DataSyncTableMapping,
   TaskDefinitionRecord,
 } from "./types";
@@ -24,7 +24,7 @@ import {
 } from "./parameters.ts";
 
 /** Writes the selected Connector identifiers into the single public Task configuration. */
-export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
+export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncEditorParameters {
   const mappings: DataSyncTableMapping[] =
     task.productType === "DATABASE_REPLICATION"
       ? (task.tableMappings ?? [])
@@ -150,13 +150,6 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         ? { "schema.change.behavior": evolution ? "evolve" : "exception" }
         : {}),
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
-      "pipeline.table-scope":
-        mappings.some((mapping) => mapping.writeMode === "RETRACT") ||
-        task.productType === "SINGLE_TABLE_BATCH"
-          ? ("SINGLE" as const)
-          : mappings.length > 1
-            ? ("DATABASE" as const)
-            : task.tableScope || ("DATABASE" as const),
     },
   };
 }
@@ -223,7 +216,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     transforms: parameters.transform.map((transform) => ({ ...transform })),
     pipelineOptions: Object.fromEntries(
       Object.entries(parameters.pipeline).filter(
-        ([key]) => !["execution.runtime-mode", "pipeline.table-scope"].includes(key),
+        ([key]) => key !== "execution.runtime-mode",
       ),
     ),
     tableScope: pipelineTableScope(parameters),
