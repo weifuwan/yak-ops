@@ -5,12 +5,9 @@ import io.yak.ops.common.utils.JSONUtils;
 import org.apache.flink.cdc.cli.parser.YamlPipelineDefinitionParser;
 import org.apache.flink.cdc.common.configuration.Configuration;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -21,11 +18,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  */
 public final class DataSyncPipelineValidator {
 
-    private static final Set<String> TOP_LEVEL = keys("source", "sink", "route", "transform", "pipeline");
-
     public void validate(JsonNode definition) {
         object(definition, "definition");
-        onlyKeys(definition, "definition", TOP_LEVEL);
         rejectCredentials(definition);
         JsonNode source = definition.path("source");
         JsonNode sink = definition.path("sink");
@@ -117,16 +111,6 @@ public final class DataSyncPipelineValidator {
         }
     }
 
-    private static void onlyKeys(JsonNode value, String label, Set<String> keys) {
-        Iterator<String> fields = value.fieldNames();
-        while (fields.hasNext()) {
-            String key = fields.next();
-            if (!keys.contains(key)) {
-                throw new IllegalArgumentException(label + "." + key + ": unsupported field");
-            }
-        }
-    }
-
     private static void rejectCredentials(JsonNode value) {
         if (value.isArray()) {
             value.forEach(DataSyncPipelineValidator::rejectCredentials);
@@ -150,7 +134,4 @@ public final class DataSyncPipelineValidator {
         }
     }
 
-    private static Set<String> keys(String... values) {
-        return new HashSet<>(Arrays.asList(values));
-    }
 }
