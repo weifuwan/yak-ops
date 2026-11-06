@@ -14,11 +14,35 @@
 }
 
 @font-face {
-  font-family: "YakOpsZh";
+  font-family: "HarmonyOS Sans SC";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../../assets/fonts/web.woff2") format("woff2");
+  src: url("../../assets/fonts/HarmonyOS_SansSC_Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../../assets/fonts/HarmonyOS_SansSC_Medium.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../../assets/fonts/HarmonyOS_SansSC_Semibold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../assets/fonts/HarmonyOS_SansSC_Bold.ttf") format("truetype");
 }
 
 html,
@@ -29,6 +53,13 @@ body,
   padding: 0;
   overflow: hidden;
   font-family: var(--yak-font-family);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 body {
