@@ -15,6 +15,13 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
     transforms: value?.transforms ?? [],
     startup: value?.startup,
     pipelineOptions: value?.pipelineOptions,
+    sourcePipelineOptions: value?.sourcePipelineOptions
+      ? structuredClone(value.sourcePipelineOptions)
+      : undefined,
+    sinkPipelineOptions: value?.sinkPipelineOptions
+      ? structuredClone(value.sinkPipelineOptions)
+      : undefined,
+    routeDescription: value?.routeDescription,
     tableScope: value?.tableScope,
     selection: value?.selection ? structuredClone(value.selection) : undefined,
     mappingTemplate: value?.mappingTemplate ? structuredClone(value.mappingTemplate) : undefined,

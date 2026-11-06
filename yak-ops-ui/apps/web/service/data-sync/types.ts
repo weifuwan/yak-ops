@@ -292,6 +292,7 @@ export interface DataSyncEditorParameters {
   source: {
     type: string;
     datasourceId: string;
+    pipelineOptions?: Record<string, unknown>;
     selection?: DataSyncTableSelection;
     syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
     startup?: {
@@ -322,6 +323,7 @@ export interface DataSyncEditorParameters {
   sink: {
     type: string;
     datasourceId: string;
+    pipelineOptions?: Record<string, unknown>;
     mapping?: DataSyncMappingTemplate;
     typeMappings?: DataSyncTypeMapping[];
     schemaPolicy: {
@@ -334,7 +336,7 @@ export interface DataSyncEditorParameters {
       }
     >;
   };
-  route: Array<{ "source-table": string; "sink-table": string }>;
+  route: Array<{ "source-table": string; "sink-table": string; description?: string }>;
   transform: DataSyncTransform[];
   pipeline: DataSyncPipelineOptions & {
     "execution.runtime-mode": "BATCH" | "STREAMING";
@@ -358,6 +360,9 @@ export interface DataSyncTaskRecord {
   configurationError?: string;
   sourceRead?: DataSyncTableRead;
   sourceOptions?: DataSyncSourceOptions;
+  sourcePipelineOptions?: Record<string, unknown>;
+  sinkPipelineOptions?: Record<string, unknown>;
+  routeDescription?: string;
   sinkBatchSize?: number;
   typeMappings?: DataSyncTypeMapping[];
   selection?: DataSyncTableSelection;
@@ -500,8 +505,14 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   sourceProducesChangelog: boolean;
   transforms?: DataSyncTransform[];
   pipelineOptions?: DataSyncPipelineOptions;
+  sourcePipelineOptions?: Record<string, unknown>;
+  sinkPipelineOptions?: Record<string, unknown>;
+  routeDescription?: string;
   sourceRead?: DataSyncTableRead;
   sourceOptions?: DataSyncSourceOptions;
+  sourcePipelineOptions?: Record<string, unknown>;
+  sinkPipelineOptions?: Record<string, unknown>;
+  routeDescription?: string;
   sinkBatchSize?: number;
   typeMappings?: DataSyncTypeMapping[];
   selection?: DataSyncTableSelection;

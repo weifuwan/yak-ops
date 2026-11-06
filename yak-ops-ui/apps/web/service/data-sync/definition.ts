@@ -100,6 +100,9 @@ export function buildEditorParameters(task: DataSyncTaskSavePayload): DataSyncEd
     source: {
       type: task.sourceConnector,
       datasourceId: task.sourceDataSourceId,
+      ...(task.sourcePipelineOptions
+        ? { pipelineOptions: structuredClone(task.sourcePipelineOptions) }
+        : {}),
       ...(task.selection ? { selection: structuredClone(task.selection) } : {}),
       ...(realtime
         ? {
@@ -128,6 +131,9 @@ export function buildEditorParameters(task: DataSyncTaskSavePayload): DataSyncEd
     sink: {
       type: task.sinkConnector,
       datasourceId: task.targetDataSourceId,
+      ...(task.sinkPipelineOptions
+        ? { pipelineOptions: structuredClone(task.sinkPipelineOptions) }
+        : {}),
       ...(task.mappingTemplate ? { mapping: structuredClone(task.mappingTemplate) } : {}),
       ...(task.typeMappings?.length ? { typeMappings: structuredClone(task.typeMappings) } : {}),
       schemaPolicy: {
@@ -142,6 +148,7 @@ export function buildEditorParameters(task: DataSyncTaskSavePayload): DataSyncEd
     route: mappings.map((mapping) => ({
       "source-table": physicalPath(mapping.source),
       "sink-table": physicalPath(mapping.target),
+      ...(task.routeDescription ? { description: task.routeDescription } : {}),
     })),
     transform: task.transforms?.map((transform) => ({ ...transform })) ?? [],
     pipeline: {
@@ -235,6 +242,13 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     writeMode: mapping.writeMode,
     sourceRead: mapping.source.read ? { ...mapping.source.read } : undefined,
     sourceOptions: mapping.source.options ? { ...mapping.source.options } : undefined,
+    sourcePipelineOptions: parameters.source.pipelineOptions
+      ? structuredClone(parameters.source.pipelineOptions)
+      : undefined,
+    sinkPipelineOptions: parameters.sink.pipelineOptions
+      ? structuredClone(parameters.sink.pipelineOptions)
+      : undefined,
+    routeDescription: parameters.route[0]?.description,
     sinkBatchSize: mapping.batchSize,
     typeMappings: parameters.sink.typeMappings
       ? structuredClone(parameters.sink.typeMappings)

@@ -155,6 +155,7 @@ export function validateSyncParameters(value: DataSyncEditorParameters): void {
     !hasOnlyKeys(value.source, [
       "type",
       "datasourceId",
+      "pipelineOptions",
       "syncMode",
       "startup",
       "tables",
@@ -163,6 +164,7 @@ export function validateSyncParameters(value: DataSyncEditorParameters): void {
     !hasOnlyKeys(value.sink, [
       "type",
       "datasourceId",
+      "pipelineOptions",
       "schemaPolicy",
       "tables",
       "mapping",
@@ -297,7 +299,7 @@ export function validateSyncParameters(value: DataSyncEditorParameters): void {
   for (const route of value.route) {
     if (
       !route ||
-      !hasOnlyKeys(route, ["source-table", "sink-table"]) ||
+      !hasOnlyKeys(route, ["source-table", "sink-table", "description"]) ||
       !allSources.has(route["source-table"]) ||
       !allSinks.has(route["sink-table"]) ||
       mappedSources.has(route["source-table"]) ||

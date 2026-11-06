@@ -17,8 +17,18 @@ export function encodeNativePipelineParameters(value: DataSyncEditorParameters):
     sink[0]?.write.mode !== "UPSERT" ||
     value.transform.length !== 0 ||
     value.source.selection !== undefined ||
+    source[0]?.read !== undefined ||
+    source[0]?.options !== undefined ||
     source[0]?.snapshot !== undefined ||
     source[0]?.dml !== undefined ||
+    source[0]?.incremental !== undefined ||
+    value.sink.mapping !== undefined ||
+    Boolean(value.sink.typeMappings?.length) ||
+    sink[0]?.write.primaryKeys !== undefined ||
+    sink[0]?.write.transaction !== undefined ||
+    sink[0]?.write.preSql !== undefined ||
+    sink[0]?.write.postSql !== undefined ||
+    sink[0]?.write.batchSize !== undefined ||
     value.sink.schemaPolicy.initial !== "CREATE_OR_ALTER" ||
     value.sink.schemaPolicy.evolution.allowDropColumns
   ) {
@@ -34,23 +44,31 @@ export function encodeNativePipelineParameters(value: DataSyncEditorParameters):
   }
   const sourcePattern = `\\Q${sourcePath}\\E`;
   const schemaBehavior = value.sink.schemaPolicy.evolution.enabled ? "evolve" : "exception";
-  const options: Record<string, unknown> = { ...value.pipeline };
-  options["execution.runtime-mode"] = "STREAMING";
-  options["schema.change.behavior"] = schemaBehavior;
+  const options: DataSyncParameters["definition"]["pipeline"] = {
+    ...value.pipeline,
+    "execution.runtime-mode": "STREAMING",
+    "schema.change.behavior": schemaBehavior,
+  };
   return {
     definition: {
       source: {
+        ...value.source.pipelineOptions,
         type: "mysql",
         "datasource-id": value.source.datasourceId,
         tables: sourcePattern,
         "scan.startup.mode": "initial",
       },
       sink: {
+        ...value.sink.pipelineOptions,
         type: "jdbc",
         "datasource-id": value.sink.datasourceId,
         "exclude.schema.changes": ["drop.column"],
       },
-      route: [{ "source-table": sourcePattern, "sink-table": targetPath }],
+      route: [{
+        "source-table": sourcePattern,
+        "sink-table": targetPath,
+        ...(value.route[0]?.description ? { description: value.route[0].description } : {}),
+      }],
       pipeline: options,
     },
   };
@@ -87,19 +105,29 @@ export function decodeNativePipelineParameters(content: unknown): DataSyncEditor
     (sink["exclude.schema.changes"] as string[]).includes("drop.column");
   if (!disabledDrop) throw new Error("当前 Runtime 不允许删除目标字段");
   const canEvolve = pipeline["schema.change.behavior"] === "evolve";
-  const options = Object.fromEntries(
-    Object.entries(pipeline).filter(([key]) => key !== "name" || typeof pipeline[key] === "string"),
+  const options = { ...pipeline };
+  const sourcePipelineOptions = Object.fromEntries(
+    Object.entries(source).filter(
+      ([key]) => !["type", "datasource-id", "tables", "scan.startup.mode"].includes(key),
+    ),
+  );
+  const sinkPipelineOptions = Object.fromEntries(
+    Object.entries(sink).filter(
+      ([key]) => !["type", "datasource-id", "exclude.schema.changes"].includes(key),
+    ),
   );
   return {
     source: {
       type: "mysql",
       datasourceId: String(source["datasource-id"]),
+      ...(Object.keys(sourcePipelineOptions).length ? { pipelineOptions: sourcePipelineOptions } : {}),
       startup: { mode: "INITIAL" },
       tables: [sourceTable],
     },
     sink: {
       type: "jdbc",
       datasourceId: String(sink["datasource-id"]),
+      ...(Object.keys(sinkPipelineOptions).length ? { pipelineOptions: sinkPipelineOptions } : {}),
       schemaPolicy: {
         initial: "CREATE_OR_ALTER",
         evolution: { enabled: canEvolve, allowDropColumns: false },
@@ -109,6 +137,7 @@ export function decodeNativePipelineParameters(content: unknown): DataSyncEditor
     route: [{
       "source-table": `${sourceTable.database}.${sourceTable.table}`,
       "sink-table": `${sinkTable.database}.${sinkTable.table}`,
+      ...(typeof route.description === "string" ? { description: route.description } : {}),
     }],
     transform: [],
     pipeline: {

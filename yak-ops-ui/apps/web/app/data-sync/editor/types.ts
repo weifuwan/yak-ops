@@ -46,6 +46,9 @@ export interface EditorForm {
   transforms: DataSyncTransform[];
   startup?: DataSyncStartupOptions;
   pipelineOptions?: DataSyncPipelineOptions;
+  sourcePipelineOptions?: Record<string, unknown>;
+  sinkPipelineOptions?: Record<string, unknown>;
+  routeDescription?: string;
   selection?: DataSyncTableSelection;
   mappingTemplate?: DataSyncMappingTemplate;
   selectionResolved?: boolean;
