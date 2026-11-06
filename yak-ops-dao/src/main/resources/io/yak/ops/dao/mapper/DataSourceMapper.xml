@@ -2,8 +2,47 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="io.yak.ops.dao.mapper.DataSourceMapper">
     <sql id="baseSql">
-        id, name, note, type, user_id, connection_params, create_time, update_time
+        id, name, note, type, user_id, project_code, connection_params, create_time, update_time
     </sql>
+    <select id="queryByIdAndProjectCode" resultType="io.yak.ops.dao.entity.DataSource">
+        SELECT <include refid="baseSql"/>
+        FROM t_yak_ops_datasource
+        WHERE id = #{id} AND project_code = #{projectCode}
+    </select>
+
+    <select id="queryByProjectCode" resultType="io.yak.ops.dao.entity.DataSource">
+        SELECT d.id, d.name, d.note, d.type, d.user_id, d.project_code,
+               d.connection_params, d.create_time, d.update_time, u.user_name AS user_name
+        FROM t_yak_ops_datasource d
+        JOIN t_yak_ops_user u ON d.user_id = u.id
+        WHERE d.project_code = #{projectCode}
+        <if test="name != null and name != ''">
+            AND d.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        ORDER BY d.update_time DESC, d.id DESC
+    </select>
+
+    <select id="queryByProjectCodeAndType" resultType="io.yak.ops.dao.entity.DataSource">
+        SELECT <include refid="baseSql"/>
+        FROM t_yak_ops_datasource
+        WHERE project_code = #{projectCode} AND type = #{type}
+        ORDER BY name
+    </select>
+
+    <select id="countByProjectCode" resultType="long">
+        SELECT COUNT(*) FROM t_yak_ops_datasource WHERE project_code = #{projectCode}
+    </select>
+
+    <select id="existsByProjectCodeAndName" resultType="boolean">
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM t_yak_ops_datasource
+            WHERE project_code = #{projectCode} AND name = #{name}
+            <if test="excludedId != null">
+                AND id != #{excludedId}
+            </if>
+        ) THEN 1 ELSE 0 END
+    </select>
+
     <select id="queryDataSourceByType" resultType="io.yak.ops.dao.entity.DataSource">
         select
         <include refid="baseSql"/>
@@ -23,7 +62,7 @@
 
     <select id="selectPaging" resultType="io.yak.ops.dao.entity.DataSource">
         select
-        d.id, d.name, d.note, d.type, d.user_id, connection_params, d.create_time, d.update_time
+        d.id, d.name, d.note, d.type, d.user_id, d.project_code, connection_params, d.create_time, d.update_time
         ,
         u.user_name as user_name
         from t_yak_ops_datasource d
@@ -97,7 +136,7 @@
 
     <select id="selectPagingByIds" resultType="io.yak.ops.dao.entity.DataSource">
         select
-        d.id, d.name, d.note, d.type, d.user_id, connection_params, d.create_time, d.update_time
+        d.id, d.name, d.note, d.type, d.user_id, d.project_code, connection_params, d.create_time, d.update_time
         ,
         u.user_name as user_name
         from t_yak_ops_datasource d
