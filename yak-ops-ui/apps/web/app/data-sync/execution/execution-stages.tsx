@@ -9,18 +9,19 @@ import { ExecutionProgressBar } from "./execution-progress-bar";
 
 const LABELS = { SCHEMA: "结构迁移", FULL: "全量同步", INCREMENTAL: "增量同步" };
 const STATES: Record<string, DataSyncInstanceStatus> = {
-  WAITING: "SUBMITTED",
-  RUNNING: "RUNNING",
-  FINISHED: "FINISHED",
-  FAILED: "FAILED",
-  CANCELED: "CANCELED",
-  UNKNOWN: "RECONCILING",
+  WAITING: "SUBMITTED_SUCCESS",
+  RUNNING: "RUNNING_EXECUTION",
+  FINISHED: "SUCCESS",
+  FAILED: "FAILURE",
+  CANCELED: "KILL",
+  UNKNOWN: "NEED_FAULT_TOLERANCE",
+
 };
 
 /** Sampling age is checked even when polling fails and the last response remains on screen. */
 export function useObservationStale(status: DataSyncInstanceStatus, observedAt?: string) {
   const [now, setNow] = useState(Date.now());
-  const active = ["SUBMITTED", "LAUNCHING", "RUNNING", "CANCELLING", "RECONCILING"].includes(
+  const active = ["SUBMITTED_SUCCESS", "DISPATCH", "RUNNING_EXECUTION", "DELAY_EXECUTION", "NEED_FAULT_TOLERANCE"].includes(
     status,
   );
   useEffect(() => {
@@ -29,7 +30,7 @@ export function useObservationStale(status: DataSyncInstanceStatus, observedAt?:
     return () => window.clearInterval(timer);
   }, [active]);
   return (
-    status === "RECONCILING" || (active && (!observedAt || now - Date.parse(observedAt) > 10000))
+    status === "NEED_FAULT_TOLERANCE" || (active && (!observedAt || now - Date.parse(observedAt) > 10000))
   );
 }
 
@@ -61,8 +62,8 @@ export function StageProgress({
   }
   let state = STATES[stage.status];
   if (stage.status !== "FINISHED") {
-    if (status === "CANCELLING" || status === "CANCELED") state = status;
-    else if (status === "FAILED" && ["WAITING", "RUNNING"].includes(stage.status)) state = "FAILED";
+    if (status === "KILL" || status === "KILL") state = status;
+    else if (status === "FAILURE" && ["WAITING", "RUNNING"].includes(stage.status)) state = "FAILURE";
   }
   return (
     <ExecutionProgressBar

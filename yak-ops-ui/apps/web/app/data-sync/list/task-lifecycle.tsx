@@ -12,7 +12,7 @@ import {
 export const DATA_SYNC_TASK_STATUS_ITEMS: Record<DataSyncTaskStatus | "ALL", string> = {
   ALL: "全部状态",
   ONLINE: "已上线",
-  UNONLINE: "已下线",
+  OFFLINE: "已下线",
 };
 
 export const isPublishedTask = (record: DataSyncTaskRecord) => record.status === "ONLINE";

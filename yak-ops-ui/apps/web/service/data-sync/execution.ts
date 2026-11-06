@@ -15,25 +15,24 @@ import {
 import { readExecutionReport } from "./report.ts";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
-  status === "SUBMITTED" ||
-  status === "LAUNCHING" ||
-  status === "RUNNING" ||
-  status === "CANCELLING" ||
-  status === "RECONCILING";
+  status === "SUBMITTED_SUCCESS" ||
+  status === "DISPATCH" ||
+  status === "RUNNING_EXECUTION" ||
+  status === "DELAY_EXECUTION" ||
+  status === "NEED_FAULT_TOLERANCE";
 
-/** No Definition changes while an execution is nonterminal or its status is unknown. */
+/** Do not change a definition while the current instance is still active. */
 export const canManageTaskDefinition = (
   ready: boolean,
   instance?: Pick<TaskInstanceRecord, "status">,
-): boolean =>
-  ready &&
-  (!instance ||
-    instance.status === "FINISHED" ||
-    instance.status === "FAILED" ||
-    instance.status === "CANCELED");
+): boolean => ready && (!instance || !isTaskInstanceActive(instance.status));
 
 export const canCancelTaskInstance = (status: TaskInstanceStatus): boolean =>
-  status === "SUBMITTED" || status === "LAUNCHING" || status === "RUNNING";
+  status === "SUBMITTED_SUCCESS" ||
+  status === "DISPATCH" ||
+  status === "RUNNING_EXECUTION" ||
+  status === "DELAY_EXECUTION";
+
 
 export function toDataSyncInstanceRecord(
   instance: TaskInstanceRecord,

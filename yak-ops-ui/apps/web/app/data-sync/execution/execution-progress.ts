@@ -21,16 +21,18 @@ export function getExecutionProgress(
       : null;
 
   switch (status) {
-    case "FINISHED":
+    case "SUCCESS":
+    case "FORCED_SUCCESS":
       return { mode: "success", value: 100 };
-    case "FAILED":
+    case "FAILURE":
       return { mode: "failure", value: measured ?? 0 };
-    case "RUNNING":
+    case "RUNNING_EXECUTION":
       return realtime || measured === null
         ? { mode: "running", value: null }
         : { mode: "progress", value: measured };
-    case "SUBMITTED":
-    case "LAUNCHING":
+    case "SUBMITTED_SUCCESS":
+    case "DISPATCH":
+    case "DELAY_EXECUTION":
       return { mode: "idle", value: 0 };
     default:
       return { mode: "idle", value: measured };

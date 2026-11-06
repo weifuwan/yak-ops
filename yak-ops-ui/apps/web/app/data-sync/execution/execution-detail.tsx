@@ -29,34 +29,41 @@ export const dataSyncInstanceStatusMeta = (
   realtime: boolean,
 ): { label: string; tone: BadgeProps["tone"] } => {
   switch (status) {
-    case "SUBMITTED":
+    case "SUBMITTED_SUCCESS":
       return { label: "等待", tone: "neutral" };
-    case "LAUNCHING":
-      return { label: "启动中", tone: "info" };
-    case "RUNNING":
+    case "DISPATCH":
+      return { label: "派发中", tone: "info" };
+    case "RUNNING_EXECUTION":
       return { label: "运行中", tone: "info" };
-    case "CANCELLING":
-      return { label: "正在停止", tone: "warning" };
-    case "RECONCILING":
-      return { label: "待确认", tone: "warning" };
-    case "FINISHED":
+    case "DELAY_EXECUTION":
+      return { label: "延迟执行", tone: "warning" };
+    case "NEED_FAULT_TOLERANCE":
+      return { label: "待容错", tone: "warning" };
+    case "SUCCESS":
       return { label: "成功", tone: "success" };
-    case "FAILED":
+    case "FORCED_SUCCESS":
+      return { label: "强制成功", tone: "success" };
+    case "FAILURE":
       return { label: "失败", tone: "danger" };
-    case "CANCELED":
+    case "PAUSE":
+      return { label: "已暂停", tone: "neutral" };
+    case "KILL":
       return { label: realtime ? "已停止" : "已取消", tone: "neutral" };
   }
 };
 
 const STATUS_ICONS = {
-  SUBMITTED: Clock3,
-  LAUNCHING: LoaderCircle,
-  RUNNING: CirclePlay,
-  CANCELLING: CirclePause,
-  RECONCILING: CircleHelp,
-  FINISHED: CheckCircle2,
-  FAILED: XCircle,
-  CANCELED: CircleStop,
+  SUBMITTED_SUCCESS: Clock3,
+  DISPATCH: LoaderCircle,
+  RUNNING_EXECUTION: CirclePlay,
+  DELAY_EXECUTION: Clock3,
+  NEED_FAULT_TOLERANCE: CircleHelp,
+  SUCCESS: CheckCircle2,
+  FORCED_SUCCESS: CheckCircle2,
+  FAILURE: XCircle,
+  PAUSE: CirclePause,
+  KILL: CircleStop,
+
 };
 
 export function ExecutionStatusIcon({
