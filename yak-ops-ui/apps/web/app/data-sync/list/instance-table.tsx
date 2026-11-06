@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Table, type TableColumns } from "@yak-ops/yak-ui";
-import { listDataSyncInstances, type DataSyncInstanceRecord } from "@/service/data-sync";
+import { listDataSyncInstances, type DataSyncInstanceSummary } from "@/service/data-sync";
 
 export function DataSyncInstanceTable({ scope }: { scope: string }) {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export function DataSyncInstanceTable({ scope }: { scope: string }) {
     enabled: Boolean(scope),
     refetchInterval: 3000,
   });
-  const columns: TableColumns<DataSyncInstanceRecord> = [
+  const columns: TableColumns<DataSyncInstanceSummary> = [
     { key: "id", title: "实例 ID", width: 130 },
     { key: "taskName", title: "任务名称", minWidth: 230 },
     {
@@ -59,7 +59,7 @@ export function DataSyncInstanceTable({ scope }: { scope: string }) {
           </Button>
         </div>
       ) : null}
-      <Table<DataSyncInstanceRecord>
+      <Table<DataSyncInstanceSummary>
         rowKey="id"
         columns={columns}
         dataSource={query.data?.totalList ?? []}

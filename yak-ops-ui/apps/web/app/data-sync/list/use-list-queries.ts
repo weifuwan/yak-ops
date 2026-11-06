@@ -27,7 +27,6 @@ export function useTaskPage(scope: string, filters: TaskListFilters) {
       ...listQueryKeys.tasks(scope),
       filters.pageNo,
       filters.keyword,
-      filters.productType,
       filters.status,
     ],
     queryFn: ({ signal }) =>
@@ -36,7 +35,6 @@ export function useTaskPage(scope: string, filters: TaskListFilters) {
           pageNo: filters.pageNo,
           pageSize: PAGE_SIZE,
           keyword: filters.keyword || undefined,
-          productType: filters.productType === "ALL" ? undefined : filters.productType,
           status: filters.status === "ALL" ? undefined : filters.status,
         },
         signal,

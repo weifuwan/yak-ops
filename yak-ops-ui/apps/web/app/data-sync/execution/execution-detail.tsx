@@ -21,7 +21,7 @@ import { syncSummary } from "../solution/presentation";
 import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
-export const isActiveDataSyncInstance = (record?: DataSyncInstanceRecord): boolean =>
+export const isActiveDataSyncInstance = (record?: Pick<DataSyncInstanceRecord, "status">): boolean =>
   record ? isTaskInstanceActive(record.status) : false;
 
 export const dataSyncInstanceStatusMeta = (
@@ -88,7 +88,9 @@ export const dataSyncTriggerText = (triggerType?: string) => {
   return triggerType || "-";
 };
 
-export const dataSyncDurationText = (record: DataSyncInstanceRecord) => {
+export const dataSyncDurationText = (
+  record: Pick<DataSyncInstanceRecord, "status" | "startTime" | "finishTime">,
+) => {
   if (!record.startTime) return "-";
   if (!record.finishTime && !isActiveDataSyncInstance(record)) return "-";
   const start = Date.parse(record.startTime);

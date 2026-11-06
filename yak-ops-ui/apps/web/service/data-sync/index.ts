@@ -23,6 +23,7 @@ import type {
   DataSyncSolution,
   DataSyncInstancePageParams,
   DataSyncInstanceRecord,
+  DataSyncInstanceSummary,
   DataSyncTaskPageParams,
   DataSyncTaskListRecord,
   DataSyncTaskRecord,
@@ -205,41 +206,44 @@ const instanceUrl = (id: string, base = url("")) => base + "/instances/" + encod
 const instanceDefinition = async (id: string, base: string): Promise<TaskInstanceDefinitionRecord> =>
   HttpUtils.getData<TaskInstanceDefinitionRecord>(instanceUrl(id, base) + "/definition");
 
-const projectInstances = async (
-  instances: TaskInstanceRecord[],
-  base: string,
-): Promise<DataSyncInstanceRecord[]> => {
-  const cache = new Map<string, Promise<TaskInstanceDefinitionRecord>>();
-  return Promise.all(
-    instances.map(async (instance) => {
-      const key = instance.definitionId + ":" + instance.definitionVersion;
-      if (!cache.has(key)) cache.set(key, instanceDefinition(instance.id, base));
-      return toDataSyncInstanceRecord(instance, await cache.get(key)!);
-    }),
-  );
-};
-
 export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceRecord> => {
   const base = url("");
-  const record = await HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base));
-  return (await projectInstances([record], base))[0];
+  const [instance, definition] = await Promise.all([
+    HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base)),
+    instanceDefinition(id, base),
+  ]);
+  return toDataSyncInstanceRecord(instance, definition);
 };
 
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
-): Promise<PageInfo<DataSyncInstanceRecord>> => {
-  const base = url("");
-  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord>>(
-    base +
+): Promise<PageInfo<DataSyncInstanceSummary>> => {
+  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord & { taskName: string }>>(
+    url(
       "/instances?" +
-      qp({
-        pageNo: params.pageNo,
-        pageSize: params.pageSize,
-        taskCode: params.taskId,
-        status: params.status,
-      }),
+        qp({
+          pageNo: params.pageNo,
+          pageSize: params.pageSize,
+          taskCode: params.taskId,
+          status: params.status,
+        }),
+    ),
   );
-  return { ...page, totalList: await projectInstances(page.totalList, base) };
+  return {
+    ...page,
+    totalList: page.totalList.map((instance) => ({
+      id: instance.id,
+      taskId: instance.definitionId,
+      taskName: instance.taskName,
+      taskVersion: instance.definitionVersion,
+      syncType: "REALTIME" as const,
+      triggerType: instance.triggerType,
+      status: instance.status,
+      startTime: instance.startTime ?? undefined,
+      finishTime: instance.endTime ?? undefined,
+      createTime: instance.createTime ?? undefined,
+    })),
+  };
 };
 
 export const listLatestDataSyncTaskInstances = async (

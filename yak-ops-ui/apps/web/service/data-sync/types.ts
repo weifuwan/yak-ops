@@ -560,6 +560,19 @@ export interface DataSyncInstanceRecord {
   updateTime?: string;
 }
 
+export interface DataSyncInstanceSummary {
+  id: string;
+  taskId: string;
+  taskName: string;
+  taskVersion: number;
+  syncType: "REALTIME";
+  triggerType?: "MANUAL" | "SCHEDULE" | "WORKFLOW";
+  status: DataSyncInstanceStatus;
+  startTime?: string;
+  finishTime?: string;
+  createTime?: string;
+}
+
 export interface DataSyncInstancePageParams {
   pageNo: number;
   pageSize: number;

@@ -15,7 +15,7 @@ import {
   dataSyncTriggerText,
   dataSyncDurationText,
 } from "../execution/execution-detail";
-import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
+import type { DataSyncInstanceSummary, DataSyncInstanceStatus } from "@/service/data-sync";
 
 const PAGE_SIZE = 20;
 
@@ -35,7 +35,7 @@ interface Props {
   realtime: boolean;
   status: DataSyncInstanceStatus | "ALL";
   onStatusChange: (value: DataSyncInstanceStatus | "ALL") => void;
-  instances: DataSyncInstanceRecord[];
+  instances: DataSyncInstanceSummary[];
   instancesLoading: boolean;
   listError: boolean;
   selectedId: string | null;
