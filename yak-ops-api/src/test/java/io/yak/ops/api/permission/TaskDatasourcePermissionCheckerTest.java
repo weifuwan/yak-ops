@@ -8,6 +8,8 @@ import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.common.enums.AuthorizationType;
 import io.yak.ops.common.enums.UserType;
 import io.yak.ops.dao.entity.TaskDefinition;
+import io.yak.ops.dao.entity.DataSource;
+import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.entity.User;
 
 import java.util.Collections;
@@ -31,13 +33,16 @@ public class TaskDatasourcePermissionCheckerTest {
     @Mock
     private ResourcePermissionCheckService resourcePermissionCheckService;
 
+    @Mock
+    private DataSourceDao dataSourceDao;
+
     private TaskDatasourcePermissionChecker taskDatasourcePermissionChecker;
 
     private User loginUser;
 
     @BeforeEach
     public void setUp() {
-        taskDatasourcePermissionChecker = new TaskDatasourcePermissionChecker(resourcePermissionCheckService);
+        taskDatasourcePermissionChecker = new TaskDatasourcePermissionChecker(resourcePermissionCheckService, dataSourceDao);
         loginUser = new User();
         loginUser.setId(USER_ID);
         loginUser.setUserType(UserType.GENERAL_USER);
@@ -68,6 +73,28 @@ public class TaskDatasourcePermissionCheckerTest {
 
         Assertions.assertDoesNotThrow(() -> taskDatasourcePermissionChecker.checkPermission(
                 loginUser, Collections.singletonList(getRemoteShellTaskDefinition())));
+    }
+
+    @Test
+    public void shouldRejectDatasourceOwnedByAnotherProject() {
+        TaskDefinition task = getRemoteShellTaskDefinition();
+        task.setProjectCode(1001L);
+        Assertions.assertThrows(ServiceException.class,
+                () -> taskDatasourcePermissionChecker.checkPermission(loginUser, Collections.singletonList(task)));
+        Mockito.verify(dataSourceDao).queryByIdAndProjectCode(DATASOURCE_ID, 1001L);
+        Mockito.verifyNoInteractions(resourcePermissionCheckService);
+    }
+
+    @Test
+    public void shouldAllowDatasourceInSameProject() {
+        TaskDefinition task = getRemoteShellTaskDefinition();
+        task.setProjectCode(1001L);
+        DataSource source = new DataSource();
+        source.setProjectCode(1001L);
+        Mockito.when(dataSourceDao.queryByIdAndProjectCode(DATASOURCE_ID, 1001L)).thenReturn(source);
+        Assertions.assertDoesNotThrow(
+                () -> taskDatasourcePermissionChecker.checkPermission(loginUser, Collections.singletonList(task)));
+        Mockito.verifyNoInteractions(resourcePermissionCheckService);
     }
 
     @Test
