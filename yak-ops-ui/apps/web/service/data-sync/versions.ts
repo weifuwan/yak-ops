@@ -1,5 +1,5 @@
 import { parseSyncParameters } from "./parameters";
-import { buildSyncParameters, toSyncTaskRecord } from "./definition";
+import { buildEditorParameters, toSyncTaskRecord } from "./definition";
 import type {
   DataSyncEditorParameters,
   DataSyncTaskRecord,
@@ -27,19 +27,19 @@ export function matchesSavedTask(
   return (
     request.name === saved.name &&
     (request.remark || "") === (saved.remark || "") &&
-    pipelineFingerprint(buildSyncParameters(request)) ===
+    pipelineFingerprint(buildEditorParameters(request)) ===
       pipelineFingerprint(
-        buildSyncParameters({ ...saved, writeMode: saved.writeMode as DataSyncWriteMode }),
+        buildEditorParameters({ ...saved, writeMode: saved.writeMode as DataSyncWriteMode }),
       )
   );
 }
 
-/** Restoring parameters retains the task's current metadata and concurrency revision. */
+/** Restoring a task definition retains current task metadata and concurrency revision. */
 export function restoreTaskDefinitionVersion(
   task: DataSyncTaskRecord,
   version: TaskDefinitionVersion,
 ): DataSyncTaskRecord {
-  if (task.id !== version.definitionId) throw new Error("参数版本不属于当前任务");
+  if (task.id !== version.definitionId) throw new Error("任务定义版本不属于当前任务");
   return toSyncTaskRecord({
     ...task,
     taskType: "DATA_SYNC",
@@ -98,7 +98,7 @@ function flatten(value: unknown, prefix: string, result: Map<string, unknown>) {
   } else result.set(prefix, value);
 }
 
-function parameterFields(parameters: DataSyncEditorParameters) {
+function definitionFields(parameters: DataSyncEditorParameters) {
   const result = new Map<string, unknown>();
   const { tables: sourceTables, ...source } = parameters.source;
   const { tables: sinkTables, ...sink } = parameters.sink;
@@ -118,10 +118,10 @@ export function compareTaskDefinitionVersions(
   before: TaskDefinitionVersion,
   after: TaskDefinitionVersion,
 ): DefinitionChange[] {
-  const left = parameterFields(
+  const left = definitionFields(
     parseSyncParameters(before.parameters),
   );
-  const right = parameterFields(
+  const right = definitionFields(
     parseSyncParameters(after.parameters),
   );
   const display = (value: unknown) =>

@@ -24,7 +24,7 @@ import {
 } from "./parameters.ts";
 
 /** Writes the selected Connector identifiers into the single public Task configuration. */
-export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncEditorParameters {
+export function buildEditorParameters(task: DataSyncTaskSavePayload): DataSyncEditorParameters {
   const mappings: DataSyncTableMapping[] =
     task.productType === "DATABASE_REPLICATION"
       ? (task.tableMappings ?? [])
@@ -159,7 +159,7 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
     name: task.name,
     taskType: "DATA_SYNC",
     remark: task.remark,
-    parameters: encodeNativePipelineParameters(buildSyncParameters(task)),
+    parameters: encodeNativePipelineParameters(buildEditorParameters(task)),
   };
 }
 
@@ -175,7 +175,7 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expecte
     remark: task.remark,
     expectedRevision,
   };
-  if ("productType" in task) request.parameters = encodeNativePipelineParameters(buildSyncParameters(task));
+  if ("productType" in task) request.parameters = encodeNativePipelineParameters(buildEditorParameters(task));
   return request;
 }
 
