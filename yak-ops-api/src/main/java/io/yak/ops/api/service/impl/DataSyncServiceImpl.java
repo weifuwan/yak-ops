@@ -153,8 +153,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Override
     public DataSyncTaskVO getTask(User user, long projectCode, long taskCode) {
         authorizeRead(user, projectCode);
-        TaskDefinition definition = requireTask(projectCode, taskCode);
-        return toTaskVO(definition, requireWorkflow(projectCode, taskCode));
+        TaskDefinition definition = requireTask(projectCode, taskCode, true);
+        return toTaskVO(definition, requireWorkflow(projectCode, taskCode, true));
     }
 
     @Override
@@ -247,7 +247,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     public PageInfo<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
                                                         int pageNo, int pageSize) {
         authorizeRead(user, projectCode);
-        requireTask(projectCode, taskCode);
+        requireTask(projectCode, taskCode, true);
         IPage<TaskDefinitionLog> page = taskDefinitionLogDao.queryVersionsPaging(
                 new Page<>(pageNo, pageSize), taskCode, projectCode);
         PageInfo<DataSyncTaskVersionVO> result = PageInfo.of(pageNo, pageSize);
@@ -260,7 +260,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Override
     public DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version) {
         authorizeRead(user, projectCode);
-        requireTask(projectCode, taskCode);
+        requireTask(projectCode, taskCode, true);
         TaskDefinition historical = taskDefinitionDao.findTaskDefinition(taskCode, version);
         if (historical == null) {
             throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, taskCode);
@@ -319,7 +319,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                                                       int pageSize, Long taskCode, TaskExecutionStatus status) {
         authorizeRead(user, projectCode);
         if (taskCode != null) {
-            requireTask(projectCode, taskCode);
+            requireTask(projectCode, taskCode, true);
         }
         IPage<TaskInstance> instances = taskInstanceDao.queryByProjectAndTaskType(
                 new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, taskCode,
@@ -345,8 +345,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         List<TaskDefinition> definitions = taskDefinitionDao.queryByCodes(requested);
         if (definitions.size() != requested.size() || definitions.stream()
                 .anyMatch(definition -> definition.getProjectCode() != projectCode
-                        || !TASK_TYPE.equals(definition.getTaskType())
-                        || definition.getFlag() == Flag.NO)) {
+                        || !TASK_TYPE.equals(definition.getTaskType()))) {
             throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
         }
         int[] states = activeOnly ? new int[]{
@@ -433,15 +432,19 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     private TaskDefinition requireTask(long projectCode, long taskCode) {
+        return requireTask(projectCode, taskCode, false);
+    }
+
+    private TaskDefinition requireTask(long projectCode, long taskCode, boolean includeArchived) {
         TaskDefinition task = taskDefinitionDao.queryByCode(taskCode);
         if (task == null || task.getProjectCode() != projectCode || !TASK_TYPE.equals(task.getTaskType())
-                || task.getFlag() == Flag.NO) {
+                || (!includeArchived && task.getFlag() == Flag.NO)) {
             throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, taskCode);
         }
         return task;
     }
 
-    private WorkflowDefinition findWorkflow(long projectCode, long taskCode) {
+    private WorkflowDefinition findWorkflow(long projectCode, long taskCode, boolean includeArchived) {
         WorkflowDefinition result = null;
         for (WorkflowTaskRelation relation : workflowTaskRelationDao.queryByTaskCode(taskCode)) {
             if (relation.getProjectCode() != projectCode || relation.getPreTaskCode() != 0
@@ -451,7 +454,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             WorkflowDefinition workflow = workflowDefinitionDao.queryByCode(
                     relation.getWorkflowDefinitionCode()).orElse(null);
             if (workflow == null || workflow.getProjectCode() != projectCode
-                    || workflow.getFlag() == Flag.NO
+                    || (!includeArchived && workflow.getFlag() == Flag.NO)
                     || !("data_sync_" + taskCode).equals(workflow.getName())) {
                 continue;
             }
@@ -476,7 +479,11 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     private WorkflowDefinition requireWorkflow(long projectCode, long taskCode) {
-        WorkflowDefinition workflow = findWorkflow(projectCode, taskCode);
+        return requireWorkflow(projectCode, taskCode, false);
+    }
+
+    private WorkflowDefinition requireWorkflow(long projectCode, long taskCode, boolean includeArchived) {
+        WorkflowDefinition workflow = findWorkflow(projectCode, taskCode, includeArchived);
         if (workflow == null) {
             throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST, taskCode);
         }
@@ -507,6 +514,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .name(task.getName())
                 .taskType(TASK_TYPE)
                 .status(workflow.getReleaseState())
+                .archived(task.getFlag() == Flag.NO || workflow.getFlag() == Flag.NO)
                 .definitionVersion(task.getVersion())
                 .revision(task.getVersion())
                 .publishedVersion(published ? task.getVersion() : null)

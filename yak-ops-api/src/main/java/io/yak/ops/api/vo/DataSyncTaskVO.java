@@ -17,6 +17,7 @@ public class DataSyncTaskVO {
     private String name;
     private String taskType;
     private ReleaseState status;
+    private boolean archived;
     private int definitionVersion;
     private int revision;
     private Integer publishedVersion;
