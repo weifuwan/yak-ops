@@ -299,6 +299,7 @@ class DataSyncServiceImplTest {
         task.setVersion(4);
         task.setName("order_sync");
         task.setDescription("original");
+        task.setWorkerGroup("default");
         task.setTaskParams(JSONUtils.toJsonString(validParameters()));
         WorkflowDefinition workflow = workflow(101L, 99L);
         workflow.setReleaseState(releaseState);
