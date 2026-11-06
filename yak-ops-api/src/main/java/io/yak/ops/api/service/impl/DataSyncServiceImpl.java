@@ -88,23 +88,29 @@ public class DataSyncServiceImpl implements DataSyncService {
     public DataSyncPageVO<DataSyncTaskVO> listTasks(User user, long projectCode,
                                                     int pageNo, int pageSize, String keyword, String status) {
         authorizeRead(user, projectCode);
-        List<DataSyncTaskVO> rows = new ArrayList<>();
-        for (TaskDefinition definition : taskDefinitionDao.queryByProjectAndType(projectCode, TASK_TYPE)) {
-            WorkflowDefinition workflow = findWorkflow(projectCode, definition.getCode());
-            if (workflow == null) {
-                continue;
-            }
-            DataSyncTaskVO row = toTaskVO(definition, workflow);
-            if (keyword != null && !keyword.trim().isEmpty()
-                    && !row.getName().toLowerCase().contains(keyword.trim().toLowerCase())
-                    && !row.getId().contains(keyword.trim())) {
-                continue;
-            }
-            if (status == null || status.equals(row.getStatus())) {
-                rows.add(row);
+        if (status != null && !"PUBLISHED".equals(status) && !"UNPUBLISHED".equals(status)) {
+            throw new IllegalArgumentException("Unsupported task status: " + status);
+        }
+        String search = keyword == null ? null : keyword.trim();
+        Long taskCode = null;
+        if (search != null && !search.isEmpty()) {
+            try {
+                taskCode = Long.valueOf(search);
+            } catch (NumberFormatException ignored) {
+                // Search by name when the input is not a task code.
             }
         }
-        return DataSyncPageVO.of(rows, pageNo, pageSize);
+        Integer releaseState = status == null ? null : "PUBLISHED".equals(status) ? 1 : 0;
+        IPage<TaskDefinition> page = taskDefinitionDao.queryDataSyncPage(
+                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState);
+        List<DataSyncTaskVO> rows = new ArrayList<>();
+        for (TaskDefinition definition : page.getRecords()) {
+            WorkflowDefinition workflow = findWorkflow(projectCode, definition.getCode());
+            if (workflow != null) {
+                rows.add(toTaskVO(definition, workflow));
+            }
+        }
+        return DataSyncPageVO.page(rows, pageNo, pageSize, page.getTotal());
     }
 
     @Override
@@ -134,8 +140,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     public DataSyncTaskVO updateTask(User user, long projectCode, long taskCode, DataSyncTaskRequest request) {
         authorizeWrite(user, projectCode);
         TaskDefinition original = requireTask(projectCode, taskCode);
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        workflowDefinitionDao.lockByCode(workflow.getCode());
+        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new IllegalStateException("Unpublish the data synchronization task before editing");
         }
@@ -166,8 +171,7 @@ public class DataSyncServiceImpl implements DataSyncService {
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        workflowDefinitionDao.lockByCode(workflow.getCode());
+        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         workflowDefinitionService.onlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
     }
@@ -176,8 +180,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Transactional
     public DataSyncTaskVO unpublish(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        workflowDefinitionDao.lockByCode(workflow.getCode());
+        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         workflowDefinitionService.offlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
@@ -187,8 +190,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Transactional
     public void deleteTask(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        workflowDefinitionDao.lockByCode(workflow.getCode());
+        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new IllegalStateException("Unpublish the task before deletion");
@@ -234,8 +236,7 @@ public class DataSyncServiceImpl implements DataSyncService {
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        workflowDefinitionDao.lockByCode(workflow.getCode());
+        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
             throw new IllegalStateException("Publish the data synchronization task before starting");
         }
@@ -400,6 +401,13 @@ public class DataSyncServiceImpl implements DataSyncService {
             }
         }
         return null;
+    }
+
+    private WorkflowDefinition lockWorkflow(long projectCode, long taskCode) {
+        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
+        workflowDefinitionDao.lockByCode(workflow.getCode());
+        return workflowDefinitionDao.queryByCode(workflow.getCode())
+                .orElseThrow(() -> new IllegalArgumentException("Workflow no longer exists"));
     }
 
     private WorkflowDefinition requireWorkflow(long projectCode, long taskCode) {

@@ -2,6 +2,8 @@ package io.yak.ops.dao.repository;
 
 import io.yak.ops.dao.entity.TaskDefinition;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +42,9 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      */
     TaskDefinition queryByCode(long taskCode);
 
-    List<TaskDefinition> queryByProjectAndType(long projectCode, String taskType);
+    IPage<TaskDefinition> queryDataSyncPage(IPage<TaskDefinition> page, long projectCode,
+                                             String taskType, String keyword, Long taskCode,
+                                             Integer releaseState);
 
     TaskDefinition queryByName(long projectCode, long workflowDefinitionCode, String taskName);
 

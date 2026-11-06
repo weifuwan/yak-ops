@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.google.common.collect.Lists;
 
 import lombok.NonNull;
@@ -102,11 +103,10 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     }
 
     @Override
-    public List<TaskDefinition> queryByProjectAndType(long projectCode, String taskType) {
-        return mybatisMapper.selectList(new QueryWrapper<TaskDefinition>().lambda()
-                .eq(TaskDefinition::getProjectCode, projectCode)
-                .eq(TaskDefinition::getTaskType, taskType)
-                .orderByDesc(TaskDefinition::getUpdateTime));
+    public IPage<TaskDefinition> queryDataSyncPage(IPage<TaskDefinition> page, long projectCode,
+                                                    String taskType, String keyword, Long taskCode,
+                                                    Integer releaseState) {
+        return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState);
     }
 
     @Override

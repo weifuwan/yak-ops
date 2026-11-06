@@ -35,6 +35,13 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
      */
     TaskDefinition queryByCode(@Param("code") long code);
 
+    IPage<TaskDefinition> queryDataSyncPage(IPage<TaskDefinition> page,
+                                            @Param("projectCode") long projectCode,
+                                            @Param("taskType") String taskType,
+                                            @Param("keyword") String keyword,
+                                            @Param("taskCode") Long taskCode,
+                                            @Param("releaseState") Integer releaseState);
+
     /**
      * query all task definition list
      *
