@@ -9,13 +9,13 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  getTaskParameterVersion,
-  listTaskParameterVersions,
+  getTaskDefinitionVersion,
+  listTaskDefinitionVersions,
   type DataSyncTaskRecord,
-  type TaskParameterVersion,
-  type TaskParameterVersionSummary,
+  type TaskDefinitionVersion,
+  type TaskDefinitionVersionSummary,
 } from "@/service/data-sync";
-import { compareParameterVersions, type ParameterChange } from "@/service/data-sync/versions";
+import { compareTaskDefinitionVersions, type DefinitionChange } from "@/service/data-sync/versions";
 import { parseSyncParameters } from "@/service/data-sync/parameters";
 import { EditorDrawer } from "./editor-drawer";
 
@@ -33,25 +33,25 @@ function VersionDetail({
   onRestore,
   allowRestore,
 }: {
-  value: TaskParameterVersion;
-  compare?: TaskParameterVersion;
+  value: TaskDefinitionVersion;
+  compare?: TaskDefinitionVersion;
   current: VersionTask;
-  onRestore: (value: TaskParameterVersion) => void;
+  onRestore: (value: TaskDefinitionVersion) => void;
   allowRestore: boolean;
 }) {
   let error = "";
-  let changes: ParameterChange[] | undefined;
+  let changes: DefinitionChange[] | undefined;
   try {
-    parseSyncParameters(value.parameterSchemaVersion, value.parameters);
-    if (compare) changes = compareParameterVersions(value, compare);
+    parseSyncParameters(value.parameters);
+    if (compare) changes = compareTaskDefinitionVersions(value, compare);
   } catch (failure) {
-    error = failure instanceof Error ? failure.message : "版本参数无法解析";
+    error = failure instanceof Error ? failure.message : "任务定义无法解析";
   }
   return (
     <section className="mt-5 space-y-3 border-t border-[var(--yak-components-panel-border)] pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">
-          {compare ? `V${value.version} → V${compare.version}` : `参数版本 V${value.version}`}
+          {compare ? `V${value.version} → V${compare.version}` : `任务定义版本 V${value.version}`}
         </h3>
         <Button
           size="small"
@@ -66,11 +66,11 @@ function VersionDetail({
         <Badge tone="success">当前发布版本</Badge>
       ) : null}
       {changes ? (
-        <Table<ParameterChange>
+        <Table<DefinitionChange>
           rowKey="field"
           size="small"
           columns={[
-            { key: "field", title: "参数", dataIndex: "field", minWidth: 180 },
+            { key: "field", title: "配置项", dataIndex: "field", minWidth: 180 },
             {
               key: "before",
               title: `V${value.version}`,
@@ -90,12 +90,12 @@ function VersionDetail({
           ]}
           dataSource={changes}
           pagination={false}
-          emptyText="两个版本的参数一致"
+          emptyText="两个任务定义一致"
           scroll={{ x: 650 }}
         />
       ) : (
         <pre
-          aria-label={`参数版本 V${value.version}`}
+          aria-label={`任务定义版本 V${value.version}`}
           className="max-h-[440px] overflow-auto rounded border border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] p-3 text-xs leading-5"
         >
           {JSON.stringify(value.parameters, null, 2)}
@@ -117,7 +117,7 @@ export function VersionsDrawer({
   open: boolean;
   onClose: () => void;
   onClosed: () => void;
-  onRestore: (value: TaskParameterVersion) => void;
+  onRestore: (value: TaskDefinitionVersion) => void;
   allowRestore?: boolean;
 }) {
   const { currentUser } = useAuth();
@@ -142,18 +142,18 @@ export function VersionsDrawer({
   const versions = useQuery({
     queryKey: ["data-sync-versions", ...scope, "development", page],
     enabled,
-    queryFn: ({ signal }) => listTaskParameterVersions(task!.id, page, PAGE_SIZE, signal),
+    queryFn: ({ signal }) => listTaskDefinitionVersions(task!.id, page, PAGE_SIZE, signal),
   });
   const detail = useQuery({
     queryKey: ["data-sync-versions", ...scope, "detail", version],
     enabled: enabled && version > 0,
-    queryFn: ({ signal }) => getTaskParameterVersion(task!.id, version, signal),
+    queryFn: ({ signal }) => getTaskDefinitionVersion(task!.id, version, signal),
     staleTime: Infinity,
   });
   const comparison = useQuery({
     queryKey: ["data-sync-versions", ...scope, "detail", compareVersion],
     enabled: enabled && version > 0 && compareVersion > 0,
-    queryFn: ({ signal }) => getTaskParameterVersion(task!.id, compareVersion, signal),
+    queryFn: ({ signal }) => getTaskDefinitionVersion(task!.id, compareVersion, signal),
     staleTime: Infinity,
   });
   const query = versions;
@@ -161,10 +161,10 @@ export function VersionsDrawer({
     updateSearch({ version: String(number), compareVersion: undefined });
   const compare = (number: number) =>
     updateSearch({ version: String(number), compareVersion: String(task!.definitionVersion) });
-  const columns: TableColumns<TaskParameterVersionSummary> = [
+  const columns: TableColumns<TaskDefinitionVersionSummary> = [
     {
       key: "version",
-      title: "参数版本",
+      title: "任务版本",
       render: (_, row) => (
         <div className="flex flex-wrap items-center gap-2">
           <span>V{row.version}</span>
@@ -200,7 +200,7 @@ export function VersionsDrawer({
     <EditorDrawer title="版本" width={920} open={open} onClose={onClose} onClosed={onClosed}>
       {!task ? (
         <p className="text-sm text-[var(--yak-components-muted-text)]">
-          保存任务后可查看参数版本。
+          保存任务后可查看任务定义历史。
         </p>
       ) : (
         <>
@@ -212,7 +212,7 @@ export function VersionsDrawer({
           {query.isError ? (
             <Alert>{query.error instanceof Error ? query.error.message : "版本记录加载失败"}</Alert>
           ) : (
-            <Table<TaskParameterVersionSummary>
+            <Table<TaskDefinitionVersionSummary>
               rowKey="version"
               columns={columns}
               dataSource={versions.data?.totalList || []}
@@ -235,7 +235,7 @@ export function VersionsDrawer({
           )}
           {detail.isError || (compareVersion > 0 && comparison.isError) ? (
             <Alert className="mt-4">
-              参数版本加载失败，请重试。
+              任务定义历史加载失败，请重试。
               <Button
                 size="small"
                 onClick={() => {
@@ -247,7 +247,7 @@ export function VersionsDrawer({
               </Button>
             </Alert>
           ) : version && (!detail.data || (compareVersion && !comparison.data)) ? (
-            <p className="mt-5 text-sm">正在加载参数版本…</p>
+            <p className="mt-5 text-sm">正在加载任务定义历史…</p>
           ) : detail.data ? (
             <VersionDetail
               value={detail.data}

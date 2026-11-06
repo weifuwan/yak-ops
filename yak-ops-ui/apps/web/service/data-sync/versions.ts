@@ -5,17 +5,17 @@ import type {
   DataSyncTaskRecord,
   DataSyncTaskSavePayload,
   DataSyncWriteMode,
-  TaskParameterVersion,
+  TaskDefinitionVersion,
 } from "./types";
 
 /** Object key ordering has no meaning; arrays retain authored order. */
-export function parameterFingerprint(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(parameterFingerprint).join(",")}]`;
+export function pipelineFingerprint(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(pipelineFingerprint).join(",")}]`;
   if (value && typeof value === "object")
     return `{${Object.entries(value)
       .filter(([, item]) => item !== undefined)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${parameterFingerprint(item)}`)
+      .map(([key, item]) => `${JSON.stringify(key)}:${pipelineFingerprint(item)}`)
       .join(",")}}`;
   return JSON.stringify(value) ?? "";
 }
@@ -27,28 +27,27 @@ export function matchesSavedTask(
   return (
     request.name === saved.name &&
     (request.remark || "") === (saved.remark || "") &&
-    parameterFingerprint(buildSyncParameters(request)) ===
-      parameterFingerprint(
+    pipelineFingerprint(buildSyncParameters(request)) ===
+      pipelineFingerprint(
         buildSyncParameters({ ...saved, writeMode: saved.writeMode as DataSyncWriteMode }),
       )
   );
 }
 
 /** Restoring parameters retains the task's current metadata and concurrency revision. */
-export function restoreParameterVersion(
+export function restoreTaskDefinitionVersion(
   task: DataSyncTaskRecord,
-  version: TaskParameterVersion,
+  version: TaskDefinitionVersion,
 ): DataSyncTaskRecord {
   if (task.id !== version.definitionId) throw new Error("参数版本不属于当前任务");
   return toSyncTaskRecord({
     ...task,
     taskType: "DATA_SYNC",
-    parameterSchemaVersion: version.parameterSchemaVersion,
-    parameters: parseSyncParameters(version.parameterSchemaVersion, version.parameters),
+    parameters: version.parameters,
   });
 }
 
-export interface ParameterChange {
+export interface DefinitionChange {
   field: string;
   before: string;
   after: string;
@@ -116,22 +115,22 @@ function parameterFields(parameters: DataSyncParameters) {
 }
 
 /** Match tables and routes by identity so unrelated row order does not create false differences. */
-export function compareParameterVersions(
-  before: TaskParameterVersion,
-  after: TaskParameterVersion,
-): ParameterChange[] {
+export function compareTaskDefinitionVersions(
+  before: TaskDefinitionVersion,
+  after: TaskDefinitionVersion,
+): DefinitionChange[] {
   const left = parameterFields(
-    parseSyncParameters(before.parameterSchemaVersion, before.parameters),
+    parseSyncParameters(before.parameters),
   );
   const right = parameterFields(
-    parseSyncParameters(after.parameterSchemaVersion, after.parameters),
+    parseSyncParameters(after.parameters),
   );
   const display = (value: unknown) =>
     value === undefined ? "—" : typeof value === "string" ? value : JSON.stringify(value, null, 2);
   return [...new Set([...left.keys(), ...right.keys()])]
     .sort()
     .filter(
-      (field) => parameterFingerprint(left.get(field)) !== parameterFingerprint(right.get(field)),
+      (field) => pipelineFingerprint(left.get(field)) !== pipelineFingerprint(right.get(field)),
     )
     .map((field) => ({
       field,

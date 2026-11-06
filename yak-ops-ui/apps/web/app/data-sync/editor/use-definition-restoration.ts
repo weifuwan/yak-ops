@@ -3,9 +3,9 @@ import { toast } from "@yak-ops/yak-ui";
 import {
   getDataSyncTask,
   type DataSyncTaskRecord,
-  type TaskParameterVersion,
+  type TaskDefinitionVersion,
 } from "@/service/data-sync";
-import { restoreParameterVersion } from "@/service/data-sync/versions";
+import { restoreTaskDefinitionVersion } from "@/service/data-sync/versions";
 import { getDataSource, type DataSourceRecord } from "@/service/datasource";
 import { createEditorForm } from "./form-state";
 import type { EditorConfiguration } from "./configuration";
@@ -79,17 +79,17 @@ export function useDefinitionRestoration({
       getDataSource(record.sourceDataSourceId, signal),
       getDataSource(record.targetDataSourceId, signal),
     ]);
-  const restore = async (version: TaskParameterVersion) => {
+  const restore = async (version: TaskDefinitionVersion) => {
     if (!task || !session.current) return;
     const signal = begin();
     try {
-      const restored = restoreParameterVersion(task, version);
+      const restored = restoreTaskDefinitionVersion(task, version);
       const connections = await load(restored, signal);
       if (signal.aborted) return;
       const next = configuration(restored, connections);
       closeDrawer();
       confirm({
-        title: `还原参数版本 V${version.version}`,
+        title: `还原任务定义版本 V${version.version}`,
         message: "历史参数将替换当前页面的参数修改，确认后仍需保存和发布。",
         apply: () => {
           if (signal.aborted) return;

@@ -29,8 +29,8 @@ import type {
   DataSyncTaskSavePayload,
   DataSyncTaskUpdatePayload,
   TaskDefinitionRecord,
-  TaskParameterVersion,
-  TaskParameterVersionSummary,
+  TaskDefinitionVersion,
+  TaskDefinitionVersionSummary,
   PublishTaskRequest,
 } from "./types";
 
@@ -178,19 +178,19 @@ export const getTaskDefinition = async (id: string, signal?: AbortSignal) =>
     signal,
   });
 
-export const listTaskParameterVersions = async (
+export const listTaskDefinitionVersions = async (
   id: string,
   pageNo: number,
   pageSize: number,
   signal?: AbortSignal,
 ) =>
-  HttpUtils.getData<PageInfo<TaskParameterVersionSummary>>(
+  HttpUtils.getData<PageInfo<TaskDefinitionVersionSummary>>(
     url("/tasks/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize })),
     { signal },
   );
 
-export const getTaskParameterVersion = async (id: string, version: number, signal?: AbortSignal) =>
-  HttpUtils.getData<TaskParameterVersion>(
+export const getTaskDefinitionVersion = async (id: string, version: number, signal?: AbortSignal) =>
+  HttpUtils.getData<TaskDefinitionVersion>(
     url("/tasks/" + encodeURIComponent(id) + "/versions/" + version),
     { signal },
   );
