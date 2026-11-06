@@ -29,9 +29,6 @@ public interface DataSyncService {
 
     void deleteTask(User user, long projectCode, long taskCode);
 
-    PageInfo<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
-                                                 int pageNo, int pageSize);
-
     DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version);
 
     Integer start(User user, long projectCode, long taskCode);

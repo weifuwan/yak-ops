@@ -447,51 +447,6 @@ class DataSyncServiceImplTest {
     }
 
     @Test
-    void taskVersionsUseDatabasePagination() {
-        TaskDefinition definition = new TaskDefinition();
-        definition.setCode(99L);
-        definition.setProjectCode(PROJECT_CODE);
-        definition.setTaskType("DATA_SYNC");
-        when(taskDefinitionDao.queryByCode(99L)).thenReturn(definition);
-
-        Page<TaskDefinitionLog> page = new Page<>(2, 10);
-        page.setTotal(21);
-        page.setRecords(Collections.emptyList());
-        when(taskDefinitionLogDao.queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE))).thenReturn(page);
-
-        PageInfo<DataSyncTaskVersionVO> result = service.listVersions(new User(), PROJECT_CODE, 99L, 2, 10);
-
-        assertEquals(21, result.getTotal());
-        assertEquals(2, result.getCurrentPage());
-        assertEquals(3, result.getTotalPage());
-        assertTrue(result.getTotalList().isEmpty());
-        verify(taskDefinitionLogDao).queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE));
-    }
-
-    @Test
-    void versionPageReturnsSummaryWithoutParameters() {
-        TaskDefinition definition = new TaskDefinition();
-        definition.setCode(99L);
-        definition.setProjectCode(PROJECT_CODE);
-        definition.setTaskType("DATA_SYNC");
-        when(taskDefinitionDao.queryByCode(99L)).thenReturn(definition);
-        TaskDefinitionLog version = new TaskDefinitionLog();
-        version.setCode(99L);
-        version.setVersion(3);
-        version.setTaskParams("{\"source\":{\"datasourceId\":\"1\"}}");
-        Page<TaskDefinitionLog> page = new Page<>(1, 20);
-        page.setRecords(Collections.singletonList(version));
-        page.setTotal(1);
-        when(taskDefinitionLogDao.queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE))).thenReturn(page);
-
-        DataSyncTaskVersionVO summary =
-                service.listVersions(new User(), PROJECT_CODE, 99L, 1, 20).getTotalList().get(0);
-
-        assertEquals(3, summary.getVersion());
-        assertEquals(null, summary.getParameters());
-    }
-
-    @Test
     void historicalInstanceDoesNotRequireLiveWorkflowRelation() {
         TaskInstance instance = new TaskInstance();
         instance.setId(42);

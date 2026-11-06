@@ -245,20 +245,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     @Override
-    public PageInfo<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
-                                                        int pageNo, int pageSize) {
-        authorizeRead(user, projectCode);
-        requireTask(projectCode, taskCode, true);
-        IPage<TaskDefinitionLog> page = taskDefinitionLogDao.queryVersionsPaging(
-                new Page<>(pageNo, pageSize), taskCode, projectCode);
-        PageInfo<DataSyncTaskVersionVO> result = PageInfo.of(pageNo, pageSize);
-        result.setTotalList(page.getRecords().stream()
-                .map(DataSyncServiceImpl::toTaskVersionSummary).collect(Collectors.toList()));
-        result.setTotal((int) page.getTotal());
-        return result;
-    }
-
-    @Override
     public DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version) {
         authorizeRead(user, projectCode);
         requireTask(projectCode, taskCode, true);

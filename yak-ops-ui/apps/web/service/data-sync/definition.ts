@@ -186,23 +186,6 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expecte
   return request;
 }
 
-export function definitionPageRequest(params: DataSyncTaskPageParams) {
-  const parameterFilters: Record<string, string> = {};
-  if (params.productType) parameterFilters.dataSyncProfile = params.productType;
-  if (params.syncType === "OFFLINE") parameterFilters.runtimeMode = "BATCH";
-  if (params.syncType === "REALTIME") parameterFilters.runtimeMode = "STREAMING";
-  if (params.sourceDataSourceId) parameterFilters.sourceDataSourceId = params.sourceDataSourceId;
-  if (params.targetDataSourceId) parameterFilters.targetDataSourceId = params.targetDataSourceId;
-  return {
-    pageNo: params.pageNo,
-    pageSize: params.pageSize,
-    keyword: params.keyword,
-    status: params.status,
-    taskType: "DATA_SYNC",
-    parameterFilters,
-  };
-}
-
 /** Projects one immutable Pipeline definition into the editor's transient UI state. */
 export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
   if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");

@@ -5,18 +5,13 @@ import io.yak.ops.plugin.task.api.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.enums.ResourceType;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
 
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /** Compiles a connector-independent Pipeline definition into executable Flink CDC YAML. */
 final class DataSyncPipelineBuilder {
 
-    private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
     private final DataSyncConnectorRegistry providers = new DataSyncConnectorRegistry();
 
     String build(TaskExecutionContext context, DataSyncParameters parameters) {
@@ -48,14 +43,7 @@ final class DataSyncPipelineBuilder {
         if (!pipeline.has("parallelism")) {
             pipeline.put("parallelism", 1);
         }
-        try {
-            // Jackson JSON trees and YAML share a mapping model. The final text is
-            // parsed by the upstream Flink CDC YAML parser, not a custom DSL parser.
-            JsonNode tree = definition;
-            return YAML.writeValueAsString(YAML.readTree(JSONUtils.toJsonString(tree)));
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Cannot serialize DATA_SYNC Pipeline YAML", e);
-        }
+        return JSONUtils.toJsonString(definition);
     }
 
     private static DataSourceParameters resolve(TaskExecutionContext context, int id) {

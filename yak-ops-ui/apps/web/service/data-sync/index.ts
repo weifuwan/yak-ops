@@ -182,11 +182,24 @@ export const listTaskDefinitionVersions = async (
   pageNo: number,
   pageSize: number,
   signal?: AbortSignal,
-) =>
-  HttpUtils.getData<PageInfo<TaskDefinitionVersionSummary>>(
-    url("/tasks/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize })),
+): Promise<PageInfo<TaskDefinitionVersionSummary>> => {
+  const page = await HttpUtils.getData<
+    PageInfo<{ code: number; version: number; operator: number; operateTime: string }>
+  >(
+    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
+      "/task-definition/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize }),
     { signal },
   );
+  return {
+    ...page,
+    totalList: page.totalList.map((entry) => ({
+      definitionId: String(entry.code),
+      version: entry.version,
+      createBy: String(entry.operator),
+      createTime: entry.operateTime,
+    })),
+  };
+};
 
 export const getTaskDefinitionVersion = async (id: string, version: number, signal?: AbortSignal) =>
   HttpUtils.getData<TaskDefinitionVersion>(

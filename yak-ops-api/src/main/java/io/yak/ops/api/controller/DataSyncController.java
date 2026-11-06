@@ -101,17 +101,6 @@ public class DataSyncController extends BaseController {
         return Result.success();
     }
 
-    @GetMapping("/tasks/{taskCode}/versions")
-    public Result<PageInfo<DataSyncTaskVersionVO>> versions(
-                                                            @RequestAttribute(Constants.SESSION_USER) User user,
-                                                            @PathVariable long projectCode,
-                                                            @PathVariable long taskCode,
-                                                            @RequestParam(defaultValue = "1") int pageNo,
-                                                            @RequestParam(defaultValue = "20") int pageSize) {
-        checkPageParams(pageNo, pageSize);
-        return Result.success(dataSyncService.listVersions(user, projectCode, taskCode, pageNo, pageSize));
-    }
-
     @GetMapping("/tasks/{taskCode}/versions/{version}")
     public Result<DataSyncTaskVersionVO> version(
                                                  @RequestAttribute(Constants.SESSION_USER) User user,
