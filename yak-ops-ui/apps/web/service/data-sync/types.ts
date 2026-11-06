@@ -456,6 +456,7 @@ export interface DataSyncParameters {
 
 export interface TaskDefinitionRecord {
   id: string;
+  workflowCode: string;
   name: string;
   taskType: string;
   status: DataSyncTaskStatus | string;

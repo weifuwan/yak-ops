@@ -200,6 +200,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
   const mapping = tableMappings[0];
   return {
     id: definition.id,
+    workflowCode: definition.workflowCode,
     sourceConnector: parameters.source.type,
     sinkConnector: parameters.sink.type,
     sourceProducesChangelog: usesCdcStartup(parameters),
