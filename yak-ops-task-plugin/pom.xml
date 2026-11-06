@@ -16,6 +16,7 @@
         <module>yak-ops-task-all</module>
         <module>yak-ops-task-api</module>
         <module>yak-ops-task-shell</module>
+        <module>yak-ops-task-data-sync</module>
         <module>yak-ops-task-grpc</module>
         <module>yak-ops-task-http</module>
         <module>yak-ops-task-python</module>
