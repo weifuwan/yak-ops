@@ -182,7 +182,6 @@ class DataSyncServiceImplTest {
         assertEquals(Flag.NO, workflow.getFlag());
         assertTrue(service.getTask(new User(), PROJECT_CODE, 99L).isArchived());
         assertThrows(ServiceException.class, () -> service.publish(new User(), PROJECT_CODE, 99L));
-        verify(workflowDefinitionDao).lockByCode(101L);
         verifyNoInteractions(workflowDefinitionService, taskInstanceDao, taskDefinitionLogDao);
     }
 
@@ -200,7 +199,7 @@ class DataSyncServiceImplTest {
     }
 
     @Test
-    void updateChecksRevisionAfterWorkflowLock() {
+    void updateRejectsOutdatedRevision() {
         TaskDefinition task = taskDefinition(99L);
         task.setVersion(4);
         WorkflowDefinition workflow = workflow(101L, 99L);
@@ -217,8 +216,101 @@ class DataSyncServiceImplTest {
                 () -> service.updateTask(new User(), PROJECT_CODE, 99L, request));
 
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
-        verify(workflowDefinitionDao).lockByCode(101L);
         verifyNoInteractions(workflowDefinitionService, dataSourceDao);
+    }
+
+
+    @Test
+    void updateRejectsRacingRevisionChanges() {
+        prepareDataSyncTask(ReleaseState.OFFLINE);
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setName("changed_sync");
+        request.setRemark("updated");
+        request.setExpectedRevision(4);
+        request.setParameters(validParameters());
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.updateTask(new User(), PROJECT_CODE, 99L, request));
+
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verify(taskDefinitionDao).compareAndSetDataSyncRevision(PROJECT_CODE, 99L, 4);
+        verifyNoInteractions(workflowDefinitionService);
+    }
+
+    @Test
+    void updateSkipsUnchangedDefinitionsWithoutConsumingRevision() {
+        prepareDataSyncTask(ReleaseState.OFFLINE);
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setName("order_sync");
+        request.setRemark("original");
+        request.setExpectedRevision(4);
+        request.setParameters(validParameters());
+
+        service.updateTask(new User(), PROJECT_CODE, 99L, request);
+
+        verify(taskDefinitionDao, never()).compareAndSetDataSyncRevision(eq(PROJECT_CODE), eq(99L), eq(4));
+        verifyNoInteractions(workflowDefinitionService);
+    }
+
+    @Test
+    void startRejectsConcurrentRequestWhileReservationIsHeld() {
+        prepareDataSyncTask(ReleaseState.ONLINE);
+        when(workflowDefinitionDao.tryReserveStart(eq(101L), any())).thenReturn(false);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.start(new User(), PROJECT_CODE, 99L));
+
+        assertEquals(Status.WORKFLOW_INSTANCE_EXIST.getCode(), error.getCode());
+        verifyNoInteractions(executorService);
+        verify(workflowDefinitionDao, never()).releaseStart(eq(101L), any());
+    }
+
+    @Test
+    void startReleasesReservationAfterMasterAcceptsJob() {
+        prepareDataSyncTask(ReleaseState.ONLINE);
+        when(workflowDefinitionDao.tryReserveStart(eq(101L), any())).thenReturn(true);
+        when(executorService.triggerWorkflowDefinition(any())).thenReturn(42);
+
+        assertEquals(42, service.start(new User(), PROJECT_CODE, 99L));
+
+        verify(executorService).triggerWorkflowDefinition(any());
+        verify(workflowDefinitionDao).releaseStart(eq(101L), any());
+    }
+
+    @Test
+    void startReleasesReservationWhenMasterFails() {
+        prepareDataSyncTask(ReleaseState.ONLINE);
+        when(workflowDefinitionDao.tryReserveStart(eq(101L), any())).thenReturn(true);
+        when(executorService.triggerWorkflowDefinition(any())).thenThrow(new IllegalStateException("master failed"));
+
+        assertThrows(IllegalStateException.class, () -> service.start(new User(), PROJECT_CODE, 99L));
+
+        verify(workflowDefinitionDao).releaseStart(eq(101L), any());
+    }
+
+    private void prepareDataSyncTask(ReleaseState releaseState) {
+        TaskDefinition task = taskDefinition(99L);
+        task.setVersion(4);
+        task.setName("order_sync");
+        task.setDescription("original");
+        task.setTaskParams(JSONUtils.toJsonString(validParameters()));
+        WorkflowDefinition workflow = workflow(101L, 99L);
+        workflow.setReleaseState(releaseState);
+        WorkflowTaskRelation relation = relation(101L, 99L);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
+        when(workflowTaskRelationDao.queryByTaskCode(99L)).thenReturn(Collections.singletonList(relation));
+        when(workflowTaskRelationDao.queryByWorkflowDefinitionCode(101L))
+                .thenReturn(Collections.singletonList(relation));
+        when(workflowDefinitionDao.queryByCode(101L)).thenReturn(Optional.of(workflow));
+
+        DataSource mysql = new DataSource();
+        mysql.setType(DbType.MYSQL);
+        when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(mysql);
+        when(dataSourceDao.queryByIdAndProjectCode(2, PROJECT_CODE)).thenReturn(mysql);
+    }
+
+    private static com.fasterxml.jackson.databind.JsonNode validParameters() {
+        return JSONUtils.parseObject("{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}");
     }
 
     @Test
