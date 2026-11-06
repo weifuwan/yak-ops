@@ -11,6 +11,8 @@ import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
+import io.yak.ops.common.enums.ReleaseState;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.dao.entity.User;
 
 import java.util.Collections;
@@ -45,7 +47,7 @@ public class DataSyncController extends BaseController {
                                                       @RequestParam(defaultValue = "1") int pageNo,
                                                       @RequestParam(defaultValue = "20") int pageSize,
                                                       @RequestParam(required = false) String keyword,
-                                                      @RequestParam(required = false) String status) {
+                                                      @RequestParam(required = false) ReleaseState status) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status));
     }
@@ -134,7 +136,7 @@ public class DataSyncController extends BaseController {
                                                           @RequestParam(defaultValue = "1") int pageNo,
                                                           @RequestParam(defaultValue = "20") int pageSize,
                                                           @RequestParam(required = false) Long taskCode,
-                                                          @RequestParam(required = false) String status) {
+                                                          @RequestParam(required = false) TaskExecutionStatus status) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status));
     }

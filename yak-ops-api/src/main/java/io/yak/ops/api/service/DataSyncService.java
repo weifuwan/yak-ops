@@ -7,6 +7,8 @@ import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.common.enums.ReleaseState;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +16,7 @@ import java.util.Map;
 public interface DataSyncService {
 
     PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                       int pageNo, int pageSize, String keyword, String status);
+                                       int pageNo, int pageSize, String keyword, ReleaseState status);
 
     DataSyncTaskVO getTask(User user, long projectCode, long taskCode);
 
@@ -36,7 +38,7 @@ public interface DataSyncService {
     Integer start(User user, long projectCode, long taskCode);
 
     PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                               int pageSize, Long taskCode, String status);
+                                               int pageSize, Long taskCode, TaskExecutionStatus status);
 
     List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                              List<Long> taskCodes, boolean activeOnly);

@@ -2,6 +2,8 @@ package io.yak.ops.api.vo;
 
 import java.util.Date;
 
+import io.yak.ops.common.enums.ReleaseState;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.Builder;
@@ -14,7 +16,7 @@ public class DataSyncTaskVO {
     private String id;
     private String name;
     private String taskType;
-    private String status;
+    private ReleaseState status;
     private int definitionVersion;
     private int revision;
     private Integer publishedVersion;

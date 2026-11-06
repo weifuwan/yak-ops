@@ -91,11 +91,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                              int pageNo, int pageSize, String keyword, String status) {
+                                              int pageNo, int pageSize, String keyword, ReleaseState status) {
         authorizeRead(user, projectCode);
-        if (status != null && !"PUBLISHED".equals(status) && !"UNPUBLISHED".equals(status)) {
-            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "status");
-        }
         String search = keyword == null ? null : keyword.trim();
         Long taskCode = null;
         if (search != null && !search.isEmpty()) {
@@ -105,7 +102,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 // Search by name when the input is not a task code.
             }
         }
-        Integer releaseState = status == null ? null : "PUBLISHED".equals(status) ? 1 : 0;
+        Integer releaseState = status == null ? null : status.getCode();
         IPage<TaskDefinition> page = taskDefinitionDao.queryDataSyncPage(
                 new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState);
         List<DataSyncTaskVO> rows = new ArrayList<>();
@@ -312,13 +309,13 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                      int pageSize, Long taskCode, String status) {
+                                                      int pageSize, Long taskCode, TaskExecutionStatus status) {
         authorizeRead(user, projectCode);
         if (taskCode != null) {
             requireTask(projectCode, taskCode);
         }
         IPage<TaskInstance> instances = taskInstanceDao.queryByProjectAndTaskType(
-                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, taskCode, taskStates(status));
+                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, taskCode, status == null ? null : new int[]{status.getCode()});
         List<DataSyncInstanceVO> rows = instances.getRecords().stream()
                 .map(DataSyncServiceImpl::toInstanceVO)
                 .collect(Collectors.toList());
@@ -326,32 +323,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         result.setTotalList(rows);
         result.setTotal((int) instances.getTotal());
         return result;
-    }
-
-    private static int[] taskStates(String status) {
-        if (status == null || status.isEmpty()) {
-            return null;
-        }
-        switch (status) {
-            case "SUBMITTED":
-                return new int[]{TaskExecutionStatus.SUBMITTED_SUCCESS.getCode()};
-            case "LAUNCHING":
-                return new int[]{TaskExecutionStatus.DISPATCH.getCode()};
-            case "RUNNING":
-                return new int[]{TaskExecutionStatus.RUNNING_EXECUTION.getCode()};
-            case "FINISHED":
-                return new int[]{TaskExecutionStatus.SUCCESS.getCode(), TaskExecutionStatus.FORCED_SUCCESS.getCode()};
-            case "FAILED":
-                return new int[]{TaskExecutionStatus.FAILURE.getCode()};
-            case "CANCELED":
-                return new int[]{TaskExecutionStatus.KILL.getCode()};
-            case "RECONCILING":
-                return new int[]{TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()};
-            case "CANCELLING":
-                return new int[]{-1};
-            default:
-                throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "status");
-        }
     }
 
     @Override
@@ -376,6 +347,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
                 TaskExecutionStatus.DISPATCH.getCode(),
                 TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
+                TaskExecutionStatus.DELAY_EXECUTION.getCode(),
                 TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()} : null;
         return taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, new ArrayList<>(requested), states).stream()
@@ -405,7 +377,12 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     public void stop(User user, long projectCode, int instanceId) {
         authorizeWrite(user, projectCode);
         TaskInstance instance = requireInstance(user, projectCode, instanceId);
-        if (!active(toInstanceVO(instance).getStatus())) {
+        io.yak.ops.dao.entity.WorkflowInstance workflowInstance =
+                workflowInstanceDao.queryById(instance.getWorkflowInstanceId());
+        if (workflowInstance == null || workflowInstance.getProjectCode() != projectCode) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+        if (workflowInstance.getState().isFinalState()) {
             return;
         }
         executorService.controlWorkflowInstance(user, instance.getWorkflowInstanceId(), ExecuteType.STOP);
@@ -524,7 +501,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .id(String.valueOf(task.getCode()))
                 .name(task.getName())
                 .taskType(TASK_TYPE)
-                .status(published ? "PUBLISHED" : "UNPUBLISHED")
+                .status(workflow.getReleaseState())
                 .definitionVersion(task.getVersion())
                 .revision(task.getVersion())
                 .publishedVersion(published ? task.getVersion() : null)
@@ -547,8 +524,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .taskName(instance.getName())
                 .definitionVersion(instance.getTaskDefinitionVersion())
                 .taskType(TASK_TYPE)
-                .triggerType("MANUAL")
-                .status(status(instance))
+                .status(instance.getState())
                 .createTime(instance.getFirstSubmitTime())
                 .startTime(instance.getStartTime())
                 .endTime(instance.getEndTime())
@@ -557,33 +533,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .host(instance.getHost())
                 .workflowInstanceId(instance.getWorkflowInstanceId())
                 .build();
-    }
-
-    private static String status(TaskInstance instance) {
-        switch (instance.getState()) {
-            case SUBMITTED_SUCCESS:
-                return "SUBMITTED";
-            case DISPATCH:
-                return "LAUNCHING";
-            case RUNNING_EXECUTION:
-                return "RUNNING";
-            case SUCCESS:
-                return "FINISHED";
-            case FAILURE:
-                return "FAILED";
-            case KILL:
-                return "CANCELED";
-            case NEED_FAULT_TOLERANCE:
-                return "RECONCILING";
-            default:
-                return instance.getState().name();
-        }
-    }
-
-    private static boolean active(String status) {
-        return "SUBMITTED".equals(status) || "LAUNCHING".equals(status)
-                || "RUNNING".equals(status) || "CANCELLING".equals(status)
-                || "RECONCILING".equals(status);
     }
 
     private void validate(String name, JsonNode parameters, long projectCode) {
