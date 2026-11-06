@@ -14,17 +14,18 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(classes = {ApiApplicationServer.class, DaoConfiguration.class})
 @AutoConfigureMockMvc
-@Transactional
+@DirtiesContext
 public abstract class AbstractControllerTest {
 
     public static final String SESSION_ID = "sessionId";
@@ -46,6 +47,13 @@ public abstract class AbstractControllerTest {
     public void setUp() {
         user = usersService.queryUser(1);
         createSession(user);
+    }
+
+    @AfterEach
+    public void after() throws Exception {
+        if (user != null) {
+            sessionService.expireSession(user.getId());
+        }
     }
 
     private void createSession(User loginUser) {
