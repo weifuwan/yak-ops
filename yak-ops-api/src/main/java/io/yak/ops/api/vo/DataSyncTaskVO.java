@@ -21,7 +21,6 @@ public class DataSyncTaskVO {
     private int definitionVersion;
     private int revision;
     private Integer publishedVersion;
-    private int parameterSchemaVersion;
     private JsonNode parameters;
     private String remark;
     private Date createTime;

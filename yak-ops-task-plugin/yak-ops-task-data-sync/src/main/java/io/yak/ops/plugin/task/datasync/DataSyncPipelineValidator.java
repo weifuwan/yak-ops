@@ -8,6 +8,8 @@ import org.apache.flink.cdc.common.configuration.Configuration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,25 +22,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 public final class DataSyncPipelineValidator {
 
     private static final Set<String> TOP_LEVEL = keys("source", "sink", "route", "transform", "pipeline");
-    private static final Set<String> SOURCE = keys(
-            "type", "datasource-id", "tables", "scan.startup.mode", "server-time-zone");
-    private static final Set<String> SINK = keys(
-            "type", "datasource-id", "exclude.schema.changes");
-    private static final Set<String> PIPELINE = keys(
-            "name", "parallelism", "execution.runtime-mode", "local-time-zone",
-            "schema.change.behavior", "schema.operator.uid", "route-mode",
-            "transform.decimal.precision.mode");
-    private static final Set<String> ROUTE = keys(
-            "source-table", "sink-table", "description");
 
     public void validate(JsonNode definition) {
-        object(definition, "definition", TOP_LEVEL);
+        object(definition, "definition");
+        onlyKeys(definition, "definition", TOP_LEVEL);
+        rejectCredentials(definition);
         JsonNode source = definition.path("source");
         JsonNode sink = definition.path("sink");
         JsonNode pipeline = definition.path("pipeline");
-        object(source, "source", SOURCE);
-        object(sink, "sink", SINK);
-        object(pipeline, "pipeline", PIPELINE);
+        object(source, "source");
+        object(sink, "sink");
+        object(pipeline, "pipeline");
 
         DataSyncParameters.datasourceId(source);
         DataSyncParameters.datasourceId(sink);
@@ -61,7 +55,7 @@ public final class DataSyncPipelineValidator {
             throw new IllegalArgumentException("route: exactly one table mapping is supported");
         }
         JsonNode route = routes.get(0);
-        object(route, "route[0]", ROUTE);
+        object(route, "route[0]");
         if (!tables.equals(text(route, "source-table"))) {
             throw new IllegalArgumentException("route[0].source-table must equal source.tables");
         }
@@ -117,16 +111,41 @@ public final class DataSyncPipelineValidator {
         }
     }
 
-    private static void object(JsonNode value, String label, Set<String> keys) {
+    private static void object(JsonNode value, String label) {
         if (!value.isObject()) {
             throw new IllegalArgumentException(label + ": object required");
         }
+    }
+
+    private static void onlyKeys(JsonNode value, String label, Set<String> keys) {
         Iterator<String> fields = value.fieldNames();
         while (fields.hasNext()) {
             String key = fields.next();
             if (!keys.contains(key)) {
                 throw new IllegalArgumentException(label + "." + key + ": unsupported field");
             }
+        }
+    }
+
+    private static void rejectCredentials(JsonNode value) {
+        if (value.isArray()) {
+            value.forEach(DataSyncPipelineValidator::rejectCredentials);
+            return;
+        }
+        if (!value.isObject()) {
+            return;
+        }
+        Iterator<Map.Entry<String, JsonNode>> fields = value.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String key = field.getKey().replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+            if ("password".equals(key) || "passwd".equals(key) || "token".equals(key)
+                    || "secret".equals(key) || "secretkey".equals(key)
+                    || "accesskey".equals(key) || "apikey".equals(key)
+                    || "privatekey".equals(key) || "credentials".equals(key)) {
+                throw new IllegalArgumentException("Pipeline must reference Yak Ops datasources, not inline credentials");
+            }
+            rejectCredentials(field.getValue());
         }
     }
 

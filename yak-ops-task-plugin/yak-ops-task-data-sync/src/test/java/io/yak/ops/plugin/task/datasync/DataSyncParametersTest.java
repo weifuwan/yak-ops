@@ -37,7 +37,15 @@ class DataSyncParametersTest {
     }
 
     @Test
-    void rejectsUnrecognizedOrSecretOptions() {
+    void acceptsAdditionalFlinkConnectorOptions() {
+        DataSyncParameters parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("source"))
+                .put("scan.incremental.snapshot.chunk.size", 4096);
+        assertTrue(parameters.checkParameters());
+    }
+
+    @Test
+    void rejectsInlineCredentials() {
         DataSyncParameters parameters = valid();
         ((ObjectNode) parameters.getDefinition().path("source")).put("password", "do-not-save");
         assertFalse(parameters.checkParameters());

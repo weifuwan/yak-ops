@@ -79,7 +79,6 @@ import lombok.RequiredArgsConstructor;
 public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncService {
 
     private static final String TASK_TYPE = "DATA_SYNC";
-    private static final int PARAMETER_SCHEMA_VERSION = 9;
     private final ProjectService projectService;
     private final DataSourceDao dataSourceDao;
     private final TaskDefinitionDao taskDefinitionDao;
@@ -272,7 +271,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         return DataSyncTaskVersionVO.builder()
                 .definitionId(String.valueOf(definition.getCode()))
                 .version(definition.getVersion())
-                .parameterSchemaVersion(PARAMETER_SCHEMA_VERSION)
                 .createBy(String.valueOf(definition.getUserId()))
                 .createTime(definition.getCreateTime())
                 .build();
@@ -373,7 +371,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, instance.getTaskCode());
         }
         return new DataSyncDefinitionVO(String.valueOf(definition.getCode()), definition.getVersion(),
-                definition.getName(), definition.getTaskType(), PARAMETER_SCHEMA_VERSION,
+                definition.getName(), definition.getTaskType(),
                 JSONUtils.parseObject(definition.getTaskParams()));
     }
 
@@ -518,7 +516,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .definitionVersion(task.getVersion())
                 .revision(task.getVersion())
                 .publishedVersion(published ? task.getVersion() : null)
-                .parameterSchemaVersion(PARAMETER_SCHEMA_VERSION)
                 .parameters(JSONUtils.parseObject(task.getTaskParams()))
                 .remark(task.getDescription())
                 .createTime(task.getCreateTime())

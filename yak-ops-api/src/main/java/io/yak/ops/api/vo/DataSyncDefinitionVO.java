@@ -13,6 +13,5 @@ public class DataSyncDefinitionVO {
     private int version;
     private String name;
     private String taskType;
-    private int parameterSchemaVersion;
     private JsonNode parameters;
 }
