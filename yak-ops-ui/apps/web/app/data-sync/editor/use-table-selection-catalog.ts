@@ -1,14 +1,17 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { pageDataSourceTables } from "@/service/datasource";
 import type { TransferFilters } from "./table-transfer-panel";
 
 export function useTableSelectionCatalog(dataSourceId: string, filters: TransferFilters) {
   const { currentUser } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const query = useInfiniteQuery({
     queryKey: [
       "data-sync-selection-catalog",
       currentUser?.id,
+      currentWorkspace?.id,
       dataSourceId,
       filters,
     ],
@@ -25,7 +28,7 @@ export function useTableSelectionCatalog(dataSourceId: string, filters: Transfer
         signal,
       ),
     getNextPageParam: (page) => page.nextOffset ?? undefined,
-    enabled: Boolean(dataSourceId && currentUser?.id),
+    enabled: Boolean(dataSourceId && currentUser?.id && currentWorkspace?.id),
     retry: false,
   });
   return { ...query, tables: query.data?.pages.flatMap((page) => page.items) ?? [] };
