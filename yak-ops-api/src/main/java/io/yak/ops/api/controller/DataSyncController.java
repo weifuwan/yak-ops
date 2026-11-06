@@ -12,8 +12,8 @@ import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.ReleaseState;
-import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import java.util.Collections;
 import java.util.List;

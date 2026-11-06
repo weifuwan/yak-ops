@@ -1,8 +1,8 @@
 package io.yak.ops.api.vo;
 
-import java.util.Date;
-
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
+
+import java.util.Date;
 
 import lombok.Builder;
 import lombok.Data;

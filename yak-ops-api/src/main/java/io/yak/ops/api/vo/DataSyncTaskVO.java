@@ -1,8 +1,8 @@
 package io.yak.ops.api.vo;
 
-import java.util.Date;
-
 import io.yak.ops.common.enums.ReleaseState;
+
+import java.util.Date;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
