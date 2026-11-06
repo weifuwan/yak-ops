@@ -113,7 +113,7 @@ class DataSyncServiceImplTest {
         DataSource source = new DataSource();
         source.setType(DbType.MYSQL);
         DataSource sink = new DataSource();
-        sink.setType(DbType.POSTGRE_SQL);
+        sink.setType(DbType.POSTGRESQL);
         when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(source);
         when(dataSourceDao.queryByIdAndProjectCode(2, PROJECT_CODE)).thenReturn(sink);
 
