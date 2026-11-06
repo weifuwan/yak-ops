@@ -49,11 +49,10 @@ public final class MySQLDataSyncSourceProvider implements DataSyncSourceProvider
         options.put("port", String.valueOf(uri.getPort() < 0 ? 3306 : uri.getPort()));
         options.put("username", params.getUser());
         options.put("password", PasswordUtils.decodePassword(params.getPassword()));
-        // Range isolates subtasks of a job. Cross-job uniqueness still requires an allocator
-        // when multiple concurrently running instances may share a MySQL server.
-        long base = 10000L + Math.floorMod(taskInstanceId, 1000000L) * 128L;
-        options.put("server-id", parallelism == 1 ? String.valueOf(base)
-                : base + "-" + (base + parallelism - 1));
+        // Leave an extra server ID for the binlog reader. Cross-job uniqueness
+        // requires a persistent lease when task instance IDs are reused.
+        long base = 10000L + Math.floorMod(taskInstanceId, 10000000L) * 256L;
+        options.put("server-id", base + "-" + (base + parallelism));
         return options;
     }
 }

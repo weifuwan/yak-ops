@@ -88,6 +88,17 @@ class DataSyncPipelineBuilderTest {
         assertFalse(first.equals(next));
     }
 
+    @Test
+    void serverIdRangeReservesReaderAndBinlogSlots() throws Exception {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .put("parallelism", 2);
+        JsonNode tree = YAML.readTree(new DataSyncPipelineBuilder().build(context(), parameters));
+        String[] range = tree.path("source").path("server-id").asText().split("-");
+        assertEquals(2, range.length);
+        assertEquals(Long.parseLong(range[0]) + 2, Long.parseLong(range[1]));
+    }
+
     private static TaskExecutionContext context() {
         return context("secret_source", "secret_target");
     }
