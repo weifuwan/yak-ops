@@ -111,7 +111,7 @@ public class ExecutorController extends BaseController {
     public Result<List<Integer>> triggerWorkflowDefinition(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                                            @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
                                                            @RequestParam(value = "workflowDefinitionCode") long workflowDefinitionCode,
-                                                           @RequestParam(value = "scheduleTime") String scheduleTime,
+                                                           @RequestParam(value = "scheduleTime", required = false) String scheduleTime,
                                                            @RequestParam(value = "failureStrategy") FailureStrategy failureStrategy,
                                                            @RequestParam(value = "startNodeList", required = false) String startNodeList,
                                                            @RequestParam(value = "taskDependType", required = false, defaultValue = "TASK_POST") TaskDependType taskDependType,

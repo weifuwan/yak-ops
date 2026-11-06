@@ -22,8 +22,6 @@ class DataSyncControllerAuditTest {
         assertAudit("deleteTask", AuditType.DATA_SYNC_DELETE);
         assertAudit("publish", AuditType.DATA_SYNC_PUBLISH);
         assertAudit("unpublish", AuditType.DATA_SYNC_UNPUBLISH);
-        assertAudit("start", AuditType.DATA_SYNC_START);
-        assertAudit("stop", AuditType.DATA_SYNC_STOP);
     }
 
     private static void assertAudit(String methodName, AuditType expected) {

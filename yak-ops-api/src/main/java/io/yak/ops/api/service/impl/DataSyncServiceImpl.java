@@ -1,11 +1,10 @@
 package io.yak.ops.api.service.impl;
 
+import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
-import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSyncService;
-import io.yak.ops.api.service.ExecutorService;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
@@ -14,15 +13,11 @@ import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
-import io.yak.ops.common.enums.CommandType;
-import io.yak.ops.common.enums.FailureStrategy;
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.enums.Priority;
 import io.yak.ops.common.enums.ReleaseState;
-import io.yak.ops.common.enums.TaskDependType;
 import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.common.enums.TimeoutFlag;
-import io.yak.ops.common.enums.WarningType;
 import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.common.enums.WorkflowExecutionTypeEnum;
 import io.yak.ops.common.utils.CodeGenerateUtils;
@@ -39,7 +34,6 @@ import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
-import io.yak.ops.dao.repository.TaskDefinitionLogDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
@@ -77,13 +71,11 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     private final ProjectService projectService;
     private final DataSourceDao dataSourceDao;
     private final TaskDefinitionDao taskDefinitionDao;
-    private final TaskDefinitionLogDao taskDefinitionLogDao;
     private final TaskInstanceDao taskInstanceDao;
     private final WorkflowDefinitionDao workflowDefinitionDao;
     private final WorkflowInstanceDao workflowInstanceDao;
     private final WorkflowTaskRelationDao workflowTaskRelationDao;
     private final WorkflowDefinitionService workflowDefinitionService;
-    private final ExecutorService executorService;
 
     @Override
     public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
@@ -129,7 +121,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         WorkflowDefinition workflow = workflowDefinitionService.createWorkflowDefinition(
                 user, projectCode, "data_sync_" + taskCode, request.getRemark() == null ? "" : request.getRemark(),
                 "[]", "[]", 0, JSONUtils.toJsonString(Collections.singletonList(relation)),
-                JSONUtils.toJsonString(Collections.singletonList(task)), "{}", WorkflowExecutionTypeEnum.PARALLEL);
+                JSONUtils.toJsonString(Collections.singletonList(task)), "{}", WorkflowExecutionTypeEnum.SERIAL_DISCARD);
         return toTaskVO(requireTask(projectCode, taskCode), workflow);
     }
 
@@ -167,15 +159,20 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         workflowDefinitionService.updateWorkflowDefinition(user, projectCode, workflow.getName(),
                 workflow.getCode(), request.getRemark() == null ? "" : request.getRemark(),
                 "[]", "[]", 0, JSONUtils.toJsonString(Collections.singletonList(relation)),
-                JSONUtils.toJsonString(Collections.singletonList(updated)), WorkflowExecutionTypeEnum.PARALLEL);
+                JSONUtils.toJsonString(Collections.singletonList(updated)), WorkflowExecutionTypeEnum.SERIAL_DISCARD);
         return getTask(user, projectCode, taskCode);
     }
 
     @Override
     @Transactional
-    public DataSyncTaskVO publish(User user, long projectCode, long taskCode) {
+    public DataSyncTaskVO publish(User user, long projectCode, long taskCode, DataSyncPublishRequest request) {
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
+        if (request == null || request.getVersion() == null || request.getExpectedRevision() == null
+                || request.getVersion() != definition.getVersion()
+                || request.getExpectedRevision() != definition.getVersion()) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "version");
+        }
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         workflowDefinitionService.onlineWorkflowDefinition(user, projectCode, workflow.getCode());
@@ -239,34 +236,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     @Override
-    public Integer start(User user, long projectCode, long taskCode) {
-        authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        TaskDefinition definition = requireTask(projectCode, taskCode);
-        validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
-        if (workflow.getReleaseState() != ReleaseState.ONLINE) {
-            throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(),
-                    definition.getVersion());
-        }
-        ensureStopped(workflow.getCode());
-        return executorService.triggerWorkflowDefinition(
-                io.yak.ops.api.dto.workflow.WorkflowTriggerRequest.builder()
-                        .loginUser(user)
-                        .projectCode(projectCode)
-                        .workflowDefinitionCode(workflow.getCode())
-                        .execType(CommandType.START_PROCESS)
-                        .failureStrategy(FailureStrategy.END)
-                        .taskDependType(TaskDependType.TASK_POST)
-                        .warningType(WarningType.NONE)
-                        .workflowInstancePriority(Priority.MEDIUM)
-                        .workerGroup(definition.getWorkerGroup())
-                        .tenantCode("default")
-                        .environmentCode(definition.getEnvironmentCode())
-                        .dryRun(Flag.NO)
-                        .build());
-    }
-
-    @Override
     public PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
                                                       int pageSize, Long taskCode, TaskExecutionStatus status) {
         authorizeRead(user, projectCode);
@@ -327,21 +296,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         return new DataSyncDefinitionVO(String.valueOf(definition.getCode()), definition.getVersion(),
                 definition.getName(), definition.getTaskType(),
                 JSONUtils.parseObject(definition.getTaskParams()));
-    }
-
-    @Override
-    public void stop(User user, long projectCode, int instanceId) {
-        authorizeWrite(user, projectCode);
-        TaskInstance instance = requireInstance(user, projectCode, instanceId);
-        io.yak.ops.dao.entity.WorkflowInstance workflowInstance =
-                workflowInstanceDao.queryById(instance.getWorkflowInstanceId());
-        if (workflowInstance == null || workflowInstance.getProjectCode() != projectCode) {
-            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
-        }
-        if (workflowInstance.getState().isFinalState()) {
-            return;
-        }
-        executorService.controlWorkflowInstance(user, instance.getWorkflowInstanceId(), ExecuteType.STOP);
     }
 
     private void authorizeRead(User user, long projectCode) {

@@ -2,6 +2,7 @@ package io.yak.ops.api.controller;
 
 import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
+import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.PageInfo;
@@ -15,9 +16,7 @@ import io.yak.ops.common.enums.ReleaseState;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -80,8 +79,9 @@ public class DataSyncController extends BaseController {
     @Operation(summary = "publishDataSyncTask", description = "Publish data synchronization task")
     @OperatorLog(auditType = AuditType.DATA_SYNC_PUBLISH)
     public Result<DataSyncTaskVO> publish(@RequestAttribute(Constants.SESSION_USER) User user,
-                                          @PathVariable long projectCode, @PathVariable long taskCode) {
-        return Result.success(dataSyncService.publish(user, projectCode, taskCode));
+                                          @PathVariable long projectCode, @PathVariable long taskCode,
+                                          @RequestBody DataSyncPublishRequest request) {
+        return Result.success(dataSyncService.publish(user, projectCode, taskCode, request));
     }
 
     @PostMapping("/tasks/{taskCode}/unpublish")
@@ -107,15 +107,6 @@ public class DataSyncController extends BaseController {
                                                  @PathVariable long projectCode,
                                                  @PathVariable long taskCode, @PathVariable int version) {
         return Result.success(dataSyncService.getVersion(user, projectCode, taskCode, version));
-    }
-
-    @PostMapping("/tasks/{taskCode}/start")
-    @Operation(summary = "startDataSyncTask", description = "Start data synchronization task")
-    @OperatorLog(auditType = AuditType.DATA_SYNC_START)
-    public Result<Map<String, Integer>> start(@RequestAttribute(Constants.SESSION_USER) User user,
-                                              @PathVariable long projectCode, @PathVariable long taskCode) {
-        return Result.success(
-                Collections.singletonMap("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
     }
 
     @GetMapping("/instances")
@@ -151,13 +142,5 @@ public class DataSyncController extends BaseController {
         return Result.success(dataSyncService.getInstanceDefinition(user, projectCode, id));
     }
 
-    @PostMapping("/instances/{id}/stop")
-    @Operation(summary = "stopDataSyncInstance", description = "Stop data synchronization instance")
-    @OperatorLog(auditType = AuditType.DATA_SYNC_STOP)
-    public Result<Void> stop(@RequestAttribute(Constants.SESSION_USER) User user,
-                             @PathVariable long projectCode, @PathVariable int id) {
-        dataSyncService.stop(user, projectCode, id);
-        return Result.success();
-    }
 
 }

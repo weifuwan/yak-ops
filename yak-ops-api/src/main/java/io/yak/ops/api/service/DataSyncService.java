@@ -1,5 +1,6 @@
 package io.yak.ops.api.service;
 
+import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
@@ -23,15 +24,13 @@ public interface DataSyncService {
 
     DataSyncTaskVO updateTask(User user, long projectCode, long taskCode, DataSyncTaskRequest request);
 
-    DataSyncTaskVO publish(User user, long projectCode, long taskCode);
+    DataSyncTaskVO publish(User user, long projectCode, long taskCode, DataSyncPublishRequest request);
 
     DataSyncTaskVO unpublish(User user, long projectCode, long taskCode);
 
     void deleteTask(User user, long projectCode, long taskCode);
 
     DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version);
-
-    Integer start(User user, long projectCode, long taskCode);
 
     PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
                                                int pageSize, Long taskCode, TaskExecutionStatus status);
@@ -43,5 +42,4 @@ public interface DataSyncService {
 
     DataSyncDefinitionVO getInstanceDefinition(User user, long projectCode, int instanceId);
 
-    void stop(User user, long projectCode, int instanceId);
 }

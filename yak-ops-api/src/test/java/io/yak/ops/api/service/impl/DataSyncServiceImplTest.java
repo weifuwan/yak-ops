@@ -12,20 +12,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
-import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
-import io.yak.ops.api.service.ExecutorService;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
-import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.enums.ReleaseState;
-import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.TaskDefinition;
@@ -38,7 +35,6 @@ import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
-import io.yak.ops.dao.repository.TaskDefinitionLogDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
@@ -69,8 +65,6 @@ class DataSyncServiceImplTest {
     @Mock
     private TaskDefinitionDao taskDefinitionDao;
     @Mock
-    private TaskDefinitionLogDao taskDefinitionLogDao;
-    @Mock
     private TaskInstanceDao taskInstanceDao;
     @Mock
     private WorkflowDefinitionDao workflowDefinitionDao;
@@ -80,8 +74,6 @@ class DataSyncServiceImplTest {
     private WorkflowTaskRelationDao workflowTaskRelationDao;
     @Mock
     private WorkflowDefinitionService workflowDefinitionService;
-    @Mock
-    private ExecutorService executorService;
 
     @InjectMocks
     private DataSyncServiceImpl service;
@@ -182,8 +174,9 @@ class DataSyncServiceImplTest {
         assertEquals(Flag.NO, task.getFlag());
         assertEquals(Flag.NO, workflow.getFlag());
         assertTrue(service.getTask(new User(), PROJECT_CODE, 99L).isArchived());
-        assertThrows(ServiceException.class, () -> service.publish(new User(), PROJECT_CODE, 99L));
-        verifyNoInteractions(workflowDefinitionService, taskInstanceDao, taskDefinitionLogDao);
+        assertThrows(ServiceException.class, () -> service.publish(new User(), PROJECT_CODE, 99L,
+                publication(1)));
+        verifyNoInteractions(workflowDefinitionService, taskInstanceDao);
     }
 
     @Test
@@ -252,41 +245,27 @@ class DataSyncServiceImplTest {
         verifyNoInteractions(workflowDefinitionService);
     }
 
-    @Test
-    void startRejectsRunningWorkflowBeforeSubmission() {
-        prepareDataSyncTask(ReleaseState.ONLINE);
-        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(
-                eq(101L), eq(WorkflowExecutionStatus.NOT_TERMINAL_STATES)))
-                .thenReturn(Collections.singletonList(new io.yak.ops.dao.model.WorkflowInstanceSummaryDto()));
+    private static DataSyncPublishRequest publication(int version) {
+        DataSyncPublishRequest request = new DataSyncPublishRequest();
+        request.setVersion(version);
+        request.setExpectedRevision(version);
+        return request;
+    }
 
+    @Test
+    void publishRejectsStaleTaskVersion() {
+        prepareDataSyncTask(ReleaseState.OFFLINE);
         ServiceException error = assertThrows(ServiceException.class,
-                () -> service.start(new User(), PROJECT_CODE, 99L));
-
-        assertEquals(Status.WORKFLOW_INSTANCE_EXIST.getCode(), error.getCode());
-        verifyNoInteractions(executorService);
+                () -> service.publish(testUser(), PROJECT_CODE, 99L, publication(3)));
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verifyNoInteractions(workflowDefinitionService);
     }
 
     @Test
-    void startDelegatesToExistingWorkflowExecutor() {
-        prepareDataSyncTask(ReleaseState.ONLINE);
-        when(executorService.triggerWorkflowDefinition(any())).thenReturn(42);
-
-        assertEquals(42, service.start(new User(), PROJECT_CODE, 99L));
-
-        verify(executorService).triggerWorkflowDefinition(argThat(request -> request.getProjectCode() == PROJECT_CODE
-                && request.getWorkflowDefinitionCode() == 101L
-                && request.getExecType() == CommandType.START_PROCESS
-                && request.getWorkerGroup().equals("default")
-                && request.getTenantCode().equals("default")));
-    }
-
-    @Test
-    void startPropagatesWorkflowExecutorFailure() {
-        prepareDataSyncTask(ReleaseState.ONLINE);
-        when(executorService.triggerWorkflowDefinition(any()))
-                .thenThrow(new IllegalStateException("master failed"));
-
-        assertThrows(IllegalStateException.class, () -> service.start(new User(), PROJECT_CODE, 99L));
+    void publishCurrentVersionThroughWorkflowService() {
+        prepareDataSyncTask(ReleaseState.OFFLINE);
+        service.publish(testUser(), PROJECT_CODE, 99L, publication(4));
+        verify(workflowDefinitionService).onlineWorkflowDefinition(any(), eq(PROJECT_CODE), eq(101L));
     }
 
     private static User testUser() {
@@ -361,22 +340,6 @@ class DataSyncServiceImplTest {
                 .thenReturn(new Page<>(1, 20));
         assertEquals(0, service.listInstances(new User(), PROJECT_CODE, 1, 20,
                 null, TaskExecutionStatus.DISPATCH).getTotal());
-    }
-
-    @Test
-    void stopUsesWorkflowLifecycleInsteadOfMappedTaskStatus() {
-        TaskInstance instance = taskInstance(42);
-        instance.setState(TaskExecutionStatus.NEED_FAULT_TOLERANCE);
-        WorkflowInstance workflow = new WorkflowInstance();
-        workflow.setId(34);
-        workflow.setProjectCode(PROJECT_CODE);
-        workflow.setState(WorkflowExecutionStatus.RUNNING_EXECUTION);
-        when(taskInstanceDao.queryById(42)).thenReturn(instance);
-        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
-
-        service.stop(new User(), PROJECT_CODE, 42);
-
-        verify(executorService).controlWorkflowInstance(any(), eq(34), eq(ExecuteType.STOP));
     }
 
     private static TaskDefinition taskDefinition(long taskCode) {
