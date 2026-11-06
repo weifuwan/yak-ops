@@ -13,40 +13,41 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-final class DataSyncPipeline {
+final class DataSyncPipelineBuilder {
 
-    private DataSyncPipeline() {
-    }
-
-    static String build(TaskExecutionContext context, DataSyncParameters params) {
-        DataSourceParameters source = connection(context, params.getSource().getDatasourceId());
-        DataSourceParameters target = connection(context, params.getSink().getDatasourceId());
+    String build(TaskExecutionContext context, DataSyncParameters parameters) {
+        DataSourceParameters source = resolve(context, parameters.getSource().getDatasourceId());
+        DataSourceParameters target = resolve(context, parameters.getSink().getDatasourceId());
         if (!"MYSQL".equals(source.getType().name()) || !"MYSQL".equals(target.getType().name())) {
-            throw new IllegalArgumentException("The first DATA_SYNC pipeline supports MySQL to MySQL only");
+            throw new IllegalArgumentException("DATA_SYNC supports MySQL to MySQL only");
         }
+
         JsonNode sourceConnection = JSONUtils.parseObject(source.getConnectionParams());
         JsonNode targetConnection = JSONUtils.parseObject(target.getConnectionParams());
         String sourceUrl = sourceConnection.path("jdbcUrl").asText();
-        URI sourceUri = URI.create(sourceUrl.replaceFirst("^jdbc:", ""));
         String targetUrl = targetConnection.path("jdbcUrl").asText();
-        if (!targetUrl.startsWith("jdbc:mysql:")) {
-            throw new IllegalArgumentException("Target JDBC URL must use MySQL");
+        if (!sourceUrl.startsWith("jdbc:mysql://") || !targetUrl.startsWith("jdbc:mysql://")) {
+            throw new IllegalArgumentException("Both connections must use MySQL JDBC URLs");
         }
-
-        DataSyncParameters.Table input = params.getSource().getTables().get(0);
-        DataSyncParameters.Table output = params.getSink().getTables().get(0);
-        int serverId = 5400 + Math.floorMod(context.getTaskInstanceId(), 100000) * 10;
+        URI uri = URI.create(sourceUrl.substring("jdbc:".length()));
+        DataSyncParameters.Table input = parameters.getSource().getTables().get(0);
+        DataSyncParameters.Table output = parameters.getSink().getTables().get(0);
+        long serverId = 10000L + Math.floorMod(context.getTaskInstanceId(), 500_000_000) * 8L;
 
         Map<String, Object> sourceOptions = new LinkedHashMap<>();
         sourceOptions.put("type", "mysql");
-        sourceOptions.put("hostname", sourceUri.getHost());
-        sourceOptions.put("port", sourceUri.getPort() < 0 ? 3306 : sourceUri.getPort());
+        sourceOptions.put("hostname", uri.getHost());
+        sourceOptions.put("port", uri.getPort() < 0 ? 3306 : uri.getPort());
         sourceOptions.put("username", sourceConnection.path("user").asText());
         sourceOptions.put("password", sourceConnection.path("password").asText());
         sourceOptions.put("tables", Pattern.quote(input.path()));
         sourceOptions.put("server-id", serverId + "-" + (serverId + 4));
-        sourceOptions.put("server-time-zone", "Asia/Shanghai");
         sourceOptions.put("scan.startup.mode", "initial");
+
+        Object timeZone = parameters.getPipeline().get("local-time-zone");
+        if (timeZone != null) {
+            sourceOptions.put("server-time-zone", String.valueOf(timeZone));
+        }
 
         Map<String, Object> sinkOptions = new LinkedHashMap<>();
         sinkOptions.put("type", "jdbc");
@@ -61,22 +62,27 @@ final class DataSyncPipeline {
         Map<String, Object> pipelineOptions = new LinkedHashMap<>();
         pipelineOptions.put("name", context.getTaskName() + "-" + context.getTaskInstanceId());
         pipelineOptions.put("execution.runtime-mode", "STREAMING");
-        pipelineOptions.put("parallelism", 1);
-        pipelineOptions.put("schema.change.behavior", "evolve");
+        Object parallelism = parameters.getPipeline().get("parallelism");
+        pipelineOptions.put("parallelism", parallelism == null ? 1 : parallelism);
+        Object schema = parameters.getPipeline().get("schema.change.behavior");
+        pipelineOptions.put("schema.change.behavior", schema == null ? "evolve" : schema);
+        if (timeZone != null) {
+            pipelineOptions.put("local-time-zone", timeZone);
+        }
 
-        Map<String, Object> yaml = new LinkedHashMap<>();
-        yaml.put("source", sourceOptions);
-        yaml.put("sink", sinkOptions);
-        yaml.put("route", Collections.singletonList(route));
-        yaml.put("pipeline", pipelineOptions);
-        return JSONUtils.toJsonString(yaml);
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("source", sourceOptions);
+        config.put("sink", sinkOptions);
+        config.put("route", Collections.singletonList(route));
+        config.put("pipeline", pipelineOptions);
+        return JSONUtils.toJsonString(config);
     }
 
-    private static DataSourceParameters connection(TaskExecutionContext context, String id) {
+    private static DataSourceParameters resolve(TaskExecutionContext context, String id) {
         DataSourceParameters dataSource = (DataSourceParameters) context.getResourceParametersHelper()
                 .getResourceParameters(ResourceType.DATASOURCE, Integer.parseInt(id));
         if (dataSource == null) {
-            throw new IllegalArgumentException("DataSource not found: " + id);
+            throw new IllegalArgumentException("Datasource not found: " + id);
         }
         return dataSource;
     }
