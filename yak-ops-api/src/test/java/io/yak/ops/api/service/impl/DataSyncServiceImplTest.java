@@ -219,7 +219,6 @@ class DataSyncServiceImplTest {
         verifyNoInteractions(workflowDefinitionService, dataSourceDao);
     }
 
-
     @Test
     void updateRejectsRacingRevisionChanges() {
         prepareDataSyncTask(ReleaseState.OFFLINE);
@@ -310,7 +309,8 @@ class DataSyncServiceImplTest {
     }
 
     private static com.fasterxml.jackson.databind.JsonNode validParameters() {
-        return JSONUtils.parseObject("{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}");
+        return JSONUtils.parseObject(
+                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}");
     }
 
     @Test
