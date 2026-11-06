@@ -142,11 +142,14 @@
         from t_yak_ops_task_definition t
         where t.project_code = #{projectCode}
           and t.task_type = #{taskType}
+          and t.flag = 1
           and exists (
               select 1 from t_yak_ops_workflow_task_relation r
               join t_yak_ops_workflow_definition w
                 on w.code = r.workflow_definition_code and w.project_code = t.project_code
               where r.project_code = t.project_code
+                and w.flag = 1
+                and w.name = concat('data_sync_', t.code)
                 and r.pre_task_code = 0 and r.post_task_code = t.code
                 and (select count(*) from t_yak_ops_workflow_task_relation related
                      where related.workflow_definition_code = w.code) = 1

@@ -172,8 +172,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Transactional
     public DataSyncTaskVO updateTask(User user, long projectCode, long taskCode, DataSyncTaskRequest request) {
         authorizeWrite(user, projectCode);
-        TaskDefinition original = requireTask(projectCode, taskCode);
         WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
+        TaskDefinition original = requireTask(projectCode, taskCode);
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
         }
@@ -228,7 +228,15 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
         }
-        workflowDefinitionService.deleteWorkflowDefinitionByCode(user, workflow.getCode());
+        TaskDefinition definition = requireTask(projectCode, taskCode);
+        definition.setFlag(Flag.NO);
+        workflow.setFlag(Flag.NO);
+        if (!taskDefinitionDao.updateById(definition)) {
+            throw new ServiceException(Status.UPDATE_TASK_DEFINITION_ERROR);
+        }
+        if (!workflowDefinitionDao.updateById(workflow)) {
+            throw new ServiceException(Status.UPDATE_WORKFLOW_DEFINITION_ERROR);
+        }
     }
 
     @Override
@@ -276,9 +284,9 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Transactional
     public Integer start(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
+        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
-        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(),
                     definition.getVersion());
@@ -360,7 +368,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         List<TaskDefinition> definitions = taskDefinitionDao.queryByCodes(requested);
         if (definitions.size() != requested.size() || definitions.stream()
                 .anyMatch(definition -> definition.getProjectCode() != projectCode
-                        || !TASK_TYPE.equals(definition.getTaskType()))) {
+                        || !TASK_TYPE.equals(definition.getTaskType())
+                        || definition.getFlag() == Flag.NO)) {
             throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
         }
         int[] states = activeOnly ? new int[]{
@@ -443,28 +452,38 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     private TaskDefinition requireTask(long projectCode, long taskCode) {
         TaskDefinition task = taskDefinitionDao.queryByCode(taskCode);
-        if (task == null || task.getProjectCode() != projectCode || !TASK_TYPE.equals(task.getTaskType())) {
+        if (task == null || task.getProjectCode() != projectCode || !TASK_TYPE.equals(task.getTaskType())
+                || task.getFlag() == Flag.NO) {
             throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, taskCode);
         }
         return task;
     }
 
     private WorkflowDefinition findWorkflow(long projectCode, long taskCode) {
+        WorkflowDefinition result = null;
         for (WorkflowTaskRelation relation : workflowTaskRelationDao.queryByTaskCode(taskCode)) {
-            if (relation.getPreTaskCode() != 0 || relation.getPostTaskCode() != taskCode) {
+            if (relation.getProjectCode() != projectCode || relation.getPreTaskCode() != 0
+                    || relation.getPostTaskCode() != taskCode) {
                 continue;
             }
             WorkflowDefinition workflow = workflowDefinitionDao.queryByCode(
                     relation.getWorkflowDefinitionCode()).orElse(null);
-            if (workflow != null && workflow.getProjectCode() == projectCode) {
-                List<WorkflowTaskRelation> relations =
-                        workflowTaskRelationDao.queryByWorkflowDefinitionCode(workflow.getCode());
-                if (relations.size() == 1 && relations.get(0).getPostTaskCode() == taskCode) {
-                    return workflow;
-                }
+            if (workflow == null || workflow.getProjectCode() != projectCode
+                    || workflow.getFlag() == Flag.NO
+                    || !("data_sync_" + taskCode).equals(workflow.getName())) {
+                continue;
             }
+            List<WorkflowTaskRelation> relations =
+                    workflowTaskRelationDao.queryByWorkflowDefinitionCode(workflow.getCode());
+            if (relations.size() != 1 || relations.get(0).getPostTaskCode() != taskCode) {
+                continue;
+            }
+            if (result != null && result.getCode() != workflow.getCode()) {
+                throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST, taskCode);
+            }
+            result = workflow;
         }
-        return null;
+        return result;
     }
 
     private WorkflowDefinition lockWorkflow(long projectCode, long taskCode) {
