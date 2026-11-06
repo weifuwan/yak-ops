@@ -126,9 +126,14 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             Map<Long, WorkflowDefinition> workflowsByTask = new HashMap<>();
             for (WorkflowTaskRelation relation : relations) {
                 WorkflowDefinition workflow = workflows.get(relation.getWorkflowDefinitionCode());
-                if (workflow != null && (releaseState == null
-                        || workflow.getReleaseState().getCode() == releaseState)) {
-                    workflowsByTask.putIfAbsent(relation.getPostTaskCode(), workflow);
+                if (workflow != null && workflow.getFlag() != Flag.NO
+                        && ("data_sync_" + relation.getPostTaskCode()).equals(workflow.getName())
+                        && (releaseState == null || workflow.getReleaseState().getCode() == releaseState)) {
+                    WorkflowDefinition existing = workflowsByTask.putIfAbsent(relation.getPostTaskCode(), workflow);
+                    if (existing != null && existing.getCode() != workflow.getCode()) {
+                        throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST,
+                                relation.getPostTaskCode());
+                    }
                 }
             }
             for (TaskDefinition definition : page.getRecords()) {
