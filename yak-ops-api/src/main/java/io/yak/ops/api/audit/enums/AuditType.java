@@ -55,7 +55,6 @@ import static io.yak.ops.common.enums.AuditOperationType.OFFLINE;
 import static io.yak.ops.common.enums.AuditOperationType.ONLINE;
 import static io.yak.ops.common.enums.AuditOperationType.RELEASE;
 import static io.yak.ops.common.enums.AuditOperationType.START;
-import static io.yak.ops.common.enums.AuditOperationType.STOP;
 import static io.yak.ops.common.enums.AuditOperationType.SWITCH_VERSION;
 import static io.yak.ops.common.enums.AuditOperationType.UPDATE;
 
