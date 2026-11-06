@@ -69,7 +69,8 @@ final class DataSyncPipelineBuilder {
                 || parameters.getSink().getSchemaPolicy().getEvolution() == null
                 || parameters.getSink().getSchemaPolicy().getEvolution().isEnabled();
         pipelineOptions.put("schema.change.behavior", schema == null
-                ? (evolution ? "evolve" : "exception") : schema);
+                ? (evolution ? "evolve" : "exception")
+                : schema);
         if (timeZone != null) {
             pipelineOptions.put("local-time-zone", timeZone);
         }
