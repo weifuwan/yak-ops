@@ -29,6 +29,8 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      */
     TaskDefinition findTaskDefinition(long taskCode, int taskDefinitionVersion);
 
+    boolean compareAndSetDataSyncRevision(long projectCode, long taskCode, int expectedRevision);
+
     void deleteByWorkflowDefinitionCodeAndVersion(long workflowDefinitionCode, int workflowDefinitionVersion);
 
     void deleteByTaskDefinitionCodes(Set<Long> needToDeleteTaskDefinitionCodes);
