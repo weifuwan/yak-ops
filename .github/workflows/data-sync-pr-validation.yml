@@ -82,6 +82,33 @@ jobs:
             git commit -m "style(data-sync): format modified frontend files"
             git push origin HEAD:feature/data-sync-cdc-pipeline-mvp
           fi
+  data-sync-unit:
+    name: Data sync task plugin tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Execute DATA_SYNC plugin unit tests
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-task-data-sync -am \
+            '-Dtest=DataSync*Test' -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require plugin test reports
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          reports = list(Path('yak-ops-task-plugin/yak-ops-task-data-sync/target/surefire-reports').glob('TEST-*.xml'))
+          count = sum(int(ET.parse(report).getroot().attrib.get('tests', 0)) for report in reports)
+          if count < 5:
+              raise SystemExit(f'Expected plugin tests to run; found {count}')
+          print(f'Data Sync plugin tests: {count}')
+          PY
   format-java:
     name: Apply Java formatting once
     runs-on: ubuntu-latest
