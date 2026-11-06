@@ -28,7 +28,7 @@ jobs:
         run: npm run build
       - name: Contract tests
         working-directory: yak-ops-ui
-        run: npm run test:datasource && npm run test:auth
+        run: npm run test:data-sync && npm run test:datasource && npm run test:auth
 
   formatted-diff:
     runs-on: ubuntu-latest

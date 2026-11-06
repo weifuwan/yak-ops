@@ -19,6 +19,7 @@ export function encodeNativePipelineParameters(value: DataSyncParameters): DataS
     value.source.selection !== undefined ||
     source[0]?.snapshot !== undefined ||
     source[0]?.dml !== undefined ||
+    value.sink.schemaPolicy.initial !== "CREATE_OR_ALTER" ||
     value.sink.schemaPolicy.evolution.allowDropColumns
   ) {
     throw new Error("当前 CDC Runtime 只支持 MySQL 单表 INITIAL → JDBC UPSERT，禁止删除字段和自定义转换");

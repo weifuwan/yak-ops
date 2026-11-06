@@ -1,5 +1,10 @@
 package io.yak.ops.plugin.task.datasync;
 
+import io.yak.ops.common.utils.JSONUtils;
+
+import org.apache.flink.cdc.cli.parser.YamlPipelineDefinitionParser;
+import org.apache.flink.cdc.common.configuration.Configuration;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -89,6 +94,12 @@ public final class DataSyncPipelineValidator {
         if (!excludes.isArray() || excludes.size() != 1
                 || !"drop.column".equals(excludes.get(0).asText())) {
             throw new IllegalArgumentException("sink.exclude.schema.changes must exclude drop.column");
+        }
+        try {
+            // Validate the same YAML grammar and Flink CDC global options used at runtime.
+            new YamlPipelineDefinitionParser().parse(JSONUtils.toJsonString(definition), new Configuration());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML", e);
         }
     }
 
