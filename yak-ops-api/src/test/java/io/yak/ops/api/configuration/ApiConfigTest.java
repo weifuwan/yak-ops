@@ -1,17 +1,32 @@
 package io.yak.ops.api.configuration;
 
-import io.yak.ops.api.controller.AbstractControllerTest;
-
 import org.apache.commons.collections4.MapUtils;
 
+import java.io.IOException;
+
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.io.ClassPathResource;
 
-public class ApiConfigTest extends AbstractControllerTest {
+public class ApiConfigTest {
 
-    @Autowired
-    private ApiConfig apiConfig;
+    private static ApiConfig apiConfig;
+
+    @BeforeAll
+    public static void loadConfig() throws IOException {
+        MutablePropertySources sources = new MutablePropertySources();
+        new YamlPropertySourceLoader().load("api-test", new ClassPathResource("application.yaml"))
+                .forEach(sources::addLast);
+        apiConfig = new Binder(ConfigurationPropertySources.from(sources))
+                .bind("api", Bindable.of(ApiConfig.class))
+                .get();
+    }
 
     @Test
     public void testIsAuditEnable() {
@@ -27,7 +42,6 @@ public class ApiConfigTest extends AbstractControllerTest {
         Assertions.assertFalse(trafficControl.isTenantSwitch());
         Assertions.assertEquals(9, (int) trafficControl.getDefaultTenantQpsRate());
         Assertions.assertTrue(MapUtils.isEmpty(trafficControl.getCustomizeTenantQpsRate()));
-
     }
 
     @Test
