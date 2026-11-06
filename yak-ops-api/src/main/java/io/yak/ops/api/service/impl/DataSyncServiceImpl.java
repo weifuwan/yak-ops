@@ -50,12 +50,15 @@ import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -169,7 +172,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Transactional
     public DataSyncTaskVO updateTask(User user, long projectCode, long taskCode, DataSyncTaskRequest request) {
         authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
+        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         TaskDefinition original = requireTask(projectCode, taskCode);
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
@@ -187,6 +190,14 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         effective.setParameters(parameters);
         TaskDefinitionLog updated = newTask(taskCode, user, projectCode, effective);
         updated.setVersion(original.getVersion());
+        if (Objects.equals(original.getName(), updated.getName())
+                && Objects.equals(original.getDescription(), updated.getDescription())
+                && Objects.equals(JSONUtils.parseObject(original.getTaskParams()), parameters)) {
+            return getTask(user, projectCode, taskCode);
+        }
+        if (!taskDefinitionDao.compareAndSetDataSyncRevision(projectCode, taskCode, original.getVersion())) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "expectedRevision");
+        }
         WorkflowTaskRelationLog relation = newRelation(taskCode, original.getVersion(), updated.getName());
         workflowDefinitionService.updateWorkflowDefinition(user, projectCode, workflow.getName(),
                 workflow.getCode(), request.getRemark() == null ? "" : request.getRemark(),
@@ -201,7 +212,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
-        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
+        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         workflowDefinitionService.onlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
     }
@@ -210,7 +221,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Transactional
     public DataSyncTaskVO unpublish(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
+        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         workflowDefinitionService.offlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
@@ -220,7 +231,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Transactional
     public void deleteTask(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
+        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
@@ -277,19 +288,28 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     @Override
-    @Transactional
     public Integer start(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
-        WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
+        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(),
                     definition.getVersion());
         }
-        ensureStopped(workflow.getCode());
-        Integer runId = executorService.triggerWorkflowDefinition(
-                io.yak.ops.api.dto.workflow.WorkflowTriggerRequest.builder()
+        String requestId = UUID.randomUUID().toString();
+        if (!workflowDefinitionDao.tryReserveStart(workflow.getCode(), requestId)) {
+            ensureStopped(workflow.getCode());
+            Date expiration = new Date(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30));
+            if (!workflowDefinitionDao.clearExpiredStart(workflow.getCode(), expiration)
+                    || !workflowDefinitionDao.tryReserveStart(workflow.getCode(), requestId)) {
+                throw new ServiceException(Status.WORKFLOW_INSTANCE_EXIST, workflow.getCode());
+            }
+        }
+        try {
+            ensureStopped(workflow.getCode());
+            Integer runId = executorService.triggerWorkflowDefinition(
+                    io.yak.ops.api.dto.workflow.WorkflowTriggerRequest.builder()
                         .loginUser(user)
                         .projectCode(projectCode)
                         .workflowDefinitionCode(workflow.getCode())
@@ -303,7 +323,10 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                         .environmentCode(definition.getEnvironmentCode())
                         .dryRun(Flag.NO)
                         .build());
-        return runId;
+            return runId;
+        } finally {
+            workflowDefinitionDao.releaseStart(workflow.getCode(), requestId);
+        }
     }
 
     @Override
@@ -430,13 +453,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             result = workflow;
         }
         return result;
-    }
-
-    private WorkflowDefinition lockWorkflow(long projectCode, long taskCode) {
-        WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
-        workflowDefinitionDao.lockByCode(workflow.getCode());
-        return workflowDefinitionDao.queryByCode(workflow.getCode())
-                .orElseThrow(() -> new ServiceException(Status.WORKFLOW_DEFINITION_NOT_EXIST, workflow.getCode()));
     }
 
     private WorkflowDefinition requireWorkflow(long projectCode, long taskCode) {
