@@ -64,6 +64,7 @@ public class DataSourceServiceTest {
     private static final Logger baseServiceLogger = LoggerFactory.getLogger(BaseServiceImpl.class);
     private static final Logger logger = LoggerFactory.getLogger(DataSourceServiceTest.class);
     private static final Logger dataSourceServiceLogger = LoggerFactory.getLogger(DataSourceServiceImpl.class);
+    private static final long PROJECT_CODE = 123456789L;
 
     @InjectMocks
     private DataSourceServiceImpl dataSourceService;
@@ -73,6 +74,9 @@ public class DataSourceServiceTest {
 
     @Mock
     private DataSourceUserDao datasourceUserDao;
+
+    @Mock
+    private ProjectService projectService;
 
     @Mock
     private ResourcePermissionCheckService resourcePermissionCheckService;
@@ -111,39 +115,37 @@ public class DataSourceServiceTest {
 
         // USER_NO_OPERATION_PERM
         assertThrowsServiceException(Status.USER_NO_OPERATION_PERM,
-                () -> dataSourceService.createDataSource(loginUser, postgreSqlDatasourceParam));
+                () -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
 
         // DATASOURCE_EXIST
-        List<DataSource> dataSourceList = new ArrayList<>();
-        DataSource dataSource = new DataSource();
-        dataSource.setName(dataSourceName);
-        dataSourceList.add(dataSource);
-        when(dataSourceDao.queryDataSourceByName(dataSourceName.trim())).thenReturn(dataSourceList);
         passResourcePermissionCheckService();
+        when(dataSourceDao.existsByProjectCodeAndName(PROJECT_CODE, dataSourceName.trim(), null)).thenReturn(true);
 
         // DATASOURCE_EXIST
         assertThrowsServiceException(Status.DATASOURCE_EXIST,
-                () -> dataSourceService.createDataSource(loginUser, postgreSqlDatasourceParam));
+                () -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
 
         try (
                 MockedStatic<DataSourceClientProvider> mockedStaticDataSourceClientProvider =
                         Mockito.mockStatic(DataSourceClientProvider.class)) {
 
-            when(dataSourceDao.queryDataSourceByName(dataSourceName.trim())).thenReturn(null);
+            when(dataSourceDao.existsByProjectCodeAndName(PROJECT_CODE, dataSourceName.trim(), null)).thenReturn(false);
 
             // DESCRIPTION TOO LONG
             postgreSqlDatasourceParam.setNote(randomStringWithLengthN(512));
             assertThrowsServiceException(Status.DESCRIPTION_TOO_LONG_ERROR,
-                    () -> dataSourceService.createDataSource(loginUser, postgreSqlDatasourceParam));
+                    () -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
             postgreSqlDatasourceParam.setNote(dataSourceDesc);
 
             // SUCCESS
-            assertDoesNotThrow(() -> dataSourceService.createDataSource(loginUser, postgreSqlDatasourceParam));
+            assertDoesNotThrow(
+                    () -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
+            Mockito.verify(dataSourceDao).insert(Mockito.argThat(source -> source.getProjectCode() == PROJECT_CODE));
 
             // Duplicated Key Exception
             when(dataSourceDao.insert(Mockito.any(DataSource.class))).thenThrow(DuplicateKeyException.class);
             assertThrowsServiceException(Status.DATASOURCE_EXIST,
-                    () -> dataSourceService.createDataSource(loginUser, postgreSqlDatasourceParam));
+                    () -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
         }
     }
 

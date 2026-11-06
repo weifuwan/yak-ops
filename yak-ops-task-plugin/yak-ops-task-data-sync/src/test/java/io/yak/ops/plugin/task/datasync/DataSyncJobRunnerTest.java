@@ -1,6 +1,8 @@
 package io.yak.ops.plugin.task.datasync;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,4 +47,18 @@ class DataSyncJobRunnerTest {
         assertTrue(runner.isCancelRequested());
         runner.execute(null);
     }
+    @Test
+    void failedCancellationIsNotReportedAsSuccessful() throws Exception {
+        DataSyncJobRunner runner = new DataSyncJobRunner(new TaskExecutionContext());
+        JobClient job = mock(JobClient.class);
+        CompletableFuture<Void> rejected = new CompletableFuture<>();
+        rejected.completeExceptionally(new IllegalStateException("Flink rejected cancellation"));
+        when(job.cancel()).thenReturn(rejected);
+
+        runner.onSubmitted(job);
+
+        assertThrows(java.util.concurrent.ExecutionException.class, runner::cancel);
+        assertFalse(runner.isCancellationConfirmed());
+    }
+
 }

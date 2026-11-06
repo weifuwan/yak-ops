@@ -87,7 +87,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     public DataSyncPageVO<DataSyncTaskVO> listTasks(User user, long projectCode,
                                                     int pageNo, int pageSize, String keyword, String status) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         List<DataSyncTaskVO> rows = new ArrayList<>();
         for (TaskDefinition definition : taskDefinitionDao.queryByProjectAndType(projectCode, TASK_TYPE)) {
             WorkflowDefinition workflow = findWorkflow(projectCode, definition.getCode());
@@ -109,7 +109,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncTaskVO getTask(User user, long projectCode, long taskCode) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         return toTaskVO(definition, requireWorkflow(projectCode, taskCode));
     }
@@ -117,8 +117,8 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     @Transactional
     public DataSyncTaskVO createTask(User user, long projectCode, DataSyncTaskRequest request) {
-        authorize(user, projectCode);
-        validate(request.getName(), request.getParameters());
+        authorizeWrite(user, projectCode);
+        validate(request.getName(), request.getParameters(), projectCode);
         long taskCode = CodeGenerateUtils.genCode();
         TaskDefinitionLog task = newTask(taskCode, user, projectCode, request);
         WorkflowTaskRelationLog relation = newRelation(taskCode, Constants.VERSION_FIRST, task.getName());
@@ -132,7 +132,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     @Transactional
     public DataSyncTaskVO updateTask(User user, long projectCode, long taskCode, DataSyncTaskRequest request) {
-        authorize(user, projectCode);
+        authorizeWrite(user, projectCode);
         TaskDefinition original = requireTask(projectCode, taskCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
@@ -144,7 +144,7 @@ public class DataSyncServiceImpl implements DataSyncService {
         JsonNode parameters = request.getParameters() == null
                 ? JSONUtils.parseObject(original.getTaskParams())
                 : request.getParameters();
-        validate(request.getName(), parameters);
+        validate(request.getName(), parameters, projectCode);
         DataSyncTaskRequest effective = new DataSyncTaskRequest();
         effective.setName(request.getName());
         effective.setRemark(request.getRemark());
@@ -161,7 +161,9 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncTaskVO publish(User user, long projectCode, long taskCode) {
-        authorize(user, projectCode);
+        authorizeWrite(user, projectCode);
+        TaskDefinition definition = requireTask(projectCode, taskCode);
+        validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         workflowDefinitionService.onlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
@@ -169,7 +171,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncTaskVO unpublish(User user, long projectCode, long taskCode) {
-        authorize(user, projectCode);
+        authorizeWrite(user, projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         workflowDefinitionService.offlineWorkflowDefinition(user, projectCode, workflow.getCode());
@@ -178,7 +180,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public void deleteTask(User user, long projectCode, long taskCode) {
-        authorize(user, projectCode);
+        authorizeWrite(user, projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         ensureStopped(workflow.getCode());
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
@@ -190,7 +192,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     public DataSyncPageVO<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
                                                               int pageNo, int pageSize) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         requireTask(projectCode, taskCode);
         List<DataSyncTaskVersionVO> versions = taskDefinitionLogDao.queryVersions(taskCode)
                 .stream().map(DataSyncServiceImpl::toTaskVersionVO).collect(Collectors.toList());
@@ -199,7 +201,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         requireTask(projectCode, taskCode);
         TaskDefinition historical = taskDefinitionDao.findTaskDefinition(taskCode, version);
         if (historical == null) {
@@ -221,8 +223,9 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncRunVO start(User user, long projectCode, long taskCode) {
-        authorize(user, projectCode);
+        authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
+        validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
             throw new IllegalStateException("Publish the data synchronization task before starting");
@@ -249,7 +252,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     public DataSyncPageVO<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
                                                             int pageSize, Long taskCode, String status) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         if (taskCode != null) {
             requireTask(projectCode, taskCode);
         }
@@ -290,7 +293,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     public List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                                     List<Long> taskCodes, boolean activeOnly) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         List<DataSyncInstanceVO> rows = new ArrayList<>();
         for (Long taskCode : taskCodes) {
             DataSyncPageVO<DataSyncInstanceVO> page =
@@ -325,6 +328,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public void stop(User user, long projectCode, int instanceId) {
+        authorizeWrite(user, projectCode);
         TaskInstance instance = requireInstance(user, projectCode, instanceId);
         if (!active(toInstanceVO(instance).getStatus())) {
             return;
@@ -355,7 +359,11 @@ public class DataSyncServiceImpl implements DataSyncService {
         return new DataSyncLogVO(content, start + count, count >= Math.max(1, Math.min(limit, 500)));
     }
 
-    private void authorize(User user, long projectCode) {
+    private void authorizeRead(User user, long projectCode) {
+        projectService.checkProjectAndAuthThrowException(user, projectCode, null);
+    }
+
+    private void authorizeWrite(User user, long projectCode) {
         projectService.checkHasProjectWritePermissionThrowException(user, projectCode);
     }
 
@@ -402,13 +410,12 @@ public class DataSyncServiceImpl implements DataSyncService {
     }
 
     private TaskInstance requireInstance(User user, long projectCode, int instanceId) {
-        authorize(user, projectCode);
+        authorizeRead(user, projectCode);
         TaskInstance instance = taskInstanceDao.queryById(instanceId);
         if (instance == null || !Objects.equals(instance.getProjectCode(), projectCode)
                 || !TASK_TYPE.equals(instance.getTaskType())) {
             throw new IllegalArgumentException("Data synchronization instance not found");
         }
-        requireWorkflow(projectCode, instance.getTaskCode());
         return instance;
     }
 
@@ -506,7 +513,7 @@ public class DataSyncServiceImpl implements DataSyncService {
                 || "RECONCILING".equals(status);
     }
 
-    private void validate(String name, JsonNode parameters) {
+    private void validate(String name, JsonNode parameters, long projectCode) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Task name must not be empty");
         }
@@ -521,10 +528,10 @@ public class DataSyncServiceImpl implements DataSyncService {
         }
         int sourceId = parameters.path("source").path("datasourceId").asInt();
         int targetId = parameters.path("sink").path("datasourceId").asInt();
-        DataSource source = dataSourceDao.queryById(sourceId);
-        DataSource sink = dataSourceDao.queryById(targetId);
+        DataSource source = dataSourceDao.queryByIdAndProjectCode(sourceId, projectCode);
+        DataSource sink = dataSourceDao.queryByIdAndProjectCode(targetId, projectCode);
         if (source == null || sink == null || source.getType() != DbType.MYSQL || sink.getType() != DbType.MYSQL) {
-            throw new IllegalArgumentException("The initial DATA_SYNC connector supports MySQL to MySQL only");
+            throw new IllegalArgumentException("Source and target must be MySQL datasources in the current project");
         }
     }
 

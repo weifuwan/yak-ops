@@ -36,11 +36,11 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
     public void handle(TaskCallBack callback) throws TaskException {
         try {
             jobRunner.execute(parameters);
-            setExitStatusCode(jobRunner.isCancelRequested()
+            setExitStatusCode(jobRunner.isCancellationConfirmed()
                     ? TaskConstants.EXIT_CODE_KILL
                     : TaskConstants.EXIT_CODE_SUCCESS);
         } catch (Exception e) {
-            if (jobRunner.isCancelRequested()) {
+            if (jobRunner.isCancellationConfirmed()) {
                 setExitStatusCode(TaskConstants.EXIT_CODE_KILL);
                 log.info("DATA_SYNC cancelled, taskInstanceId={}", taskRequest.getTaskInstanceId());
             } else {

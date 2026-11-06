@@ -19,6 +19,7 @@ import io.yak.ops.dao.entity.ProjectUser;
 import io.yak.ops.dao.entity.ProjectWorkflowDefinitionCount;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.ProjectDao;
 import io.yak.ops.dao.repository.ProjectUserDao;
 import io.yak.ops.dao.repository.UserDao;
@@ -60,6 +61,9 @@ public class ProjectServiceImpl extends BaseServiceImpl implements ProjectServic
 
     @Autowired
     private ProjectDao projectDao;
+
+    @Autowired
+    private DataSourceDao dataSourceDao;
 
     @Autowired
     private ProjectUserDao projectUserDao;
@@ -322,6 +326,7 @@ public class ProjectServiceImpl extends BaseServiceImpl implements ProjectServic
      * @return delete result code
      */
     @Override
+    @Transactional
     public Result deleteProject(User loginUser, Long projectCode) {
         Result result = new Result();
         Project project = projectDao.queryByCode(projectCode);
@@ -335,6 +340,10 @@ public class ProjectServiceImpl extends BaseServiceImpl implements ProjectServic
         if (!workflowDefinitionList.isEmpty()) {
             log.warn("Please delete the workflow definitions in project first! project code:{}.", projectCode);
             putMsg(result, Status.DELETE_PROJECT_ERROR_DEFINES_NOT_NULL);
+            return result;
+        }
+        if (dataSourceDao.countByProjectCode(projectCode) > 0) {
+            putMsg(result, Status.DELETE_PROJECT_ERROR_DATASOURCES_NOT_NULL);
             return result;
         }
         // delete the task group

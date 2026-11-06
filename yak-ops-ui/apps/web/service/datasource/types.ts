@@ -10,6 +10,7 @@ export interface PaginationInfo {
 }
 
 export interface DataSourceRecord {
+  projectCode?: string;
   id?: DataSourceId;
   name?: string;
   dbType?: string;

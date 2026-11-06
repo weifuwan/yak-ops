@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import ProductLauncher from "./ProductLauncher";
 import ProductSidebar from "./ProductSidebar";
@@ -14,6 +15,7 @@ type AppLayoutProps = {
 
 export default function AppLayout({ productLabel, productPath, navigation }: AppLayoutProps) {
   const location = useLocation();
+  const { currentWorkspace } = useWorkspace();
   const [launcherOpen, setLauncherOpen] = useState(false);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function AppLayout({ productLabel, productPath, navigation }: App
       <div className="flex min-h-0 flex-1">
         <ProductSidebar productLabel={productLabel} navigation={navigation} />
         <main className="min-w-0 flex-1 overflow-y-auto bg-white">
-          <Outlet />
+          <Outlet key={currentWorkspace?.id ?? "no-project"} />
         </main>
       </div>
 

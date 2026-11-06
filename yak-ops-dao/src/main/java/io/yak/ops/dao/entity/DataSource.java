@@ -21,6 +21,8 @@ public class DataSource {
 
     private int userId;
 
+    private long projectCode;
+
     @TableField(exist = false)
     private String userName;
 

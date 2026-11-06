@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { listDataSources } from "@/service/datasource";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   listDataSyncTasks,
   type DataSyncTaskListRecord,
@@ -59,10 +60,11 @@ export function useTaskPage(scope: string, filters: TaskListFilters) {
 }
 
 export function useListDataSources(scope: string) {
+  const { currentWorkspace } = useWorkspace();
   const query = useQuery({
     queryKey: listQueryKeys.dataSources(scope),
     queryFn: ({ signal }) => listDataSources({ pageNo: 1, pageSize: 200 }, signal),
-    enabled: Boolean(scope),
+    enabled: Boolean(scope && currentWorkspace?.id),
   });
   const dataSourceMap = useMemo(
     () =>

@@ -6,6 +6,7 @@ import io.yak.ops.common.enums.AuthorizationType;
 import io.yak.ops.common.enums.UserType;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.ResourceType;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
@@ -26,9 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 public class TaskDatasourcePermissionChecker {
 
     private final ResourcePermissionCheckService resourcePermissionCheckService;
+    private final DataSourceDao dataSourceDao;
 
-    public TaskDatasourcePermissionChecker(ResourcePermissionCheckService resourcePermissionCheckService) {
+    public TaskDatasourcePermissionChecker(ResourcePermissionCheckService resourcePermissionCheckService,
+                                           DataSourceDao dataSourceDao) {
         this.resourcePermissionCheckService = resourcePermissionCheckService;
+        this.dataSourceDao = dataSourceDao;
     }
 
     public void checkPermission(User loginUser, Collection<? extends TaskDefinition> taskDefinitions) {
@@ -49,9 +53,18 @@ public class TaskDatasourcePermissionChecker {
             if (datasourceResources == null) {
                 continue;
             }
-            datasourceResources.keySet().stream()
-                    .filter(datasourceId -> datasourceId != null && datasourceId > 0)
-                    .forEach(datasourceIds::add);
+            for (Integer datasourceId : datasourceResources.keySet()) {
+                if (datasourceId == null || datasourceId <= 0) {
+                    continue;
+                }
+                if (taskDefinition.getProjectCode() > 0) {
+                    if (dataSourceDao.queryByIdAndProjectCode(datasourceId, taskDefinition.getProjectCode()) == null) {
+                        throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+                    }
+                } else {
+                    datasourceIds.add(datasourceId);
+                }
+            }
         }
 
         if (datasourceIds.isEmpty()) {

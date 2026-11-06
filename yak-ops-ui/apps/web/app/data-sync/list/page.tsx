@@ -1,16 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
-import {
-  listDataSyncProjects,
-  selectedDataSyncProject,
-  selectDataSyncProject,
-} from "@/service/data-sync/project";
 import { TaskFilters } from "./task-filters";
 import { TaskTable } from "./task-table";
 import { DataSyncInstanceTable } from "./instance-table";
@@ -26,25 +22,10 @@ import { useTaskListActions, type TaskCommand } from "./use-task-actions";
 export function DataSyncPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const { currentUser } = useAuth();
-  const projectQuery = useQuery({
-    queryKey: ["data-sync-projects", currentUser?.id],
-    queryFn: listDataSyncProjects,
-    enabled: Boolean(currentUser?.id),
-  });
-  const [projectCode, setProjectCode] = useState(selectedDataSyncProject());
+  const { currentWorkspace } = useWorkspace();
   const [tab, setTab] = useState<"tasks" | "instances">("tasks");
-
-  useEffect(() => {
-    const available = projectQuery.data ?? [];
-    if (available.length && !available.some((project) => project.code === projectCode)) {
-      selectDataSyncProject(available[0].code);
-      setProjectCode(available[0].code);
-    }
-  }, [projectCode, projectQuery.data]);
-
-  const scope = currentUser?.id && projectCode ? currentUser.id + ":" + projectCode : "";
+  const scope = currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
   const filters = useTaskListFilters();
   const page = useTaskPage(scope, filters);
   const sources = useListDataSources(scope);
@@ -101,21 +82,6 @@ export function DataSyncPage() {
                   执行实例
                 </button>
               </div>
-              <select
-                value={projectCode}
-                onChange={(event) => {
-                  selectDataSyncProject(event.target.value);
-                  setProjectCode(event.target.value);
-                  void queryClient.invalidateQueries({ queryKey: ["data-sync-list"] });
-                }}
-                className="h-8 min-w-40 rounded border border-[var(--yak-components-border)] bg-white px-2 text-sm"
-              >
-                {(projectQuery.data ?? []).map((project) => (
-                  <option key={project.code} value={project.code}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
             </div>
             {tab === "tasks" ? (
               <>

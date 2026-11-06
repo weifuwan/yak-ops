@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import { AuthProvider } from "@/context/auth-context";
+import { WorkspaceProvider } from "@/context/workspace-context";
 import { LeaveGuardProvider } from "@/context/leave-guard-context";
 
 import AppRouter from "./router/AppRouter";
@@ -14,7 +15,9 @@ const router = createBrowserRouter([
     element: (
       <AuthProvider>
         <LeaveGuardProvider>
-          <AppRouter />
+          <WorkspaceProvider>
+            <AppRouter />
+          </WorkspaceProvider>
         </LeaveGuardProvider>
       </AuthProvider>
     ),

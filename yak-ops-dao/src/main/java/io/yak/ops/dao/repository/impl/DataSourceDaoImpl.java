@@ -23,6 +23,31 @@ public class DataSourceDaoImpl extends BaseDao<DataSource, DataSourceMapper> imp
     }
 
     @Override
+    public DataSource queryByIdAndProjectCode(int id, long projectCode) {
+        return mybatisMapper.queryByIdAndProjectCode(id, projectCode);
+    }
+
+    @Override
+    public IPage<DataSource> queryByProjectCode(Page<DataSource> page, long projectCode, String name) {
+        return mybatisMapper.queryByProjectCode(page, projectCode, name);
+    }
+
+    @Override
+    public List<DataSource> queryByProjectCodeAndType(long projectCode, Integer type) {
+        return mybatisMapper.queryByProjectCodeAndType(projectCode, type);
+    }
+
+    @Override
+    public boolean existsByProjectCodeAndName(long projectCode, String name, Integer excludedId) {
+        return mybatisMapper.existsByProjectCodeAndName(projectCode, name, excludedId);
+    }
+
+    @Override
+    public long countByProjectCode(long projectCode) {
+        return mybatisMapper.countByProjectCode(projectCode);
+    }
+
+    @Override
     public List<DataSource> queryDataSourceByType(int userId, Integer type) {
         return mybatisMapper.queryDataSourceByType(userId, type);
     }

@@ -21,6 +21,21 @@ public interface DataSourceMapper extends BaseMapper<DataSource> {
      * @param type type
      * @return datasource list
      */
+    DataSource queryByIdAndProjectCode(@Param("id") int id, @Param("projectCode") long projectCode);
+
+    IPage<DataSource> queryByProjectCode(Page<DataSource> page,
+                                         @Param("projectCode") long projectCode,
+                                         @Param("name") String name);
+
+    List<DataSource> queryByProjectCodeAndType(@Param("projectCode") long projectCode,
+                                               @Param("type") Integer type);
+
+    long countByProjectCode(@Param("projectCode") long projectCode);
+
+    boolean existsByProjectCodeAndName(@Param("projectCode") long projectCode,
+                                       @Param("name") String name,
+                                       @Param("excludedId") Integer excludedId);
+
     List<DataSource> queryDataSourceByType(@Param("userId") int userId, @Param("type") Integer type);
 
     /**

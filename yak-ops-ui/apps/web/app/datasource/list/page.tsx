@@ -18,6 +18,7 @@ import {
   type DataSourceRecord,
 } from "@/service/datasource";
 import { useIntl } from "../i18n";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { DataSourceForm } from "../form/data-source-dialog";
 import { DataSourceFilters } from "./data-source-filters";
 import DataSourceTable from "./data-source-table";
@@ -28,6 +29,7 @@ const MAX_BATCH_SELECTION = 100;
 
 export function DataSourcePage() {
   const intl = useIntl();
+  const { currentWorkspace } = useWorkspace();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const requestedReturn = searchParams.get("returnTo");
@@ -109,6 +111,7 @@ export function DataSourcePage() {
   };
 
   const handleEdit = async (record: DataSourceRecord) => {
+    if (!currentWorkspace) return;
     if (!record.id || editingId) return;
     const id = String(record.id);
     setEditingId(id);

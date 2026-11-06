@@ -17,7 +17,8 @@ import {
   updateDefinitionRequest,
 } from "./definition";
 import { toDataSyncInstanceRecord } from "./execution";
-import { dataSyncApi } from "./project";
+import { YAK_OPS_API_PREFIX } from "@/config/api";
+import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type {
   DataSyncSolution,
   DataSyncInstancePageParams,
@@ -47,7 +48,8 @@ const qp = (params: Record<string, string | number | boolean | undefined>) => {
   return search.toString();
 };
 
-const url = async (path: string) => (await dataSyncApi()) + path;
+const url = (path: string) =>
+  YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) + "/data-sync" + path;
 
 export const isRejectedTaskWrite = (failure: unknown) => failure instanceof BizError;
 
@@ -100,7 +102,7 @@ export const listDataSyncTasks = async (
   signal?: AbortSignal,
 ): Promise<DataSyncTaskPageResult> => {
   const page = await HttpUtils.getData<TaskDefinitionPageResult>(
-    await url(
+    url(
       "/tasks?" +
         qp({
           pageNo: params.pageNo,
@@ -119,7 +121,7 @@ export const getDataSyncTask = async (
   signal?: AbortSignal,
 ): Promise<DataSyncTaskRecord> =>
   toSyncTaskRecord(
-    await HttpUtils.getData<TaskDefinitionRecord>(await url("/tasks/" + encodeURIComponent(id)), {
+    await HttpUtils.getData<TaskDefinitionRecord>(url("/tasks/" + encodeURIComponent(id)), {
       signal,
     }),
   );
@@ -130,7 +132,7 @@ export const createDataSyncTask = async (
 ): Promise<DataSyncTaskRecord> =>
   toSyncTaskRecord(
     await HttpUtils.postData<TaskDefinitionRecord>(
-      await url("/tasks"),
+      url("/tasks"),
       createDefinitionRequest(payload),
       { signal },
     ),
@@ -144,14 +146,14 @@ export const updateDataSyncTask = async (
 ): Promise<DataSyncTaskRecord> =>
   toSyncTaskRecord(
     await HttpUtils.putData<TaskDefinitionRecord>(
-      await url("/tasks/" + encodeURIComponent(id)),
+      url("/tasks/" + encodeURIComponent(id)),
       updateDefinitionRequest(payload, expectedRevision),
       { signal },
     ),
   );
 
 export const deleteDataSyncTask = async (id: string) => {
-  await HttpUtils.deleteData<void>(await url("/tasks/" + encodeURIComponent(id)));
+  await HttpUtils.deleteData<void>(url("/tasks/" + encodeURIComponent(id)));
 };
 
 export const publishDataSyncTask = async (
@@ -162,7 +164,7 @@ export const publishDataSyncTask = async (
 ): Promise<DataSyncTaskRecord> =>
   toSyncTaskRecord(
     await HttpUtils.postData<TaskDefinitionRecord>(
-      await url("/tasks/" + encodeURIComponent(id) + "/publish"),
+      url("/tasks/" + encodeURIComponent(id) + "/publish"),
       undefined,
       { signal, skipErrorHandler: locallyHandled },
     ),
@@ -171,12 +173,12 @@ export const publishDataSyncTask = async (
 export const unpublishDataSyncTask = async (id: string): Promise<DataSyncTaskRecord> =>
   toSyncTaskRecord(
     await HttpUtils.postData<TaskDefinitionRecord>(
-      await url("/tasks/" + encodeURIComponent(id) + "/unpublish"),
+      url("/tasks/" + encodeURIComponent(id) + "/unpublish"),
     ),
   );
 
 export const getTaskDefinition = async (id: string, signal?: AbortSignal) =>
-  HttpUtils.getData<TaskDefinitionRecord>(await url("/tasks/" + encodeURIComponent(id)), {
+  HttpUtils.getData<TaskDefinitionRecord>(url("/tasks/" + encodeURIComponent(id)), {
     signal,
   });
 
@@ -187,13 +189,13 @@ export const listTaskParameterVersions = async (
   signal?: AbortSignal,
 ) =>
   HttpUtils.getData<TaskVersionPage<TaskParameterVersionSummary>>(
-    await url("/tasks/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize })),
+    url("/tasks/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize })),
     { signal },
   );
 
 export const getTaskParameterVersion = async (id: string, version: number, signal?: AbortSignal) =>
   HttpUtils.getData<TaskParameterVersion>(
-    await url("/tasks/" + encodeURIComponent(id) + "/versions/" + version),
+    url("/tasks/" + encodeURIComponent(id) + "/versions/" + version),
     { signal },
   );
 
@@ -204,19 +206,19 @@ export const listTaskPublications = async (
   signal?: AbortSignal,
 ) =>
   HttpUtils.getData<TaskVersionPage<TaskPublicationRecord>>(
-    await url("/tasks/" + encodeURIComponent(id) + "/publications?" + qp({ pageNo, pageSize })),
+    url("/tasks/" + encodeURIComponent(id) + "/publications?" + qp({ pageNo, pageSize })),
     { signal },
   );
 
 export const runDataSyncTask = async (id: string): Promise<{ workflowInstanceId: number }> =>
   HttpUtils.postData<{ workflowInstanceId: number }>(
-    await url("/tasks/" + encodeURIComponent(id) + "/start"),
+    url("/tasks/" + encodeURIComponent(id) + "/start"),
   );
 
-const instanceUrl = async (id: string) => url("/instances/" + encodeURIComponent(id));
+const instanceUrl = (id: string) => url("/instances/" + encodeURIComponent(id));
 
 const instanceDefinition = async (id: string): Promise<TaskInstanceDefinitionRecord> =>
-  HttpUtils.getData<TaskInstanceDefinitionRecord>((await instanceUrl(id)) + "/definition");
+  HttpUtils.getData<TaskInstanceDefinitionRecord>((instanceUrl(id)) + "/definition");
 
 const projectInstances = async (
   instances: TaskInstanceRecord[],
@@ -232,7 +234,7 @@ const projectInstances = async (
 };
 
 export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceRecord> => {
-  const record = await HttpUtils.getData<TaskInstanceRecord>(await instanceUrl(id));
+  const record = await HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id));
   return (await projectInstances([record]))[0];
 };
 
@@ -240,7 +242,7 @@ export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<DataSyncInstancePageResult> => {
   const page = await HttpUtils.getData<TaskInstancePageResult>(
-    await url(
+    url(
       "/instances?" +
         qp({
           pageNo: params.pageNo,
@@ -260,13 +262,13 @@ export const listLatestDataSyncTaskInstances = async (
 ): Promise<TaskInstanceRecord[]> => {
   if (taskIds.length === 0) return [];
   return HttpUtils.getData<TaskInstanceRecord[]>(
-    await url("/instances/latest?" + qp({ taskCodes: taskIds.join(","), activeOnly })),
+    url("/instances/latest?" + qp({ taskCodes: taskIds.join(","), activeOnly })),
     { signal },
   );
 };
 
 export const cancelDataSyncInstance = async (id: string): Promise<TaskInstanceStatus> => {
-  await HttpUtils.postData<void>((await instanceUrl(id)) + "/stop");
+  await HttpUtils.postData<void>((instanceUrl(id)) + "/stop");
   return "CANCELLING";
 };
 
@@ -279,7 +281,7 @@ export const getDataSyncInstanceLogs = async (
     content: string;
     nextOffset: number;
     hasMore: boolean;
-  }>((await instanceUrl(id)) + "/logs?" + qp({ offset: cursor ? Number(cursor) : 0, limit }));
+  }>((instanceUrl(id)) + "/logs?" + qp({ offset: cursor ? Number(cursor) : 0, limit }));
   return {
     content: response.content,
     nextCursor: String(response.nextOffset),

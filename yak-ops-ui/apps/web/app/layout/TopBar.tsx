@@ -2,6 +2,7 @@ import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import AccountMenu from "./account-menu";
+import WorkspaceSwitcher from "./workspace-switcher";
 
 type TopBarProps = {
   launcherOpen: boolean;
@@ -48,7 +49,10 @@ export default function TopBar({
       </div>
       <div className="flex min-w-0 flex-1 items-center justify-between px-4">
         <span className="truncate text-xs font-semibold text-white/90">{productLabel}</span>
-        <AccountMenu />
+        <div className="flex min-w-0 items-center gap-3">
+          <WorkspaceSwitcher />
+          <AccountMenu />
+        </div>
       </div>
     </header>
   );
