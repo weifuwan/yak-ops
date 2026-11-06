@@ -92,22 +92,10 @@ export const validIncrementalConfig = (
   return true;
 };
 
-/** Parse the persisted Task JSON without converting YAML in the frontend. */
-export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  if (schemaVersion === 9) {
-    const value = decodeNativePipelineParameters(content);
-    validateSyncParameters(value, 8);
-    return value;
-  }
-  if (schemaVersion !== 7 && schemaVersion !== 8) throw new Error("不支持的同步任务参数版本");
-  if (!content || typeof content !== "object" || Array.isArray(content))
-    throw new Error("无效的 JSON Pipeline 定义");
-  const value = { ...(content as DataSyncParameters & { index?: unknown }) };
-  delete value.index;
-  if (value.transform === undefined) value.transform = [];
-  if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
-    throw new Error("Pipeline 包含未识别的配置项");
-  validateSyncParameters(value, schemaVersion);
+/** Read the single persisted Flink CDC Pipeline contract into the editor projection. */
+export function parseSyncParameters(content: unknown): DataSyncParameters {
+  const value = decodeNativePipelineParameters(content);
+  validateSyncParameters(value);
   return value;
 }
 
@@ -161,7 +149,7 @@ export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
   ];
 }
 
-export function validateSyncParameters(value: DataSyncParameters, schemaVersion = 8): void {
+export function validateSyncParameters(value: DataSyncParameters): void {
   if (
     !value?.source ||
     !value.sink ||
@@ -171,14 +159,15 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
       "syncMode",
       "startup",
       "tables",
-      ...(schemaVersion === 8 ? ["selection"] : []),
+      "selection",
     ]) ||
     !hasOnlyKeys(value.sink, [
       "type",
       "datasourceId",
       "schemaPolicy",
       "tables",
-      ...(schemaVersion === 8 ? ["mapping", "typeMappings"] : []),
+      "mapping",
+      "typeMappings",
     ]) ||
     typeof value.source.type !== "string" ||
     typeof value.sink.type !== "string" ||
@@ -195,12 +184,8 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     value.source.tables.length !== value.sink.tables.length ||
     value.route.length !== value.source.tables.length ||
     !value.pipeline ||
-    !hasOnlyKeys(value.pipeline, [
-      "execution.runtime-mode",
-      "pipeline.table-scope",
-      "parallelism",
-      ...PIPELINE_STRING_OPTIONS,
-    ]) ||
+    typeof value.pipeline !== "object" ||
+    Array.isArray(value.pipeline) ||
     (value.pipeline["pipeline.table-scope"] !== undefined &&
       !["SINGLE", "DATABASE"].includes(value.pipeline["pipeline.table-scope"])) ||
     (value.pipeline["pipeline.table-scope"] === "SINGLE" && value.source.tables.length !== 1) ||
@@ -227,7 +212,9 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     "table",
     "snapshot",
     "incremental",
-    ...(schemaVersion === 8 ? ["read", "dml", "options"] : []),
+    "read",
+    "dml",
+    "options",
   ];
   const sinkKeys = ["database", "schema", "table", "write"];
   for (const tables of [value.source.tables, value.sink.tables]) {
@@ -252,7 +239,9 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
         "mode",
         "primaryKeys",
         "transaction",
-        ...(schemaVersion === 8 ? ["preSql", "postSql", "batchSize"] : []),
+        "preSql",
+        "postSql",
+        "batchSize",
       ]) ||
       [table.database, table.schema, table.table].some((name) => name?.includes("."))
     )
@@ -324,12 +313,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
   }
   for (const source of value.source.tables) {
     if (
-      source.snapshot &&
-      (!realtime ||
-        !steps.includes("FULL") ||
-        (schemaVersion === 7 &&
-          (!source.snapshot.chunkKeyColumn?.trim() ||
-            !hasOnlyKeys(source.snapshot, ["chunkKeyColumn"]))))
+      source.snapshot && (!realtime || !steps.includes("FULL"))
     )
       throw new Error("Snapshot 配置无效");
     validateTableSnapshot(source.snapshot);
@@ -348,7 +332,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     const write = target.write;
     if (
       write.mode === "REPLACE" &&
-      (schemaVersion !== 8 || realtime || value.sink.type !== "jdbc-mysql")
+      (realtime || value.sink.type !== "jdbc-mysql")
     )
       throw new Error("替换写入仅支持 MySQL 目标的单表离线同步");
     validateSqlHooks(write);
@@ -450,6 +434,3 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     throw new Error("Pipeline 运行模式与 Source 不一致");
 }
 
-export function readSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  return parseSyncParameters(schemaVersion, content);
-}

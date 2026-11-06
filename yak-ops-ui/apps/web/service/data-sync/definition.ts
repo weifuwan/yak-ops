@@ -170,7 +170,7 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
   };
 }
 
-/** Omitting parameters edits metadata only and preserves the existing immutable parameter version. */
+/** Omitting parameters edits metadata only and preserves the existing task definition. */
 export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expectedRevision: number) {
   const request: {
     name: string;
@@ -206,7 +206,7 @@ export function definitionPageRequest(params: DataSyncTaskPageParams) {
 /** Projects one immutable Pipeline definition into the editor's transient UI state. */
 export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
   if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");
-  const parameters = parseSyncParameters(definition.parameterSchemaVersion, definition.parameters);
+  const parameters = parseSyncParameters(definition.parameters);
   let configurationError: string | undefined;
   try {
     validateSyncParameters(parameters);

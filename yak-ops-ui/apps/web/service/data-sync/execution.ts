@@ -47,7 +47,7 @@ export function toDataSyncInstanceRecord(
     throw new Error("Task Instance Definition version mismatch");
   }
 
-  const parameters = parseSyncParameters(version.parameterSchemaVersion, version.parameters);
+  const parameters = parseSyncParameters(version.parameters);
   const tableMappings = syncTableMappings(parameters);
   const source = { ...parameters.source, ...tableMappings[0].source };
   const sink = {

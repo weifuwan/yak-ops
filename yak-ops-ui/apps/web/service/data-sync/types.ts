@@ -287,7 +287,7 @@ export interface DataSyncPipelineOptions {
   "transform.decimal.precision.mode"?: string;
 }
 
-/** Task JSON uses installed Connector identifiers; the Task Plugin converts it to Pipeline YAML. */
+/** Transient editor projection. It is never sent to the API or persisted as task parameters. */
 export interface DataSyncParameters {
   source: {
     type: string;
@@ -424,15 +424,29 @@ export interface DataSyncUnreadableTaskRecord {
 
 export type DataSyncTaskListRecord = DataSyncTaskRecord | DataSyncUnreadableTaskRecord;
 
-/** Persisted YAML tree. The runtime resolves datasource-id before submitting to Flink CDC. */
-export interface DataSyncPipelineTaskParameters {
-  definition: {
-    source: Record<string, unknown>;
-    sink: Record<string, unknown>;
-    route: Array<Record<string, unknown>>;
-    pipeline: Record<string, unknown>;
-    transform?: Array<Record<string, unknown>>;
+/** Flink CDC Pipeline YAML represented as a JSON mapping for the task API. */
+export interface DataSyncPipelineDefinition {
+  source: Record<string, unknown> & {
+    type: string;
+    "datasource-id": string;
+    tables: string;
   };
+  sink: Record<string, unknown> & {
+    type: string;
+    "datasource-id": string;
+  };
+  route: Array<Record<string, unknown> & {
+    "source-table": string;
+    "sink-table": string;
+  }>;
+  pipeline: Record<string, unknown> & {
+    "execution.runtime-mode": "BATCH" | "STREAMING";
+  };
+  transform?: Array<Record<string, unknown>>;
+}
+
+export interface DataSyncPipelineTaskParameters {
+  definition: DataSyncPipelineDefinition;
 }
 
 export interface TaskDefinitionRecord {
@@ -444,25 +458,23 @@ export interface TaskDefinitionRecord {
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
-  parameterSchemaVersion: number;
-  parameters: DataSyncParameters | DataSyncPipelineTaskParameters;
+  parameters: DataSyncPipelineTaskParameters;
   remark?: string;
   createTime?: string;
   updateTime?: string;
   updateBy?: string;
 }
 
-export interface TaskParameterVersionSummary {
+export interface TaskDefinitionVersionSummary {
   definitionId: string;
   version: number;
-  parameterSchemaVersion: number;
   createBy: string;
   createTime: string;
 }
 
-/** Historical JSON is inspected before schema-specific editing is allowed. */
-export interface TaskParameterVersion extends TaskParameterVersionSummary {
-  parameters: unknown;
+/** Historical definitions use the same Pipeline contract as the current task. */
+export interface TaskDefinitionVersion extends TaskDefinitionVersionSummary {
+  parameters: DataSyncPipelineTaskParameters;
 }
 
 export interface PublishTaskRequest {
