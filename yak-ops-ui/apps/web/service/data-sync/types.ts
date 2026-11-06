@@ -278,6 +278,7 @@ export interface DataSyncTransform {
 
 /** Supported upstream options retained even when the editor has no form field for them. */
 export interface DataSyncPipelineOptions {
+  [key: string]: unknown;
   name?: string;
   parallelism?: number | string;
   "local-time-zone"?: string;
