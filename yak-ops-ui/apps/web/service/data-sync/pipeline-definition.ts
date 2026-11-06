@@ -8,8 +8,8 @@ export function encodeNativePipelineParameters(value: DataSyncEditorParameters):
   const source = value.source.tables;
   const sink = value.sink.tables;
   if (
-    !["mysql", "mysql-cdc"].includes(value.source.type) ||
-    !["jdbc", "jdbc-mysql"].includes(value.sink.type) ||
+    value.source.type !== "mysql" ||
+    value.sink.type !== "jdbc" ||
     source.length !== 1 ||
     sink.length !== 1 ||
     value.source.startup?.mode !== "INITIAL" ||
@@ -92,13 +92,13 @@ export function decodeNativePipelineParameters(content: unknown): DataSyncEditor
   );
   return {
     source: {
-      type: "mysql-cdc",
+      type: "mysql",
       datasourceId: String(source["datasource-id"]),
       startup: { mode: "INITIAL" },
       tables: [sourceTable],
     },
     sink: {
-      type: "jdbc-mysql",
+      type: "jdbc",
       datasourceId: String(sink["datasource-id"]),
       schemaPolicy: {
         initial: "CREATE_OR_ALTER",

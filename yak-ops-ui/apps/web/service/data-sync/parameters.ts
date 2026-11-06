@@ -328,7 +328,7 @@ export function validateSyncParameters(value: DataSyncEditorParameters): void {
     const write = target.write;
     if (
       write.mode === "REPLACE" &&
-      (realtime || value.sink.type !== "jdbc-mysql")
+      (realtime || value.sink.type !== "jdbc")
     )
       throw new Error("替换写入仅支持 MySQL 目标的单表离线同步");
     validateSqlHooks(write);

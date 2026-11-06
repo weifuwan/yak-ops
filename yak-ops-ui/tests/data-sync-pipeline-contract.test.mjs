@@ -7,13 +7,13 @@ import {
 
 const valid = () => ({
   source: {
-    type: "mysql-cdc",
+    type: "mysql",
     datasourceId: "1",
     startup: { mode: "INITIAL" },
     tables: [{ database: "src_db", table: "orders" }],
   },
   sink: {
-    type: "jdbc-mysql",
+    type: "jdbc",
     datasourceId: "2",
     schemaPolicy: {
       initial: "CREATE_OR_ALTER",

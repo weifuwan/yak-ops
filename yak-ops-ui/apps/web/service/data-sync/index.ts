@@ -56,8 +56,8 @@ export const listDataSyncSolutions = async (
 ): Promise<DataSyncSolution[]> => {
   if (sourceType.toUpperCase() !== "MYSQL" || targetType.toUpperCase() !== "MYSQL") return [];
   const pair: PipelineConnectorPair = {
-    sourceConnector: "mysql-cdc",
-    sinkConnector: "jdbc-mysql",
+    sourceConnector: "mysql",
+    sinkConnector: "jdbc",
     producesChangelog: true,
     supportsIncrementalBatch: false,
     supportsSchemaChanges: true,
