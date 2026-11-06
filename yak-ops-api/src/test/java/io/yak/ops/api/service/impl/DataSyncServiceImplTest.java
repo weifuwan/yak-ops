@@ -105,6 +105,26 @@ class DataSyncServiceImplTest {
     }
 
     @Test
+    void rejectsUnsupportedDatasourceTypeBeforeCreatingTask() {
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setName("order_sync");
+        request.setParameters(JSONUtils.parseObject(
+                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}"));
+        DataSource source = new DataSource();
+        source.setType(DbType.MYSQL);
+        DataSource sink = new DataSource();
+        sink.setType(DbType.POSTGRE_SQL);
+        when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(source);
+        when(dataSourceDao.queryByIdAndProjectCode(2, PROJECT_CODE)).thenReturn(sink);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.createTask(new User(), PROJECT_CODE, request));
+
+        assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        verifyNoInteractions(workflowDefinitionService);
+    }
+
+    @Test
     void rejectsCredentialsEmbeddedInTaskDefinition() {
         DataSyncTaskRequest request = new DataSyncTaskRequest();
         request.setName("order_sync");

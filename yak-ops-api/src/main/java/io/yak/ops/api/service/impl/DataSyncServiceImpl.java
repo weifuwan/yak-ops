@@ -50,6 +50,7 @@ import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -579,6 +580,9 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         DataSource sink = dataSourceDao.queryByIdAndProjectCode(targetId, projectCode);
         if (source == null || sink == null) {
             throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+        if (source.getType() != DbType.MYSQL || sink.getType() != DbType.MYSQL) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "datasource type");
         }
     }
 
