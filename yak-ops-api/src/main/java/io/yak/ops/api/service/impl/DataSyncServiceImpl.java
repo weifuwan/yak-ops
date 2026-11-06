@@ -281,7 +281,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         WorkflowDefinition workflow = lockWorkflow(projectCode, taskCode);
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_RELEASE, workflow.getCode(),
-                        definition.getVersion());
+                    definition.getVersion());
         }
         ensureStopped(workflow.getCode());
         Integer runId = executorService.triggerWorkflowDefinition(
