@@ -49,7 +49,7 @@ type OpenDrawer =
   | { kind: "advanced"; tab?: AdvancedTab; parameterTab?: AdvancedParameterTab };
 const parameterPart = (value: DataSyncTaskSavePayload) =>
   Object.fromEntries(
-    Object.entries(value).filter(([key]) => !["name", "remark", "debug"].includes(key)),
+    Object.entries(value).filter(([key]) => !["name", "remark"].includes(key)),
   );
 
 export function TaskEditor({

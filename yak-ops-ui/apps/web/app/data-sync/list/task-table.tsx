@@ -93,7 +93,6 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
           <div className="mt-0.5 text-xs text-[var(--yak-components-muted-text)]">
             最新 V{record.definitionVersion} ·{" "}
             {record.publishedVersion ? `已发布 V${record.publishedVersion}` : "未发布"}
-            {record.hasUnpublishedChanges ? " · 待发布" : ""}
           </div>
         </div>
       ),

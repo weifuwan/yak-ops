@@ -557,7 +557,7 @@ export interface DataSyncInstanceSummary {
   taskName: string;
   taskVersion: number;
   syncType: "REALTIME";
-  triggerType?: "MANUAL" | "SCHEDULE" | "WORKFLOW";
+  triggerType?: string;
   status: DataSyncInstanceStatus;
   startTime?: string;
   finishTime?: string;

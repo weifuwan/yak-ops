@@ -74,7 +74,7 @@ export function EditorFooter({
           variant="primary"
           loading={saving}
           disabled={
-            locked || (!dirty && task?.status === "ONLINE" && !task.hasUnpublishedChanges)
+            locked || (!dirty && task?.status === "ONLINE")
           }
           onClick={onPublish}
         >
@@ -87,7 +87,6 @@ export function EditorFooter({
           <>
             <span>最新 V{task.definitionVersion}</span>
             <span>{task.publishedVersion ? `已发布 V${task.publishedVersion}` : "未发布"}</span>
-            {task.hasUnpublishedChanges ? <Badge tone="warning">待发布</Badge> : null}
           </>
         ) : null}
       </div>

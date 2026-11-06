@@ -133,7 +133,7 @@ export function useEditorSubmission(input: SaveInput) {
               saved.id,
               input.parametersDirty
                 ? request
-                : { name: request.name, remark: request.remark, debug: request.debug },
+                : { name: request.name, remark: request.remark },
               saved.revision,
               signal,
             )
@@ -184,7 +184,7 @@ export function useEditorSubmission(input: SaveInput) {
       }
       toast.success(
         confirmedPublicationVersion
-          ? `本次发布 V${confirmedPublicationVersion} 已确认${saved.hasUnpublishedChanges ? "，仍有待发布修改" : ""}`
+          ? `本次发布 V${confirmedPublicationVersion} 已确认`
           : "同步任务已保存",
       );
       input.onComplete(saved);
@@ -241,7 +241,7 @@ export function useEditorSubmission(input: SaveInput) {
           setRetryPublication(undefined);
           if (adopted) setError("");
           toast.success(
-            `本次发布 V${publication.version} 已确认${task.hasUnpublishedChanges ? "，仍有待发布修改" : ""}`,
+            `本次发布 V${publication.version} 已确认`,
           );
         } else {
           setRetryPublication(publication);

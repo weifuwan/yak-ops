@@ -89,9 +89,9 @@ export function ExecutionStatusIcon({
 }
 
 export const dataSyncTriggerText = (triggerType?: string) => {
-  if (triggerType === "MANUAL") return "手动";
-  if (triggerType === "SCHEDULE") return "调度";
-  if (triggerType === "WORKFLOW") return "工作流";
+  if (triggerType === "START_PROCESS") return "手动";
+  if (triggerType === "SCHEDULER") return "调度";
+  if (triggerType === "EXECUTE_TASK") return "工作流";
   return triggerType || "-";
 };
 
