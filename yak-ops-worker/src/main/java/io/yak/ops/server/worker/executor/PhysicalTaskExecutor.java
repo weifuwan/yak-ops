@@ -120,8 +120,8 @@ public class PhysicalTaskExecutor extends AbstractTaskExecutor {
         taskExecutionContext.setResourceContext(resourceContext);
         log.info("Download resources successfully: {}", taskExecutionContext.getResourceContext());
 
-        log.info(TaskLogMarkers.excludeInTaskLog(), "Initialized Task Context{}",
-                JSONUtils.toPrettyJsonString(taskExecutionContext));
+        log.info(TaskLogMarkers.excludeInTaskLog(), "Initialized Task Context: taskInstanceId={}, taskType={}",
+                taskExecutionContext.getTaskInstanceId(), taskExecutionContext.getTaskType());
 
     }
 
