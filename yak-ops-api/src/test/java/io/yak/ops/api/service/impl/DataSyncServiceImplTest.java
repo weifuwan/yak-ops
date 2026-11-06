@@ -72,15 +72,15 @@ class DataSyncServiceImplTest {
         request.setName("order_sync");
         request.setParameters(JSONUtils.parseObject(
                 "{\"source\":{"
-                + "\"type\":\"mysql-cdc\",\"datasourceId\":\"1\","
-                + "\"startup\":{\"mode\":\"INITIAL\"},"
-                + "\"tables\":[{\"database\":\"src_db\",\"table\":\"orders\"}]},"
-                + "\"sink\":{\"type\":\"jdbc-mysql\",\"datasourceId\":\"2\","
-                + "\"tables\":[{\"database\":\"dst_db\",\"table\":\"orders\","
-                + "\"write\":{\"mode\":\"UPSERT\"}}]},"
-                + "\"route\":[{\"source-table\":\"src_db.orders\",\"sink-table\":\"dst_db.orders\"}],"
-                + "\"transform\":[],"
-                + "\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\",\"pipeline.table-scope\":\"DATABASE\"}}"));
+                        + "\"type\":\"mysql-cdc\",\"datasourceId\":\"1\","
+                        + "\"startup\":{\"mode\":\"INITIAL\"},"
+                        + "\"tables\":[{\"database\":\"src_db\",\"table\":\"orders\"}]},"
+                        + "\"sink\":{\"type\":\"jdbc-mysql\",\"datasourceId\":\"2\","
+                        + "\"tables\":[{\"database\":\"dst_db\",\"table\":\"orders\","
+                        + "\"write\":{\"mode\":\"UPSERT\"}}]},"
+                        + "\"route\":[{\"source-table\":\"src_db.orders\",\"sink-table\":\"dst_db.orders\"}],"
+                        + "\"transform\":[],"
+                        + "\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\",\"pipeline.table-scope\":\"DATABASE\"}}"));
         DataSource source = new DataSource();
         source.setType(DbType.MYSQL);
         when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(source);
