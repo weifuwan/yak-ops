@@ -29,6 +29,8 @@ export function WorkspaceManagementPage() {
       toast.success("工作空间已删除");
       setPendingDelete(undefined);
       await refreshWorkspaces();
+    } catch {
+      // Project deletion or refresh failed; the HTTP layer reports the problem.
     } finally {
       setDeleting(false);
     }
@@ -49,7 +51,7 @@ export function WorkspaceManagementPage() {
               {error ? (
                 <div role="alert" className="mb-3 flex items-center gap-3 text-sm">
                   工作空间加载失败
-                  <Button size="small" onClick={() => void refreshWorkspaces()}>重试</Button>
+                  <Button size="small" onClick={() => void refreshWorkspaces().catch(() => undefined)}>重试</Button>
                 </div>
               ) : null}
               <WorkspaceTable records={workspaces} loading={loading}
@@ -63,7 +65,7 @@ export function WorkspaceManagementPage() {
         open={formOpen} record={editing} onClose={() => setFormOpen(false)}
         onSaved={() => {
           toast.success(editing ? "工作空间保存成功" : "工作空间创建成功");
-          void refreshWorkspaces();
+          void refreshWorkspaces().catch(() => undefined);
         }}
       />
       {members ? <MemberDialog key={members.id} workspace={members} onClose={() => setMembers(undefined)} /> : null}

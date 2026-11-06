@@ -51,7 +51,7 @@ export default function WorkspaceSwitcher() {
             )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          {error ? <DropdownMenuItem onClick={() => void refreshWorkspaces()}>重新加载工作空间</DropdownMenuItem> : null}
+          {error ? <DropdownMenuItem onClick={() => void refreshWorkspaces().catch(() => undefined)}>重新加载工作空间</DropdownMenuItem> : null}
           <DropdownMenuItem onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             新建工作空间

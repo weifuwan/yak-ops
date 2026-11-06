@@ -46,6 +46,8 @@ export default function WorkspaceForm({ open, record, onClose, onSaved }: Worksp
       else await createWorkspace(payload);
       onClose();
       onSaved();
+    } catch {
+      // The HTTP layer displays the request failure; keep the form open.
     } finally {
       setSaving(false);
     }

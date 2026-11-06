@@ -28,6 +28,8 @@ export default function WorkspaceCreateDialog({
       setName("");
       onClose();
       toast.success("工作空间创建成功");
+    } catch {
+      // The HTTP layer displays the request failure; keep the dialog open.
     } finally {
       setCreating(false);
     }

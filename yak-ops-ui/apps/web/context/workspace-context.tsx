@@ -1,4 +1,5 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { workspacePreferenceStorageKey } from "@/constants/workspace";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,80 +23,66 @@ export interface WorkspaceContextValue {
 
 export const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-const resolveWorkspace = (items: WorkspaceRecord[], userId: string, activeId?: string) => {
-  const preferred = window.localStorage.getItem(workspacePreferenceStorageKey(userId));
-  return items.find((item) => item.id === activeId) ??
-    items.find((item) => item.id === preferred) ??
-    items[0];
-};
+const workspaceKey = (userId: string) => ["workspaces", userId] as const;
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id;
-  const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
-  const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceRecord>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const userId = currentUser?.id ?? "";
+  const client = useQueryClient();
+  const [selected, setSelected] = useState<{ userId: string; id: string }>();
 
-  const clearWorkspace = useCallback(() => {
-    setWorkspaces([]);
-    setCurrentWorkspace(undefined);
-    setError(false);
-  }, []);
+  const query = useQuery({
+    queryKey: workspaceKey(userId),
+    queryFn: () => listWorkspaces(userId),
+    enabled: Boolean(userId),
+  });
+  const workspaces = query.data ?? [];
+  const preferredId = userId
+    ? window.localStorage.getItem(workspacePreferenceStorageKey(userId))
+    : null;
+  const selectedId = selected?.userId === userId ? selected.id : preferredId;
+  const currentWorkspace =
+    workspaces.find((item) => item.id === selectedId) ??
+    workspaces.find((item) => item.id === preferredId) ??
+    workspaces[0];
 
-  const refreshWorkspaces = useCallback(async () => {
-    if (!userId) return [];
-    const items = await listWorkspaces(userId);
-    setWorkspaces(items);
-    setError(false);
-    setCurrentWorkspace((current) => resolveWorkspace(items, userId, current?.id));
-    return items;
-  }, [userId]);
-
-  const selectWorkspace = (workspaceId: string) => {
-    const item = workspaces.find((workspace) => workspace.id === workspaceId);
-    if (!item || !userId) return;
-    window.localStorage.setItem(workspacePreferenceStorageKey(userId), item.id);
-    setCurrentWorkspace(item);
+  const selectWorkspace = (id: string) => {
+    if (!userId || !workspaces.some((item) => item.id === id)) return;
+    window.localStorage.setItem(workspacePreferenceStorageKey(userId), id);
+    setSelected({ userId, id });
   };
 
   const createWorkspace = async (payload: WorkspaceCreatePayload) => {
     if (!userId) throw new Error("请先登录");
     const workspace = await createWorkspaceRequest(payload, userId);
-    const items = await listWorkspaces(userId);
-    setWorkspaces(items);
-    setError(false);
-    const selected = items.find((item) => item.id === workspace.id) ?? workspace;
-    window.localStorage.setItem(workspacePreferenceStorageKey(userId), selected.id);
-    setCurrentWorkspace(selected);
-    return selected;
+    client.setQueryData<WorkspaceRecord[]>(workspaceKey(userId), (items) => [
+      workspace,
+      ...(items ?? []).filter((item) => item.id !== workspace.id),
+    ]);
+    window.localStorage.setItem(workspacePreferenceStorageKey(userId), workspace.id);
+    setSelected({ userId, id: workspace.id });
+    return workspace;
   };
 
-  useEffect(() => {
-    let active = true;
-    setWorkspaces([]);
-    setCurrentWorkspace(undefined);
-    setError(false);
-    if (!userId) {
-      setLoading(false);
-      return () => { active = false; };
-    }
-    setLoading(true);
-    listWorkspaces(userId).then((items) => {
-      if (!active) return;
-      setWorkspaces(items);
-      setCurrentWorkspace(resolveWorkspace(items, userId));
-    }).catch(() => {
-      if (active) setError(true);
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, [userId]);
+  const refreshWorkspaces = () =>
+    userId
+      ? client.fetchQuery({
+          queryKey: workspaceKey(userId),
+          queryFn: () => listWorkspaces(userId),
+          staleTime: 0,
+        })
+      : Promise.resolve([]);
+
+  const clearWorkspace = () => {
+    setSelected(undefined);
+    if (userId) client.removeQueries({ queryKey: workspaceKey(userId) });
+  };
 
   return (
     <WorkspaceContext.Provider value={{
-      workspaces, currentWorkspace, loading, error,
+      workspaces, currentWorkspace,
+      loading: Boolean(userId && query.isPending),
+      error: Boolean(userId && query.isError),
       selectWorkspace, createWorkspace, refreshWorkspaces, clearWorkspace,
     }}>
       {children}
