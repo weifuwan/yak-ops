@@ -27,6 +27,14 @@ class DataSyncParametersTest {
     }
 
     @Test
+    void acceptsSingleMappedTableWithDatabaseEditorScope() {
+        DataSyncParameters parameters = parse("INITIAL", "STREAMING", "UPSERT");
+        parameters.getPipeline().put("pipeline.table-scope", "DATABASE");
+
+        assertTrue(parameters.checkParameters());
+    }
+
+    @Test
     void rejectsRouteMismatchAndAdditionalTransforms() {
         DataSyncParameters parameters = parse("INITIAL", "STREAMING", "UPSERT");
         parameters.getRoute().get(0).setSinkTable("target_db.other");
