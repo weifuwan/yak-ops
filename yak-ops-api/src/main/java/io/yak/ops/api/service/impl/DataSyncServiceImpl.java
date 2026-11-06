@@ -397,7 +397,11 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     public Map<String, Object> logs(User user, long projectCode, int instanceId, int offset, int limit) {
         TaskInstance instance = requireInstance(user, projectCode, instanceId);
         if (instance.getHost() == null || instance.getLogPath() == null) {
-            return Map.of("content", "", "nextOffset", Math.max(0, offset), "hasMore", false);
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", "");
+            result.put("nextOffset", Math.max(0, offset));
+            result.put("hasMore", false);
+            return result;
         }
         int start = Math.max(0, offset);
         TaskInstanceLogPageQueryResponse page = Clients.withService(ILogService.class)
@@ -413,8 +417,11 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (content.endsWith("\n")) {
             count--;
         }
-        return Map.of("content", content, "nextOffset", start + count,
-                "hasMore", count >= Math.max(1, Math.min(limit, 500)));
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", content);
+        result.put("nextOffset", start + count);
+        result.put("hasMore", count >= Math.max(1, Math.min(limit, 500)));
+        return result;
     }
 
     private void authorizeRead(User user, long projectCode) {

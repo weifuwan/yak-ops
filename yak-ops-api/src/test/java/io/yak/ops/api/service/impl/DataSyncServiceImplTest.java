@@ -15,6 +15,9 @@ import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.service.ExecutorService;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
+import io.yak.ops.api.utils.PageInfo;
+import io.yak.ops.api.vo.DataSyncTaskVO;
+import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.TaskDefinition;
@@ -118,7 +121,7 @@ class DataSyncServiceImplTest {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 isNull(), isNull(), isNull())).thenReturn(page);
 
-        var result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null);
+        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null);
 
         assertEquals(45, result.getTotal());
         assertEquals(2, result.getCurrentPage());
@@ -141,7 +144,7 @@ class DataSyncServiceImplTest {
         page.setRecords(Collections.emptyList());
         when(taskDefinitionLogDao.queryVersionsPaging(any(), eq(99L), eq(PROJECT_CODE))).thenReturn(page);
 
-        var result = service.listVersions(new User(), PROJECT_CODE, 99L, 2, 10);
+        PageInfo<DataSyncTaskVersionVO> result = service.listVersions(new User(), PROJECT_CODE, 99L, 2, 10);
 
         assertEquals(21, result.getTotal());
         assertEquals(2, result.getCurrentPage());

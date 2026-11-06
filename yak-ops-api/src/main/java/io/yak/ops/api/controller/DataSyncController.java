@@ -11,6 +11,7 @@ import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.User;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -107,7 +108,7 @@ public class DataSyncController extends BaseController {
     @PostMapping("/tasks/{taskCode}/start")
     public Result<Map<String, Integer>> start(@RequestAttribute(Constants.SESSION_USER) User user,
                                               @PathVariable long projectCode, @PathVariable long taskCode) {
-        return Result.success(Map.of("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
+        return Result.success(Collections.singletonMap("workflowInstanceId", dataSyncService.start(user, projectCode, taskCode)));
     }
 
     @GetMapping("/instances")
