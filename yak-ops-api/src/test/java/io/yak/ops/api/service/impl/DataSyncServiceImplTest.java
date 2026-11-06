@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ExecutorService;
@@ -20,11 +22,18 @@ import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
+import io.yak.ops.common.enums.CommandType;
+import io.yak.ops.common.enums.Flag;
+import io.yak.ops.common.enums.ReleaseState;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.dao.entity.WorkflowDefinition;
+import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
@@ -37,6 +46,7 @@ import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
 import java.util.Collections;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,11 +128,153 @@ class DataSyncServiceImplTest {
     }
 
     @Test
-    void rejectsUnsupportedStatusWithBusinessError() {
+    void taskStatusFilterUsesNativeReleaseState() {
+        when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), eq(ReleaseState.ONLINE.getCode()))).thenReturn(new Page<>(1, 20));
+
+        assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE)
+                .getTotal());
+    }
+
+    @Test
+    void archiveHidesTaskWithoutDeletingHistoricalInstances() {
+        TaskDefinition task = taskDefinition(99L);
+        WorkflowDefinition workflow = workflow(101L, 99L);
+        WorkflowTaskRelation relation = relation(101L, 99L);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
+        when(workflowTaskRelationDao.queryByTaskCode(99L)).thenReturn(Collections.singletonList(relation));
+        when(workflowTaskRelationDao.queryByWorkflowDefinitionCode(101L))
+                .thenReturn(Collections.singletonList(relation));
+        when(workflowDefinitionDao.queryByCode(101L)).thenReturn(Optional.of(workflow));
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(eq(101L), any()))
+                .thenReturn(Collections.emptyList());
+        when(taskDefinitionDao.updateById(task)).thenReturn(true);
+        when(workflowDefinitionDao.updateById(workflow)).thenReturn(true);
+
+        service.deleteTask(new User(), PROJECT_CODE, 99L);
+
+        assertEquals(Flag.NO, task.getFlag());
+        assertEquals(Flag.NO, workflow.getFlag());
+        assertThrows(ServiceException.class, () -> service.getTask(new User(), PROJECT_CODE, 99L));
+        verify(workflowDefinitionDao).lockByCode(101L);
+        verifyNoInteractions(workflowDefinitionService, taskInstanceDao, taskDefinitionLogDao);
+    }
+
+    @Test
+    void updateChecksRevisionAfterWorkflowLock() {
+        TaskDefinition task = taskDefinition(99L);
+        task.setVersion(4);
+        WorkflowDefinition workflow = workflow(101L, 99L);
+        WorkflowTaskRelation relation = relation(101L, 99L);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
+        when(workflowTaskRelationDao.queryByTaskCode(99L)).thenReturn(Collections.singletonList(relation));
+        when(workflowTaskRelationDao.queryByWorkflowDefinitionCode(101L))
+                .thenReturn(Collections.singletonList(relation));
+        when(workflowDefinitionDao.queryByCode(101L)).thenReturn(Optional.of(workflow));
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setExpectedRevision(3);
+
         ServiceException error = assertThrows(ServiceException.class,
-                () -> service.listTasks(new User(), PROJECT_CODE, 1, 20, null, "UNKNOWN"));
+                () -> service.updateTask(new User(), PROJECT_CODE, 99L, request));
+
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
-        verifyNoInteractions(taskDefinitionDao);
+        verify(workflowDefinitionDao).lockByCode(101L);
+        verifyNoInteractions(workflowDefinitionService, dataSourceDao);
+    }
+
+    @Test
+    void taskReturnsNativeReleaseState() {
+        TaskDefinition task = taskDefinition(99L);
+        WorkflowDefinition workflow = workflow(101L, 99L);
+        workflow.setReleaseState(ReleaseState.ONLINE);
+        WorkflowTaskRelation relation = relation(101L, 99L);
+        task.setTaskParams("{}");
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
+        when(workflowTaskRelationDao.queryByTaskCode(99L)).thenReturn(Collections.singletonList(relation));
+        when(workflowTaskRelationDao.queryByWorkflowDefinitionCode(101L))
+                .thenReturn(Collections.singletonList(relation));
+        when(workflowDefinitionDao.queryByCode(101L)).thenReturn(Optional.of(workflow));
+
+        assertEquals(ReleaseState.ONLINE, service.getTask(new User(), PROJECT_CODE, 99L).getStatus());
+    }
+
+    @Test
+    void instanceReturnsOriginalExecutionStateAndSchedulerTrigger() {
+        TaskInstance instance = taskInstance(42);
+        instance.setState(TaskExecutionStatus.FORCED_SUCCESS);
+        WorkflowInstance workflow = new WorkflowInstance();
+        workflow.setId(34);
+        workflow.setCommandType(CommandType.SCHEDULER);
+        when(taskInstanceDao.queryById(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+
+        assertEquals(TaskExecutionStatus.FORCED_SUCCESS,
+                service.getInstance(new User(), PROJECT_CODE, 42).getStatus());
+        assertEquals("SCHEDULER", service.getInstance(new User(), PROJECT_CODE, 42).getTriggerType());
+    }
+
+    @Test
+    void instanceStatusFilterUsesTaskExecutionStatusCode() {
+        when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE),
+                eq("DATA_SYNC"), isNull(), argThat(states -> states != null && states.length == 1
+                        && states[0] == TaskExecutionStatus.DISPATCH.getCode())))
+                .thenReturn(new Page<>(1, 20));
+        assertEquals(0, service.listInstances(new User(), PROJECT_CODE, 1, 20,
+                null, TaskExecutionStatus.DISPATCH).getTotal());
+    }
+
+    @Test
+    void stopUsesWorkflowLifecycleInsteadOfMappedTaskStatus() {
+        TaskInstance instance = taskInstance(42);
+        instance.setState(TaskExecutionStatus.NEED_FAULT_TOLERANCE);
+        WorkflowInstance workflow = new WorkflowInstance();
+        workflow.setId(34);
+        workflow.setProjectCode(PROJECT_CODE);
+        workflow.setState(WorkflowExecutionStatus.RUNNING_EXECUTION);
+        when(taskInstanceDao.queryById(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+
+        service.stop(new User(), PROJECT_CODE, 42);
+
+        verify(executorService).controlWorkflowInstance(any(), eq(34), eq(ExecuteType.STOP));
+    }
+
+    private static TaskDefinition taskDefinition(long taskCode) {
+        TaskDefinition task = new TaskDefinition();
+        task.setCode(taskCode);
+        task.setProjectCode(PROJECT_CODE);
+        task.setTaskType("DATA_SYNC");
+        task.setFlag(Flag.YES);
+        return task;
+    }
+
+    private static WorkflowDefinition workflow(long code, long taskCode) {
+        WorkflowDefinition workflow = new WorkflowDefinition();
+        workflow.setCode(code);
+        workflow.setProjectCode(PROJECT_CODE);
+        workflow.setName("data_sync_" + taskCode);
+        workflow.setReleaseState(ReleaseState.OFFLINE);
+        workflow.setFlag(Flag.YES);
+        return workflow;
+    }
+
+    private static WorkflowTaskRelation relation(long workflowCode, long taskCode) {
+        WorkflowTaskRelation relation = new WorkflowTaskRelation();
+        relation.setWorkflowDefinitionCode(workflowCode);
+        relation.setProjectCode(PROJECT_CODE);
+        relation.setPreTaskCode(0);
+        relation.setPostTaskCode(taskCode);
+        return relation;
+    }
+
+    private static TaskInstance taskInstance(int id) {
+        TaskInstance instance = new TaskInstance();
+        instance.setId(id);
+        instance.setProjectCode(PROJECT_CODE);
+        instance.setTaskCode(99L);
+        instance.setTaskType("DATA_SYNC");
+        instance.setWorkflowInstanceId(34);
+        return instance;
     }
 
     @Test
