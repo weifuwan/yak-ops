@@ -256,7 +256,7 @@ class DataSyncServiceImplTest {
         prepareDataSyncTask(ReleaseState.ONLINE);
         when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(
                 eq(101L), eq(WorkflowExecutionStatus.NOT_TERMINAL_STATES)))
-                .thenReturn(Collections.singletonList(new WorkflowInstance()));
+                .thenReturn(Collections.singletonList(new io.yak.ops.dao.model.WorkflowInstanceSummaryDto()));
 
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.start(new User(), PROJECT_CODE, 99L));
