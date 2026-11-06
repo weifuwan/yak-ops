@@ -143,7 +143,8 @@ public final class DataSyncPipelineValidator {
                     || "secret".equals(key) || "secretkey".equals(key)
                     || "accesskey".equals(key) || "apikey".equals(key)
                     || "privatekey".equals(key) || "credentials".equals(key)) {
-                throw new IllegalArgumentException("Pipeline must reference Yak Ops datasources, not inline credentials");
+                throw new IllegalArgumentException(
+                        "Pipeline must reference Yak Ops datasources, not inline credentials");
             }
             rejectCredentials(field.getValue());
         }
