@@ -1,4 +1,5 @@
-import { createContext, useState, type ReactNode } from "react";
+import { createContext, useLayoutEffect, useState, type ReactNode } from "react";
+import { setActiveProjectCode } from "@/service/workspace/project-scope";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { workspacePreferenceStorageKey } from "@/constants/workspace";
@@ -46,8 +47,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     workspaces.find((item) => item.id === preferredId) ??
     workspaces[0];
 
+  useLayoutEffect(() => {
+    setActiveProjectCode(currentWorkspace?.id);
+    return () => setActiveProjectCode(undefined);
+  }, [currentWorkspace?.id]);
+
   const selectWorkspace = (id: string) => {
     if (!userId || !workspaces.some((item) => item.id === id)) return;
+    setActiveProjectCode(id);
     window.localStorage.setItem(workspacePreferenceStorageKey(userId), id);
     setSelected({ userId, id });
   };
@@ -60,6 +67,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       ...(items ?? []).filter((item) => item.id !== workspace.id),
     ]);
     window.localStorage.setItem(workspacePreferenceStorageKey(userId), workspace.id);
+    setActiveProjectCode(workspace.id);
     setSelected({ userId, id: workspace.id });
     return workspace;
   };
@@ -74,6 +82,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       : Promise.resolve([]);
 
   const clearWorkspace = () => {
+    setActiveProjectCode(undefined);
     setSelected(undefined);
     if (userId) client.removeQueries({ queryKey: workspaceKey(userId) });
   };

@@ -364,11 +364,12 @@ CREATE TABLE `t_yak_ops_datasource` (
   `note` varchar(255) DEFAULT NULL COMMENT 'description',
   `type` tinyint(4) NOT NULL COMMENT 'data source type: 0:mysql,1:postgresql,2:hive,3:spark',
   `user_id` int(11) NOT NULL COMMENT 'the creator id',
+  `project_code` bigint(20) NOT NULL COMMENT 'owning Project code',
   `connection_params` text NOT NULL COMMENT 'json connection params',
   `create_time` datetime NOT NULL COMMENT 'create time',
   `update_time` datetime DEFAULT NULL COMMENT 'update time',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `t_yak_ops_datasource_name_un` (`name`, `type`)
+  UNIQUE KEY `uk_datasource_project_name` (`project_code`, `name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE = utf8_bin;
 
 -- ----------------------------

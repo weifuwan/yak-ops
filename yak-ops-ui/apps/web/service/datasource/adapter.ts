@@ -25,6 +25,7 @@ export interface BackendDataSourceParam {
 
 export interface BackendDataSourceRecord {
   id?: number | string;
+  projectCode?: number | string;
   name?: string;
   note?: string;
   type?: string | number | { name?: string; code?: number };
@@ -219,6 +220,7 @@ export function fromBackendDataSource(raw: BackendDataSourceRecord): DataSourceR
   const displayUrl = (jdbcUrl || safeEdit.jdbcUrl).replace(SECRET_QUERY_PARAM, "$1******");
   return {
     id: raw.id === undefined ? undefined : String(raw.id),
+    projectCode: raw.projectCode === undefined ? undefined : String(raw.projectCode),
     name: raw.name,
     dbType: type,
     database,

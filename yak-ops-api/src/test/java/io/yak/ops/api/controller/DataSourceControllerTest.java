@@ -8,10 +8,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.Project;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -22,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.LinkedMultiValueMap;
@@ -31,9 +35,17 @@ public class DataSourceControllerTest extends AbstractControllerTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DataSourceControllerTest.class);
 
+    @Autowired
+    private ProjectService projectService;
+
+    private long projectCode;
+
     @BeforeEach
     public void initSetUp() {
         setUp();
+        Result result = projectService.createProject(user, "datasource-test-" + UUID.randomUUID(), "");
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+        projectCode = ((Project) result.getData()).getCode();
     }
 
     @AfterEach
@@ -55,7 +67,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
         paramsMap.put("password", "123456");
         paramsMap.put("other", new HashMap<>());
         paramsMap.put("bindTestId", null);
-        MvcResult mvcResult = mockMvc.perform(post("/datasources")
+        MvcResult mvcResult = mockMvc.perform(post("/projects/" + projectCode + "/datasources")
                 .header("sessionId", sessionId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JSONUtils.toJsonString(paramsMap)))
@@ -83,7 +95,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
         paramsMap.put("password", "root@123");
         paramsMap.put("other", new HashMap<>());
         paramsMap.put("bindTestId", 1);
-        MvcResult mvcResult = mockMvc.perform(put("/datasources/2")
+        MvcResult mvcResult = mockMvc.perform(put("/projects/" + projectCode + "/datasources/2")
                 .header("sessionId", sessionId)
                 .content(JSONUtils.toJsonString(paramsMap)))
                 .andExpect(status().isOk())
@@ -97,7 +109,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     @Disabled("unknown you datasources id")
     @Test
     public void testQueryDataSource() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/datasources/2")
+        MvcResult mvcResult = mockMvc.perform(get("/projects/" + projectCode + "/datasources/2")
                 .header("sessionId", sessionId))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -114,7 +126,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     public void testQueryDataSourceList(String key, String dbType) throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add(key, dbType);
-        MvcResult mvcResult = mockMvc.perform(get("/datasources/list")
+        MvcResult mvcResult = mockMvc.perform(get("/projects/" + projectCode + "/datasources/list")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
@@ -154,7 +166,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
         paramsMap.add("searchVal", "mysql");
         paramsMap.add("pageNo", "1");
         paramsMap.add("pageSize", "1");
-        MvcResult mvcResult = mockMvc.perform(get("/datasources")
+        MvcResult mvcResult = mockMvc.perform(get("/projects/" + projectCode + "/datasources")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
@@ -192,7 +204,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     @Disabled("unknown your datasource id")
     @Test
     public void testConnectionTest() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/datasources/2/connect-test")
+        MvcResult mvcResult = mockMvc.perform(get("/projects/" + projectCode + "/datasources/2/connect-test")
                 .header("sessionId", sessionId))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -209,7 +221,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     public void testVerifyDataSourceName(String key, String dbType) throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add(key, dbType);
-        MvcResult mvcResult = mockMvc.perform(get("/datasources/verify-name")
+        MvcResult mvcResult = mockMvc.perform(get("/projects/" + projectCode + "/datasources/verify-name")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
@@ -227,12 +239,9 @@ public class DataSourceControllerTest extends AbstractControllerTest {
         MvcResult mvcResult = mockMvc.perform(get("/datasources/authed-datasource")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+
                 .andReturn();
-        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
-        logger.info(mvcResult.getResponse().getContentAsString());
     }
 
     @Test
@@ -242,12 +251,9 @@ public class DataSourceControllerTest extends AbstractControllerTest {
         MvcResult mvcResult = mockMvc.perform(get("/datasources/unauth-datasource")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+
                 .andReturn();
-        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
-        logger.info(mvcResult.getResponse().getContentAsString());
     }
 
     @Test
@@ -265,7 +271,7 @@ public class DataSourceControllerTest extends AbstractControllerTest {
     @Disabled("unknown your datasource id")
     @Test
     public void testDelete() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(delete("/datasources/2")
+        MvcResult mvcResult = mockMvc.perform(delete("/projects/" + projectCode + "/datasources/2")
                 .header("sessionId", sessionId))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))

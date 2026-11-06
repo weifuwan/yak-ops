@@ -26,4 +26,14 @@ public interface DataSourceDao extends IDao<DataSource> {
                                                  String name);
 
     List<DataSource> queryByUserId(int userId);
+
+    DataSource queryByIdAndProjectCode(int id, long projectCode);
+
+    IPage<DataSource> queryByProjectCode(Page<DataSource> page, long projectCode, String name);
+
+    List<DataSource> queryByProjectCodeAndType(long projectCode, Integer type);
+
+    boolean existsByProjectCodeAndName(long projectCode, String name, Integer excludedId);
+
+    long countByProjectCode(long projectCode);
 }

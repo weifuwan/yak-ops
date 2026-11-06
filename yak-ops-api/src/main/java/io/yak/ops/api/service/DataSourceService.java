@@ -14,15 +14,29 @@ import java.util.List;
 
 public interface DataSourceService {
 
-    /**
-     * create a new datasource
-     *
-     * @param loginUser login user
-     * @param datasourceParam datasource configuration DTO
-     * @return created {@link DataSource} entity (sensitive fields masked)
-     * @throws ServiceException if permission denied, security check fails, or connection test fails
-     */
-    DataSource createDataSource(User loginUser, BaseDataSourceParamDTO datasourceParam);
+    DataSource createDataSource(User loginUser, long projectCode, BaseDataSourceParamDTO datasourceParam);
+
+    DataSource updateDataSource(User loginUser, long projectCode, BaseDataSourceParamDTO datasourceParam);
+
+    BaseDataSourceParamDTO queryDataSource(User loginUser, long projectCode, int id);
+
+    PageInfo<DataSource> queryDataSourceListPaging(User loginUser, long projectCode,
+                                                   String searchVal, Integer pageNo, Integer pageSize);
+
+    List<DataSource> queryDataSourceList(User loginUser, long projectCode, Integer type);
+
+    void verifyDataSourceName(long projectCode, User loginUser, String name);
+
+    void connectionTest(User loginUser, long projectCode, int id);
+
+    void delete(User loginUser, long projectCode, int datasourceId);
+
+    List<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database);
+
+    List<ParamsOptions> getTableColumns(User loginUser, long projectCode, Integer id,
+                                        String database, String table);
+
+    List<ParamsOptions> getDatabases(User loginUser, long projectCode, Integer id);
 
     /**
      * update datasource

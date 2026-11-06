@@ -296,11 +296,12 @@ CREATE TABLE t_yak_ops_datasource (
   note varchar(255) DEFAULT NULL ,
   type int NOT NULL ,
   user_id int NOT NULL ,
+  project_code bigint NOT NULL ,
   connection_params text NOT NULL ,
   create_time timestamp NOT NULL ,
   update_time timestamp DEFAULT NULL ,
   PRIMARY KEY (id),
-  CONSTRAINT t_yak_ops_datasource_name_un UNIQUE (name, type)
+  CONSTRAINT uk_datasource_project_name UNIQUE (project_code, name)
 ) ;
 
 --
