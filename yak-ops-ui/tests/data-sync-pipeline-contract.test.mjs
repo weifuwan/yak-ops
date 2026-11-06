@@ -25,7 +25,6 @@ const valid = () => ({
   transform: [],
   pipeline: {
     "execution.runtime-mode": "STREAMING",
-    "pipeline.table-scope": "SINGLE",
     parallelism: 2,
   },
 });
