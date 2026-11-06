@@ -1,6 +1,8 @@
 package io.yak.ops.api.controller;
 
 import io.yak.ops.api.service.DataSourceCatalogService;
+import io.yak.ops.api.enums.Status;
+import io.yak.ops.plugin.datasource.api.utils.CommonUtils;
 import io.yak.ops.api.service.DataSourceService;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("datasources")
-public class DataSourceConnectorController {
+public class DataSourceConnectorController extends BaseController {
 
     private final DataSourceCatalogService catalogService;
     private final DataSourceService dataSourceService;
@@ -28,6 +30,11 @@ public class DataSourceConnectorController {
     public DataSourceConnectorController(DataSourceCatalogService catalogService, DataSourceService dataSourceService) {
         this.catalogService = catalogService;
         this.dataSourceService = dataSourceService;
+    }
+
+    @GetMapping("/kerberos-startup-state")
+    public Result<Object> kerberosStartupState() {
+        return success(Status.SUCCESS.getMsg(), CommonUtils.getKerberosStartupState());
     }
 
     @GetMapping("/connection-properties")

@@ -70,20 +70,6 @@ public class DataSourceController extends BaseController {
     private DataSourceCatalogService dataSourceCatalogService;
 
     /**
-     * Delegate metadata lookup to the registered datasource plugin.
-     * Plugins without a connection-property catalog return an empty array.
-     */
-    @Operation(summary = "getConnectionProperties")
-    @GetMapping(value = "/connection-properties")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiException(QUERY_DATASOURCE_ERROR)
-    public Result<List<ConnectionProperty>> getConnectionProperties(
-                                                                    @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                    @RequestParam("type") DbType type) {
-        return Result.success(dataSourceCatalogService.getConnectionProperties(type));
-    }
-
-    /**
      * create a new data source
      *
      * @param loginUser login user
@@ -208,26 +194,6 @@ public class DataSourceController extends BaseController {
     }
 
     /**
-     * test the connection to a data source
-     *
-     * @param jsonStr   datasource param
-     *                  example: {"type":"MYSQL","name":"txx","note":"","host":"localhost","port":3306,"principal":"","javaSecurityKrb5Conf":"","loginUserKeytabUsername":"","loginUserKeytabPath":"","userName":"root","password":"xxx","database":"ds","connectType":"","other":{"serverTimezone":"GMT-8"},"id":2}
-     * @return {@code true} if the connection test was successful
-     * @throws ServiceException if the connection fails or parameters are invalid
-     */
-    @Operation(summary = "connectDataSource", description = "CONNECT_DATA_SOURCE_NOTES")
-    @PostMapping(value = "/connect")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiException(CONNECT_DATASOURCE_FAILURE)
-    public Result<Boolean> connectDataSource(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "dataSourceParam") @RequestBody String jsonStr) {
-        BaseDataSourceParamDTO dataSourceParam = DataSourceUtils.buildDatasourceParam(jsonStr);
-        DataSourceUtils.checkDatasourceParam(dataSourceParam);
-        ConnectionParam connectionParams = DataSourceUtils.buildConnectionParams(dataSourceParam);
-        dataSourceService.checkConnection(dataSourceParam.getType(), connectionParams);
-        return Result.success(true);
-    }
-
-    /**
      * test the connection to an existing data source
      *
      * @param loginUser login user
@@ -292,20 +258,6 @@ public class DataSourceController extends BaseController {
             @RequestParam(value = "name") String name) {
         dataSourceService.verifyDataSourceName(projectCode, loginUser, name);
         return Result.success(true);
-    }
-
-    /**
-     * check the active status of Kerberos authentication
-     *
-     * @return {@code true} if Kerberos is active and configured for HDFS; {@code false} otherwise
-     */
-    @Operation(summary = "getKerberosStartupState", description = "GET_KERBEROS_STARTUP_STATE")
-    @GetMapping(value = "/kerberos-startup-state")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiException(KERBEROS_STARTUP_STATE)
-    public Result<Object> getKerberosStartupState() {
-        // if upload resource is HDFS and kerberos startup is true , else false
-        return success(Status.SUCCESS.getMsg(), CommonUtils.getKerberosStartupState());
     }
 
     /**
