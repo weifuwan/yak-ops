@@ -171,11 +171,4 @@ public class DataSyncController extends BaseController {
         return Result.success();
     }
 
-    @GetMapping("/instances/{id}/logs")
-    public Result<Map<String, Object>> logs(@RequestAttribute(Constants.SESSION_USER) User user,
-                                            @PathVariable long projectCode, @PathVariable int id,
-                                            @RequestParam(defaultValue = "0") int offset,
-                                            @RequestParam(defaultValue = "200") int limit) {
-        return Result.success(dataSyncService.logs(user, projectCode, id, offset, limit));
-    }
 }

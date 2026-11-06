@@ -5,7 +5,6 @@ import type {
   TaskInstanceRecord,
   TaskSubmissionResult,
   TaskInstanceDefinitionRecord,
-  TaskLogPageRecord,
 } from "@/service/task-execution/types";
 
 import { connectorChoices, type PipelineConnectorPair } from "./connectors";
@@ -263,17 +262,23 @@ export const cancelDataSyncInstance = async (id: string): Promise<void> => {
 
 export const getDataSyncInstanceLogs = async (
   id: string,
-  cursor?: string,
+  skipLineNum = 0,
   limit = 200,
-): Promise<TaskLogPageRecord> => {
-  const response = await HttpUtils.getData<{
-    content: string;
-    nextOffset: number;
-    hasMore: boolean;
-  }>((instanceUrl(id)) + "/logs?" + qp({ offset: cursor ? Number(cursor) : 0, limit }));
-  return {
-    content: response.content,
-    nextCursor: String(response.nextOffset),
-    hasMore: response.hasMore,
-  };
+): Promise<{ message: string; lineNum: number }> => {
+  try {
+    return await HttpUtils.getData<{ message: string; lineNum: number }>(
+      YAK_OPS_API_PREFIX + "/log/detail?" + qp({ taskInstanceId: id, skipLineNum, limit }),
+      { skipErrorHandler: true },
+    );
+  } catch (error) {
+    if (error instanceof BizError && error.code === 10191) {
+      return { message: "", lineNum: 0 };
+    }
+    throw error;
+  }
 };
+
+export const downloadDataSyncInstanceLogs = (id: string): Promise<Blob> =>
+  HttpUtils.download(
+    YAK_OPS_API_PREFIX + "/log/download-log?" + qp({ taskInstanceId: id }),
+  );

@@ -11,7 +11,7 @@ import {
 import { Download, Maximize2, Minimize2, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { downloadTaskInstanceLogs } from "@/service/task-execution";
+import { downloadDataSyncInstanceLogs } from "@/service/data-sync";
 
 import { TaskInstanceLogLine } from "./task-instance-log-line";
 import { useInstanceLogs } from "./use-instance-logs";
@@ -46,7 +46,7 @@ export function TaskInstanceLogPanel({ instanceId, active, embedded = false }: P
     if (downloading) return;
     setDownloading(true);
     try {
-      const file = await downloadTaskInstanceLogs(instanceId);
+      const file = await downloadDataSyncInstanceLogs(instanceId);
       const url = URL.createObjectURL(file);
       const link = document.createElement("a");
       link.href = url;
@@ -153,7 +153,7 @@ export function TaskInstanceLogPanel({ instanceId, active, embedded = false }: P
           ? logLines.map((line, index) => <TaskInstanceLogLine key={index} line={line} />)
           : error
             ? "日志加载失败"
-            : "暂无日志"}
+            : active ? "等待任务日志..." : "暂无日志"}
       </pre>
     </div>
   );

@@ -43,10 +43,6 @@ import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
-import io.yak.ops.extract.base.client.Clients;
-import io.yak.ops.extract.common.ILogService;
-import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryRequest;
-import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
@@ -386,37 +382,6 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             return;
         }
         executorService.controlWorkflowInstance(user, instance.getWorkflowInstanceId(), ExecuteType.STOP);
-    }
-
-    @Override
-    public Map<String, Object> logs(User user, long projectCode, int instanceId, int offset, int limit) {
-        TaskInstance instance = requireInstance(user, projectCode, instanceId);
-        if (instance.getHost() == null || instance.getLogPath() == null) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("content", "");
-            result.put("nextOffset", Math.max(0, offset));
-            result.put("hasMore", false);
-            return result;
-        }
-        int start = Math.max(0, offset);
-        TaskInstanceLogPageQueryResponse page = Clients.withService(ILogService.class)
-                .withHost(instance.getHost())
-                .pageQueryTaskInstanceLog(TaskInstanceLogPageQueryRequest.builder()
-                        .taskInstanceId(instanceId)
-                        .taskInstanceLogAbsolutePath(instance.getLogPath())
-                        .skipLineNum(start)
-                        .limit(Math.max(1, Math.min(limit, 500)))
-                        .build());
-        String content = page.getLogContent() == null ? "" : page.getLogContent();
-        int count = content.isEmpty() ? 0 : content.split("\\r?\\n", -1).length;
-        if (content.endsWith("\n")) {
-            count--;
-        }
-        Map<String, Object> result = new HashMap<>();
-        result.put("content", content);
-        result.put("nextOffset", start + count);
-        result.put("hasMore", count >= Math.max(1, Math.min(limit, 500)));
-        return result;
     }
 
     private void authorizeRead(User user, long projectCode) {

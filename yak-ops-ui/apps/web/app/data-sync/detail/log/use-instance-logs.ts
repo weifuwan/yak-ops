@@ -34,9 +34,10 @@ export function useInstanceLogs(instanceId: string, active: boolean) {
 
   useEffect(() => {
     let disposed = false;
-    let position: string | undefined;
+    let position = 0;
     let loading = false;
     let more = true;
+    let headerRendered = false;
 
     const load = async () => {
       if (loading || disposed) return;
@@ -47,11 +48,20 @@ export function useInstanceLogs(instanceId: string, active: boolean) {
         do {
           const page = await getDataSyncInstanceLogs(instanceId, position);
           if (disposed) return;
-          position = page.nextCursor;
-          if (page.content) {
-            setContent((previous) => trimLogContent(previous + page.content));
+          let message = page.message;
+          if (position === 0 && message.startsWith("[LOG-PATH]: ")) {
+            if (headerRendered) {
+              message = message.replace(/^[^\n]*\n/, "");
+            } else {
+              headerRendered = true;
+            }
           }
-          hasMore = page.hasMore;
+          if (message) {
+            setContent((previous) => trimLogContent(previous + message));
+          }
+          position += page.lineNum;
+          // The log transport can cap response bytes before reaching the requested line limit.
+          hasMore = page.lineNum > 0;
           pages += 1;
         } while (hasMore && pages < 5);
         more = hasMore;

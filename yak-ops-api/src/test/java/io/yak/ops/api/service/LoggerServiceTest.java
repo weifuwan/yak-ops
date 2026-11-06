@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.yak.ops.api.AssertionsHelper;
 import io.yak.ops.api.enums.Status;
@@ -20,6 +21,7 @@ import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.UserType;
 import io.yak.ops.dao.entity.Project;
+import io.yak.ops.dao.entity.ResponseTaskLog;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.User;
@@ -177,6 +179,7 @@ public class LoggerServiceTest {
         loginUser.setId(-1);
         loginUser.setUserType(UserType.GENERAL_USER);
         TaskInstance taskInstance = new TaskInstance();
+        taskInstance.setProjectCode(projectCode);
         when(taskInstanceDao.queryById(1)).thenReturn(taskInstance);
         when(taskInstanceDao.queryById(10)).thenReturn(null);
 
@@ -202,6 +205,10 @@ public class LoggerServiceTest {
                 () -> loggerService.queryLog(loginUser, projectCode, 1, 1, 1));
 
         taskDefinition.setProjectCode(1);
+        taskInstance.setProjectCode(2L);
+        assertThrowsServiceException(Status.TASK_INSTANCE_NOT_FOUND,
+                () -> loggerService.queryLog(loginUser, projectCode, 1, 1, 1));
+        taskInstance.setProjectCode(projectCode);
         taskInstance.setId(10);
         when(taskInstanceDao.queryById(10)).thenReturn(taskInstance);
 
@@ -229,6 +236,7 @@ public class LoggerServiceTest {
         Map<String, Object> result = new HashMap<>();
         putMsg(result, Status.SUCCESS, projectCode);
         TaskInstance taskInstance = new TaskInstance();
+        taskInstance.setProjectCode(projectCode);
         TaskDefinition taskDefinition = new TaskDefinition();
         taskDefinition.setProjectCode(projectCode);
         taskDefinition.setCode(1L);
@@ -253,11 +261,53 @@ public class LoggerServiceTest {
                 () -> loggerService.getLogBytes(loginUser, projectCode, 1));
 
         taskDefinition.setProjectCode(1L);
+        taskInstance.setProjectCode(2L);
+        assertThrowsServiceException(Status.INTERNAL_SERVER_ERROR_ARGS,
+                () -> loggerService.getLogBytes(loginUser, projectCode, 1));
+        taskInstance.setProjectCode(projectCode);
         taskInstance.setId(100);
         when(taskInstanceDao.queryById(100)).thenReturn(taskInstance);
         doThrow(new ServiceException("download error")).when(logClientDelegate).getWholeLogBytes(any());
         assertThrowsServiceException(Status.DOWNLOAD_TASK_INSTANCE_LOG_FILE_ERROR,
                 () -> loggerService.getLogBytes(loginUser, projectCode, 100));
+    }
+
+    @Test
+    public void testLogPageCountsOnlyFileLines() {
+        User user = new User();
+        TaskInstance instance = new TaskInstance();
+        instance.setId(42);
+        instance.setProjectCode(100L);
+        instance.setHost("127.0.0.1:18080");
+        instance.setLogPath("/tmp/task.log");
+        when(taskInstanceDao.queryById(42)).thenReturn(instance);
+        when(logClientDelegate.getPartLogString(instance, 0, 200)).thenReturn("first\r\nsecond\r\n");
+        when(logClientDelegate.getPartLogString(instance, 2, 200)).thenReturn("third\r\n");
+        when(logClientDelegate.getPartLogString(instance, 3, 200)).thenReturn("");
+
+        Result<ResponseTaskLog> first = loggerService.queryLog(user, 42, 0, 200);
+        assertEquals(2, first.getData().getLineNum());
+        Assertions.assertTrue(first.getData().getMessage().startsWith("[LOG-PATH]: "));
+        Result<ResponseTaskLog> next = loggerService.queryLog(user, 42, 2, 200);
+        assertEquals(1, next.getData().getLineNum());
+        assertEquals("third\r\n", next.getData().getMessage());
+        Result<ResponseTaskLog> empty = loggerService.queryLog(user, 42, 3, 200);
+        assertEquals(0, empty.getData().getLineNum());
+        assertEquals("", empty.getData().getMessage());
+    }
+
+    @Test
+    public void testQueryLogChecksPermissionBeforeReportingMissingHost() {
+        User user = new User();
+        TaskInstance instance = new TaskInstance();
+        instance.setProjectCode(100L);
+        when(taskInstanceDao.queryById(42)).thenReturn(instance);
+        doThrow(new ServiceException(Status.USER_NO_OPERATION_PERM)).when(projectService)
+                .checkProjectAndAuthThrowException(user, 100L, VIEW_LOG);
+
+        assertThrowsServiceException(Status.USER_NO_OPERATION_PERM,
+                () -> loggerService.queryLog(user, 42, 0, 200));
+        verifyNoInteractions(logClientDelegate);
     }
 
     /**

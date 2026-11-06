@@ -11,7 +11,6 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import java.util.List;
-import java.util.Map;
 
 public interface DataSyncService {
 
@@ -48,6 +47,4 @@ public interface DataSyncService {
     DataSyncDefinitionVO getInstanceDefinition(User user, long projectCode, int instanceId);
 
     void stop(User user, long projectCode, int instanceId);
-
-    Map<String, Object> logs(User user, long projectCode, int instanceId, int offset, int limit);
 }
