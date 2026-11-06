@@ -135,6 +135,7 @@ public class DataSyncServiceImpl implements DataSyncService {
         authorizeWrite(user, projectCode);
         TaskDefinition original = requireTask(projectCode, taskCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
+        workflowDefinitionDao.lockByCode(workflow.getCode());
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new IllegalStateException("Unpublish the data synchronization task before editing");
         }
@@ -160,28 +161,34 @@ public class DataSyncServiceImpl implements DataSyncService {
     }
 
     @Override
+    @Transactional
     public DataSyncTaskVO publish(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
+        workflowDefinitionDao.lockByCode(workflow.getCode());
         workflowDefinitionService.onlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
     }
 
     @Override
+    @Transactional
     public DataSyncTaskVO unpublish(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
+        workflowDefinitionDao.lockByCode(workflow.getCode());
         ensureStopped(workflow.getCode());
         workflowDefinitionService.offlineWorkflowDefinition(user, projectCode, workflow.getCode());
         return getTask(user, projectCode, taskCode);
     }
 
     @Override
+    @Transactional
     public void deleteTask(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
+        workflowDefinitionDao.lockByCode(workflow.getCode());
         ensureStopped(workflow.getCode());
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new IllegalStateException("Unpublish the task before deletion");
@@ -222,11 +229,13 @@ public class DataSyncServiceImpl implements DataSyncService {
     }
 
     @Override
+    @Transactional
     public DataSyncRunVO start(User user, long projectCode, long taskCode) {
         authorizeWrite(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode);
         validate(definition.getName(), JSONUtils.parseObject(definition.getTaskParams()), projectCode);
         WorkflowDefinition workflow = requireWorkflow(projectCode, taskCode);
+        workflowDefinitionDao.lockByCode(workflow.getCode());
         if (workflow.getReleaseState() != ReleaseState.ONLINE) {
             throw new IllegalStateException("Publish the data synchronization task before starting");
         }

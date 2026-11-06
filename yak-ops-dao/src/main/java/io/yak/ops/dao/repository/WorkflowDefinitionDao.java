@@ -29,6 +29,8 @@ public interface WorkflowDefinitionDao extends IDao<WorkflowDefinition> {
 
     Optional<WorkflowDefinition> queryByCode(long code);
 
+    void lockByCode(long code);
+
     void deleteByWorkflowDefinitionCode(long workflowDefinitionCode);
 
     List<WorkflowDefinition> queryByCodes(Collection<Long> workflowDefinitionCodes);

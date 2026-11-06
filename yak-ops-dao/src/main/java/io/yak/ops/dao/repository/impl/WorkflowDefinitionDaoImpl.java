@@ -54,6 +54,13 @@ public class WorkflowDefinitionDaoImpl extends BaseDao<WorkflowDefinition, Workf
     }
 
     @Override
+    public void lockByCode(long code) {
+        if (mybatisMapper.lockByCode(code) == null) {
+            throw new IllegalArgumentException("Workflow definition not found: " + code);
+        }
+    }
+
+    @Override
     public void deleteByWorkflowDefinitionCode(long workflowDefinitionCode) {
         mybatisMapper.deleteByCode(workflowDefinitionCode);
     }

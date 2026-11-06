@@ -6,6 +6,7 @@ import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,6 +23,9 @@ public interface WorkflowDefinitionMapper extends BaseMapper<WorkflowDefinition>
      * @return workflow definition
      */
     WorkflowDefinition queryByCode(@Param("code") long code);
+
+    @Select("SELECT id FROM t_yak_ops_workflow_definition WHERE code = #{code} FOR UPDATE")
+    Integer lockByCode(@Param("code") long code);
 
     /**
      * update
