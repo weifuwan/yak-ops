@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -61,6 +63,13 @@ public class TaskDefinitionLogDaoImpl extends BaseDao<TaskDefinitionLog, TaskDef
             return Collections.emptyList();
         }
         return mybatisMapper.queryByTaskDefinitions(taskDefinitionSet);
+    }
+
+    @Override
+    public List<TaskDefinitionLog> queryVersions(long taskCode) {
+        return mybatisMapper.selectList(new QueryWrapper<TaskDefinitionLog>().lambda()
+                .eq(TaskDefinitionLog::getCode, taskCode)
+                .orderByDesc(TaskDefinitionLog::getVersion));
     }
 
     @Override

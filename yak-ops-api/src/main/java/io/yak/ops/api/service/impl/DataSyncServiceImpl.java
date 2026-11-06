@@ -12,6 +12,7 @@ import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
+import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.FailureStrategy;
@@ -36,6 +37,7 @@ import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.model.WorkflowInstanceSummaryDto;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
+import io.yak.ops.dao.repository.TaskDefinitionLogDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
@@ -71,6 +73,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     private final ProjectService projectService;
     private final DataSourceDao dataSourceDao;
     private final TaskDefinitionDao taskDefinitionDao;
+    private final TaskDefinitionLogDao taskDefinitionLogDao;
     private final TaskInstanceDao taskInstanceDao;
     private final WorkflowDefinitionDao workflowDefinitionDao;
     private final WorkflowInstanceDao workflowInstanceDao;
@@ -178,6 +181,38 @@ public class DataSyncServiceImpl implements DataSyncService {
             throw new IllegalStateException("Unpublish the task before deletion");
         }
         workflowDefinitionService.deleteWorkflowDefinitionByCode(user, workflow.getCode());
+    }
+
+    @Override
+    public DataSyncPageVO<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
+                                                                int pageNo, int pageSize) {
+        authorize(user, projectCode);
+        requireTask(projectCode, taskCode);
+        List<DataSyncTaskVersionVO> versions = taskDefinitionLogDao.queryVersions(taskCode)
+                .stream().map(DataSyncServiceImpl::toTaskVersionVO).collect(Collectors.toList());
+        return DataSyncPageVO.of(versions, pageNo, pageSize);
+    }
+
+    @Override
+    public DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version) {
+        authorize(user, projectCode);
+        requireTask(projectCode, taskCode);
+        TaskDefinition historical = taskDefinitionDao.findTaskDefinition(taskCode, version);
+        if (historical == null) {
+            throw new IllegalArgumentException("Task version not found");
+        }
+        return toTaskVersionVO(historical);
+    }
+
+    private static DataSyncTaskVersionVO toTaskVersionVO(TaskDefinition definition) {
+        return DataSyncTaskVersionVO.builder()
+                .definitionId(String.valueOf(definition.getCode()))
+                .version(definition.getVersion())
+                .parameterSchemaVersion(PARAMETER_SCHEMA_VERSION)
+                .createBy(String.valueOf(definition.getUserId()))
+                .createTime(definition.getCreateTime())
+                .parameters(visibleParameters(JSONUtils.parseObject(definition.getTaskParams())))
+                .build();
     }
 
     @Override

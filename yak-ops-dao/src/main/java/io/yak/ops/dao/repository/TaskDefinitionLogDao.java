@@ -14,4 +14,6 @@ public interface TaskDefinitionLogDao extends IDao<TaskDefinitionLog> {
     List<TaskDefinitionLog> queryTaskDefineLogList(List<WorkflowTaskRelation> workflowTaskRelations);
 
     void deleteByTaskDefinitionCodes(Set<Long> taskDefinitionCodes);
+
+    List<TaskDefinitionLog> queryVersions(long taskCode);
 }

@@ -9,6 +9,7 @@ import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
+import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.User;
 
@@ -82,6 +83,36 @@ public class DataSyncController extends BaseController {
                                    @PathVariable long projectCode, @PathVariable long taskCode) {
         dataSyncService.deleteTask(user, projectCode, taskCode);
         return Result.success();
+    }
+
+    @GetMapping("/tasks/{taskCode}/versions")
+    public Result<DataSyncPageVO<DataSyncTaskVersionVO>> versions(
+            @RequestAttribute(Constants.SESSION_USER) User user,
+            @PathVariable long projectCode, @PathVariable long taskCode,
+            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        checkPageParams(pageNo, pageSize);
+        return Result.success(dataSyncService.listVersions(user, projectCode, taskCode, pageNo, pageSize));
+    }
+
+    @GetMapping("/tasks/{taskCode}/versions/{version}")
+    public Result<DataSyncTaskVersionVO> version(
+            @RequestAttribute(Constants.SESSION_USER) User user, @PathVariable long projectCode,
+            @PathVariable long taskCode, @PathVariable int version) {
+        return Result.success(dataSyncService.getVersion(user, projectCode, taskCode, version));
+    }
+
+    @GetMapping("/tasks/{taskCode}/publications")
+    public Result<DataSyncPageVO<Object>> publications(
+            @RequestAttribute(Constants.SESSION_USER) User user,
+            @PathVariable long projectCode, @PathVariable long taskCode,
+            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        checkPageParams(pageNo, pageSize);
+        dataSyncService.getTask(user, projectCode, taskCode);
+        // Publishing currently changes the existing Workflow release state.
+        // It does not create a durable publication history record.
+        return Result.success(DataSyncPageVO.of(java.util.Collections.emptyList(), pageNo, pageSize));
     }
 
     @PostMapping("/tasks/{taskCode}/start")

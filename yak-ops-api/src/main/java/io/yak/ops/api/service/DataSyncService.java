@@ -7,6 +7,7 @@ import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
+import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.dao.entity.User;
 import java.util.List;
 
@@ -26,6 +27,11 @@ public interface DataSyncService {
     DataSyncTaskVO unpublish(User user, long projectCode, long taskCode);
 
     void deleteTask(User user, long projectCode, long taskCode);
+
+    DataSyncPageVO<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
+                                                       int pageNo, int pageSize);
+
+    DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version);
 
     DataSyncRunVO start(User user, long projectCode, long taskCode);
 
