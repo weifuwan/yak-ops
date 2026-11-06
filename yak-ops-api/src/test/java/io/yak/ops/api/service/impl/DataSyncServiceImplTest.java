@@ -272,12 +272,11 @@ class DataSyncServiceImplTest {
 
         assertEquals(42, service.start(new User(), PROJECT_CODE, 99L));
 
-        verify(executorService).triggerWorkflowDefinition(argThat(request ->
-                request.getProjectCode() == PROJECT_CODE
-                        && request.getWorkflowDefinitionCode() == 101L
-                        && request.getExecType() == CommandType.START_PROCESS
-                        && request.getWorkerGroup().equals("default")
-                        && request.getTenantCode().equals("default")));
+        verify(executorService).triggerWorkflowDefinition(argThat(request -> request.getProjectCode() == PROJECT_CODE
+                && request.getWorkflowDefinitionCode() == 101L
+                && request.getExecType() == CommandType.START_PROCESS
+                && request.getWorkerGroup().equals("default")
+                && request.getTenantCode().equals("default")));
     }
 
     @Test
