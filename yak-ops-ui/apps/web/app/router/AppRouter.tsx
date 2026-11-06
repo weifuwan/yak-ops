@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 import { DataSourcePage } from "@/app/datasource/list/page";
 import LoginPage from "@/app/login";
 import { UserManagementPage } from "@/app/management/users/page";
+import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
 import { DataSyncPage } from "@/app/data-sync/list/page";
 import { DataSyncTaskEditorPage } from "@/app/data-sync/editor/page";
 import { DataSyncTaskDetailPage } from "@/app/data-sync/detail";
@@ -151,7 +152,7 @@ export default function AppRouter() {
         >
           <Route path="/management" element={<Navigate replace to="/management/users" />} />
           <Route path="/management/users" element={<UserManagementPage />} />
-          <Route path="/management/workspaces" element={<Navigate replace to="/management/users" />} />
+          <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
         </Route>
 
         <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
