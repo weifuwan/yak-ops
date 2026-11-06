@@ -50,7 +50,6 @@ export interface TaskInstanceDefinitionRecord {
   version: number;
   name: string;
   taskType: string;
-  parameterSchemaVersion: number;
   parameters: Record<string, unknown>;
 }
 
