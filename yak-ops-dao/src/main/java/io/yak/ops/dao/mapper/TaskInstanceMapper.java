@@ -77,6 +77,13 @@ public interface TaskInstanceMapper extends BaseMapper<TaskInstance> {
                                                                                          @Param("projectIds") Set<Integer> projectIds,
                                                                                          @Param("states") List<TaskExecutionStatus> states);
 
+    IPage<TaskInstance> queryByProjectAndTaskType(
+            IPage<TaskInstance> page,
+            @Param("projectCode") long projectCode,
+            @Param("taskType") String taskType,
+            @Param("taskCode") Long taskCode,
+            @Param("states") int[] states);
+
     IPage<TaskInstance> queryTaskInstanceListPaging(IPage<TaskInstance> page,
                                                     @Param("projectCode") Long projectCode,
                                                     @Param("workflowInstanceId") Integer workflowInstanceId,

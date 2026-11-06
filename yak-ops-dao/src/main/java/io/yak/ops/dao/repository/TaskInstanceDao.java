@@ -98,6 +98,9 @@ public interface TaskInstanceDao extends IDao<TaskInstance> {
     List<TaskInstance> queryByWorkflowInstanceIdsAndTaskCodes(List<Integer> workflowInstanceIds,
                                                               List<Long> taskCodes);
 
+    IPage<TaskInstance> queryByProjectAndTaskType(IPage<TaskInstance> page, long projectCode,
+                                                      String taskType, Long taskCode, int[] states);
+
     IPage<TaskInstance> queryTaskInstanceListPaging(IPage<TaskInstance> page,
                                                     Long projectCode,
                                                     Integer workflowInstanceId,

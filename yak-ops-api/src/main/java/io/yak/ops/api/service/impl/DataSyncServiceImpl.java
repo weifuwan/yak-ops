@@ -48,6 +48,7 @@ import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryRequest;
 import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
@@ -58,6 +59,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -248,31 +252,41 @@ public class DataSyncServiceImpl implements DataSyncService {
     public DataSyncPageVO<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
                                                             int pageSize, Long taskCode, String status) {
         authorize(user, projectCode);
-        List<DataSyncInstanceVO> list = new ArrayList<>();
-        List<TaskDefinition> definitions = taskCode == null
-                ? taskDefinitionDao.queryByProjectAndType(projectCode, TASK_TYPE)
-                : Collections.singletonList(requireTask(projectCode, taskCode));
-        for (TaskDefinition definition : definitions) {
-            WorkflowDefinition workflow = findWorkflow(projectCode, definition.getCode());
-            if (workflow == null) {
-                continue;
-            }
-            for (WorkflowInstanceSummaryDto run : workflowInstanceDao.queryByWorkflowDefinitionCode(workflow.getCode(),
-                    100)) {
-                for (TaskInstance instance : taskInstanceDao.queryByWorkflowInstanceId(run.getId())) {
-                    if (!TASK_TYPE.equals(instance.getTaskType())) {
-                        continue;
-                    }
-                    DataSyncInstanceVO row = toInstanceVO(instance);
-                    if (status == null || status.equals(row.getStatus())) {
-                        list.add(row);
-                    }
-                }
-            }
+        if (taskCode != null) {
+            requireTask(projectCode, taskCode);
         }
-        list.sort(
-                Comparator.comparing(DataSyncInstanceVO::getId, Comparator.comparingLong(Long::parseLong)).reversed());
-        return DataSyncPageVO.of(list, pageNo, pageSize);
+        IPage<TaskInstance> instances = taskInstanceDao.queryByProjectAndTaskType(
+                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, taskCode, taskStates(status));
+        List<DataSyncInstanceVO> rows = instances.getRecords().stream()
+                .map(DataSyncServiceImpl::toInstanceVO)
+                .collect(Collectors.toList());
+        return DataSyncPageVO.page(rows, pageNo, pageSize, instances.getTotal());
+    }
+
+    private static int[] taskStates(String status) {
+        if (status == null || status.isEmpty()) {
+            return null;
+        }
+        switch (status) {
+            case "SUBMITTED":
+                return new int[]{TaskExecutionStatus.SUBMITTED_SUCCESS.getCode()};
+            case "LAUNCHING":
+                return new int[]{TaskExecutionStatus.DISPATCH.getCode()};
+            case "RUNNING":
+                return new int[]{TaskExecutionStatus.RUNNING_EXECUTION.getCode()};
+            case "FINISHED":
+                return new int[]{TaskExecutionStatus.SUCCESS.getCode(), TaskExecutionStatus.FORCED_SUCCESS.getCode()};
+            case "FAILED":
+                return new int[]{TaskExecutionStatus.FAILURE.getCode()};
+            case "CANCELED":
+                return new int[]{TaskExecutionStatus.KILL.getCode()};
+            case "RECONCILING":
+                return new int[]{TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()};
+            case "CANCELLING":
+                return new int[]{-1};
+            default:
+                throw new IllegalArgumentException("Unsupported task instance status: " + status);
+        }
     }
 
     @Override

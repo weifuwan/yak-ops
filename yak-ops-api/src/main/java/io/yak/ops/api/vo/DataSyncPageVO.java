@@ -20,6 +20,11 @@ public class DataSyncPageVO<T> {
                 new Pagination(pageNo, pageSize, total, (total + pageSize - 1) / pageSize));
     }
 
+    public static <T> DataSyncPageVO<T> page(List<T> rows, int pageNo, int pageSize, long total) {
+        return new DataSyncPageVO<>(rows,
+                new Pagination(pageNo, pageSize, (int) total, (int) ((total + pageSize - 1) / pageSize)));
+    }
+
     @Data
     @AllArgsConstructor
     public static class Pagination {

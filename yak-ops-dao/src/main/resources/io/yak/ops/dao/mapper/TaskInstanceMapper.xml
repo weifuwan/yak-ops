@@ -146,6 +146,23 @@
         </if>
     </select>
 
+    <select id="queryByProjectAndTaskType" resultType="io.yak.ops.dao.entity.TaskInstance">
+        select
+        <include refid="listSql"/>
+        from t_yak_ops_task_instance
+        where project_code = #{projectCode}
+          and task_type = #{taskType}
+        <if test="taskCode != null">
+            and task_code = #{taskCode}
+        </if>
+        <if test="states != null and states.length != 0">
+            and state in
+            <foreach collection="states" item="state" open="(" separator="," close=")">
+                #{state}
+            </foreach>
+        </if>
+        order by id desc
+    </select>
     <select id="queryTaskInstanceListPaging" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="listSql"/>
