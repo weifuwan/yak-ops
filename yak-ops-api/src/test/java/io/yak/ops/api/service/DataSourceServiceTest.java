@@ -138,7 +138,8 @@ public class DataSourceServiceTest {
             postgreSqlDatasourceParam.setNote(dataSourceDesc);
 
             // SUCCESS
-            assertDoesNotThrow(() -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
+            assertDoesNotThrow(
+                    () -> dataSourceService.createDataSource(loginUser, PROJECT_CODE, postgreSqlDatasourceParam));
             Mockito.verify(dataSourceDao).insert(Mockito.argThat(source -> source.getProjectCode() == PROJECT_CODE));
 
             // Duplicated Key Exception
