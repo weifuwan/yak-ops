@@ -35,6 +35,7 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskDefinitionLogDao;
@@ -431,7 +432,7 @@ class DataSyncServiceImplTest {
 
     @Test
     void taskPagePreservesBackendPaginationFields() {
-        Page<TaskDefinition> page = new Page<>(2, 20);
+        Page<DataSyncTaskPageRow> page = new Page<>(2, 20);
         page.setTotal(45);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 isNull(), isNull(), isNull())).thenReturn(page);
@@ -444,6 +445,30 @@ class DataSyncServiceImplTest {
         assertEquals(3, result.getTotalPage());
         assertTrue(result.getTotalList().isEmpty());
         verifyNoInteractions(workflowTaskRelationDao);
+    }
+
+    @Test
+    void taskPageUsesWorkflowMetadataFromSingleQuery() {
+        DataSyncTaskPageRow row = new DataSyncTaskPageRow();
+        row.setCode(99L);
+        row.setName("orders");
+        row.setVersion(4);
+        row.setFlag(Flag.YES);
+        row.setTaskParams(JSONUtils.toJsonString(validParameters()));
+        row.setWorkflowCode(101L);
+        row.setWorkflowReleaseState(ReleaseState.ONLINE.getCode());
+        Page<DataSyncTaskPageRow> page = new Page<>(1, 20);
+        page.setRecords(Collections.singletonList(row));
+        page.setTotal(1);
+        when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), isNull())).thenReturn(page);
+
+        DataSyncTaskVO task = service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null)
+                .getTotalList().get(0);
+
+        assertEquals("101", task.getWorkflowCode());
+        assertEquals(ReleaseState.ONLINE, task.getStatus());
+        verifyNoInteractions(workflowDefinitionDao, workflowTaskRelationDao);
     }
 
     @Test

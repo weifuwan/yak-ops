@@ -357,6 +357,7 @@ export interface DataSyncTaskRecord {
   transforms: DataSyncTransform[];
   pipelineOptions: DataSyncPipelineOptions;
   id: string;
+  workflowCode: string;
   /** Persisted definition can be displayed, but fails current static execution validation. */
   configurationError?: string;
   sourceRead?: DataSyncTableRead;

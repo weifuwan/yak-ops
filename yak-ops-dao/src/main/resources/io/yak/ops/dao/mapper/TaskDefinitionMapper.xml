@@ -137,26 +137,22 @@
     </select>
 
 
-    <select id="queryDataSyncPage" resultType="io.yak.ops.dao.entity.TaskDefinition">
-        select t.*
+    <select id="queryDataSyncPage" resultType="io.yak.ops.dao.model.DataSyncTaskPageRow">
+        select t.*, w.code as workflow_code, w.release_state as workflow_release_state
         from t_yak_ops_task_definition t
+        join t_yak_ops_workflow_task_relation r
+          on r.post_task_code = t.code and r.pre_task_code = 0 and r.project_code = t.project_code
+        join t_yak_ops_workflow_definition w
+          on w.code = r.workflow_definition_code and w.project_code = t.project_code
+          and w.flag = 1 and w.name = concat('data_sync_', t.code)
+          and (select count(*) from t_yak_ops_workflow_task_relation related
+               where related.workflow_definition_code = w.code) = 1
         where t.project_code = #{projectCode}
           and t.task_type = #{taskType}
           and t.flag = 1
-          and exists (
-              select 1 from t_yak_ops_workflow_task_relation r
-              join t_yak_ops_workflow_definition w
-                on w.code = r.workflow_definition_code and w.project_code = t.project_code
-              where r.project_code = t.project_code
-                and w.flag = 1
-                and w.name = concat('data_sync_', t.code)
-                and r.pre_task_code = 0 and r.post_task_code = t.code
-                and (select count(*) from t_yak_ops_workflow_task_relation related
-                     where related.workflow_definition_code = w.code) = 1
-                <if test="releaseState != null">
-                    and w.release_state = #{releaseState}
-                </if>
-          )
+        <if test="releaseState != null">
+            and w.release_state = #{releaseState}
+        </if>
         <if test="keyword != null and keyword != ''">
             and (lower(t.name) like concat('%', lower(#{keyword}), '%')
             <if test="taskCode != null">

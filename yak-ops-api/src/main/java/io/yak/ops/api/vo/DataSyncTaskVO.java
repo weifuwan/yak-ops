@@ -14,6 +14,7 @@ import lombok.Data;
 public class DataSyncTaskVO {
 
     private String id;
+    private String workflowCode;
     private String name;
     private String taskType;
     private ReleaseState status;

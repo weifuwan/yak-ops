@@ -1,6 +1,7 @@
 package io.yak.ops.dao.repository;
 
 import io.yak.ops.dao.entity.TaskDefinition;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
@@ -44,7 +45,7 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      */
     TaskDefinition queryByCode(long taskCode);
 
-    IPage<TaskDefinition> queryDataSyncPage(IPage<TaskDefinition> page, long projectCode,
+    IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                              String taskType, String keyword, Long taskCode,
                                              Integer releaseState);
 

@@ -36,6 +36,7 @@ import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskDefinitionLogDao;
@@ -98,45 +99,12 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
             }
         }
         Integer releaseState = status == null ? null : status.getCode();
-        IPage<TaskDefinition> page = taskDefinitionDao.queryDataSyncPage(
+        IPage<DataSyncTaskPageRow> page = taskDefinitionDao.queryDataSyncPage(
                 new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState);
-        List<DataSyncTaskVO> rows = new ArrayList<>();
-        if (!page.getRecords().isEmpty()) {
-            Long[] taskCodes = page.getRecords().stream()
-                    .map(TaskDefinition::getCode).toArray(Long[]::new);
-            List<WorkflowTaskRelation> relations = workflowTaskRelationDao.queryByTaskCodes(taskCodes).stream()
-                    .filter(relation -> relation.getProjectCode() == projectCode
-                            && relation.getPreTaskCode() == 0)
-                    .collect(Collectors.toList());
-            Set<Long> workflowCodes = relations.stream()
-                    .map(WorkflowTaskRelation::getWorkflowDefinitionCode)
-                    .collect(Collectors.toSet());
-            Map<Long, WorkflowDefinition> workflows = workflowCodes.isEmpty()
-                    ? Collections.emptyMap()
-                    : workflowDefinitionDao.queryByCodes(workflowCodes).stream()
-                            .filter(workflow -> workflow.getProjectCode() == projectCode)
-                            .collect(Collectors.toMap(WorkflowDefinition::getCode, workflow -> workflow));
-            Map<Long, WorkflowDefinition> workflowsByTask = new HashMap<>();
-            for (WorkflowTaskRelation relation : relations) {
-                WorkflowDefinition workflow = workflows.get(relation.getWorkflowDefinitionCode());
-                if (workflow != null && workflow.getFlag() != Flag.NO
-                        && ("data_sync_" + relation.getPostTaskCode()).equals(workflow.getName())
-                        && (releaseState == null || workflow.getReleaseState().getCode() == releaseState)) {
-                    WorkflowDefinition existing = workflowsByTask.putIfAbsent(relation.getPostTaskCode(), workflow);
-                    if (existing != null && existing.getCode() != workflow.getCode()) {
-                        throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST,
-                                relation.getPostTaskCode());
-                    }
-                }
-            }
-            for (TaskDefinition definition : page.getRecords()) {
-                WorkflowDefinition workflow = workflowsByTask.get(definition.getCode());
-                if (workflow == null) {
-                    throw new ServiceException(Status.WORKFLOW_TASK_RELATION_NOT_EXIST, definition.getCode());
-                }
-                rows.add(toTaskVO(definition, workflow));
-            }
-        }
+        List<DataSyncTaskVO> rows = page.getRecords().stream()
+                .map(row -> toTaskVO(row, ReleaseState.getEnum(row.getWorkflowReleaseState()),
+                        row.getWorkflowCode(), false))
+                .collect(Collectors.toList());
         PageInfo<DataSyncTaskVO> result = PageInfo.of(pageNo, pageSize);
         result.setTotalList(rows);
         result.setTotal((int) page.getTotal());
@@ -454,13 +422,20 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     private static DataSyncTaskVO toTaskVO(TaskDefinition task, WorkflowDefinition workflow) {
-        boolean published = workflow.getReleaseState() == ReleaseState.ONLINE;
+        return toTaskVO(task, workflow.getReleaseState(), workflow.getCode(),
+                task.getFlag() == Flag.NO || workflow.getFlag() == Flag.NO);
+    }
+
+    private static DataSyncTaskVO toTaskVO(TaskDefinition task, ReleaseState status, long workflowCode,
+                                           boolean archived) {
+        boolean published = status == ReleaseState.ONLINE;
         return DataSyncTaskVO.builder()
                 .id(String.valueOf(task.getCode()))
                 .name(task.getName())
                 .taskType(TASK_TYPE)
-                .status(workflow.getReleaseState())
-                .archived(task.getFlag() == Flag.NO || workflow.getFlag() == Flag.NO)
+                .status(status)
+                .workflowCode(String.valueOf(workflowCode))
+                .archived(archived)
                 .definitionVersion(task.getVersion())
                 .revision(task.getVersion())
                 .publishedVersion(published ? task.getVersion() : null)

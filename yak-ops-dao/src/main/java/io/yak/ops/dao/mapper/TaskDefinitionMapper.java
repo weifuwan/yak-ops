@@ -3,6 +3,7 @@ package io.yak.ops.dao.mapper;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskMainInfo;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
 import org.apache.ibatis.annotations.Param;
@@ -44,7 +45,7 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
                                @Param("expectedRevision") int expectedRevision,
                                @Param("nextRevision") int nextRevision);
 
-    IPage<TaskDefinition> queryDataSyncPage(IPage<TaskDefinition> page,
+    IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page,
                                             @Param("projectCode") long projectCode,
                                             @Param("taskType") String taskType,
                                             @Param("keyword") String keyword,
