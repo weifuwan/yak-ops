@@ -388,7 +388,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         }
         return new DataSyncDefinitionVO(String.valueOf(definition.getCode()), definition.getVersion(),
                 definition.getName(), definition.getTaskType(), PARAMETER_SCHEMA_VERSION,
-                visibleParameters(JSONUtils.parseObject(definition.getTaskParams())));
+                JSONUtils.parseObject(definition.getTaskParams()));
     }
 
     @Override
