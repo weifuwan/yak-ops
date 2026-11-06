@@ -505,9 +505,6 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   sourceProducesChangelog: boolean;
   transforms?: DataSyncTransform[];
   pipelineOptions?: DataSyncPipelineOptions;
-  sourcePipelineOptions?: Record<string, unknown>;
-  sinkPipelineOptions?: Record<string, unknown>;
-  routeDescription?: string;
   sourceRead?: DataSyncTableRead;
   sourceOptions?: DataSyncSourceOptions;
   sourcePipelineOptions?: Record<string, unknown>;
