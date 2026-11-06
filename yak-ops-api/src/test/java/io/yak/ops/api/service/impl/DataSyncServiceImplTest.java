@@ -208,10 +208,12 @@ class DataSyncServiceImplTest {
         instance.setTaskCode(99L);
         instance.setTaskType("DATA_SYNC");
         instance.setTaskDefinitionVersion(1);
+        instance.setName("order_sync");
         instance.setState(TaskExecutionStatus.RUNNING_EXECUTION);
         when(taskInstanceDao.queryById(42)).thenReturn(instance);
 
         assertEquals("42", service.getInstance(new User(), PROJECT_CODE, 42).getId());
+        assertEquals("order_sync", service.getInstance(new User(), PROJECT_CODE, 42).getTaskName());
 
         verifyNoInteractions(workflowTaskRelationDao, workflowDefinitionDao);
     }
