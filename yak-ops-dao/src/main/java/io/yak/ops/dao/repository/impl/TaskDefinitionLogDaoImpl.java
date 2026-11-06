@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import lombok.NonNull;
@@ -70,6 +73,12 @@ public class TaskDefinitionLogDaoImpl extends BaseDao<TaskDefinitionLog, TaskDef
         return mybatisMapper.selectList(new QueryWrapper<TaskDefinitionLog>().lambda()
                 .eq(TaskDefinitionLog::getCode, taskCode)
                 .orderByDesc(TaskDefinitionLog::getVersion));
+    }
+
+    @Override
+    public IPage<TaskDefinitionLog> queryVersionsPaging(Page<TaskDefinitionLog> page,
+                                                        long taskCode, long projectCode) {
+        return mybatisMapper.queryTaskDefinitionVersionsPaging(page, taskCode, projectCode);
     }
 
     @Override

@@ -51,6 +51,7 @@ import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -105,9 +106,34 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         IPage<TaskDefinition> page = taskDefinitionDao.queryDataSyncPage(
                 new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState);
         List<DataSyncTaskVO> rows = new ArrayList<>();
-        for (TaskDefinition definition : page.getRecords()) {
-            WorkflowDefinition workflow = findWorkflow(projectCode, definition.getCode());
-            if (workflow != null) {
+        if (!page.getRecords().isEmpty()) {
+            Long[] taskCodes = page.getRecords().stream()
+                    .map(TaskDefinition::getCode).toArray(Long[]::new);
+            List<WorkflowTaskRelation> relations = workflowTaskRelationDao.queryByTaskCodes(taskCodes).stream()
+                    .filter(relation -> relation.getProjectCode() == projectCode
+                            && relation.getPreTaskCode() == 0)
+                    .collect(Collectors.toList());
+            Set<Long> workflowCodes = relations.stream()
+                    .map(WorkflowTaskRelation::getWorkflowDefinitionCode)
+                    .collect(Collectors.toSet());
+            Map<Long, WorkflowDefinition> workflows = workflowCodes.isEmpty()
+                    ? Collections.emptyMap()
+                    : workflowDefinitionDao.queryByCodes(workflowCodes).stream()
+                            .filter(workflow -> workflow.getProjectCode() == projectCode)
+                            .collect(Collectors.toMap(WorkflowDefinition::getCode, workflow -> workflow));
+            Map<Long, WorkflowDefinition> workflowsByTask = new HashMap<>();
+            for (WorkflowTaskRelation relation : relations) {
+                WorkflowDefinition workflow = workflows.get(relation.getWorkflowDefinitionCode());
+                if (workflow != null && (releaseState == null
+                        || workflow.getReleaseState().getCode() == releaseState)) {
+                    workflowsByTask.putIfAbsent(relation.getPostTaskCode(), workflow);
+                }
+            }
+            for (TaskDefinition definition : page.getRecords()) {
+                WorkflowDefinition workflow = workflowsByTask.get(definition.getCode());
+                if (workflow == null) {
+                    throw new IllegalStateException("Execution mapping not found for task: " + definition.getCode());
+                }
                 rows.add(toTaskVO(definition, workflow));
             }
         }
@@ -207,13 +233,12 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                                                               int pageNo, int pageSize) {
         authorizeRead(user, projectCode);
         requireTask(projectCode, taskCode);
-        List<DataSyncTaskVersionVO> versions = taskDefinitionLogDao.queryVersions(taskCode)
-                .stream().map(DataSyncServiceImpl::toTaskVersionVO).collect(Collectors.toList());
-        int start = Math.min((pageNo - 1) * pageSize, versions.size());
-        int end = Math.min(start + pageSize, versions.size());
+        IPage<TaskDefinitionLog> page = taskDefinitionLogDao.queryVersionsPaging(
+                new Page<>(pageNo, pageSize), taskCode, projectCode);
         PageInfo<DataSyncTaskVersionVO> result = PageInfo.of(pageNo, pageSize);
-        result.setTotalList(versions.subList(start, end));
-        result.setTotal(versions.size());
+        result.setTotalList(page.getRecords().stream()
+                .map(DataSyncServiceImpl::toTaskVersionVO).collect(Collectors.toList()));
+        result.setTotal((int) page.getTotal());
         return result;
     }
 

@@ -31,6 +31,11 @@ public class WorkflowTaskRelationDaoImpl extends BaseDao<WorkflowTaskRelation, W
     }
 
     @Override
+    public List<WorkflowTaskRelation> queryByTaskCodes(Long[] taskCodes) {
+        return mybatisMapper.queryByTaskCodes(taskCodes);
+    }
+
+    @Override
     public int batchInsert(List<WorkflowTaskRelation> taskRelationList) {
         return mybatisMapper.batchInsert(taskRelationList);
     }
