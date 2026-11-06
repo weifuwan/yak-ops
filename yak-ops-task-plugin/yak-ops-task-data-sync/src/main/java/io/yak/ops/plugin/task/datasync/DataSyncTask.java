@@ -8,7 +8,9 @@ import io.yak.ops.plugin.task.api.TaskException;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.stream.StreamTask;
+
 import java.util.concurrent.ExecutionException;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -35,7 +37,8 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
         try {
             jobRunner.execute(parameters);
             setExitStatusCode(jobRunner.isCancelRequested()
-                    ? TaskConstants.EXIT_CODE_KILL : TaskConstants.EXIT_CODE_SUCCESS);
+                    ? TaskConstants.EXIT_CODE_KILL
+                    : TaskConstants.EXIT_CODE_SUCCESS);
         } catch (Exception e) {
             if (jobRunner.isCancelRequested()) {
                 setExitStatusCode(TaskConstants.EXIT_CODE_KILL);

@@ -1,12 +1,14 @@
 package io.yak.ops.api.vo;
 
 import java.util.Date;
+
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
 public class DataSyncInstanceVO {
+
     private String id;
     private String definitionId;
     private int definitionVersion;

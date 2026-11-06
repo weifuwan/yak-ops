@@ -10,6 +10,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import lombok.Data;
 
 @Data
@@ -34,7 +35,7 @@ public class DataSyncParameters extends AbstractParameters {
         if (!("mysql-cdc".equalsIgnoreCase(source.getType())
                 || "mysql".equalsIgnoreCase(source.getType()))
                 || !("jdbc-mysql".equalsIgnoreCase(sink.getType())
-                || "jdbc".equalsIgnoreCase(sink.getType()))) {
+                        || "jdbc".equalsIgnoreCase(sink.getType()))) {
             return false;
         }
         Table input = source.getTables().get(0);
@@ -71,6 +72,7 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Endpoint {
+
         private String type;
         private String datasourceId;
         private List<Table> tables;
@@ -82,12 +84,14 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Startup {
+
         private String mode;
     }
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Table {
+
         private String database;
         private String schema;
         private String table;
@@ -107,12 +111,14 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Write {
+
         private String mode;
     }
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SchemaPolicy {
+
         private String initial;
         private Evolution evolution;
     }
@@ -120,6 +126,7 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Evolution {
+
         private boolean enabled;
         private boolean allowDropColumns;
     }
@@ -127,6 +134,7 @@ public class DataSyncParameters extends AbstractParameters {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Route {
+
         @JsonProperty("source-table")
         private String sourceTable;
         @JsonProperty("sink-table")

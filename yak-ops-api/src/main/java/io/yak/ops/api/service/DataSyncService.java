@@ -1,14 +1,15 @@
 package io.yak.ops.api.service;
 
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
-import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.dao.entity.User;
+
 import java.util.List;
 
 public interface DataSyncService {
@@ -36,10 +37,10 @@ public interface DataSyncService {
     DataSyncRunVO start(User user, long projectCode, long taskCode);
 
     DataSyncPageVO<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                       int pageSize, Long taskCode, String status);
+                                                     int pageSize, Long taskCode, String status);
 
     List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
-                                              List<Long> taskCodes, boolean activeOnly);
+                                             List<Long> taskCodes, boolean activeOnly);
 
     DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId);
 

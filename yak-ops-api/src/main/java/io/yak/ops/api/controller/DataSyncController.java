@@ -3,8 +3,8 @@ package io.yak.ops.api.controller;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.Result;
-import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncLogVO;
 import io.yak.ops.api.vo.DataSyncPageVO;
 import io.yak.ops.api.vo.DataSyncRunVO;
@@ -15,7 +15,6 @@ import io.yak.ops.dao.entity.User;
 
 import java.util.List;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/projects/{projectCode}/data-sync")
@@ -36,12 +37,12 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/tasks")
     public Result<DataSyncPageVO<DataSyncTaskVO>> listTasks(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode,
-            @RequestParam(defaultValue = "1") int pageNo,
-            @RequestParam(defaultValue = "20") int pageSize,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status) {
+                                                            @RequestAttribute(Constants.SESSION_USER) User user,
+                                                            @PathVariable long projectCode,
+                                                            @RequestParam(defaultValue = "1") int pageNo,
+                                                            @RequestParam(defaultValue = "20") int pageSize,
+                                                            @RequestParam(required = false) String keyword,
+                                                            @RequestParam(required = false) String status) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status));
     }
@@ -87,27 +88,29 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/tasks/{taskCode}/versions")
     public Result<DataSyncPageVO<DataSyncTaskVersionVO>> versions(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode, @PathVariable long taskCode,
-            @RequestParam(defaultValue = "1") int pageNo,
-            @RequestParam(defaultValue = "20") int pageSize) {
+                                                                  @RequestAttribute(Constants.SESSION_USER) User user,
+                                                                  @PathVariable long projectCode,
+                                                                  @PathVariable long taskCode,
+                                                                  @RequestParam(defaultValue = "1") int pageNo,
+                                                                  @RequestParam(defaultValue = "20") int pageSize) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listVersions(user, projectCode, taskCode, pageNo, pageSize));
     }
 
     @GetMapping("/tasks/{taskCode}/versions/{version}")
     public Result<DataSyncTaskVersionVO> version(
-            @RequestAttribute(Constants.SESSION_USER) User user, @PathVariable long projectCode,
-            @PathVariable long taskCode, @PathVariable int version) {
+                                                 @RequestAttribute(Constants.SESSION_USER) User user,
+                                                 @PathVariable long projectCode,
+                                                 @PathVariable long taskCode, @PathVariable int version) {
         return Result.success(dataSyncService.getVersion(user, projectCode, taskCode, version));
     }
 
     @GetMapping("/tasks/{taskCode}/publications")
     public Result<DataSyncPageVO<Object>> publications(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode, @PathVariable long taskCode,
-            @RequestParam(defaultValue = "1") int pageNo,
-            @RequestParam(defaultValue = "20") int pageSize) {
+                                                       @RequestAttribute(Constants.SESSION_USER) User user,
+                                                       @PathVariable long projectCode, @PathVariable long taskCode,
+                                                       @RequestParam(defaultValue = "1") int pageNo,
+                                                       @RequestParam(defaultValue = "20") int pageSize) {
         checkPageParams(pageNo, pageSize);
         dataSyncService.getTask(user, projectCode, taskCode);
         // Publishing currently changes the existing Workflow release state.
@@ -123,34 +126,34 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/instances")
     public Result<DataSyncPageVO<DataSyncInstanceVO>> instances(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode,
-            @RequestParam(defaultValue = "1") int pageNo,
-            @RequestParam(defaultValue = "20") int pageSize,
-            @RequestParam(required = false) Long taskCode,
-            @RequestParam(required = false) String status) {
+                                                                @RequestAttribute(Constants.SESSION_USER) User user,
+                                                                @PathVariable long projectCode,
+                                                                @RequestParam(defaultValue = "1") int pageNo,
+                                                                @RequestParam(defaultValue = "20") int pageSize,
+                                                                @RequestParam(required = false) Long taskCode,
+                                                                @RequestParam(required = false) String status) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status));
     }
 
     @GetMapping("/instances/latest")
     public Result<List<DataSyncInstanceVO>> latest(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode,
-            @RequestParam List<Long> taskCodes,
-            @RequestParam(defaultValue = "false") boolean activeOnly) {
+                                                   @RequestAttribute(Constants.SESSION_USER) User user,
+                                                   @PathVariable long projectCode,
+                                                   @RequestParam List<Long> taskCodes,
+                                                   @RequestParam(defaultValue = "false") boolean activeOnly) {
         return Result.success(dataSyncService.latestInstances(user, projectCode, taskCodes, activeOnly));
     }
 
     @GetMapping("/instances/{id}")
     public Result<DataSyncInstanceVO> getInstance(@RequestAttribute(Constants.SESSION_USER) User user,
-                                                   @PathVariable long projectCode, @PathVariable int id) {
+                                                  @PathVariable long projectCode, @PathVariable int id) {
         return Result.success(dataSyncService.getInstance(user, projectCode, id));
     }
 
     @GetMapping("/instances/{id}/definition")
     public Result<DataSyncDefinitionVO> getInstanceDefinition(@RequestAttribute(Constants.SESSION_USER) User user,
-                                                 @PathVariable long projectCode, @PathVariable int id) {
+                                                              @PathVariable long projectCode, @PathVariable int id) {
         return Result.success(dataSyncService.getInstanceDefinition(user, projectCode, id));
     }
 

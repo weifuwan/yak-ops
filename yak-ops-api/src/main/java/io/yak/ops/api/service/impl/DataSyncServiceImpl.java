@@ -49,19 +49,20 @@ import io.yak.ops.extract.common.transportor.TaskInstanceLogPageQueryResponse;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.spi.enums.DbType;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -83,7 +84,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncPageVO<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                                      int pageNo, int pageSize, String keyword, String status) {
+                                                    int pageNo, int pageSize, String keyword, String status) {
         authorize(user, projectCode);
         List<DataSyncTaskVO> rows = new ArrayList<>();
         for (TaskDefinition definition : taskDefinitionDao.queryByProjectAndType(projectCode, TASK_TYPE)) {
@@ -139,7 +140,8 @@ public class DataSyncServiceImpl implements DataSyncService {
             throw new IllegalStateException("Task definition has changed; reload before updating");
         }
         JsonNode parameters = request.getParameters() == null
-                ? JSONUtils.parseObject(original.getTaskParams()) : request.getParameters();
+                ? JSONUtils.parseObject(original.getTaskParams())
+                : request.getParameters();
         validate(request.getName(), parameters);
         DataSyncTaskRequest effective = new DataSyncTaskRequest();
         effective.setName(request.getName());
@@ -185,7 +187,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncPageVO<DataSyncTaskVersionVO> listVersions(User user, long projectCode, long taskCode,
-                                                                int pageNo, int pageSize) {
+                                                              int pageNo, int pageSize) {
         authorize(user, projectCode);
         requireTask(projectCode, taskCode);
         List<DataSyncTaskVersionVO> versions = taskDefinitionLogDao.queryVersions(taskCode)
@@ -244,7 +246,7 @@ public class DataSyncServiceImpl implements DataSyncService {
 
     @Override
     public DataSyncPageVO<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                               int pageSize, Long taskCode, String status) {
+                                                            int pageSize, Long taskCode, String status) {
         authorize(user, projectCode);
         List<DataSyncInstanceVO> list = new ArrayList<>();
         List<TaskDefinition> definitions = taskCode == null
@@ -255,7 +257,8 @@ public class DataSyncServiceImpl implements DataSyncService {
             if (workflow == null) {
                 continue;
             }
-            for (WorkflowInstanceSummaryDto run : workflowInstanceDao.queryByWorkflowDefinitionCode(workflow.getCode(), 100)) {
+            for (WorkflowInstanceSummaryDto run : workflowInstanceDao.queryByWorkflowDefinitionCode(workflow.getCode(),
+                    100)) {
                 for (TaskInstance instance : taskInstanceDao.queryByWorkflowInstanceId(run.getId())) {
                     if (!TASK_TYPE.equals(instance.getTaskType())) {
                         continue;
@@ -267,13 +270,14 @@ public class DataSyncServiceImpl implements DataSyncService {
                 }
             }
         }
-        list.sort(Comparator.comparing(DataSyncInstanceVO::getId, Comparator.comparingLong(Long::parseLong)).reversed());
+        list.sort(
+                Comparator.comparing(DataSyncInstanceVO::getId, Comparator.comparingLong(Long::parseLong)).reversed());
         return DataSyncPageVO.of(list, pageNo, pageSize);
     }
 
     @Override
     public List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
-                                                      List<Long> taskCodes, boolean activeOnly) {
+                                                    List<Long> taskCodes, boolean activeOnly) {
         authorize(user, projectCode);
         List<DataSyncInstanceVO> rows = new ArrayList<>();
         for (Long taskCode : taskCodes) {
@@ -500,7 +504,8 @@ public class DataSyncServiceImpl implements DataSyncService {
         AbstractParameters params = TaskPluginManager.parseTaskParameters(TASK_TYPE,
                 JSONUtils.toJsonString(parameters));
         if (params == null || !params.checkParameters()) {
-            throw new IllegalArgumentException("Unsupported DATA_SYNC configuration: requires a MySQL table with initial snapshot and streaming updates");
+            throw new IllegalArgumentException(
+                    "Unsupported DATA_SYNC configuration: requires a MySQL table with initial snapshot and streaming updates");
         }
         int sourceId = parameters.path("source").path("datasourceId").asInt();
         int targetId = parameters.path("sink").path("datasourceId").asInt();
