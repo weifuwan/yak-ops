@@ -57,6 +57,14 @@ public class DataSyncController extends BaseController {
         return Result.success(dataSyncService.getTask(user, projectCode, taskCode));
     }
 
+    @PostMapping("/tasks/preview")
+    @Operation(summary = "previewDataSyncTask", description = "Preview data synchronization pipeline YAML")
+    public Result<String> preview(@RequestAttribute(Constants.SESSION_USER) User user,
+                                  @PathVariable long projectCode,
+                                  @RequestBody DataSyncTaskRequest request) {
+        return Result.success(dataSyncService.preview(user, projectCode, request));
+    }
+
     @PostMapping("/tasks")
     @Operation(summary = "createDataSyncTask", description = "Create data synchronization task")
     @OperatorLog(auditType = AuditType.DATA_SYNC_CREATE)

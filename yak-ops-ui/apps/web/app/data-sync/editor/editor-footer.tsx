@@ -28,19 +28,23 @@ export function EditorHeader({
 }
 
 export function EditorFooter({
-  task, dirty, locked, saving, onSave, onPublish,
+  task, dirty, locked, saving, previewing, onSave, onPreview, onPublish,
 }: {
   task?: Pick<TaskDefinitionRecord, "status">;
   dirty: boolean;
   locked: boolean;
   saving: boolean;
+  previewing: boolean;
   onSave: () => void;
+  onPreview: () => void;
   onPublish: () => void;
 }) {
   return (
     <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-6 py-3 max-md:px-4">
       <div className="flex items-center gap-2">
         <Button size="small" loading={saving} disabled={locked || !dirty} onClick={onSave}>保存</Button>
+        <Button size="small" loading={previewing} disabled={saving || previewing}
+          onClick={onPreview}>预览</Button>
         <Button size="small" variant="primary" loading={saving}
           disabled={locked || (!dirty && task?.status === "ONLINE")}
           onClick={onPublish}>发布</Button>

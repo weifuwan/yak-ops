@@ -15,6 +15,12 @@ export interface NativeTaskWrite {
   definition: PipelineDefinition;
 }
 
+export function previewNativeTask(value: NativeTaskWrite, signal?: AbortSignal) {
+  return HttpUtils.postData<string>(
+    url("/preview"), createTaskRequest(value.name, value.remark || "", value.definition), { signal },
+  );
+}
+
 export function createNativeTask(value: NativeTaskWrite, signal?: AbortSignal) {
   return HttpUtils.postData<TaskDefinitionRecord>(
     url(""), createTaskRequest(value.name, value.remark || "", value.definition), { signal },
