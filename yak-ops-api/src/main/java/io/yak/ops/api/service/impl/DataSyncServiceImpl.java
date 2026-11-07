@@ -39,6 +39,8 @@ import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
+import io.yak.ops.plugin.task.datasync.DataSyncPipelineBuilder;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.spi.enums.DbType;
@@ -75,6 +77,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     private final WorkflowInstanceDao workflowInstanceDao;
     private final WorkflowTaskRelationDao workflowTaskRelationDao;
     private final WorkflowDefinitionService workflowDefinitionService;
+    private final DataSyncPipelineBuilder dataSyncPipelineBuilder = new DataSyncPipelineBuilder();
 
     @Override
     public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
@@ -107,6 +110,16 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         authorizeRead(user, projectCode);
         TaskDefinition definition = requireTask(projectCode, taskCode, true);
         return toTaskVO(definition, requireWorkflow(projectCode, taskCode, true));
+    }
+
+    @Override
+    public String preview(User user, long projectCode, DataSyncTaskRequest request) {
+        authorizeWrite(user, projectCode);
+        DataSource[] dataSources = validate(request.getName(), request.getParameters(), projectCode);
+        return dataSyncPipelineBuilder.preview(
+                request.getParameters().path("definition"),
+                toDataSourceParameters(dataSources[0]),
+                toDataSourceParameters(dataSources[1]));
     }
 
     @Override
@@ -434,7 +447,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .build();
     }
 
-    private void validate(String name, JsonNode parameters, long projectCode) {
+    private DataSource[] validate(String name, JsonNode parameters, long projectCode) {
         if (name == null || name.trim().isEmpty()) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "name");
         }
@@ -457,6 +470,14 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (source.getType() != DbType.MYSQL || sink.getType() != DbType.MYSQL) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "datasource type");
         }
+        return new DataSource[]{source, sink};
+    }
+
+    private static DataSourceParameters toDataSourceParameters(DataSource dataSource) {
+        DataSourceParameters parameters = new DataSourceParameters();
+        parameters.setType(dataSource.getType());
+        parameters.setConnectionParams(dataSource.getConnectionParams());
+        return parameters;
     }
 
     private static TaskDefinitionLog newTask(long code, User user, long projectCode, DataSyncTaskRequest request) {
