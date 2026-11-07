@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, toast } from "@yak-ops/yak-ui";
+import { Alert, Button, Modal, toast } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,7 +12,7 @@ import {
   validatePipelineDefinition, type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
 import {
-  createNativeTask, updateNativeTask, publishNativeTask,
+  createNativeTask, updateNativeTask, publishNativeTask, previewNativeTask,
 } from "@/service/data-sync/native-definition";
 import { pipelineFingerprint } from "@/service/data-sync/versions";
 import { TableTransferPanel, type TransferFilters } from "./table-transfer-panel";
@@ -58,6 +58,8 @@ export function TaskEditor({
   const [propertiesOpen, setPropertiesOpen] = useState<boolean | undefined>();
   const [drawerDirty, setDrawerDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewYaml, setPreviewYaml] = useState<string>();
   const [error, setError] = useState("");
   const [catalogError, setCatalogError] = useState("");
   const [sourceFilters, setSourceFilters] = useState<TransferFilters>({ database: "", table: "" });
@@ -139,6 +141,35 @@ export function TaskEditor({
   };
   const propertiesClosed = () =>
     setPropertiesOpen((current) => current === false ? undefined : current);
+
+  const preview = async () => {
+    if (previewing) return;
+    if (!authored.name.trim()) {
+      setError("请输入任务名称");
+      openProperties();
+      return;
+    }
+    try {
+      validatePipelineDefinition(definition);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Pipeline 配置无效");
+      return;
+    }
+    setPreviewing(true);
+    setError("");
+    try {
+      const yaml = await previewNativeTask({
+        name: authored.name.trim(),
+        remark: authored.remark.trim(),
+        definition,
+      });
+      setPreviewYaml(yaml);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Pipeline 预览失败");
+    } finally {
+      setPreviewing(false);
+    }
+  };
 
   const save = async (publish = false) => {
     if (locked) return;
@@ -247,7 +278,17 @@ export function TaskEditor({
         </aside>
       </div>
       <EditorFooter task={task} dirty={dirty} locked={locked} saving={saving}
-        onSave={() => void save()} onPublish={() => void save(true)} />
+        previewing={previewing} onSave={() => void save()} onPreview={() => void preview()}
+        onPublish={() => void save(true)} />
+      {previewYaml !== undefined ? (
+        <Modal open centered width={760} title="Pipeline YAML"
+          onClose={() => setPreviewYaml(undefined)}
+          footer={<Button size="small" onClick={() => setPreviewYaml(undefined)}>关闭</Button>}>
+          <pre className="max-h-[600px] overflow-auto whitespace-pre-wrap rounded border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4 font-mono text-xs leading-5">
+            {previewYaml}
+          </pre>
+        </Modal>
+      ) : null}
       {propertiesOpen !== undefined ? (
         <PropertiesDrawer id={task?.id} value={{ name: authored.name, remark: authored.remark }}
           open={propertiesOpen}
