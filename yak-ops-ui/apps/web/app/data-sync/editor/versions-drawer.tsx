@@ -16,7 +16,7 @@ import {
   type TaskDefinitionVersionSummary,
 } from "@/service/data-sync";
 import { compareTaskDefinitionVersions, type DefinitionChange } from "@/service/data-sync/versions";
-import { parseSyncParameters } from "@/service/data-sync/parameters";
+import { readPipelineDefinition } from "@/service/data-sync/native-pipeline";
 import { EditorDrawer } from "./editor-drawer";
 
 const PAGE_SIZE = 20;
@@ -42,7 +42,7 @@ function VersionDetail({
   let error = "";
   let changes: DefinitionChange[] | undefined;
   try {
-    parseSyncParameters(value.parameters);
+    readPipelineDefinition(value.parameters);
     if (compare) changes = compareTaskDefinitionVersions(value, compare);
   } catch (failure) {
     error = failure instanceof Error ? failure.message : "任务定义无法解析";

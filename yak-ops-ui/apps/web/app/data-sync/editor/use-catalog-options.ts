@@ -6,7 +6,13 @@ import {
   pageDataSourceTables,
   type DataSourceCatalogTable,
 } from "@/service/datasource";
-import type { CatalogOptions } from "./types";
+export interface CatalogOptions {
+  schemas: string[];
+  tables: DataSourceCatalogTable[];
+  loading: boolean;
+  error: string;
+  refresh: () => void;
+}
 
 export function useCatalogOptions(
   dataSourceId: string,

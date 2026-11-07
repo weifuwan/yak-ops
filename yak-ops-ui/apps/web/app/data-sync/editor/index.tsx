@@ -19,7 +19,7 @@ import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { DataSourceSection } from "./data-source-section";
 import { EditorAnchorStepper } from "./anchor-stepper";
 import { ContentField, ContentSection } from "./content-layout";
-import { catalogPath, selectedTableKey, tableKey, tablePathLabel } from "./table-catalog";
+import { catalogPath, tableKey, tablePathLabel } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-chrome";
@@ -63,6 +63,7 @@ export function TaskEditor({
     definition: structuredClone(initialDefinition || initialDraft!.definition),
   }));
   const [baseline, setBaseline] = useState(() => pipelineFingerprint(authored));
+  const [baselineDefinition, setBaselineDefinition] = useState(() => pipelineFingerprint(authored.definition));
   const [drawer, setDrawer] = useState<{ kind: Drawer; open: boolean }>();
   const [drawerDirty, setDrawerDirty] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>();
@@ -84,12 +85,13 @@ export function TaskEditor({
   const sourceType = sourceDatasource?.dbType || initialDraft?.sourceType || "MYSQL";
   const sinkType = sinkDatasource?.dbType || initialDraft?.targetType || "MYSQL";
   const sourceCatalog = useCatalogOptions(sourceId, "", "", Boolean(sourceId));
-  const selectedSource = selectedTableKey(
-    sourceCatalog.tables, source?.database || "", "", source?.table || "",
-  );
+  const selectedSource = source
+    ? sourceCatalog.tables.find((item) =>
+        tablePathLabel(catalogPath(item)) === source.database + "." + source.table
+      )
+    : undefined;
   const dirty = pipelineFingerprint(authored) !== baseline;
-  const definitionDirty = !initialDefinition ||
-    pipelineFingerprint(definition) !== pipelineFingerprint(initialDefinition);
+  const definitionDirty = pipelineFingerprint(definition) !== baselineDefinition;
   const locked = saving || executionLocked || Boolean(task?.archived) || task?.status === "ONLINE";
 
   useUnsavedChanges(dirty || drawerDirty);
@@ -169,6 +171,7 @@ export function TaskEditor({
         : task || await createNativeTask(value);
       setTask(persisted);
       setBaseline(pipelineFingerprint(authored));
+      setBaselineDefinition(pipelineFingerprint(definition));
       clearNativeDraft(draftKey);
       if (publish) {
         const publication = await publishNativeTask(
@@ -237,7 +240,7 @@ export function TaskEditor({
             <ContentSection id="source" title="数据来源">
               <ContentField label="来源表" required>
                 <DataSyncSearchableSelect
-                  value={selectedSource}
+                  value={selectedSource ? tableKey(catalogPath(selectedSource)) : null}
                   options={sourceCatalog.tables.map((item) => ({
                     value: tableKey(catalogPath(item)),
                     label: tablePathLabel(catalogPath(item)),

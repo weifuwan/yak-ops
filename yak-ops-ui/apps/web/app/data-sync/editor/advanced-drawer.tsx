@@ -4,7 +4,7 @@ import {
   TabsPanel, TabsTab, Textarea,
 } from "@yak-ops/yak-ui";
 import {
-  setPipelineOption, setSchemaChangeBehavior, validatePipelineDefinition,
+  setPipelineOption, setSchemaChangeBehavior,
   type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
 import { EditorDrawer } from "./editor-drawer";
@@ -50,7 +50,15 @@ export function AdvancedDrawer({
     const next = structuredClone(definition);
     for (const key of EDITABLE_KEYS) delete next.pipeline[key];
     Object.assign(next.pipeline, options);
-    validatePipelineDefinition(next);
+    const count = next.pipeline.parallelism;
+    if (count !== undefined && (!/^\d+$/.test(String(count)) ||
+        Number(count) < 1 || Number(count) > 128)) {
+      throw new Error("并行度必须在 1 到 128 之间");
+    }
+    if (next.pipeline["local-time-zone"] !== undefined &&
+        typeof next.pipeline["local-time-zone"] !== "string") {
+      throw new Error("运行时区必须是字符串");
+    }
     return next;
   };
   const apply = () => {

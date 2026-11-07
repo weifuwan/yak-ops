@@ -1,5 +1,9 @@
 import type { DataSourceCatalogTable } from "@/service/datasource";
-import type { DataSyncTablePath } from "@/service/data-sync";
+export interface DataSyncTablePath {
+  database?: string;
+  schema?: string;
+  table: string;
+}
 
 export const tableKey = (table: DataSyncTablePath) =>
   JSON.stringify([table.database || "", table.schema || "", table.table]);

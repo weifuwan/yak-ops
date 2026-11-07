@@ -1,5 +1,9 @@
 import { Alert, Button, Modal } from "@yak-ops/yak-ui";
-import type { EditorConfirmation } from "./use-definition-restoration";
+interface EditorConfirmation {
+  title: string;
+  message: string;
+  apply: () => void;
+}
 
 export function EditorConfirmationDialog({
   value,
