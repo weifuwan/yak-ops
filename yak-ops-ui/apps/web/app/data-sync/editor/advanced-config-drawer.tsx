@@ -42,7 +42,7 @@ const EVENT_LABELS: Record<DataSyncSchemaChangeEvent, string> = {
 function effectiveExcluded(definition: PipelineDefinition): DataSyncSchemaChangeEvent[] {
   const configured = definition.sink["exclude.schema.changes"];
   if (Array.isArray(configured)) return configured;
-  return definition.pipeline["schema.change.behavior"] === "lenient"
+  return (definition.pipeline["schema.change.behavior"] ?? "lenient") === "lenient"
     ? ["truncate.table", "drop.table"]
     : [];
 }
