@@ -53,6 +53,18 @@ const SINK_PROTECTED_KEYS = new Set([
   "exclude.schema.changes",
 ]);
 
+const CREDENTIAL_KEYS = new Set([
+  "password",
+  "passwd",
+  "token",
+  "secret",
+  "secretkey",
+  "accesskey",
+  "apikey",
+  "privatekey",
+  "credentials",
+]);
+
 const BEHAVIOR_LABELS: Record<DataSyncSchemaChangeBehavior, string> = {
   evolve: "严格同步",
   try_evolve: "尽力同步",
@@ -120,9 +132,15 @@ function applyParameters(
   }
 }
 
-function hasInvalidParameters(rows: ParameterRow[]) {
+function parameterNameBlocked(name: string, protectedKeys: Set<string>) {
+  const compact = name.replace(/[_-]/g, "").toLowerCase();
+  return protectedKeys.has(name) || CREDENTIAL_KEYS.has(compact);
+}
+
+function hasInvalidParameters(rows: ParameterRow[], protectedKeys: Set<string>) {
   const names = rows.map((row) => row.name.trim());
-  return names.some((name) => !name) || new Set(names).size !== names.length;
+  return names.some((name) => !name || parameterNameBlocked(name, protectedKeys))
+    || new Set(names).size !== names.length;
 }
 
 export function AdvancedConfigDrawer({
@@ -156,8 +174,8 @@ export function AdvancedConfigDrawer({
 
   const excluded = effectiveExcluded(form);
   const parametersInvalid =
-    hasInvalidParameters(sourceParameters) ||
-    hasInvalidParameters(sinkParameters);
+    hasInvalidParameters(sourceParameters, SOURCE_PROTECTED_KEYS) ||
+    hasInvalidParameters(sinkParameters, SINK_PROTECTED_KEYS);
 
   const changed = useMemo(() => {
     const next = structuredClone(form);
@@ -294,6 +312,7 @@ export function AdvancedConfigDrawer({
         <TabsPanel value="advanced" className="pt-4">
           <AdvancedParameters
             activeTab={endpointTab}
+            parametersInvalid={parametersInvalid}
             onTabChange={setEndpointTab}
             sourceRows={sourceParameters}
             sinkRows={sinkParameters}
@@ -320,6 +339,7 @@ export function AdvancedConfigDrawer({
 
 function AdvancedParameters({
   activeTab,
+  parametersInvalid,
   onTabChange,
   sourceRows,
   sinkRows,
@@ -328,6 +348,7 @@ function AdvancedParameters({
   onRemove,
 }: {
   activeTab: EndpointTab;
+  parametersInvalid: boolean;
   onTabChange: (tab: EndpointTab) => void;
   sourceRows: ParameterRow[];
   sinkRows: ParameterRow[];
@@ -396,6 +417,11 @@ function AdvancedParameters({
       <div className="rounded-[var(--yak-radius-control-small)] bg-[var(--yak-color-hover)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-muted-text)]">
         高级参数会直接写入对应的 Flink CDC Connector 配置，请确认参数含义后再修改。
       </div>
+      {parametersInvalid ? (
+        <div className="text-xs text-[var(--yak-color-danger)]">
+          参数名称不能为空、不能重复，也不能覆盖基础配置或保存凭据。
+        </div>
+      ) : null}
 
       <Tabs
         value={activeTab}
