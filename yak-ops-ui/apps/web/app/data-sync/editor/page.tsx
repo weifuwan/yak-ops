@@ -1,111 +1,92 @@
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button } from "@yak-ops/yak-ui";
-import { Navigate, useLocation, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { readTaskDraft, taskDraftKey } from "@/service/data-sync/draft";
-import { getDataSource } from "@/service/datasource";
-import { getTaskDefinition, type DataSyncDraft } from "@/service/data-sync";
+import { nativeDraftKey, readNativeDraft } from "@/service/data-sync/native-draft";
+import { readPipelineDefinition, type PipelineDefinition } from "@/service/data-sync/native-pipeline";
+import { getDataSource, type DataSourceRecord } from "@/service/datasource";
+import { getTaskDefinition, type TaskDefinitionRecord } from "@/service/data-sync";
 import { listLatestTaskInstances } from "@/service/task-execution";
-import { toSyncTaskRecord } from "@/service/data-sync/definition";
 import { TaskEditor } from "./index";
 import { ReadonlyTaskEditor } from "./readonly-editor";
 
-/** Resolve the workflow from its saved definition and isolate reads by authenticated identity. */
+interface EditPayload {
+  kind: "editable";
+  task: TaskDefinitionRecord;
+  definition: PipelineDefinition;
+  connections: DataSourceRecord[];
+}
+
+interface ReadonlyPayload {
+  kind: "readonly";
+  definition: TaskDefinitionRecord;
+  error: string;
+}
+
 export function DataSyncTaskEditorPage() {
-  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
-  const key = taskDraftKey(currentUser!.id);
+  const key = nativeDraftKey(currentUser!.id);
   const activeQuery = useQuery({
     queryKey: ["data-sync-editor-active", currentUser?.id, id],
     queryFn: ({ signal }) => listLatestTaskInstances([id!], true, signal),
     enabled: Boolean(id && currentUser?.id),
-    refetchInterval: (result) => (result.state.data?.length ? 2000 : 5000),
+    refetchInterval: (query) => query.state.data?.length ? 2000 : 5000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-  const executionLocked =
-    Boolean(id) &&
+  const executionLocked = Boolean(id) &&
     (!activeQuery.isSuccess ||
       Boolean(activeQuery.data?.some((instance) => instance.definitionId === id)));
   const executionLockMessage = activeQuery.data?.some((instance) => instance.definitionId === id)
     ? "任务正在执行，完成或停止后才能修改配置。"
     : "正在确认任务运行状态，暂不可修改配置。";
-  const query = useQuery({
+  const query = useQuery<EditPayload | ReadonlyPayload>({
     queryKey: ["data-sync-editor", currentUser?.id, id],
     enabled: Boolean(id && currentUser?.id),
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
     gcTime: 0,
+    refetchOnWindowFocus: false,
     queryFn: async ({ signal }) => {
-      const definition = await getTaskDefinition(id!, signal);
-      let task;
+      const task = await getTaskDefinition(id!, signal);
+      let definition: PipelineDefinition;
       try {
-        task = toSyncTaskRecord(definition);
-      } catch (failure) {
+        definition = readPipelineDefinition(task.parameters);
+      } catch (error) {
         return {
-          kind: "readonly" as const,
-          definition,
-          error: failure instanceof Error ? failure.message : "任务参数无法解析",
+          kind: "readonly",
+          definition: task,
+          error: error instanceof Error ? error.message : "无法解析 Pipeline",
         };
       }
       const connections = await Promise.all([
-        getDataSource(task.sourceDataSourceId, signal),
-        getDataSource(task.targetDataSourceId, signal),
+        getDataSource(definition.source["datasource-id"], signal),
+        getDataSource(definition.sink["datasource-id"], signal),
       ]);
-      const draft: DataSyncDraft = {
-        name: task.name,
-        sourceConnector: task.sourceConnector,
-        sinkConnector: task.sinkConnector,
-        sourceProducesChangelog: task.sourceProducesChangelog,
-        productType: task.productType,
-        steps: task.steps,
-        sourceType: connections[0].dbType || "",
-        targetType: connections[1].dbType || "",
-      };
-      return { kind: "editable" as const, task, connections, draft };
+      return { kind: "editable", task, definition, connections };
     },
   });
+
   if (!id) {
-    const state = location.state as { draftKey?: string; draft?: DataSyncDraft } | null;
-    const draft = readTaskDraft(key) || (state?.draftKey === key ? state.draft : undefined);
+    const draft = readNativeDraft(key);
     if (!draft) return <Navigate replace to="/data-sync?create=1" />;
-    return <TaskEditor key={`new:${key}`} draft={draft} />;
+    return <TaskEditor key={"new:" + key} initialDraft={draft} />;
   }
-  if (query.isError)
-    return (
-      <div className="p-6">
-        <Alert>
-          {query.error instanceof Error ? query.error.message : "任务加载失败"}
-          <Button size="small" onClick={() => void query.refetch()}>
-            重试
-          </Button>
-        </Alert>
-      </div>
-    );
-  if (!query.data)
-    return (
-      <div className="p-8 text-sm text-[var(--yak-components-collapse-section-icon)]">
-        正在加载同步任务...
-      </div>
-    );
-  if (query.data.kind === "readonly")
-    return (
-      <ReadonlyTaskEditor
-        key={`${key}:${id}`}
-        definition={query.data.definition}
-        error={query.data.error}
-      />
-    );
+  if (query.isError) return (
+    <div className="p-6"><Alert>
+      {query.error instanceof Error ? query.error.message : "任务加载失败"}
+      <Button size="small" onClick={() => void query.refetch()}>重试</Button>
+    </Alert></div>
+  );
+  if (!query.data) return <div className="p-8 text-sm">正在加载同步任务...</div>;
+  if (query.data.kind === "readonly") return (
+    <ReadonlyTaskEditor key={id} definition={query.data.definition} error={query.data.error} />
+  );
   return (
-    <TaskEditor
-      key={`${key}:${id}`}
-      draft={query.data.draft}
-      task={query.data.task}
+    <TaskEditor key={id} initialTask={query.data.task}
+      initialDefinition={query.data.definition}
       connections={query.data.connections}
       executionLocked={executionLocked}
-      executionLockMessage={executionLockMessage}
-    />
+      executionLockMessage={executionLockMessage} />
   );
 }
 
