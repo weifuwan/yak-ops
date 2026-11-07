@@ -103,10 +103,16 @@ public final class DataSyncPipelineValidator {
             }
         }
         try {
-            // Validate the same YAML grammar and Flink CDC global options used at runtime.
-            new YamlPipelineDefinitionParser().parse(JSONUtils.toJsonString(definition), new Configuration());
+            // The Flink parser removes some schema-change fields while parsing, so validate a copy.
+            JsonNode flinkDefinition = definition.deepCopy();
+            new YamlPipelineDefinitionParser().parse(
+                    JSONUtils.toJsonString(flinkDefinition), new Configuration());
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML", e);
+            String reason = e.getMessage();
+            if (reason == null || reason.trim().isEmpty()) {
+                throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML", e);
+            }
+            throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML: " + reason, e);
         }
     }
 
