@@ -157,6 +157,19 @@ public class YamlParserUtils {
         }
     }
 
+    public static synchronized String toBlockYAMLString(Object value) {
+        try {
+            String output = blockerDumper.dumpToString(value);
+            String linebreak = blockerDumperSettings.getBestLineBreak();
+            if (output.endsWith(linebreak)) {
+                output = output.substring(0, output.length() - linebreak.length());
+            }
+            return output;
+        } catch (MarkedYamlEngineException exception) {
+            throw wrapExceptionToHiddenSensitiveData(exception);
+        }
+    }
+
     /**
      * Converts a flat map into a nested map structure and outputs the result as a list of
      * YAML-formatted strings. Each item in the list represents a single line of the YAML data. The
