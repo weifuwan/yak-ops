@@ -18,25 +18,25 @@ public class BaseServerLoadProtection implements ServerLoadProtection {
         }
         if (systemMetrics.getSystemCpuUsagePercentage() > baseServerLoadProtectionConfig
                 .getMaxSystemCpuUsagePercentageThresholds()) {
-            log.info(
-                    "OverLoad: the system cpu usage: {} is over then the maxSystemCpuUsagePercentageThresholds {}",
-                    systemMetrics.getSystemCpuUsagePercentage(),
-                    baseServerLoadProtectionConfig.getMaxSystemCpuUsagePercentageThresholds());
+//            log.info(
+//                    "OverLoad: the system cpu usage: {} is over then the maxSystemCpuUsagePercentageThresholds {}",
+//                    systemMetrics.getSystemCpuUsagePercentage(),
+//                    baseServerLoadProtectionConfig.getMaxSystemCpuUsagePercentageThresholds());
             return true;
         }
         if (systemMetrics.getJvmCpuUsagePercentage() > baseServerLoadProtectionConfig
                 .getMaxJvmCpuUsagePercentageThresholds()) {
-            log.info(
-                    "OverLoad: the jvm cpu usage: {} is over then the maxJvmCpuUsagePercentageThresholds {}",
-                    systemMetrics.getJvmCpuUsagePercentage(),
-                    baseServerLoadProtectionConfig.getMaxJvmCpuUsagePercentageThresholds());
+//            log.info(
+//                    "OverLoad: the jvm cpu usage: {} is over then the maxJvmCpuUsagePercentageThresholds {}",
+//                    systemMetrics.getJvmCpuUsagePercentage(),
+//                    baseServerLoadProtectionConfig.getMaxJvmCpuUsagePercentageThresholds());
             return true;
         }
         if (systemMetrics.getDiskUsedPercentage() > baseServerLoadProtectionConfig
                 .getMaxDiskUsagePercentageThresholds()) {
-            log.info("OverLoad: the DiskUsedPercentage: {} is over then the maxDiskUsagePercentageThresholds {}",
-                    systemMetrics.getDiskUsedPercentage(),
-                    baseServerLoadProtectionConfig.getMaxDiskUsagePercentageThresholds());
+//            log.info("OverLoad: the DiskUsedPercentage: {} is over then the maxDiskUsagePercentageThresholds {}",
+//                    systemMetrics.getDiskUsedPercentage(),
+//                    baseServerLoadProtectionConfig.getMaxDiskUsagePercentageThresholds());
             return true;
         }
         if (systemMetrics.getSystemMemoryUsedPercentage() > baseServerLoadProtectionConfig
