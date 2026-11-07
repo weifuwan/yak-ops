@@ -115,29 +115,6 @@ export function setPipelineSinkTable(
   return next;
 }
 
-export function setPipelineOption(
-  definition: PipelineDefinition,
-  option: string,
-  value: string | number | undefined,
-): PipelineDefinition {
-  if (!["parallelism", "local-time-zone"].includes(option)) {
-    throw new Error("不支持修改此 Pipeline 参数：" + option);
-  }
-  const next = structuredClone(definition);
-  if (value === undefined || value === "") delete next.pipeline[option];
-  else next.pipeline[option] = value;
-  return next;
-}
-
-export function setSchemaChangeBehavior(
-  definition: PipelineDefinition,
-  enabled: boolean,
-): PipelineDefinition {
-  const next = structuredClone(definition);
-  next.pipeline["schema.change.behavior"] = enabled ? "evolve" : "exception";
-  return next;
-}
-
 function rejectCredentials(value: unknown): void {
   if (Array.isArray(value)) {
     value.forEach(rejectCredentials);
@@ -179,10 +156,11 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
   }
   if (typeof source.tables !== "string" ||
       !SOURCE_PATTERN.test(source.tables) ||
-      route["source-table"] !== source.tables ||
-      typeof route["sink-table"] !== "string" ||
-      !TABLE_PATH.test(route["sink-table"])) {
-    throw new Error("请选择有效的单表来源和目标表映射");
+      route["source-table"] !== source.tables) {
+    throw new Error("请选择有效的来源表");
+  }
+  if (typeof route["sink-table"] !== "string" || !TABLE_PATH.test(route["sink-table"])) {
+    throw new Error("目标数据源缺少有效数据库");
   }
   if (!Array.isArray(sink["exclude.schema.changes"]) ||
       sink["exclude.schema.changes"].length !== 1 ||
