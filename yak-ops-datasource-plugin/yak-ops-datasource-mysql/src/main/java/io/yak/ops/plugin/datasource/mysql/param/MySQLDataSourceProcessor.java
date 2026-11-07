@@ -39,6 +39,11 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
         return catalog.getConnectionProperties();
     }
 
+    @Override
+    public MySQLDataSourceCatalog getCatalog() {
+        return catalog;
+    }
+
     private static final String ALLOW_LOAD_LOCAL_IN_FILE_NAME = "allowLoadLocalInfile";
 
     private static final String AUTO_DESERIALIZE = "autoDeserialize";
