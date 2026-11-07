@@ -40,8 +40,8 @@ import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
-import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
+import io.yak.ops.plugin.task.datasync.DataSyncParameters;
 import io.yak.ops.plugin.task.datasync.DataSyncPipelineBuilder;
 import io.yak.ops.spi.enums.DbType;
 
@@ -63,7 +63,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncService {
@@ -454,10 +456,18 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (parameters == null || !parameters.isObject()) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters");
         }
-        AbstractParameters params = TaskPluginManager.parseTaskParameters(TASK_TYPE,
-                JSONUtils.toJsonString(parameters));
-        if (params == null || !params.checkParameters()) {
-            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters");
+        try {
+            DataSyncParameters params = (DataSyncParameters) TaskPluginManager.parseTaskParameters(
+                    TASK_TYPE, JSONUtils.toJsonString(parameters));
+            params.validate();
+        } catch (IllegalArgumentException | ClassCastException e) {
+            String reason = e.getMessage();
+            if (reason == null || reason.trim().isEmpty()) {
+                reason = "invalid pipeline definition";
+            }
+            log.warn("Invalid DATA_SYNC parameters: {}", reason);
+            throw new ServiceException(
+                    Status.REQUEST_PARAMS_NOT_VALID_ERROR, "parameters: " + reason);
         }
         JsonNode definition = parameters.path("definition");
         int sourceId = definition.path("source").path("datasource-id").asInt();
