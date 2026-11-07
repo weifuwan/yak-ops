@@ -209,3 +209,25 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
     throw new Error("运行时区必须是字符串");
   }
 }
+
+/** API payloads are built directly from the same persisted Pipeline tree. */
+export function createTaskRequest(name: string, remark: string, definition: PipelineDefinition) {
+  return { name, remark, parameters: pipelineParameters(definition) };
+}
+
+export function updateTaskRequest(
+  name: string,
+  remark: string,
+  definition: PipelineDefinition,
+  expectedRevision: number,
+  parametersChanged: boolean,
+) {
+  return {
+    name, remark, expectedRevision,
+    ...(parametersChanged ? { parameters: pipelineParameters(definition) } : {}),
+  };
+}
+
+export function publishTaskRequest(version: number, expectedRevision: number) {
+  return { version, expectedRevision };
+}

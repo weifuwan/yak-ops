@@ -12,6 +12,9 @@ import {
   validatePipelineDefinition,
   sourceTable,
   sinkTable,
+  createTaskRequest,
+  updateTaskRequest,
+  publishTaskRequest,
 } from "../apps/web/service/data-sync/native-pipeline.ts";
 
 function complete() {
@@ -79,4 +82,17 @@ test("changing metadata or restoring a version must not mutate the Pipeline tree
   assert.deepEqual(restored, version.definition);
   assert.equal(metadata.name, "renamed");
   assert.deepEqual(version.definition, complete());
+});
+
+test("create/update/publish requests use one Pipeline contract and a revision guard", () => {
+  const pipeline = complete();
+  const create = createTaskRequest("orders", "comment", pipeline);
+  assert.deepEqual(create.parameters.definition, pipeline);
+  const metadataOnly = updateTaskRequest("renamed", "note", pipeline, 7, false);
+  assert.equal(metadataOnly.expectedRevision, 7);
+  assert.equal("parameters" in metadataOnly, false);
+  const updated = updateTaskRequest("renamed", "note", pipeline, 7, true);
+  assert.deepEqual(updated.parameters.definition, pipeline);
+  assert.deepEqual(publishTaskRequest(8, 8), { version: 8, expectedRevision: 8 });
+  assert.deepEqual(pipeline, complete());
 });

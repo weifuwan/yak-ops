@@ -3,7 +3,7 @@ import { YAK_OPS_API_PREFIX } from "@/config/api";
 import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type { TaskDefinitionRecord } from "./types";
 import type { PipelineDefinition } from "./native-pipeline";
-import { pipelineParameters } from "./native-pipeline";
+import { createTaskRequest, updateTaskRequest, publishTaskRequest } from "./native-pipeline";
 
 const url = (suffix: string) =>
   YAK_OPS_API_PREFIX + "/projects/" +
@@ -16,11 +16,9 @@ export interface NativeTaskWrite {
 }
 
 export function createNativeTask(value: NativeTaskWrite, signal?: AbortSignal) {
-  return HttpUtils.postData<TaskDefinitionRecord>(url(""), {
-    name: value.name,
-    remark: value.remark,
-    parameters: pipelineParameters(value.definition),
-  }, { signal });
+  return HttpUtils.postData<TaskDefinitionRecord>(
+    url(""), createTaskRequest(value.name, value.remark || "", value.definition), { signal },
+  );
 }
 
 export function updateNativeTask(
@@ -30,12 +28,11 @@ export function updateNativeTask(
   parametersChanged: boolean,
   signal?: AbortSignal,
 ) {
-  return HttpUtils.putData<TaskDefinitionRecord>(url("/" + encodeURIComponent(taskCode)), {
-    name: value.name,
-    remark: value.remark,
-    expectedRevision,
-    ...(parametersChanged ? { parameters: pipelineParameters(value.definition) } : {}),
-  }, { signal });
+  return HttpUtils.putData<TaskDefinitionRecord>(
+    url("/" + encodeURIComponent(taskCode)),
+    updateTaskRequest(value.name, value.remark || "", value.definition, expectedRevision, parametersChanged),
+    { signal },
+  );
 }
 
 export function publishNativeTask(
@@ -46,7 +43,7 @@ export function publishNativeTask(
 ) {
   return HttpUtils.postData<TaskDefinitionRecord>(
     url("/" + encodeURIComponent(taskCode) + "/publish"),
-    { version, expectedRevision },
+    publishTaskRequest(version, expectedRevision),
     { signal },
   );
 }

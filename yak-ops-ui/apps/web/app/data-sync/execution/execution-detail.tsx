@@ -17,7 +17,6 @@ import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/d
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
 import { ExecutionStages } from "./execution-stages";
-import { syncSummary } from "../solution/presentation";
 import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
@@ -135,7 +134,7 @@ function ExecutionProgressCard({ record }: DetailProps) {
       )}
 
       <h3 className="mt-2 text-sm font-semibold text-[#344054]">
-        {syncSummary(record.productType, record.steps)}
+        {"MySQL 实时同步"}
       </h3>
       <div className="mt-1 text-xs text-[#98a2b3]">
         v{record.taskVersion} · {dataSyncTriggerText(record.triggerType)}
