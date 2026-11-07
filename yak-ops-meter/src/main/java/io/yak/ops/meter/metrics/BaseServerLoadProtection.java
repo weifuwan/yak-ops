@@ -41,10 +41,10 @@ public class BaseServerLoadProtection implements ServerLoadProtection {
         }
         if (systemMetrics.getSystemMemoryUsedPercentage() > baseServerLoadProtectionConfig
                 .getMaxSystemMemoryUsagePercentageThresholds()) {
-            log.info(
-                    "OverLoad: the SystemMemoryUsedPercentage: {} is over then the maxSystemMemoryUsagePercentageThresholds {}",
-                    systemMetrics.getSystemMemoryUsedPercentage(),
-                    baseServerLoadProtectionConfig.getMaxSystemMemoryUsagePercentageThresholds());
+//            log.info(
+//                    "OverLoad: the SystemMemoryUsedPercentage: {} is over then the maxSystemMemoryUsagePercentageThresholds {}",
+//                    systemMetrics.getSystemMemoryUsedPercentage(),
+//                    baseServerLoadProtectionConfig.getMaxSystemMemoryUsagePercentageThresholds());
             return true;
         }
         return false;

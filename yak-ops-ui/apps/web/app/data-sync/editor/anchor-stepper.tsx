@@ -14,10 +14,14 @@ function isScrollRootAtBottom(root?: HTMLElement | null) {
   if (root) {
     return root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
   }
+
   return window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 }
 
-export function EditorAnchorStepper({ items, scrollRootRef }: EditorAnchorStepperProps) {
+export function EditorAnchorStepper({
+  items,
+  scrollRootRef,
+}: EditorAnchorStepperProps) {
   const [activeId, setActiveId] = useState(items[0]?.id || "");
 
   useEffect(() => {
@@ -54,7 +58,10 @@ export function EditorAnchorStepper({ items, scrollRootRef }: EditorAnchorSteppe
     };
 
     updateActive();
-    scrollTarget.addEventListener("scroll", updateActive, { passive: true });
+
+    scrollTarget.addEventListener("scroll", updateActive, {
+      passive: true,
+    });
     window.addEventListener("resize", updateActive);
 
     return () => {
@@ -68,47 +75,68 @@ export function EditorAnchorStepper({ items, scrollRootRef }: EditorAnchorSteppe
     if (!section) return;
 
     setActiveId(id);
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   return (
-    <nav aria-label="任务配置导航" className="bg-[var(--yak-components-panel-bg)] px-1 py-1">
-      {items.map((item, index) => {
-        const active = item.id === activeId;
-        const last = index === items.length - 1;
+    <nav
+      aria-label="任务配置导航"
+      className="w-full max-w-[160px]"
+    >
+      <ol className="m-0 list-none p-0">
+        {items.map((item, index) => {
+          const active = item.id === activeId;
+          const last = index === items.length - 1;
 
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className="group relative flex min-h-12 w-full cursor-pointer items-start gap-3 bg-transparent text-left"
-            aria-current={active ? "step" : undefined}
-            onClick={() => scrollToSection(item.id)}
-          >
-            <span className="relative mt-[18px] flex size-2 shrink-0 items-center justify-center">
-              {!last ? (
-                <span className="absolute left-1/2 top-2 h-[40px] w-px -translate-x-1/2 bg-[var(--yak-components-table-border-strong)]" />
-              ) : null}
-              <span
-                className={
-                  active
-                    ? "relative z-10 size-2 rounded-full bg-[var(--yak-color-primary)]"
-                    : "relative z-10 size-2 rounded-full bg-[var(--yak-components-tab-text)]"
-                }
-              />
-            </span>
-            <span
-              className={
-                active
-                  ? "pt-[13px] text-[13px] font-medium text-[var(--yak-color-primary)]"
-                  : "pt-[13px] text-[13px] text-[var(--yak-components-muted-text)] transition-colors group-hover:text-[var(--yak-components-collapse-section-icon)]"
-              }
+          return (
+            <li
+              key={item.id}
+              className="relative min-h-12 w-auto"
             >
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
+              <button
+                type="button"
+                aria-current={active ? "step" : undefined}
+                onClick={() => scrollToSection(item.id)}
+                className="group flex w-full cursor-pointer items-start bg-transparent p-0 text-left"
+              >
+                <span className="relative flex w-6 shrink-0 flex-col items-center">
+                  <span className="flex h-6 items-center justify-center">
+                    <span
+                      className={[
+                        "relative z-10 size-2 rounded-full",
+                        active
+                          ? "bg-[#0033CC]"
+                          : "bg-[#72767C]",
+                      ].join(" ")}
+                    />
+                  </span>
+
+                  {!last ? (
+                    <span className="h-6 w-px bg-[#E6E7EB]" />
+                  ) : null}
+                </span>
+
+                <span
+                  className={[
+                    "ml-2 max-w-[120px]",
+                    "overflow-hidden text-ellipsis",
+                    "whitespace-normal break-words",
+                    "text-sm font-normal leading-6",
+                    active
+                      ? "text-[#0033CC]"
+                      : "text-[#72767C] transition-colors group-hover:text-[#333333]",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

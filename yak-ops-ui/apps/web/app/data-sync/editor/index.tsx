@@ -22,7 +22,7 @@ import { ContentSection } from "./content-layout";
 import { catalogPath, tableKey, type DataSyncTablePath } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
-import { EditorHeader, EditorFooter } from "./editor-chrome";
+import { EditorHeader, EditorFooter } from "./editor-footer";
 import { PropertiesDrawer } from "./properties-drawer";
 
 interface EditorProps {
@@ -242,7 +242,7 @@ export function TaskEditor({
             </ContentSection>
           </fieldset>
         </main>
-        <aside className="hidden w-[176px] shrink-0 border-l border-[var(--yak-components-panel-border)] pt-4 lg:block">
+        <aside className="hidden w-[176px] shrink-0  pt-4 lg:block">
           <EditorAnchorStepper items={anchorItems} />
         </aside>
       </div>
