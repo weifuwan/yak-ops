@@ -45,6 +45,17 @@ class DataSyncParametersTest {
     }
 
     @Test
+    void validationDoesNotMutatePipelineDefinition() {
+        DataSyncParameters parameters = valid();
+        JsonNode definitionBeforeValidation = parameters.getDefinition().deepCopy();
+
+        parameters.validate();
+
+        assertTrue(parameters.getDefinition().equals(definitionBeforeValidation));
+        assertTrue(parameters.getDefinition().path("sink").has("exclude.schema.changes"));
+    }
+
+    @Test
     void rejectsInlineCredentials() {
         DataSyncParameters parameters = valid();
         ((ObjectNode) parameters.getDefinition().path("source")).put("password", "do-not-save");
