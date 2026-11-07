@@ -20,6 +20,8 @@ public interface DataSyncService {
 
     DataSyncTaskVO getTask(User user, long projectCode, long taskCode);
 
+    String preview(User user, long projectCode, DataSyncTaskRequest request);
+
     DataSyncTaskVO createTask(User user, long projectCode, DataSyncTaskRequest request);
 
     DataSyncTaskVO updateTask(User user, long projectCode, long taskCode, DataSyncTaskRequest request);
