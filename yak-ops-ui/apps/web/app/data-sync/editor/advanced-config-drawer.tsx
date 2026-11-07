@@ -1,6 +1,9 @@
 import { useState } from "react";
 import {
   Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -9,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@yak-ops/yak-ui";
+import { CircleHelp } from "lucide-react";
 import {
   SCHEMA_CHANGE_BEHAVIORS,
   SCHEMA_CHANGE_EVENTS,
@@ -132,6 +136,37 @@ export function AdvancedConfigDrawer({
     >
       <div className="pt-4">
         <div className="space-y-3">
+          <div className="flex justify-end">
+            <Popover>
+              <PopoverTrigger
+                type="button"
+                openOnHover
+                delay={120}
+                closeDelay={120}
+                className="flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-[var(--yak-color-primary)] outline-none"
+              >
+                <span>处理策略说明</span>
+                <CircleHelp size={14} aria-hidden="true" />
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="end"
+                className="w-[340px] max-w-[calc(100vw-2rem)] rounded-md p-4 text-xs leading-5"
+              >
+                <div className="space-y-1">
+                  <p><strong>严格同步：</strong>同步上游表结构变更，执行失败时任务失败。</p>
+                  <p><strong>尽力同步：</strong>尝试同步表结构变更，目标端不支持时尽量继续运行。</p>
+                  <p><strong>安全演进：</strong>以更宽松的方式处理表结构变化，优先避免数据丢失。</p>
+                  <p><strong>忽略变更：</strong>忽略上游表结构变更，不向目标端执行。</p>
+                  <p><strong>遇变更失败：</strong>检测到上游表结构变更后直接让任务失败。</p>
+                  <p className="pt-1 text-[var(--yak-components-muted-text)]">
+                    单项配置中，“忽略”表示该类 DDL 不会下发到目标端。
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <ConfigRow label="处理策略">
             <Select<DataSyncSchemaChangeBehavior>
               size="small"
