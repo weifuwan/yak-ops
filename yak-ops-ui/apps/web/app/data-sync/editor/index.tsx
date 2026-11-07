@@ -15,7 +15,7 @@ import {
   createNativeTask, updateNativeTask, publishNativeTask, previewNativeTask,
 } from "@/service/data-sync/native-definition";
 import { pipelineFingerprint } from "@/service/data-sync/versions";
-import { TableTransferPanel, type TransferFilters } from "./table-transfer-panel";
+import { TableTransferPanel } from "./table-transfer-panel";
 import { DataSourceSection } from "./data-source-section";
 import { EditorAnchorStepper } from "./anchor-stepper";
 import { ContentSection } from "./content-layout";
@@ -62,7 +62,7 @@ export function TaskEditor({
   const [previewYaml, setPreviewYaml] = useState<string>();
   const [error, setError] = useState("");
   const [catalogError, setCatalogError] = useState("");
-  const [sourceFilters, setSourceFilters] = useState<TransferFilters>({ database: "", table: "" });
+  const [sourceTableFilter, setSourceTableFilter] = useState("");
   const [sourceChecked, setSourceChecked] = useState<string[]>([]);
   const { dataSources, dataSourcesLoading, dataSourcesError, loadDataSources } =
     useEditorDataSources(connections);
@@ -74,12 +74,10 @@ export function TaskEditor({
   const sinkDatasource = dataSources.find((item) => item.id === sinkId);
   const sourceType = sourceDatasource?.dbType || initialDraft?.sourceType || "MYSQL";
   const sinkType = sinkDatasource?.dbType || initialDraft?.targetType || "MYSQL";
-  const sourceCatalog = useCatalogOptions(sourceId, "", "", Boolean(sourceId));
+  const sourceCatalog = useCatalogOptions(sourceId, sourceDatasource?.database || "", Boolean(sourceId));
   const sourceTables = sourceCatalog.tables.map(catalogPath).filter((item) => {
     try {
-      const db = new RegExp(sourceFilters.database || ".*", "i");
-      const table = new RegExp(sourceFilters.table || ".*", "i");
-      return db.test(item.database || item.schema || "") && table.test(item.table);
+      return new RegExp(sourceTableFilter || ".*", "i").test(item.table);
     } catch { return false; }
   });
   const selectedTables: DataSyncTablePath[] = source ? [source] : [];
@@ -249,7 +247,7 @@ export function TaskEditor({
               <div className="grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                 <TableTransferPanel title="来源库表" tables={sourceTables}
                   checked={sourceChecked} onCheckedChange={(keys) => setSourceChecked(keys.slice(-1))}
-                  filters={sourceFilters} onFiltersChange={setSourceFilters}
+                  filter={sourceTableFilter} onFilterChange={setSourceTableFilter}
                   loading={sourceCatalog.loading} onRefresh={sourceCatalog.refresh} />
                 <Button size="small" disabled={!sourceChecked.length || !sourceId}
                   onClick={() => {
@@ -262,8 +260,7 @@ export function TaskEditor({
                   checked={[]} onCheckedChange={() => {
                     if (sourceId) edit(setPipelineDatasource(definition, "source", sourceId));
                   }}
-                  filters={{ database: "", table: "" }}
-                  onFiltersChange={() => {}} hideFilters />
+                  hideFilters />
               </div>
               {sourceCatalog.error || catalogError ? (
                 <Alert>{sourceCatalog.error || catalogError}

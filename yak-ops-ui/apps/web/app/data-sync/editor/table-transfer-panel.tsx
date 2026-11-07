@@ -4,18 +4,13 @@ import type { ReactNode } from "react";
 import type { DataSyncTablePath } from "./table-catalog";
 import { tableKey, tablePathLabel } from "./table-catalog";
 
-export interface TransferFilters {
-  database: string;
-  table: string;
-}
-
 export function TableTransferPanel({
   title,
   tables,
   checked,
   onCheckedChange,
-  filters,
-  onFiltersChange,
+  filter,
+  onFilterChange,
   onSearch,
   loading,
   actions,
@@ -28,8 +23,8 @@ export function TableTransferPanel({
   tables: DataSyncTablePath[];
   checked: string[];
   onCheckedChange: (keys: string[]) => void;
-  filters: TransferFilters;
-  onFiltersChange: (filters: TransferFilters) => void;
+  filter?: string;
+  onFilterChange?: (value: string) => void;
   onSearch?: () => void;
   loading?: boolean;
   actions?: ReactNode;
@@ -41,7 +36,7 @@ export function TableTransferPanel({
   const columns: TableColumns<DataSyncTablePath> = [
     {
       key: "table",
-      title: "库表名称",
+      title: "表名称",
       render: (_, row) => (
         <span title={tablePathLabel(row)} className="block truncate">
           {tablePathLabel(row)}
@@ -66,44 +61,26 @@ export function TableTransferPanel({
         </div>
       </div>
       {!hideFilters ? (
-      <div className="space-y-2 px-3 pb-3">
-        <label className="grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2 text-xs">
-          <span>库过滤</span>
-          <Input
-            size="small"
-            variant="outlined"
-            aria-label={`${title}库过滤`}
-            placeholder="库名或正则"
-            maxLength={256}
-            value={filters.database}
-            onChange={(event) => onFiltersChange({ ...filters, database: event.target.value })}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onSearch?.();
-              }
-            }}
-          />
-        </label>
-        <label className="grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2 text-xs">
-          <span>表过滤</span>
-          <Input
-            size="small"
-            variant="outlined"
-            aria-label={`${title}表过滤`}
-            placeholder="表名或正则"
-            maxLength={256}
-            value={filters.table}
-            onChange={(event) => onFiltersChange({ ...filters, table: event.target.value })}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onSearch?.();
-              }
-            }}
-          />
-        </label>
-      </div>
+        <div className="px-3 pb-3">
+          <label className="grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2 text-xs">
+            <span>表过滤</span>
+            <Input
+              size="small"
+              variant="outlined"
+              aria-label={`${title}表过滤`}
+              placeholder="表名或正则"
+              maxLength={256}
+              value={filter || ""}
+              onChange={(event) => onFilterChange?.(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onSearch?.();
+                }
+              }}
+            />
+          </label>
+        </div>
       ) : null}
       <Table
         columns={columns}
