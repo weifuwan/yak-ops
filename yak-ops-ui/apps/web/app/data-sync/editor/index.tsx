@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Input, toast } from "@yak-ops/yak-ui";
+import { Alert, Button, Input, Table, type TableColumns, toast } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,11 +15,11 @@ import {
   createNativeTask, updateNativeTask, publishNativeTask,
 } from "@/service/data-sync/native-definition";
 import { pipelineFingerprint } from "@/service/data-sync/versions";
-import { DataSyncSearchableSelect } from "../components/searchable-select";
+import { TableTransferPanel, type TransferFilters } from "./table-transfer-panel";
 import { DataSourceSection } from "./data-source-section";
 import { EditorAnchorStepper } from "./anchor-stepper";
 import { ContentField, ContentSection } from "./content-layout";
-import { catalogPath, tableKey, tablePathLabel } from "./table-catalog";
+import { catalogPath, tableKey, tablePathLabel, type DataSyncTablePath } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-chrome";
@@ -70,6 +70,8 @@ export function TaskEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [catalogError, setCatalogError] = useState("");
+  const [sourceFilters, setSourceFilters] = useState<TransferFilters>({ database: "", table: "" });
+  const [sourceChecked, setSourceChecked] = useState<string[]>([]);
   const { dataSources, dataSourcesLoading, dataSourcesError, loadDataSources } =
     useEditorDataSources(connections);
   const definition = authored.definition;
@@ -85,11 +87,14 @@ export function TaskEditor({
   const sourceType = sourceDatasource?.dbType || initialDraft?.sourceType || "MYSQL";
   const sinkType = sinkDatasource?.dbType || initialDraft?.targetType || "MYSQL";
   const sourceCatalog = useCatalogOptions(sourceId, "", "", Boolean(sourceId));
-  const selectedSource = source
-    ? sourceCatalog.tables.find((item) =>
-        tablePathLabel(catalogPath(item)) === source.database + "." + source.table
-      )
-    : undefined;
+  const sourceTables = sourceCatalog.tables.map(catalogPath).filter((item) => {
+    try {
+      const db = new RegExp(sourceFilters.database || ".*", "i");
+      const table = new RegExp(sourceFilters.table || ".*", "i");
+      return db.test(item.database || item.schema || "") && table.test(item.table);
+    } catch { return false; }
+  });
+  const selectedTables: DataSyncTablePath[] = source ? [source] : [];
   const dirty = pipelineFingerprint(authored) !== baseline;
   const definitionDirty = pipelineFingerprint(definition) !== baselineDefinition;
   const locked = saving || executionLocked || Boolean(task?.archived) || task?.status === "ONLINE";
@@ -122,6 +127,7 @@ export function TaskEditor({
   const selectSource = (table: (typeof sourceCatalog.tables)[number]) => {
     const location = catalogPath(table);
     try {
+      setSourceChecked([]);
       edit(setPipelineSourceTable(definition, {
         database: location.database || location.schema || sourceDatasource?.database || "",
         table: location.table,
@@ -238,49 +244,70 @@ export function TaskEditor({
               onRefresh={loadDataSources}
               onSourceChange={changeSource} onTargetChange={changeSink} />
             <ContentSection id="source" title="数据来源">
-              <ContentField label="来源表" required>
-                <DataSyncSearchableSelect
-                  value={selectedSource ? tableKey(catalogPath(selectedSource)) : null}
-                  options={sourceCatalog.tables.map((item) => ({
-                    value: tableKey(catalogPath(item)),
-                    label: tablePathLabel(catalogPath(item)),
-                    searchText: item.remarks,
-                  }))}
-                  disabled={!sourceId}
-                  placeholder={!sourceId ? "请先选择来源数据源" : "请选择来源表"}
-                  searchPlaceholder="搜索来源表"
-                  emptyText="暂无表" refreshing={sourceCatalog.loading}
-                  onRefresh={sourceCatalog.refresh}
-                  onValueChange={(key) => {
+              <div className="grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                <TableTransferPanel title="来源库表" tables={sourceTables}
+                  checked={sourceChecked} onCheckedChange={(keys) => setSourceChecked(keys.slice(-1))}
+                  filters={sourceFilters} onFiltersChange={setSourceFilters}
+                  loading={sourceCatalog.loading} onRefresh={sourceCatalog.refresh} />
+                <Button size="small" disabled={!sourceChecked.length || !sourceId}
+                  onClick={() => {
                     const selected = sourceCatalog.tables.find(
-                      (item) => tableKey(catalogPath(item)) === key,
+                      (item) => tableKey(catalogPath(item)) === sourceChecked[0],
                     );
                     if (selected) selectSource(selected);
-                  }} />
-              </ContentField>
+                  }}>添加 →</Button>
+                <TableTransferPanel title="已选库表" tables={selectedTables}
+                  checked={[]} onCheckedChange={() => {
+                    if (sourceId) edit(setPipelineDatasource(definition, "source", sourceId));
+                  }}
+                  filters={{ database: "", table: "" }}
+                  onFiltersChange={() => {}} />
+              </div>
               {sourceCatalog.error || catalogError ? (
                 <Alert>{sourceCatalog.error || catalogError}
-                  <Button size="small" onClick={sourceCatalog.refresh}>刷新</Button></Alert>
+                  <Button size="small" onClick={sourceCatalog.refresh}>刷新</Button>
+                </Alert>
               ) : null}
+              <p className="text-xs text-[var(--yak-components-muted-text)]">
+                当前 Runtime 仅支持一张 MySQL 表的全量后持续增量同步。
+              </p>
             </ContentSection>
             <ContentSection id="target" title="目标表映射">
-              <ContentField label="来源表">
-                <span className="text-sm">{source ? source.database + "." + source.table : "请选择来源表"}</span>
-              </ContentField>
-              <ContentField label="目标数据库" required>
-                <Input size="small" variant="outlined" aria-label="目标数据库"
-                  value={targetDatabase} disabled={!sinkId}
-                  placeholder="目标数据库名称"
-                  onChange={(event) => updateTarget(event.target.value, targetTable)} />
-              </ContentField>
-              <ContentField label="目标表" required>
-                <Input size="small" variant="outlined" aria-label="目标表"
-                  value={targetTable} disabled={!sinkId} placeholder="目标表名称"
-                  onChange={(event) => updateTarget(targetDatabase, event.target.value)} />
-              </ContentField>
-              <ContentField label="写入方式">
-                <span className="text-sm">JDBC UPSERT（使用来源物理主键）</span>
-              </ContentField>
+              <Table<{ id: string }>
+                rowKey="id"
+                size="small"
+                pagination={false}
+                dataSource={[{ id: "mapping" }]}
+                columns={[
+                  {
+                    key: "source", title: "来源表",
+                    render: () => <span>{source ? tablePathLabel(source) : "请选择来源表"}</span>,
+                  },
+                  {
+                    key: "database", title: "目标数据库",
+                    render: () => (
+                      <Input size="small" variant="outlined" aria-label="目标数据库"
+                        value={targetDatabase} disabled={!sinkId} placeholder="目标数据库"
+                        onChange={(event) => updateTarget(event.target.value, targetTable)} />
+                    ),
+                  },
+                  {
+                    key: "table", title: "目标表",
+                    render: () => (
+                      <Input size="small" variant="outlined" aria-label="目标表"
+                        value={targetTable} disabled={!sinkId} placeholder="目标表"
+                        onChange={(event) => updateTarget(targetDatabase, event.target.value)} />
+                    ),
+                  },
+                  {
+                    key: "write", title: "写入方式",
+                    render: () => <span>UPSERT</span>,
+                  },
+                ] as TableColumns<{ id: string }>}
+              />
+              <p className="text-xs text-[var(--yak-components-muted-text)]">
+                目标表将由 CDC Pipeline 创建或调整，写入时使用来源物理主键。
+              </p>
             </ContentSection>
           </fieldset>
         </main>

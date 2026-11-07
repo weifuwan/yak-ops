@@ -1,7 +1,7 @@
 import { Button, Input, Table, type TableColumns } from "@yak-ops/yak-ui";
 import { RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
-import type { DataSyncTablePath } from "@/service/data-sync";
+import type { DataSyncTablePath } from "./table-catalog";
 import { tableKey, tablePathLabel } from "./table-catalog";
 
 export interface TransferFilters {
