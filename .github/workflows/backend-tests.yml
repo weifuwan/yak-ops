@@ -81,3 +81,52 @@ jobs:
           path: yak-ops-api/target/surefire-reports/**
           if-no-files-found: warn
           retention-days: 7
+
+  data-sync-plugin:
+    name: Data Sync Plugin Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Check if Data Sync plugin changed
+        id: changed
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          if git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^(yak-ops-task-plugin/yak-ops-task-data-sync/|yak-ops-datasource-plugin/yak-ops-datasource-api/|pom.xml$|yak-ops-bom/)'; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run Data Sync plugin unit tests
+        if: steps.changed.outputs.run_tests == 'true'
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-task-data-sync -am \
+            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require executed Data Sync plugin tests
+        if: steps.changed.outputs.run_tests == 'true'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          reports = list(Path('yak-ops-task-plugin/yak-ops-task-data-sync/target/surefire-reports').glob('TEST-*.xml'))
+          total = sum(int(ET.parse(report).getroot().attrib.get('tests', 0)) for report in reports)
+          print(f'Data Sync test reports: {len(reports)}, tests: {total}')
+          if total == 0:
+              raise SystemExit('No Data Sync plugin unit tests executed')
+          PY

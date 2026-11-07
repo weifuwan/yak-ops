@@ -1,6 +1,7 @@
 import { YAK_OPS_API_PREFIX } from "@/config/api";
 import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import HttpUtils from "@/service/http/HttpUtils";
+import type { PageInfo } from "@/service/http/page-info";
 import { BizError } from "@/service/http/request";
 import {
   fromBackendDataSource,
@@ -21,7 +22,6 @@ import type {
   DataSourceValidationError,
   DataSourceId,
   DataSourcePageParams,
-  DataSourcePageResult,
   DataSourceRecord,
   DataSourceSavePayload,
   DataSourceTablePage,
@@ -34,13 +34,6 @@ export type * from "./types";
 const GLOBAL_API = YAK_OPS_API_PREFIX + "/datasources";
 const API = () =>
   YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) + "/datasources";
-
-type BackendPage = {
-  totalList?: BackendDataSourceRecord[];
-  total?: number;
-  totalPage?: number;
-  currentPage?: number;
-};
 
 type BackendOption = { label?: string; value?: string | number; disabled?: boolean };
 const qs = (params: Record<string, string | number | undefined>) => {
@@ -60,43 +53,20 @@ export const datasourceValidationErrors = (error: unknown): DataSourceValidation
   );
 };
 
-const fetchPage = (pageNo: number, pageSize: number, keyword: string | undefined, signal?: AbortSignal) =>
-  HttpUtils.getData<BackendPage>(API() + "?" + qs({
-    pageNo, pageSize, searchVal: keyword,
-  }), { signal });
-
 export async function listDataSources(
   params: DataSourcePageParams,
   signal?: AbortSignal,
-): Promise<DataSourcePageResult> {
-  const { pageNo, pageSize, keyword, dbType } = params;
-  if (!dbType) {
-    const page = await fetchPage(pageNo, pageSize, keyword, signal);
-    return {
-      bizData: (page.totalList || []).map(fromBackendDataSource),
-      pagination: { pageNo, pageSize, total: page.total ?? 0, pages: page.totalPage },
-    };
-  }
-  // Java's paged endpoint has no type filter; filter the entire authorized result set,
-  // never just the current page (which would produce incorrect totals).
-  // Do NOT use /datasources/list?type: that endpoint returns unmasked connectionParams.
-  const rows: DataSourceRecord[] = [];
-  let current = 1;
-  const batchSize = 100;
-  while (true) {
-    const page = await fetchPage(current, batchSize, keyword, signal);
-    rows.push(...(page.totalList || []).map(fromBackendDataSource));
-    if (current * batchSize >= (page.total ?? 0) || !page.totalList?.length) break;
-    current += 1;
-  }
-  const matching = rows.filter((row) => row.dbType === dbType);
-  return {
-    bizData: matching.slice((pageNo - 1) * pageSize, pageNo * pageSize),
-    pagination: {
-      pageNo, pageSize, total: matching.length,
-      pages: Math.ceil(matching.length / pageSize),
-    },
-  };
+): Promise<PageInfo<DataSourceRecord>> {
+  const page = await HttpUtils.getData<PageInfo<BackendDataSourceRecord>>(
+    API() + "?" + qs({
+      pageNo: params.pageNo,
+      pageSize: params.pageSize,
+      searchVal: params.keyword,
+      type: params.dbType ? toBackendType(params.dbType) : undefined,
+    }),
+    { signal },
+  );
+  return { ...page, totalList: page.totalList.map(fromBackendDataSource) };
 }
 
 export async function getDataSource(id: DataSourceId, signal?: AbortSignal): Promise<DataSourceRecord> {

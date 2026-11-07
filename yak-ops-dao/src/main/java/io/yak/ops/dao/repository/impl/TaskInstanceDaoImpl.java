@@ -43,6 +43,15 @@ public class TaskInstanceDaoImpl extends BaseDao<TaskInstance, TaskInstanceMappe
     }
 
     @Override
+    public List<TaskInstance> queryLatestByTaskCodes(long projectCode, String taskType,
+                                                     List<Long> taskCodes, int[] states) {
+        if (taskCodes.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return mybatisMapper.queryLatestByTaskCodes(projectCode, taskType, taskCodes, states);
+    }
+
+    @Override
     public boolean upsertTaskInstance(TaskInstance taskInstance) {
         if (taskInstance.getId() != null) {
             return updateById(taskInstance);
@@ -179,6 +188,12 @@ public class TaskInstanceDaoImpl extends BaseDao<TaskInstance, TaskInstanceMappe
     public List<TaskInstance> queryByWorkflowInstanceIdsAndTaskCodes(List<Integer> workflowInstanceIds,
                                                                      List<Long> taskCodes) {
         return mybatisMapper.queryByWorkflowInstanceIdsAndTaskCodes(workflowInstanceIds, taskCodes);
+    }
+
+    @Override
+    public IPage<TaskInstance> queryByProjectAndTaskType(IPage<TaskInstance> page, long projectCode,
+                                                         String taskType, Long taskCode, int[] states) {
+        return mybatisMapper.queryByProjectAndTaskType(page, projectCode, taskType, taskCode, states);
     }
 
     @Override

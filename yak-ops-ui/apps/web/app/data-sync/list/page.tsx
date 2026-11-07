@@ -1,51 +1,42 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
 
+import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
-import { ScheduleDialog } from "@/app/schedule/dialog/schedule-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
-
 import { TaskFilters } from "./task-filters";
 import { TaskTable } from "./task-table";
+import { DataSyncInstanceTable } from "./instance-table";
 import { useTaskListFilters } from "./use-list-filters";
 import {
   useTaskPage,
   useListDataSources,
   useListUpdateUsers,
-  useListSchedules,
   useListInstances,
 } from "./use-list-queries";
 import { useTaskListActions, type TaskCommand } from "./use-task-actions";
-import { listQueryKeys } from "./query-keys";
 
 export function DataSyncPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const [tab, setTab] = useState<"tasks" | "instances">("tasks");
   const scope = currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
-
   const filters = useTaskListFilters();
   const page = useTaskPage(scope, filters);
   const sources = useListDataSources(scope);
   const users = useListUpdateUsers(scope, page.validRecords);
-  const schedules = useListSchedules(scope, page.validRecords);
   const instances = useListInstances(scope, page.validRecords, page.safeToAct);
   const commands = useTaskListActions(scope);
 
   const [createOpen, setCreateOpen] = useState(
     new URLSearchParams(location.search).get("create") === "1",
   );
-  const [scheduleTask, setScheduleTask] = useState<DataSyncTaskRecord>();
   const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();
-  const scheduledStatus =
-    page.validRecords.find((task) => task.id === scheduleTask?.id)?.status ?? scheduleTask?.status;
 
   const canManage = (task: DataSyncTaskRecord) =>
     page.safeToAct &&
@@ -54,9 +45,7 @@ export function DataSyncPage() {
 
   const command = (value: TaskCommand) => {
     if (!scope || commands.pending || !page.safeToAct) return;
-    if (value.kind === "schedule") {
-      if (!schedules.schedules.has(value.task.id)) return;
-    } else if (value.kind === "stop") {
+    if (value.kind === "stop") {
       if (!instances.ready || !canCancelTaskInstance(value.instance.status)) return;
     } else if (!canManage(value.task)) {
       return;
@@ -68,89 +57,89 @@ export function DataSyncPage() {
     });
   };
 
-  const refreshSchedules = () =>
-    void queryClient.invalidateQueries({ queryKey: listQueryKeys.schedules(scope) });
-
   return (
     <>
       <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
         <PageHeader title="数据同步" bordered className="bg-white px-6 max-md:px-4" />
         <div className="flex min-h-0 min-w-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-4">
-            <TaskFilters
-              filters={filters}
-              keyword={filters.keywordInput}
-              onKeywordChange={filters.setKeywordInput}
-              onFilterChange={filters.update}
-              onCreate={() => setCreateOpen(true)}
-            />
-            {page.error ? (
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
-                任务列表加载失败
-                <Button size="small" onClick={page.retry}>
-                  重试
-                </Button>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-5 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setTab("tasks")}
+                  className={tab === "tasks" ? "font-medium text-[var(--yak-color-primary)]" : ""}
+                >
+                  任务定义
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("instances")}
+                  className={
+                    tab === "instances" ? "font-medium text-[var(--yak-color-primary)]" : ""
+                  }
+                >
+                  执行实例
+                </button>
               </div>
-            ) : null}
-            {page.invalidCount > 0 ? (
-              <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
-                {page.invalidCount} 个任务配置无法解析，请查看对应行
-              </div>
-            ) : null}
-            <div className="mt-4 min-h-0 min-w-0 flex-1">
-              <TaskTable
-                records={page.records}
-                pageNo={filters.pageNo}
-                total={page.total}
-                loading={page.loading}
-                failed={page.error}
-                data={{
-                  dataSourceMap: sources.dataSourceMap,
-                  dataSourcesLoading: sources.loading,
-                  updateUserMap: users.users,
-                  updateUsersLoading: users.loading,
-                  schedules: {
-                    records: schedules.schedules,
-                    loading: schedules.loading,
-                    error: schedules.error,
-                  },
-                  latestByTask: instances.latestByTask,
-                  activeByTask: instances.activeByTask,
-                  instancesLoading: instances.loading,
-                  instancesReady: instances.ready,
-                  actionKey: commands.actionKey,
-                }}
-                actions={{
-                  configureSchedule: setScheduleTask,
-                  toggleSchedule: (task, enabled) => {
-                    const schedule = schedules.schedules.get(task.id);
-                    if (schedule) command({ kind: "schedule", task, schedule, enabled });
-                  },
-                  command,
-                  delete: (task) => {
-                    if (canManage(task)) setPendingDelete(task);
-                  },
-                  page: (pageNo) => filters.update({ pageNo }),
-                }}
-              />
             </div>
+            {tab === "tasks" ? (
+              <>
+                <TaskFilters
+                  filters={filters}
+                  keyword={filters.keywordInput}
+                  onKeywordChange={filters.setKeywordInput}
+                  onFilterChange={filters.update}
+                  onCreate={() => setCreateOpen(true)}
+                />
+                {page.error ? (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
+                    任务列表加载失败
+                    <Button size="small" onClick={page.retry}>
+                      重试
+                    </Button>
+                  </div>
+                ) : null}
+                {page.invalidCount > 0 ? (
+                  <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
+                    {page.invalidCount} 个任务配置无法解析，请查看对应行
+                  </div>
+                ) : null}
+                <div className="mt-4 min-h-0 min-w-0 flex-1">
+                  <TaskTable
+                    records={page.records}
+                    pageNo={filters.pageNo}
+                    total={page.total}
+                    loading={page.loading}
+                    failed={page.error}
+                    data={{
+                      dataSourceMap: sources.dataSourceMap,
+                      dataSourcesLoading: sources.loading,
+                      updateUserMap: users.users,
+                      updateUsersLoading: users.loading,
+                      latestByTask: instances.latestByTask,
+                      activeByTask: instances.activeByTask,
+                      instancesLoading: instances.loading,
+                      instancesReady: instances.ready,
+                      actionKey: commands.actionKey,
+                    }}
+                    actions={{
+                      command,
+                      delete: (task) => {
+                        if (canManage(task)) setPendingDelete(task);
+                      },
+                      page: (pageNo) => filters.update({ pageNo }),
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <DataSyncInstanceTable scope={scope} />
+            )}
           </div>
         </div>
       </div>
-      {scheduleTask ? (
-        <ScheduleDialog
-          targetId={scheduleTask.id}
-          published={scheduledStatus === "PUBLISHED"}
-          open
-          onClose={() => setScheduleTask(undefined)}
-          onChanged={refreshSchedules}
-          onViewInstance={(id) =>
-            navigate(
-              "/data-sync/" + scheduleTask.id + "/detail?executionId=" + encodeURIComponent(id),
-            )
-          }
-        />
-      ) : null}
+
       {createOpen ? (
         <CreateSyncTaskDialog
           onClose={() => {
@@ -163,6 +152,7 @@ export function DataSyncPage() {
           }}
         />
       ) : null}
+
       <Modal
         open={Boolean(pendingDelete)}
         centered
@@ -185,9 +175,8 @@ export function DataSyncPage() {
               variant="danger"
               loading={commands.actionKey === (pendingDelete?.id || "") + ":delete"}
               onClick={() => {
-                if (pendingDelete && canManage(pendingDelete)) {
+                if (pendingDelete && canManage(pendingDelete))
                   command({ kind: "delete", task: pendingDelete });
-                }
               }}
             >
               删除

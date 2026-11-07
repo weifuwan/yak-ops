@@ -5,20 +5,21 @@
   color: #667085;
 }
 
-.sync-execution-status[data-status="FINISHED"] {
+.sync-execution-status[data-status="SUCCESS"],
+.sync-execution-status[data-status="FORCED_SUCCESS"] {
   color: #32b52c;
 }
 
-.sync-execution-status[data-status="FAILED"] {
+.sync-execution-status[data-status="FAILURE"] {
   color: #d92d20;
 }
 
-.sync-execution-status[data-status="RUNNING"] {
+.sync-execution-status[data-status="RUNNING_EXECUTION"] {
   color: var(--yak-color-primary);
 }
 
-.sync-execution-status[data-status="CANCELLING"],
-.sync-execution-status[data-status="RECONCILING"] {
+.sync-execution-status[data-status="DELAY_EXECUTION"],
+.sync-execution-status[data-status="NEED_FAULT_TOLERANCE"] {
   color: #b54708;
 }
 

@@ -1,13 +1,15 @@
 /** Public Task Execution responses from the Boot API. */
 export type TaskInstanceStatus =
-  | "SUBMITTED"
-  | "LAUNCHING"
-  | "RUNNING"
-  | "CANCELLING"
-  | "RECONCILING"
-  | "FINISHED"
-  | "FAILED"
-  | "CANCELED";
+  | "SUBMITTED_SUCCESS"
+  | "DISPATCH"
+  | "RUNNING_EXECUTION"
+  | "DELAY_EXECUTION"
+  | "NEED_FAULT_TOLERANCE"
+  | "SUCCESS"
+  | "FORCED_SUCCESS"
+  | "FAILURE"
+  | "PAUSE"
+  | "KILL";
 
 export interface TaskSubmissionResult {
   instanceId: string;
@@ -20,9 +22,10 @@ export interface TaskInstanceRecord {
   id: string;
   definitionId: string;
   definitionVersion: number;
-  debug: boolean;
+  workflowInstanceId?: number;
+  debug?: boolean;
   taskType: string;
-  triggerType: "MANUAL" | "SCHEDULE" | "WORKFLOW";
+  triggerType?: string;
   scheduleId?: string | null;
   scheduleRevision?: number | null;
   scheduledTime?: string | null;
@@ -48,10 +51,10 @@ export interface TaskInstanceDefinitionRecord {
   version: number;
   name: string;
   taskType: string;
-  parameterSchemaVersion: number;
   parameters: Record<string, unknown>;
 }
 
+/** Legacy task-execution API page contract; DataSync and DataSource use PageInfo instead. */
 export interface TaskInstancePageResult {
   bizData: TaskInstanceRecord[];
   pagination: {

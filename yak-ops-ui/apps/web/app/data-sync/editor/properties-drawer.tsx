@@ -1,34 +1,26 @@
 import { useState } from "react";
 import { Button, Field, FieldError, FieldLabel, Input, Textarea } from "@yak-ops/yak-ui";
-import type { DataSyncDraft } from "@/service/data-sync";
-import { syncSummary } from "../solution/presentation";
 import { EditorDrawer } from "./editor-drawer";
-import type { EditorForm } from "./types";
 
-type Properties = Pick<EditorForm, "name" | "remark">;
+export interface TaskProperties {
+  name: string;
+  remark: string;
+}
 
 export function PropertiesDrawer({
-  id,
-  draft,
-  value,
-  open,
-  onApply,
-  onClose,
-  onClosed,
-  onDirtyChange,
+  id, value, open, onApply, onClose, onClosed, onDirtyChange,
 }: {
   id?: string;
-  draft: DataSyncDraft;
-  value: Properties;
+  value: TaskProperties;
   open: boolean;
-  onApply: (value: Properties) => void;
+  onApply: (value: TaskProperties) => void;
   onClose: () => void;
   onClosed: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const [form, setForm] = useState(value);
   const [error, setError] = useState("");
-  const change = (next: Properties) => {
+  const change = (next: TaskProperties) => {
     setForm(next);
     setError("");
     onDirtyChange(next.name !== value.name || next.remark !== value.remark);
@@ -41,63 +33,34 @@ export function PropertiesDrawer({
     onApply({ name: form.name.trim(), remark: form.remark.trim() });
   };
   return (
-    <EditorDrawer
-      title="属性"
-      width={480}
-      open={open}
-      onClose={onClose}
-      onClosed={onClosed}
+    <EditorDrawer title="属性" width={480} open={open} onClose={onClose} onClosed={onClosed}
       footer={
         <>
-          <Button size="small" variant="primary" onClick={apply}>
-            确认
-          </Button>
-          <Button size="small" onClick={onClose}>
-            取消
-          </Button>
+          <Button size="small" variant="primary" onClick={apply}>确认</Button>
+          <Button size="small" onClick={onClose}>取消</Button>
         </>
-      }
-    >
+      }>
       <div className="space-y-5">
-        <Field
-          invalid={Boolean(error)}
-          className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
-        >
-          <FieldLabel required className="pt-1.5">
-            任务名称
-          </FieldLabel>
+        <Field invalid={Boolean(error)} className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
+          <FieldLabel required className="pt-1.5">任务名称</FieldLabel>
           <div>
-            <Input
-              aria-label="任务名称"
-              autoFocus
-              size="small"
-              variant="outlined"
-              maxLength={128}
-              value={form.name}
-              onChange={(event) => change({ ...form, name: event.target.value })}
-            />
+            <Input aria-label="任务名称" autoFocus size="small" variant="outlined"
+              maxLength={128} value={form.name}
+              onChange={(event) => change({ ...form, name: event.target.value })} />
             {error ? <FieldError match>{error}</FieldError> : null}
           </div>
         </Field>
         <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 text-sm">
-          <span>同步方案</span>
-          <span>{syncSummary(draft.productType, draft.steps)}</span>
+          <span>同步方案</span><span>MySQL 实时同步</span>
         </div>
         <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 text-sm">
-          <span>任务 ID</span>
-          <span className="break-all">{id || "保存后生成"}</span>
+          <span>任务 ID</span><span className="break-all">{id || "保存后生成"}</span>
         </div>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
           <FieldLabel className="pt-1.5">备注</FieldLabel>
-          <Textarea
-            aria-label="备注"
-            variant="outlined"
-            size="small"
-            rows={4}
-            maxLength={500}
-            value={form.remark}
-            onValueChange={(remark) => change({ ...form, remark })}
-          />
+          <Textarea aria-label="备注" variant="outlined" size="small" rows={4}
+            maxLength={500} value={form.remark}
+            onValueChange={(remark) => change({ ...form, remark })} />
         </Field>
       </div>
     </EditorDrawer>

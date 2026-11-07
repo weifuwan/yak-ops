@@ -16,6 +16,9 @@
         FROM t_yak_ops_datasource d
         JOIN t_yak_ops_user u ON d.user_id = u.id
         WHERE d.project_code = #{projectCode}
+        <if test="type != null">
+            AND d.type = #{type}
+        </if>
         <if test="name != null and name != ''">
             AND d.name LIKE CONCAT('%', #{name}, '%')
         </if>

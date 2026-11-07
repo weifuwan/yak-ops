@@ -1,151 +1,104 @@
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import {
-  Alert,
-  Button,
-  Field,
-  FieldLabel,
-  Input,
-  Tabs,
-  TabsList,
-  TabsPanel,
-  TabsTab,
-  Textarea,
+  Alert, Button, Field, FieldLabel, Input, Switch, Tabs, TabsList,
+  TabsPanel, TabsTab, Textarea,
 } from "@yak-ops/yak-ui";
-import type { DataSyncSolution } from "@/service/data-sync";
-import type { ScheduleTimeRule } from "@/service/schedule";
-import { parameterFingerprint } from "@/service/data-sync/versions";
-import { findStepCombination } from "../solution/presentation";
-import { EditorDrawer } from "./editor-drawer";
 import {
-  changeReadStrategy,
-  editableEngineOptions,
-  parseEngineOptions,
-  type EditorConfiguration,
-} from "./configuration";
-import { StrategySection } from "./strategy-section";
-import { RunConfigurationSection } from "./run-configuration-section";
-import { DdlConfiguration } from "./ddl-configuration";
-import { StartupFields, startupConfigurationError } from "./startup-fields";
-import type { EditorScheduleSection } from "./schedule-section";
+  setPipelineOption, setSchemaChangeBehavior,
+  type PipelineDefinition,
+} from "@/service/data-sync/native-pipeline";
+import { EditorDrawer } from "./editor-drawer";
 
-export type AdvancedTab = "parameters" | "ddl" | "engine";
-export type AdvancedParameterTab = "read" | "write" | "runtime";
+type AdvancedTab = "parameters" | "ddl" | "engine";
+type ParameterTab = "read" | "write" | "runtime";
+const EDITABLE_KEYS = [
+  "parallelism", "local-time-zone", "schema.operator.uid", "route-mode",
+  "transform.decimal.precision.mode",
+];
 
 export function AdvancedDrawer({
-  value,
-  solution,
-  strategyDisabled,
-  initialTab = "parameters",
-  initialParameterTab = "read",
-  schedule,
-  open,
-  onApply,
-  onClose,
-  onClosed,
-  onDirtyChange,
+  value, open, onApply, onClose, onClosed, onDirtyChange,
 }: {
-  value: EditorConfiguration;
-  solution?: DataSyncSolution;
-  strategyDisabled: boolean;
-  initialTab?: AdvancedTab;
-  initialParameterTab?: AdvancedParameterTab;
-  schedule?: ComponentProps<typeof EditorScheduleSection>;
+  value: PipelineDefinition;
   open: boolean;
-  onApply: (value: EditorConfiguration, scheduleForm?: ScheduleTimeRule) => void;
+  onApply: (next: PipelineDefinition) => void;
   onClose: () => void;
   onClosed: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
-  const [configuration, setConfiguration] = useState(() => structuredClone(value));
-  const [scheduleForm, setScheduleForm] = useState(schedule?.scheduleForm);
-  const [tab, setTab] = useState<AdvancedTab>(initialTab);
-  const [parameterTab, setParameterTab] = useState<AdvancedParameterTab>(initialParameterTab);
-  const [engineText, setEngineText] = useState(() =>
-    JSON.stringify(editableEngineOptions(value.form.pipelineOptions), null, 2),
-  );
+  const [definition, setDefinition] = useState<PipelineDefinition>(() => structuredClone(value));
+  const [tab, setTab] = useState<AdvancedTab>("parameters");
+  const [parameterTab, setParameterTab] = useState<ParameterTab>("read");
   const [error, setError] = useState("");
-  const { draft, form, mappings } = configuration;
-  const replication = draft.productType === "DATABASE_REPLICATION";
-  const continuous = replication && draft.steps.includes("INCREMENTAL");
-  const combination = findStepCombination(solution, draft.steps);
-  const update = (next: EditorConfiguration) => {
-    if (next.form.pipelineOptions?.["schema.change.behavior"] !== undefined)
-      next = {
-        ...next,
-        form: {
-          ...next.form,
-          pipelineOptions: {
-            ...next.form.pipelineOptions,
-            "schema.change.behavior": next.form.sink.schemaChangesEnabled ? "evolve" : "exception",
-          },
-        },
-      };
-    setConfiguration(next);
-    setEngineText(JSON.stringify(editableEngineOptions(next.form.pipelineOptions), null, 2));
+  const [engineText, setEngineText] = useState(() => JSON.stringify(
+    Object.fromEntries(Object.entries(value.pipeline).filter(([key]) => EDITABLE_KEYS.includes(key))),
+    null, 2,
+  ));
+
+  const update = (next: PipelineDefinition) => {
+    setDefinition(next);
     setError("");
-    onDirtyChange(
-      parameterFingerprint(next) !== parameterFingerprint(value) ||
-        parameterFingerprint(scheduleForm) !== parameterFingerprint(schedule?.scheduleForm),
-    );
+    onDirtyChange(JSON.stringify(next) !== JSON.stringify(value));
+  };
+  const changeEngineInput = (key: "parallelism" | "local-time-zone", raw: string) => {
+    try {
+      const options: unknown = JSON.parse(engineText || "{}");
+      if (!options || typeof options !== "object" || Array.isArray(options)) {
+        throw new Error("请先修正引擎参数 JSON");
+      }
+      const values = { ...options } as Record<string, unknown>;
+      if (raw) values[key] = raw;
+      else delete values[key];
+      update(setPipelineOption(definition, key, raw || undefined));
+      setEngineText(JSON.stringify(values, null, 2));
+    } catch {
+      setTab("engine");
+      setError("请先修正引擎参数 JSON，再修改运行时配置");
+    }
   };
   const parseEngine = () => {
-    try {
-      return parseEngineOptions(engineText, form.sink.schemaChangesEnabled);
-    } catch (failure) {
-      setError(
-        failure instanceof SyntaxError
-          ? "请输入有效的 JSON 引擎参数"
-          : failure instanceof Error
-            ? failure.message
-            : "引擎参数无效",
-      );
-      return undefined;
+    const options: unknown = JSON.parse(engineText);
+    if (!options || typeof options !== "object" || Array.isArray(options))
+      throw new Error("引擎参数必须是 JSON 对象");
+    for (const key of Object.keys(options)) {
+      if (!EDITABLE_KEYS.includes(key)) throw new Error("不支持修改此参数：" + key);
+      if (key !== "parallelism" && typeof (options as Record<string, unknown>)[key] !== "string") {
+        throw new Error(key + " 必须是字符串");
+      }
     }
+    const next = structuredClone(definition);
+    for (const key of EDITABLE_KEYS) delete next.pipeline[key];
+    Object.assign(next.pipeline, options);
+    const count = next.pipeline.parallelism;
+    if (count !== undefined && (!/^\d+$/.test(String(count)) ||
+        Number(count) < 1 || Number(count) > 128)) {
+      throw new Error("并行度必须在 1 到 128 之间");
+    }
+    if (next.pipeline["local-time-zone"] !== undefined &&
+        typeof next.pipeline["local-time-zone"] !== "string") {
+      throw new Error("运行时区必须是字符串");
+    }
+    return next;
   };
   const apply = () => {
-    const pipelineOptions = parseEngine();
-    if (!pipelineOptions) {
+    try {
+      const next = parseEngine();
+      onApply(next);
+    } catch (failure) {
       setTab("engine");
-      return;
+      setError(failure instanceof Error ? failure.message : "引擎参数无效");
     }
-    const startupError = startupConfigurationError(form.startup);
-    if (startupError) {
-      setTab("parameters");
-      setParameterTab("read");
-      setError(startupError);
-      return;
-    }
-    onApply({ ...configuration, form: { ...form, pipelineOptions } }, scheduleForm);
   };
+
   return (
-    <EditorDrawer
-      open={open}
-      onClosed={onClosed}
-      title="高级配置"
-      width={800}
-      onClose={onClose}
-      footer={
+    <EditorDrawer open={open} onClosed={onClosed} title="高级配置" width={800}
+      onClose={onClose} footer={
         <>
-          <Button size="small" variant="primary" onClick={apply}>
-            确认
-          </Button>
-          <Button size="small" onClick={onClose}>
-            取消
-          </Button>
+          <Button size="small" variant="primary" onClick={apply}>确认</Button>
+          <Button size="small" onClick={onClose}>取消</Button>
         </>
-      }
-    >
-      <Tabs
-        value={tab}
-        onValueChange={(next) => {
-          if (tab === "engine") {
-            const parsed = parseEngine();
-            if (!parsed) return;
-            update({ ...configuration, form: { ...form, pipelineOptions: parsed } });
-          }
-          setTab(next as AdvancedTab);
-        }}
-      >
+      }>
+      <Tabs value={tab} onValueChange={(next) => setTab(next as AdvancedTab)}>
         <TabsList>
           <TabsTab value="parameters">高级参数</TabsTab>
           <TabsTab value="ddl">表结构同步</TabsTab>
@@ -153,131 +106,68 @@ export function AdvancedDrawer({
         </TabsList>
         {error ? <Alert className="mt-4">{error}</Alert> : null}
         <TabsPanel value="parameters" className="pt-5">
-          <Tabs
-            value={parameterTab}
-            onValueChange={(next) => setParameterTab(next as AdvancedParameterTab)}
-          >
+          <Tabs value={parameterTab} onValueChange={(next) => setParameterTab(next as ParameterTab)}>
             <TabsList>
               <TabsTab value="read">读端配置</TabsTab>
               <TabsTab value="write">写端配置</TabsTab>
               <TabsTab value="runtime">运行时配置</TabsTab>
             </TabsList>
             <TabsPanel value="read" className="space-y-5 pt-4">
-              <StrategySection
-                draft={draft}
-                solution={solution}
-                disabled={
-                  strategyDisabled || mappings.some((mapping) => mapping.writeMode === "RETRACT")
-                }
-                startupMode={form.startup?.mode}
-                onChange={(steps) => update(changeReadStrategy(configuration, steps, solution))}
-              />
-              {continuous ? (
-                <StartupFields
-                  value={form.startup}
-                  initialLoad={draft.steps.includes("FULL")}
-                  onChange={(startup) => update({ ...configuration, form: { ...form, startup } })}
-                />
-              ) : null}
+              <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
+                <FieldLabel>读取策略</FieldLabel>
+                <span className="text-sm">全量后持续增量</span>
+              </Field>
+              <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
+                <FieldLabel>启动位置</FieldLabel>
+                <span className="text-sm">INITIAL</span>
+              </Field>
             </TabsPanel>
             <TabsPanel value="write" className="pt-5">
               <p className="text-sm text-[var(--yak-components-muted-text)]">
-                {replication
-                  ? "写入方式和主键在目标表映射中设置。"
-                  : "主键冲突策略和写入参数在数据去向中设置。"}
+                当前 JDBC Sink 按来源主键执行 UPSERT；不支持自定义目标主键和 SQL Hooks。
               </p>
             </TabsPanel>
             <TabsPanel value="runtime" className="space-y-5 pt-4">
               <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel>并行度</FieldLabel>
-                <Input
-                  aria-label="并行度"
-                  size="small"
-                  variant="outlined"
-                  inputMode="numeric"
-                  value={form.pipelineOptions?.parallelism ?? ""}
-                  placeholder="默认"
-                  onChange={(event) =>
-                    update({
-                      ...configuration,
-                      form: {
-                        ...form,
-                        pipelineOptions: {
-                          ...editableEngineOptions(form.pipelineOptions),
-                          parallelism: event.target.value || undefined,
-                        },
-                      },
-                    })
-                  }
-                />
+                <Input size="small" variant="outlined" aria-label="并行度" inputMode="numeric"
+                  value={definition.pipeline.parallelism === undefined ? "" : String(definition.pipeline.parallelism)}
+                  onChange={(event) => changeEngineInput("parallelism", event.target.value)} />
               </Field>
               <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel>时区</FieldLabel>
-                <Input
-                  aria-label="运行时区"
-                  size="small"
-                  variant="outlined"
-                  value={form.pipelineOptions?.["local-time-zone"] || ""}
-                  placeholder="默认"
-                  onChange={(event) =>
-                    update({
-                      ...configuration,
-                      form: {
-                        ...form,
-                        pipelineOptions: {
-                          ...editableEngineOptions(form.pipelineOptions),
-                          "local-time-zone": event.target.value || undefined,
-                        },
-                      },
-                    })
-                  }
-                />
+                <Input size="small" variant="outlined" aria-label="运行时区"
+                  value={String(definition.pipeline["local-time-zone"] || "")}
+                  onChange={(event) => changeEngineInput("local-time-zone", event.target.value)} />
               </Field>
-              <RunConfigurationSection
-                replication={replication}
-                continuous={continuous}
-                debug={form.debug}
-                onDebugChange={(debug) => update({ ...configuration, form: { ...form, debug } })}
-                schedule={
-                  schedule && scheduleForm
-                    ? {
-                        ...schedule,
-                        scheduleForm,
-                        applicable: Boolean(combination?.supportsScheduling),
-                        onChange: (next) => {
-                          setScheduleForm(next);
-                          onDirtyChange(
-                            parameterFingerprint(configuration) !== parameterFingerprint(value) ||
-                              parameterFingerprint(next) !==
-                                parameterFingerprint(schedule.scheduleForm),
-                          );
-                        },
-                      }
-                    : undefined
-                }
-              />
+              <p className="text-xs text-[var(--yak-components-muted-text)]">
+                当前实时同步无需 Cron 调度，启动与停止由工作流执行接口管理。
+              </p>
             </TabsPanel>
           </Tabs>
         </TabsPanel>
-        <TabsPanel value="ddl" className="pt-5">
-          <DdlConfiguration value={configuration} solution={solution} onChange={update} />
-        </TabsPanel>
-        <TabsPanel value="engine" className="pt-5">
-          <Field>
-            <FieldLabel>引擎参数 JSON</FieldLabel>
-            <Textarea
-              aria-label="引擎参数 JSON"
-              variant="outlined"
-              className="min-h-[420px] font-mono text-xs"
-              spellCheck={false}
-              value={engineText}
-              onValueChange={(content) => {
-                setEngineText(content);
-                setError("");
-                onDirtyChange(true);
-              }}
-            />
+        <TabsPanel value="ddl" className="space-y-5 pt-5">
+          <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
+            <FieldLabel>目标表初始化</FieldLabel>
+            <span className="text-sm">创建或调整目标表</span>
           </Field>
+          <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
+            <FieldLabel>同步结构变更</FieldLabel>
+            <Switch size="small" aria-label="同步结构变更"
+              checked={definition.pipeline["schema.change.behavior"] === "evolve"}
+              onCheckedChange={(enabled) => update(setSchemaChangeBehavior(definition, enabled))} />
+          </Field>
+          <p className="text-xs text-[var(--yak-components-muted-text)]">
+            当前 Runtime 始终禁止删除目标字段，不能更改此安全策略。
+          </p>
+        </TabsPanel>
+        <TabsPanel value="engine" className="space-y-3 pt-5">
+          <p className="text-xs text-[var(--yak-components-muted-text)]">
+            直接编辑原生 Pipeline 运行参数；固定运行模式及只读 Connector 配置不会被重写。
+          </p>
+          <Textarea aria-label="Pipeline 引擎参数" variant="outlined" rows={12}
+            value={engineText}
+            onValueChange={(next) => { setEngineText(next); setError(""); onDirtyChange(true); }} />
         </TabsPanel>
       </Tabs>
     </EditorDrawer>

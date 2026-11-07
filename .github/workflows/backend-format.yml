@@ -44,7 +44,7 @@ jobs:
         run: |
           mapfile -t modules < <(find yak-ops-cdc -type f -name pom.xml \
             | sed 's@/pom.xml$@@' | sort)
-          module_csv="yak-ops-api,$(IFS=,; echo "${modules[*]}")"
+          module_csv="yak-ops-api,yak-ops-task-plugin/yak-ops-task-data-sync,$(IFS=,; echo "${modules[*]}")"
           # No -am: only format API and CDC; their Maven dependencies
           # do not become additional formatting targets.
           mvn -B -ntp -T 2 -pl "$module_csv" spotless:check

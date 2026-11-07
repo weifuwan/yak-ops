@@ -21,7 +21,7 @@ public interface DataSourceService {
     BaseDataSourceParamDTO queryDataSource(User loginUser, long projectCode, int id);
 
     PageInfo<DataSource> queryDataSourceListPaging(User loginUser, long projectCode,
-                                                   String searchVal, Integer pageNo, Integer pageSize);
+                                                   String searchVal, Integer pageNo, Integer pageSize, Integer type);
 
     List<DataSource> queryDataSourceList(User loginUser, long projectCode, Integer type);
 

@@ -8,6 +8,8 @@ public interface WorkflowTaskRelationDao extends IDao<WorkflowTaskRelation> {
 
     List<WorkflowTaskRelation> queryByWorkflowDefinitionCode(long workflowDefinitionCode);
 
+    List<WorkflowTaskRelation> queryByTaskCode(long taskCode);
+
     int batchInsert(List<WorkflowTaskRelation> taskRelationList);
 
     List<WorkflowTaskRelation> queryUpstreamByCode(long projectCode, long taskCode);

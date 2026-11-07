@@ -11,6 +11,12 @@
     <artifactId>yak-ops-task-all</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-task-data-sync</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>io.yak.ops</groupId>

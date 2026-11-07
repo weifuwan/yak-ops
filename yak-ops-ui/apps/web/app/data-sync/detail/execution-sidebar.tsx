@@ -15,27 +15,29 @@ import {
   dataSyncTriggerText,
   dataSyncDurationText,
 } from "../execution/execution-detail";
-import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
+import type { DataSyncInstanceSummary, DataSyncInstanceStatus } from "@/service/data-sync";
 
 const PAGE_SIZE = 20;
 
 export const INSTANCE_STATUS_ITEMS: Record<DataSyncInstanceStatus | "ALL", string> = {
   ALL: "全部状态",
-  SUBMITTED: "等待",
-  LAUNCHING: "启动中",
-  RUNNING: "运行中",
-  CANCELLING: "正在停止",
-  RECONCILING: "待确认",
-  FINISHED: "成功",
-  FAILED: "失败",
-  CANCELED: "已停止",
+  SUBMITTED_SUCCESS: "等待",
+  DISPATCH: "派发中",
+  RUNNING_EXECUTION: "运行中",
+  DELAY_EXECUTION: "延迟执行",
+  NEED_FAULT_TOLERANCE: "待容错",
+  SUCCESS: "成功",
+  FORCED_SUCCESS: "强制成功",
+  FAILURE: "失败",
+  PAUSE: "已暂停",
+  KILL: "已停止",
 };
 
 interface Props {
   realtime: boolean;
   status: DataSyncInstanceStatus | "ALL";
   onStatusChange: (value: DataSyncInstanceStatus | "ALL") => void;
-  instances: DataSyncInstanceRecord[];
+  instances: DataSyncInstanceSummary[];
   instancesLoading: boolean;
   listError: boolean;
   selectedId: string | null;
@@ -60,7 +62,7 @@ export function ExecutionSidebar({
   onPageChange,
   onRefresh,
 }: Props) {
-  const statusItems = { ...INSTANCE_STATUS_ITEMS, CANCELED: realtime ? "已停止" : "已取消" };
+  const statusItems = { ...INSTANCE_STATUS_ITEMS, KILL: realtime ? "已停止" : "已取消" };
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const executionId = selectedId;
   const selectInstance = onSelect;

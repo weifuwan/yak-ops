@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 @ExtendWith(MockitoExtension.class)
 public class DataSourceServiceTest {
@@ -218,6 +219,25 @@ public class DataSourceServiceTest {
             assertThrowsServiceException(Status.DATASOURCE_EXIST,
                     () -> dataSourceService.updateDataSource(loginUser, postgreSqlDatasourceParam));
         }
+    }
+
+    @Test
+    public void testProjectPagingFiltersTypeInDatabase() {
+        User user = getAdminUser();
+        Page<DataSource> databasePage = new Page<>(2, 10);
+        databasePage.setTotal(24);
+        databasePage.setRecords(Collections.emptyList());
+        when(dataSourceDao.queryByProjectCode(Mockito.any(), Mockito.eq(PROJECT_CODE),
+                Mockito.eq("orders"), Mockito.eq(DbType.MYSQL.getCode()))).thenReturn(databasePage);
+
+        PageInfo<DataSource> result = dataSourceService.queryDataSourceListPaging(
+                user, PROJECT_CODE, "orders", 2, 10, DbType.MYSQL.getCode());
+
+        Assertions.assertEquals(24, result.getTotal());
+        Assertions.assertEquals(2, result.getCurrentPage());
+        Assertions.assertEquals(10, result.getPageNo());
+        Assertions.assertEquals(3, result.getTotalPage());
+        Mockito.verify(projectService).checkProjectAndAuthThrowException(user, PROJECT_CODE, null);
     }
 
     @Test

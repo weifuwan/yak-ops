@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   getDataSyncInstance,
   listDataSyncInstances,
-  type DataSyncInstanceRecord,
+  type DataSyncInstanceSummary,
   type DataSyncInstanceStatus,
 } from "@/service/data-sync";
 import type { TaskInstanceRecord } from "@/service/task-execution";
@@ -13,7 +13,7 @@ import { detailQueryKeys } from "./query-keys";
 
 const PAGE_SIZE = 20;
 const POLL_MILLIS = 2000;
-const EMPTY: DataSyncInstanceRecord[] = [];
+const EMPTY: DataSyncInstanceSummary[] = [];
 
 export function useExecutionHistory(
   scope: string,
@@ -44,12 +44,12 @@ export function useExecutionHistory(
       autoRefresh &&
       (Boolean(activeInstance) ||
         hasEnabledSchedule ||
-        Boolean(query.state.data?.bizData.some(isActiveDataSyncInstance)))
+        Boolean(query.state.data?.totalList.some(isActiveDataSyncInstance)))
         ? POLL_MILLIS
         : false,
   });
-  const instances = instancesQuery.data?.bizData ?? EMPTY;
-  const total = instancesQuery.data?.pagination.total ?? 0;
+  const instances = instancesQuery.data?.totalList ?? EMPTY;
+  const total = instancesQuery.data?.total ?? 0;
   const instancesLoading = instancesQuery.isPending;
   const selectedQuery = useQuery({
     queryKey: detailQueryKeys.instance(scope, taskId || "", executionId || ""),

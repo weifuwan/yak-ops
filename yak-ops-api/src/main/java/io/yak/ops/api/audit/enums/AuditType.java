@@ -11,6 +11,7 @@ import static io.yak.ops.api.audit.constants.AuditLogConstants.ID;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.NAME;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.PRIORITY;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.QUEUE_ID;
+import static io.yak.ops.api.audit.constants.AuditLogConstants.TASK_CODE;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.TYPE;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.USER_ID;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.VERSION;
@@ -129,6 +130,12 @@ public enum AuditType {
     TASK_START(TASK, START, TaskAuditOperatorImpl.class, new String[]{CODE}, new String[]{}),
     TASK_INSTANCE_FORCE_SUCCESS(TASK_INSTANCE, FORCE_SUCCESS, TaskInstancesAuditOperatorImpl.class, new String[]{ID},
             new String[]{}),
+
+    DATA_SYNC_CREATE(TASK, CREATE, TaskAuditOperatorImpl.class, new String[]{}, new String[]{ID}),
+    DATA_SYNC_UPDATE(TASK, UPDATE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_DELETE(TASK, DELETE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_PUBLISH(TASK, ONLINE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
+    DATA_SYNC_UNPUBLISH(TASK, OFFLINE, TaskAuditOperatorImpl.class, new String[]{TASK_CODE}, new String[]{}),
 
     SCHEDULE_CREATE(SCHEDULE, CREATE, ScheduleAuditOperatorImpl.class,
             new String[]{AuditLogConstants.WORKFLOW_DEFINITION_CODE},

@@ -1,74 +1,61 @@
 import HttpUtils from "@/service/http/HttpUtils";
+import type { PageInfo } from "@/service/http/page-info";
 import { BizError } from "@/service/http/request";
-import { connectorChoices, type PipelineConnectorPair } from "./connectors";
-import {
-  cancelTaskInstance,
-  createTaskRunIdempotencyKey,
-  getTaskInstance,
-  getTaskInstanceDefinition,
-  listTaskInstances,
-  submitTaskInstance,
-  type TaskInstanceRecord,
-  type TaskInstanceDefinitionRecord,
-  type TaskInstanceStatus,
-  type TaskSubmissionResult,
-} from "@/service/task-execution";
-
-import { toDataSyncInstanceRecord } from "./execution";
+import type {
+  TaskInstanceRecord,
+  TaskSubmissionResult,
+  TaskInstanceDefinitionRecord,
+} from "@/service/task-execution/types";
 
 import {
-  createDefinitionRequest,
-  definitionPageRequest,
   projectSyncTaskPage,
   toSyncTaskRecord,
-  updateDefinitionRequest,
 } from "./definition";
-
+import { toDataSyncInstanceRecord } from "./execution";
+import { YAK_OPS_API_PREFIX } from "@/config/api";
+import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type {
-  DataSyncSolution,
   DataSyncInstancePageParams,
-  DataSyncInstancePageResult,
   DataSyncInstanceRecord,
+  DataSyncInstanceSummary,
   DataSyncTaskPageParams,
-  DataSyncTaskPageResult,
+  DataSyncTaskListRecord,
   DataSyncTaskRecord,
-  DataSyncTaskSavePayload,
-  DataSyncTaskUpdatePayload,
-  TaskDefinitionPageResult,
   TaskDefinitionRecord,
-  TaskParameterVersion,
-  TaskParameterVersionSummary,
-  TaskPublicationRecord,
-  TaskVersionPage,
+  TaskDefinitionVersion,
+  TaskDefinitionVersionSummary,
   PublishTaskRequest,
 } from "./types";
 
 export type * from "./types";
 
-const TASK_DEFINITION_API_PREFIX = "/api/v1/task-definitions";
+const qp = (params: Record<string, string | number | boolean | undefined>) => {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  return search.toString();
+};
+
+const url = (path: string) =>
+  YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) + "/data-sync" + path;
 
 export const isRejectedTaskWrite = (failure: unknown) => failure instanceof BizError;
-
-export const listDataSyncSolutions = async (
-  sourceType: string,
-  targetType: string,
-  signal?: AbortSignal,
-): Promise<DataSyncSolution[]> => {
-  const query = new URLSearchParams({ sourceType, targetType });
-  return connectorChoices(
-    await HttpUtils.getData<PipelineConnectorPair[]>(`/api/v1/data-sync/connectors?${query}`, {
-      signal,
-    }),
-  );
-};
 
 export const listDataSyncTasks = async (
   params: DataSyncTaskPageParams,
   signal?: AbortSignal,
-): Promise<DataSyncTaskPageResult> => {
-  const page = await HttpUtils.postData<TaskDefinitionPageResult>(
-    `${TASK_DEFINITION_API_PREFIX}/page`,
-    definitionPageRequest(params),
+): Promise<PageInfo<DataSyncTaskListRecord>> => {
+  const page = await HttpUtils.getData<PageInfo<TaskDefinitionRecord>>(
+    url(
+      "/tasks?" +
+        qp({
+          pageNo: params.pageNo,
+          pageSize: params.pageSize,
+          keyword: params.keyword,
+          status: params.status,
+        }),
+    ),
     { signal },
   );
   return projectSyncTaskPage(page);
@@ -77,42 +64,15 @@ export const listDataSyncTasks = async (
 export const getDataSyncTask = async (
   id: string,
   signal?: AbortSignal,
-): Promise<DataSyncTaskRecord> => {
-  const definition = await HttpUtils.getData<TaskDefinitionRecord>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}`,
-    { signal },
+): Promise<DataSyncTaskRecord> =>
+  toSyncTaskRecord(
+    await HttpUtils.getData<TaskDefinitionRecord>(url("/tasks/" + encodeURIComponent(id)), {
+      signal,
+    }),
   );
-  return toSyncTaskRecord(definition);
-};
 
-export const createDataSyncTask = async (
-  payload: DataSyncTaskSavePayload,
-  signal?: AbortSignal,
-): Promise<DataSyncTaskRecord> => {
-  const definition = await HttpUtils.postData<TaskDefinitionRecord>(
-    TASK_DEFINITION_API_PREFIX,
-    createDefinitionRequest(payload),
-    { signal },
-  );
-  return toSyncTaskRecord(definition);
-};
-
-export const updateDataSyncTask = async (
-  id: string,
-  payload: DataSyncTaskUpdatePayload,
-  expectedRevision: number,
-  signal?: AbortSignal,
-): Promise<DataSyncTaskRecord> => {
-  const definition = await HttpUtils.putData<TaskDefinitionRecord>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}`,
-    updateDefinitionRequest(payload, expectedRevision),
-    { signal },
-  );
-  return toSyncTaskRecord(definition);
-};
-
-export const deleteDataSyncTask = async (id: string): Promise<void> => {
-  await HttpUtils.deleteData<boolean>(`${TASK_DEFINITION_API_PREFIX}/${id}`);
+export const deleteDataSyncTask = async (id: string) => {
+  await HttpUtils.deleteData<void>(url("/tasks/" + encodeURIComponent(id)));
 };
 
 export const publishDataSyncTask = async (
@@ -120,100 +80,167 @@ export const publishDataSyncTask = async (
   payload: PublishTaskRequest,
   signal?: AbortSignal,
   locallyHandled = false,
-): Promise<DataSyncTaskRecord> => {
-  const definition = await HttpUtils.postData<TaskDefinitionRecord>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}/publish`,
-    payload,
-    { signal, skipErrorHandler: locallyHandled },
+): Promise<DataSyncTaskRecord> =>
+  toSyncTaskRecord(
+    await HttpUtils.postData<TaskDefinitionRecord>(
+      url("/tasks/" + encodeURIComponent(id) + "/publish"),
+      payload,
+      { signal, skipErrorHandler: locallyHandled },
+    ),
   );
-  return toSyncTaskRecord(definition);
-};
 
-export const getTaskDefinition = (id: string, signal?: AbortSignal) =>
-  HttpUtils.getData<TaskDefinitionRecord>(`${TASK_DEFINITION_API_PREFIX}/${id}`, { signal });
+export const unpublishDataSyncTask = async (id: string): Promise<DataSyncTaskRecord> =>
+  toSyncTaskRecord(
+    await HttpUtils.postData<TaskDefinitionRecord>(
+      url("/tasks/" + encodeURIComponent(id) + "/unpublish"),
+    ),
+  );
 
-export const listTaskParameterVersions = (
+export const getTaskDefinition = async (id: string, signal?: AbortSignal) =>
+  HttpUtils.getData<TaskDefinitionRecord>(url("/tasks/" + encodeURIComponent(id)), {
+    signal,
+  });
+
+export const listTaskDefinitionVersions = async (
   id: string,
   pageNo: number,
   pageSize: number,
   signal?: AbortSignal,
-) =>
-  HttpUtils.getData<TaskVersionPage<TaskParameterVersionSummary>>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}/versions?${new URLSearchParams({ pageNo: String(pageNo), pageSize: String(pageSize) })}`,
+): Promise<PageInfo<TaskDefinitionVersionSummary>> => {
+  const page = await HttpUtils.getData<
+    PageInfo<{ code: number; version: number; operator: number; operateTime: string }>
+  >(
+    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
+      "/task-definition/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize }),
     { signal },
   );
-
-export const getTaskParameterVersion = (id: string, version: number, signal?: AbortSignal) =>
-  HttpUtils.getData<TaskParameterVersion>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}/versions/${version}`,
-    {
-      signal,
-    },
-  );
-
-export const listTaskPublications = (
-  id: string,
-  pageNo: number,
-  pageSize: number,
-  signal?: AbortSignal,
-) =>
-  HttpUtils.getData<TaskVersionPage<TaskPublicationRecord>>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}/publications?${new URLSearchParams({ pageNo: String(pageNo), pageSize: String(pageSize) })}`,
-    { signal },
-  );
-
-export const unpublishDataSyncTask = async (id: string): Promise<DataSyncTaskRecord> => {
-  const definition = await HttpUtils.postData<TaskDefinitionRecord>(
-    `${TASK_DEFINITION_API_PREFIX}/${id}/unpublish`,
-  );
-  return toSyncTaskRecord(definition);
+  return {
+    ...page,
+    totalList: page.totalList.map((entry) => ({
+      definitionId: String(entry.code),
+      version: entry.version,
+      createBy: String(entry.operator),
+      createTime: entry.operateTime,
+    })),
+  };
 };
 
-export const runDataSyncTask = (
-  id: string,
-  idempotencyKey: string = createTaskRunIdempotencyKey(),
-): Promise<TaskSubmissionResult> => submitTaskInstance(id, idempotencyKey);
-
-async function projectDataSyncInstances(
-  instances: TaskInstanceRecord[],
-): Promise<DataSyncInstanceRecord[]> {
-  const definitions = new Map<string, Promise<TaskInstanceDefinitionRecord>>();
-  return Promise.all(
-    instances.map(async (instance) => {
-      if (instance.taskType !== "DATA_SYNC")
-        throw new Error("Task Instance is not a DATA_SYNC task");
-      const key = JSON.stringify([instance.definitionId, instance.definitionVersion]);
-      let definition = definitions.get(key);
-      if (!definition) {
-        definition = getTaskInstanceDefinition(instance.id);
-        definitions.set(key, definition);
-      }
-      return toDataSyncInstanceRecord(instance, await definition);
-    }),
+export const getTaskDefinitionVersion = async (id: string, version: number, signal?: AbortSignal) =>
+  HttpUtils.getData<TaskDefinitionVersion>(
+    url("/tasks/" + encodeURIComponent(id) + "/versions/" + version),
+    { signal },
   );
-}
+
+export const runDataSyncTask = async (
+  workflowCode: string,
+  options?: { workerGroup?: string; startParams?: Record<string, string> },
+): Promise<{ workflowInstanceId: number }> => {
+  const ids = await HttpUtils.postData<number[]>(
+    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
+      "/executors/start-workflow-instance?" +
+      qp({
+        workflowDefinitionCode: workflowCode,
+        execType: "START_PROCESS",
+        failureStrategy: "END",
+        taskDependType: "TASK_POST",
+        warningType: "NONE",
+        workflowInstancePriority: "MEDIUM",
+        workerGroup: options?.workerGroup || "default",
+        tenantCode: "default",
+        dryRun: 0,
+        startParams: options?.startParams ? JSON.stringify(options.startParams) : undefined,
+      }),
+    undefined,
+  );
+  if (!ids?.length) throw new Error("工作流启动未返回实例编号");
+  return { workflowInstanceId: ids[0] };
+};
+
+const instanceUrl = (id: string, base = url("")) => base + "/instances/" + encodeURIComponent(id);
+
+const instanceDefinition = async (id: string, base: string): Promise<TaskInstanceDefinitionRecord> =>
+  HttpUtils.getData<TaskInstanceDefinitionRecord>(instanceUrl(id, base) + "/definition");
 
 export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceRecord> => {
-  const records = await projectDataSyncInstances([await getTaskInstance(id)]);
-  if (records.length !== 1) {
-    throw new Error("Task Instance is not a DATA_SYNC task");
-  }
-  return records[0];
+  const base = url("");
+  const [instance, definition] = await Promise.all([
+    HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base)),
+    instanceDefinition(id, base),
+  ]);
+  return toDataSyncInstanceRecord(instance, definition);
 };
 
-/** Page a single task's history using repository-side ordering and lifecycle filters. */
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
-): Promise<DataSyncInstancePageResult> => {
-  const page = await listTaskInstances({
-    pageNo: params.pageNo,
-    pageSize: params.pageSize,
-    definitionId: params.taskId,
-    taskType: "DATA_SYNC",
-    status: params.status,
-  });
-  return { ...page, bizData: await projectDataSyncInstances(page.bizData) };
+): Promise<PageInfo<DataSyncInstanceSummary>> => {
+  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord & { taskName: string }>>(
+    url(
+      "/instances?" +
+        qp({
+          pageNo: params.pageNo,
+          pageSize: params.pageSize,
+          taskCode: params.taskId,
+          status: params.status,
+        }),
+    ),
+  );
+  return {
+    ...page,
+    totalList: page.totalList.map((instance) => ({
+      id: instance.id,
+      taskId: instance.definitionId,
+      taskName: instance.taskName,
+      taskVersion: instance.definitionVersion,
+      workflowInstanceId: instance.workflowInstanceId,
+      syncType: "REALTIME" as const,
+      triggerType: instance.triggerType,
+      status: instance.status,
+      startTime: instance.startTime ?? undefined,
+      finishTime: instance.endTime ?? undefined,
+      createTime: instance.createTime ?? undefined,
+    })),
+  };
 };
 
-export const cancelDataSyncInstance = (id: string): Promise<TaskInstanceStatus> =>
-  cancelTaskInstance(id);
+export const listLatestDataSyncTaskInstances = async (
+  taskIds: string[],
+  activeOnly = false,
+  signal?: AbortSignal,
+): Promise<TaskInstanceRecord[]> => {
+  if (taskIds.length === 0) return [];
+  return HttpUtils.getData<TaskInstanceRecord[]>(
+    url("/instances/latest?" + qp({ taskCodes: taskIds.join(","), activeOnly })),
+    { signal },
+  );
+};
+
+export const cancelDataSyncInstance = async (workflowInstanceId: number): Promise<void> => {
+  await HttpUtils.postData<void>(
+    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
+      "/executors/execute?" + qp({ workflowInstanceId, executeType: "STOP" }),
+    undefined,
+  );
+};
+
+export const getDataSyncInstanceLogs = async (
+  id: string,
+  skipLineNum = 0,
+  limit = 200,
+): Promise<{ message: string; lineNum: number }> => {
+  try {
+    return await HttpUtils.getData<{ message: string; lineNum: number }>(
+      YAK_OPS_API_PREFIX + "/log/detail?" + qp({ taskInstanceId: id, skipLineNum, limit }),
+      { skipErrorHandler: true },
+    );
+  } catch (error) {
+    if (error instanceof BizError && error.code === 10191) {
+      return { message: "", lineNum: 0 };
+    }
+    throw error;
+  }
+};
+
+export const downloadDataSyncInstanceLogs = (id: string): Promise<Blob> =>
+  HttpUtils.download(
+    YAK_OPS_API_PREFIX + "/log/download-log?" + qp({ taskInstanceId: id }),
+  );

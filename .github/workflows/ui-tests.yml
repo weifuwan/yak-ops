@@ -1,0 +1,35 @@
+name: UI Tests
+
+on:
+  pull_request:
+    paths:
+      - 'yak-ops-ui/**'
+      - '.github/workflows/ui-tests.yml'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'yak-ops-ui/**'
+      - '.github/workflows/ui-tests.yml'
+
+jobs:
+  typecheck-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Install UI dependencies
+        working-directory: yak-ops-ui
+        run: npm ci
+      - name: TypeScript typecheck
+        working-directory: yak-ops-ui
+        run: npm run typecheck
+      - name: Data Sync Pipeline contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:data-sync
+      - name: Build UI
+        working-directory: yak-ops-ui
+        run: npm run build

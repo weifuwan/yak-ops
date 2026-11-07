@@ -1,7 +1,6 @@
 package io.yak.ops.server.worker.executor;
 
 import io.yak.ops.common.constants.Constants;
-import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.common.utils.PropertyUtils;
 import io.yak.ops.plugin.storage.api.StorageOperator;
 import io.yak.ops.plugin.task.api.AbstractTask;
@@ -120,8 +119,8 @@ public class PhysicalTaskExecutor extends AbstractTaskExecutor {
         taskExecutionContext.setResourceContext(resourceContext);
         log.info("Download resources successfully: {}", taskExecutionContext.getResourceContext());
 
-        log.info(TaskLogMarkers.excludeInTaskLog(), "Initialized Task Context{}",
-                JSONUtils.toPrettyJsonString(taskExecutionContext));
+        log.info(TaskLogMarkers.excludeInTaskLog(), "Initialized Task Context: taskInstanceId={}, taskType={}",
+                taskExecutionContext.getTaskInstanceId(), taskExecutionContext.getTaskType());
 
     }
 

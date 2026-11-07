@@ -1,6 +1,9 @@
 package io.yak.ops.dao.repository;
 
 import io.yak.ops.dao.entity.TaskDefinition;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +30,8 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      */
     TaskDefinition findTaskDefinition(long taskCode, int taskDefinitionVersion);
 
+    boolean compareAndSetDataSyncRevision(long projectCode, long taskCode, int expectedRevision);
+
     void deleteByWorkflowDefinitionCodeAndVersion(long workflowDefinitionCode, int workflowDefinitionVersion);
 
     void deleteByTaskDefinitionCodes(Set<Long> needToDeleteTaskDefinitionCodes);
@@ -39,6 +44,10 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      * @return task definition
      */
     TaskDefinition queryByCode(long taskCode);
+
+    IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
+                                             String taskType, String keyword, Long taskCode,
+                                             Integer releaseState);
 
     TaskDefinition queryByName(long projectCode, long workflowDefinitionCode, String taskName);
 

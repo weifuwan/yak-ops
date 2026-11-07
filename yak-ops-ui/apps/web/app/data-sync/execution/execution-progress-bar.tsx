@@ -24,19 +24,21 @@ export function ExecutionProgressBar({
     : { mode: "idle", value: null };
   const statusLabel = status
     ? {
-        SUBMITTED: "等待",
-        LAUNCHING: "启动中",
-        RUNNING: "运行中",
-        CANCELLING: "正在停止",
-        RECONCILING: "待确认",
-        FINISHED: "成功",
-        FAILED: "失败",
-        CANCELED: "已停止",
+        SUBMITTED_SUCCESS: "等待",
+        DISPATCH: "派发中",
+        RUNNING_EXECUTION: "运行中",
+        DELAY_EXECUTION: "延迟执行",
+        NEED_FAULT_TOLERANCE: "待容错",
+        SUCCESS: "成功",
+        FORCED_SUCCESS: "强制成功",
+        FAILURE: "失败",
+        PAUSE: "已暂停",
+        KILL: "已停止",
       }[status]
     : "暂无执行";
   let progressText = statusLabel;
   if (progress.value !== null) progressText += ` · ${progress.value}%`;
-  if (status === "FAILED" && (percent === null || percent === undefined)) {
+  if (status === "FAILURE" && (percent === null || percent === undefined)) {
     progressText += "（未取得进度数据）";
   }
   const label = ariaLabel || (realtime ? "实时同步" : "离线同步");

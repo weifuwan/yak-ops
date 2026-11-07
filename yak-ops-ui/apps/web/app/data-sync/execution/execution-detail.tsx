@@ -17,11 +17,10 @@ import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/d
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
 import { ExecutionStages } from "./execution-stages";
-import { syncSummary } from "../solution/presentation";
 import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
-export const isActiveDataSyncInstance = (record?: DataSyncInstanceRecord): boolean =>
+export const isActiveDataSyncInstance = (record?: Pick<DataSyncInstanceRecord, "status">): boolean =>
   record ? isTaskInstanceActive(record.status) : false;
 
 export const dataSyncInstanceStatusMeta = (
@@ -29,34 +28,41 @@ export const dataSyncInstanceStatusMeta = (
   realtime: boolean,
 ): { label: string; tone: BadgeProps["tone"] } => {
   switch (status) {
-    case "SUBMITTED":
+    case "SUBMITTED_SUCCESS":
       return { label: "等待", tone: "neutral" };
-    case "LAUNCHING":
-      return { label: "启动中", tone: "info" };
-    case "RUNNING":
+    case "DISPATCH":
+      return { label: "派发中", tone: "info" };
+    case "RUNNING_EXECUTION":
       return { label: "运行中", tone: "info" };
-    case "CANCELLING":
-      return { label: "正在停止", tone: "warning" };
-    case "RECONCILING":
-      return { label: "待确认", tone: "warning" };
-    case "FINISHED":
+    case "DELAY_EXECUTION":
+      return { label: "延迟执行", tone: "warning" };
+    case "NEED_FAULT_TOLERANCE":
+      return { label: "待容错", tone: "warning" };
+    case "SUCCESS":
       return { label: "成功", tone: "success" };
-    case "FAILED":
+    case "FORCED_SUCCESS":
+      return { label: "强制成功", tone: "success" };
+    case "FAILURE":
       return { label: "失败", tone: "danger" };
-    case "CANCELED":
+    case "PAUSE":
+      return { label: "已暂停", tone: "neutral" };
+    case "KILL":
       return { label: realtime ? "已停止" : "已取消", tone: "neutral" };
   }
 };
 
 const STATUS_ICONS = {
-  SUBMITTED: Clock3,
-  LAUNCHING: LoaderCircle,
-  RUNNING: CirclePlay,
-  CANCELLING: CirclePause,
-  RECONCILING: CircleHelp,
-  FINISHED: CheckCircle2,
-  FAILED: XCircle,
-  CANCELED: CircleStop,
+  SUBMITTED_SUCCESS: Clock3,
+  DISPATCH: LoaderCircle,
+  RUNNING_EXECUTION: CirclePlay,
+  DELAY_EXECUTION: Clock3,
+  NEED_FAULT_TOLERANCE: CircleHelp,
+  SUCCESS: CheckCircle2,
+  FORCED_SUCCESS: CheckCircle2,
+  FAILURE: XCircle,
+  PAUSE: CirclePause,
+  KILL: CircleStop,
+
 };
 
 export function ExecutionStatusIcon({
@@ -82,13 +88,15 @@ export function ExecutionStatusIcon({
 }
 
 export const dataSyncTriggerText = (triggerType?: string) => {
-  if (triggerType === "MANUAL") return "手动";
-  if (triggerType === "SCHEDULE") return "调度";
-  if (triggerType === "WORKFLOW") return "工作流";
+  if (triggerType === "START_PROCESS") return "手动";
+  if (triggerType === "SCHEDULER") return "调度";
+  if (triggerType === "EXECUTE_TASK") return "工作流";
   return triggerType || "-";
 };
 
-export const dataSyncDurationText = (record: DataSyncInstanceRecord) => {
+export const dataSyncDurationText = (
+  record: Pick<DataSyncInstanceRecord, "status" | "startTime" | "finishTime">,
+) => {
   if (!record.startTime) return "-";
   if (!record.finishTime && !isActiveDataSyncInstance(record)) return "-";
   const start = Date.parse(record.startTime);
@@ -126,7 +134,7 @@ function ExecutionProgressCard({ record }: DetailProps) {
       )}
 
       <h3 className="mt-2 text-sm font-semibold text-[#344054]">
-        {syncSummary(record.productType, record.steps)}
+        {"MySQL 实时同步"}
       </h3>
       <div className="mt-1 text-xs text-[#98a2b3]">
         v{record.taskVersion} · {dataSyncTriggerText(record.triggerType)}

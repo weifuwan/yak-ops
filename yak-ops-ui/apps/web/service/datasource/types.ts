@@ -2,13 +2,6 @@ export type DataSourceId = string;
 
 export type DataSourceConnectionStatus = "UNKNOWN" | "CONNECTED" | "DISCONNECTED" | string;
 
-export interface PaginationInfo {
-  pageNo: number;
-  pageSize: number;
-  total: number;
-  pages?: number;
-}
-
 export interface DataSourceRecord {
   projectCode?: string;
   id?: DataSourceId;
@@ -26,11 +19,6 @@ export interface DataSourceRecord {
   originalJson?: string;
   createTime?: string;
   updateTime?: string;
-}
-
-export interface DataSourcePageResult {
-  bizData: DataSourceRecord[];
-  pagination: PaginationInfo;
 }
 
 export interface DataSourcePageParams {

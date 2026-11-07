@@ -3,9 +3,11 @@ package io.yak.ops.dao.mapper;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskMainInfo;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,6 +36,21 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
      * @return task definition
      */
     TaskDefinition queryByCode(@Param("code") long code);
+
+    @Update("UPDATE t_yak_ops_task_definition SET version = #{nextRevision} "
+            + "WHERE code = #{taskCode} AND project_code = #{projectCode} "
+            + "AND task_type = 'DATA_SYNC' AND flag = 1 AND version = #{expectedRevision}")
+    int updateDataSyncRevision(@Param("projectCode") long projectCode,
+                               @Param("taskCode") long taskCode,
+                               @Param("expectedRevision") int expectedRevision,
+                               @Param("nextRevision") int nextRevision);
+
+    IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page,
+                                            @Param("projectCode") long projectCode,
+                                            @Param("taskType") String taskType,
+                                            @Param("keyword") String keyword,
+                                            @Param("taskCode") Long taskCode,
+                                            @Param("releaseState") Integer releaseState);
 
     /**
      * query all task definition list

@@ -27,6 +27,11 @@ public class SerialCommandDaoImpl extends BaseDao<SerialCommand, SerialCommandMa
     }
 
     @Override
+    public boolean tryLaunch(int id) {
+        return mybatisMapper.launchIfWaiting(id) == 1;
+    }
+
+    @Override
     public int deleteByWorkflowInstanceId(Integer workflowInstanceId) {
         return mybatisMapper.deleteByWorkflowInstanceId(workflowInstanceId);
     }

@@ -8,6 +8,7 @@ import io.yak.ops.dao.mapper.TaskDefinitionLogMapper;
 import io.yak.ops.dao.mapper.TaskDefinitionMapper;
 import io.yak.ops.dao.mapper.WorkflowDefinitionMapper;
 import io.yak.ops.dao.mapper.WorkflowTaskRelationLogMapper;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.BaseDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.google.common.collect.Lists;
 
 import lombok.NonNull;
@@ -76,6 +78,11 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     }
 
     @Override
+    public boolean compareAndSetDataSyncRevision(long projectCode, long taskCode, int expectedRevision) {
+        return mybatisMapper.updateDataSyncRevision(projectCode, taskCode, expectedRevision, expectedRevision + 1) == 1;
+    }
+
+    @Override
     public void deleteByWorkflowDefinitionCodeAndVersion(long workflowDefinitionCode, int workflowDefinitionVersion) {
         mybatisMapper.deleteByWorkflowDefinitionCodeAndVersion(workflowDefinitionCode, workflowDefinitionVersion);
     }
@@ -99,6 +106,13 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     @Override
     public TaskDefinition queryByCode(long taskCode) {
         return mybatisMapper.queryByCode(taskCode);
+    }
+
+    @Override
+    public IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
+                                                    String taskType, String keyword, Long taskCode,
+                                                    Integer releaseState) {
+        return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState);
     }
 
     @Override

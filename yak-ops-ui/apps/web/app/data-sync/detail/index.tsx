@@ -19,7 +19,7 @@ export function DataSyncTaskDetailPage() {
   const scope = useDetailScope();
   const { task, taskLoading, dataSources, updatedBy } = useTaskInformation(taskId, scope);
   const realtime = task?.syncType === "REALTIME";
-  const supportsScheduling = task?.syncType === "OFFLINE";
+  const supportsScheduling = task?.syncType === "OFFLINE" && !task?.archived;
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [historyScheduleId, setHistoryScheduleId] = useState<string>();
   const schedules = useTaskSchedules(supportsScheduling && taskId ? [taskId] : []);
@@ -30,7 +30,7 @@ export function DataSyncTaskDetailPage() {
     refresh: refreshActiveInstances,
   } = useActiveTaskInstance(scope, taskId);
   const canStart =
-    !task?.configurationError && canManageTaskDefinition(instancesReady, activeInstance);
+    !task?.archived && !task?.configurationError && canManageTaskDefinition(instancesReady, activeInstance);
   const {
     executionId,
     activeTab,
@@ -54,11 +54,12 @@ export function DataSyncTaskDetailPage() {
     refreshAfterCancel,
     listError,
   } = useExecutionHistory(scope, taskId, activeInstance, hasEnabledSchedule);
-  const { run, cancel, copyTaskId, running, canceling } = useExecutionActions({
+  const { run, cancel, copyTaskId, running, canceling, pendingWorkflowInstanceId } = useExecutionActions({
     taskId,
     task,
     canStart,
     selectedInstance,
+    activeInstance,
     refreshActiveInstances,
     refreshAfterCancel,
     selectSubmitted,
@@ -107,8 +108,10 @@ export function DataSyncTaskDetailPage() {
                   调度
                 </Button>
               ) : null}
-              {task.status === "PUBLISHED" ? (
-                !activeInstance ? (
+              {task.archived ? (
+                <span className="text-sm text-[var(--yak-components-muted-text)]">已归档 · 仅可查看历史</span>
+              ) : task.status === "ONLINE" ? (
+                !activeInstance && !pendingWorkflowInstanceId ? (
                   <Button
                     size="small"
                     loading={running}
@@ -117,6 +120,15 @@ export function DataSyncTaskDetailPage() {
                   >
                     {realtime ? "启动" : "运行"}
                   </Button>
+                ) : pendingWorkflowInstanceId ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-[var(--yak-components-muted-text)]">
+                      已提交 · 等待任务派发
+                    </span>
+                    <Button size="small" loading={canceling} onClick={() => void cancel()}>
+                      停止
+                    </Button>
+                  </div>
                 ) : null
               ) : (
                 <Button
@@ -170,7 +182,7 @@ export function DataSyncTaskDetailPage() {
       {supportsScheduling || Boolean(historyScheduleId) ? (
         <ScheduleDialog
           targetId={task.id}
-          published={task.status === "PUBLISHED" && !task.configurationError}
+          published={task.status === "ONLINE" && !task.configurationError}
           open={scheduleOpen}
           historyScheduleId={historyScheduleId}
           onClose={() => setScheduleOpen(false)}

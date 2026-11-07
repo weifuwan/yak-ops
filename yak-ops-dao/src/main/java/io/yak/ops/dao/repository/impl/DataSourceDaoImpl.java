@@ -28,8 +28,8 @@ public class DataSourceDaoImpl extends BaseDao<DataSource, DataSourceMapper> imp
     }
 
     @Override
-    public IPage<DataSource> queryByProjectCode(Page<DataSource> page, long projectCode, String name) {
-        return mybatisMapper.queryByProjectCode(page, projectCode, name);
+    public IPage<DataSource> queryByProjectCode(Page<DataSource> page, long projectCode, String name, Integer type) {
+        return mybatisMapper.queryByProjectCode(page, projectCode, name, type);
     }
 
     @Override

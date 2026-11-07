@@ -22,6 +22,7 @@ import io.yak.ops.dao.repository.TaskInstanceDao;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -70,14 +71,14 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
             log.error("Task instance does not exist, taskInstanceId:{}.", taskInstId);
             return Result.error(Status.TASK_INSTANCE_NOT_FOUND);
         }
+        projectService.checkProjectAndAuthThrowException(loginUser, taskInstance.getProjectCode(), VIEW_LOG);
         if (StringUtils.isBlank(taskInstance.getHost())) {
             log.error("Host of task instance is null, taskInstanceId:{}.", taskInstId);
             return Result.error(Status.TASK_INSTANCE_HOST_IS_NULL);
         }
-        projectService.checkProjectAndAuthThrowException(loginUser, taskInstance.getProjectCode(), VIEW_LOG);
         Result<ResponseTaskLog> result = new Result<>(Status.SUCCESS.getCode(), Status.SUCCESS.getMsg());
         String log = queryLog(taskInstance, skipLineNum, limit);
-        int lineNum = log.split("\\r\\n").length;
+        int lineNum = countLogLines(log) - (skipLineNum == 0 ? 1 : 0);
         result.setData(new ResponseTaskLog(lineNum, log));
         return result;
     }
@@ -117,7 +118,8 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
         projectService.checkProjectAndAuthThrowException(loginUser, projectCode, VIEW_LOG);
         // check whether the task instance can be found
         TaskInstance task = taskInstanceDao.queryById(taskInstId);
-        if (task == null || StringUtils.isBlank(task.getHost())) {
+        if (task == null || !Objects.equals(task.getProjectCode(), projectCode)
+                || StringUtils.isBlank(task.getHost())) {
             throw new ServiceException(Status.TASK_INSTANCE_NOT_FOUND);
         }
 
@@ -143,8 +145,9 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
 
         // check whether the task instance can be found
         TaskInstance task = taskInstanceDao.queryById(taskInstId);
-        if (task == null || StringUtils.isBlank(task.getHost())) {
-            throw new ServiceException("task instance is null or host is null");
+        if (task == null || !Objects.equals(task.getProjectCode(), projectCode)
+                || StringUtils.isBlank(task.getHost())) {
+            throw new ServiceException("task instance is null, belongs to another project, or host is null");
         }
 
         TaskDefinition taskDefinition = taskDefinitionDao.queryByCode(task.getTaskCode());
@@ -189,6 +192,19 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
         } catch (Throwable ex) {
             throw new ServiceException(Status.QUERY_TASK_INSTANCE_LOG_ERROR, ex.getMessage(), ex);
         }
+    }
+
+    private static int countLogLines(String log) {
+        if (log.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (int i = 0; i < log.length(); i++) {
+            if (log.charAt(i) == '\n') {
+                count++;
+            }
+        }
+        return count + (log.endsWith("\n") ? 0 : 1);
     }
 
     /**

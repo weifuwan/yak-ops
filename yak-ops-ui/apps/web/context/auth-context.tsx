@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState, type ReactNode } from "react";
 
-import { clearTaskDrafts } from "@/service/data-sync/draft";
+import { clearNativeDrafts } from "@/service/data-sync/native-draft";
 
 import { getCurrentUser, type AuthUser } from "@/service/auth";
 
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCurrentUser = () => {
-    clearTaskDrafts();
+    clearNativeDrafts();
     setCurrentUser(undefined);
   };
 
