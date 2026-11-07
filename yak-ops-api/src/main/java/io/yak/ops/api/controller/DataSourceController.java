@@ -269,12 +269,17 @@ public class DataSourceController extends BaseController {
     @GetMapping(value = "/tables")
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_TABLES_ERROR)
-    public Result<Object> getTables(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                    @PathVariable("projectCode") long projectCode,
-                                    @RequestParam("datasourceId") Integer datasourceId,
-                                    @RequestParam("database") String database) {
-        List<ParamsOptions> options = dataSourceService.getTables(loginUser, projectCode, datasourceId, database);
-        return Result.success(options);
+    public Result<PageInfo<ParamsOptions>> getTables(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @PathVariable("projectCode") long projectCode,
+            @RequestParam("datasourceId") Integer datasourceId,
+            @RequestParam("database") String database,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
+        checkPageParams(pageNo, pageSize);
+        return Result.success(dataSourceService.getTables(
+                loginUser, projectCode, datasourceId, database, keyword, pageNo, pageSize));
     }
 
     /**
