@@ -178,7 +178,8 @@ master:
   max-heartbeat-interval: 10s
   kill-application-when-task-failover: true
   server-load-protection:
-    enabled: true
+    # Standalone has only one master. Marking it BUSY would leave no NORMAL master to consume commands.
+    enabled: false
     # Master max system cpu usage, when the master's system cpu usage is smaller then this value, master server can execute workflow.
     max-system-cpu-usage-percentage-thresholds: 0.8
     # Master max jvm cpu usage, when the master's jvm cpu usage is smaller then this value, master server can execute workflow.
@@ -214,7 +215,8 @@ worker:
   # worker group name. If it is not set, the default value is default.
   group: default
   server-load-protection:
-    enabled: true
+    # Standalone has only one worker, so keep local task execution available under host load.
+    enabled: false
     # Worker max system cpu usage, when the worker's system cpu usage is smaller then this value, worker server can be dispatched tasks.
     max-system-cpu-usage-percentage-thresholds: 0.8
     # Worker max jvm cpu usage, when the worker's jvm cpu usage is smaller then this value, worker server can be dispatched tasks.
