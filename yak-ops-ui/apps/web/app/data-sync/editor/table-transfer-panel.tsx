@@ -13,6 +13,10 @@ export function TableTransferPanel({
   onFilterChange,
   onSearch,
   loading,
+  pageNo,
+  pageSize,
+  total,
+  onPageChange,
   actions,
   footer,
   onRefresh,
@@ -27,6 +31,10 @@ export function TableTransferPanel({
   onFilterChange?: (value: string) => void;
   onSearch?: () => void;
   loading?: boolean;
+  pageNo?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (pageNo: number, pageSize: number) => void;
   actions?: ReactNode;
   footer?: ReactNode;
   onRefresh?: () => void;
@@ -68,7 +76,7 @@ export function TableTransferPanel({
               size="small"
               variant="outlined"
               aria-label={`${title}表过滤`}
-              placeholder="表名或正则"
+              placeholder="表名"
               maxLength={256}
               value={filter || ""}
               onChange={(event) => onFilterChange?.(event.target.value)}
@@ -87,7 +95,20 @@ export function TableTransferPanel({
         dataSource={tables}
         rowKey={tableKey}
         size="small"
-        pagination={false}
+        pagination={
+          onPageChange && total
+            ? {
+                current: pageNo || 1,
+                pageSize: pageSize || 100,
+                total,
+                pageSizeOptions: [50, 100, 200],
+                pageSizeLabel: "每页显示：",
+                showSizeChanger: true,
+                disabled: loading,
+                onChange: onPageChange,
+              }
+            : false
+        }
         loading={loading}
         scroll={{ y: 240 }}
         emptyText="没有库表"
@@ -103,7 +124,7 @@ export function TableTransferPanel({
       />
       <div className="flex min-h-10 items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-3 text-xs">
         <span>
-          表 {checked.length} / {tables.length}
+          表 {checked.length} / {total ?? tables.length}
         </span>
         {footer}
       </div>
