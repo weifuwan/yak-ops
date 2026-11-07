@@ -1,5 +1,6 @@
 package io.yak.ops.plugin.datasource.api.datasource;
 
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
 
@@ -108,5 +109,9 @@ public interface DataSourceProcessor {
      */
     default List<ConnectionProperty> getConnectionProperties() {
         return Collections.emptyList();
+    }
+
+    default DataSourceCatalog getCatalog() {
+        return null;
     }
 }
