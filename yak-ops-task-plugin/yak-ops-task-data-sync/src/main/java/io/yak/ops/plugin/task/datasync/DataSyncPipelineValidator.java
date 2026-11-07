@@ -36,11 +36,7 @@ public final class DataSyncPipelineValidator {
         require(pipeline, "execution.runtime-mode", "STREAMING", "pipeline.execution.runtime-mode");
 
         String tables = text(source, "tables");
-        if (!tables.startsWith("\\Q") || !tables.endsWith("\\E") || tables.length() <= 4) {
-            throw new IllegalArgumentException("source.tables: single literal table required (\\Q...\\E)");
-        }
-        String unquoted = tables.substring(2, tables.length() - 2);
-        if (!unquoted.matches("[A-Za-z0-9_$-]+\\.[A-Za-z0-9_$-]+")) {
+        if (!tables.matches("[A-Za-z0-9_$-]+\\.[A-Za-z0-9_$-]+")) {
             throw new IllegalArgumentException("source.tables: expected database.table");
         }
 

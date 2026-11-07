@@ -8,7 +8,6 @@ export interface PipelineTable {
 }
 
 const TABLE_PATH = /^[A-Za-z0-9_$-]+\.[A-Za-z0-9_$-]+$/;
-const SOURCE_PATTERN = /^\\Q([A-Za-z0-9_$-]+\.[A-Za-z0-9_$-]+)\\E$/;
 const CREDENTIAL_KEYS = new Set([
   "password", "passwd", "token", "secret", "secretkey", "accesskey",
   "apikey", "privatekey", "credentials",
@@ -25,9 +24,9 @@ function tablePath(value: PipelineTable): string {
 }
 
 export function sourceTable(definition: PipelineDefinition): PipelineTable | undefined {
-  const match = SOURCE_PATTERN.exec(definition.source.tables);
-  if (!match) return undefined;
-  const [database, table] = match[1].split(".");
+  const path = definition.source.tables;
+  if (!TABLE_PATH.test(path)) return undefined;
+  const [database, table] = path.split(".");
   return { database, table };
 }
 
@@ -98,9 +97,9 @@ export function setPipelineSourceTable(
   table: PipelineTable,
 ): PipelineDefinition {
   const next = structuredClone(definition);
-  const literal = "\\Q" + tablePath(table) + "\\E";
-  next.source.tables = literal;
-  next.route[0]["source-table"] = literal;
+  const path = tablePath(table);
+  next.source.tables = path;
+  next.route[0]["source-table"] = path;
   // A source change invalidates the previous target mapping.
   next.route[0]["sink-table"] = "";
   return next;
@@ -155,7 +154,7 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
     }
   }
   if (typeof source.tables !== "string" ||
-      !SOURCE_PATTERN.test(source.tables) ||
+      !TABLE_PATH.test(source.tables) ||
       route["source-table"] !== source.tables) {
     throw new Error("请选择有效的来源表");
   }

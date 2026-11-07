@@ -39,7 +39,7 @@ class DataSyncPipelineBuilderTest {
         assertEquals("cdc_reader", pipeline.path("source").path("username").asText());
         assertEquals("secret_source", pipeline.path("source").path("password").asText());
         assertEquals("jdbc:mysql://127.0.0.1:3307/dst_db", pipeline.path("sink").path("url").asText());
-        assertTrue(pipeline.path("source").path("tables").asText().startsWith("\\Q"));
+        assertEquals("src_db.orders", pipeline.path("source").path("tables").asText());
         assertEquals("dst_db.orders", pipeline.path("route").get(0).path("sink-table").asText());
         assertEquals("evolve", pipeline.path("pipeline").path("schema.change.behavior").asText());
         assertEquals("drop.column", pipeline.path("sink").path("exclude.schema.changes").get(0).asText());

@@ -74,13 +74,13 @@ class DataSyncParametersTest {
         Map<String, Object> source = new LinkedHashMap<>();
         source.put("type", "mysql");
         source.put("datasource-id", "1");
-        source.put("tables", "\\Qsrc_db.orders\\E");
+        source.put("tables", "src_db.orders");
         source.put("scan.startup.mode", "initial");
         Map<String, Object> sink = new LinkedHashMap<>();
         sink.put("type", "jdbc");
         sink.put("datasource-id", "2");
         sink.put("exclude.schema.changes", List.of("drop.column"));
-        Map<String, Object> route = Map.of("source-table", "\\Qsrc_db.orders\\E",
+        Map<String, Object> route = Map.of("source-table", "src_db.orders",
                 "sink-table", "dst_db.orders");
         Map<String, Object> pipeline = Map.of(
                 "execution.runtime-mode", "STREAMING",

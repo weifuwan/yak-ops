@@ -28,7 +28,7 @@ test("new, edited, saved and reopened Pipeline uses one unmodified contract", ()
   const saved = pipelineParameters(initial);
   const reopened = readPipelineDefinition(JSON.parse(JSON.stringify(saved)));
   assert.deepEqual(reopened, initial);
-  assert.equal(saved.definition.source.tables, "\\Qfrom_db.orders\\E");
+  assert.equal(saved.definition.source.tables, "from_db.orders");
   assert.equal(reopened.route[0]["sink-table"], "to_db.orders");
   assert.deepEqual(sourceTable(reopened), { database: "from_db", table: "orders" });
   assert.deepEqual(sinkTable(reopened), { database: "to_db", table: "orders" });

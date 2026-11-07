@@ -82,7 +82,7 @@ class DataSyncServiceImplTest {
         DataSyncTaskRequest request = new DataSyncTaskRequest();
         request.setName("order_sync");
         request.setParameters(JSONUtils.parseObject(
-                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}"));
+                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"src_db.orders\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"src_db.orders\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}"));
         DataSource source = new DataSource();
         source.setType(DbType.MYSQL);
         when(dataSourceDao.queryByIdAndProjectCode(1, PROJECT_CODE)).thenReturn(source);
@@ -101,7 +101,7 @@ class DataSyncServiceImplTest {
         DataSyncTaskRequest request = new DataSyncTaskRequest();
         request.setName("order_sync");
         request.setParameters(JSONUtils.parseObject(
-                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}"));
+                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"src_db.orders\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"src_db.orders\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}"));
         DataSource source = new DataSource();
         source.setType(DbType.MYSQL);
         DataSource sink = new DataSource();
@@ -314,7 +314,7 @@ class DataSyncServiceImplTest {
 
     private static com.fasterxml.jackson.databind.JsonNode validParameters() {
         return JSONUtils.parseObject(
-                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"\\\\Qsrc_db.orders\\\\E\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"\\\\Qsrc_db.orders\\\\E\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}");
+                "{\"definition\":{\"source\":{\"type\":\"mysql\",\"datasource-id\":\"1\",\"tables\":\"src_db.orders\",\"scan.startup.mode\":\"initial\"},\"sink\":{\"type\":\"jdbc\",\"datasource-id\":\"2\",\"exclude.schema.changes\":[\"drop.column\"]},\"route\":[{\"source-table\":\"src_db.orders\",\"sink-table\":\"dst_db.orders\"}],\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}");
     }
 
     @Test
