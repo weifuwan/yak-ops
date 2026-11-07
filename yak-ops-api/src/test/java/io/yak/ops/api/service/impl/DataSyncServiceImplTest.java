@@ -127,6 +127,8 @@ class DataSyncServiceImplTest {
                 () -> service.createTask(new User(), PROJECT_CODE, request));
 
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
+        assertTrue(error.getMessage().contains(
+                "Pipeline must reference Yak Ops datasources, not inline credentials"));
         verifyNoInteractions(dataSourceDao, workflowDefinitionService);
     }
 
