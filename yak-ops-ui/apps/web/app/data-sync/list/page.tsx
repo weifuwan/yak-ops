@@ -108,7 +108,6 @@ export function DataSyncPage() {
                 }}
               />
             </div>
-
           </div>
         </div>
       </div>
