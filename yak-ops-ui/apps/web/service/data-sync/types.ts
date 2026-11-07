@@ -83,6 +83,7 @@ export interface DataSyncTaskRecord {
   remark?: string;
   status: DataSyncTaskStatus | string;
   archived?: boolean;
+  configurationError?: string;
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;

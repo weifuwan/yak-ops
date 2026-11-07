@@ -112,7 +112,7 @@ export function AdvancedDrawer({
               <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel>并行度</FieldLabel>
                 <Input size="small" variant="outlined" aria-label="并行度" inputMode="numeric"
-                  value={definition.pipeline.parallelism ?? ""}
+                  value={definition.pipeline.parallelism === undefined ? "" : String(definition.pipeline.parallelism)}
                   onChange={(event) => {
                     const raw = event.target.value;
                     update(setPipelineOption(definition, "parallelism", raw || undefined));
@@ -127,7 +127,7 @@ export function AdvancedDrawer({
               <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel>时区</FieldLabel>
                 <Input size="small" variant="outlined" aria-label="运行时区"
-                  value={definition.pipeline["local-time-zone"] || ""}
+                  value={String(definition.pipeline["local-time-zone"] || "")}
                   onChange={(event) => {
                     const raw = event.target.value;
                     update(setPipelineOption(definition, "local-time-zone", raw || undefined));
