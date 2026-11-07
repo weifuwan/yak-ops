@@ -1,4 +1,8 @@
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Button,
   Input,
@@ -12,14 +16,13 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
-  Table,
+  Switch,
   Tabs,
   TabsList,
   TabsPanel,
   TabsTab,
-  type TableColumns,
 } from "@yak-ops/yak-ui";
-import { CircleHelp, Plus, Trash2 } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import {
   SCHEMA_CHANGE_BEHAVIORS,
   SCHEMA_CHANGE_EVENTS,
@@ -31,41 +34,44 @@ import type {
 } from "@/service/data-sync";
 import { EditorDrawer } from "./editor-drawer";
 
-type MainTab = "advanced" | "ddl";
+type MainTab = "parameters" | "ddl" | "engine";
 type EndpointTab = "source" | "sink";
+type Endpoint = "source" | "sink";
 
-interface ParameterRow {
-  id: number;
-  name: string;
-  value: string;
+interface BaseAdvancedOption {
+  key: string;
+  label: string;
+  description: string;
 }
 
-const SOURCE_PROTECTED_KEYS = new Set([
-  "type",
-  "datasource-id",
-  "tables",
-  "scan.startup.mode",
-]);
+interface NumberAdvancedOption extends BaseAdvancedOption {
+  type: "number";
+  defaultValue: number;
+  min?: number;
+  max?: number;
+  suffix?: string;
+}
 
-const SINK_PROTECTED_KEYS = new Set([
-  "type",
-  "datasource-id",
-  "exclude.schema.changes",
-]);
+interface StringAdvancedOption extends BaseAdvancedOption {
+  type: "string";
+  defaultValue: string;
+  placeholder?: string;
+}
 
-const CREDENTIAL_KEYS = new Set([
-  "password",
-  "passwd",
-  "token",
-  "secret",
-  "secretkey",
-  "accesskey",
-  "apikey",
-  "privatekey",
-  "credentials",
-]);
+interface BooleanAdvancedOption extends BaseAdvancedOption {
+  type: "boolean";
+  defaultValue: boolean;
+}
 
-const BEHAVIOR_LABELS: Record<DataSyncSchemaChangeBehavior, string> = {
+type AdvancedOption =
+  | NumberAdvancedOption
+  | StringAdvancedOption
+  | BooleanAdvancedOption;
+
+const BEHAVIOR_LABELS: Record<
+  DataSyncSchemaChangeBehavior,
+  string
+> = {
   evolve: "严格同步",
   try_evolve: "尽力同步",
   lenient: "安全演进",
@@ -73,7 +79,10 @@ const BEHAVIOR_LABELS: Record<DataSyncSchemaChangeBehavior, string> = {
   exception: "遇变更失败",
 };
 
-const EVENT_LABELS: Record<DataSyncSchemaChangeEvent, string> = {
+const EVENT_LABELS: Record<
+  DataSyncSchemaChangeEvent,
+  string
+> = {
   "create.table": "新建表",
   "drop.table": "删除表",
   "add.column": "新增列",
@@ -84,63 +93,231 @@ const EVENT_LABELS: Record<DataSyncSchemaChangeEvent, string> = {
   "alter.table.comment": "修改表注释",
 };
 
+const MYSQL_SOURCE_ADVANCED_OPTIONS: readonly AdvancedOption[] = [
+  {
+    key: "scan.incremental.snapshot.chunk.size",
+    label: "快照分片大小",
+    type: "number",
+    defaultValue: 8096,
+    min: 2,
+    description: "每个快照分片读取的记录数。",
+  },
+  {
+    key: "scan.snapshot.fetch.size",
+    label: "单次读取条数",
+    type: "number",
+    defaultValue: 1024,
+    min: 2,
+    description: "每次从数据库读取的记录数。",
+  },
+  {
+    key: "connect.timeout",
+    label: "连接超时时间",
+    type: "string",
+    defaultValue: "30s",
+    placeholder: "例如 30s",
+    description: "连接数据库的最大等待时间。",
+  },
+  {
+    key: "connect.max-retries",
+    label: "连接重试次数",
+    type: "number",
+    defaultValue: 3,
+    min: 1,
+    description: "数据库连接失败后的重试次数。",
+  },
+  {
+    key: "connection.pool.size",
+    label: "连接池大小",
+    type: "number",
+    defaultValue: 20,
+    min: 2,
+    description: "读取数据使用的数据库连接数。",
+  },
+  {
+    key: "heartbeat.interval",
+    label: "心跳间隔",
+    type: "string",
+    defaultValue: "30s",
+    placeholder: "例如 30s",
+    description: "Binlog 心跳发送间隔。",
+  },
+  {
+    key: "include-comments.enabled",
+    label: "同步注释",
+    type: "boolean",
+    defaultValue: false,
+    description: "同步表和字段注释。",
+  },
+  {
+    key: "treat-tinyint1-as-boolean.enabled",
+    label: "TINYINT(1) 转布尔值",
+    type: "boolean",
+    defaultValue: true,
+    description: "将 TINYINT(1) 按布尔值处理。",
+  },
+];
+
+const JDBC_SINK_ADVANCED_OPTIONS: readonly AdvancedOption[] = [
+  {
+    key: "connect.timeout",
+    label: "连接超时时间",
+    type: "string",
+    defaultValue: "30s",
+    placeholder: "例如 30s",
+    description: "连接目标数据库的最大等待时间。",
+  },
+  {
+    key: "connect.max-retries",
+    label: "连接重试次数",
+    type: "number",
+    defaultValue: 3,
+    min: 0,
+    description: "数据库连接失败后的重试次数。",
+  },
+  {
+    key: "connection.pool.size",
+    label: "连接池大小",
+    type: "number",
+    defaultValue: 20,
+    min: 1,
+    description: "写入数据使用的数据库连接数。",
+  },
+  {
+    key: "write.batch.interval.ms",
+    label: "批量写入间隔",
+    type: "number",
+    defaultValue: 0,
+    min: 0,
+    suffix: "ms",
+    description: "定时提交一批数据的间隔。",
+  },
+  {
+    key: "write.batch.size",
+    label: "单批写入条数",
+    type: "number",
+    defaultValue: 512,
+    min: 1,
+    description: "每批最多写入的记录数。",
+  },
+  {
+    key: "write.max-open-tables",
+    label: "最大打开表数",
+    type: "number",
+    defaultValue: 32,
+    min: 1,
+    description: "同时保持打开的最大表数量。",
+  },
+  {
+    key: "write.max.retries",
+    label: "写入重试次数",
+    type: "number",
+    defaultValue: 3,
+    min: 0,
+    description: "数据写入失败后的重试次数。",
+  },
+];
+
+const MAIN_TAB_CLASS = [
+  "relative -mb-px -ml-px first:!ml-0",
+  "!inline-flex !h-8 !items-center !justify-center",
+  "!rounded-t-[2px]",
+  "!border !border-[var(--yak-components-control-border)]",
+  "!bg-white !px-4 !py-0",
+  "!text-xs !font-normal",
+  "!text-[var(--yak-components-tab-text)]",
+  "hover:!text-[var(--yak-components-tab-text-hover)]",
+  "data-active:!z-10",
+  "data-active:!border-b-white",
+  "data-active:!font-medium",
+  "data-active:!text-[var(--yak-color-primary)]",
+  "before:absolute before:inset-x-0 before:-top-px",
+  "before:h-0.5 before:bg-transparent before:content-['']",
+  "data-active:before:bg-[var(--yak-color-primary)]",
+].join(" ");
+
 function effectiveExcluded(
   definition: PipelineDefinition,
 ): DataSyncSchemaChangeEvent[] {
-  const configured = definition.sink["exclude.schema.changes"];
+  const configured =
+    definition.sink["exclude.schema.changes"];
 
   if (Array.isArray(configured)) {
     return configured;
   }
 
-  return (definition.pipeline["schema.change.behavior"] ?? "lenient") === "lenient"
+  return (
+    definition.pipeline["schema.change.behavior"] ??
+    "lenient"
+  ) === "lenient"
     ? ["truncate.table", "drop.table"]
     : [];
 }
 
-function parameterValue(value: unknown): string {
-  if (value === undefined || value === null) return "";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+function hasOwn(
+  object: Record<string, unknown>,
+  key: string,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    object,
+    key,
+  );
 }
 
-function endpointParameters(
-  endpoint: Record<string, unknown>,
-  protectedKeys: Set<string>,
-): ParameterRow[] {
-  let id = 0;
-  return Object.entries(endpoint)
-    .filter(([key]) => !protectedKeys.has(key))
-    .map(([name, value]) => ({
-      id: id++,
-      name,
-      value: parameterValue(value),
-    }));
-}
+function effectiveNumberValue(
+  object: Record<string, unknown>,
+  option: NumberAdvancedOption,
+): number {
+  const value = object[option.key];
 
-function applyParameters(
-  endpoint: Record<string, unknown>,
-  protectedKeys: Set<string>,
-  rows: ParameterRow[],
-) {
-  for (const key of Object.keys(endpoint)) {
-    if (!protectedKeys.has(key)) delete endpoint[key];
+  if (
+    typeof value === "number" &&
+    Number.isFinite(value)
+  ) {
+    return value;
   }
-  for (const row of rows) {
-    const name = row.name.trim();
-    if (name) endpoint[name] = row.value;
+
+  if (
+    typeof value === "string" &&
+    value.trim() !== "" &&
+    Number.isFinite(Number(value))
+  ) {
+    return Number(value);
   }
+
+  return option.defaultValue;
 }
 
-function parameterNameBlocked(name: string, protectedKeys: Set<string>) {
-  const compact = name.replace(/[_-]/g, "").toLowerCase();
-  return protectedKeys.has(name) || CREDENTIAL_KEYS.has(compact);
+function effectiveStringValue(
+  object: Record<string, unknown>,
+  option: StringAdvancedOption,
+): string {
+  const value = object[option.key];
+
+  return typeof value === "string"
+    ? value
+    : option.defaultValue;
 }
 
-function hasInvalidParameters(rows: ParameterRow[], protectedKeys: Set<string>) {
-  const names = rows.map((row) => row.name.trim());
-  return names.some((name) => !name || parameterNameBlocked(name, protectedKeys))
-    || new Set(names).size !== names.length;
+function effectiveBooleanValue(
+  object: Record<string, unknown>,
+  option: BooleanAdvancedOption,
+): boolean {
+  const value = object[option.key];
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return option.defaultValue;
 }
 
 export function AdvancedConfigDrawer({
@@ -158,112 +335,111 @@ export function AdvancedConfigDrawer({
   onClosed: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
-  const [form, setForm] = useState(() => structuredClone(value));
-  const [mainTab, setMainTab] = useState<MainTab>("advanced");
-  const [endpointTab, setEndpointTab] = useState<EndpointTab>("source");
-  const [sourceParameters, setSourceParameters] = useState(() =>
-    endpointParameters(value.source, SOURCE_PROTECTED_KEYS),
-  );
-  const [sinkParameters, setSinkParameters] = useState(() =>
-    endpointParameters(value.sink, SINK_PROTECTED_KEYS),
-  );
-  const [nextRowId, setNextRowId] = useState(1000);
+  const [form, setForm] =
+    useState<PipelineDefinition>(() =>
+      structuredClone(value),
+    );
 
-  const behavior =
-    form.pipeline["schema.change.behavior"] ?? "lenient";
+  const [mainTab, setMainTab] =
+    useState<MainTab>("parameters");
 
-  const excluded = effectiveExcluded(form);
-  const parametersInvalid =
-    hasInvalidParameters(sourceParameters, SOURCE_PROTECTED_KEYS) ||
-    hasInvalidParameters(sinkParameters, SINK_PROTECTED_KEYS);
+  const [endpointTab, setEndpointTab] =
+    useState<EndpointTab>("source");
 
-  const changed = useMemo(() => {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setForm(structuredClone(value));
+    setMainTab("parameters");
+    setEndpointTab("source");
+    onDirtyChange(false);
+  }, [open]);
+
+  const change = (
+    mutate: (
+      definition: PipelineDefinition,
+    ) => void,
+  ) => {
     const next = structuredClone(form);
-    applyParameters(next.source, SOURCE_PROTECTED_KEYS, sourceParameters);
-    applyParameters(next.sink, SINK_PROTECTED_KEYS, sinkParameters);
-    return JSON.stringify(next) !== JSON.stringify(value);
-  }, [form, sinkParameters, sourceParameters, value]);
 
-  const markChanged = () => {
-    queueMicrotask(() => onDirtyChange(true));
+    mutate(next);
+
+    setForm(next);
+
+    onDirtyChange(
+      JSON.stringify(next) !==
+        JSON.stringify(value),
+    );
   };
 
-  const change = (next: PipelineDefinition) => {
-    setForm(next);
-    onDirtyChange(true);
+  const setEndpointOption = (
+    endpoint: Endpoint,
+    key: string,
+    optionValue: unknown,
+    defaultValue: unknown,
+  ) => {
+    change((definition) => {
+      const target = definition[endpoint];
+
+      if (optionValue === defaultValue) {
+        delete target[key];
+        return;
+      }
+
+      target[key] = optionValue;
+    });
+  };
+
+  const resetEndpointOption = (
+    endpoint: Endpoint,
+    key: string,
+  ) => {
+    change((definition) => {
+      delete definition[endpoint][key];
+    });
   };
 
   const changeBehavior = (
     nextBehavior: DataSyncSchemaChangeBehavior,
   ) => {
-    const next = structuredClone(form);
-    next.pipeline["schema.change.behavior"] = nextBehavior;
-    change(next);
+    change((definition) => {
+      definition.pipeline[
+        "schema.change.behavior"
+      ] = nextBehavior;
+    });
   };
 
   const changeEvent = (
     event: DataSyncSchemaChangeEvent,
     ignored: boolean,
   ) => {
-    const next = structuredClone(form);
-    const values = new Set(effectiveExcluded(next));
+    change((definition) => {
+      const values = new Set(
+        effectiveExcluded(definition),
+      );
 
-    if (ignored) {
-      values.add(event);
-    } else {
-      values.delete(event);
-    }
+      if (ignored) {
+        values.add(event);
+      } else {
+        values.delete(event);
+      }
 
-    next.sink["exclude.schema.changes"] =
-      SCHEMA_CHANGE_EVENTS.filter((item) => values.has(item));
-
-    change(next);
+      definition.sink[
+        "exclude.schema.changes"
+      ] = SCHEMA_CHANGE_EVENTS.filter(
+        (item) => values.has(item),
+      );
+    });
   };
 
-  const addParameter = (side: EndpointTab) => {
-    const row = { id: nextRowId, name: "", value: "" };
-    setNextRowId((current) => current + 1);
-    if (side === "source") {
-      setSourceParameters((current) => [...current, row]);
-    } else {
-      setSinkParameters((current) => [...current, row]);
-    }
-    markChanged();
-  };
+  const behavior =
+    form.pipeline[
+      "schema.change.behavior"
+    ] ?? "lenient";
 
-  const updateParameter = (
-    side: EndpointTab,
-    id: number,
-    patch: Partial<Pick<ParameterRow, "name" | "value">>,
-  ) => {
-    const update = (rows: ParameterRow[]) =>
-      rows.map((row) => row.id === id ? { ...row, ...patch } : row);
-    if (side === "source") {
-      setSourceParameters(update);
-    } else {
-      setSinkParameters(update);
-    }
-    markChanged();
-  };
-
-  const removeParameter = (side: EndpointTab, id: number) => {
-    const remove = (rows: ParameterRow[]) => rows.filter((row) => row.id !== id);
-    if (side === "source") {
-      setSourceParameters(remove);
-    } else {
-      setSinkParameters(remove);
-    }
-    markChanged();
-  };
-
-  const apply = () => {
-    if (parametersInvalid) return;
-    const next = structuredClone(form);
-    applyParameters(next.source, SOURCE_PROTECTED_KEYS, sourceParameters);
-    applyParameters(next.sink, SINK_PROTECTED_KEYS, sinkParameters);
-    onDirtyChange(false);
-    onApply(next);
-  };
+  const excluded = effectiveExcluded(form);
 
   return (
     <EditorDrawer
@@ -277,206 +453,723 @@ export function AdvancedConfigDrawer({
           <Button
             size="small"
             variant="primary"
-            disabled={parametersInvalid}
-            onClick={apply}
+            onClick={() =>
+              onApply(structuredClone(form))
+            }
           >
             确认
           </Button>
 
-          <Button size="small" onClick={onClose}>
+          <Button
+            size="small"
+            onClick={onClose}
+          >
             取消
           </Button>
         </>
       }
     >
-      <Tabs
-        value={mainTab}
-        onValueChange={(tab) => setMainTab(tab as MainTab)}
-        className="pt-4"
-      >
-        <TabsList className="gap-0">
-          <TabsTab
-            value="advanced"
-            className="border border-b-0 px-4 py-2 data-active:border-t-2 data-active:border-t-[var(--yak-color-primary)] data-active:bg-[var(--yak-components-panel-bg)]"
+      <div className="pt-4">
+        <Tabs
+          value={mainTab}
+          onValueChange={(next) =>
+            setMainTab(next as MainTab)
+          }
+        >
+          <TabsList
+            className="
+              !h-[33px]
+              !items-end
+              !gap-0
+              !border-b
+              !border-[var(--yak-components-control-border)]
+            "
           >
-            高级参数
-          </TabsTab>
-          <TabsTab
-            value="ddl"
-            className="-ml-px border border-b-0 px-4 py-2 data-active:border-t-2 data-active:border-t-[var(--yak-color-primary)] data-active:bg-[var(--yak-components-panel-bg)]"
-          >
-            DDL能力配置
-          </TabsTab>
-        </TabsList>
+            <TabsTab
+              value="parameters"
+              className={MAIN_TAB_CLASS}
+            >
+              高级参数
+            </TabsTab>
 
-        <TabsPanel value="advanced" className="pt-4">
-          <AdvancedParameters
-            activeTab={endpointTab}
-            parametersInvalid={parametersInvalid}
-            onTabChange={setEndpointTab}
-            sourceRows={sourceParameters}
-            sinkRows={sinkParameters}
-            onAdd={addParameter}
-            onChange={updateParameter}
-            onRemove={removeParameter}
-          />
-        </TabsPanel>
+            <TabsTab
+              value="ddl"
+              className={MAIN_TAB_CLASS}
+            >
+              DDL能力配置
+            </TabsTab>
 
-        <TabsPanel value="ddl" className="pt-4">
-          <DdlConfig
-            behavior={behavior}
-            excluded={excluded}
-            onBehaviorChange={changeBehavior}
-            onEventChange={changeEvent}
-          />
-        </TabsPanel>
-      </Tabs>
+            <TabsTab
+              value="engine"
+              className={MAIN_TAB_CLASS}
+            >
+              引擎参数配置
+            </TabsTab>
+          </TabsList>
 
-      {!changed ? null : <span className="sr-only">高级配置已修改</span>}
+          <TabsPanel value="parameters">
+            <AdvancedParameters
+              definition={form}
+              endpointTab={endpointTab}
+              onEndpointTabChange={
+                setEndpointTab
+              }
+              onChange={
+                setEndpointOption
+              }
+              onReset={
+                resetEndpointOption
+              }
+            />
+          </TabsPanel>
+
+          <TabsPanel value="ddl">
+            <SchemaChangeConfig
+              behavior={behavior}
+              excluded={excluded}
+              onBehaviorChange={
+                changeBehavior
+              }
+              onEventChange={
+                changeEvent
+              }
+            />
+          </TabsPanel>
+
+          <TabsPanel value="engine">
+            <EngineConfig
+              definition={form}
+              onChange={change}
+            />
+          </TabsPanel>
+        </Tabs>
+      </div>
     </EditorDrawer>
   );
 }
 
 function AdvancedParameters({
-  activeTab,
-  parametersInvalid,
-  onTabChange,
-  sourceRows,
-  sinkRows,
-  onAdd,
+  definition,
+  endpointTab,
+  onEndpointTabChange,
   onChange,
-  onRemove,
+  onReset,
 }: {
-  activeTab: EndpointTab;
-  parametersInvalid: boolean;
-  onTabChange: (tab: EndpointTab) => void;
-  sourceRows: ParameterRow[];
-  sinkRows: ParameterRow[];
-  onAdd: (side: EndpointTab) => void;
-  onChange: (
-    side: EndpointTab,
-    id: number,
-    patch: Partial<Pick<ParameterRow, "name" | "value">>,
+  definition: PipelineDefinition;
+  endpointTab: EndpointTab;
+  onEndpointTabChange: (
+    value: EndpointTab,
   ) => void;
-  onRemove: (side: EndpointTab, id: number) => void;
+  onChange: (
+    endpoint: Endpoint,
+    key: string,
+    value: unknown,
+    defaultValue: unknown,
+  ) => void;
+  onReset: (
+    endpoint: Endpoint,
+    key: string,
+  ) => void;
 }) {
-  const rows = activeTab === "source" ? sourceRows : sinkRows;
-
-  const columns: TableColumns<ParameterRow> = [
-    {
-      key: "name",
-      title: "参数名称",
-      width: 240,
-      render: (_value, row) => (
-        <Input
-          size="small"
-          variant="outlined"
-          value={row.name}
-          placeholder="请输入参数名称"
-          onChange={(event) =>
-            onChange(activeTab, row.id, { name: event.target.value })
-          }
-        />
-      ),
-    },
-    {
-      key: "value",
-      title: "参数值",
-      render: (_value, row) => (
-        <Input
-          size="small"
-          variant="outlined"
-          value={row.value}
-          placeholder="请输入参数值"
-          onChange={(event) =>
-            onChange(activeTab, row.id, { value: event.target.value })
-          }
-        />
-      ),
-    },
-    {
-      key: "action",
-      title: "操作",
-      width: 72,
-      align: "center",
-      render: (_value, row) => (
-        <Button
-          size="small"
-          variant="ghost"
-          aria-label="删除参数"
-          onClick={() => onRemove(activeTab, row.id)}
-        >
-          <Trash2 size={14} aria-hidden="true" />
-        </Button>
-      ),
-    },
-  ];
-
   return (
-    <div className="space-y-3">
-      <div className="rounded-[var(--yak-radius-control-small)] bg-[var(--yak-color-hover)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-        高级参数会直接写入对应的 Flink CDC Connector 配置，请确认参数含义后再修改。
-      </div>
-      {parametersInvalid ? (
-        <div className="text-xs text-[var(--yak-color-danger)]">
-          参数名称不能为空、不能重复，也不能覆盖基础配置或保存凭据。
-        </div>
-      ) : null}
-
+    <div className="pt-4">
       <Tabs
-        value={activeTab}
-        onValueChange={(tab) => onTabChange(tab as EndpointTab)}
+        value={endpointTab}
+        onValueChange={(next) =>
+          onEndpointTabChange(
+            next as EndpointTab,
+          )
+        }
       >
-        <div className="flex items-end justify-between border-b border-[var(--yak-components-control-border)]">
-          <TabsList className="border-b-0">
-            <TabsTab value="source">来源参数</TabsTab>
-            <TabsTab value="sink">目标参数</TabsTab>
-          </TabsList>
-          <Button
-            size="small"
-            variant="ghost"
-            className="mb-1.5"
-            onClick={() => onAdd(activeTab)}
-          >
-            <Plus size={14} aria-hidden="true" />
-            添加参数
-          </Button>
-        </div>
+        <TabsList>
+          <TabsTab value="source">
+            来源参数
+          </TabsTab>
 
-        <TabsPanel value="source" className="pt-2">
-          <ParameterTable rows={rows} columns={columns} />
+          <TabsTab value="sink">
+            目标参数
+          </TabsTab>
+        </TabsList>
+
+        <TabsPanel
+          value="source"
+          className="pt-3"
+        >
+          <AdvancedOptionTable
+            endpoint="source"
+            values={definition.source}
+            options={
+              MYSQL_SOURCE_ADVANCED_OPTIONS
+            }
+            onChange={onChange}
+            onReset={onReset}
+          />
         </TabsPanel>
-        <TabsPanel value="sink" className="pt-2">
-          <ParameterTable rows={rows} columns={columns} />
+
+        <TabsPanel
+          value="sink"
+          className="pt-3"
+        >
+          <AdvancedOptionTable
+            endpoint="sink"
+            values={definition.sink}
+            options={
+              JDBC_SINK_ADVANCED_OPTIONS
+            }
+            onChange={onChange}
+            onReset={onReset}
+          />
         </TabsPanel>
       </Tabs>
     </div>
   );
 }
 
-function ParameterTable({
-  rows,
-  columns,
+function AdvancedOptionTable({
+  endpoint,
+  values,
+  options,
+  onChange,
+  onReset,
 }: {
-  rows: ParameterRow[];
-  columns: TableColumns<ParameterRow>;
+  endpoint: Endpoint;
+  values: Record<string, unknown>;
+  options: readonly AdvancedOption[];
+  onChange: (
+    endpoint: Endpoint,
+    key: string,
+    value: unknown,
+    defaultValue: unknown,
+  ) => void;
+  onReset: (
+    endpoint: Endpoint,
+    key: string,
+  ) => void;
 }) {
   return (
-    <Table<ParameterRow>
-      columns={columns}
-      dataSource={rows}
-      rowKey="id"
-      size="small"
-      bordered
-      pagination={false}
-      rowHoverable={false}
-      emptyText="暂无高级参数"
-      emptyClassName="min-h-28"
+    <div className="overflow-hidden border border-[var(--yak-components-panel-border)]">
+      <div className="grid grid-cols-[200px_220px_minmax(0,1fr)] bg-[var(--yak-color-hover)] text-xs font-medium text-[var(--yak-components-field-label)]">
+        <div className="px-3 py-2">
+          参数名称
+        </div>
+
+        <div className="border-l border-[var(--yak-components-panel-border)] px-3 py-2">
+          参数值
+        </div>
+
+        <div className="border-l border-[var(--yak-components-panel-border)] px-3 py-2">
+          参数说明
+        </div>
+      </div>
+
+      {options.map((option) => {
+        const configured = hasOwn(
+          values,
+          option.key,
+        );
+
+        return (
+          <div
+            key={option.key}
+            className="grid min-h-[48px] grid-cols-[200px_220px_minmax(0,1fr)] border-t border-[var(--yak-components-panel-border)] text-xs"
+          >
+            <div className="flex items-center px-3">
+              {option.label}
+            </div>
+
+            <div className="flex items-center border-l border-[var(--yak-components-panel-border)] px-3 py-2">
+              <OptionEditor
+                values={values}
+                option={option}
+                onChange={(next) =>
+                  onChange(
+                    endpoint,
+                    option.key,
+                    next,
+                    option.defaultValue,
+                  )
+                }
+                onReset={() =>
+                  onReset(
+                    endpoint,
+                    option.key,
+                  )
+                }
+              />
+            </div>
+
+            <div className="border-l border-[var(--yak-components-panel-border)] px-3 py-2 leading-5 text-[var(--yak-components-muted-text)]">
+              <div>
+                {option.description}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span>
+                  默认值：
+                  <DefaultValue
+                    option={option}
+                  />
+                </span>
+
+                {configured ? (
+                  <Button
+                    size="small"
+                    variant="ghost"
+                    className="!h-auto !min-h-0 !px-0 !py-0 text-xs font-normal text-[var(--yak-color-primary)]"
+                    onClick={() =>
+                      onReset(
+                        endpoint,
+                        option.key,
+                      )
+                    }
+                  >
+                    恢复默认
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OptionEditor({
+  values,
+  option,
+  onChange,
+  onReset,
+}: {
+  values: Record<string, unknown>;
+  option: AdvancedOption;
+  onChange: (value: unknown) => void;
+  onReset: () => void;
+}) {
+  if (option.type === "boolean") {
+    const value =
+      effectiveBooleanValue(
+        values,
+        option,
+      );
+
+    return (
+      <div className="flex items-center gap-2">
+        <Switch
+          size="small"
+          checked={value}
+          aria-label={option.label}
+          onCheckedChange={(checked) =>
+            onChange(checked)
+          }
+        />
+
+        <span className="text-[var(--yak-components-muted-text)]">
+          {value ? "开启" : "关闭"}
+        </span>
+      </div>
+    );
+  }
+
+  if (option.type === "number") {
+    return (
+      <NumberOptionInput
+        value={effectiveNumberValue(
+          values,
+          option,
+        )}
+        option={option}
+        onChange={onChange}
+        onReset={onReset}
+      />
+    );
+  }
+
+  return (
+    <StringOptionInput
+      value={effectiveStringValue(
+        values,
+        option,
+      )}
+      option={option}
+      onChange={onChange}
+      onReset={onReset}
     />
   );
 }
 
-function DdlConfig({
+function NumberOptionInput({
+  value,
+  option,
+  onChange,
+  onReset,
+}: {
+  value: number;
+  option: NumberAdvancedOption;
+  onChange: (value: number) => void;
+  onReset: () => void;
+}) {
+  const [draft, setDraft] =
+    useState(String(value));
+
+  const [error, setError] =
+    useState<string>();
+
+  useEffect(() => {
+    setDraft(String(value));
+    setError(undefined);
+  }, [value]);
+
+  const commit = () => {
+    const text = draft.trim();
+
+    if (!text) {
+      onReset();
+      return;
+    }
+
+    const next = Number(text);
+
+    if (
+      !Number.isFinite(next) ||
+      !Number.isInteger(next)
+    ) {
+      setError("请输入整数");
+      return;
+    }
+
+    if (
+      option.min !== undefined &&
+      next < option.min
+    ) {
+      setError(
+        `不能小于 ${option.min}`,
+      );
+      return;
+    }
+
+    if (
+      option.max !== undefined &&
+      next > option.max
+    ) {
+      setError(
+        `不能大于 ${option.max}`,
+      );
+      return;
+    }
+
+    setError(undefined);
+    onChange(next);
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          size="small"
+          variant="outlined"
+          value={draft}
+          min={option.min}
+          max={option.max}
+          step={1}
+          aria-label={option.label}
+          onChange={(event) => {
+            setError(undefined);
+            setDraft(
+              event.target.value,
+            );
+          }}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter"
+            ) {
+              event.currentTarget.blur();
+            }
+
+            if (
+              event.key === "Escape"
+            ) {
+              setDraft(
+                String(value),
+              );
+              setError(undefined);
+              event.currentTarget.blur();
+            }
+          }}
+        />
+
+        {option.suffix ? (
+          <span className="shrink-0 text-[var(--yak-components-muted-text)]">
+            {option.suffix}
+          </span>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="mt-1 text-[11px] text-[var(--yak-color-danger)]">
+          {error}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function StringOptionInput({
+  value,
+  option,
+  onChange,
+  onReset,
+}: {
+  value: string;
+  option: StringAdvancedOption;
+  onChange: (value: string) => void;
+  onReset: () => void;
+}) {
+  const [draft, setDraft] =
+    useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    const next = draft.trim();
+
+    if (!next) {
+      onReset();
+      return;
+    }
+
+    onChange(next);
+  };
+
+  return (
+    <Input
+      size="small"
+      variant="outlined"
+      value={draft}
+      placeholder={option.placeholder}
+      aria-label={option.label}
+      onChange={(event) =>
+        setDraft(event.target.value)
+      }
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.currentTarget.blur();
+        }
+
+        if (event.key === "Escape") {
+          setDraft(value);
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
+function DefaultValue({
+  option,
+}: {
+  option: AdvancedOption;
+}) {
+  if (option.type === "boolean") {
+    return (
+      <>
+        {option.defaultValue
+          ? "开启"
+          : "关闭"}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {option.defaultValue}
+      {option.type === "number" &&
+      option.suffix
+        ? ` ${option.suffix}`
+        : ""}
+    </>
+  );
+}
+
+function EngineConfig({
+  definition,
+  onChange,
+}: {
+  definition: PipelineDefinition;
+  onChange: (
+    mutate: (
+      definition: PipelineDefinition,
+    ) => void,
+  ) => void;
+}) {
+  const parallelismValue =
+    definition.pipeline.parallelism;
+
+  const parallelism =
+    typeof parallelismValue === "number"
+      ? parallelismValue
+      : Number(parallelismValue ?? 1);
+
+  const timeZoneValue =
+    definition.pipeline[
+      "local-time-zone"
+    ];
+
+  const timeZone =
+    typeof timeZoneValue === "string"
+      ? timeZoneValue
+      : "";
+
+  return (
+    <div className="pt-4">
+      <div className="overflow-hidden border border-[var(--yak-components-panel-border)]">
+        <div className="grid grid-cols-[200px_220px_minmax(0,1fr)] bg-[var(--yak-color-hover)] text-xs font-medium text-[var(--yak-components-field-label)]">
+          <div className="px-3 py-2">
+            参数名称
+          </div>
+
+          <div className="border-l border-[var(--yak-components-panel-border)] px-3 py-2">
+            参数值
+          </div>
+
+          <div className="border-l border-[var(--yak-components-panel-border)] px-3 py-2">
+            参数说明
+          </div>
+        </div>
+
+        <EngineParameterRow
+          label="并行度"
+          description="任务运行的默认并行度。"
+          defaultValue="1"
+        >
+          <Input
+            type="number"
+            size="small"
+            variant="outlined"
+            min={1}
+            max={128}
+            step={1}
+            value={
+              Number.isFinite(
+                parallelism,
+              )
+                ? parallelism
+                : 1
+            }
+            onChange={(event) => {
+              const next = Number(
+                event.target.value,
+              );
+
+              if (
+                !Number.isInteger(
+                  next,
+                ) ||
+                next < 1 ||
+                next > 128
+              ) {
+                return;
+              }
+
+              onChange(
+                (
+                  nextDefinition,
+                ) => {
+                  if (next === 1) {
+                    delete nextDefinition
+                      .pipeline
+                      .parallelism;
+                  } else {
+                    nextDefinition
+                      .pipeline
+                      .parallelism =
+                      next;
+                  }
+                },
+              );
+            }}
+          />
+        </EngineParameterRow>
+
+        <EngineParameterRow
+          label="运行时区"
+          description="时间字段使用的运行时区。"
+          defaultValue="系统默认"
+        >
+          <Input
+            size="small"
+            variant="outlined"
+            value={timeZone}
+            placeholder="例如 Asia/Shanghai"
+            onChange={(event) => {
+              const next =
+                event.target.value;
+
+              onChange(
+                (
+                  nextDefinition,
+                ) => {
+                  if (next.trim()) {
+                    nextDefinition
+                      .pipeline[
+                      "local-time-zone"
+                    ] = next;
+                  } else {
+                    delete nextDefinition
+                      .pipeline[
+                      "local-time-zone"
+                    ];
+                  }
+                },
+              );
+            }}
+          />
+        </EngineParameterRow>
+      </div>
+    </div>
+  );
+}
+
+function EngineParameterRow({
+  label,
+  description,
+  defaultValue,
+  children,
+}: {
+  label: string;
+  description: string;
+  defaultValue: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid min-h-[48px] grid-cols-[200px_220px_minmax(0,1fr)] border-t border-[var(--yak-components-panel-border)] text-xs">
+      <div className="flex items-center px-3">
+        {label}
+      </div>
+
+      <div className="flex items-center border-l border-[var(--yak-components-panel-border)] px-3 py-2">
+        {children}
+      </div>
+
+      <div className="border-l border-[var(--yak-components-panel-border)] px-3 py-2 leading-5 text-[var(--yak-components-muted-text)]">
+        <div>
+          {description}
+        </div>
+
+        <div>
+          默认值：{defaultValue}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SchemaChangeConfig({
   behavior,
   excluded,
   onBehaviorChange,
@@ -484,11 +1177,16 @@ function DdlConfig({
 }: {
   behavior: DataSyncSchemaChangeBehavior;
   excluded: DataSyncSchemaChangeEvent[];
-  onBehaviorChange: (behavior: DataSyncSchemaChangeBehavior) => void;
-  onEventChange: (event: DataSyncSchemaChangeEvent, ignored: boolean) => void;
+  onBehaviorChange: (
+    behavior: DataSyncSchemaChangeBehavior,
+  ) => void;
+  onEventChange: (
+    event: DataSyncSchemaChangeEvent,
+    ignored: boolean,
+  ) => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pt-4">
       <div className="flex justify-end">
         <Popover>
           <PopoverTrigger
@@ -498,22 +1196,55 @@ function DdlConfig({
             closeDelay={120}
             className="flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-[var(--yak-color-primary)] outline-none"
           >
-            <span>处理策略说明</span>
-            <CircleHelp size={14} aria-hidden="true" />
+            <span>
+              处理策略说明
+            </span>
+
+            <CircleHelp
+              size={14}
+              aria-hidden="true"
+            />
           </PopoverTrigger>
+
           <PopoverContent
             side="bottom"
             align="end"
             className="w-[340px] max-w-[calc(100vw-2rem)] rounded-md p-4 text-xs leading-5"
           >
             <div className="space-y-1">
-              <p><strong>严格同步：</strong>同步上游表结构变更，执行失败时任务失败。</p>
-              <p><strong>尽力同步：</strong>尝试同步表结构变更，目标端不支持时尽量继续运行。</p>
-              <p><strong>安全演进：</strong>以更宽松的方式处理表结构变化，优先避免数据丢失。</p>
-              <p><strong>忽略变更：</strong>忽略上游表结构变更，不向目标端执行。</p>
-              <p><strong>遇变更失败：</strong>检测到上游表结构变更后直接让任务失败。</p>
-              <p className="pt-1 text-[var(--yak-components-muted-text)]">
-                单项配置中，“忽略”表示该类 DDL 不会下发到目标端。
+              <p>
+                <strong>
+                  严格同步：
+                </strong>
+                同步结构变更，失败时任务失败。
+              </p>
+
+              <p>
+                <strong>
+                  尽力同步：
+                </strong>
+                尽量同步目标端支持的结构变更。
+              </p>
+
+              <p>
+                <strong>
+                  安全演进：
+                </strong>
+                优先以安全方式处理结构变化。
+              </p>
+
+              <p>
+                <strong>
+                  忽略变更：
+                </strong>
+                不向目标端同步结构变更。
+              </p>
+
+              <p>
+                <strong>
+                  遇变更失败：
+                </strong>
+                检测到结构变更后任务失败。
               </p>
             </div>
           </PopoverContent>
@@ -524,14 +1255,18 @@ function DdlConfig({
         <Select<DataSyncSchemaChangeBehavior>
           size="small"
           items={Object.fromEntries(
-            SCHEMA_CHANGE_BEHAVIORS.map((item) => [
-              item,
-              BEHAVIOR_LABELS[item],
-            ]),
+            SCHEMA_CHANGE_BEHAVIORS.map(
+              (item) => [
+                item,
+                BEHAVIOR_LABELS[item],
+              ],
+            ),
           )}
           value={behavior}
           onValueChange={(next) => {
-            if (next) onBehaviorChange(next);
+            if (next) {
+              onBehaviorChange(next);
+            }
           }}
         >
           <SelectTrigger variant="outlined">
@@ -539,57 +1274,94 @@ function DdlConfig({
           </SelectTrigger>
 
           <SelectContent>
-            {SCHEMA_CHANGE_BEHAVIORS.map((item) => (
-              <SelectItem key={item} value={item}>
-                <SelectItemText>{BEHAVIOR_LABELS[item]}</SelectItemText>
-                <SelectItemIndicator />
-              </SelectItem>
-            ))}
+            {SCHEMA_CHANGE_BEHAVIORS.map(
+              (item) => (
+                <SelectItem
+                  key={item}
+                  value={item}
+                >
+                  <SelectItemText>
+                    {
+                      BEHAVIOR_LABELS[
+                        item
+                      ]
+                    }
+                  </SelectItemText>
+
+                  <SelectItemIndicator />
+                </SelectItem>
+              ),
+            )}
           </SelectContent>
         </Select>
       </ConfigRow>
 
       <div className="h-px bg-[var(--yak-components-panel-border)]" />
 
-      {SCHEMA_CHANGE_EVENTS.map((event) => {
-        const ignored = excluded.includes(event);
+      {SCHEMA_CHANGE_EVENTS.map(
+        (event) => {
+          const ignored =
+            excluded.includes(event);
 
-        return (
-          <ConfigRow
-            key={event}
-            label={EVENT_LABELS[event]}
-            required
-          >
-            <Select<"normal" | "ignore">
-              size="small"
-              items={{
-                normal: "正常处理",
-                ignore: "忽略",
-              }}
-              value={ignored ? "ignore" : "normal"}
-              onValueChange={(next) => {
-                if (next) onEventChange(event, next === "ignore");
-              }}
+          return (
+            <ConfigRow
+              key={event}
+              label={
+                EVENT_LABELS[event]
+              }
+              required
             >
-              <SelectTrigger variant="outlined">
-                <SelectValue />
-              </SelectTrigger>
+              <Select<
+                "normal" | "ignore"
+              >
+                size="small"
+                items={{
+                  normal: "正常处理",
+                  ignore: "忽略",
+                }}
+                value={
+                  ignored
+                    ? "ignore"
+                    : "normal"
+                }
+                onValueChange={(
+                  next,
+                ) => {
+                  if (next) {
+                    onEventChange(
+                      event,
+                      next ===
+                        "ignore",
+                    );
+                  }
+                }}
+              >
+                <SelectTrigger variant="outlined">
+                  <SelectValue />
+                </SelectTrigger>
 
-              <SelectContent>
-                <SelectItem value="normal">
-                  <SelectItemText>正常处理</SelectItemText>
-                  <SelectItemIndicator />
-                </SelectItem>
+                <SelectContent>
+                  <SelectItem value="normal">
+                    <SelectItemText>
+                      正常处理
+                    </SelectItemText>
 
-                <SelectItem value="ignore">
-                  <SelectItemText>忽略</SelectItemText>
-                  <SelectItemIndicator />
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </ConfigRow>
-        );
-      })}
+                    <SelectItemIndicator />
+                  </SelectItem>
+
+                  <SelectItem value="ignore">
+                    <SelectItemText>
+                      忽略
+                    </SelectItemText>
+
+                    <SelectItemIndicator />
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </ConfigRow>
+          );
+        },
+      )}
     </div>
   );
 }
@@ -607,10 +1379,14 @@ function ConfigRow({
     <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-4">
       <div className="flex items-center justify-end text-sm">
         {required ? (
-          <span className="mr-1 text-[var(--yak-color-danger)]">*</span>
+          <span className="mr-1 text-[var(--yak-color-danger)]">
+            *
+          </span>
         ) : null}
 
-        <span>{label}：</span>
+        <span>
+          {label}：
+        </span>
       </div>
 
       <div className="min-w-0">
