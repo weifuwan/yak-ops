@@ -9,7 +9,6 @@ import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-s
 import type { DataSyncTaskRecord } from "@/service/data-sync";
 import { TaskFilters } from "./task-filters";
 import { TaskTable } from "./task-table";
-import { DataSyncInstanceTable } from "./instance-table";
 import { useTaskListFilters } from "./use-list-filters";
 import {
   useTaskPage,
@@ -24,7 +23,6 @@ export function DataSyncPage() {
   const location = useLocation();
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const [tab, setTab] = useState<"tasks" | "instances">("tasks");
   const scope = currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
   const filters = useTaskListFilters();
   const page = useTaskPage(scope, filters);
@@ -63,79 +61,54 @@ export function DataSyncPage() {
         <PageHeader title="数据同步" bordered className="bg-white px-6 max-md:px-4" />
         <div className="flex min-h-0 min-w-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-5 text-sm">
-                <button
-                  type="button"
-                  onClick={() => setTab("tasks")}
-                  className={tab === "tasks" ? "font-medium text-[var(--yak-color-primary)]" : ""}
-                >
-                  任务定义
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("instances")}
-                  className={
-                    tab === "instances" ? "font-medium text-[var(--yak-color-primary)]" : ""
-                  }
-                >
-                  执行实例
-                </button>
+            <TaskFilters
+              filters={filters}
+              keyword={filters.keywordInput}
+              onKeywordChange={filters.setKeywordInput}
+              onFilterChange={filters.update}
+              onCreate={() => setCreateOpen(true)}
+            />
+            {page.error ? (
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
+                任务列表加载失败
+                <Button size="small" onClick={page.retry}>
+                  重试
+                </Button>
               </div>
+            ) : null}
+            {page.invalidCount > 0 ? (
+              <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
+                {page.invalidCount} 个任务配置无法解析，请查看对应行
+              </div>
+            ) : null}
+            <div className="mt-4 min-h-0 min-w-0 flex-1">
+              <TaskTable
+                records={page.records}
+                pageNo={filters.pageNo}
+                total={page.total}
+                loading={page.loading}
+                failed={page.error}
+                data={{
+                  dataSourceMap: sources.dataSourceMap,
+                  dataSourcesLoading: sources.loading,
+                  updateUserMap: users.users,
+                  updateUsersLoading: users.loading,
+                  latestByTask: instances.latestByTask,
+                  activeByTask: instances.activeByTask,
+                  instancesLoading: instances.loading,
+                  instancesReady: instances.ready,
+                  actionKey: commands.actionKey,
+                }}
+                actions={{
+                  command,
+                  delete: (task) => {
+                    if (canManage(task)) setPendingDelete(task);
+                  },
+                  page: (pageNo) => filters.update({ pageNo }),
+                }}
+              />
             </div>
-            {tab === "tasks" ? (
-              <>
-                <TaskFilters
-                  filters={filters}
-                  keyword={filters.keywordInput}
-                  onKeywordChange={filters.setKeywordInput}
-                  onFilterChange={filters.update}
-                  onCreate={() => setCreateOpen(true)}
-                />
-                {page.error ? (
-                  <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
-                    任务列表加载失败
-                    <Button size="small" onClick={page.retry}>
-                      重试
-                    </Button>
-                  </div>
-                ) : null}
-                {page.invalidCount > 0 ? (
-                  <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
-                    {page.invalidCount} 个任务配置无法解析，请查看对应行
-                  </div>
-                ) : null}
-                <div className="mt-4 min-h-0 min-w-0 flex-1">
-                  <TaskTable
-                    records={page.records}
-                    pageNo={filters.pageNo}
-                    total={page.total}
-                    loading={page.loading}
-                    failed={page.error}
-                    data={{
-                      dataSourceMap: sources.dataSourceMap,
-                      dataSourcesLoading: sources.loading,
-                      updateUserMap: users.users,
-                      updateUsersLoading: users.loading,
-                      latestByTask: instances.latestByTask,
-                      activeByTask: instances.activeByTask,
-                      instancesLoading: instances.loading,
-                      instancesReady: instances.ready,
-                      actionKey: commands.actionKey,
-                    }}
-                    actions={{
-                      command,
-                      delete: (task) => {
-                        if (canManage(task)) setPendingDelete(task);
-                      },
-                      page: (pageNo) => filters.update({ pageNo }),
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <DataSyncInstanceTable scope={scope} />
-            )}
+
           </div>
         </div>
       </div>
