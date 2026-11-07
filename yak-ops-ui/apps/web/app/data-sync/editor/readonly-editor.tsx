@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { Alert, Button, PageHeader } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
 import type { TaskDefinitionRecord } from "@/service/data-sync";
-import { VersionsDrawer } from "./versions-drawer";
 
 export function ReadonlyTaskEditor({
   definition,
@@ -11,7 +9,6 @@ export function ReadonlyTaskEditor({
   definition: TaskDefinitionRecord;
   error: string;
 }) {
-  const [versionsOpen, setVersionsOpen] = useState<boolean | undefined>();
   const navigate = useNavigate();
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
@@ -23,11 +20,6 @@ export function ReadonlyTaskEditor({
             </Button>
             <span>/ {definition.name}</span>
           </span>
-        }
-        extra={
-          <Button size="small" onClick={() => setVersionsOpen(true)}>
-            版本
-          </Button>
         }
         bordered
         className="shrink-0 bg-[var(--yak-components-panel-bg)] px-6"
@@ -46,16 +38,6 @@ export function ReadonlyTaskEditor({
           发布
         </Button>
       </footer>
-      {versionsOpen !== undefined ? (
-        <VersionsDrawer
-          task={definition}
-          open={versionsOpen}
-          allowRestore={false}
-          onRestore={() => {}}
-          onClose={() => setVersionsOpen(false)}
-          onClosed={() => setVersionsOpen((current) => (current === false ? undefined : current))}
-        />
-      ) : null}
     </div>
   );
 }

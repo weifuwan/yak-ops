@@ -22,8 +22,6 @@ import type {
   DataSyncTaskListRecord,
   DataSyncTaskRecord,
   TaskDefinitionRecord,
-  TaskDefinitionVersion,
-  TaskDefinitionVersionSummary,
   PublishTaskRequest,
 } from "./types";
 
@@ -100,36 +98,6 @@ export const getTaskDefinition = async (id: string, signal?: AbortSignal) =>
   HttpUtils.getData<TaskDefinitionRecord>(url("/tasks/" + encodeURIComponent(id)), {
     signal,
   });
-
-export const listTaskDefinitionVersions = async (
-  id: string,
-  pageNo: number,
-  pageSize: number,
-  signal?: AbortSignal,
-): Promise<PageInfo<TaskDefinitionVersionSummary>> => {
-  const page = await HttpUtils.getData<
-    PageInfo<{ code: number; version: number; operator: number; operateTime: string }>
-  >(
-    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
-      "/task-definition/" + encodeURIComponent(id) + "/versions?" + qp({ pageNo, pageSize }),
-    { signal },
-  );
-  return {
-    ...page,
-    totalList: page.totalList.map((entry) => ({
-      definitionId: String(entry.code),
-      version: entry.version,
-      createBy: String(entry.operator),
-      createTime: entry.operateTime,
-    })),
-  };
-};
-
-export const getTaskDefinitionVersion = async (id: string, version: number, signal?: AbortSignal) =>
-  HttpUtils.getData<TaskDefinitionVersion>(
-    url("/tasks/" + encodeURIComponent(id) + "/versions/" + version),
-    { signal },
-  );
 
 export const runDataSyncTask = async (
   workflowCode: string,

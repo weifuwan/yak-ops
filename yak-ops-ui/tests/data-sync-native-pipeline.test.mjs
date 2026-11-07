@@ -7,8 +7,6 @@ import {
   setPipelineDatasource,
   setPipelineSourceTable,
   setPipelineSinkTable,
-  setPipelineOption,
-  setSchemaChangeBehavior,
   validatePipelineDefinition,
   sourceTable,
   sinkTable,
@@ -27,10 +25,9 @@ function complete() {
 
 test("new, edited, saved and reopened Pipeline uses one unmodified contract", () => {
   const initial = complete();
-  const changed = setPipelineOption(initial, "parallelism", 4);
-  const saved = pipelineParameters(changed);
+  const saved = pipelineParameters(initial);
   const reopened = readPipelineDefinition(JSON.parse(JSON.stringify(saved)));
-  assert.deepEqual(reopened, changed);
+  assert.deepEqual(reopened, initial);
   assert.equal(saved.definition.source.tables, "\\Qfrom_db.orders\\E");
   assert.equal(reopened.route[0]["sink-table"], "to_db.orders");
   assert.deepEqual(sourceTable(reopened), { database: "from_db", table: "orders" });
@@ -38,7 +35,7 @@ test("new, edited, saved and reopened Pipeline uses one unmodified contract", ()
   assert.equal(initial.pipeline.parallelism, 1);
 });
 
-test("native connector options and routes survive version restore unchanged", () => {
+test("native connector options and routes survive persisted round trip unchanged", () => {
   const historical = complete();
   historical.source["scan.incremental.snapshot.chunk.size"] = 4096;
   historical.source["server-time-zone"] = "Asia/Singapore";
@@ -47,7 +44,6 @@ test("native connector options and routes survive version restore unchanged", ()
   historical.pipeline["schema.operator.uid"] = "schema-uid";
   const result = pipelineParameters(readPipelineDefinition({ definition: historical }));
   assert.deepEqual(result.definition, historical);
-  assert.deepEqual(setSchemaChangeBehavior(historical, false).pipeline["schema.change.behavior"], "exception");
 });
 
 test("source change invalidates the stale target mapping atomically", () => {
@@ -76,7 +72,7 @@ test("unsupported configuration is rejected rather than silently converted", () 
   assert.throws(() => readPipelineDefinition({ definition: { source: {} } }));
 });
 
-test("changing metadata or restoring a version must not mutate the Pipeline tree", () => {
+test("changing metadata does not mutate the Pipeline tree", () => {
   const version = pipelineParameters(complete());
   const restored = readPipelineDefinition(version);
   const metadata = { name: "renamed", remark: "edited" };

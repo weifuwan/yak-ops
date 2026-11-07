@@ -175,18 +175,6 @@ export interface TaskDefinitionRecord {
   updateBy?: string;
 }
 
-export interface TaskDefinitionVersionSummary {
-  definitionId: string;
-  version: number;
-  createBy: string;
-  createTime: string;
-}
-
-/** Historical definitions use the same Pipeline contract as the current task. */
-export interface TaskDefinitionVersion extends TaskDefinitionVersionSummary {
-  parameters: DataSyncParameters;
-}
-
 export interface PublishTaskRequest {
   version: number;
   expectedRevision: number;

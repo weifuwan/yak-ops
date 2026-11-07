@@ -2,15 +2,12 @@ import { Badge, Button, PageHeader } from "@yak-ops/yak-ui";
 import type { TaskDefinitionRecord } from "@/service/data-sync";
 
 export function EditorHeader({
-  name, locked, saving, onBack, onProperties, onAdvanced, onVersions,
+  name, locked, onBack, onProperties,
 }: {
   name: string;
   locked: boolean;
-  saving: boolean;
   onBack: () => void;
   onProperties: () => void;
-  onAdvanced: () => void;
-  onVersions: () => void;
 }) {
   return (
     <PageHeader
@@ -24,11 +21,7 @@ export function EditorHeader({
       bordered
       className="shrink-0 bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
       extra={
-        <>
-          <Button size="small" disabled={locked} onClick={onProperties}>属性</Button>
-          <Button size="small" disabled={locked} onClick={onAdvanced}>高级配置</Button>
-          <Button size="small" disabled={saving} onClick={onVersions}>版本</Button>
-        </>
+        <Button size="small" disabled={locked} onClick={onProperties}>属性</Button>
       }
     />
   );
@@ -37,7 +30,7 @@ export function EditorHeader({
 export function EditorFooter({
   task, dirty, locked, saving, onSave, onPublish,
 }: {
-  task?: Pick<TaskDefinitionRecord, "status" | "definitionVersion" | "publishedVersion">;
+  task?: Pick<TaskDefinitionRecord, "status">;
   dirty: boolean;
   locked: boolean;
   saving: boolean;
@@ -54,12 +47,6 @@ export function EditorFooter({
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
         {dirty ? <Badge tone="warning">未保存</Badge> : <span>已保存</span>}
-        {task ? (
-          <>
-            <span>最新 V{task.definitionVersion}</span>
-            <span>{task.publishedVersion ? "已发布 V" + task.publishedVersion : "未发布"}</span>
-          </>
-        ) : null}
       </div>
     </footer>
   );
