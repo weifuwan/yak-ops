@@ -24,6 +24,7 @@ import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-footer";
 import { PropertiesDrawer } from "./properties-drawer";
+import { YamlPreview } from "./yaml-preview";
 
 interface EditorProps {
   initialDraft?: NativeSyncDraft;
@@ -189,6 +190,16 @@ export function TaskEditor({
     }
   };
 
+  const copyPreviewYaml = async () => {
+    if (!previewYaml) return;
+    try {
+      await navigator.clipboard.writeText(previewYaml);
+      toast.success("YAML 已复制");
+    } catch {
+      toast.error("复制失败");
+    }
+  };
+
   const save = async (publish = false) => {
     if (locked) return;
     if (!authored.name.trim()) {
@@ -306,12 +317,15 @@ export function TaskEditor({
         previewing={previewing} onSave={() => void save()} onPreview={() => void preview()}
         onPublish={() => void save(true)} />
       {previewYaml !== undefined ? (
-        <Modal open centered width={760} title="Pipeline YAML"
+        <Modal open centered width={760} title="Pipeline 配置预览"
           onClose={() => setPreviewYaml(undefined)}
-          footer={<Button size="small" onClick={() => setPreviewYaml(undefined)}>关闭</Button>}>
-          <pre className="max-h-[600px] overflow-auto whitespace-pre-wrap rounded border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4 font-mono text-xs leading-5">
-            {previewYaml}
-          </pre>
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button size="small" onClick={() => void copyPreviewYaml()}>复制</Button>
+              <Button size="small" onClick={() => setPreviewYaml(undefined)}>关闭</Button>
+            </div>
+          }>
+          <YamlPreview value={previewYaml} />
         </Modal>
       ) : null}
       {propertiesOpen !== undefined ? (
