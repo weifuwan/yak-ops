@@ -22,6 +22,7 @@ export function TableTransferPanel({
   footer,
   onRefresh,
   disabled,
+  hideFilters = false,
 }: {
   title: string;
   tables: DataSyncTablePath[];
@@ -35,6 +36,7 @@ export function TableTransferPanel({
   footer?: ReactNode;
   onRefresh?: () => void;
   disabled?: (table: DataSyncTablePath) => boolean;
+  hideFilters?: boolean;
 }) {
   const columns: TableColumns<DataSyncTablePath> = [
     {
@@ -63,6 +65,7 @@ export function TableTransferPanel({
           {actions}
         </div>
       </div>
+      {!hideFilters ? (
       <div className="space-y-2 px-3 pb-3">
         <label className="grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2 text-xs">
           <span>库过滤</span>
@@ -101,6 +104,7 @@ export function TableTransferPanel({
           />
         </label>
       </div>
+      ) : null}
       <Table
         columns={columns}
         dataSource={tables}

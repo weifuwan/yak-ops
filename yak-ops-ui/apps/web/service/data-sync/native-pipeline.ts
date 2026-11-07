@@ -173,7 +173,7 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
   for (const endpoint of [source, sink]) {
     const id = endpoint["datasource-id"];
     if (typeof id !== "string" || !/^[1-9]\d*$/.test(id) ||
-        !Number.isSafeInteger(Number(id))) {
+        !Number.isSafeInteger(Number(id)) || Number(id) > 2147483647) {
       throw new Error("请选择有效的数据源");
     }
   }

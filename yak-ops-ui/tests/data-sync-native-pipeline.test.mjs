@@ -67,6 +67,7 @@ test("unsupported configuration is rejected rather than silently converted", () 
     (value) => { value.route.push({ "source-table": "x", "sink-table": "y" }); },
     (value) => { value.source.password = "secret"; },
     (value) => { value.pipeline.parallelism = 129; },
+    (value) => { value.source["datasource-id"] = "2147483648"; },
   ]) {
     const invalid = structuredClone(original);
     change(invalid);

@@ -261,7 +261,7 @@ export function TaskEditor({
                     if (sourceId) edit(setPipelineDatasource(definition, "source", sourceId));
                   }}
                   filters={{ database: "", table: "" }}
-                  onFiltersChange={() => {}} />
+                  onFiltersChange={() => {}} hideFilters />
               </div>
               {sourceCatalog.error || catalogError ? (
                 <Alert>{sourceCatalog.error || catalogError}
