@@ -53,10 +53,23 @@ class DataSyncParametersTest {
     }
 
     @Test
-    void rejectsMissingDropProtectionAndTransform() {
+    void acceptsSchemaChangeConfigurationAndRejectsUnknownTypes() {
         DataSyncParameters parameters = valid();
-        ((ObjectNode) parameters.getDefinition().path("sink")).remove("exclude.schema.changes");
+        ((ObjectNode) parameters.getDefinition().path("pipeline"))
+                .put("schema.change.behavior", "try_evolve");
+        ((ObjectNode) parameters.getDefinition().path("sink"))
+                .putArray("exclude.schema.changes")
+                .add("drop.column")
+                .add("drop.table")
+                .add("truncate.table");
+        assertTrue(parameters.checkParameters());
+
+        parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("sink"))
+                .putArray("exclude.schema.changes")
+                .add("unknown.change");
         assertFalse(parameters.checkParameters());
+
         parameters = valid();
         ((ObjectNode) parameters.getDefinition()).putArray("transform")
                 .addObject().put("projection", "*");
@@ -79,7 +92,7 @@ class DataSyncParametersTest {
         Map<String, Object> sink = new LinkedHashMap<>();
         sink.put("type", "jdbc");
         sink.put("datasource-id", "2");
-        sink.put("exclude.schema.changes", List.of("drop.column"));
+        sink.put("exclude.schema.changes", List.of("drop.column", "truncate.table", "drop.table"));
         Map<String, Object> route = Map.of("source-table", "src_db.orders",
                 "sink-table", "dst_db.orders");
         Map<String, Object> pipeline = Map.of(

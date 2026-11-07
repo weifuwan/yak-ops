@@ -134,6 +134,23 @@ export interface DataSyncUnreadableTaskRecord {
 export type DataSyncTaskListRecord = DataSyncTaskRecord | DataSyncUnreadableTaskRecord;
 
 /** Flink CDC Pipeline YAML represented as a JSON mapping for the task API. */
+export type DataSyncSchemaChangeBehavior =
+  | "ignore"
+  | "lenient"
+  | "try_evolve"
+  | "evolve"
+  | "exception";
+
+export type DataSyncSchemaChangeEvent =
+  | "create.table"
+  | "add.column"
+  | "alter.column.type"
+  | "rename.column"
+  | "drop.column"
+  | "truncate.table"
+  | "drop.table"
+  | "alter.table.comment";
+
 export interface DataSyncPipelineDefinition {
   source: Record<string, unknown> & {
     type: string;
@@ -143,6 +160,7 @@ export interface DataSyncPipelineDefinition {
   sink: Record<string, unknown> & {
     type: string;
     "datasource-id": string;
+    "exclude.schema.changes"?: DataSyncSchemaChangeEvent[];
   };
   route: Array<Record<string, unknown> & {
     "source-table": string;
@@ -150,6 +168,7 @@ export interface DataSyncPipelineDefinition {
   }>;
   pipeline: Record<string, unknown> & {
     "execution.runtime-mode": "BATCH" | "STREAMING";
+    "schema.change.behavior"?: DataSyncSchemaChangeBehavior;
   };
   transform?: Array<Record<string, unknown>>;
 }

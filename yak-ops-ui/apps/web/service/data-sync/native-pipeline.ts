@@ -1,4 +1,9 @@
-import type { DataSyncPipelineDefinition, DataSyncParameters } from "./types";
+import type {
+  DataSyncPipelineDefinition,
+  DataSyncParameters,
+  DataSyncSchemaChangeBehavior,
+  DataSyncSchemaChangeEvent,
+} from "./types";
 
 export type PipelineDefinition = DataSyncPipelineDefinition;
 export type PipelineEndpoint = "source" | "sink";
@@ -8,6 +13,25 @@ export interface PipelineTable {
 }
 
 const TABLE_PATH = /^[A-Za-z0-9_$-]+\.[A-Za-z0-9_$-]+$/;
+
+export const SCHEMA_CHANGE_BEHAVIORS: readonly DataSyncSchemaChangeBehavior[] = [
+  "ignore",
+  "lenient",
+  "try_evolve",
+  "evolve",
+  "exception",
+];
+
+export const SCHEMA_CHANGE_EVENTS: readonly DataSyncSchemaChangeEvent[] = [
+  "create.table",
+  "add.column",
+  "alter.column.type",
+  "rename.column",
+  "drop.column",
+  "truncate.table",
+  "drop.table",
+  "alter.table.comment",
+];
 const CREDENTIAL_KEYS = new Set([
   "password", "passwd", "token", "secret", "secretkey", "accesskey",
   "apikey", "privatekey", "credentials",
@@ -48,7 +72,7 @@ export function createPipelineDefinition(): PipelineDefinition {
     sink: {
       type: "jdbc",
       "datasource-id": "",
-      "exclude.schema.changes": ["drop.column"],
+      "exclude.schema.changes": ["drop.column", "truncate.table", "drop.table"],
     },
     route: [{ "source-table": "", "sink-table": "" }],
     pipeline: {
@@ -161,17 +185,22 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
   if (typeof route["sink-table"] !== "string" || !TABLE_PATH.test(route["sink-table"])) {
     throw new Error("目标数据源缺少有效数据库");
   }
-  if (!Array.isArray(sink["exclude.schema.changes"]) ||
-      sink["exclude.schema.changes"].length !== 1 ||
-      sink["exclude.schema.changes"][0] !== "drop.column") {
-    throw new Error("当前 Runtime 必须禁止删除目标字段");
+  const excludedSchemaChanges = sink["exclude.schema.changes"];
+  if (excludedSchemaChanges !== undefined &&
+      (!Array.isArray(excludedSchemaChanges) ||
+       excludedSchemaChanges.some((event) =>
+         typeof event !== "string" ||
+         !SCHEMA_CHANGE_EVENTS.includes(event as DataSyncSchemaChangeEvent)))) {
+    throw new Error("包含不支持的 Schema 变更类型");
   }
   if (definition.transform !== undefined &&
       (!Array.isArray(definition.transform) || definition.transform.length !== 0)) {
     throw new Error("当前 Runtime 不支持 Transform");
   }
   const change = pipeline["schema.change.behavior"];
-  if (change !== undefined && change !== "evolve" && change !== "exception") {
+  if (change !== undefined &&
+      (typeof change !== "string" ||
+       !SCHEMA_CHANGE_BEHAVIORS.includes(change as DataSyncSchemaChangeBehavior))) {
     throw new Error("不支持的 Schema 变更策略");
   }
   const parallelism = pipeline.parallelism;

@@ -58,7 +58,7 @@ test("unsupported configuration is rejected rather than silently converted", () 
   for (const change of [
     (value) => { value.source["scan.startup.mode"] = "latest-offset"; },
     (value) => { value.pipeline["execution.runtime-mode"] = "BATCH"; },
-    (value) => { value.sink["exclude.schema.changes"] = []; },
+    (value) => { value.sink["exclude.schema.changes"] = ["unknown.change"]; },
     (value) => { value.transform = [{ "source-table": "from_db.orders", projection: "*" }]; },
     (value) => { value.route.push({ "source-table": "x", "sink-table": "y" }); },
     (value) => { value.source.password = "secret"; },
@@ -70,6 +70,18 @@ test("unsupported configuration is rejected rather than silently converted", () 
     assert.throws(() => pipelineParameters(invalid));
   }
   assert.throws(() => readPipelineDefinition({ definition: { source: {} } }));
+});
+
+test("native schema change settings are accepted without conversion", () => {
+  const pipeline = complete();
+  pipeline.pipeline["schema.change.behavior"] = "try_evolve";
+  pipeline.sink["exclude.schema.changes"] = [
+    "drop.column",
+    "truncate.table",
+    "drop.table",
+    "alter.table.comment",
+  ];
+  assert.deepEqual(pipelineParameters(pipeline).definition, pipeline);
 });
 
 test("changing metadata does not mutate the Pipeline tree", () => {

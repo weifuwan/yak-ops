@@ -23,6 +23,7 @@ import { catalogPath, tableKey, type DataSyncTablePath } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-footer";
+import { AdvancedConfigDrawer } from "./advanced-config-drawer";
 import { PropertiesDrawer } from "./properties-drawer";
 import { YamlPreview } from "./yaml-preview";
 
@@ -57,6 +58,7 @@ export function TaskEditor({
   const [baseline, setBaseline] = useState(() => pipelineFingerprint(authored));
   const [baselineDefinition, setBaselineDefinition] = useState(() => pipelineFingerprint(authored.definition));
   const [propertiesOpen, setPropertiesOpen] = useState<boolean | undefined>();
+  const [advancedOpen, setAdvancedOpen] = useState<boolean | undefined>();
   const [drawerDirty, setDrawerDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -153,6 +155,14 @@ export function TaskEditor({
       setCatalogError(failure instanceof Error ? failure.message : "来源表无效");
     }
   };
+  const openAdvanced = () => setAdvancedOpen(true);
+  const closeAdvanced = () => {
+    setAdvancedOpen(false);
+    setDrawerDirty(false);
+  };
+  const advancedClosed = () =>
+    setAdvancedOpen((current) => current === false ? undefined : current);
+
   const openProperties = () => setPropertiesOpen(true);
   const closeProperties = () => {
     setPropertiesOpen(false);
@@ -257,6 +267,7 @@ export function TaskEditor({
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)]">
       <EditorHeader name={authored.name} locked={locked}
         onBack={() => navigate("/data-sync")}
+        onAdvanced={openAdvanced}
         onProperties={openProperties} />
       <div className="flex min-h-0 flex-1 gap-4 px-4">
         <main className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto pb-6 pt-4">
@@ -327,6 +338,11 @@ export function TaskEditor({
           }>
           <YamlPreview value={previewYaml} />
         </Modal>
+      ) : null}
+      {advancedOpen !== undefined ? (
+        <AdvancedConfigDrawer value={definition} open={advancedOpen}
+          onApply={(next) => { edit(next); closeAdvanced(); }}
+          onClose={closeAdvanced} onClosed={advancedClosed} onDirtyChange={setDrawerDirty} />
       ) : null}
       {propertiesOpen !== undefined ? (
         <PropertiesDrawer id={task?.id} value={{ name: authored.name, remark: authored.remark }}

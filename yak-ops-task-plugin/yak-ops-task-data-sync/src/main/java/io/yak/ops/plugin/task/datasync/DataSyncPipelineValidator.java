@@ -8,6 +8,7 @@ import org.apache.flink.cdc.common.configuration.Configuration;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -17,6 +18,20 @@ import com.fasterxml.jackson.databind.JsonNode;
  * can safely be executed by the installed runtime.
  */
 public final class DataSyncPipelineValidator {
+
+    private static final Set<String> SCHEMA_CHANGE_BEHAVIORS =
+            Set.of("ignore", "lenient", "try_evolve", "evolve", "exception");
+
+    private static final Set<String> SCHEMA_CHANGE_EVENTS =
+            Set.of(
+                    "create.table",
+                    "add.column",
+                    "alter.column.type",
+                    "rename.column",
+                    "drop.column",
+                    "truncate.table",
+                    "drop.table",
+                    "alter.table.comment");
 
     public void validate(JsonNode definition) {
         object(definition, "definition");
@@ -70,14 +85,22 @@ public final class DataSyncPipelineValidator {
                 throw new IllegalArgumentException("pipeline.parallelism must be an integer", e);
             }
         }
-        String evolution = pipeline.path("schema.change.behavior").asText("exception");
-        if (!"evolve".equalsIgnoreCase(evolution) && !"exception".equalsIgnoreCase(evolution)) {
+        String evolution = pipeline.path("schema.change.behavior").asText("lenient")
+                .toLowerCase(Locale.ROOT);
+        if (!SCHEMA_CHANGE_BEHAVIORS.contains(evolution)) {
             throw new IllegalArgumentException("pipeline.schema.change.behavior: unsupported setting");
         }
         JsonNode excludes = sink.path("exclude.schema.changes");
-        if (!excludes.isArray() || excludes.size() != 1
-                || !"drop.column".equals(excludes.get(0).asText())) {
-            throw new IllegalArgumentException("sink.exclude.schema.changes must exclude drop.column");
+        if (!excludes.isMissingNode()) {
+            if (!excludes.isArray()) {
+                throw new IllegalArgumentException("sink.exclude.schema.changes: array required");
+            }
+            for (JsonNode event : excludes) {
+                if (!event.isTextual() || !SCHEMA_CHANGE_EVENTS.contains(event.asText())) {
+                    throw new IllegalArgumentException(
+                            "sink.exclude.schema.changes: unsupported schema change type");
+                }
+            }
         }
         try {
             // Validate the same YAML grammar and Flink CDC global options used at runtime.

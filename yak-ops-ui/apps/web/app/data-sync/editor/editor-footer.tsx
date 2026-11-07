@@ -2,11 +2,12 @@ import { Badge, Button, PageHeader } from "@yak-ops/yak-ui";
 import type { TaskDefinitionRecord } from "@/service/data-sync";
 
 export function EditorHeader({
-  name, locked, onBack, onProperties,
+  name, locked, onBack, onAdvanced, onProperties,
 }: {
   name: string;
   locked: boolean;
   onBack: () => void;
+  onAdvanced: () => void;
   onProperties: () => void;
 }) {
   return (
@@ -21,7 +22,10 @@ export function EditorHeader({
       bordered
       className="shrink-0 bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
       extra={
-        <Button size="small" disabled={locked} onClick={onProperties}>属性</Button>
+        <div className="flex items-center gap-2">
+          <Button size="small" disabled={locked} onClick={onAdvanced}>高级配置</Button>
+          <Button size="small" disabled={locked} onClick={onProperties}>属性</Button>
+        </div>
       }
     />
   );
