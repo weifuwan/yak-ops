@@ -27,14 +27,16 @@ export function Alert({ children, className, ...props }: AlertProps) {
       {...props}
       role="alert"
       className={cn(
-        "flex min-h-9 w-full items-start gap-2 rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-alert-warning-border)] bg-[var(--yak-components-alert-warning-bg)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-alert-warning-text)]",
+        "flex min-h-9 w-full items-center gap-2 rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-alert-warning-border)] bg-[var(--yak-components-alert-warning-bg)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-alert-warning-text)]",
         className,
       )}
     >
-      <span className="mt-0.5 shrink-0 text-[var(--yak-components-alert-warning-icon)]">
+      <span className="shrink-0 text-[var(--yak-components-alert-warning-icon)]">
         <AlertWarningIcon />
       </span>
-      <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 [overflow-wrap:anywhere]">
+        {children}
+      </div>
     </div>
   );
 }
