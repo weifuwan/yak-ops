@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Input, Table, type TableColumns, toast } from "@yak-ops/yak-ui";
+import { Alert, Button, toast } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
-import type { TaskDefinitionRecord, TaskDefinitionVersion } from "@/service/data-sync";
+import type { TaskDefinitionRecord } from "@/service/data-sync";
 import type { DataSourceRecord } from "@/service/datasource";
 import { nativeDraftKey, writeNativeDraft, clearNativeDraft, type NativeSyncDraft } from "@/service/data-sync/native-draft";
 import {
   sourceTable, setPipelineDatasource, setPipelineSourceTable, setPipelineSinkTable,
-  readPipelineDefinition, validatePipelineDefinition, type PipelineDefinition,
+  validatePipelineDefinition, type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
 import {
   createNativeTask, updateNativeTask, publishNativeTask,
@@ -18,22 +18,13 @@ import { pipelineFingerprint } from "@/service/data-sync/versions";
 import { TableTransferPanel, type TransferFilters } from "./table-transfer-panel";
 import { DataSourceSection } from "./data-source-section";
 import { EditorAnchorStepper } from "./anchor-stepper";
-import { ContentField, ContentSection } from "./content-layout";
-import { catalogPath, tableKey, tablePathLabel, type DataSyncTablePath } from "./table-catalog";
+import { ContentSection } from "./content-layout";
+import { catalogPath, tableKey, type DataSyncTablePath } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-chrome";
 import { PropertiesDrawer } from "./properties-drawer";
-import { AdvancedDrawer } from "./advanced-drawer";
-import { VersionsDrawer } from "./versions-drawer";
-import { EditorConfirmationDialog } from "./editor-feedback";
 
-type Drawer = "properties" | "advanced" | "versions";
-interface Confirmation {
-  title: string;
-  message: string;
-  apply: () => void;
-}
 interface EditorProps {
   initialDraft?: NativeSyncDraft;
   initialTask?: TaskDefinitionRecord;
@@ -64,9 +55,8 @@ export function TaskEditor({
   }));
   const [baseline, setBaseline] = useState(() => pipelineFingerprint(authored));
   const [baselineDefinition, setBaselineDefinition] = useState(() => pipelineFingerprint(authored.definition));
-  const [drawer, setDrawer] = useState<{ kind: Drawer; open: boolean }>();
+  const [propertiesOpen, setPropertiesOpen] = useState<boolean | undefined>();
   const [drawerDirty, setDrawerDirty] = useState(false);
-  const [confirmation, setConfirmation] = useState<Confirmation>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [catalogError, setCatalogError] = useState("");
@@ -76,10 +66,6 @@ export function TaskEditor({
     useEditorDataSources(connections);
   const definition = authored.definition;
   const source = sourceTable(definition);
-  const sinkValue = definition.route[0]["sink-table"] || "";
-  const targetParts = sinkValue.split(".");
-  const targetDatabase = targetParts[0] || "";
-  const targetTable = targetParts.slice(1).join(".");
   const sourceId = definition.source["datasource-id"];
   const sinkId = definition.sink["datasource-id"];
   const sourceDatasource = dataSources.find((item) => item.id === sourceId);
@@ -114,7 +100,6 @@ export function TaskEditor({
   const anchorItems = useMemo(() => [
     { id: "datasource", label: "数据源" },
     { id: "source", label: "数据来源" },
-    { id: "target", label: "目标表映射" },
   ], []);
 
   const edit = (next: PipelineDefinition) => {
@@ -123,38 +108,43 @@ export function TaskEditor({
     setCatalogError("");
   };
   const changeSource = (value: string) => edit(setPipelineDatasource(definition, "source", value));
-  const changeSink = (value: string) => edit(setPipelineDatasource(definition, "sink", value));
+  const changeSink = (value: string) => {
+    let next = setPipelineDatasource(definition, "sink", value);
+    const target = dataSources.find((item) => item.id === value);
+    if (source && target?.database) {
+      next = setPipelineSinkTable(next, { database: target.database, table: source.table });
+    }
+    edit(next);
+  };
   const selectSource = (table: (typeof sourceCatalog.tables)[number]) => {
     const location = catalogPath(table);
     try {
       setSourceChecked([]);
-      edit(setPipelineSourceTable(definition, {
+      let next = setPipelineSourceTable(definition, {
         database: location.database || location.schema || sourceDatasource?.database || "",
         table: location.table,
-      }));
+      });
+      if (sinkDatasource?.database) {
+        next = setPipelineSinkTable(next, { database: sinkDatasource.database, table: location.table });
+      }
+      edit(next);
     } catch (failure) {
       setCatalogError(failure instanceof Error ? failure.message : "来源表无效");
     }
   };
-  const updateTarget = (database: string, table: string) => {
-    const next = structuredClone(definition);
-    // Intermediate keystrokes may be incomplete; only saving requires a valid path.
-    next.route[0]["sink-table"] = database + "." + table;
-    edit(next);
-  };
-  const openDrawer = (kind: Drawer) => setDrawer({ kind, open: true });
-  const closeDrawer = () => {
-    setDrawer((current) => current && { ...current, open: false });
+  const openProperties = () => setPropertiesOpen(true);
+  const closeProperties = () => {
+    setPropertiesOpen(false);
     setDrawerDirty(false);
   };
-  const closeComplete = () =>
-    setDrawer((current) => current?.open ? current : undefined);
+  const propertiesClosed = () =>
+    setPropertiesOpen((current) => current === false ? undefined : current);
 
   const save = async (publish = false) => {
     if (locked) return;
     if (!authored.name.trim()) {
       setError("请输入任务名称");
-      openDrawer("properties");
+      openProperties();
       return;
     }
     if (sourceType !== "MYSQL" || sinkType !== "MYSQL") {
@@ -202,33 +192,12 @@ export function TaskEditor({
       setSaving(false);
     }
   };
-  const restore = (version: TaskDefinitionVersion) => {
-    if (!task || version.definitionId !== task.id) {
-      setError("历史版本不属于当前任务");
-      return;
-    }
-    try {
-      const restored = readPipelineDefinition(version.parameters);
-      setConfirmation({
-        title: "还原任务定义版本 V" + version.version,
-        message: "将使用历史 Pipeline 配置替换当前页面的配置，确认后仍需保存和发布。",
-        apply: () => {
-          edit(restored);
-          closeDrawer();
-        },
-      });
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "历史定义不受当前 Runtime 支持");
-    }
-  };
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)]">
-      <EditorHeader name={authored.name} locked={locked} saving={saving}
+      <EditorHeader name={authored.name} locked={locked}
         onBack={() => navigate("/data-sync")}
-        onProperties={() => openDrawer("properties")}
-        onAdvanced={() => openDrawer("advanced")}
-        onVersions={() => openDrawer("versions")} />
+        onProperties={openProperties} />
       <div className="flex min-h-0 flex-1 gap-4 px-4">
         <main className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto pb-6 pt-4">
           {executionLocked ? <Alert>{executionLockMessage || "任务正在执行，暂不可编辑"}</Alert> : null}
@@ -270,46 +239,6 @@ export function TaskEditor({
                   <Button size="small" onClick={sourceCatalog.refresh}>刷新</Button>
                 </Alert>
               ) : null}
-              <p className="text-xs text-[var(--yak-components-muted-text)]">
-                当前 Runtime 仅支持一张 MySQL 表的全量后持续增量同步。
-              </p>
-            </ContentSection>
-            <ContentSection id="target" title="目标表映射">
-              <Table<{ id: string }>
-                rowKey="id"
-                size="small"
-                pagination={false}
-                dataSource={[{ id: "mapping" }]}
-                columns={[
-                  {
-                    key: "source", title: "来源表",
-                    render: () => <span>{source ? tablePathLabel(source) : "请选择来源表"}</span>,
-                  },
-                  {
-                    key: "database", title: "目标数据库",
-                    render: () => (
-                      <Input size="small" variant="outlined" aria-label="目标数据库"
-                        value={targetDatabase} disabled={!sinkId} placeholder="目标数据库"
-                        onChange={(event) => updateTarget(event.target.value, targetTable)} />
-                    ),
-                  },
-                  {
-                    key: "table", title: "目标表",
-                    render: () => (
-                      <Input size="small" variant="outlined" aria-label="目标表"
-                        value={targetTable} disabled={!sinkId} placeholder="目标表"
-                        onChange={(event) => updateTarget(targetDatabase, event.target.value)} />
-                    ),
-                  },
-                  {
-                    key: "write", title: "写入方式",
-                    render: () => <span>UPSERT</span>,
-                  },
-                ] as TableColumns<{ id: string }>}
-              />
-              <p className="text-xs text-[var(--yak-components-muted-text)]">
-                目标表将由 CDC Pipeline 创建或调整，写入时使用来源物理主键。
-              </p>
             </ContentSection>
           </fieldset>
         </main>
@@ -319,23 +248,11 @@ export function TaskEditor({
       </div>
       <EditorFooter task={task} dirty={dirty} locked={locked} saving={saving}
         onSave={() => void save()} onPublish={() => void save(true)} />
-      {drawer?.kind === "properties" ? (
+      {propertiesOpen !== undefined ? (
         <PropertiesDrawer id={task?.id} value={{ name: authored.name, remark: authored.remark }}
-          open={drawer.open}
-          onApply={(properties) => { setAuthored((old) => ({ ...old, ...properties })); closeDrawer(); }}
-          onClose={closeDrawer} onClosed={closeComplete} onDirtyChange={setDrawerDirty} />
-      ) : null}
-      {drawer?.kind === "advanced" ? (
-        <AdvancedDrawer value={definition} open={drawer.open}
-          onApply={(next) => { edit(next); closeDrawer(); }}
-          onClose={closeDrawer} onClosed={closeComplete} onDirtyChange={setDrawerDirty} />
-      ) : null}
-      {drawer?.kind === "versions" ? (
-        <VersionsDrawer task={task} open={drawer.open} onRestore={restore}
-          allowRestore={!locked} onClose={closeDrawer} onClosed={closeComplete} />
-      ) : null}
-      {confirmation ? (
-        <EditorConfirmationDialog value={confirmation} onClose={() => setConfirmation(undefined)} />
+          open={propertiesOpen}
+          onApply={(properties) => { setAuthored((old) => ({ ...old, ...properties })); closeProperties(); }}
+          onClose={closeProperties} onClosed={propertiesClosed} onDirtyChange={setDrawerDirty} />
       ) : null}
     </div>
   );
