@@ -102,14 +102,14 @@ export function TaskEditor({
   useUnsavedChanges(dirty || drawerDirty);
 
   useEffect(() => {
-    if (initialTask || saving) return;
+    if (task || saving) return;
     writeNativeDraft(draftKey, {
       name: authored.name,
       remark: authored.remark,
       sourceType, targetType: sinkType,
       definition: authored.definition,
     });
-  }, [initialTask, saving, draftKey, authored, sourceType, sinkType]);
+  }, [task, saving, draftKey, authored, sourceType, sinkType]);
 
   const anchorItems = useMemo(() => [
     { id: "datasource", label: "数据源" },
@@ -189,7 +189,9 @@ export function TaskEditor({
       } else {
         toast.success("同步任务已保存");
       }
-      void queryClient.invalidateQueries({ queryKey: ["data-sync"] });
+      void queryClient.invalidateQueries({ queryKey: ["data-sync-list"] });
+      void queryClient.invalidateQueries({ queryKey: ["data-sync-detail"] });
+      void queryClient.invalidateQueries({ queryKey: ["data-sync-editor"] });
       if (!initialTask && persisted) {
         navigate("/data-sync/" + persisted.id + "/edit", { replace: true });
       }
