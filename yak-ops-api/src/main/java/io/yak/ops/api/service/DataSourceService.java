@@ -33,6 +33,9 @@ public interface DataSourceService {
 
     List<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database);
 
+    PageInfo<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database,
+                                      String keyword, Integer pageNo, Integer pageSize);
+
     List<ParamsOptions> getTableColumns(User loginUser, long projectCode, Integer id,
                                         String database, String table);
 
