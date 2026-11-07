@@ -1,296 +1,72 @@
-import { encodeNativePipelineParameters } from "./pipeline-definition.ts";
-import type { DataSyncParameters } from "./types";
 import type { PageInfo } from "@/service/http/page-info";
-
+import {
+  readPipelineDefinition,
+  sourceTable,
+  sinkTable,
+} from "./native-pipeline";
 import type {
   DataSyncTaskListRecord,
-  DataSyncTaskPageParams,
   DataSyncTaskRecord,
-  DataSyncTaskSavePayload,
-  DataSyncTaskUpdatePayload,
-  DataSyncEditorParameters,
-  DataSyncTableMapping,
   TaskDefinitionRecord,
 } from "./types";
-import {
-  displaySyncSteps,
-  pipelineProductType,
-  parseSyncParameters,
-  pipelineSyncType,
-  pipelineTableScope,
-  syncTableMappings,
-  usesCdcStartup,
-  validateSyncParameters,
-} from "./parameters.ts";
 
-/** Writes the selected Connector identifiers into the single public Task configuration. */
-export function buildEditorParameters(task: DataSyncTaskSavePayload): DataSyncEditorParameters {
-  const mappings: DataSyncTableMapping[] =
-    task.productType === "DATABASE_REPLICATION"
-      ? (task.tableMappings ?? [])
-      : [
-          {
-            source: {
-              database: task.sourceDatabase,
-              schema: task.sourceSchema,
-              table: task.sourceTable,
-              ...(task.sourceRead ? { read: { ...task.sourceRead } } : {}),
-              ...(task.sourceOptions ? { options: { ...task.sourceOptions } } : {}),
-            },
-            target: {
-              database: task.targetDatabase,
-              schema: task.targetSchema,
-              table: task.targetTable,
-              ...(task.targetPrimaryKeys?.length
-                ? { primaryKeys: [...task.targetPrimaryKeys] }
-                : {}),
-            },
-            writeMode: task.writeMode,
-            ...(task.preSql?.length ? { preSql: [...task.preSql] } : {}),
-            ...(task.postSql?.length ? { postSql: [...task.postSql] } : {}),
-            ...(task.sinkBatchSize !== undefined ? { batchSize: task.sinkBatchSize } : {}),
-            ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
-          },
-        ];
-  if (!mappings.length) throw new Error("请选择同步表");
-  if (mappings.some((mapping) => mapping.writeMode === "RETRACT") && mappings.length !== 1)
-    throw new Error("逐行更新仅支持选择一张表，请先调整写入方式");
-  if ((task.productType === "DATABASE_REPLICATION") !== task.sourceProducesChangelog)
-    throw new Error("同步产品与来源能力不一致");
-  const realtime = task.sourceProducesChangelog;
-  const continuous = realtime && task.steps.includes("INCREMENTAL");
-  const evolution = continuous && (task.schemaChangesEnabled ?? true);
-  const schemaBehavior = task.pipelineOptions?.["schema.change.behavior"];
-  if (
-    schemaBehavior !== undefined &&
-    !["evolve", "exception"].includes(schemaBehavior.toLowerCase())
-  )
-    throw new Error("不支持的 Schema 变更行为");
-  const dataSteps = (["FULL", "INCREMENTAL"] as const).filter((step) => task.steps.includes(step));
-  const physicalPath = (table: { database?: string; schema?: string; table: string }) =>
-    [table.database, table.schema, table.table].filter(Boolean).join(".");
-  const sourceTables = mappings.map((mapping) => ({
-    database: mapping.source.database,
-    schema: mapping.source.schema,
-    table: mapping.source.table,
-    ...(mapping.source.read ? { read: { ...mapping.source.read } } : {}),
-    ...(mapping.source.options ? { options: { ...mapping.source.options } } : {}),
-    ...(mapping.source.snapshot ? { snapshot: { ...mapping.source.snapshot } } : {}),
-    ...(mapping.source.dml ? { dml: { events: [...mapping.source.dml.events] } } : {}),
-    ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
-  }));
-  const sinkTables = mappings.map((mapping) => ({
-    database: mapping.target.database,
-    schema: mapping.target.schema,
-    table: mapping.target.table,
-    write: {
-      mode: mapping.writeMode,
-      ...(mapping.preSql?.length ? { preSql: [...mapping.preSql] } : {}),
-      ...(mapping.postSql?.length ? { postSql: [...mapping.postSql] } : {}),
-      ...(mapping.batchSize !== undefined ? { batchSize: mapping.batchSize } : {}),
-      ...(mapping.target.primaryKeys?.length
-        ? { primaryKeys: [...mapping.target.primaryKeys] }
-        : {}),
-      ...(mapping.writeMode === "RETRACT"
-        ? { transaction: { mode: "CHECKPOINT_XA" as const } }
-        : {}),
-    },
-  }));
+/** List and detail projections are read-only. They do not produce task parameters. */
+export function toSyncTaskRecord(task: TaskDefinitionRecord): DataSyncTaskRecord {
+  if (task.taskType !== "DATA_SYNC") throw new Error("不是 DATA_SYNC 任务");
+  const pipeline = readPipelineDefinition(task.parameters);
+  const source = sourceTable(pipeline)!;
+  const target = sinkTable(pipeline)!;
   return {
-    source: {
-      type: task.sourceConnector,
-      datasourceId: task.sourceDataSourceId,
-      ...(task.sourcePipelineOptions
-        ? { pipelineOptions: structuredClone(task.sourcePipelineOptions) }
-        : {}),
-      ...(task.selection ? { selection: structuredClone(task.selection) } : {}),
-      ...(realtime
-        ? {
-            // Retain the full JSON offset when editing: steps alone cannot identify
-            // EARLIEST_OFFSET, SPECIFIC_OFFSETS or TIMESTAMP (or their parameters).
-            startup: task.startup
-              ? { ...task.startup }
-              : {
-                  mode: task.steps.includes("FULL")
-                    ? task.steps.includes("INCREMENTAL")
-                      ? ("INITIAL" as const)
-                      : ("SNAPSHOT" as const)
-                    : ("LATEST_OFFSET" as const),
-                },
-          }
-        : {
-            syncMode:
-              dataSteps.length === 2
-                ? ("FULL_AND_INCREMENTAL" as const)
-                : dataSteps.includes("INCREMENTAL")
-                  ? ("INCREMENTAL" as const)
-                  : ("FULL" as const),
-          }),
-      tables: sourceTables,
-    },
-    sink: {
-      type: task.sinkConnector,
-      datasourceId: task.targetDataSourceId,
-      ...(task.sinkPipelineOptions
-        ? { pipelineOptions: structuredClone(task.sinkPipelineOptions) }
-        : {}),
-      ...(task.mappingTemplate ? { mapping: structuredClone(task.mappingTemplate) } : {}),
-      ...(task.typeMappings?.length ? { typeMappings: structuredClone(task.typeMappings) } : {}),
-      schemaPolicy: {
-        initial: task.steps.includes("SCHEMA") ? ("CREATE_OR_ALTER" as const) : ("VERIFY" as const),
-        evolution: {
-          enabled: evolution,
-          allowDropColumns: Boolean(evolution && task.allowDropColumns),
-        },
-      },
-      tables: sinkTables,
-    },
-    route: mappings.map((mapping) => ({
-      "source-table": physicalPath(mapping.source),
-      "sink-table": physicalPath(mapping.target),
-      ...(task.routeDescription ? { description: task.routeDescription } : {}),
-    })),
-    transform: task.transforms?.map((transform) => ({ ...transform })) ?? [],
-    pipeline: {
-      ...task.pipelineOptions,
-      ...(schemaBehavior !== undefined
-        ? { "schema.change.behavior": evolution ? "evolve" : "exception" }
-        : {}),
-      "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
-    },
-  };
-}
-
-export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
-  return {
-    name: task.name,
-    taskType: "DATA_SYNC",
-    remark: task.remark,
-    parameters: encodeNativePipelineParameters(buildEditorParameters(task)),
-  };
-}
-
-/** Omitting parameters edits metadata only and preserves the existing task definition. */
-export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expectedRevision: number) {
-  const request: {
-    name: string;
-    remark?: string;
-    parameters?: DataSyncParameters;
-    expectedRevision: number;
-  } = {
+    id: task.id,
+    workflowCode: task.workflowCode,
     name: task.name,
     remark: task.remark,
-    expectedRevision,
-  };
-  if ("productType" in task) request.parameters = encodeNativePipelineParameters(buildEditorParameters(task));
-  return request;
-}
-
-/** Projects one immutable Pipeline definition into the editor's transient UI state. */
-export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
-  if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");
-  const parameters = parseSyncParameters(definition.parameters);
-  let configurationError: string | undefined;
-  try {
-    validateSyncParameters(parameters);
-  } catch (failure) {
-    configurationError = failure instanceof Error ? failure.message : "任务参数校验失败";
-  }
-  const tableMappings = syncTableMappings(parameters);
-  const mapping = tableMappings[0];
-  return {
-    id: definition.id,
-    workflowCode: definition.workflowCode,
-    sourceConnector: parameters.source.type,
-    sinkConnector: parameters.sink.type,
-    sourceProducesChangelog: usesCdcStartup(parameters),
-    transforms: parameters.transform.map((transform) => ({ ...transform })),
-    pipelineOptions: Object.fromEntries(
-      Object.entries(parameters.pipeline).filter(
-        ([key]) => key !== "execution.runtime-mode",
-      ),
-    ),
-    tableScope: pipelineTableScope(parameters),
-    ...(configurationError ? { configurationError } : {}),
-    tableMappings,
-
-    name: definition.name,
-    productType: pipelineProductType(parameters),
-    steps: displaySyncSteps(parameters),
-    ...(parameters.source.startup ? { startup: { ...parameters.source.startup } } : {}),
-    schemaChangesEnabled: parameters.sink.schemaPolicy.evolution.enabled,
-    allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
-    syncType: pipelineSyncType(parameters),
-    status: definition.status,
-    archived: definition.archived ?? false,
-    writeMode: mapping.writeMode,
-    sourceRead: mapping.source.read ? { ...mapping.source.read } : undefined,
-    sourceOptions: mapping.source.options ? { ...mapping.source.options } : undefined,
-    sourcePipelineOptions: parameters.source.pipelineOptions
-      ? structuredClone(parameters.source.pipelineOptions)
-      : undefined,
-    sinkPipelineOptions: parameters.sink.pipelineOptions
-      ? structuredClone(parameters.sink.pipelineOptions)
-      : undefined,
-    routeDescription: parameters.route[0]?.description,
-    sinkBatchSize: mapping.batchSize,
-    typeMappings: parameters.sink.typeMappings
-      ? structuredClone(parameters.sink.typeMappings)
-      : undefined,
-    selection: parameters.source.selection
-      ? structuredClone(parameters.source.selection)
-      : undefined,
-    mappingTemplate: parameters.sink.mapping ? structuredClone(parameters.sink.mapping) : undefined,
-    preSql: mapping.preSql ? [...mapping.preSql] : undefined,
-    postSql: mapping.postSql ? [...mapping.postSql] : undefined,
-    targetPrimaryKeys: mapping.target.primaryKeys,
-    incremental: mapping.incremental ? { ...mapping.incremental } : undefined,
-    sourceDataSourceId: parameters.source.datasourceId,
-    sourceDatabase: mapping.source.database ?? undefined,
-    sourceSchema: mapping.source.schema ?? undefined,
-    sourceTable: mapping.source.table,
-    targetDataSourceId: parameters.sink.datasourceId,
-    targetDatabase: mapping.target.database ?? undefined,
-    targetSchema: mapping.target.schema ?? undefined,
-    targetTable: mapping.target.table,
-    definitionVersion: definition.definitionVersion,
-    revision: definition.revision,
-    publishedVersion: definition.publishedVersion,
-    remark: definition.remark,
-    createTime: definition.createTime,
-    updateTime: definition.updateTime,
-    updateBy: definition.updateBy,
+    status: task.status,
+    archived: task.archived,
+    definitionVersion: task.definitionVersion,
+    revision: task.revision,
+    publishedVersion: task.publishedVersion,
+    updateBy: task.updateBy,
+    createTime: task.createTime,
+    updateTime: task.updateTime,
+    sourceConnector: pipeline.source.type,
+    sinkConnector: pipeline.sink.type,
+    sourceProducesChangelog: true,
+    sourceDataSourceId: pipeline.source["datasource-id"],
+    targetDataSourceId: pipeline.sink["datasource-id"],
+    sourceDatabase: source.database,
+    sourceTable: source.table,
+    targetDatabase: target.database,
+    targetTable: target.table,
+    productType: "DATABASE_REPLICATION",
+    steps: ["SCHEMA", "FULL", "INCREMENTAL"],
+    syncType: "REALTIME",
+    writeMode: "UPSERT",
+    tableMappings: [{ source, target, writeMode: "UPSERT" }],
   };
 }
 
-/**
- * A single unreadable stored definition must not turn a successful page request
- * into an empty/error page. Keep its identity visible; do not invent executable
- * parameters or silently interpret an older transaction contract as XA.
- */
-export function projectSyncTaskPage(page: PageInfo<TaskDefinitionRecord>): PageInfo<DataSyncTaskListRecord> {
+/** A bad stored definition stays visible as an unreadable row, never a default task. */
+export function projectSyncTaskPage(
+  page: PageInfo<TaskDefinitionRecord>,
+): PageInfo<DataSyncTaskListRecord> {
   return {
     ...page,
     totalList: page.totalList.map((definition) => {
       try {
         return toSyncTaskRecord(definition);
-      } catch (error) {
+      } catch (failure) {
         return {
           id: definition.id,
           name: definition.name,
           status: definition.status,
-          archived: definition.archived ?? false,
+          archived: definition.archived,
           definitionVersion: definition.definitionVersion,
           revision: definition.revision,
           publishedVersion: definition.publishedVersion,
           updateBy: definition.updateBy,
           updateTime: definition.updateTime,
-          configurationError:
-            error instanceof SyntaxError
-              ? "任务参数 JSON 格式错误"
-              : error instanceof Error
-                ? error.message
-                : "任务参数无法解析",
+          configurationError: failure instanceof Error ? failure.message : "Pipeline 配置无法读取",
         };
       }
     }),

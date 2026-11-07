@@ -1,206 +1,15 @@
 import type { TaskInstanceStatus } from "../task-execution/types";
 
-export type DataSyncWriteMode = "APPEND" | "UPSERT" | "REPLACE" | "RETRACT";
-
-export type DataSyncDmlEvent = "INSERT" | "UPDATE" | "DELETE";
-
-export interface DataSyncTableRead {
-  where?: string;
-  splitKey?: string;
-}
-
-export interface DataSyncSourceOptions {
-  fetchSize?: number;
-  queryTimeoutSeconds?: number;
-}
-
-export interface DataSyncTypeMapping {
-  sourceType: string;
-  targetType: string;
-}
-
-export interface DataSyncTableSnapshot {
-  chunkKeyColumn?: string;
-  skip?: boolean;
-  where?: string;
-}
-
-export interface DataSyncDml {
-  events: DataSyncDmlEvent[];
-}
-
-export interface DataSyncTableSelection {
-  mode: "REGEX";
-  databasePattern: string;
-  tablePattern: string;
-  snapshot?: DataSyncTableSnapshot;
-  dml?: DataSyncDml;
-}
-
-export interface DataSyncTableWrite {
-  mode: DataSyncWriteMode;
-  primaryKeys?: string[];
-  transaction?: { mode: "CHECKPOINT_XA" };
-  preSql?: string[];
-  postSql?: string[];
-  batchSize?: number;
-}
-
-export interface DataSyncMappingTemplate {
-  database?: string;
-  schema?: string;
-  table: string;
-  write: DataSyncTableWrite;
-}
+export type DataSyncWriteMode = "UPSERT";
 
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
 export type DataSyncProductType = "SINGLE_TABLE_BATCH" | "DATABASE_REPLICATION";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
-export interface DataSyncCapabilities {
-  maxTables: number;
-  sourceRead: boolean;
-  explicitSplitKey: boolean;
-  dataPreview: boolean;
-  sqlHooks: boolean;
-  regexSelection: boolean;
-  snapshotFilter: boolean;
-  snapshotSkip: boolean;
-  dmlEvents: boolean;
-  typeMapping: boolean;
-  targetStructureEditor: boolean; // Support for editing target table structure
-  partitionFields: boolean; // Support for partition field configuration
-  incrementalStream: boolean; // Support for incremental stream format
-  writeModes: DataSyncWriteMode[];
-  sourceEngineKeys: string[];
-  sinkEngineKeys: string[];
-  typeMappingRules: Array<{ sourceType: string; targetTypes: string[]; conditional: boolean }>;
-}
+export interface DataSyncTablePath { database?: string; schema?: string; table: string; }
 
-export interface DataSyncSolution {
-  id: string;
-  sourceConnector: string;
-  sinkConnector: string;
-  producesChangelog: boolean;
-  productType: DataSyncProductType;
-  displayName: string;
-  capabilities: DataSyncCapabilities;
-  steps: DataSyncStep[];
-  defaultSteps: DataSyncStep[];
-  allowedCombinations: Array<{
-    steps: DataSyncStep[];
-    supportsScheduling: boolean;
-    writeModes: DataSyncWriteMode[];
-  }>;
-}
-
-export interface DataSyncDraft {
-  sourceConnector: string;
-  sinkConnector: string;
-  sourceProducesChangelog: boolean;
-  sourceType: string;
-  targetType: string;
-  productType: DataSyncProductType;
-  steps: DataSyncStep[];
-  name: string;
-  form?: DataSyncTaskSavePayload;
-}
-
-export interface DataSyncTablePath {
-  database?: string;
-  schema?: string;
-  table: string;
-}
-
-/** Partition field assignment configuration. */
-export type DataSyncPartitionAssignment =
-  | { type: "CONSTANT"; value: string }
-  | { type: "SOURCE_FIELD"; field: string; valueType: "ENUM" }
-  | {
-      type: "SOURCE_FIELD";
-      field: string;
-      valueType: "TIMESTAMP";
-      sourceFormat:
-        | "TIME_STRING"
-        | "TIME_OBJECT"
-        | "UNIX_TIMESTAMP_SECONDS"
-        | "UNIX_TIMESTAMP_MILLIS";
-      sourcePattern?: string; // For TIME_STRING
-      targetFormat: string; // Target partition format like "yyyyMMdd"
-    }
-  | {
-      type: "EVENT_TIME";
-      sourceFormat:
-        | "TIME_STRING"
-        | "TIME_OBJECT"
-        | "UNIX_TIMESTAMP_SECONDS"
-        | "UNIX_TIMESTAMP_MILLIS";
-      targetFormat: string;
-    };
-
-/** Target table structure definition for schema creation. */
-export interface DataSyncTargetColumn {
-  name: string;
-  type: string;
-  nullable?: boolean;
-  defaultValue?: string;
-  comment?: string;
-}
-
-export interface DataSyncTargetPartition {
-  name: string;
-  assignment: DataSyncPartitionAssignment;
-}
-
-export interface DataSyncTargetTableStructure {
-  columns: DataSyncTargetColumn[];
-  partitions?: DataSyncTargetPartition[];
-  tableType?: "NORMAL" | "PK_DELTA" | "APPEND_DELTA"; // For MaxCompute
-  tableProperties?: Record<string, string>;
-}
-
-/** Incremental stream metadata format (增量流水表格式). */
-export interface DataSyncIncrementalStreamMetadata {
-  sequenceId: string; // sequence_id
-  operationType: string; // operation_type: I/D/U or DDL
-  executeTime: string; // execute_time
-  beforeImage: string; // before_image: Y/N
-  afterImage: string; // after_image: Y/N
-  srcDatasource: string; // src_datasource
-  srcDatabase: string; // src_database
-  srcTable: string; // src_table
-  ddlSql?: string; // ddl_sql (for DDL operations)
-}
-
-export type DataSyncIncrementalStreamFormat = "FLAT_COLUMNS" | "JSON_COLUMNS";
-
-export interface DataSyncIncrementalConfig {
-  mode: "TIMESTAMP" | "INCREASING";
-  column: string;
-  initialValue?: string;
-  delaySeconds?: number;
-  lookbackSeconds?: number;
-}
-
-export interface DataSyncTableMapping {
-  source: DataSyncTablePath & {
-    read?: DataSyncTableRead;
-    options?: DataSyncSourceOptions;
-    snapshot?: DataSyncTableSnapshot;
-    dml?: DataSyncDml;
-  };
-  target: DataSyncTablePath & {
-    primaryKeys?: string[];
-    structure?: DataSyncTargetTableStructure; // For prepareSchema mode
-  };
-  writeMode: DataSyncWriteMode;
-  preSql?: string[];
-  postSql?: string[];
-  batchSize?: number;
-  incremental?: DataSyncIncrementalConfig;
-  incrementalStreamFormat?: DataSyncIncrementalStreamFormat; // For incremental stream mode
-}
+export interface DataSyncTableMapping { source: DataSyncTablePath; target: DataSyncTablePath; writeMode: "UPSERT"; }
 
 export interface DataSyncTableResult {
   mappingIndex: number;
@@ -264,142 +73,36 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
-export interface DataSyncTransform {
-  "source-table": string;
-  projection?: string;
-  filter?: string;
-  "primary-keys"?: string;
-  "partition-keys"?: string;
-  "table-options"?: string;
-  "table-options.delimiter"?: string;
-  description?: string;
-  "converter-after-transform"?: string;
-}
-
-/** Supported upstream options retained even when the editor has no form field for them. */
-export interface DataSyncPipelineOptions {
-  [key: string]: unknown;
-  name?: string;
-  parallelism?: number | string;
-  "local-time-zone"?: string;
-  "schema.change.behavior"?: string;
-  "schema.operator.uid"?: string;
-  "route-mode"?: string;
-  "transform.decimal.precision.mode"?: string;
-}
-
-/** Transient editor projection. It is never sent to the API or persisted as task parameters. */
-export interface DataSyncEditorParameters {
-  source: {
-    type: string;
-    datasourceId: string;
-    pipelineOptions?: Record<string, unknown>;
-    selection?: DataSyncTableSelection;
-    syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
-    startup?: {
-      mode:
-        | "INITIAL"
-        | "SNAPSHOT"
-        | "EARLIEST_OFFSET"
-        | "LATEST_OFFSET"
-        | "SPECIFIC_OFFSETS"
-        | "TIMESTAMP";
-      file?: string;
-      pos?: number;
-      gtidSet?: string;
-      timestampMillis?: number;
-      skipEvents?: number;
-      skipRows?: number;
-    };
-    tables: Array<
-      DataSyncTablePath & {
-        read?: DataSyncTableRead;
-        options?: DataSyncSourceOptions;
-        snapshot?: DataSyncTableSnapshot;
-        dml?: DataSyncDml;
-        incremental?: DataSyncIncrementalConfig;
-      }
-    >;
-  };
-  sink: {
-    type: string;
-    datasourceId: string;
-    pipelineOptions?: Record<string, unknown>;
-    mapping?: DataSyncMappingTemplate;
-    typeMappings?: DataSyncTypeMapping[];
-    schemaPolicy: {
-      initial: "VERIFY" | "CREATE_OR_ALTER";
-      evolution: { enabled: boolean; allowDropColumns: boolean };
-    };
-    tables: Array<
-      DataSyncTablePath & {
-        write: DataSyncTableWrite;
-      }
-    >;
-  };
-  route: Array<{ "source-table": string; "sink-table": string; description?: string }>;
-  transform: DataSyncTransform[];
-  pipeline: DataSyncPipelineOptions & {
-    "execution.runtime-mode": "BATCH" | "STREAMING";
-  };
-}
-
-/** MySQL CDC startup position, including specific file/GTID/timestamp fields. */
-export type DataSyncStartupOptions = NonNullable<DataSyncEditorParameters["source"]["startup"]>;
-
 export type DataSyncTaskStatus = "OFFLINE" | "ONLINE";
 
+/** A display-only projection. The persisted configuration is parameters.definition. */
 export interface DataSyncTaskRecord {
-  tableScope?: "SINGLE" | "DATABASE";
-  sourceConnector: string;
-  sinkConnector: string;
-  sourceProducesChangelog: boolean;
-  transforms: DataSyncTransform[];
-  pipelineOptions: DataSyncPipelineOptions;
   id: string;
   workflowCode: string;
-  /** Persisted definition can be displayed, but fails current static execution validation. */
-  configurationError?: string;
-  sourceRead?: DataSyncTableRead;
-  sourceOptions?: DataSyncSourceOptions;
-  sourcePipelineOptions?: Record<string, unknown>;
-  sinkPipelineOptions?: Record<string, unknown>;
-  routeDescription?: string;
-  sinkBatchSize?: number;
-  typeMappings?: DataSyncTypeMapping[];
-  selection?: DataSyncTableSelection;
-  mappingTemplate?: DataSyncMappingTemplate;
-  preSql?: string[];
-  postSql?: string[];
-  targetPrimaryKeys?: string[];
-  schemaChangesEnabled?: boolean;
-  allowDropColumns?: boolean;
-  tableMappings: DataSyncTableMapping[];
-  incremental?: DataSyncIncrementalConfig;
-  /** Read-only in the current editor; preserve the full CDC startup intent on parameter edits. */
-  startup?: DataSyncStartupOptions;
-  productType: DataSyncProductType;
-  steps: DataSyncStep[];
   name: string;
-  syncType: DataSyncType | string;
+  remark?: string;
   status: DataSyncTaskStatus | string;
   archived?: boolean;
-  writeMode: DataSyncWriteMode | string;
-  sourceDataSourceId: string;
-  sourceDatabase?: string;
-  sourceSchema?: string;
-  sourceTable: string;
-  targetDataSourceId: string;
-  targetDatabase?: string;
-  targetSchema?: string;
-  targetTable: string;
   definitionVersion: number;
   revision: number;
   publishedVersion: number | null;
-  remark?: string;
   updateBy?: string;
   createTime?: string;
   updateTime?: string;
+  sourceConnector: string;
+  sinkConnector: string;
+  sourceProducesChangelog: boolean;
+  sourceDataSourceId: string;
+  targetDataSourceId: string;
+  sourceDatabase?: string;
+  sourceTable: string;
+  targetDatabase?: string;
+  targetTable: string;
+  productType: DataSyncProductType;
+  steps: DataSyncStep[];
+  syncType: DataSyncType | string;
+  writeMode: DataSyncWriteMode;
+  tableMappings: DataSyncTableMapping[];
 }
 
 export interface DataSyncTaskPageParams {
@@ -488,51 +191,6 @@ export interface PublishTaskRequest {
   expectedRevision: number;
 }
 
-interface DataSyncTaskSaveBase {
-  name: string;
-  sourceDataSourceId: string;
-  sourceDatabase?: string;
-  sourceSchema?: string;
-  sourceTable: string;
-  targetDataSourceId: string;
-  targetDatabase?: string;
-  targetSchema?: string;
-  targetTable: string;
-  remark?: string;
-}
-
-export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
-  tableScope?: "SINGLE" | "DATABASE";
-  sourceConnector: string;
-  sinkConnector: string;
-  sourceProducesChangelog: boolean;
-  transforms?: DataSyncTransform[];
-  pipelineOptions?: DataSyncPipelineOptions;
-  sourceRead?: DataSyncTableRead;
-  sourceOptions?: DataSyncSourceOptions;
-  sourcePipelineOptions?: Record<string, unknown>;
-  sinkPipelineOptions?: Record<string, unknown>;
-  routeDescription?: string;
-  sinkBatchSize?: number;
-  typeMappings?: DataSyncTypeMapping[];
-  selection?: DataSyncTableSelection;
-  mappingTemplate?: DataSyncMappingTemplate;
-  preSql?: string[];
-  postSql?: string[];
-  targetPrimaryKeys?: string[];
-  schemaChangesEnabled?: boolean;
-  allowDropColumns?: boolean;
-  tableMappings?: DataSyncTableMapping[];
-  productType: DataSyncProductType;
-  steps: DataSyncStep[];
-  writeMode: DataSyncWriteMode;
-  incremental?: DataSyncIncrementalConfig;
-  startup?: DataSyncStartupOptions;
-}
-
-export type DataSyncTaskUpdatePayload =
-  | DataSyncTaskSavePayload
-  | Pick<DataSyncTaskSaveBase, "name" | "remark">;
 
 export type DataSyncInstanceStatus = TaskInstanceStatus;
 
@@ -613,4 +271,5 @@ export interface DataSyncInstancePageParams {
   startTimeStart?: string;
   startTimeEnd?: string;
 }
+
 

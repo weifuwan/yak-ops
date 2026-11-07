@@ -7,7 +7,6 @@ import { TaskRoute } from "./task-route";
 import { DataSyncTaskLifecycleActions, DataSyncTaskStatusBadge } from "./task-lifecycle";
 import { readExecutionSummary } from "@/service/data-sync/report";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
-import { syncSummary } from "../solution/presentation";
 import type { DataSourceRecord } from "@/service/datasource";
 import type { UserRecord } from "@/service/user";
 import type {
@@ -134,7 +133,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
           </span>
         ) : (
           <div className="text-xs text-[var(--yak-components-tab-text-hover)]">
-            <div>{syncSummary(record.productType, record.steps)}</div>
+            <div>MySQL 实时同步</div>
             <div className="mt-0.5 text-[var(--yak-components-muted-text)]">
               {record.tableMappings.length} 张表
             </div>

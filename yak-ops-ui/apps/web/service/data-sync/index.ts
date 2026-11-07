@@ -7,26 +7,20 @@ import type {
   TaskInstanceDefinitionRecord,
 } from "@/service/task-execution/types";
 
-import { connectorChoices, type PipelineConnectorPair } from "./connectors";
 import {
-  createDefinitionRequest,
   projectSyncTaskPage,
   toSyncTaskRecord,
-  updateDefinitionRequest,
 } from "./definition";
 import { toDataSyncInstanceRecord } from "./execution";
 import { YAK_OPS_API_PREFIX } from "@/config/api";
 import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type {
-  DataSyncSolution,
   DataSyncInstancePageParams,
   DataSyncInstanceRecord,
   DataSyncInstanceSummary,
   DataSyncTaskPageParams,
   DataSyncTaskListRecord,
   DataSyncTaskRecord,
-  DataSyncTaskSavePayload,
-  DataSyncTaskUpdatePayload,
   TaskDefinitionRecord,
   TaskDefinitionVersion,
   TaskDefinitionVersionSummary,
@@ -47,50 +41,6 @@ const url = (path: string) =>
   YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) + "/data-sync" + path;
 
 export const isRejectedTaskWrite = (failure: unknown) => failure instanceof BizError;
-
-export const listDataSyncSolutions = async (
-  sourceType: string,
-  targetType: string,
-  _signal?: AbortSignal,
-): Promise<DataSyncSolution[]> => {
-  if (sourceType.toUpperCase() !== "MYSQL" || targetType.toUpperCase() !== "MYSQL") return [];
-  const pair: PipelineConnectorPair = {
-    sourceConnector: "mysql",
-    sinkConnector: "jdbc",
-    producesChangelog: true,
-    supportsIncrementalBatch: false,
-    supportsSchemaChanges: true,
-    supportsRetract: false,
-    boundedness: "CONTINUOUS_UNBOUNDED",
-    capabilities: {
-      maxTables: 1,
-      sourceRead: false,
-      explicitSplitKey: false,
-      dataPreview: true,
-      sqlHooks: false,
-      regexSelection: false,
-      snapshotFilter: false,
-      snapshotSkip: false,
-      dmlEvents: false,
-      typeMapping: false,
-      targetStructureEditor: false,
-      partitionFields: false,
-      incrementalStream: false,
-      writeModes: ["UPSERT"],
-      sourceEngineKeys: [],
-      sinkEngineKeys: [],
-      typeMappingRules: [],
-    },
-  };
-  return connectorChoices([pair]).map((solution) => ({
-    ...solution,
-    displayName: "MySQL 实时同步",
-    allowedCombinations: solution.allowedCombinations.filter(
-      (option) => option.steps.includes("FULL") && option.steps.includes("INCREMENTAL"),
-    ),
-    defaultSteps: ["FULL", "INCREMENTAL"],
-  }));
-};
 
 export const listDataSyncTasks = async (
   params: DataSyncTaskPageParams,
@@ -119,32 +69,6 @@ export const getDataSyncTask = async (
     await HttpUtils.getData<TaskDefinitionRecord>(url("/tasks/" + encodeURIComponent(id)), {
       signal,
     }),
-  );
-
-export const createDataSyncTask = async (
-  payload: DataSyncTaskSavePayload,
-  signal?: AbortSignal,
-): Promise<DataSyncTaskRecord> =>
-  toSyncTaskRecord(
-    await HttpUtils.postData<TaskDefinitionRecord>(
-      url("/tasks"),
-      createDefinitionRequest(payload),
-      { signal },
-    ),
-  );
-
-export const updateDataSyncTask = async (
-  id: string,
-  payload: DataSyncTaskUpdatePayload,
-  expectedRevision: number,
-  signal?: AbortSignal,
-): Promise<DataSyncTaskRecord> =>
-  toSyncTaskRecord(
-    await HttpUtils.putData<TaskDefinitionRecord>(
-      url("/tasks/" + encodeURIComponent(id)),
-      updateDefinitionRequest(payload, expectedRevision),
-      { signal },
-    ),
   );
 
 export const deleteDataSyncTask = async (id: string) => {

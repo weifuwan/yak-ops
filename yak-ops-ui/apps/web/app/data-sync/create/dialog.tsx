@@ -1,4 +1,4 @@
-import { Alert, Button, Field, FieldLabel, Input, Modal } from "@yak-ops/yak-ui";
+import { Button, Field, FieldLabel, Input, Modal } from "@yak-ops/yak-ui";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { COMMON_DB_OPTIONS } from "@/app/datasource/constants";
@@ -11,7 +11,6 @@ import {
   type NativeSyncDraft,
 } from "@/service/data-sync/native-draft";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
-import { useSolutions } from "../solution/use-solutions";
 
 export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const { currentUser } = useAuth();
@@ -22,11 +21,8 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState(previous.current?.name || "");
   const [selected, setSelected] = useState(previous.current ? "mysql:jdbc" : "");
   const navigate = useNavigate();
-  const { choices, loading, error, refresh } = useSolutions(sourceType, targetType);
-  const supported = choices.find((choice) =>
-    choice.sourceConnector === "mysql" && choice.sinkConnector === "jdbc");
-  const ready = sourceType === "MYSQL" && targetType === "MYSQL" &&
-    selected === "mysql:jdbc" && Boolean(supported);
+  const supported = sourceType === "MYSQL" && targetType === "MYSQL";
+  const ready = supported && selected === "mysql:jdbc";
 
   const next = () => {
     if (!ready || !name.trim()) return;
@@ -52,7 +48,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
       footer={
         <>
           <Button size="small" onClick={onClose}>取消</Button>
-          <Button size="small" variant="primary" disabled={!ready || !name.trim() || loading} onClick={next}>
+          <Button size="small" variant="primary" disabled={!ready || !name.trim()} onClick={next}>
             下一步
           </Button>
         </>
@@ -74,12 +70,9 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
           <FieldLabel required>具体类型</FieldLabel>
           <DataSyncSearchableSelect value={ready ? selected : null}
             options={supported ? [{ value: "mysql:jdbc", label: "MySQL 实时同步" }] : []}
-            disabled={loading || !supported} placeholder="请选择具体类型"
+            disabled={!supported} placeholder="请选择具体类型"
             onValueChange={setSelected} />
         </Field>
-        {error ? <Alert>{error}<Button size="small" onClick={refresh}>重试</Button></Alert> : null}
-        {!error && !loading && sourceType && targetType && !supported ?
-          <Alert>当前链路暂无可用同步方案</Alert> : null}
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>名称</FieldLabel>
           <Input size="small" variant="outlined" maxLength={128}
