@@ -167,12 +167,12 @@ export const listDataSourceTables = async (
   id: DataSourceId, query: DataSourceCatalogQuery, signal?: AbortSignal,
 ): Promise<DataSourceCatalogTable[]> => {
   if (!query.database) return [];
-  const options = await HttpUtils.getData<BackendOption[]>(API() + "/tables?" +
-    qs({ datasourceId: id, database: query.database }), { signal });
-  return toOptions(options)
-    .filter((name) => !query.keyword || name.toLowerCase().includes(query.keyword.toLowerCase()))
-    .slice(0, query.limit ?? Number.MAX_SAFE_INTEGER)
-    .map((name) => ({ name, database: query.database, schema: query.schema }));
+  const page = await pageDataSourceTables(
+    id,
+    { ...query, offset: 0, limit: query.limit ?? 100 },
+    signal,
+  );
+  return page.items;
 };
 
 export const listDataSourceColumns = async (
@@ -187,14 +187,27 @@ export const listDataSourceColumns = async (
 export const pageDataSourceTables = async (
   id: DataSourceId, query: DataSourceTablePageQuery, signal?: AbortSignal,
 ): Promise<DataSourceTablePage> => {
-  const rows = await listDataSourceTables(id, { ...query, limit: undefined }, signal);
-  const filtered = rows.filter((row) =>
-    !query.tablePattern || row.name.toLowerCase().includes(query.tablePattern.toLowerCase()));
-  const offset = query.offset ?? 0;
+  if (!query.database) return { items: [], total: 0, nextOffset: null };
+  const offset = Math.max(0, query.offset ?? 0);
   const limit = Math.max(1, query.limit ?? 100);
+  const pageNo = Math.floor(offset / limit) + 1;
+  const page = await HttpUtils.getData<PageInfo<BackendOption>>(API() + "/tables?" +
+    qs({
+      datasourceId: id,
+      database: query.database,
+      keyword: query.keyword,
+      pageNo,
+      pageSize: limit,
+    }), { signal });
+  const items = toOptions(page.totalList).map((name) => ({
+    name,
+    database: query.database,
+    schema: query.schema,
+  }));
   return {
-    items: filtered.slice(offset, offset + limit),
-    nextOffset: offset + limit < filtered.length ? offset + limit : null,
+    items,
+    total: page.total,
+    nextOffset: offset + items.length < page.total ? offset + limit : null,
   };
 };
 
