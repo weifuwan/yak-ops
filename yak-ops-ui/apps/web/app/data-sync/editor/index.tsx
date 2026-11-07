@@ -63,6 +63,9 @@ export function TaskEditor({
   const [error, setError] = useState("");
   const [catalogError, setCatalogError] = useState("");
   const [sourceTableFilter, setSourceTableFilter] = useState("");
+  const [sourceTableKeyword, setSourceTableKeyword] = useState("");
+  const [sourcePageNo, setSourcePageNo] = useState(1);
+  const [sourcePageSize, setSourcePageSize] = useState(100);
   const [sourceChecked, setSourceChecked] = useState<string[]>([]);
   const { dataSources, dataSourcesLoading, dataSourcesError, loadDataSources } =
     useEditorDataSources(connections);
@@ -74,18 +77,29 @@ export function TaskEditor({
   const sinkDatasource = dataSources.find((item) => item.id === sinkId);
   const sourceType = sourceDatasource?.dbType || initialDraft?.sourceType || "MYSQL";
   const sinkType = sinkDatasource?.dbType || initialDraft?.targetType || "MYSQL";
-  const sourceCatalog = useCatalogOptions(sourceId, sourceDatasource?.database || "", Boolean(sourceId));
-  const sourceTables = sourceCatalog.tables.map(catalogPath).filter((item) => {
-    try {
-      return new RegExp(sourceTableFilter || ".*", "i").test(item.table);
-    } catch { return false; }
-  });
+  const sourceCatalog = useCatalogOptions(
+    sourceId,
+    sourceDatasource?.database || "",
+    sourceTableKeyword,
+    sourcePageNo,
+    sourcePageSize,
+    Boolean(sourceId),
+  );
+  const sourceTables = sourceCatalog.tables.map(catalogPath);
   const selectedTables: DataSyncTablePath[] = source ? [source] : [];
   const dirty = pipelineFingerprint(authored) !== baseline;
   const definitionDirty = pipelineFingerprint(definition) !== baselineDefinition;
   const locked = saving || executionLocked || Boolean(task?.archived) || task?.status === "ONLINE";
 
   useUnsavedChanges(dirty || drawerDirty);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSourceTableKeyword(sourceTableFilter.trim());
+      setSourcePageNo(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [sourceTableFilter]);
 
   useEffect(() => {
     if (task || saving) return;
@@ -107,7 +121,13 @@ export function TaskEditor({
     setError("");
     setCatalogError("");
   };
-  const changeSource = (value: string) => edit(setPipelineDatasource(definition, "source", value));
+  const changeSource = (value: string) => {
+    setSourceTableFilter("");
+    setSourceTableKeyword("");
+    setSourcePageNo(1);
+    setSourceChecked([]);
+    edit(setPipelineDatasource(definition, "source", value));
+  };
   const changeSink = (value: string) => {
     let next = setPipelineDatasource(definition, "sink", value);
     const target = dataSources.find((item) => item.id === value);
@@ -247,8 +267,16 @@ export function TaskEditor({
               <div className="grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                 <TableTransferPanel title="来源库表" tables={sourceTables}
                   checked={sourceChecked} onCheckedChange={(keys) => setSourceChecked(keys.slice(-1))}
-                  filter={sourceTableFilter} onFilterChange={setSourceTableFilter}
-                  loading={sourceCatalog.loading} onRefresh={sourceCatalog.refresh} />
+                  filter={sourceTableFilter}
+                  onFilterChange={setSourceTableFilter}
+                  loading={sourceCatalog.loading}
+                  pageNo={sourcePageNo} pageSize={sourcePageSize} total={sourceCatalog.total}
+                  onPageChange={(pageNo, pageSize) => {
+                    setSourcePageNo(pageNo);
+                    setSourcePageSize(pageSize);
+                    setSourceChecked([]);
+                  }}
+                  onRefresh={sourceCatalog.refresh} />
                 <Button size="small" disabled={!sourceChecked.length || !sourceId}
                   onClick={() => {
                     const selected = sourceCatalog.tables.find(
