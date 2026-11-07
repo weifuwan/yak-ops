@@ -107,6 +107,7 @@ export interface DataSourceTablePageQuery extends DataSourceCatalogQuery {
 
 export interface DataSourceTablePage {
   items: DataSourceCatalogTable[];
+  total: number;
   nextOffset: number | null;
 }
 
