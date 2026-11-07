@@ -7,6 +7,7 @@ import {
 } from "@/service/datasource";
 export interface CatalogOptions {
   tables: DataSourceCatalogTable[];
+  total: number;
   loading: boolean;
   error: string;
   refresh: () => void;
@@ -15,6 +16,9 @@ export interface CatalogOptions {
 export function useCatalogOptions(
   dataSourceId: string,
   database: string,
+  keyword: string,
+  pageNo: number,
+  pageSize: number,
   active = true,
 ): CatalogOptions {
   const { currentUser } = useAuth();
@@ -29,27 +33,26 @@ export function useCatalogOptions(
       currentWorkspace?.id,
       dataSourceId,
       database,
+      keyword,
+      pageNo,
+      pageSize,
     ],
-    queryFn: async ({ signal }) => {
-      const tables: DataSourceCatalogTable[] = [];
-      let offset: number | null = 0;
-      while (offset !== null) {
-        const page = await pageDataSourceTables(
-          dataSourceId,
-          { database, limit: 500, offset },
-          signal,
-        );
-        tables.push(...page.items);
-        if (page.nextOffset !== null && page.nextOffset <= offset)
-          throw new Error("目录分页响应无效");
-        offset = page.nextOffset;
-      }
-      return tables;
-    },
+    queryFn: ({ signal }) =>
+      pageDataSourceTables(
+        dataSourceId,
+        {
+          database,
+          keyword: keyword || undefined,
+          limit: pageSize,
+          offset: (pageNo - 1) * pageSize,
+        },
+        signal,
+      ),
     enabled,
   });
   return {
-    tables: query.data ?? [],
+    tables: query.data?.items ?? [],
+    total: query.data?.total ?? 0,
     loading: enabled && query.isPending,
     error: enabled && query.isError ? "表信息加载失败" : "",
     refresh: () => void query.refetch(),
