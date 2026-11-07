@@ -18,6 +18,7 @@ import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.DataSourceUserDao;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
@@ -464,6 +465,45 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
                                          Integer datasourceId, String database) {
         checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         return getTables(loginUser, datasourceId, database);
+    }
+
+    @Override
+    public PageInfo<ParamsOptions> getTables(User loginUser, long projectCode,
+                                              Integer datasourceId, String database,
+                                              String keyword, Integer pageNo, Integer pageSize) {
+        DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+        DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
+        DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
+        if (catalog == null || !catalog.supportsTablePaging()) {
+            List<ParamsOptions> all = getTables(loginUser, datasourceId, database);
+            List<ParamsOptions> filtered = all == null ? Collections.emptyList() : all.stream()
+                    .filter(option -> StringUtils.isBlank(keyword)
+                            || option.getLabel().toLowerCase().contains(keyword.trim().toLowerCase()))
+                    .collect(Collectors.toList());
+            int offset = (pageNo - 1) * pageSize;
+            int end = Math.min(offset + pageSize, filtered.size());
+            PageInfo<ParamsOptions> page = PageInfo.of(pageNo, pageSize);
+            page.setTotal(filtered.size());
+            page.setTotalList(offset >= filtered.size()
+                    ? Collections.emptyList()
+                    : filtered.subList(offset, end));
+            return page;
+        }
+
+        ConnectionParam connectionParam = processor.createConnectionParams(dataSource.getConnectionParams());
+        try (Connection connection = processor.getConnection(connectionParam)) {
+            int total = catalog.countTables(connection, database, keyword);
+            int offset = (pageNo - 1) * pageSize;
+            List<String> tables = catalog.listTables(connection, database, keyword, offset, pageSize);
+            List<ParamsOptions> options = getParamsOptions(tables);
+            PageInfo<ParamsOptions> page = PageInfo.of(pageNo, pageSize);
+            page.setTotal(total);
+            page.setTotalList(options == null ? Collections.emptyList() : options);
+            return page;
+        } catch (Exception e) {
+            log.error("Get datasource tables error, datasourceId:{}.", datasourceId, e);
+            throw new ServiceException(Status.GET_DATASOURCE_TABLES_ERROR);
+        }
     }
 
     @Override
