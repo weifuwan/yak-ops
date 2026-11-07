@@ -17,7 +17,8 @@ public final class DataSyncPipelineBuilder {
 
     private final DataSyncConnectorRegistry providers = new DataSyncConnectorRegistry();
 
-    public String preview(JsonNode rawDefinition,
+    public String preview(
+                          JsonNode rawDefinition,
                           DataSourceParameters sourceResource,
                           DataSourceParameters sinkResource) {
         ObjectNode definition = (ObjectNode) rawDefinition.deepCopy();
