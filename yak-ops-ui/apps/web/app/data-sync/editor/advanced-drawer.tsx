@@ -40,12 +40,31 @@ export function AdvancedDrawer({
     setError("");
     onDirtyChange(JSON.stringify(next) !== JSON.stringify(value));
   };
+  const changeEngineInput = (key: "parallelism" | "local-time-zone", raw: string) => {
+    try {
+      const options: unknown = JSON.parse(engineText || "{}");
+      if (!options || typeof options !== "object" || Array.isArray(options)) {
+        throw new Error("请先修正引擎参数 JSON");
+      }
+      const values = { ...options } as Record<string, unknown>;
+      if (raw) values[key] = raw;
+      else delete values[key];
+      update(setPipelineOption(definition, key, raw || undefined));
+      setEngineText(JSON.stringify(values, null, 2));
+    } catch {
+      setTab("engine");
+      setError("请先修正引擎参数 JSON，再修改运行时配置");
+    }
+  };
   const parseEngine = () => {
     const options: unknown = JSON.parse(engineText);
     if (!options || typeof options !== "object" || Array.isArray(options))
       throw new Error("引擎参数必须是 JSON 对象");
     for (const key of Object.keys(options)) {
       if (!EDITABLE_KEYS.includes(key)) throw new Error("不支持修改此参数：" + key);
+      if (key !== "parallelism" && typeof (options as Record<string, unknown>)[key] !== "string") {
+        throw new Error(key + " 必须是字符串");
+      }
     }
     const next = structuredClone(definition);
     for (const key of EDITABLE_KEYS) delete next.pipeline[key];
@@ -113,31 +132,13 @@ export function AdvancedDrawer({
                 <FieldLabel>并行度</FieldLabel>
                 <Input size="small" variant="outlined" aria-label="并行度" inputMode="numeric"
                   value={definition.pipeline.parallelism === undefined ? "" : String(definition.pipeline.parallelism)}
-                  onChange={(event) => {
-                    const raw = event.target.value;
-                    update(setPipelineOption(definition, "parallelism", raw || undefined));
-                    setEngineText((prev) => {
-                      const old = JSON.parse(prev || "{}");
-                      if (raw) old.parallelism = raw;
-                      else delete old.parallelism;
-                      return JSON.stringify(old, null, 2);
-                    });
-                  }} />
+                  onChange={(event) => changeEngineInput("parallelism", event.target.value)} />
               </Field>
               <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel>时区</FieldLabel>
                 <Input size="small" variant="outlined" aria-label="运行时区"
                   value={String(definition.pipeline["local-time-zone"] || "")}
-                  onChange={(event) => {
-                    const raw = event.target.value;
-                    update(setPipelineOption(definition, "local-time-zone", raw || undefined));
-                    setEngineText((prev) => {
-                      const old = JSON.parse(prev || "{}");
-                      if (raw) old["local-time-zone"] = raw;
-                      else delete old["local-time-zone"];
-                      return JSON.stringify(old, null, 2);
-                    });
-                  }} />
+                  onChange={(event) => changeEngineInput("local-time-zone", event.target.value)} />
               </Field>
               <p className="text-xs text-[var(--yak-components-muted-text)]">
                 当前实时同步无需 Cron 调度，启动与停止由工作流执行接口管理。
