@@ -2,7 +2,7 @@ import type {
   TaskInstanceDefinitionRecord, TaskInstanceRecord, TaskInstanceStatus,
 } from "../task-execution/types";
 import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
-import { readPipelineDefinition, sourceTable, sinkTable } from "./native-pipeline";
+import { pipelineTableMappings, readPipelineDefinition } from "./native-pipeline";
 import { readExecutionReport } from "./report";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
@@ -35,13 +35,16 @@ export function toDataSyncInstanceRecord(
     throw new Error("Task Instance Definition version mismatch");
   }
   const definition = readPipelineDefinition(version.parameters);
-  const source = sourceTable(definition)!;
-  const target = sinkTable(definition)!;
+  const mappings = pipelineTableMappings(definition);
+  const { source, target } = mappings[0];
   const steps = ["SCHEMA", "FULL", "INCREMENTAL"] as const;
-  const tableMappings = [{ source, target, writeMode: "UPSERT" as const }];
+  const tableMappings = mappings.map((mapping) => ({
+    ...mapping,
+    writeMode: "UPSERT" as const,
+  }));
   return {
     id: instance.id,
-    executionReport: readExecutionReport(instance.executionReport, 1, [...steps]),
+    executionReport: readExecutionReport(instance.executionReport, tableMappings.length, [...steps]),
     productType: "DATABASE_REPLICATION",
     steps: [...steps],
     taskId: instance.definitionId,
