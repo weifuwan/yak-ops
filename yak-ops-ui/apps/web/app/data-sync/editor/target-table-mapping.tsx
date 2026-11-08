@@ -1,19 +1,27 @@
 import { Button, Input } from "@yak-ops/yak-ui";
-import type { PipelineTable } from "@/service/data-sync/native-pipeline";
+import {
+  chunkKeyColumn,
+  removePipelineSourceTable,
+  setPipelineChunkKeyColumn,
+  setPipelineTargetTableName,
+  setPipelineTransformValue,
+  targetTableName,
+  transformValue,
+  type PipelineDefinition,
+  type PipelineTable,
+} from "@/service/data-sync/native-pipeline";
 import { ContentSection } from "./content-layout";
 
 export function TargetTableMapping({
+  definition,
   sources,
   targetDatabase,
-  targetTableName,
-  onTargetTableChange,
-  onRemove,
+  onChange,
 }: {
+  definition: PipelineDefinition;
   sources: PipelineTable[];
   targetDatabase: string;
-  targetTableName: (source: PipelineTable) => string;
-  onTargetTableChange: (source: PipelineTable, table: string) => void;
-  onRemove: (source: PipelineTable) => void;
+  onChange: (definition: PipelineDefinition) => void;
 }) {
   return (
     <ContentSection id="target" title="目标表映射">
@@ -22,48 +30,138 @@ export function TargetTableMapping({
           请先添加来源表
         </div>
       ) : (
-        <div className="overflow-hidden rounded-sm border border-[var(--yak-components-panel-border)]">
-          <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_72px] bg-[var(--yak-color-hover)] text-xs font-medium">
-            <div className="px-3 py-2">来源表</div>
-            <div className="px-3 py-2">目标数据库</div>
-            <div className="px-3 py-2">目标表</div>
-            <div className="px-3 py-2 text-center">操作</div>
-          </div>
-
-          {sources.map((source) => (
-            <div
-              key={source.database + "." + source.table}
-              className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_72px] items-center border-t border-[var(--yak-components-panel-border)] text-xs"
-            >
-              <div className="min-w-0 truncate px-3 py-2" title={source.database + "." + source.table}>
-                {source.database + "." + source.table}
-              </div>
-              <div className="min-w-0 truncate px-3 py-2" title={targetDatabase}>
-                {targetDatabase || "-"}
-              </div>
-              <div className="px-3 py-2">
-                <Input
-                  size="small"
-                  variant="outlined"
-                  aria-label={source.table + " 目标表"}
-                  value={targetTableName(source)}
-                  placeholder={source.table}
-                  disabled={!targetDatabase}
-                  onChange={(event) => onTargetTableChange(source, event.target.value)}
-                />
-              </div>
-              <div className="px-2 py-2 text-center">
-                <Button
-                  size="small"
-                  variant="ghost"
-                  className="text-xs font-normal text-[var(--yak-color-danger)]"
-                  onClick={() => onRemove(source)}
-                >
-                  删除
-                </Button>
-              </div>
+        <div className="overflow-x-auto rounded-sm border border-[var(--yak-components-panel-border)]">
+          <div className="min-w-[1380px]">
+            <div className="grid grid-cols-[220px_150px_180px_180px_180px_250px_250px_72px] bg-[var(--yak-color-hover)] text-xs font-medium">
+              <div className="px-3 py-2">来源表</div>
+              <div className="px-3 py-2">目标数据库</div>
+              <div className="px-3 py-2">目标表</div>
+              <div className="px-3 py-2">目标表同步主键</div>
+              <div className="px-3 py-2">快照切分列</div>
+              <div className="px-3 py-2">字段映射</div>
+              <div className="px-3 py-2">数据过滤</div>
+              <div className="px-3 py-2 text-center">操作</div>
             </div>
-          ))}
+
+            {sources.map((source) => {
+              const sourcePath = source.database + "." + source.table;
+              return (
+                <div
+                  key={sourcePath}
+                  className="grid grid-cols-[220px_150px_180px_180px_180px_250px_250px_72px] items-center border-t border-[var(--yak-components-panel-border)] text-xs"
+                >
+                  <div className="min-w-0 truncate px-3 py-2" title={sourcePath}>
+                    {sourcePath}
+                  </div>
+
+                  <div className="min-w-0 truncate px-3 py-2" title={targetDatabase}>
+                    {targetDatabase || "-"}
+                  </div>
+
+                  <div className="px-3 py-2">
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      aria-label={source.table + " 目标表"}
+                      value={targetTableName(definition, source)}
+                      placeholder={source.table}
+                      disabled={!targetDatabase}
+                      onChange={(event) =>
+                        onChange(setPipelineTargetTableName(
+                          definition,
+                          source,
+                          targetDatabase,
+                          event.target.value,
+                        ))
+                      }
+                    />
+                  </div>
+
+                  <div className="px-3 py-2">
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      aria-label={source.table + " 目标表同步主键"}
+                      value={transformValue(definition, source, "primary-keys")}
+                      placeholder="如 id 或 id,tenant_id"
+                      onChange={(event) =>
+                        onChange(setPipelineTransformValue(
+                          definition,
+                          source,
+                          "primary-keys",
+                          event.target.value,
+                        ))
+                      }
+                    />
+                  </div>
+
+                  <div className="px-3 py-2">
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      aria-label={source.table + " 快照切分列"}
+                      value={chunkKeyColumn(definition, source)}
+                      placeholder="如 id"
+                      onChange={(event) =>
+                        onChange(setPipelineChunkKeyColumn(
+                          definition,
+                          source,
+                          event.target.value,
+                        ))
+                      }
+                    />
+                  </div>
+
+                  <div className="px-3 py-2">
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      aria-label={source.table + " 字段映射"}
+                      value={transformValue(definition, source, "projection")}
+                      placeholder="如 *,name AS user_name"
+                      onChange={(event) =>
+                        onChange(setPipelineTransformValue(
+                          definition,
+                          source,
+                          "projection",
+                          event.target.value,
+                        ))
+                      }
+                    />
+                  </div>
+
+                  <div className="px-3 py-2">
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      aria-label={source.table + " 数据过滤"}
+                      value={transformValue(definition, source, "filter")}
+                      placeholder="如 id > 0"
+                      onChange={(event) =>
+                        onChange(setPipelineTransformValue(
+                          definition,
+                          source,
+                          "filter",
+                          event.target.value,
+                        ))
+                      }
+                    />
+                  </div>
+
+                  <div className="px-2 py-2 text-center">
+                    <Button
+                      size="small"
+                      variant="ghost"
+                      className="text-xs font-normal text-[var(--yak-color-danger)]"
+                      onClick={() => onChange(removePipelineSourceTable(definition, source))}
+                    >
+                      删除
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </ContentSection>
