@@ -80,7 +80,7 @@ function ScheduleDialogSession({
                   <Button
                     size="sm"
                     variant="danger"
-                    isDisabled={pending || isPending || needsReload}
+                    isDisabled={pending || loading || needsReload}
                     onClick={() => setConfirmation("delete")}
                   >
                     删除调度
@@ -95,7 +95,7 @@ function ScheduleDialogSession({
                 variant="primary"
                 isPending={pending}
                 isDisabled={
-                  isPending ||
+                  loading ||
                   needsReload ||
                   Boolean(schedule?.enabled) ||
                   !form.cronExpression.trim() ||
