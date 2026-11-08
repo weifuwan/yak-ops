@@ -245,7 +245,7 @@ class DataSyncServiceImplTest {
 
         assertEquals(0, result.getTotal());
         assertTrue(result.getTotalList().isEmpty());
-        verify(taskDefinitionDao, never()).queryDataSyncPage(any(), any(Long.class), any(), any(), any(), any(), any());
+        verify(taskDefinitionDao, never()).queryDataSyncPage(any(), eq(PROJECT_CODE), any(), any(), any(), any(), any());
     }
 
     @Test
