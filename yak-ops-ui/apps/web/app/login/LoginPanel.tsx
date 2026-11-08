@@ -132,6 +132,7 @@ export default function LoginPanel({
   return (
     <>
       <form
+        className="login-form"
         noValidate
         aria-label="账号登录"
         aria-busy={loading}
@@ -217,7 +218,8 @@ export default function LoginPanel({
           size="lg"
           type="submit"
           isPending={loading}
-          className="login-form-submit mt-6 w-full"
+          fullWidth
+          className="login-form-submit mt-6"
           style={{ borderRadius: "var(--yak-radius-full)" }}
         >
           登录
