@@ -95,6 +95,42 @@ class DataSyncParametersTest {
         assertFalse(parameters.checkParameters());
     }
 
+    @Test
+    void acceptsMultipleOneToOneTableMappings() {
+        DataSyncParameters parameters = valid();
+        ObjectNode definition = (ObjectNode) parameters.getDefinition();
+        ((ObjectNode) definition.path("source")).put(
+                "tables", "src_db.orders,src_db.customers");
+        definition.putArray("route")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("sink-table", "dst_db.orders");
+        ((com.fasterxml.jackson.databind.node.ArrayNode) definition.path("route"))
+                .addObject()
+                .put("source-table", "src_db.customers")
+                .put("sink-table", "dst_db.customers");
+
+        assertTrue(parameters.checkParameters());
+    }
+
+    @Test
+    void rejectsDuplicateTargetTableMappings() {
+        DataSyncParameters parameters = valid();
+        ObjectNode definition = (ObjectNode) parameters.getDefinition();
+        ((ObjectNode) definition.path("source")).put(
+                "tables", "src_db.orders,src_db.customers");
+        definition.putArray("route")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("sink-table", "dst_db.orders");
+        ((com.fasterxml.jackson.databind.node.ArrayNode) definition.path("route"))
+                .addObject()
+                .put("source-table", "src_db.customers")
+                .put("sink-table", "dst_db.orders");
+
+        assertFalse(parameters.checkParameters());
+    }
+
     static DataSyncParameters valid() {
         Map<String, Object> source = new LinkedHashMap<>();
         source.put("type", "mysql");
