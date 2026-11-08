@@ -48,7 +48,7 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
 
     IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                              String taskType, String keyword, Long taskCode,
-                                             Integer releaseState);
+                                             Integer releaseState, List<Long> taskCodes);
 
     List<DataSyncOverviewTaskRow> queryDataSyncOverview(long projectCode);
 

@@ -2,6 +2,7 @@ package io.yak.ops.api.service;
 
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
@@ -17,7 +18,8 @@ import java.util.List;
 public interface DataSyncService {
 
     PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                       int pageNo, int pageSize, String keyword, ReleaseState status);
+                                       int pageNo, int pageSize, String keyword, ReleaseState status,
+                                       DataSyncScope scope);
 
     DataSyncOverviewVO getOverview(User user, long projectCode);
 

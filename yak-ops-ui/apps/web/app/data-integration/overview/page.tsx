@@ -139,7 +139,14 @@ function TaskDistribution({ overview }: { overview: DataIntegrationOverview }) {
             {overview.taskTypes.map((item) => (
               <tr key={item.scope} className="border-t border-[var(--yak-components-panel-border)]">
                 <th scope="row" className="px-4 py-3 text-left font-normal">
-                  {SCOPE_LABELS[item.scope]}
+                  <Link
+                    to={`/data-sync?scope=${item.scope}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--yak-color-primary)] hover:underline"
+                  >
+                    {SCOPE_LABELS[item.scope]}
+                  </Link>
                 </th>
                 <td className="px-4 py-3 text-right tabular-nums">{number(item.offline)}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{number(item.realtime)}</td>

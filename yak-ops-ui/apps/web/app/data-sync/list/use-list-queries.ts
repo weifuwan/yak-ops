@@ -31,6 +31,7 @@ export function useTaskPage(scope: string, filters: TaskListFilters) {
       filters.pageNo,
       filters.keyword,
       filters.status,
+      filters.scope,
     ],
     queryFn: ({ signal }) =>
       listDataSyncTasks(
@@ -39,6 +40,7 @@ export function useTaskPage(scope: string, filters: TaskListFilters) {
           pageSize: PAGE_SIZE,
           keyword: filters.keyword || undefined,
           status: filters.status === "ALL" ? undefined : filters.status,
+          scope: filters.scope === "ALL" ? undefined : filters.scope,
         },
         signal,
       ),
