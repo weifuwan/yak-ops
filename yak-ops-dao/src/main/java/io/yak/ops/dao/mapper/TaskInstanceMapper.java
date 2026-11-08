@@ -5,6 +5,7 @@ import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.ExecuteStatusCount;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.model.TaskInstanceStatusCountDto;
+import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import org.apache.ibatis.annotations.Param;
@@ -18,6 +19,10 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface TaskInstanceMapper extends BaseMapper<TaskInstance> {
+
+    List<DataSyncExecutionDailyRow> queryDataSyncDailyExecution(@Param("projectCode") long projectCode,
+                                                                @Param("startTime") Date startTime,
+                                                                @Param("endTime") Date endTime);
 
     List<TaskInstance> queryLatestByTaskCodes(@Param("projectCode") long projectCode,
                                                @Param("taskType") String taskType,
