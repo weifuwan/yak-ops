@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery, type Query } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { listDataSources } from "@/service/datasource";
@@ -10,6 +10,7 @@ import {
   listLatestDataSyncTaskInstances,
   type DataSyncTaskListRecord,
   type DataSyncTaskRecord,
+  type DataSyncWorkflowInstance,
 } from "@/service/data-sync";
 import { getUsersByIds } from "@/service/user";
 
@@ -104,7 +105,7 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
       queryFn: ({ signal }) =>
         getLatestDataSyncWorkflow(record.workflowCode, signal),
       enabled: Boolean(scope),
-      refetchInterval: (result) =>
+      refetchInterval: (result: Query<DataSyncWorkflowInstance | undefined>) =>
         result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : 15000,
     })),
   });
