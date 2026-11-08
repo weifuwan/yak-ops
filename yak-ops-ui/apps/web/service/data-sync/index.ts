@@ -126,14 +126,24 @@ export const runDataSyncTask = async (
 
 const instanceUrl = (id: string, base = url("")) => base + "/instances/" + encodeURIComponent(id);
 
-const instanceDefinition = async (id: string, base: string): Promise<TaskInstanceDefinitionRecord> =>
-  HttpUtils.getData<TaskInstanceDefinitionRecord>(instanceUrl(id, base) + "/definition");
+const instanceDefinition = async (
+  id: string,
+  base: string,
+  signal?: AbortSignal,
+): Promise<TaskInstanceDefinitionRecord> =>
+  HttpUtils.getData<TaskInstanceDefinitionRecord>(
+    instanceUrl(id, base) + "/definition",
+    { signal },
+  );
 
-export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceRecord> => {
+export const getDataSyncInstance = async (
+  id: string,
+  signal?: AbortSignal,
+): Promise<DataSyncInstanceRecord> => {
   const base = url("");
   const [instance, definition] = await Promise.all([
-    HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base)),
-    instanceDefinition(id, base),
+    HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base), { signal }),
+    instanceDefinition(id, base, signal),
   ]);
   return toDataSyncInstanceRecord(instance, definition);
 };
