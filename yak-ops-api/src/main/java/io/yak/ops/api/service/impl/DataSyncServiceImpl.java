@@ -2,6 +2,7 @@ package io.yak.ops.api.service.impl;
 
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSyncService;
@@ -86,7 +87,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
-                                              int pageNo, int pageSize, String keyword, ReleaseState status) {
+                                              int pageNo, int pageSize, String keyword, ReleaseState status,
+                                              DataSyncScope scope) {
         authorizeRead(user, projectCode);
         String search = keyword == null ? null : keyword.trim();
         Long taskCode = null;
@@ -97,9 +99,19 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 // Search by name when the input is not a task code.
             }
         }
+        List<Long> taskCodes = null;
+        if (scope != null) {
+            taskCodes = taskDefinitionDao.queryDataSyncOverview(projectCode).stream()
+                    .filter(task -> scope == taskScope(task.getTaskParams()))
+                    .map(DataSyncOverviewTaskRow::getTaskCode)
+                    .collect(Collectors.toList());
+            if (taskCodes.isEmpty()) {
+                return PageInfo.of(pageNo, pageSize);
+            }
+        }
         Integer releaseState = status == null ? null : status.getCode();
         IPage<DataSyncTaskPageRow> page = taskDefinitionDao.queryDataSyncPage(
-                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState);
+                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState, taskCodes);
         List<DataSyncTaskVO> rows = page.getRecords().stream()
                 .map(row -> toTaskVO(row, ReleaseState.getEnum(row.getWorkflowReleaseState()),
                         row.getWorkflowCode(), false))
@@ -153,21 +165,16 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 }
             }
 
-            try {
-                JsonNode definition = JSONUtils.parseObject(task.getTaskParams()).path("definition");
-                String tables = definition.path("source").path("tables").asText("");
-                String mode = definition.path("pipeline").path("execution.runtime-mode").asText("");
-                String[] sources = Arrays.stream(tables.split(","))
-                        .map(String::trim).filter(value -> !value.isEmpty()).toArray(String[]::new);
-                if (sources.length == 0 || (!"BATCH".equals(mode) && !"STREAMING".equals(mode))) {
-                    unreadable++;
-                    continue;
-                }
-                int scope = sources.length > 1 ? 1 : sources[0].endsWith(".\\.*") ? 0 : 2;
-                distribution[scope]["BATCH".equals(mode) ? 0 : 1]++;
-            } catch (RuntimeException error) {
+            DataSyncScope scope = taskScope(task.getTaskParams());
+            if (scope == null) {
                 unreadable++;
+                continue;
             }
+            int index = scope == DataSyncScope.DATABASE ? 0
+                    : scope == DataSyncScope.MULTI_TABLE ? 1 : 2;
+            JsonNode definition = JSONUtils.parseObject(task.getTaskParams()).path("definition");
+            String mode = definition.path("pipeline").path("execution.runtime-mode").asText("");
+            distribution[index]["BATCH".equals(mode) ? 0 : 1]++;
         }
 
         String[] scopes = {"DATABASE", "MULTI_TABLE", "SINGLE_TABLE"};
@@ -210,6 +217,25 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .taskTypes(types)
                 .recentFailures(recentFailures)
                 .build();
+    }
+
+    private static DataSyncScope taskScope(String taskParams) {
+        try {
+            JsonNode definition = JSONUtils.parseObject(taskParams).path("definition");
+            String mode = definition.path("pipeline").path("execution.runtime-mode").asText("");
+            String tables = definition.path("source").path("tables").asText("");
+            String[] sources = Arrays.stream(tables.split(","))
+                    .map(String::trim).filter(value -> !value.isEmpty()).toArray(String[]::new);
+            if (sources.length == 0 || (!"BATCH".equals(mode) && !"STREAMING".equals(mode))) {
+                return null;
+            }
+            if (sources.length > 1) {
+                return DataSyncScope.MULTI_TABLE;
+            }
+            return sources[0].endsWith(".\\.*") ? DataSyncScope.DATABASE : DataSyncScope.SINGLE_TABLE;
+        } catch (RuntimeException error) {
+            return null;
+        }
     }
 
     @Override
