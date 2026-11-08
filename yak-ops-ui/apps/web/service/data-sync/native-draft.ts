@@ -22,7 +22,7 @@ export function readNativeDraft(key: string): NativeSyncDraft | undefined {
     const value = JSON.parse(stored);
     if (value?.version !== 2 || !value.draft || value.draft.sourceType !== "MYSQL" ||
         value.draft.targetType !== "MYSQL" ||
-        !["SINGLE_TABLE", "DATABASE"].includes(value.draft.scope) ||
+        !["SINGLE_TABLE", "MULTI_TABLE", "DATABASE"].includes(value.draft.scope) ||
         !Array.isArray(value.draft.steps) ||
         !value.draft.steps.includes("SCHEMA") ||
         (!value.draft.steps.includes("FULL") && !value.draft.steps.includes("INCREMENTAL")) ||
