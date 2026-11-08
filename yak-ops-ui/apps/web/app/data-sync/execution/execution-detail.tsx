@@ -116,7 +116,12 @@ const rowCountText = (value?: number) =>
 
 function ExecutionProgressCard({ record }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
-  const scopeLabel = record.scope === "DATABASE" ? "整库同步" : "单表同步";
+  const scopeLabel =
+    record.scope === "DATABASE"
+      ? "整库同步"
+      : record.scope === "MULTI_TABLE"
+        ? "多表同步"
+        : "单表同步";
   const hasFull = record.steps.includes("FULL");
   const hasIncremental = record.steps.includes("INCREMENTAL");
   const modeLabel = hasFull && hasIncremental
