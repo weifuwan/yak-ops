@@ -8,6 +8,7 @@ import { DataSyncPage } from "@/app/data-sync/list/page";
 import {
   DataSyncTaskEditorPage,
   DatabaseSyncTaskEditorPage,
+  MultiTableSyncTaskEditorPage,
   NewDataSyncTaskEditorRedirect,
   SingleTableSyncTaskEditorPage,
 } from "@/app/data-sync/editor/page";
@@ -121,6 +122,7 @@ export default function AppRouter() {
           <Route path="/data-sync" element={<DataSyncPage />} />
           <Route path="/data-sync/new" element={<NewDataSyncTaskEditorRedirect />} />
           <Route path="/data-sync/new/database" element={<DatabaseSyncTaskEditorPage />} />
+          <Route path="/data-sync/new/multi-table" element={<MultiTableSyncTaskEditorPage />} />
           <Route path="/data-sync/new/single-table" element={<SingleTableSyncTaskEditorPage />} />
           <Route path="/data-sync/:id/edit" element={<DataSyncTaskEditorPage />} />
           <Route path="/data-sync/:id/detail" element={<DataSyncTaskDetailPage />} />
