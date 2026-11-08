@@ -3,13 +3,17 @@ import { test } from "node:test";
 import {
   createPipelineDefinition,
   addPipelineSourceTables,
+  chunkKeyColumn,
   pipelineTableMappings,
   pipelineParameters,
   readPipelineDefinition,
   setPipelineDatasource,
   setPipelineSourceTable,
   setPipelineSinkTable,
+  setPipelineChunkKeyColumn,
   setPipelineTargetTableName,
+  setPipelineTransformValue,
+  transformValue,
   validatePipelineDefinition,
   sourceTable,
   sinkTable,
@@ -65,6 +69,54 @@ test("multiple source tables keep one-to-one native route mappings", () => {
       target: { database: "to_db", table: "customer_archive" },
     },
   ]);
+});
+
+test("per-table transform and snapshot chunk key use native Pipeline fields", () => {
+  let definition = createPipelineDefinition();
+  definition = setPipelineDatasource(definition, "source", "12");
+  definition = setPipelineDatasource(definition, "sink", "34");
+  definition = addPipelineSourceTables(
+    definition,
+    [{ database: "from_db", table: "orders" }],
+    "to_db",
+  );
+  const source = { database: "from_db", table: "orders" };
+
+  definition = setPipelineTransformValue(
+    definition,
+    source,
+    "primary-keys",
+    "tenant_id,id",
+  );
+  definition = setPipelineTransformValue(
+    definition,
+    source,
+    "projection",
+    "*,name AS user_name",
+  );
+  definition = setPipelineTransformValue(
+    definition,
+    source,
+    "filter",
+    "id > 0",
+  );
+  definition = setPipelineChunkKeyColumn(definition, source, "id");
+
+  validatePipelineDefinition(definition);
+  assert.equal(transformValue(definition, source, "primary-keys"), "tenant_id,id");
+  assert.equal(transformValue(definition, source, "projection"), "*,name AS user_name");
+  assert.equal(transformValue(definition, source, "filter"), "id > 0");
+  assert.equal(chunkKeyColumn(definition, source), "id");
+  assert.deepEqual(definition.transform, [{
+    "source-table": "from_db.orders",
+    "primary-keys": "tenant_id,id",
+    projection: "*,name AS user_name",
+    filter: "id > 0",
+  }]);
+  assert.equal(
+    definition.source["scan.incremental.snapshot.chunk.key-column"],
+    "from_db.orders:id",
+  );
 });
 
 test("native connector options and routes survive persisted round trip unchanged", () => {
