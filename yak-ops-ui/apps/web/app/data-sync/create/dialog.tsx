@@ -129,9 +129,6 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
                 <span>增量同步</span>
               </label>
             </div>
-            <div className="text-xs text-[var(--yak-components-muted-text)]">
-              结构迁移固定执行；全量同步与增量同步至少选择一项
-            </div>
           </div>
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
