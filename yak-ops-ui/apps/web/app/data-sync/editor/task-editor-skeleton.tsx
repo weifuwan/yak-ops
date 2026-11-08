@@ -60,8 +60,8 @@ export function TaskEditorSkeleton() {
       aria-label="正在加载同步任务"
       className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)]"
     >
-      <div className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4">
-        <div className="flex min-w-0 items-center gap-2">
+      <header className="flex w-full shrink-0 flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-[var(--yak-components-page-header-border)] bg-[var(--yak-components-panel-bg)] px-6 py-4 max-md:px-4">
+        <div className="flex min-w-0 basis-full items-center gap-2 sm:basis-auto sm:flex-1">
           <Skeleton width={84} height={28} />
           <Skeleton width={8} height={14} />
           <Skeleton width={168} height={16} />
@@ -70,7 +70,7 @@ export function TaskEditorSkeleton() {
           <Skeleton width={76} height={28} />
           <Skeleton width={56} height={28} />
         </div>
-      </div>
+      </header>
 
       <div className="flex min-h-0 flex-1 gap-4 px-4">
         <main className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto pb-6 pt-4">
