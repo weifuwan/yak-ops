@@ -27,7 +27,7 @@ export function Modal({
   children,
   footer,
   width = 640,
-  centered = false,
+  centered,
   maskClosable = false,
   closeLabel = "Close",
   className,
@@ -36,6 +36,8 @@ export function Modal({
   footerClassName,
   style,
 }: ModalProps) {
+  const placement = centered === undefined ? "auto" : centered ? "center" : "top";
+
   return (
     <BaseDialog.Root
       open={open}
@@ -50,10 +52,15 @@ export function Modal({
         <div
           className={cn(
             "pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4",
-            centered ? "inset-y-0 items-center py-10" : "top-14",
+            placement === "auto"
+              ? "inset-y-0 items-end py-4 sm:items-center sm:py-10"
+              : placement === "center"
+                ? "inset-y-0 items-center py-4 sm:py-10"
+                : "top-14",
           )}
         >
           <BaseDialog.Popup
+            data-placement={placement}
             style={{ width, ...style }}
             className={cn(
               "pointer-events-auto flex max-h-[calc(100dvh-5rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
