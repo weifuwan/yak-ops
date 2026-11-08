@@ -471,18 +471,22 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
 
     @Override
     public PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode, Integer datasourceId,
-                                                      String database, String keyword, Integer pageNo, Integer pageSize) {
+                                                      String database, String keyword, Integer pageNo,
+                                                      Integer pageSize) {
         DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
         DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
         if (catalog == null || !catalog.supportsTablePaging()) {
             List<ParamsOptions> all = getTables(loginUser, datasourceId, database);
-            List<DataSourceCatalogTable> filtered = all == null ? Collections.emptyList() : all.stream()
-                    .map(option -> new DataSourceCatalogTable(
-                            String.valueOf(option.getValue()), TABLE, null, Collections.emptyList()))
-                    .filter(table -> StringUtils.isBlank(keyword)
-                            || table.getName().toLowerCase().contains(keyword.trim().toLowerCase()))
-                    .collect(Collectors.toList());
+            List<DataSourceCatalogTable> filtered =
+                    all == null
+                            ? Collections.emptyList()
+                            : all.stream()
+                                    .map(option -> new DataSourceCatalogTable(
+                                            String.valueOf(option.getValue()), TABLE, null, Collections.emptyList()))
+                                    .filter(table -> StringUtils.isBlank(keyword)
+                                            || table.getName().toLowerCase().contains(keyword.trim().toLowerCase()))
+                                    .collect(Collectors.toList());
             int offset = (pageNo - 1) * pageSize;
             int end = Math.min(offset + pageSize, filtered.size());
             PageInfo<DataSourceCatalogTable> page = PageInfo.of(pageNo, pageSize);
