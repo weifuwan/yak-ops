@@ -46,6 +46,7 @@ export function TargetTableMapping({
 
             {sources.map((source) => {
               const sourcePath = source.database + "." + source.table;
+              const primaryKeysLoaded = source.primaryKeys !== undefined;
               const inheritedPrimaryKeys = source.primaryKeys?.join(",") || "";
               const primaryKeyOverride = transformValue(definition, source, "primary-keys");
               return (
@@ -87,7 +88,13 @@ export function TargetTableMapping({
                         variant="outlined"
                         aria-label={source.table + " 目标表同步主键"}
                         value={primaryKeyOverride || inheritedPrimaryKeys}
-                        placeholder={inheritedPrimaryKeys ? undefined : "源表无主键，请配置"}
+                        placeholder={
+                          !primaryKeysLoaded
+                            ? "主键元数据加载中"
+                            : inheritedPrimaryKeys
+                              ? undefined
+                              : "源表无主键，请配置"
+                        }
                         onChange={(event) => {
                           const next = event.target.value;
                           onChange(setPipelineTransformValue(
@@ -105,9 +112,11 @@ export function TargetTableMapping({
                       }>
                         {primaryKeyOverride
                           ? "已覆盖源表主键"
-                          : inheritedPrimaryKeys
-                            ? "继承源表主键"
-                            : "源表无主键"}
+                          : !primaryKeysLoaded
+                            ? "主键元数据未加载"
+                            : inheritedPrimaryKeys
+                              ? "继承源表主键"
+                              : "源表无主键"}
                       </span>
                     </div>
                   </div>
@@ -119,7 +128,13 @@ export function TargetTableMapping({
                         variant="outlined"
                         aria-label={source.table + " 快照切分列"}
                         value={chunkKeyColumn(definition, source)}
-                        placeholder={inheritedPrimaryKeys ? "自动使用主键" : "无主键表必填"}
+                        placeholder={
+                          !primaryKeysLoaded
+                            ? "主键元数据加载中"
+                            : inheritedPrimaryKeys
+                              ? "自动使用主键"
+                              : "无主键表必填"
+                        }
                         onChange={(event) =>
                           onChange(setPipelineChunkKeyColumn(
                             definition,
@@ -128,7 +143,9 @@ export function TargetTableMapping({
                           ))
                         }
                       />
-                      {!inheritedPrimaryKeys && !chunkKeyColumn(definition, source) ? (
+                      {primaryKeysLoaded &&
+                      !inheritedPrimaryKeys &&
+                      !chunkKeyColumn(definition, source) ? (
                         <span className="text-[10px] text-[var(--yak-color-danger)]">
                           无主键表必须配置
                         </span>
