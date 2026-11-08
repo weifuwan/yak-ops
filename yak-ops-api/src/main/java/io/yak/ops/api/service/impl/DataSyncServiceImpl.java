@@ -11,8 +11,8 @@ import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
-import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
+import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.enums.Priority;
@@ -190,7 +190,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                         .taskId(String.valueOf(instance.getTaskCode()))
                         .taskName(instance.getName())
                         .failedAt(instance.getEndTime() == null
-                                ? instance.getStartTime() : instance.getEndTime())
+                                ? instance.getStartTime()
+                                : instance.getEndTime())
                         .build())
                 .collect(Collectors.toList());
 
