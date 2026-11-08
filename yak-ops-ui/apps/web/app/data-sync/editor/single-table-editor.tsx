@@ -1,23 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button } from "@yak-ops/yak-ui";
+import { Alert, Button, Input } from "@yak-ops/yak-ui";
 
-import {
-  listDataSourceTableMetadata,
-} from "@/service/datasource";
+import { listDataSourceTableMetadata } from "@/service/datasource";
 import {
   chunkKeyColumn,
+  removePipelineSourceTable,
+  setPipelineChunkKeyColumn,
   setPipelineDatasource,
   setPipelineSinkDatabase,
   setPipelineSourceTable,
+  setPipelineTargetTableName,
+  setPipelineTransformValue,
   sourceTables,
+  targetTableName,
+  transformValue,
 } from "@/service/data-sync/native-pipeline";
 import { catalogPath, tableKey } from "./table-catalog";
-import { ContentSection } from "./content-layout";
+import { ContentField, ContentSection } from "./content-layout";
 import { DataSourceSection } from "./data-source-section";
 import type { TaskEditorProps } from "./editor-types";
+import { FieldMappingSection } from "./field-mapping-section";
 import { TableTransferPanel } from "./table-transfer-panel";
-import { TargetTableMapping } from "./target-table-mapping";
 import { TaskEditorFrame } from "./task-editor-frame";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useTaskEditorController } from "./use-task-editor-controller";
@@ -25,7 +29,8 @@ import { useTaskEditorController } from "./use-task-editor-controller";
 const ANCHORS = [
   { id: "datasource", label: "数据源" },
   { id: "source", label: "来源表" },
-  { id: "target", label: "目标表映射" },
+  { id: "target", label: "数据去向" },
+  { id: "field-mapping", label: "去向字段映射" },
 ];
 
 export function SingleTableTaskEditor(props: TaskEditorProps) {
@@ -70,6 +75,7 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
         selectedTableNames.length,
     ),
   });
+
   const sourceMetadata = new Map(
     [...sourceCatalog.tables, ...(selectedMetadataQuery.data ?? [])].map(
       (table) => [table.name, table],
@@ -81,6 +87,7 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
     primaryKeys: sourceMetadata.get(source.table)?.primaryKeys,
   }));
   const selectedTableKeys = new Set(selectedTables.map(tableKey));
+  const selectedSource = selectedTables[0];
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -149,6 +156,11 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
     }
   };
 
+  const removeSelectedSource = () => {
+    if (!selectedSource) return;
+    edit(removePipelineSourceTable(editor.definition, selectedSource));
+  };
+
   const validateSingleTable = () => {
     if (selectedTables.length !== 1) {
       throw new Error("单表同步必须且只能选择一张来源表");
@@ -177,8 +189,12 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
         newTaskPath="/data-sync/new/single-table"
         sourceType={editor.sourceType}
         targetType={editor.sinkType}
-        sourceDataSources={editor.dataSources.filter((item) => item.dbType === "MYSQL")}
-        targetDataSources={editor.dataSources.filter((item) => item.dbType === "MYSQL")}
+        sourceDataSources={editor.dataSources.filter(
+          (item) => item.dbType === "MYSQL",
+        )}
+        targetDataSources={editor.dataSources.filter(
+          (item) => item.dbType === "MYSQL",
+        )}
         sourceDataSourceId={editor.sourceId}
         targetDataSourceId={editor.sinkId}
         loading={editor.dataSourcesLoading}
@@ -225,6 +241,17 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
             onCheckedChange={() => undefined}
             disabled={() => true}
             hideFilters
+            actions={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[var(--yak-color-danger)]"
+                isDisabled={!selectedSource}
+                onClick={removeSelectedSource}
+              >
+                移除
+              </Button>
+            }
           />
         </div>
 
@@ -244,14 +271,120 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
             </Button>
           </Alert>
         ) : null}
+
+        {selectedSource ? (
+          <>
+            <ContentField
+              label="快照切分列"
+              description={
+                selectedSource.primaryKeys?.length
+                  ? "有主键时默认使用主键；无主键表必须显式配置切分列"
+                  : "来源表无主键时必填"
+              }
+            >
+              <Input
+                size="small"
+                variant="outlined"
+                value={chunkKeyColumn(editor.definition, selectedSource)}
+                placeholder={
+                  selectedSource.primaryKeys?.length
+                    ? "自动使用主键"
+                    : "请输入切分列"
+                }
+                onChange={(event) =>
+                  edit(
+                    setPipelineChunkKeyColumn(
+                      editor.definition,
+                      selectedSource,
+                      event.target.value,
+                    ),
+                  )
+                }
+              />
+            </ContentField>
+
+            <ContentField
+              label="数据过滤"
+              description="填写 Flink CDC Transform filter 表达式"
+              wide
+            >
+              <Input
+                size="small"
+                variant="outlined"
+                value={transformValue(
+                  editor.definition,
+                  selectedSource,
+                  "filter",
+                )}
+                placeholder="如 id > 0"
+                onChange={(event) =>
+                  edit(
+                    setPipelineTransformValue(
+                      editor.definition,
+                      selectedSource,
+                      "filter",
+                      event.target.value,
+                    ),
+                  )
+                }
+              />
+            </ContentField>
+          </>
+        ) : null}
       </ContentSection>
 
-      <TargetTableMapping
-        definition={editor.definition}
-        sources={selectedTables}
-        targetDatabase={editor.sinkDatasource?.database || ""}
-        onChange={edit}
-      />
+      <ContentSection id="target" title="数据去向">
+        {selectedSource ? (
+          <>
+            <ContentField label="目标数据库" required>
+              <Input
+                size="small"
+                variant="outlined"
+                value={editor.sinkDatasource?.database || ""}
+                placeholder="请选择去向数据源"
+                readOnly
+              />
+            </ContentField>
+            <ContentField
+              label="目标表"
+              required
+              description="默认与来源表同名；可以填写已存在表，也可以填写结构迁移将创建的新表"
+            >
+              <Input
+                size="small"
+                variant="outlined"
+                value={targetTableName(editor.definition, selectedSource)}
+                placeholder={selectedSource.table}
+                onChange={(event) =>
+                  edit(
+                    setPipelineTargetTableName(
+                      editor.definition,
+                      selectedSource,
+                      editor.sinkDatasource?.database || "",
+                      event.target.value,
+                    ),
+                  )
+                }
+              />
+            </ContentField>
+          </>
+        ) : (
+          <Alert>请先选择来源表</Alert>
+        )}
+      </ContentSection>
+
+      {selectedSource ? (
+        <FieldMappingSection
+          definition={editor.definition}
+          source={selectedSource}
+          targetDatabase={editor.sinkDatasource?.database || ""}
+          onChange={edit}
+        />
+      ) : (
+        <ContentSection id="field-mapping" title="去向字段映射">
+          <Alert>请先选择来源表并配置去向表</Alert>
+        </ContentSection>
+      )}
     </TaskEditorFrame>
   );
 }
