@@ -137,6 +137,29 @@
     </select>
 
 
+    <select id="queryDataSyncOverview" resultType="io.yak.ops.dao.model.DataSyncOverviewTaskRow">
+        select t.code as task_code, t.name as task_name, t.task_params as task_params,
+               w.release_state as release_state, wi.state as latest_workflow_state
+        from t_yak_ops_task_definition t
+        join t_yak_ops_workflow_task_relation r
+          on r.post_task_code = t.code and r.pre_task_code = 0 and r.project_code = t.project_code
+        join t_yak_ops_workflow_definition w
+          on w.code = r.workflow_definition_code and w.project_code = t.project_code
+          and w.flag = 1 and w.name = concat('data_sync_', t.code)
+          and (select count(*) from t_yak_ops_workflow_task_relation related
+               where related.workflow_definition_code = w.code) = 1
+        left join (
+            select workflow_definition_code, max(id) as last_id
+            from t_yak_ops_workflow_instance
+            where project_code = #{projectCode}
+            group by workflow_definition_code
+        ) latest on latest.workflow_definition_code = w.code
+        left join t_yak_ops_workflow_instance wi on wi.id = latest.last_id
+        where t.project_code = #{projectCode}
+          and t.task_type = 'DATA_SYNC'
+          and t.flag = 1
+    </select>
+
     <select id="queryDataSyncPage" resultType="io.yak.ops.dao.model.DataSyncTaskPageRow">
         select t.*, w.code as workflow_code, w.release_state as workflow_release_state
         from t_yak_ops_task_definition t

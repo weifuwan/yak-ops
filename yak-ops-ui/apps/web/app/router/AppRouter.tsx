@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataSourcePage } from "@/app/datasource/list/page";
+import { DataIntegrationOverviewPage } from "@/app/data-integration/overview/page";
 import LoginPage from "@/app/login";
 import { UserManagementPage } from "@/app/management/users/page";
 import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
@@ -31,8 +32,9 @@ import {
 } from "../layout/navigation";
 import AppLoading from "./AppLoading";
 
-const DEFAULT_AUTHENTICATED_PATH = "/data-source";
+const DEFAULT_AUTHENTICATED_PATH = "/overview";
 const AUTHENTICATED_PATHS = new Set([
+  "/overview",
   "/data-source",
   "/data-sync",
   "/data-sync/new",
@@ -113,11 +115,12 @@ export default function AppRouter() {
           element={
             <AppLayout
               productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
-              productPath="/data-source"
+              productPath="/overview"
               navigation={DATA_INTEGRATION_NAVIGATION}
             />
           }
         >
+          <Route path="/overview" element={<DataIntegrationOverviewPage />} />
           <Route path="/data-source" element={<DataSourcePage />} />
           <Route path="/data-sync" element={<DataSyncPage />} />
           <Route path="/data-sync/new" element={<NewDataSyncTaskEditorRedirect />} />

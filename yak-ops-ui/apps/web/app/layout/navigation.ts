@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowRightLeft,
   Database,
+  LayoutDashboard,
   LayoutGrid,
   Settings,
   Users,
@@ -34,6 +35,11 @@ export const OPERATIONS_PRODUCT_LABEL = "运维中心";
 export const MANAGEMENT_PRODUCT_LABEL = "管理中心";
 
 export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
+  {
+    label: "概览",
+    path: "/overview",
+    icon: LayoutDashboard,
+  },
   {
     label: "数据源管理",
     path: "/data-source",
@@ -78,7 +84,7 @@ const DATA_INTEGRATION_PRODUCT: GlobalProductMenuItem = {
   id: "data-integration",
   label: DATA_INTEGRATION_PRODUCT_LABEL,
   icon: Database,
-  path: "/data-source",
+  path: "/overview",
 };
 
 const OPERATIONS_PRODUCT: GlobalProductMenuItem = {

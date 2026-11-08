@@ -19,6 +19,7 @@ import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
+import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.Flag;
@@ -31,6 +32,7 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
+import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
@@ -41,6 +43,7 @@ import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -76,6 +79,51 @@ class DataSyncServiceImplTest {
 
     @InjectMocks
     private DataSyncServiceImpl service;
+
+    @Test
+    void overviewCountsCurrentProjectTasksAndLatestWorkflowStates() {
+        DataSyncOverviewTaskRow database = overviewTask(
+                "{\"definition\":{\"source\":{\"tables\":\"sales.\\\\.*\"},\"pipeline\":{\"execution.runtime-mode\":\"BATCH\"}}}",
+                ReleaseState.ONLINE, 1);
+        DataSyncOverviewTaskRow multiTable = overviewTask(
+                "{\"definition\":{\"source\":{\"tables\":\"sales.orders,sales.users\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
+                ReleaseState.ONLINE, 14);
+        DataSyncOverviewTaskRow singleTable = overviewTask(
+                "{\"definition\":{\"source\":{\"tables\":\"sales.orders\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
+                ReleaseState.OFFLINE, 6);
+        when(taskDefinitionDao.queryDataSyncOverview(PROJECT_CODE))
+                .thenReturn(Arrays.asList(database, multiTable, singleTable));
+        when(dataSourceDao.countByProjectCode(PROJECT_CODE)).thenReturn(7L);
+        Page<TaskInstance> failurePage = new Page<>(1, 5);
+        failurePage.setRecords(Collections.singletonList(
+                TaskInstance.builder().id(42).taskCode(99L).name("orders").build()));
+        when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), any(int[].class))).thenReturn(failurePage);
+
+        DataSyncOverviewVO overview = service.getOverview(new User(), PROJECT_CODE);
+
+        assertEquals(7L, overview.getDataSourceCount());
+        assertEquals(3, overview.getTaskCount());
+        assertEquals(2, overview.getOnlineCount());
+        assertEquals(1, overview.getOfflineCount());
+        assertEquals(1, overview.getRunningCount());
+        assertEquals(1, overview.getQueuedCount());
+        assertEquals(1, overview.getFailedCount());
+        assertEquals(0, overview.getUnreadableCount());
+        assertEquals(1, overview.getTaskTypes().get(0).getOffline());
+        assertEquals(1, overview.getTaskTypes().get(1).getRealtime());
+        assertEquals(1, overview.getTaskTypes().get(2).getRealtime());
+        assertEquals("42", overview.getRecentFailures().get(0).getInstanceId());
+        verify(projectService).checkProjectAndAuthThrowException(any(), eq(PROJECT_CODE), isNull());
+    }
+
+    private static DataSyncOverviewTaskRow overviewTask(String params, ReleaseState release, int state) {
+        DataSyncOverviewTaskRow row = new DataSyncOverviewTaskRow();
+        row.setTaskParams(params);
+        row.setReleaseState(release.getCode());
+        row.setLatestWorkflowState(state);
+        return row;
+    }
 
     @Test
     void rejectsDatasourceFromAnotherProjectBeforeCreatingTask() {

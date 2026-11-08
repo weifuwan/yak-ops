@@ -9,6 +9,7 @@ import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
@@ -38,6 +39,12 @@ import lombok.RequiredArgsConstructor;
 public class DataSyncController extends BaseController {
 
     private final DataSyncService dataSyncService;
+
+    @GetMapping("/overview")
+    public Result<DataSyncOverviewVO> overview(@RequestAttribute(Constants.SESSION_USER) User user,
+                                               @PathVariable long projectCode) {
+        return Result.success(dataSyncService.getOverview(user, projectCode));
+    }
 
     @GetMapping("/tasks")
     public Result<PageInfo<DataSyncTaskVO>> listTasks(
