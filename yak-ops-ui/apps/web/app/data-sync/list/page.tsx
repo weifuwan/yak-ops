@@ -5,7 +5,7 @@ import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { canManageTaskDefinition } from "@/service/data-sync/execution";
+import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import { canStopWorkflow, isWorkflowActive } from "@/service/data-sync";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
 import { TaskFilters } from "./task-filters";
@@ -56,8 +56,11 @@ export function DataSyncPage() {
     if (!scope || commands.pending || !page.safeToAct) return;
     if (value.kind === "stop") {
       const workflow = instances.workflowsByTask.get(value.task.id);
-      if (!instances.ready || !workflow || workflow.id !== value.workflowInstanceId ||
-          !canStopWorkflow(workflow.state)) return;
+      const active = instances.activeByTask.get(value.task.id);
+      if (!instances.ready || !(
+        (workflow && workflow.id === value.workflowInstanceId && canStopWorkflow(workflow.state)) ||
+        (active && active.workflowInstanceId === value.workflowInstanceId && canCancelTaskInstance(active.status))
+      )) return;
     } else if (!canManage(value.task)) {
       return;
     }
