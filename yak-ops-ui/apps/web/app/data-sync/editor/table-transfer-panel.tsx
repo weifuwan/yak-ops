@@ -56,7 +56,9 @@ export function TableTransferPanel({
       title: "主键",
       width: 160,
       render: (_, row) =>
-        row.primaryKeys?.length ? (
+        row.primaryKeys === undefined ? (
+          <span className="text-[var(--yak-components-muted-text)]">-</span>
+        ) : row.primaryKeys.length ? (
           <span className="block truncate" title={row.primaryKeys.join(",")}>
             {row.primaryKeys.join(",")}
           </span>
