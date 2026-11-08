@@ -31,6 +31,26 @@ export interface DataIntegrationOverview {
   recentFailures: DataIntegrationRecentFailure[];
 }
 
+export type DataSyncOverviewCategory = "OFFLINE" | "REALTIME" | "UNKNOWN";
+
+export interface DataSyncExecutionDay {
+  date: string;
+  syncType: DataSyncOverviewCategory;
+  executionCount: number;
+  succeededCount: number;
+  failedCount: number;
+  stoppedCount: number;
+  runningCount: number;
+  queuedCount: number;
+  pausedCount: number;
+}
+
+export interface DataSyncExecutionStats {
+  startDate: string;
+  endDate: string;
+  days: DataSyncExecutionDay[];
+}
+
 export const getDataIntegrationOverview = (
   projectCode: string,
   signal?: AbortSignal,
@@ -40,5 +60,20 @@ export const getDataIntegrationOverview = (
       "/projects/" +
       encodeURIComponent(projectCode) +
       "/data-sync/overview",
+    { signal },
+  );
+
+export const getDataSyncExecutionStats = (
+  projectCode: string,
+  startDate: string,
+  endDate: string,
+  signal?: AbortSignal,
+): Promise<DataSyncExecutionStats> =>
+  HttpUtils.getData<DataSyncExecutionStats>(
+    YAK_OPS_API_PREFIX +
+      "/projects/" +
+      encodeURIComponent(projectCode) +
+      "/data-sync/overview/executions?" +
+      new URLSearchParams({ startDate, endDate }).toString(),
     { signal },
   );
