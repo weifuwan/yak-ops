@@ -22,6 +22,7 @@ export function TableTransferPanel({
   onRefresh,
   disabled,
   hideFilters = false,
+  selectable = true,
 }: {
   title: string;
   tables: DataSyncTablePath[];
@@ -40,6 +41,7 @@ export function TableTransferPanel({
   onRefresh?: () => void;
   disabled?: (table: DataSyncTablePath) => boolean;
   hideFilters?: boolean;
+  selectable?: boolean;
 }) {
   const columns: TableColumns<DataSyncTablePath> = [
     {
@@ -128,18 +130,22 @@ export function TableTransferPanel({
         scroll={{ y: 240 }}
         emptyText="没有库表"
         emptyClassName="!min-h-8 !py-1"
-        rowSelection={{
-          selectedRowKeys: checked,
-          onChange: (keys) => onCheckedChange(keys.map(String)),
-          getCheckboxProps: (row) => ({
-            "aria-label": `选择 ${tablePathLabel(row)}`,
-            disabled: disabled?.(row),
-          }),
-        }}
+        rowSelection={
+          selectable
+            ? {
+                selectedRowKeys: checked,
+                onChange: (keys) => onCheckedChange(keys.map(String)),
+                getCheckboxProps: (row) => ({
+                  "aria-label": `选择 ${tablePathLabel(row)}`,
+                  disabled: disabled?.(row),
+                }),
+              }
+            : undefined
+        }
       />
       <div className="flex min-h-10 items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-3 text-xs">
         <span>
-          表 {checked.length} / {total ?? tables.length}
+          {selectable ? `表 ${checked.length} / ${total ?? tables.length}` : `表 ${tables.length}`}
         </span>
         {footer}
       </div>
