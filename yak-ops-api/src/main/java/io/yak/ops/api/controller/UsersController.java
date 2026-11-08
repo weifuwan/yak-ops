@@ -270,8 +270,8 @@ public class UsersController extends BaseController {
     @GetMapping(value = "/by-ids")
     @ResponseStatus(HttpStatus.OK)
     public Result<List<UserSimpleInfoVO>> getUsersByIds(
-                                                            @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                            @RequestParam("ids") List<Integer> ids) {
+                                                        @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                        @RequestParam("ids") List<Integer> ids) {
         return Result.success(usersService.queryUser(ids).stream()
                 .map(UserSimpleInfoVO::new)
                 .collect(Collectors.toList()));
