@@ -1,4 +1,5 @@
 @import "./input/floating-label.css";
+@import "./popover/popover.css";
 
 :root {
   /* Standalone Yak UI default; the product theme supplies the primary color. */
