@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   createPipelineDefinition,
+  addPipelineSourceTables,
+  pipelineTableMappings,
   pipelineParameters,
   readPipelineDefinition,
   setPipelineDatasource,
   setPipelineSourceTable,
   setPipelineSinkTable,
+  setPipelineTargetTableName,
   validatePipelineDefinition,
   sourceTable,
   sinkTable,
@@ -33,6 +36,35 @@ test("new, edited, saved and reopened Pipeline uses one unmodified contract", ()
   assert.deepEqual(sourceTable(reopened), { database: "from_db", table: "orders" });
   assert.deepEqual(sinkTable(reopened), { database: "to_db", table: "orders" });
   assert.equal(initial.pipeline.parallelism, 1);
+});
+
+test("multiple source tables keep one-to-one native route mappings", () => {
+  let definition = createPipelineDefinition();
+  definition = setPipelineDatasource(definition, "source", "12");
+  definition = setPipelineDatasource(definition, "sink", "34");
+  definition = addPipelineSourceTables(definition, [
+    { database: "from_db", table: "orders" },
+    { database: "from_db", table: "customers" },
+  ], "to_db");
+  definition = setPipelineTargetTableName(
+    definition,
+    { database: "from_db", table: "customers" },
+    "to_db",
+    "customer_archive",
+  );
+
+  validatePipelineDefinition(definition);
+  assert.equal(definition.source.tables, "from_db.orders,from_db.customers");
+  assert.deepEqual(pipelineTableMappings(definition), [
+    {
+      source: { database: "from_db", table: "orders" },
+      target: { database: "to_db", table: "orders" },
+    },
+    {
+      source: { database: "from_db", table: "customers" },
+      target: { database: "to_db", table: "customer_archive" },
+    },
+  ]);
 });
 
 test("native connector options and routes survive persisted round trip unchanged", () => {
