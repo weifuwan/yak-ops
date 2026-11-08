@@ -3,6 +3,7 @@ export interface DataSyncTablePath {
   database?: string;
   schema?: string;
   table: string;
+  primaryKeys?: string[];
 }
 
 export const tableKey = (table: DataSyncTablePath) =>
@@ -13,6 +14,7 @@ export const catalogPath = (table: DataSourceCatalogTable): DataSyncTablePath =>
   database: table.database,
   schema: table.schema,
   table: table.name,
+  primaryKeys: table.primaryKeys,
 });
 export const selectedTableKey = (
   tables: DataSourceCatalogTable[],
