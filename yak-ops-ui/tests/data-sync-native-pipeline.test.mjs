@@ -143,7 +143,7 @@ test("unsupported configuration is rejected rather than silently converted", () 
     (value) => { value.source["scan.startup.mode"] = "latest-offset"; },
     (value) => { value.pipeline["execution.runtime-mode"] = "BATCH"; },
     (value) => { value.sink["exclude.schema.changes"] = ["unknown.change"]; },
-    (value) => { value.transform = [{ "source-table": "from_db.orders", projection: "*" }]; },
+    (value) => { value.transform = [{ "source-table": "from_db.orders", "partition-keys": "region" }]; },
     (value) => { value.route.push({ "source-table": "x", "sink-table": "y" }); },
     (value) => { value.source.password = "secret"; },
     (value) => { value.pipeline.parallelism = 129; },
