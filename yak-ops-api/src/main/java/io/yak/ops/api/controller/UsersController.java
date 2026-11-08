@@ -267,6 +267,16 @@ public class UsersController extends BaseController {
         return Result.success(usersService.queryUserList(loginUser));
     }
 
+    @GetMapping(value = "/by-ids")
+    @ResponseStatus(HttpStatus.OK)
+    public Result<List<UserSimpleInfoVO>> getUsersByIds(
+            @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @RequestParam("ids") List<Integer> ids) {
+        return Result.success(usersService.queryUser(ids).stream()
+                .map(UserSimpleInfoVO::new)
+                .collect(Collectors.toList()));
+    }
+
     @Operation(summary = "verifyUserName", description = "VERIFY_USER_NAME_NOTES")
     @Parameters({
             @Parameter(name = "userName", description = "USER_NAME", required = true, schema = @Schema(implementation = String.class))
