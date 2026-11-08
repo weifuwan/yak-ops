@@ -5,13 +5,11 @@ import { listDataSources } from "@/service/datasource";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
   listDataSyncTasks,
-  type DataSyncTaskListRecord,
-  type DataSyncTaskRecord,
-} from "@/service/data-sync";
-import {
   getLatestDataSyncWorkflow,
   isWorkflowActive,
   listLatestDataSyncTaskInstances,
+  type DataSyncTaskListRecord,
+  type DataSyncTaskRecord,
 } from "@/service/data-sync";
 import { getUsersByIds } from "@/service/user";
 
@@ -103,10 +101,10 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
   const workflowQueries = useQueries({
     queries: records.map((record) => ({
       queryKey: [...listQueryKeys.instances(scope), "workflow", record.workflowCode],
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      queryFn: ({ signal }) =>
         getLatestDataSyncWorkflow(record.workflowCode, signal),
       enabled: Boolean(scope),
-      refetchInterval: (result: { state: { data?: { state: import("@/service/data-sync").WorkflowExecutionStatus } } }) =>
+      refetchInterval: (result) =>
         result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : 15000,
     })),
   });
