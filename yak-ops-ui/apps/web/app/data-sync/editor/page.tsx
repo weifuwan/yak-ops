@@ -17,6 +17,7 @@ import { getTaskDefinition } from "@/service/data-sync";
 import { listLatestTaskInstances } from "@/service/task-execution";
 import {
   DatabaseTaskEditor,
+  MultiTableTaskEditor,
   SingleTableTaskEditor,
   TaskEditor,
 } from "./index";
@@ -38,7 +39,9 @@ interface ReadonlyPayload {
 const newEditorPath = (scope: DataSyncScope) =>
   scope === "DATABASE"
     ? "/data-sync/new/database"
-    : "/data-sync/new/single-table";
+    : scope === "MULTI_TABLE"
+      ? "/data-sync/new/multi-table"
+      : "/data-sync/new/single-table";
 
 function NewDataSyncTaskEditor({ scope }: { scope: DataSyncScope }) {
   const { currentUser } = useAuth();
@@ -52,9 +55,13 @@ function NewDataSyncTaskEditor({ scope }: { scope: DataSyncScope }) {
     return <Navigate replace to={newEditorPath(draft.scope)} />;
   }
 
-  return scope === "DATABASE" ? (
-    <DatabaseTaskEditor key={"new:" + key + ":database"} initialDraft={draft} />
-  ) : (
+  if (scope === "DATABASE") {
+    return <DatabaseTaskEditor key={"new:" + key + ":database"} initialDraft={draft} />;
+  }
+  if (scope === "MULTI_TABLE") {
+    return <MultiTableTaskEditor key={"new:" + key + ":multi-table"} initialDraft={draft} />;
+  }
+  return (
     <SingleTableTaskEditor
       key={"new:" + key + ":single-table"}
       initialDraft={draft}
@@ -75,6 +82,10 @@ export function NewDataSyncTaskEditorRedirect() {
 
 export function DatabaseSyncTaskEditorPage() {
   return <NewDataSyncTaskEditor scope="DATABASE" />;
+}
+
+export function MultiTableSyncTaskEditorPage() {
+  return <NewDataSyncTaskEditor scope="MULTI_TABLE" />;
 }
 
 export function SingleTableSyncTaskEditorPage() {
