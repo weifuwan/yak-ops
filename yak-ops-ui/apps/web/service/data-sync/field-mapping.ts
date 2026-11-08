@@ -13,6 +13,13 @@ const quoteColumn = (name: string) => "`" + name.replaceAll("`", "``") + "`";
 
 export function fieldProjection(fields: readonly DirectFieldMapping[]): string {
   if (!fields.length) throw new Error("至少保留一个同步字段");
+  if (fields.some(({ source, target }) => !source.trim() || !target.trim())) {
+    throw new Error("来源字段和去向字段不能为空");
+  }
+  const targets = fields.map(({ target }) => target.trim().toLowerCase());
+  if (new Set(targets).size !== targets.length) {
+    throw new Error("去向字段不能重复");
+  }
   return fields
     .map(({ source, target }) =>
       source === target
