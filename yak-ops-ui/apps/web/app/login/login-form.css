@@ -2,3 +2,12 @@
   --button-accent: var(--yak-components-page-header-title);
   --button-accent-foreground: #fff;
 }
+
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--yak-components-input-text);
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  caret-color: var(--yak-components-input-text);
+}
