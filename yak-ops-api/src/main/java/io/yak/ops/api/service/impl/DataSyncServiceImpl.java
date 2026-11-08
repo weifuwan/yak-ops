@@ -272,7 +272,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                             .date(row.getBucketDate())
                             .syncType(type)
                             .build());
-            long count = row.getCount();
+            long count = row.getInstanceCount();
             daily.setExecutionCount(daily.getExecutionCount() + count);
             TaskExecutionStatus state = TaskExecutionStatus.of(row.getState());
             switch (state) {
