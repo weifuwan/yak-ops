@@ -54,56 +54,82 @@ public final class DataSyncPipelineValidator {
         DataSyncParameters.datasourceId(sink);
         require(source, "type", "mysql", "source.type");
         require(sink, "type", "jdbc", "sink.type");
-        require(source, "scan.startup.mode", "initial", "source.scan.startup.mode");
-        require(pipeline, "execution.runtime-mode", "STREAMING", "pipeline.execution.runtime-mode");
+        String startupMode = text(source, "scan.startup.mode").toLowerCase(Locale.ROOT);
+        String runtimeMode = text(pipeline, "execution.runtime-mode").toUpperCase(Locale.ROOT);
+        if (!Set.of("initial", "snapshot", "latest-offset").contains(startupMode)) {
+            throw new IllegalArgumentException("source.scan.startup.mode: unsupported value");
+        }
+        if (("snapshot".equals(startupMode) && !"BATCH".equals(runtimeMode))
+                || (!"snapshot".equals(startupMode) && !"STREAMING".equals(runtimeMode))) {
+            throw new IllegalArgumentException(
+                    "pipeline.execution.runtime-mode does not match source.scan.startup.mode");
+        }
 
         String tables = text(source, "tables");
         List<String> sourceTables = Arrays.stream(tables.split(","))
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
                 .collect(Collectors.toList());
-        if (sourceTables.isEmpty()
-                || sourceTables.stream().anyMatch(value -> !isTablePath(value))
-                || new LinkedHashSet<>(sourceTables).size() != sourceTables.size()) {
+        boolean databaseScope = sourceTables.size() == 1 && isDatabasePattern(sourceTables.get(0));
+        if (!databaseScope
+                && (sourceTables.isEmpty()
+                        || sourceTables.stream().anyMatch(value -> !isTablePath(value))
+                        || new LinkedHashSet<>(sourceTables).size() != sourceTables.size())) {
             throw new IllegalArgumentException(
-                    "source.tables: expected unique comma-separated database.table values");
+                    "source.tables: expected unique database.table values or one database-wide pattern");
         }
 
         JsonNode routes = definition.path("route");
-        if (!routes.isArray() || routes.size() != sourceTables.size()) {
-            throw new IllegalArgumentException(
-                    "route: every source table must have exactly one target mapping");
-        }
-
         Set<String> sourceTableSet = new LinkedHashSet<>(sourceTables);
-        Set<String> routedSources = new LinkedHashSet<>();
-        Set<String> routedTargets = new LinkedHashSet<>();
-        for (int index = 0; index < routes.size(); index++) {
-            JsonNode route = routes.get(index);
-            object(route, "route[" + index + "]");
-            String routeSource = text(route, "source-table");
-            String routeTarget = text(route, "sink-table");
-            if (!isTablePath(routeSource)
-                    || !sourceTableSet.contains(routeSource)
-                    || !routedSources.add(routeSource)) {
-                throw new IllegalArgumentException(
-                        "route[" + index + "].source-table must uniquely reference source.tables");
+        if (databaseScope) {
+            if (!routes.isArray() || routes.size() != 1) {
+                throw new IllegalArgumentException("route: database sync requires one route");
             }
-            if (!isTablePath(routeTarget)) {
+            JsonNode route = routes.get(0);
+            object(route, "route[0]");
+            if (!sourceTables.get(0).equals(text(route, "source-table"))
+                    || !isDatabaseSinkPattern(text(route, "sink-table"))
+                    || !"<>".equals(text(route, "replace-symbol"))) {
                 throw new IllegalArgumentException(
-                        "route[" + index + "].sink-table: expected database.table");
+                        "route[0]: database sync must preserve source table names");
             }
-            if (!routedTargets.add(routeTarget)) {
+        } else {
+            if (!routes.isArray() || routes.size() != sourceTables.size()) {
                 throw new IllegalArgumentException(
-                        "route[" + index + "].sink-table: duplicate target mapping");
+                        "route: every source table must have exactly one target mapping");
             }
-        }
-        if (!routedSources.equals(sourceTableSet)) {
-            throw new IllegalArgumentException(
-                    "route: every source table must have exactly one target mapping");
+            Set<String> routedSources = new LinkedHashSet<>();
+            Set<String> routedTargets = new LinkedHashSet<>();
+            for (int index = 0; index < routes.size(); index++) {
+                JsonNode route = routes.get(index);
+                object(route, "route[" + index + "]");
+                String routeSource = text(route, "source-table");
+                String routeTarget = text(route, "sink-table");
+                if (!isTablePath(routeSource)
+                        || !sourceTableSet.contains(routeSource)
+                        || !routedSources.add(routeSource)) {
+                    throw new IllegalArgumentException(
+                            "route[" + index + "].source-table must uniquely reference source.tables");
+                }
+                if (!isTablePath(routeTarget)) {
+                    throw new IllegalArgumentException(
+                            "route[" + index + "].sink-table: expected database.table");
+                }
+                if (!routedTargets.add(routeTarget)) {
+                    throw new IllegalArgumentException(
+                            "route[" + index + "].sink-table: duplicate target mapping");
+                }
+            }
+            if (!routedSources.equals(sourceTableSet)) {
+                throw new IllegalArgumentException(
+                        "route: every source table must have exactly one target mapping");
+            }
         }
 
         JsonNode transforms = definition.path("transform");
+        if (databaseScope && !transforms.isMissingNode() && transforms.size() > 0) {
+            throw new IllegalArgumentException("transform: database sync does not support table-level transforms");
+        }
         if (!transforms.isMissingNode()) {
             if (!transforms.isArray()) {
                 throw new IllegalArgumentException("transform: array required");
@@ -138,6 +164,10 @@ public final class DataSyncPipelineValidator {
 
         JsonNode chunkKeyColumn =
                 source.path("scan.incremental.snapshot.chunk.key-column");
+        if (databaseScope && !chunkKeyColumn.isMissingNode()) {
+            throw new IllegalArgumentException(
+                    "source.scan.incremental.snapshot.chunk.key-column: unsupported for database sync");
+        }
         if (!chunkKeyColumn.isMissingNode()) {
             if (!chunkKeyColumn.isTextual() || chunkKeyColumn.asText().trim().isEmpty()) {
                 throw new IllegalArgumentException(
@@ -209,6 +239,20 @@ public final class DataSyncPipelineValidator {
 
     private static boolean isTablePath(String value) {
         return value.matches("[A-Za-z0-9_$-]+\\.[A-Za-z0-9_$-]+");
+    }
+
+    private static boolean isDatabasePattern(String value) {
+        int separator = value.indexOf('.');
+        return separator > 0
+                && value.substring(0, separator).matches("[A-Za-z0-9_$-]+")
+                && "\\.*".equals(value.substring(separator + 1));
+    }
+
+    private static boolean isDatabaseSinkPattern(String value) {
+        int separator = value.indexOf('.');
+        return separator > 0
+                && value.substring(0, separator).matches("[A-Za-z0-9_$-]+")
+                && "<>".equals(value.substring(separator + 1));
     }
 
     private static String text(JsonNode object, String key) {

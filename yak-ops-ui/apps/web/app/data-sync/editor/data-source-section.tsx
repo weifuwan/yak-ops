@@ -5,6 +5,7 @@ import type { DataSourceRecord } from "@/service/datasource";
 
 interface Props {
   id?: string;
+  newTaskPath?: string;
   sourceType: string;
   targetType: string;
   sourceDataSources: DataSourceRecord[];
@@ -19,6 +20,7 @@ interface Props {
 
 export function DataSourceSection({
   id,
+  newTaskPath = "/data-sync/new",
   sourceType,
   targetType,
   sourceDataSources,
@@ -34,7 +36,7 @@ export function DataSourceSection({
   const createDataSource = () =>
     navigate(
       "/data-source?create=1&returnTo=" +
-        encodeURIComponent(id ? `/data-sync/${id}/edit` : "/data-sync/new"),
+        encodeURIComponent(id ? `/data-sync/${id}/edit` : newTaskPath),
     );
 
   return (

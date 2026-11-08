@@ -3,10 +3,14 @@ import type {
   DataSyncParameters,
   DataSyncSchemaChangeBehavior,
   DataSyncSchemaChangeEvent,
+  DataSyncScope,
+  DataSyncStep,
+  DataSyncType,
 } from "./types";
 
 export type PipelineDefinition = DataSyncPipelineDefinition;
 export type PipelineEndpoint = "source" | "sink";
+export type PipelineStartupMode = "initial" | "snapshot" | "latest-offset";
 
 export interface PipelineTable {
   database: string;
@@ -22,6 +26,9 @@ export type PipelineTransformKey = "projection" | "filter" | "primary-keys";
 
 
 const TABLE_PATH = /^[A-Za-z0-9_$-]+\.[A-Za-z0-9_$-]+$/;
+const DATABASE_NAME = /^[A-Za-z0-9_$-]+$/;
+const DATABASE_PATTERN = /^([A-Za-z0-9_$-]+)\.\\\.\*$/;
+const DATABASE_SINK_PATTERN = /^([A-Za-z0-9_$-]+)\.<>$/;
 
 export const SCHEMA_CHANGE_BEHAVIORS: readonly DataSyncSchemaChangeBehavior[] = [
   "ignore",
@@ -70,11 +77,82 @@ function parseTablePath(value: unknown): PipelineTable | undefined {
   return { database, table };
 }
 
+function databaseTablePattern(database: string): string {
+  if (!DATABASE_NAME.test(database)) throw new Error("数据库名称无效");
+  return database + ".\\.*";
+}
+
+function parseDatabasePattern(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return DATABASE_PATTERN.exec(value)?.[1];
+}
+
+function parseDatabaseSinkPattern(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return DATABASE_SINK_PATTERN.exec(value)?.[1];
+}
+
+export function pipelineDatabaseRoute(
+  definition: PipelineDefinition,
+): { sourceDatabase: string; targetDatabase: string } | undefined {
+  if (sourcePaths(definition).length !== 1 || definition.route.length !== 1) return undefined;
+  const sourcePattern = sourcePaths(definition)[0];
+  const route = definition.route[0];
+  const sourceDatabase = parseDatabasePattern(sourcePattern);
+  const targetDatabase = parseDatabaseSinkPattern(route["sink-table"]);
+  if (
+    !sourceDatabase ||
+    route["source-table"] !== sourcePattern ||
+    route["replace-symbol"] !== "<>" ||
+    !targetDatabase
+  ) return undefined;
+  return { sourceDatabase, targetDatabase };
+}
+
 function sourcePaths(definition: PipelineDefinition): string[] {
   return definition.source.tables
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+}
+
+function startupModeFromSteps(steps: readonly DataSyncStep[]): PipelineStartupMode {
+  const full = steps.includes("FULL");
+  const incremental = steps.includes("INCREMENTAL");
+  if (full && incremental) return "initial";
+  if (full) return "snapshot";
+  if (incremental) return "latest-offset";
+  throw new Error("全量同步和增量同步至少选择一项");
+}
+
+export function pipelineSteps(definition: PipelineDefinition): DataSyncStep[] {
+  const mode = definition.source["scan.startup.mode"];
+  if (mode === "snapshot") return ["SCHEMA", "FULL"];
+  if (mode === "latest-offset") return ["SCHEMA", "INCREMENTAL"];
+  if (mode === "initial") return ["SCHEMA", "FULL", "INCREMENTAL"];
+  throw new Error("不支持的 MySQL 启动模式");
+}
+
+export function pipelineSyncType(definition: PipelineDefinition): DataSyncType {
+  return pipelineSteps(definition).includes("INCREMENTAL") ? "REALTIME" : "OFFLINE";
+}
+
+export function pipelineScope(definition: PipelineDefinition): DataSyncScope {
+  const paths = sourcePaths(definition);
+  if (paths.length === 1 && parseDatabasePattern(paths[0])) return "DATABASE";
+  return paths.length === 1 ? "SINGLE_TABLE" : "DATABASE";
+}
+
+export function setPipelineSteps(
+  definition: PipelineDefinition,
+  steps: readonly DataSyncStep[],
+): PipelineDefinition {
+  const next = structuredClone(definition);
+  const startupMode = startupModeFromSteps(steps);
+  next.source["scan.startup.mode"] = startupMode;
+  next.pipeline["execution.runtime-mode"] =
+    startupMode === "snapshot" ? "BATCH" : "STREAMING";
+  return next;
 }
 
 export function sourceTables(definition: PipelineDefinition): PipelineTable[] {
@@ -197,13 +275,16 @@ export function setPipelineChunkKeyColumn(
   return next;
 }
 
-export function createPipelineDefinition(): PipelineDefinition {
+export function createPipelineDefinition(
+  steps: readonly DataSyncStep[] = ["SCHEMA", "FULL", "INCREMENTAL"],
+): PipelineDefinition {
+  const startupMode = startupModeFromSteps(steps);
   return {
     source: {
       type: "mysql",
       "datasource-id": "",
       tables: "",
-      "scan.startup.mode": "initial",
+      "scan.startup.mode": startupMode,
     },
     sink: {
       type: "jdbc",
@@ -212,7 +293,7 @@ export function createPipelineDefinition(): PipelineDefinition {
     },
     route: [],
     pipeline: {
-      "execution.runtime-mode": "STREAMING",
+      "execution.runtime-mode": startupMode === "snapshot" ? "BATCH" : "STREAMING",
       "schema.change.behavior": "evolve",
       parallelism: 1,
     },
@@ -232,6 +313,24 @@ export function readPipelineDefinition(parameters: unknown): PipelineDefinition 
 export function pipelineParameters(definition: PipelineDefinition): DataSyncParameters {
   validatePipelineDefinition(definition);
   return { definition: structuredClone(definition) };
+}
+
+export function setPipelineDatabaseScope(
+  definition: PipelineDefinition,
+  sourceDatabase: string,
+  targetDatabase = "",
+): PipelineDefinition {
+  const next = structuredClone(definition);
+  const sourcePattern = databaseTablePattern(sourceDatabase);
+  next.source.tables = sourcePattern;
+  delete next.source["scan.incremental.snapshot.chunk.key-column"];
+  next.route = [{
+    "source-table": sourcePattern,
+    "sink-table": targetDatabase ? targetDatabase + ".<>" : "",
+    "replace-symbol": "<>",
+  }];
+  delete next.transform;
+  return next;
 }
 
 export function setPipelineDatasource(
@@ -327,6 +426,13 @@ export function setPipelineSinkDatabase(
 ): PipelineDefinition {
   const next = structuredClone(definition);
   next.route = next.route.map((route) => {
+    if (parseDatabasePattern(route["source-table"])) {
+      return {
+        ...route,
+        "sink-table": database ? database + ".<>" : "",
+        "replace-symbol": "<>",
+      };
+    }
     const source = parseTablePath(route["source-table"]);
     const currentTarget = parseTablePath(route["sink-table"]);
     const table = currentTarget?.table || source?.table || "";
@@ -379,7 +485,7 @@ function rejectCredentials(value: unknown): void {
   }
 }
 
-/** Matches the enabled MySQL INITIAL -> JDBC multi-table Runtime profile. */
+/** Validates the enabled MySQL -> JDBC Pipeline profiles. */
 export function validatePipelineDefinition(definition: unknown): asserts definition is PipelineDefinition {
   if (!object(definition) || !object(definition.source) ||
       !object(definition.sink) || !object(definition.pipeline) ||
@@ -393,10 +499,17 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
   const sink = definition.sink;
   const pipeline = definition.pipeline;
 
+  const startupMode = source["scan.startup.mode"];
+  const runtimeMode = pipeline["execution.runtime-mode"];
+  const supportedStartupMode =
+    startupMode === "initial" || startupMode === "snapshot" || startupMode === "latest-offset";
+  const supportedRuntimeMode =
+    (startupMode === "snapshot" && runtimeMode === "BATCH") ||
+    ((startupMode === "initial" || startupMode === "latest-offset") &&
+      runtimeMode === "STREAMING");
   if (source.type !== "mysql" || sink.type !== "jdbc" ||
-      source["scan.startup.mode"] !== "initial" ||
-      pipeline["execution.runtime-mode"] !== "STREAMING") {
-    throw new Error("当前仅支持 MySQL INITIAL → JDBC STREAMING");
+      !supportedStartupMode || !supportedRuntimeMode) {
+    throw new Error("当前仅支持 MySQL initial/snapshot/latest-offset → JDBC");
   }
 
   for (const endpoint of [source, sink]) {
@@ -411,39 +524,65 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
     throw new Error("请选择有效的来源表");
   }
   const tables = source.tables.split(",").map((item) => item.trim()).filter(Boolean);
-  if (!tables.length || tables.some((item) => !TABLE_PATH.test(item)) ||
-      new Set(tables).size !== tables.length) {
-    throw new Error("请选择有效且不重复的来源表");
-  }
-
-  if (definition.route.length !== tables.length) {
-    throw new Error("每张来源表都必须配置一条目标表映射");
-  }
-
   const sourceSet = new Set(tables);
-  const routedSources = new Set<string>();
-  const routedTargets = new Set<string>();
-  for (const route of definition.route) {
-    if (!object(route)) throw new Error("无效的目标表映射");
+  const databasePattern =
+    tables.length === 1 ? parseDatabasePattern(tables[0]) : undefined;
+  if (databasePattern) {
+    if (definition.route.length !== 1) {
+      throw new Error("整库同步必须配置一条整库路由");
+    }
+    const route = definition.route[0];
+    if (
+      !object(route) ||
+      route["source-table"] !== tables[0] ||
+      route["replace-symbol"] !== "<>" ||
+      !parseDatabaseSinkPattern(route["sink-table"])
+    ) {
+      throw new Error("整库同步路由必须保持源表名称映射");
+    }
+    if (
+      definition.transform !== undefined &&
+      (!Array.isArray(definition.transform) || definition.transform.length > 0)
+    ) {
+      throw new Error("整库同步暂不支持表级 Transform");
+    }
+    if (source["scan.incremental.snapshot.chunk.key-column"] !== undefined) {
+      throw new Error("整库同步暂不支持表级快照切分列");
+    }
+  } else {
+    if (!tables.length || tables.some((item) => !TABLE_PATH.test(item)) ||
+        new Set(tables).size !== tables.length) {
+      throw new Error("请选择有效且不重复的来源表");
+    }
 
-    const routeSource = route["source-table"];
-    const routeTarget = route["sink-table"];
-    if (typeof routeSource !== "string" || !TABLE_PATH.test(routeSource) ||
-        !sourceSet.has(routeSource) || routedSources.has(routeSource)) {
-      throw new Error("来源表映射必须与已选来源表一一对应");
+    if (definition.route.length !== tables.length) {
+      throw new Error("每张来源表都必须配置一条目标表映射");
     }
-    if (typeof routeTarget !== "string" || !TABLE_PATH.test(routeTarget)) {
-      throw new Error("请配置有效的目标表映射");
-    }
-    if (routedTargets.has(routeTarget)) {
-      throw new Error("不同来源表不能映射到同一目标表");
-    }
-    routedSources.add(routeSource);
-    routedTargets.add(routeTarget);
-  }
 
-  if (routedSources.size !== sourceSet.size) {
-    throw new Error("每张来源表都必须配置一条目标表映射");
+    const routedSources = new Set<string>();
+    const routedTargets = new Set<string>();
+    for (const route of definition.route) {
+      if (!object(route)) throw new Error("无效的目标表映射");
+
+      const routeSource = route["source-table"];
+      const routeTarget = route["sink-table"];
+      if (typeof routeSource !== "string" || !TABLE_PATH.test(routeSource) ||
+          !sourceSet.has(routeSource) || routedSources.has(routeSource)) {
+        throw new Error("来源表映射必须与已选来源表一一对应");
+      }
+      if (typeof routeTarget !== "string" || !TABLE_PATH.test(routeTarget)) {
+        throw new Error("请配置有效的目标表映射");
+      }
+      if (routedTargets.has(routeTarget)) {
+        throw new Error("不同来源表不能映射到同一目标表");
+      }
+      routedSources.add(routeSource);
+      routedTargets.add(routeTarget);
+    }
+
+    if (routedSources.size !== sourceSet.size) {
+      throw new Error("每张来源表都必须配置一条目标表映射");
+    }
   }
 
   const excludedSchemaChanges = sink["exclude.schema.changes"];

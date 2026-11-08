@@ -140,7 +140,7 @@ test("source change invalidates the stale target mapping atomically", () => {
 test("unsupported configuration is rejected rather than silently converted", () => {
   const original = complete();
   for (const change of [
-    (value) => { value.source["scan.startup.mode"] = "latest-offset"; },
+    (value) => { value.source["scan.startup.mode"] = "earliest-offset"; },
     (value) => { value.pipeline["execution.runtime-mode"] = "BATCH"; },
     (value) => { value.sink["exclude.schema.changes"] = ["unknown.change"]; },
     (value) => { value.transform = [{ "source-table": "from_db.orders", "partition-keys": "region" }]; },

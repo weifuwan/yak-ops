@@ -1,10 +1,13 @@
 import type { PipelineDefinition } from "./native-pipeline";
+import type { DataSyncScope, DataSyncStep } from "./types";
 
 export interface NativeSyncDraft {
   name: string;
   remark: string;
   sourceType: string;
   targetType: string;
+  scope: DataSyncScope;
+  steps: DataSyncStep[];
   definition: PipelineDefinition;
 }
 
@@ -17,8 +20,13 @@ export function readNativeDraft(key: string): NativeSyncDraft | undefined {
     const stored = window.sessionStorage.getItem(key);
     if (!stored) return undefined;
     const value = JSON.parse(stored);
-    if (value?.version !== 1 || !value.draft || value.draft.sourceType !== "MYSQL" ||
-        value.draft.targetType !== "MYSQL" || !value.draft.definition) return undefined;
+    if (value?.version !== 2 || !value.draft || value.draft.sourceType !== "MYSQL" ||
+        value.draft.targetType !== "MYSQL" ||
+        !["SINGLE_TABLE", "DATABASE"].includes(value.draft.scope) ||
+        !Array.isArray(value.draft.steps) ||
+        !value.draft.steps.includes("SCHEMA") ||
+        (!value.draft.steps.includes("FULL") && !value.draft.steps.includes("INCREMENTAL")) ||
+        !value.draft.definition) return undefined;
     return value.draft as NativeSyncDraft;
   } catch {
     return undefined;
@@ -27,7 +35,7 @@ export function readNativeDraft(key: string): NativeSyncDraft | undefined {
 
 export function writeNativeDraft(key: string, draft: NativeSyncDraft) {
   try {
-    window.sessionStorage.setItem(key, JSON.stringify({ version: 1, draft }));
+    window.sessionStorage.setItem(key, JSON.stringify({ version: 2, draft }));
   } catch {
     // Editing remains possible without session storage.
   }

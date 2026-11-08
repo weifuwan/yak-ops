@@ -2,7 +2,14 @@ import type {
   TaskInstanceDefinitionRecord, TaskInstanceRecord, TaskInstanceStatus,
 } from "../task-execution/types";
 import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
-import { pipelineTableMappings, readPipelineDefinition } from "./native-pipeline";
+import {
+  pipelineDatabaseRoute,
+  pipelineScope,
+  pipelineSteps,
+  pipelineSyncType,
+  pipelineTableMappings,
+  readPipelineDefinition,
+} from "./native-pipeline";
 import { readExecutionReport } from "./report";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
@@ -36,22 +43,33 @@ export function toDataSyncInstanceRecord(
   }
   const definition = readPipelineDefinition(version.parameters);
   const mappings = pipelineTableMappings(definition);
-  const { source, target } = mappings[0];
-  const steps = ["SCHEMA", "FULL", "INCREMENTAL"] as const;
-  const tableMappings = mappings.map((mapping) => ({
+  const databaseRoute = pipelineDatabaseRoute(definition);
+  const firstMapping = mappings[0];
+  if (!databaseRoute && !firstMapping) throw new Error("缺少有效的同步路由");
+  const source = databaseRoute
+    ? { database: databaseRoute.sourceDatabase, table: "*" }
+    : firstMapping!.source;
+  const target = databaseRoute
+    ? { database: databaseRoute.targetDatabase, table: "*" }
+    : firstMapping!.target;
+  const displayMappings = databaseRoute ? [{ source, target }] : mappings;
+  const scope = pipelineScope(definition);
+  const steps = pipelineSteps(definition);
+  const syncType = pipelineSyncType(definition);
+  const tableMappings = displayMappings.map((mapping) => ({
     ...mapping,
     writeMode: "UPSERT" as const,
   }));
   return {
     id: instance.id,
-    executionReport: readExecutionReport(instance.executionReport, tableMappings.length, [...steps]),
-    productType: "DATABASE_REPLICATION",
-    steps: [...steps],
+    executionReport: readExecutionReport(instance.executionReport, tableMappings.length, steps),
+    scope,
+    steps,
     taskId: instance.definitionId,
     taskName: version.name,
     taskVersion: instance.definitionVersion,
     workflowInstanceId: instance.workflowInstanceId,
-    syncType: "REALTIME",
+    syncType,
     triggerType: instance.triggerType,
     scheduleId: instance.scheduleId,
     scheduleRevision: instance.scheduleRevision,
@@ -65,9 +83,9 @@ export function toDataSyncInstanceRecord(
     errorMessage: instance.failureCode ?? undefined,
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
-      tableMappings, productType: "DATABASE_REPLICATION", steps: [...steps],
+      tableMappings, scope, steps,
       taskId: instance.definitionId, taskName: version.name,
-      taskVersion: instance.definitionVersion, syncType: "REALTIME",
+      taskVersion: instance.definitionVersion, syncType,
       writeMode: "UPSERT",
       source: {
         dataSourceId: definition.source["datasource-id"],

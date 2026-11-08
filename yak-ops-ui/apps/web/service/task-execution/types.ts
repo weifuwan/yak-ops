@@ -25,6 +25,7 @@ export interface TaskInstanceRecord {
   workflowInstanceId?: number;
   debug?: boolean;
   taskType: string;
+  executeType?: "BATCH" | "STREAM";
   triggerType?: string;
   scheduleId?: string | null;
   scheduleRevision?: number | null;

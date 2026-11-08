@@ -8,10 +8,11 @@ export interface TaskProperties {
 }
 
 export function PropertiesDrawer({
-  id, value, open, onApply, onClose, onClosed, onDirtyChange,
+  id, value, syncPlan, open, onApply, onClose, onClosed, onDirtyChange,
 }: {
   id?: string;
   value: TaskProperties;
+  syncPlan: string;
   open: boolean;
   onApply: (value: TaskProperties) => void;
   onClose: () => void;
@@ -51,7 +52,7 @@ export function PropertiesDrawer({
           </div>
         </Field>
         <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 text-sm">
-          <span>同步方案</span><span>MySQL 实时同步</span>
+          <span>同步方案</span><span>{syncPlan}</span>
         </div>
         <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 text-sm">
           <span>任务 ID</span><span className="break-all">{id || "保存后生成"}</span>

@@ -4,7 +4,7 @@ export type DataSyncWriteMode = "UPSERT";
 
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
-export type DataSyncProductType = "SINGLE_TABLE_BATCH" | "DATABASE_REPLICATION";
+export type DataSyncScope = "SINGLE_TABLE" | "DATABASE";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
 export interface DataSyncTablePath { database?: string; schema?: string; table: string; }
@@ -99,7 +99,7 @@ export interface DataSyncTaskRecord {
   sourceTable: string;
   targetDatabase?: string;
   targetTable: string;
-  productType: DataSyncProductType;
+  scope: DataSyncScope;
   steps: DataSyncStep[];
   syncType: DataSyncType | string;
   writeMode: DataSyncWriteMode;
@@ -111,7 +111,7 @@ export interface DataSyncTaskPageParams {
   pageSize: number;
   keyword?: string;
   syncType?: DataSyncType;
-  productType?: DataSyncProductType;
+  scope?: DataSyncScope;
   status?: DataSyncTaskStatus;
   sourceDataSourceId?: string;
   targetDataSourceId?: string;
@@ -214,7 +214,7 @@ export interface DataSyncEndpointSnapshot {
 export interface DataSyncDefinitionSnapshot {
   tableMappings?: DataSyncTableMapping[];
   taskId: string;
-  productType?: DataSyncProductType;
+  scope?: DataSyncScope;
   steps?: DataSyncStep[];
   taskName: string;
   taskVersion: number;
@@ -228,7 +228,7 @@ export interface DataSyncInstanceRecord {
   executionReport?: DataSyncExecutionReport;
   workflowInstanceId?: number;
   id: string;
-  productType: DataSyncProductType;
+  scope: DataSyncScope;
   steps: DataSyncStep[];
   taskId: string;
   taskName: string;
@@ -259,7 +259,7 @@ export interface DataSyncInstanceSummary {
   taskId: string;
   taskName: string;
   taskVersion: number;
-  syncType: "REALTIME";
+  syncType: DataSyncType;
   triggerType?: string;
   status: DataSyncInstanceStatus;
   startTime?: string;

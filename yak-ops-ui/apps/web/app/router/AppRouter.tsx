@@ -5,7 +5,12 @@ import LoginPage from "@/app/login";
 import { UserManagementPage } from "@/app/management/users/page";
 import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
 import { DataSyncPage } from "@/app/data-sync/list/page";
-import { DataSyncTaskEditorPage } from "@/app/data-sync/editor/page";
+import {
+  DataSyncTaskEditorPage,
+  DatabaseSyncTaskEditorPage,
+  NewDataSyncTaskEditorRedirect,
+  SingleTableSyncTaskEditorPage,
+} from "@/app/data-sync/editor/page";
 import { DataSyncTaskDetailPage } from "@/app/data-sync/detail";
 import { DataSyncInstanceRedirect } from "./data-sync-instance-redirect";
 import {
@@ -114,7 +119,9 @@ export default function AppRouter() {
         >
           <Route path="/data-source" element={<DataSourcePage />} />
           <Route path="/data-sync" element={<DataSyncPage />} />
-          <Route path="/data-sync/new" element={<DataSyncTaskEditorPage />} />
+          <Route path="/data-sync/new" element={<NewDataSyncTaskEditorRedirect />} />
+          <Route path="/data-sync/new/database" element={<DatabaseSyncTaskEditorPage />} />
+          <Route path="/data-sync/new/single-table" element={<SingleTableSyncTaskEditorPage />} />
           <Route path="/data-sync/:id/edit" element={<DataSyncTaskEditorPage />} />
           <Route path="/data-sync/:id/detail" element={<DataSyncTaskDetailPage />} />
         </Route>

@@ -436,6 +436,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .taskName(instance.getName())
                 .definitionVersion(instance.getTaskDefinitionVersion())
                 .taskType(TASK_TYPE)
+                .executeType(instance.getTaskExecuteType())
                 .triggerType(workflow == null || workflow.getCommandType() == null ? null
                         : workflow.getCommandType().name())
                 .status(instance.getState())
@@ -490,13 +491,19 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         return parameters;
     }
 
+    private static TaskExecuteType taskExecuteType(JsonNode parameters) {
+        String runtimeMode = parameters.path("definition").path("pipeline")
+                .path("execution.runtime-mode").asText();
+        return "BATCH".equalsIgnoreCase(runtimeMode) ? TaskExecuteType.BATCH : TaskExecuteType.STREAM;
+    }
+
     private static TaskDefinitionLog newTask(long code, User user, long projectCode, DataSyncTaskRequest request) {
         TaskDefinitionLog task = new TaskDefinitionLog();
         task.setCode(code);
         task.setName(request.getName().trim());
         task.setDescription(request.getRemark());
         task.setTaskType(TASK_TYPE);
-        task.setTaskExecuteType(TaskExecuteType.STREAM);
+        task.setTaskExecuteType(taskExecuteType(request.getParameters()));
         task.setTaskParams(JSONUtils.toJsonString(request.getParameters()));
         task.setProjectCode(projectCode);
         task.setUserId(user.getId());
