@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
-import { getTaskInstance } from "@/service/task-execution";
+import { getDataSyncInstance } from "@/service/data-sync";
 
 /** Resolve an Operations instance through its authorized API before linking its task. */
 export function DataSyncInstanceRedirect() {
@@ -10,14 +10,13 @@ export function DataSyncInstanceRedirect() {
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
-    void getTaskInstance(id, controller.signal)
+    void getDataSyncInstance(id)
       .then((instance) => {
         if (controller.signal.aborted) return;
-        const path =
-          instance.taskType === "DATA_SYNC"
-            ? `/data-sync/${encodeURIComponent(instance.definitionId)}/detail?executionId=${encodeURIComponent(instance.id)}`
-            : "/data-sync";
-        setDestination({ id, path });
+        setDestination({
+          id,
+          path: `/data-sync/${encodeURIComponent(instance.taskId)}/detail?executionId=${encodeURIComponent(instance.id)}`,
+        });
       })
       .catch(() => {
         if (!controller.signal.aborted) setDestination({ id, path: "/data-sync" });
