@@ -47,6 +47,36 @@ class DataSyncPipelineBuilderTest {
     }
 
     @Test
+    void preservesTransformAndChunkKeyInRuntimeYaml() throws Exception {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        com.fasterxml.jackson.databind.node.ObjectNode definition =
+                (com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) definition.path("source"))
+                .put("scan.incremental.snapshot.chunk.key-column", "src_db.orders:id");
+        definition.putArray("transform")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("primary-keys", "tenant_id,id")
+                .put("projection", "*,name AS user_name")
+                .put("filter", "id > 0");
+
+        String yaml = new DataSyncPipelineBuilder().build(context(), parameters);
+        new YamlPipelineDefinitionParser().parse(yaml, new Configuration());
+        JsonNode pipeline = YAML.readTree(yaml);
+
+        assertEquals("src_db.orders:id",
+                pipeline.path("source")
+                        .path("scan.incremental.snapshot.chunk.key-column")
+                        .asText());
+        assertEquals("tenant_id,id",
+                pipeline.path("transform").get(0).path("primary-keys").asText());
+        assertEquals("*,name AS user_name",
+                pipeline.path("transform").get(0).path("projection").asText());
+        assertEquals("id > 0",
+                pipeline.path("transform").get(0).path("filter").asText());
+    }
+
+    @Test
     void preservesMultipleTableMappingsInRuntimeYaml() throws Exception {
         DataSyncParameters parameters = DataSyncParametersTest.valid();
         com.fasterxml.jackson.databind.node.ObjectNode definition =
