@@ -20,10 +20,12 @@ export function useExecutionHistory(
   taskId: string | undefined,
   activeInstance: TaskInstanceRecord | undefined,
   hasEnabledSchedule: boolean,
+  workflowActive: boolean,
 ) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const executionId = searchParams.get("executionId");
+  const workflowInstanceId = searchParams.get("workflowInstanceId");
   const activeTab = searchParams.get("tab") === "log" ? "log" : "status";
   const [status, setStatus] = useState<DataSyncInstanceStatus | "ALL">("ALL");
   const [pageNo, setPageNo] = useState(1);
@@ -43,6 +45,7 @@ export function useExecutionHistory(
     refetchInterval: (query) =>
       autoRefresh &&
       (Boolean(activeInstance) ||
+        workflowActive ||
         hasEnabledSchedule ||
         Boolean(query.state.data?.totalList.some(isActiveDataSyncInstance)))
         ? POLL_MILLIS
@@ -92,7 +95,7 @@ export function useExecutionHistory(
   }, [executionId, taskId, selectedQuery.isError, selectedQuery.data, setSearchParams]);
 
   useEffect(() => {
-    if (instancesLoading || executionId || instances.length === 0) return;
+    if (instancesLoading || executionId || workflowInstanceId || instances.length === 0) return;
     setSearchParams(
       (current) => {
         if (current.has("executionId")) return current;
@@ -102,7 +105,7 @@ export function useExecutionHistory(
       },
       { replace: true },
     );
-  }, [executionId, instances, instancesLoading, setSearchParams]);
+  }, [executionId, workflowInstanceId, instances, instancesLoading, setSearchParams]);
 
   const loadInstances = async () => {
     await instancesQuery.refetch();
@@ -123,6 +126,7 @@ export function useExecutionHistory(
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.set("executionId", id);
+      next.delete("workflowInstanceId");
       return next;
     });
   };
@@ -149,12 +153,24 @@ export function useExecutionHistory(
     setStatus(value);
     changePage(1);
   };
+  const selectWorkflowSubmitted = (id: number) => {
+    setStatus("ALL");
+    setPageNo(1);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("executionId");
+      next.set("workflowInstanceId", String(id));
+      next.delete("tab");
+      return next;
+    });
+  };
   const selectSubmitted = (id: string) => {
     setStatus("ALL");
     setPageNo(1);
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.set("executionId", id);
+      next.delete("workflowInstanceId");
       next.delete("tab");
       return next;
     });
@@ -170,6 +186,7 @@ export function useExecutionHistory(
   };
   return {
     executionId,
+    workflowInstanceId,
     activeTab,
     instances,
     instancesLoading,
@@ -188,6 +205,7 @@ export function useExecutionHistory(
     changePage,
     changeStatus,
     selectSubmitted,
+    selectWorkflowSubmitted,
     refreshAfterCancel,
     listError: instancesQuery.isError && !instancesQuery.data,
   };
