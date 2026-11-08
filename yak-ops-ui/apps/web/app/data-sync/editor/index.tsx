@@ -123,7 +123,7 @@ export function TaskEditor({
   const catalogTables = sourceCatalog.tables.map(catalogPath);
   const selectedTables: DataSyncTablePath[] = sources.map((source) => ({
     ...source,
-    primaryKeys: sourceMetadata.get(source.table)?.primaryKeys ?? [],
+    primaryKeys: sourceMetadata.get(source.table)?.primaryKeys,
   }));
   const selectedTableKeys = new Set(selectedTables.map(tableKey));
   const dirty = pipelineFingerprint(authored) !== baseline;
