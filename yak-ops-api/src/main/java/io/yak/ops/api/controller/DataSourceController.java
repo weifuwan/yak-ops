@@ -272,12 +272,12 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_TABLES_ERROR)
     public Result<PageInfo<DataSourceCatalogTable>> getTables(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                               @PathVariable("projectCode") long projectCode,
-                                                               @RequestParam("datasourceId") Integer datasourceId,
-                                                               @RequestParam("database") String database,
-                                                               @RequestParam(value = "keyword", required = false) String keyword,
-                                                               @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
-                                                               @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
+                                                              @PathVariable("projectCode") long projectCode,
+                                                              @RequestParam("datasourceId") Integer datasourceId,
+                                                              @RequestParam("database") String database,
+                                                              @RequestParam(value = "keyword", required = false) String keyword,
+                                                              @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+                                                              @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSourceService.getTables(
                 loginUser, projectCode, datasourceId, database, keyword, pageNo, pageSize));
@@ -288,10 +288,10 @@ public class DataSourceController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_TABLES_ERROR)
     public Result<List<DataSourceCatalogTable>> getTableMetadata(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                  @PathVariable("projectCode") long projectCode,
-                                                                  @RequestParam("datasourceId") Integer datasourceId,
-                                                                  @RequestParam("database") String database,
-                                                                  @RequestParam("tableName") List<String> tableNames) {
+                                                                 @PathVariable("projectCode") long projectCode,
+                                                                 @RequestParam("datasourceId") Integer datasourceId,
+                                                                 @RequestParam("database") String database,
+                                                                 @RequestParam("tableName") List<String> tableNames) {
         return Result.success(dataSourceService.getTableMetadata(
                 loginUser, projectCode, datasourceId, database, tableNames));
     }
