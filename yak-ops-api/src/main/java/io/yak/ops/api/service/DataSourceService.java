@@ -5,6 +5,8 @@ import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSourceSimpleInfoVO;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogTable;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
@@ -33,11 +35,14 @@ public interface DataSourceService {
 
     List<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database);
 
-    PageInfo<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database,
-                                      String keyword, Integer pageNo, Integer pageSize);
+    PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode, Integer id, String database,
+                                               String keyword, Integer pageNo, Integer pageSize);
 
-    List<ParamsOptions> getTableColumns(User loginUser, long projectCode, Integer id,
-                                        String database, String table);
+    List<DataSourceCatalogTable> getTableMetadata(User loginUser, long projectCode, Integer id,
+                                                  String database, List<String> tableNames);
+
+    List<DataSourceCatalogColumn> getTableColumns(User loginUser, long projectCode, Integer id,
+                                                  String database, String table);
 
     List<ParamsOptions> getDatabases(User loginUser, long projectCode, Integer id);
 

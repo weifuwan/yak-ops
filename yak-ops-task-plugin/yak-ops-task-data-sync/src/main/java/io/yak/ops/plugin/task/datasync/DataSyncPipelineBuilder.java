@@ -4,6 +4,7 @@ import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.enums.ResourceType;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
+
 import org.apache.flink.cdc.cli.utils.YamlParserUtils;
 
 import java.util.Map;
@@ -43,7 +44,8 @@ public final class DataSyncPipelineBuilder {
         maskPassword(sink);
 
         Map<String, Object> yaml = JSONUtils.parseObject(
-                JSONUtils.toJsonString(definition), new TypeReference<Map<String, Object>>() {});
+                JSONUtils.toJsonString(definition), new TypeReference<Map<String, Object>>() {
+                });
         return YamlParserUtils.toBlockYAMLString(yaml);
     }
 

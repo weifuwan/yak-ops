@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Modal, toast } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import type { TaskDefinitionRecord } from "@/service/data-sync";
-import type { DataSourceRecord } from "@/service/datasource";
+import {
+  listDataSourceTableMetadata,
+  type DataSourceRecord,
+} from "@/service/datasource";
 import { nativeDraftKey, writeNativeDraft, clearNativeDraft, type NativeSyncDraft } from "@/service/data-sync/native-draft";
 import {
   addPipelineSourceTables,
+  chunkKeyColumn,
   setPipelineDatasource,
   setPipelineSinkDatabase,
   sourceTables,
@@ -23,7 +27,7 @@ import { TableTransferPanel } from "./table-transfer-panel";
 import { DataSourceSection } from "./data-source-section";
 import { EditorAnchorStepper } from "./anchor-stepper";
 import { ContentSection } from "./content-layout";
-import { catalogPath, tableKey, type DataSyncTablePath } from "./table-catalog";
+import { catalogPath, tableKey } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-footer";
@@ -93,8 +97,35 @@ export function TaskEditor({
     sourcePageSize,
     Boolean(sourceId),
   );
+  const selectedTableNames = useMemo(
+    () => sources.map((source) => source.table).sort(),
+    [definition.source.tables],
+  );
+  const selectedMetadataQuery = useQuery({
+    queryKey: [
+      "data-sync-selected-table-metadata",
+      sourceId,
+      sourceDatasource?.database,
+      selectedTableNames,
+    ],
+    queryFn: ({ signal }) =>
+      listDataSourceTableMetadata(
+        sourceId,
+        sourceDatasource?.database || "",
+        selectedTableNames,
+        signal,
+      ),
+    enabled: Boolean(sourceId && sourceDatasource?.database && selectedTableNames.length),
+  });
+  const sourceMetadata = new Map(
+    [...sourceCatalog.tables, ...(selectedMetadataQuery.data ?? [])]
+      .map((table) => [table.name, table]),
+  );
   const catalogTables = sourceCatalog.tables.map(catalogPath);
-  const selectedTables: DataSyncTablePath[] = sources;
+  const selectedTables = sources.map((source) => ({
+    ...source,
+    primaryKeys: sourceMetadata.get(source.table)?.primaryKeys,
+  }));
   const selectedTableKeys = new Set(selectedTables.map(tableKey));
   const dirty = pipelineFingerprint(authored) !== baseline;
   const definitionDirty = pipelineFingerprint(definition) !== baselineDefinition;
@@ -164,6 +195,20 @@ export function TaskEditor({
       setCatalogError(failure instanceof Error ? failure.message : "来源表无效");
     }
   };
+  const validateSourceMetadata = () => {
+    const missingChunkKey = selectedTables.find(
+      (table) =>
+        table.primaryKeys !== undefined &&
+        table.primaryKeys.length === 0 &&
+        !chunkKeyColumn(definition, table),
+    );
+    if (missingChunkKey) {
+      throw new Error(
+        "来源表 " + missingChunkKey.table + " 无主键，请配置快照切分列",
+      );
+    }
+  };
+
   const openAdvanced = () => setAdvancedOpen(true);
   const closeAdvanced = () => {
     setAdvancedOpen(false);
@@ -189,6 +234,7 @@ export function TaskEditor({
     }
     try {
       validatePipelineDefinition(definition);
+      validateSourceMetadata();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Pipeline 配置无效");
       return;
@@ -232,6 +278,7 @@ export function TaskEditor({
     }
     try {
       validatePipelineDefinition(definition);
+      validateSourceMetadata();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Pipeline 配置无效");
       return;
@@ -317,15 +364,15 @@ export function TaskEditor({
                   disabled={() => true}
                   hideFilters />
               </div>
-              {sourceCatalog.error || catalogError ? (
-                <Alert>{sourceCatalog.error || catalogError}
+              {sourceCatalog.error || selectedMetadataQuery.isError || catalogError ? (
+                <Alert>{sourceCatalog.error || (selectedMetadataQuery.isError ? "主键元数据加载失败" : "") || catalogError}
                   <Button size="small" onClick={sourceCatalog.refresh}>刷新</Button>
                 </Alert>
               ) : null}
             </ContentSection>
             <TargetTableMapping
               definition={definition}
-              sources={sources}
+              sources={selectedTables}
               targetDatabase={sinkDatasource?.database || ""}
               onChange={edit}
             />
