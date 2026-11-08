@@ -5,10 +5,14 @@ import io.yak.ops.common.utils.JSONUtils;
 import org.apache.flink.cdc.cli.parser.YamlPipelineDefinitionParser;
 import org.apache.flink.cdc.common.configuration.Configuration;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -51,22 +55,49 @@ public final class DataSyncPipelineValidator {
         require(pipeline, "execution.runtime-mode", "STREAMING", "pipeline.execution.runtime-mode");
 
         String tables = text(source, "tables");
-        if (!tables.matches("[A-Za-z0-9_$-]+\\.[A-Za-z0-9_$-]+")) {
-            throw new IllegalArgumentException("source.tables: expected database.table");
+        List<String> sourceTables = Arrays.stream(tables.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.toList());
+        if (sourceTables.isEmpty()
+                || sourceTables.stream().anyMatch(value -> !isTablePath(value))
+                || new LinkedHashSet<>(sourceTables).size() != sourceTables.size()) {
+            throw new IllegalArgumentException(
+                    "source.tables: expected unique comma-separated database.table values");
         }
 
         JsonNode routes = definition.path("route");
-        if (!routes.isArray() || routes.size() != 1) {
-            throw new IllegalArgumentException("route: exactly one table mapping is supported");
+        if (!routes.isArray() || routes.size() != sourceTables.size()) {
+            throw new IllegalArgumentException(
+                    "route: every source table must have exactly one target mapping");
         }
-        JsonNode route = routes.get(0);
-        object(route, "route[0]");
-        if (!tables.equals(text(route, "source-table"))) {
-            throw new IllegalArgumentException("route[0].source-table must equal source.tables");
+
+        Set<String> sourceTableSet = new LinkedHashSet<>(sourceTables);
+        Set<String> routedSources = new LinkedHashSet<>();
+        Set<String> routedTargets = new LinkedHashSet<>();
+        for (int index = 0; index < routes.size(); index++) {
+            JsonNode route = routes.get(index);
+            object(route, "route[" + index + "]");
+            String routeSource = text(route, "source-table");
+            String routeTarget = text(route, "sink-table");
+            if (!isTablePath(routeSource)
+                    || !sourceTableSet.contains(routeSource)
+                    || !routedSources.add(routeSource)) {
+                throw new IllegalArgumentException(
+                        "route[" + index + "].source-table must uniquely reference source.tables");
+            }
+            if (!isTablePath(routeTarget)) {
+                throw new IllegalArgumentException(
+                        "route[" + index + "].sink-table: expected database.table");
+            }
+            if (!routedTargets.add(routeTarget)) {
+                throw new IllegalArgumentException(
+                        "route[" + index + "].sink-table: duplicate target mapping");
+            }
         }
-        String target = text(route, "sink-table");
-        if (!target.matches("[A-Za-z0-9_$-]+\\.[A-Za-z0-9_$-]+")) {
-            throw new IllegalArgumentException("route[0].sink-table: expected database.table");
+        if (!routedSources.equals(sourceTableSet)) {
+            throw new IllegalArgumentException(
+                    "route: every source table must have exactly one target mapping");
         }
 
         JsonNode transforms = definition.path("transform");
@@ -114,6 +145,10 @@ public final class DataSyncPipelineValidator {
             }
             throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML: " + reason, e);
         }
+    }
+
+    private static boolean isTablePath(String value) {
+        return value.matches("[A-Za-z0-9_$-]+\\.[A-Za-z0-9_$-]+");
     }
 
     private static String text(JsonNode object, String key) {
