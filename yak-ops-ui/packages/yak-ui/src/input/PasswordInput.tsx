@@ -90,13 +90,13 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         <Button
           variant="ghost"
           size="sm"
+          isIconOnly
           type="button"
           aria-label={visible ? hidePasswordLabel : showPasswordLabel}
           aria-pressed={visible}
           isDisabled={props.disabled}
-          style={variant === "underlined" ? { padding: 0, width: 32, height: 32 } : undefined}
           className={cn(
-            "absolute top-1/2 h-7 w-7 -translate-y-1/2 p-0 text-[var(--yak-components-input-icon)]",
+            "absolute top-1/2 -translate-y-1/2 text-[var(--yak-components-input-icon)]",
             variant === "underlined" ? "right-0" : "right-1",
           )}
           onMouseDown={(event) => event.preventDefault()}
