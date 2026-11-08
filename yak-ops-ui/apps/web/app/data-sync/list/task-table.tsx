@@ -7,6 +7,10 @@ import { TaskRoute } from "./task-route";
 import { DataSyncTaskLifecycleActions, DataSyncTaskStatusBadge } from "./task-lifecycle";
 import { readExecutionSummary } from "@/service/data-sync/report";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
+import {
+  canStopWorkflow, isWorkflowActive, workflowStatusText,
+  type DataSyncWorkflowInstance,
+} from "@/service/data-sync";
 import type { DataSourceRecord } from "@/service/datasource";
 import type { UserRecord } from "@/service/user";
 import type {
@@ -43,6 +47,8 @@ interface Data {
   updateUsersLoading: boolean;
   latestByTask: Map<string, TaskInstanceRecord>;
   activeByTask: Map<string, TaskInstanceRecord>;
+  workflowsByTask: Map<string, DataSyncWorkflowInstance | undefined>;
+  submittedByTask: Record<string, number>;
   instancesLoading: boolean;
   instancesReady: boolean;
   actionKey?: string;
@@ -73,6 +79,8 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     updateUsersLoading,
     latestByTask,
     activeByTask,
+    workflowsByTask,
+    submittedByTask,
     instancesLoading,
     instancesReady,
     actionKey,
@@ -84,11 +92,21 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     const user = updateUserMap.get(record.updateBy);
     return user?.realName || user?.userName || "未知用户";
   };
+  const workflowFor = (record: DataSyncTaskRecord) => workflowsByTask.get(record.id);
+  const awaitingSubmission = (record: DataSyncTaskRecord) => {
+    const workflow = workflowFor(record);
+    const submitted = submittedByTask[record.id];
+    return Boolean(submitted && (!workflow || workflow.id < submitted));
+  };
+  const workflowActive = (record: DataSyncTaskRecord) => {
+    const workflow = workflowFor(record);
+    return awaitingSubmission(record) || Boolean(workflow && isWorkflowActive(workflow.state));
+  };
   const canManageTask = (record: DataSyncTaskRecord) =>
-    canManageTaskDefinition(instancesReady, activeByTask.get(record.id));
+    !workflowActive(record) && canManageTaskDefinition(instancesReady, activeByTask.get(record.id));
   const runTask = (task: DataSyncTaskRecord) => actions.command({ kind: "run", task });
-  const stopTask = (task: DataSyncTaskRecord, instance: TaskInstanceRecord) =>
-    actions.command({ kind: "stop", task, instance });
+  const stopTask = (task: DataSyncTaskRecord, workflowInstanceId: number) =>
+    actions.command({ kind: "stop", task, workflowInstanceId });
   const publishTask = (task: DataSyncTaskRecord) => actions.command({ kind: "publish", task });
   const unpublishTask = (task: DataSyncTaskRecord) => actions.command({ kind: "unpublish", task });
 
@@ -167,10 +185,35 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
         if (isUnreadable(record)) {
           return <span className="text-[var(--yak-components-muted-text)]">—</span>;
         }
-        const instance = latestByTask.get(record.id);
+        const workflow = workflowFor(record);
+        const waiting = awaitingSubmission(record);
+        const latest = latestByTask.get(record.id);
+        const instance = workflow && latest?.workflowInstanceId !== workflow.id
+          ? undefined
+          : latest;
+        const workflowId = waiting ? submittedByTask[record.id] : workflow?.id;
+        const statusText = waiting
+          ? "启动中"
+          : instance?.status === "RUNNING_EXECUTION"
+            ? "运行中"
+            : workflow
+              ? workflowStatusText(workflow.state)
+              : "暂无执行";
         if (!instance) {
-          if (instancesLoading) return <Skeleton width="100%" height={22} />;
-          return <ExecutionProgressBar realtime={record.syncType === "REALTIME"} />;
+          if (!workflowId && instancesLoading) return <Skeleton width="100%" height={22} />;
+          if (!workflowId) return <span className="text-xs text-[var(--yak-components-muted-text)]">暂无执行</span>;
+          return (
+            <button
+              type="button"
+              className="block w-full cursor-pointer text-left text-xs text-[var(--yak-components-tab-text-hover)]"
+              onClick={() => navigate(`/data-sync/${record.id}/detail?workflowInstanceId=${workflowId}`)}
+            >
+              <div>{statusText}</div>
+              <div className="mt-1 text-[var(--yak-components-muted-text)]">
+                工作流 #{workflowId} · 等待执行节点
+              </div>
+            </button>
+          );
         }
         const summary = readExecutionSummary(instance.executionReport);
         return (
@@ -180,13 +223,14 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             title="查看本次执行"
             onClick={() => navigate(`/data-sync/${record.id}/detail?executionId=${instance.id}`)}
           >
+            <div className="mb-1 text-xs text-[var(--yak-components-tab-text-hover)]">{statusText}</div>
             {summary ? (
               <ExecutionStages compact status={instance.status} summary={summary} />
             ) : (
               <ExecutionProgressBar
                 status={instance.status}
                 percent={instance.progressPercent}
-                realtime={false}
+                realtime={record.syncType === "REALTIME"}
               />
             )}
           </button>
@@ -237,27 +281,51 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
           <DataSyncTaskLifecycleActions
             record={record}
             activeInstance={activeByTask.get(record.id)}
+            workflowActive={workflowActive(record)}
             instanceStateReady={instancesReady}
             actionKey={actionKey}
             runtimeAction={{
-              label: activeByTask.has(record.id)
-                ? "停止"
-                : record.syncType === "REALTIME"
-                  ? "启动"
-                  : "运行",
-              className: activeByTask.has(record.id)
+              label: workflowActive(record)
+                ? awaitingSubmission(record)
+                  ? "启动中"
+                  : workflowFor(record)?.state === "SERIAL_WAIT"
+                    ? "取消"
+                    : workflowFor(record)?.state === "READY_STOP"
+                      ? "停止中"
+                      : workflowFor(record)?.state === "PAUSE"
+                        ? "已暂停"
+                        : canStopWorkflow(workflowFor(record)!.state)
+                          ? "停止"
+                          : workflowStatusText(workflowFor(record)!.state)
+                : activeByTask.has(record.id)
+                  ? "停止"
+                  : record.syncType === "REALTIME"
+                    ? "启动"
+                    : "运行",
+              className: workflowActive(record) || activeByTask.has(record.id)
                 ? "text-[var(--yak-components-danger-text)]"
                 : "text-[var(--yak-color-primary)]",
               loading: actionKey === `${record.id}:run` || actionKey === `${record.id}:stop`,
-              disabled:
-                !instancesReady ||
-                (activeByTask.has(record.id)
-                  ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
-                  : record.status !== "ONLINE"),
+              disabled: !instancesReady ||
+                (workflowActive(record)
+                  ? awaitingSubmission(record) ||
+                    !workflowFor(record) ||
+                    !canStopWorkflow(workflowFor(record)!.state)
+                  : activeByTask.has(record.id)
+                    ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
+                    : record.status !== "ONLINE"),
               onClick: () => {
+                const workflow = workflowFor(record);
                 const active = activeByTask.get(record.id);
-                if (active) stopTask(record, active);
-                else runTask(record);
+                if (workflowActive(record)) {
+                  if (!awaitingSubmission(record) && workflow && canStopWorkflow(workflow.state)) {
+                    stopTask(record, workflow.id);
+                  }
+                } else if (active && active.workflowInstanceId) {
+                  stopTask(record, active.workflowInstanceId);
+                } else {
+                  runTask(record);
+                }
               },
             }}
             onPublish={(value) => publishTask(value)}
