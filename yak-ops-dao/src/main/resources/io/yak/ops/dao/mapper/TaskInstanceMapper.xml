@@ -150,7 +150,7 @@
         select date(submit_time) as bucket_date,
                task_execute_type as execute_type,
                state,
-               count(*) as count
+               count(*) as instance_count
         from t_yak_ops_task_instance
         where project_code = #{projectCode}
           and task_type = 'DATA_SYNC'
