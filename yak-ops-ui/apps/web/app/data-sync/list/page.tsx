@@ -5,7 +5,8 @@ import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
+import { canManageTaskDefinition } from "@/service/data-sync/execution";
+import { canStopWorkflow, isWorkflowActive } from "@/service/data-sync";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
 import { TaskFilters } from "./task-filters";
 import { TaskTable } from "./task-table";
@@ -36,15 +37,27 @@ export function DataSyncPage() {
   );
   const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();
 
+  const isWorkflowActiveForTask = (taskId: string) => {
+    const workflow = instances.workflowsByTask.get(taskId);
+    const submittedId = commands.submittedByTask[taskId];
+    return Boolean(
+      (submittedId && (!workflow || workflow.id < submittedId)) ||
+      (workflow && isWorkflowActive(workflow.state)),
+    );
+  };
+
   const canManage = (task: DataSyncTaskRecord) =>
     page.safeToAct &&
     instances.ready &&
+    !isWorkflowActiveForTask(task.id) &&
     canManageTaskDefinition(instances.ready, instances.activeByTask.get(task.id));
 
   const command = (value: TaskCommand) => {
     if (!scope || commands.pending || !page.safeToAct) return;
     if (value.kind === "stop") {
-      if (!instances.ready || !canCancelTaskInstance(value.instance.status)) return;
+      const workflow = instances.workflowsByTask.get(value.task.id);
+      if (!instances.ready || !workflow || workflow.id !== value.workflowInstanceId ||
+          !canStopWorkflow(workflow.state)) return;
     } else if (!canManage(value.task)) {
       return;
     }
@@ -76,6 +89,11 @@ export function DataSyncPage() {
                 </Button>
               </div>
             ) : null}
+            {instances.error ? (
+              <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
+                执行状态获取失败，请刷新任务列表后重试
+              </div>
+            ) : null}
             {page.invalidCount > 0 ? (
               <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
                 {page.invalidCount} 个任务配置无法解析，请查看对应行
@@ -95,6 +113,8 @@ export function DataSyncPage() {
                   updateUsersLoading: users.loading,
                   latestByTask: instances.latestByTask,
                   activeByTask: instances.activeByTask,
+                  workflowsByTask: instances.workflowsByTask,
+                  submittedByTask: commands.submittedByTask,
                   instancesLoading: instances.loading,
                   instancesReady: instances.ready,
                   actionKey: commands.actionKey,
