@@ -20,6 +20,7 @@ import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
+import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.common.enums.CommandType;
@@ -33,6 +34,7 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
+import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
@@ -44,6 +46,7 @@ import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -80,6 +83,49 @@ class DataSyncServiceImplTest {
 
     @InjectMocks
     private DataSyncServiceImpl service;
+
+    @Test
+    void executionStatsAggregateProjectScopedDailyStates() {
+        DataSyncExecutionDailyRow success = dailyRow("2026-11-07", 0, 7, 3);
+        DataSyncExecutionDailyRow failure = dailyRow("2026-11-07", 0, 6, 1);
+        DataSyncExecutionDailyRow running = dailyRow("2026-11-07", 1, 1, 2);
+        when(taskInstanceDao.queryDataSyncDailyExecution(eq(PROJECT_CODE), any(), any()))
+                .thenReturn(Arrays.asList(success, failure, running));
+
+        DataSyncExecutionStatsVO result = service.getExecutionStats(
+                new User(), PROJECT_CODE, LocalDate.of(2026, 11, 7), LocalDate.of(2026, 11, 7));
+
+        assertEquals("2026-11-07", result.getStartDate());
+        assertEquals("2026-11-07", result.getEndDate());
+        assertEquals(2, result.getDays().size());
+        assertEquals("OFFLINE", result.getDays().get(0).getSyncType());
+        assertEquals(4, result.getDays().get(0).getExecutionCount());
+        assertEquals(3, result.getDays().get(0).getSucceededCount());
+        assertEquals(1, result.getDays().get(0).getFailedCount());
+        assertEquals("REALTIME", result.getDays().get(1).getSyncType());
+        assertEquals(2, result.getDays().get(1).getRunningCount());
+        verify(projectService).checkProjectAndAuthThrowException(any(), eq(PROJECT_CODE), isNull());
+    }
+
+    @Test
+    void executionStatsRejectInvalidDateRanges() {
+        User user = new User();
+        LocalDate end = LocalDate.of(2026, 11, 7);
+        assertThrows(ServiceException.class, () ->
+                service.getExecutionStats(user, PROJECT_CODE, end, end.minusDays(1)));
+        assertThrows(ServiceException.class, () ->
+                service.getExecutionStats(user, PROJECT_CODE, end.minusDays(90), end));
+        verifyNoInteractions(taskInstanceDao);
+    }
+
+    private static DataSyncExecutionDailyRow dailyRow(String day, int executeType, int state, long count) {
+        DataSyncExecutionDailyRow row = new DataSyncExecutionDailyRow();
+        row.setBucketDate(day);
+        row.setExecuteType(executeType);
+        row.setState(state);
+        row.setInstanceCount(count);
+        return row;
+    }
 
     @Test
     void overviewCountsCurrentProjectTasksAndLatestWorkflowStates() {
