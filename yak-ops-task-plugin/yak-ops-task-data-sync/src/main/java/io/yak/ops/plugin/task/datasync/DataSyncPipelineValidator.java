@@ -37,6 +37,10 @@ public final class DataSyncPipelineValidator {
                     "drop.table",
                     "alter.table.comment");
 
+    private static final Set<String> SUPPORTED_TRANSFORM_KEYS =
+            Set.of("source-table", "projection", "filter", "primary-keys");
+
+
     public void validate(JsonNode definition) {
         object(definition, "definition");
         rejectCredentials(definition);
@@ -101,8 +105,65 @@ public final class DataSyncPipelineValidator {
         }
 
         JsonNode transforms = definition.path("transform");
-        if (!transforms.isMissingNode() && (!transforms.isArray() || transforms.size() > 0)) {
-            throw new IllegalArgumentException("transform: not yet supported by this runtime");
+        if (!transforms.isMissingNode()) {
+            if (!transforms.isArray()) {
+                throw new IllegalArgumentException("transform: array required");
+            }
+            Set<String> transformedSources = new LinkedHashSet<>();
+            for (int index = 0; index < transforms.size(); index++) {
+                JsonNode transform = transforms.get(index);
+                object(transform, "transform[" + index + "]");
+                String transformSource = text(transform, "source-table");
+                if (!sourceTableSet.contains(transformSource)
+                        || !transformedSources.add(transformSource)) {
+                    throw new IllegalArgumentException(
+                            "transform[" + index + "].source-table must uniquely reference source.tables");
+                }
+                Iterator<Map.Entry<String, JsonNode>> fields = transform.fields();
+                while (fields.hasNext()) {
+                    Map.Entry<String, JsonNode> field = fields.next();
+                    if (!SUPPORTED_TRANSFORM_KEYS.contains(field.getKey())) {
+                        throw new IllegalArgumentException(
+                                "transform[" + index + "]." + field.getKey() + ": unsupported setting");
+                    }
+                    if (!"source-table".equals(field.getKey())
+                            && (!field.getValue().isTextual()
+                                    || field.getValue().asText().trim().isEmpty())) {
+                        throw new IllegalArgumentException(
+                                "transform[" + index + "]." + field.getKey()
+                                        + ": non-empty string required");
+                    }
+                }
+            }
+        }
+
+        JsonNode chunkKeyColumn =
+                source.path("scan.incremental.snapshot.chunk.key-column");
+        if (!chunkKeyColumn.isMissingNode()) {
+            if (!chunkKeyColumn.isTextual() || chunkKeyColumn.asText().trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "source.scan.incremental.snapshot.chunk.key-column: non-empty string required");
+            }
+            Set<String> configuredTables = new LinkedHashSet<>();
+            for (String item : chunkKeyColumn.asText().split(";")) {
+                String entry = item.trim();
+                if (entry.isEmpty()) {
+                    continue;
+                }
+                int separator = entry.lastIndexOf(':');
+                String sourceTable = separator > 0 ? entry.substring(0, separator) : "";
+                String column = separator > 0 ? entry.substring(separator + 1).trim() : "";
+                if (!sourceTableSet.contains(sourceTable)
+                        || column.isEmpty()
+                        || !configuredTables.add(sourceTable)) {
+                    throw new IllegalArgumentException(
+                            "source.scan.incremental.snapshot.chunk.key-column: invalid table mapping");
+                }
+            }
+            if (configuredTables.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "source.scan.incremental.snapshot.chunk.key-column: invalid table mapping");
+            }
         }
 
         JsonNode parallelism = pipeline.path("parallelism");
