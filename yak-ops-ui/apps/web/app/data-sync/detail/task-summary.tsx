@@ -22,7 +22,12 @@ interface Props {
 }
 export function TaskSummary({ task, updatedBy, dataSources, onCopyTaskId }: Props) {
   const copyTaskId = onCopyTaskId;
-  const scopeLabel = task.scope === "DATABASE" ? "整库同步" : "单表同步";
+  const scopeLabel =
+    task.scope === "DATABASE"
+      ? "整库同步"
+      : task.scope === "MULTI_TABLE"
+        ? "多表同步"
+        : "单表同步";
   const hasFull = task.steps.includes("FULL");
   const hasIncremental = task.steps.includes("INCREMENTAL");
   const modeLabel = hasFull && hasIncremental
