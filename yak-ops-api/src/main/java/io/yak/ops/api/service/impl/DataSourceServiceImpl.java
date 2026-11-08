@@ -19,6 +19,8 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.DataSourceUserDao;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogTable;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
@@ -468,21 +470,23 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
-    public PageInfo<ParamsOptions> getTables(User loginUser, long projectCode,
-                                              Integer datasourceId, String database,
-                                              String keyword, Integer pageNo, Integer pageSize) {
+    public PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode,
+                                                       Integer datasourceId, String database,
+                                                       String keyword, Integer pageNo, Integer pageSize) {
         DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
         DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
         if (catalog == null || !catalog.supportsTablePaging()) {
             List<ParamsOptions> all = getTables(loginUser, datasourceId, database);
-            List<ParamsOptions> filtered = all == null ? Collections.emptyList() : all.stream()
-                    .filter(option -> StringUtils.isBlank(keyword)
-                            || option.getLabel().toLowerCase().contains(keyword.trim().toLowerCase()))
+            List<DataSourceCatalogTable> filtered = all == null ? Collections.emptyList() : all.stream()
+                    .map(option -> new DataSourceCatalogTable(
+                            String.valueOf(option.getValue()), TABLE, null, Collections.emptyList()))
+                    .filter(table -> StringUtils.isBlank(keyword)
+                            || table.getName().toLowerCase().contains(keyword.trim().toLowerCase()))
                     .collect(Collectors.toList());
             int offset = (pageNo - 1) * pageSize;
             int end = Math.min(offset + pageSize, filtered.size());
-            PageInfo<ParamsOptions> page = PageInfo.of(pageNo, pageSize);
+            PageInfo<DataSourceCatalogTable> page = PageInfo.of(pageNo, pageSize);
             page.setTotal(filtered.size());
             page.setTotalList(offset >= filtered.size()
                     ? Collections.emptyList()
@@ -494,14 +498,39 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         try (Connection connection = processor.getConnection(connectionParam)) {
             int total = catalog.countTables(connection, database, keyword);
             int offset = (pageNo - 1) * pageSize;
-            List<String> tables = catalog.listTables(connection, database, keyword, offset, pageSize);
-            List<ParamsOptions> options = getParamsOptions(tables);
-            PageInfo<ParamsOptions> page = PageInfo.of(pageNo, pageSize);
+            List<DataSourceCatalogTable> tables =
+                    catalog.listTables(connection, database, keyword, offset, pageSize);
+            PageInfo<DataSourceCatalogTable> page = PageInfo.of(pageNo, pageSize);
             page.setTotal(total);
-            page.setTotalList(options == null ? Collections.emptyList() : options);
+            page.setTotalList(tables);
             return page;
         } catch (Exception e) {
             log.error("Get datasource tables error, datasourceId:{}.", datasourceId, e);
+            throw new ServiceException(Status.GET_DATASOURCE_TABLES_ERROR);
+        }
+    }
+
+    @Override
+    public List<DataSourceCatalogTable> getTableMetadata(
+            User loginUser, long projectCode, Integer datasourceId,
+            String database, List<String> tableNames) {
+        DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+        if (CollectionUtils.isEmpty(tableNames)) {
+            return Collections.emptyList();
+        }
+        DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
+        DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
+        if (catalog == null) {
+            return Collections.emptyList();
+        }
+
+        ConnectionParam connectionParam = processor.createConnectionParams(dataSource.getConnectionParams());
+        try (Connection connection = processor.getConnection(connectionParam)) {
+            return catalog.getTables(connection, database, tableNames);
+        } catch (UnsupportedOperationException e) {
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.error("Get datasource table metadata error, datasourceId:{}.", datasourceId, e);
             throw new ServiceException(Status.GET_DATASOURCE_TABLES_ERROR);
         }
     }
@@ -573,10 +602,34 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
-    public List<ParamsOptions> getTableColumns(User loginUser, long projectCode, Integer datasourceId,
-                                               String database, String table) {
-        checkProjectDataSource(loginUser, projectCode, datasourceId, false);
-        return getTableColumns(loginUser, datasourceId, database, table);
+    public List<DataSourceCatalogColumn> getTableColumns(
+            User loginUser, long projectCode, Integer datasourceId,
+            String database, String table) {
+        DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+        DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
+        DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
+        if (catalog != null) {
+            ConnectionParam connectionParam =
+                    processor.createConnectionParams(dataSource.getConnectionParams());
+            try (Connection connection = processor.getConnection(connectionParam)) {
+                return catalog.listColumns(connection, database, table);
+            } catch (UnsupportedOperationException ignored) {
+                // Fall back to legacy column names for datasource plugins without rich metadata.
+            } catch (Exception e) {
+                log.error("Get datasource table columns error, datasourceId:{}.", datasourceId, e);
+                throw new ServiceException(Status.GET_DATASOURCE_TABLE_COLUMNS_ERROR);
+            }
+        }
+
+        List<ParamsOptions> columns = getTableColumns(loginUser, datasourceId, database, table);
+        if (columns == null) {
+            return Collections.emptyList();
+        }
+        return columns.stream()
+                .map(option -> new DataSourceCatalogColumn(
+                        String.valueOf(option.getValue()),
+                        null, null, null, null, null, null, false, null))
+                .collect(Collectors.toList());
     }
 
     @Override
