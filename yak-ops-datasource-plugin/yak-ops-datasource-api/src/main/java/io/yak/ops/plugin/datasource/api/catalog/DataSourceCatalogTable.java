@@ -1,5 +1,6 @@
 package io.yak.ops.plugin.datasource.api.catalog;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,7 +15,9 @@ public class DataSourceCatalogTable {
         this.name = name;
         this.type = type;
         this.remarks = remarks;
-        this.primaryKeys = primaryKeys == null ? Collections.emptyList() : List.copyOf(primaryKeys);
+        this.primaryKeys = primaryKeys == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(primaryKeys));
     }
 
     public String getName() {
