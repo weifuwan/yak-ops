@@ -52,10 +52,10 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/overview/executions")
     public Result<DataSyncExecutionStatsVO> executionStats(
-                                                            @RequestAttribute(Constants.SESSION_USER) User user,
-                                                            @PathVariable long projectCode,
-                                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-                                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                                                           @RequestAttribute(Constants.SESSION_USER) User user,
+                                                           @PathVariable long projectCode,
+                                                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return Result.success(dataSyncService.getExecutionStats(user, projectCode, startDate, endDate));
     }
 
