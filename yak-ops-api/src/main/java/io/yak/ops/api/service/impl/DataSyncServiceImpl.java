@@ -163,7 +163,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                     unreadable++;
                     continue;
                 }
-                int scope = sources.length > 1 ? 1 : sources[0].endsWith(".\\\\.*") ? 0 : 2;
+                int scope = sources.length > 1 ? 1 : sources[0].endsWith(".\\.*") ? 0 : 2;
                 distribution[scope]["BATCH".equals(mode) ? 0 : 1]++;
             } catch (RuntimeException error) {
                 unreadable++;
