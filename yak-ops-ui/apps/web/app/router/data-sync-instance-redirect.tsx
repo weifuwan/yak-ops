@@ -10,7 +10,7 @@ export function DataSyncInstanceRedirect() {
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
-    void getDataSyncInstance(id)
+    void getDataSyncInstance(id, controller.signal)
       .then((instance) => {
         if (controller.signal.aborted) return;
         setDestination({
