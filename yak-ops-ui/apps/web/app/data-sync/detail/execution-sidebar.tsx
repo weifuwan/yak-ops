@@ -77,12 +77,12 @@ export function ExecutionSidebar({
             执行记录
           </span>
           <Button
-            size="small"
+            size="sm"
             variant="ghost"
             className="sync-execution-icon-button h-7 w-7"
             aria-label="刷新执行记录"
             title="刷新"
-            disabled={instancesLoading}
+            isDisabled={instancesLoading}
             onClick={() => void loadInstances()}
           >
             <RefreshCw size={14} />
@@ -114,7 +114,7 @@ export function ExecutionSidebar({
         {listError ? (
           <div className="flex min-h-32 flex-col items-center justify-center gap-2 text-sm">
             执行记录加载失败
-            <Button size="small" onClick={onRefresh}>
+            <Button variant="secondary" size="sm" onClick={onRefresh}>
               重试
             </Button>
           </div>
@@ -165,9 +165,9 @@ export function ExecutionSidebar({
       {total > PAGE_SIZE ? (
         <div className="flex shrink-0 items-center justify-between border-t border-[var(--yak-components-control-border)] px-3 py-2">
           <Button
-            size="small"
+            size="sm"
             variant="ghost"
-            disabled={pageNo <= 1 || instancesLoading}
+            isDisabled={pageNo <= 1 || instancesLoading}
             onClick={() => changePage(pageNo - 1)}
           >
             上一页
@@ -176,9 +176,9 @@ export function ExecutionSidebar({
             {pageNo} / {totalPages}
           </span>
           <Button
-            size="small"
+            size="sm"
             variant="ghost"
-            disabled={pageNo >= totalPages || instancesLoading}
+            isDisabled={pageNo >= totalPages || instancesLoading}
             onClick={() => changePage(pageNo + 1)}
           >
             下一页

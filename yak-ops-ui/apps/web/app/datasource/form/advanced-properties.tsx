@@ -84,7 +84,7 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
               </Combobox>
             </div>
           ) : null}
-          <Button size="small" onClick={addProperty}>
+          <Button variant="secondary" size="sm" onClick={addProperty}>
             {intl.formatMessage({ id: "pages.datasource.form.addCustomProperty" })}
           </Button>
         </div>
@@ -181,7 +181,7 @@ export function AdvancedProperties({ form }: { form: ReturnType<typeof useDataSo
                     onChange={(event) => patchProperty(index, "value", event.target.value)}
                   />
                   <Button
-                    size="small"
+                    size="sm"
                     variant="ghost"
                     className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
                     onClick={() => removeProperty(index)}

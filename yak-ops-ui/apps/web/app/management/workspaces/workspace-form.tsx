@@ -65,13 +65,13 @@ export default function WorkspaceForm({ open, record, onClose, onSaved }: Worksp
       }}
       footer={
         <>
-          <Button size="small" disabled={saving} onClick={onClose}>
+          <Button variant="secondary" size="sm" isDisabled={saving} onClick={onClose}>
             取消
           </Button>
           <Button
-            size="small"
+            size="sm"
             variant="primary"
-            loading={saving}
+            isPending={saving}
             onClick={() => void handleSubmit()}
           >
             {record ? "保存" : "创建"}

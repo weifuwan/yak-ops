@@ -140,9 +140,9 @@ export function DataSyncTaskLifecycleActions({
           ) : null}
           <Button
             variant="ghost"
-            size="small"
-            loading={action.loading}
-            disabled={action.disabled || (Boolean(actionKey) && !action.loading)}
+            size="sm"
+            isPending={action.loading}
+            isDisabled={action.disabled || (Boolean(actionKey) && !action.loading)}
             className={`px-1 text-xs font-normal ${action.className}`}
             onClick={action.onClick}
           >

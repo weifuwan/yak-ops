@@ -188,7 +188,7 @@ export function DataSourcePage() {
           title={intl.formatMessage({ id: "pages.datasource.page.title" })}
           extra={
             returnTo ? (
-              <Button size="small" onClick={() => navigate(returnTo)}>
+              <Button variant="secondary" size="sm" onClick={() => navigate(returnTo)}>
                 返回同步任务
               </Button>
             ) : undefined
@@ -214,7 +214,7 @@ export function DataSourcePage() {
                   className="mb-3 flex items-center gap-3 text-sm text-[var(--yak-components-muted-text)]"
                 >
                   数据源加载失败
-                  <Button size="small" onClick={() => void pageQuery.refetch()}>
+                  <Button variant="secondary" size="sm" onClick={() => void pageQuery.refetch()}>
                     重试
                   </Button>
                 </div>
@@ -269,12 +269,12 @@ export function DataSourcePage() {
             )}
           </DialogDescription>
           <div className="mt-6 flex justify-end gap-2">
-            <Button disabled={batchDeleting} onClick={() => setBatchDeleteOpen(false)}>
+            <Button variant="secondary" isDisabled={batchDeleting} onClick={() => setBatchDeleteOpen(false)}>
               {intl.formatMessage({ id: "pages.datasource.delete.cancelText" })}
             </Button>
             <Button
               variant="danger"
-              loading={batchDeleting}
+              isPending={batchDeleting}
               onClick={() => void confirmBatchDelete()}
             >
               {intl.formatMessage({ id: "pages.datasource.batch.delete" })}
@@ -300,10 +300,10 @@ export function DataSourcePage() {
             )}
           </DialogDescription>
           <div className="mt-6 flex justify-end gap-2">
-            <Button disabled={deleting} onClick={() => setPendingDelete(undefined)}>
+            <Button variant="secondary" isDisabled={deleting} onClick={() => setPendingDelete(undefined)}>
               {intl.formatMessage({ id: "pages.datasource.delete.cancelText" })}
             </Button>
-            <Button variant="danger" loading={deleting} onClick={() => void confirmDelete()}>
+            <Button variant="danger" isPending={deleting} onClick={() => void confirmDelete()}>
               {intl.formatMessage({ id: "pages.datasource.delete.okText" })}
             </Button>
           </div>

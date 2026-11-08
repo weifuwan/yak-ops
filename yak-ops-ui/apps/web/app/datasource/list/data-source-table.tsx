@@ -187,9 +187,9 @@ const DataSourceTable = ({
           <div className="flex items-center justify-center gap-1">
             <Button
               variant="ghost"
-              size="small"
+              size="sm"
               className="px-0.5 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
-              disabled={batchBusy || (Boolean(editingId) && editingId !== id)}
+              isDisabled={batchBusy || (Boolean(editingId) && editingId !== id)}
               onClick={() => onEdit(record)}
             >
               {intl.formatMessage({ id: "pages.datasource.table.edit" })}
@@ -197,9 +197,9 @@ const DataSourceTable = ({
             <span aria-hidden="true" className="h-3 w-px shrink-0 bg-[#e4e7ec]" />
             <Button
               variant="ghost"
-              size="small"
+              size="sm"
               className="px-0.5 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[#d92d20]"
-              disabled={batchBusy}
+              isDisabled={batchBusy}
               onClick={() => onDelete(record)}
             >
               {intl.formatMessage({ id: "pages.datasource.table.delete" })}
@@ -221,18 +221,18 @@ const DataSourceTable = ({
           onCheckedChange={toggleCurrentPageSelection}
         />
         <Button
-          size="small"
+          size="sm"
           variant="primary"
-          loading={batchDeleting}
-          disabled={selectedRowKeys.length === 0 || batchBusy}
+          isPending={batchDeleting}
+          isDisabled={selectedRowKeys.length === 0 || batchBusy}
           onClick={onBatchDelete}
         >
           {intl.formatMessage({ id: "pages.datasource.batch.delete" })}
         </Button>
-        <Button
-          size="small"
-          loading={batchTesting}
-          disabled={selectedRowKeys.length === 0 || batchBusy}
+        <Button variant="secondary"
+          size="sm"
+          isPending={batchTesting}
+          isDisabled={selectedRowKeys.length === 0 || batchBusy}
           onClick={onBatchTestConnection}
         >
           {intl.formatMessage({ id: "pages.datasource.batch.testConnection" })}

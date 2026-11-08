@@ -87,8 +87,8 @@ export function DataSyncSearchableSelect({
             onChange={(event) => setKeyword(event.target.value)}
             extra={
               onRefresh ? (
-                <Button
-                  size="small"
+                <Button variant="secondary"
+                  size="sm"
                   aria-label="刷新选项"
                   title="刷新"
                   className="w-8 px-0"

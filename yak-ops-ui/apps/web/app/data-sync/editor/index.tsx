@@ -331,7 +331,7 @@ export function TaskEditor({
           {task?.status === "ONLINE" ? <Alert>请先下线任务，再修改或重新发布配置。</Alert> : null}
           {error ? <Alert>{error}</Alert> : null}
           {dataSourcesError ? (
-            <Alert>{dataSourcesError}<Button size="small" onClick={loadDataSources}>重试</Button></Alert>
+            <Alert>{dataSourcesError}<Button variant="secondary" size="sm" onClick={loadDataSources}>重试</Button></Alert>
           ) : null}
           <fieldset disabled={locked} className="min-w-0 space-y-3">
             <DataSourceSection id={task?.id} sourceType={sourceType} targetType={sinkType}
@@ -356,7 +356,7 @@ export function TaskEditor({
                   }}
                   onRefresh={sourceCatalog.refresh}
                   disabled={(table) => selectedTableKeys.has(tableKey(table))} />
-                <Button size="small" disabled={!sourceChecked.length || !sourceId}
+                <Button variant="secondary" size="sm" isDisabled={!sourceChecked.length || !sourceId}
                   onClick={addSelectedSources}>添加 →</Button>
                 <TableTransferPanel title="已选库表" tables={selectedTables}
                   checked={selectedTables.map(tableKey)}
@@ -366,7 +366,7 @@ export function TaskEditor({
               </div>
               {sourceCatalog.error || selectedMetadataQuery.isError || catalogError ? (
                 <Alert>{sourceCatalog.error || (selectedMetadataQuery.isError ? "主键元数据加载失败" : "") || catalogError}
-                  <Button size="small" onClick={sourceCatalog.refresh}>刷新</Button>
+                  <Button variant="secondary" size="sm" onClick={sourceCatalog.refresh}>刷新</Button>
                 </Alert>
               ) : null}
             </ContentSection>
@@ -390,8 +390,8 @@ export function TaskEditor({
           onClose={() => setPreviewYaml(undefined)}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button size="small" onClick={() => void copyPreviewYaml()}>复制</Button>
-              <Button size="small" onClick={() => setPreviewYaml(undefined)}>关闭</Button>
+              <Button variant="secondary" size="sm" onClick={() => void copyPreviewYaml()}>复制</Button>
+              <Button variant="secondary" size="sm" onClick={() => setPreviewYaml(undefined)}>关闭</Button>
             </div>
           }>
           <YamlPreview value={previewYaml} />

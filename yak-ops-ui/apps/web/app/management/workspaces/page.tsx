@@ -43,7 +43,7 @@ export function WorkspaceManagementPage() {
         <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
             <section className="flex shrink-0 items-center">
-              <Button size="small" variant="primary" onClick={openCreate}>
+              <Button size="sm" variant="primary" onClick={openCreate}>
                 <Plus size={14} /> 新建工作空间
               </Button>
             </section>
@@ -51,7 +51,7 @@ export function WorkspaceManagementPage() {
               {error ? (
                 <div role="alert" className="mb-3 flex items-center gap-3 text-sm">
                   工作空间加载失败
-                  <Button size="small" onClick={() => void refreshWorkspaces().catch(() => undefined)}>重试</Button>
+                  <Button variant="secondary" size="sm" onClick={() => void refreshWorkspaces().catch(() => undefined)}>重试</Button>
                 </div>
               ) : null}
               <WorkspaceTable records={workspaces} loading={loading}
@@ -78,8 +78,8 @@ export function WorkspaceManagementPage() {
             确定删除“{pendingDelete?.name || "-"}”吗？存在工作流的项目需要先清理工作流。
           </DialogDescription>
           <div className="mt-6 flex justify-end gap-2">
-            <Button size="small" disabled={deleting} onClick={() => setPendingDelete(undefined)}>取消</Button>
-            <Button size="small" variant="danger" loading={deleting}
+            <Button variant="secondary" size="sm" isDisabled={deleting} onClick={() => setPendingDelete(undefined)}>取消</Button>
+            <Button size="sm" variant="danger" isPending={deleting}
               onClick={() => void performDelete()}>删除</Button>
           </div>
         </DialogContent>

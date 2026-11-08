@@ -18,7 +18,7 @@ export function UserFilters({
 }: Props) {
   return (
     <section className="flex shrink-0 flex-wrap items-center gap-2">
-      <Button size="small" variant="primary" onClick={onCreate}>
+      <Button size="sm" variant="primary" onClick={onCreate}>
         <Plus size={14} />
         新增用户
       </Button>

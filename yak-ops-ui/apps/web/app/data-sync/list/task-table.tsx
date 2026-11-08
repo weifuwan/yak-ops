@@ -214,7 +214,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
       render: (_value, record) =>
         isUnreadable(record) ? (
           <Button
-            size="small"
+            size="sm"
             variant="ghost"
             onClick={() => navigate(`/data-sync/${record.id}/edit`)}
           >

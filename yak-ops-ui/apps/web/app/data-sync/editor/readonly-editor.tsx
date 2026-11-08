@@ -15,7 +15,7 @@ export function ReadonlyTaskEditor({
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            <Button size="small" variant="ghost" onClick={() => navigate("/data-sync")}>
+            <Button size="sm" variant="ghost" onClick={() => navigate("/data-sync")}>
               任务列表
             </Button>
             <span>/ {definition.name}</span>
@@ -31,10 +31,10 @@ export function ReadonlyTaskEditor({
         </pre>
       </main>
       <footer className="flex shrink-0 gap-2 border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-6 py-3">
-        <Button size="small" disabled>
+        <Button variant="secondary" size="sm" isDisabled>
           保存
         </Button>
-        <Button size="small" variant="primary" disabled>
+        <Button size="sm" variant="primary" isDisabled>
           发布
         </Button>
       </footer>

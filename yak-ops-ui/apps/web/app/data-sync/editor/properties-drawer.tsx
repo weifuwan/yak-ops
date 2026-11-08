@@ -36,8 +36,8 @@ export function PropertiesDrawer({
     <EditorDrawer title="属性" width={480} open={open} onClose={onClose} onClosed={onClosed}
       footer={
         <>
-          <Button size="small" variant="primary" onClick={apply}>确认</Button>
-          <Button size="small" onClick={onClose}>取消</Button>
+          <Button size="sm" variant="primary" onClick={apply}>确认</Button>
+          <Button variant="secondary" size="sm" onClick={onClose}>取消</Button>
         </>
       }>
       <div className="space-y-5">

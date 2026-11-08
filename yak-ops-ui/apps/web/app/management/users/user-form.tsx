@@ -120,13 +120,13 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
       }}
       footer={
         <>
-          <Button size="small" disabled={saving} onClick={onClose}>
+          <Button variant="secondary" size="sm" isDisabled={saving} onClick={onClose}>
             取消
           </Button>
           <Button
-            size="small"
+            size="sm"
             variant="primary"
-            loading={saving}
+            isPending={saving}
             onClick={() => void handleSubmit()}
           >
             {editing ? "保存" : "创建"}

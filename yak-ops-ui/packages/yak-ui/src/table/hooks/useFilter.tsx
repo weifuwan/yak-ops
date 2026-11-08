@@ -83,11 +83,11 @@ function TableFilterControl({
         </div>
 
         <div className="mt-1 flex items-center justify-between border-t border-[var(--yak-components-control-border)] pt-2">
-          <Button size="small" variant="ghost" onClick={() => setDraftValues([])}>
+          <Button size="sm" variant="ghost" onClick={() => setDraftValues([])}>
             Reset
           </Button>
           <Button
-            size="small"
+            size="sm"
             variant="primary"
             onClick={() => {
               onConfirm(draftValues);

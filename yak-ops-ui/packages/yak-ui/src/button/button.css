@@ -1,0 +1,141 @@
+/* HeroUI v3 Button visual and motion model, adapted for Yak Ops React 18. */
+.button {
+  --button-bg: transparent;
+  --button-bg-hover: var(--button-bg);
+  --button-bg-pressed: var(--button-bg-hover);
+  --button-fg: currentColor;
+  --button-accent: oklch(0.6204 0.195 253.83);
+  --button-accent-foreground: oklch(0.9911 0 0);
+  --button-default: oklch(94% 0.001 286.375);
+  --button-default-foreground: oklch(0.2103 0.0059 285.89);
+  --button-danger: oklch(0.6532 0.2328 25.74);
+  --button-danger-foreground: oklch(0.9911 0 0);
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  width: fit-content;
+  height: 2.5rem;
+  transform-origin: center;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: 1.5rem;
+  padding: 0 1rem;
+  color: var(--button-fg);
+  background-color: var(--button-bg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transform: translateZ(0);
+  transition: transform 250ms ease, background-color 100ms cubic-bezier(0, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+@media (min-width: 768px) {
+  .button { height: 2.25rem; }
+}
+
+.button:focus-visible, .button[data-focused] {
+  outline: 2px solid var(--button-accent);
+  outline-offset: 2px;
+}
+.button:disabled, .button[aria-disabled="true"], .button[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.button[data-pending="true"] {
+  pointer-events: none;
+  cursor: wait;
+  opacity: 1;
+}
+.button:active, .button[data-pressed] {
+  background-color: var(--button-bg-pressed);
+  transform: scale(0.97);
+}
+@media (hover: hover) {
+  .button:hover, .button[data-hovered] { background-color: var(--button-bg-hover); }
+}
+.button svg:not([data-slot="spinner"] svg, [data-slot="link-icon"] svg) {
+  pointer-events: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0.125rem -0.125rem;
+}
+@media (min-width: 640px) {
+  .button svg:not([data-slot="spinner"] svg, [data-slot="link-icon"] svg) {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+}
+.button--sm { height: 2.25rem; padding-inline: 0.75rem; }
+.button--sm svg:not([data-slot="spinner"] svg, [data-slot="link-icon"] svg) { width: 1rem; height: 1rem; }
+.button--sm:active, .button--sm[data-pressed] { transform: scale(0.98); }
+.button--lg { height: 2.75rem; font-size: 1rem; line-height: 1.5rem; }
+.button--lg:active, .button--lg[data-pressed] { transform: scale(0.96); }
+@media (min-width: 768px) {
+  .button--sm { height: 2rem; }
+  .button--lg { height: 2.5rem; }
+}
+.button--primary {
+  --button-bg: var(--button-accent);
+  --button-bg-hover: color-mix(in oklab, var(--button-accent) 90%, var(--button-accent-foreground) 10%);
+  --button-bg-pressed: var(--button-bg-hover);
+  --button-fg: var(--button-accent-foreground);
+}
+.button--secondary {
+  --button-bg: var(--button-default);
+  --button-bg-hover: color-mix(in oklab, var(--button-default) 96%, var(--button-default-foreground) 4%);
+  --button-bg-pressed: var(--button-bg-hover);
+  --button-fg: var(--button-default-foreground);
+}
+.button--tertiary {
+  --button-bg: var(--button-default);
+  --button-bg-hover: color-mix(in oklab, var(--button-default) 96%, var(--button-default-foreground) 4%);
+  --button-bg-pressed: var(--button-bg-hover);
+}
+.button--ghost, .button--outline {
+  --button-bg: transparent;
+  --button-bg-hover: var(--button-default);
+  --button-bg-pressed: var(--button-default);
+  --button-fg: var(--button-default-foreground);
+}
+.button--outline {
+  border: 1px solid oklch(90% 0.004 286.32);
+  --button-bg-hover: color-mix(in srgb, var(--button-default) 60%, transparent);
+}
+.button--danger {
+  --button-bg: var(--button-danger);
+  --button-bg-hover: color-mix(in oklab, var(--button-danger) 90%, var(--button-danger-foreground) 10%);
+  --button-bg-pressed: var(--button-bg-hover);
+  --button-fg: var(--button-danger-foreground);
+}
+.button--danger-soft {
+  --button-bg: color-mix(in oklab, var(--button-danger) 15%, transparent);
+  --button-bg-hover: color-mix(in oklab, var(--button-danger) 20%, transparent);
+  --button-bg-pressed: var(--button-bg-hover);
+  --button-fg: color-mix(in oklab, var(--button-danger) 70%, var(--button-default-foreground) 40%);
+}
+.button--icon-only { width: 2.5rem; padding: 0; }
+.button--icon-only.button--sm { width: 2.25rem; }
+.button--icon-only.button--lg { width: 2.75rem; }
+.button--full-width { width: 100%; }
+.button.button [role="status"] svg { width: 100%; height: 100%; margin: 0; }
+@media (min-width: 768px) {
+  .button--icon-only { width: 2.25rem; }
+  .button--icon-only.button--sm { width: 2rem; }
+  .button--icon-only.button--lg { width: 2.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+}

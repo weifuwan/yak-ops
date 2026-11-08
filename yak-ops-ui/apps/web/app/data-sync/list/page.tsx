@@ -71,7 +71,7 @@ export function DataSyncPage() {
             {page.error ? (
               <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
                 任务列表加载失败
-                <Button size="small" onClick={page.retry}>
+                <Button variant="secondary" size="sm" onClick={page.retry}>
                   重试
                 </Button>
               </div>
@@ -135,17 +135,17 @@ export function DataSyncPage() {
         }}
         footer={
           <>
-            <Button
-              size="small"
-              disabled={commands.pending}
+            <Button variant="secondary"
+              size="sm"
+              isDisabled={commands.pending}
               onClick={() => setPendingDelete(undefined)}
             >
               取消
             </Button>
             <Button
-              size="small"
+              size="sm"
               variant="danger"
-              loading={commands.actionKey === (pendingDelete?.id || "") + ":delete"}
+              isPending={commands.actionKey === (pendingDelete?.id || "") + ":delete"}
               onClick={() => {
                 if (pendingDelete && canManage(pendingDelete))
                   command({ kind: "delete", task: pendingDelete });

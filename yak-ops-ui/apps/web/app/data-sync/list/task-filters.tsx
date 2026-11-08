@@ -30,7 +30,7 @@ export function TaskFilters({
 }: Props) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
-      <Button size="small" variant="primary" onClick={onCreate}>
+      <Button size="sm" variant="primary" onClick={onCreate}>
         <Plus size={14} />
         新建同步任务
       </Button>

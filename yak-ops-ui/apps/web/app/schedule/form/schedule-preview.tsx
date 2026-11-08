@@ -31,7 +31,7 @@ export function SchedulePreview({ rule }: { rule: ScheduleTimeRule }) {
                     : "暂无未来触发时间"}
           </span>
           {preview.status === "error" ? (
-            <Button size="small" variant="ghost" onClick={preview.retry}>
+            <Button size="sm" variant="ghost" onClick={preview.retry}>
               重试
             </Button>
           ) : null}

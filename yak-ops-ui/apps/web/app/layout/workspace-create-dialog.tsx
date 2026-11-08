@@ -58,13 +58,13 @@ export default function WorkspaceCreateDialog({
           />
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <Button disabled={creating} onClick={close}>
+          <Button variant="secondary" isDisabled={creating} onClick={close}>
             取消
           </Button>
           <Button
             variant="primary"
-            loading={creating}
-            disabled={!name.trim()}
+            isPending={creating}
+            isDisabled={!name.trim()}
             onClick={() => void create()}
           >
             创建

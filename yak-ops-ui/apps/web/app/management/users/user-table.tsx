@@ -91,7 +91,7 @@ export function UserTable({
           <div className="flex items-center justify-center gap-1">
             <Button
               variant="ghost"
-              size="small"
+              size="sm"
               className="px-0.5 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
               onClick={() => onEdit(record)}
             >
@@ -103,8 +103,8 @@ export function UserTable({
             />
             <Button
               variant="ghost"
-              size="small"
-              disabled={deletingSelf}
+              size="sm"
+              isDisabled={deletingSelf}
               title={deletingSelf ? "不能删除当前登录用户" : undefined}
               className="px-0.5 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-danger)]"
               onClick={() => onDelete(record)}

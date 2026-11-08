@@ -76,7 +76,7 @@ export function TableTransferPanel({
         <h3 className="text-xs font-medium">{title}</h3>
         <div className="flex items-center gap-2">
           {onRefresh ? (
-            <Button size="small" aria-label={`刷新${title}`} onClick={onRefresh}>
+            <Button variant="secondary" size="sm" aria-label={`刷新${title}`} onClick={onRefresh}>
               <RefreshCw size={13} />
             </Button>
           ) : null}

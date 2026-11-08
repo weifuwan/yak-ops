@@ -61,21 +61,21 @@ export function ExecutionTabs({
                   自动刷新
                   <Switch size="small" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
                 </label>
-                <Button
-                  size="small"
+                <Button variant="secondary"
+                  size="sm"
                   className="sync-execution-icon-button h-7 w-7"
                   aria-label="刷新执行状态"
                   title="刷新"
-                  loading={refreshing}
+                  isPending={refreshing}
                   onClick={() => void refreshExecution()}
                 >
                   <RefreshCw size={14} />
                 </Button>
                 {canCancelTaskInstance(selectedInstance.status) ? (
                   <Button
-                    size="small"
+                    size="sm"
                     variant="danger"
-                    loading={canceling}
+                    isPending={canceling}
                     onClick={() => void cancel()}
                   >
                     停止

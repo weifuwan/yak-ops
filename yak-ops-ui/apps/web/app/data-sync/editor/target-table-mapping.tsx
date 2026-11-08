@@ -302,7 +302,7 @@ export function TargetTableMapping({
 
                   <div className="px-2 py-2 text-center">
                     <Button
-                      size="small"
+                      size="sm"
                       variant="ghost"
                       className="text-xs font-normal text-[var(--yak-color-danger)]"
                       onClick={() =>
@@ -539,8 +539,8 @@ function SourceTableColumnsPopover({
 
         {columnsQuery.isError ? (
           <div className="flex justify-end border-t border-[var(--yak-components-panel-border)] px-3 py-2">
-            <Button
-              size="small"
+            <Button variant="secondary"
+              size="sm"
               onClick={() =>
                 void columnsQuery.refetch()
               }

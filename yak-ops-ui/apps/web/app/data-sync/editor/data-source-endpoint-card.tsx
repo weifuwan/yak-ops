@@ -66,7 +66,7 @@ export function DataSourceEndpointCard({
             onRefresh={onRefresh}
             footer={
               <Button
-                size="small"
+                size="sm"
                 variant="ghost"
                 className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
                 onClick={onCreateDataSource}

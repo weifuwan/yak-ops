@@ -214,9 +214,9 @@ export default function LoginPanel({
 
         <Button
           variant="primary"
-          size="large"
+          size="lg"
           type="submit"
-          loading={loading}
+          isPending={loading}
           className="login-form-submit mt-6 w-full"
           style={{ borderRadius: "var(--yak-radius-full)" }}
         >

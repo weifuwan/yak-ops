@@ -1,54 +1,61 @@
-import type { Button as BaseButtonNS } from "@base-ui/react/button";
 import { Button as BaseButton } from "@base-ui/react/button";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { Button as BaseButtonNS } from "@base-ui/react/button";
 import { forwardRef, type ForwardedRef } from "react";
 
 import { cn } from "../cn";
 import { Spinner } from "../spinner";
 
-export const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center whitespace-nowrap font-medium outline-none transition-[background-color,border-color,color,box-shadow,transform] duration-150 focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-button-focus-ring)] data-disabled:cursor-not-allowed data-disabled:opacity-45",
-  {
-    variants: {
-      variant: {
-        primary:
-          "border border-[var(--yak-components-button-primary-bg)] bg-[var(--yak-components-button-primary-bg)] [color:var(--yak-components-button-primary-text)] hover:border-[var(--yak-components-button-primary-bg-hover)] hover:bg-[var(--yak-components-button-primary-bg-hover)] active:border-[var(--yak-components-button-primary-bg-active)] active:bg-[var(--yak-components-button-primary-bg-active)]",
-        secondary:
-          "border border-transparent bg-[var(--yak-components-button-secondary-bg)] [color:var(--yak-components-button-secondary-text)] hover:bg-[var(--yak-components-button-secondary-bg-hover)] active:bg-[var(--yak-components-button-secondary-bg-active)]",
-        ghost:
-          "border border-transparent bg-transparent [color:var(--yak-components-button-ghost-text)] hover:bg-[var(--yak-components-button-ghost-bg-hover)] hover:[color:var(--yak-components-button-secondary-text)] active:bg-[var(--yak-components-button-secondary-bg-active)]",
-        danger:
-          "border border-transparent bg-[var(--yak-components-button-danger-bg)] [color:var(--yak-components-button-danger-text)] hover:bg-[var(--yak-components-button-danger-bg-hover)] active:bg-[var(--yak-components-button-danger-bg-active)]",
-      },
-      size: {
-        small:
-          "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-[length:var(--yak-font-size-control-small)]",
-        medium:
-          "h-[34px] gap-[7px] rounded-[var(--yak-radius-control-medium)] px-[13px] text-[length:var(--yak-font-size-control-medium)]",
-        large:
-          "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-4 text-[length:var(--yak-font-size-control-large)]",
-      },
-    },
-    defaultVariants: {
-      variant: "secondary",
-      size: "medium",
-    },
-  },
-);
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "tertiary"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "danger-soft";
 
-export type ButtonProps = Omit<BaseButtonNS.Props, "className" | "ref"> &
-  VariantProps<typeof buttonVariants> & {
+export type ButtonSize = "sm" | "md" | "lg";
+
+export interface ButtonVariants {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  isIconOnly?: boolean;
+  fullWidth?: boolean;
+}
+
+export function buttonVariants({
+  variant = "primary",
+  size = "md",
+  isIconOnly = false,
+  fullWidth = false,
+}: ButtonVariants = {}) {
+  return cn(
+    "button",
+    `button--${variant}`,
+    `button--${size}`,
+    isIconOnly && "button--icon-only",
+    fullWidth && "button--full-width",
+  );
+}
+
+export type ButtonProps = Omit<
+  BaseButtonNS.Props,
+  "className" | "disabled" | "focusableWhenDisabled" | "ref"
+> &
+  ButtonVariants & {
     className?: string;
-    loading?: boolean;
+    isDisabled?: boolean;
+    isPending?: boolean;
   };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+export const ButtonRoot = forwardRef<HTMLButtonElement, ButtonProps>(function ButtonRoot(
   {
     children,
     className,
-    disabled,
-    focusableWhenDisabled,
-    loading = false,
+    fullWidth,
+    isDisabled,
+    isIconOnly,
+    isPending = false,
     size,
     type = "button",
     variant,
@@ -61,30 +68,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...props}
       ref={ref as ForwardedRef<HTMLElement>}
       type={type}
-      disabled={disabled || loading}
-      focusableWhenDisabled={focusableWhenDisabled ?? loading}
-      aria-busy={loading || undefined}
-      className={cn(
-        buttonVariants({ size, variant }),
-        loading && "relative data-disabled:cursor-wait data-disabled:opacity-100",
-        className,
-      )}
+      data-slot="button"
+      data-pending={isPending ? "true" : undefined}
+      disabled={Boolean(isDisabled || isPending)}
+      focusableWhenDisabled={isPending && !isDisabled}
+      aria-busy={isPending || undefined}
+      className={cn(buttonVariants({ fullWidth, isIconOnly, size, variant }), className)}
     >
-      {loading ? (
-        <span className="inline-flex items-center gap-[inherit] opacity-0">{children}</span>
+      {isPending ? (
+        <>
+          <span className="inline-flex items-center gap-2 opacity-0">{children}</span>
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
+            <Spinner size={size === "lg" ? "large" : size === "sm" ? "small" : "medium"} className="text-current" />
+          </span>
+        </>
       ) : (
         children
       )}
-      {loading ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          <Spinner size={size ?? "medium"} className="text-current" />
-        </span>
-      ) : null}
     </BaseButton>
   );
 });
 
-Button.displayName = "Button";
+ButtonRoot.displayName = "Button";
+export const Button = Object.assign(ButtonRoot, { Root: ButtonRoot });

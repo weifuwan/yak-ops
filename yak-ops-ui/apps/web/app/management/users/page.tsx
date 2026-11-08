@@ -101,7 +101,7 @@ export function UserManagementPage() {
                   className="mb-3 flex items-center gap-3 text-sm text-[var(--yak-components-muted-text)]"
                 >
                   用户加载失败
-                  <Button size="small" onClick={() => void page.refetch()}>
+                  <Button variant="secondary" size="sm" onClick={() => void page.refetch()}>
                     重试
                   </Button>
                 </div>
@@ -149,17 +149,17 @@ export function UserManagementPage() {
             确定删除用户“{pendingDelete?.userName || "-"}”吗？删除后无法通过该账号登录。
           </DialogDescription>
           <div className="mt-6 flex justify-end gap-2">
-            <Button
-              size="small"
-              disabled={remove.isPending}
+            <Button variant="secondary"
+              size="sm"
+              isDisabled={remove.isPending}
               onClick={() => setPendingDelete(undefined)}
             >
               取消
             </Button>
             <Button
-              size="small"
+              size="sm"
               variant="danger"
-              loading={remove.isPending}
+              isPending={remove.isPending}
               onClick={() => {
                 if (pendingDelete && pendingDelete.id !== currentUser?.id)
                   remove.mutate(pendingDelete.id);

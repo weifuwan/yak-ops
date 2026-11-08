@@ -75,7 +75,7 @@ export function MemberDialog({ workspace, onClose }: Props) {
       key: "actions", title: "操作", width: 110,
       render: (_value, member) =>
         isAdmin && member.userId !== workspace.ownerId ? (
-          <Button size="small" variant="ghost" disabled={remove.isPending}
+          <Button size="sm" variant="ghost" isDisabled={remove.isPending}
             onClick={() => remove.mutate(member.userId)}>撤销授权</Button>
         ) : null,
     },
@@ -88,7 +88,7 @@ export function MemberDialog({ workspace, onClose }: Props) {
             成员权限由现有 Project 授权体系管理。撤销授权仅系统管理员可操作。
           </span>
           {canAdd ? (
-            <Button size="small" variant="primary" onClick={() => setAdding(true)}>
+            <Button size="sm" variant="primary" onClick={() => setAdding(true)}>
               <Plus size={14} /> 添加成员
             </Button>
           ) : null}
@@ -102,17 +102,17 @@ export function MemberDialog({ workspace, onClose }: Props) {
                 <option key={user.id} value={user.id}>{user.userName}</option>
               ))}
             </select>
-            <Button size="small" variant="primary" loading={add.isPending}
-              disabled={!selectedUserId || usersQuery.isLoading}
+            <Button size="sm" variant="primary" isPending={add.isPending}
+              isDisabled={!selectedUserId || usersQuery.isLoading}
               onClick={() => add.mutate(selectedUserId)}>授权写入权限</Button>
-            <Button size="small" disabled={add.isPending} onClick={() => setAdding(false)}>取消</Button>
+            <Button variant="secondary" size="sm" isDisabled={add.isPending} onClick={() => setAdding(false)}>取消</Button>
             {usersQuery.isError ? <span role="alert" className="text-xs text-red-600">用户列表加载失败</span> : null}
           </div>
         ) : null}
         {membersQuery.isError ? (
           <div role="alert" className="text-sm">
             成员列表加载失败
-            <Button size="small" onClick={() => void membersQuery.refetch()}>重试</Button>
+            <Button variant="secondary" size="sm" onClick={() => void membersQuery.refetch()}>重试</Button>
           </div>
         ) : null}
         <Table<WorkspaceMemberRecord>

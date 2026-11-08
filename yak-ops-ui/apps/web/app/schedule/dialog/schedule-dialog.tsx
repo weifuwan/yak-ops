@@ -78,24 +78,24 @@ function ScheduleDialogSession({
               <div className="mr-auto">
                 {schedule ? (
                   <Button
-                    size="small"
+                    size="sm"
                     variant="danger"
-                    disabled={pending || loading || needsReload}
+                    isDisabled={pending || isPending || needsReload}
                     onClick={() => setConfirmation("delete")}
                   >
                     删除调度
                   </Button>
                 ) : null}
               </div>
-              <Button size="small" disabled={pending} onClick={close}>
+              <Button variant="secondary" size="sm" isDisabled={pending} onClick={close}>
                 关闭
               </Button>
               <Button
-                size="small"
+                size="sm"
                 variant="primary"
-                loading={pending}
-                disabled={
-                  loading ||
+                isPending={pending}
+                isDisabled={
+                  isPending ||
                   needsReload ||
                   Boolean(schedule?.enabled) ||
                   !form.cronExpression.trim() ||
@@ -107,7 +107,7 @@ function ScheduleDialogSession({
               </Button>
             </>
           ) : (
-            <Button size="small" onClick={close}>
+            <Button variant="secondary" size="sm" onClick={close}>
               关闭
             </Button>
           )
@@ -133,13 +133,13 @@ function ScheduleDialogSession({
                   <Alert>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span>{error}</span>
-                      <Button
-                        size="small"
+                      <Button variant="secondary"
+                        size="sm"
                         onClick={() => {
                           if (dirty) setConfirmation("reload");
                           else void reload();
                         }}
-                        disabled={pending}
+                        isDisabled={pending}
                       >
                         重新加载
                       </Button>
@@ -227,11 +227,11 @@ function ScheduleDialogSession({
         closeLabel="关闭确认"
         footer={
           <>
-            <Button size="small" onClick={() => setConfirmation(undefined)}>
+            <Button variant="secondary" size="sm" onClick={() => setConfirmation(undefined)}>
               取消
             </Button>
             <Button
-              size="small"
+              size="sm"
               variant="danger"
               onClick={() => {
                 if (confirmation === "delete") void remove();

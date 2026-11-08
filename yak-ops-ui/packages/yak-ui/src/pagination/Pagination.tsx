@@ -87,9 +87,9 @@ export function Pagination({
       ) : null}
 
       <Button
-        size="small"
+        size="sm"
         variant="ghost"
-        disabled={disabled || currentPage <= 1}
+        isDisabled={disabled || currentPage <= 1}
         aria-label="Previous page"
         className={paginationButtonClass}
         onClick={() => onChange(currentPage - 1, pageSize)}
@@ -104,9 +104,9 @@ export function Pagination({
           typeof item === "number" ? (
             <Button
               key={item}
-              size="small"
+              size="sm"
               variant="ghost"
-              disabled={disabled}
+              isDisabled={disabled}
               aria-current={item === currentPage ? "page" : undefined}
               className={cn(
                 paginationButtonClass,
@@ -128,9 +128,9 @@ export function Pagination({
       </div>
 
       <Button
-        size="small"
+        size="sm"
         variant="ghost"
-        disabled={disabled || currentPage >= totalPages}
+        isDisabled={disabled || currentPage >= totalPages}
         aria-label="Next page"
         className={paginationButtonClass}
         onClick={() => onChange(currentPage + 1, pageSize)}
@@ -173,9 +173,9 @@ export function Pagination({
               <NumberFieldInput aria-label="Page number" />
             </NumberFieldGroup>
           </NumberField>
-          <Button
-            size="small"
-            disabled={disabled || jumpPage == null}
+          <Button variant="secondary"
+            size="sm"
+            isDisabled={disabled || jumpPage == null}
             onClick={() =>
               onChange(Math.min(Math.max(jumpPage ?? currentPage, 1), totalPages), pageSize)
             }

@@ -1,3 +1,4 @@
+@import "./button/button.css";
 @import "./input/floating-label.css";
 @import "./overlay/overlay-motion.css";
 
@@ -25,11 +26,6 @@
   --yak-font-size-control-medium: 13px;
   --yak-font-size-control-large: 14px;
 
-  --yak-components-button-primary-bg: var(--yak-color-primary);
-  --yak-components-button-primary-bg-hover: var(--yak-color-primary-hover);
-  --yak-components-button-primary-bg-active: var(--yak-color-primary-active);
-  --yak-components-button-primary-text: #ffffff;
-
   --yak-components-button-secondary-bg: #f4f4f6;
   --yak-components-button-secondary-bg-hover: #ededf0;
   --yak-components-button-secondary-bg-active: #e5e5e9;
@@ -37,11 +33,6 @@
 
   --yak-components-button-ghost-text: #667085;
   --yak-components-button-ghost-bg-hover: #f4f4f6;
-
-  --yak-components-button-danger-bg: #fff1f2;
-  --yak-components-button-danger-bg-hover: #ffe6e9;
-  --yak-components-button-danger-bg-active: #ffdadd;
-  --yak-components-button-danger-text: #d92d20;
 
   --yak-components-button-focus-ring: var(--yak-color-primary-ring);
 

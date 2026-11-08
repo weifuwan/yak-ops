@@ -451,7 +451,7 @@ export function AdvancedConfigDrawer({
       footer={
         <>
           <Button
-            size="small"
+            size="sm"
             variant="primary"
             onClick={() =>
               onApply(structuredClone(form))
@@ -460,8 +460,8 @@ export function AdvancedConfigDrawer({
             确认
           </Button>
 
-          <Button
-            size="small"
+          <Button variant="secondary"
+            size="sm"
             onClick={onClose}
           >
             取消
@@ -713,7 +713,7 @@ function AdvancedOptionTable({
 
                 {configured ? (
                   <Button
-                    size="small"
+                    size="sm"
                     variant="ghost"
                     className="!h-auto !min-h-0 !px-0 !py-0 text-xs font-normal text-[var(--yak-color-primary)]"
                     onClick={() =>

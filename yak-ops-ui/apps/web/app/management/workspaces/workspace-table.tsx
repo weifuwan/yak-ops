@@ -41,11 +41,11 @@ export function WorkspaceTable({
         const canWrite = isAdmin || record.ownerId === currentUserId;
         return (
           <div className="flex items-center gap-1">
-            <Button size="small" variant="ghost" onClick={() => onMembers(record)}>成员</Button>
+            <Button size="sm" variant="ghost" onClick={() => onMembers(record)}>成员</Button>
             {canWrite ? (
               <>
-                <Button size="small" variant="ghost" onClick={() => onEdit(record)}>编辑</Button>
-                <Button size="small" variant="ghost" onClick={() => onDelete(record)}>删除</Button>
+                <Button size="sm" variant="ghost" onClick={() => onEdit(record)}>编辑</Button>
+                <Button size="sm" variant="ghost" onClick={() => onDelete(record)}>删除</Button>
               </>
             ) : null}
           </div>

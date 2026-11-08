@@ -74,7 +74,7 @@ export function DataSyncTaskEditorPage() {
   if (query.isError) return (
     <div className="p-6"><Alert>
       {query.error instanceof Error ? query.error.message : "任务加载失败"}
-      <Button size="small" onClick={() => void query.refetch()}>重试</Button>
+      <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>重试</Button>
     </Alert></div>
   );
   if (!query.data) return <div className="p-8 text-sm">正在加载同步任务...</div>;

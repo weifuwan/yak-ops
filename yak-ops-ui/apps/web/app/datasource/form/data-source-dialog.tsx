@@ -46,14 +46,14 @@ export function DataSourceForm(props: DataSourceFormProps) {
       bodyClassName={createStep === "config" ? "py-3" : undefined}
       footer={
         !editing && createStep === "select" ? (
-          <Button size="small" disabled={busy} onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" size="sm" isDisabled={busy} onClick={() => onOpenChange(false)}>
             {intl.formatMessage({ id: "pages.datasource.modal.button.cancel" })}
           </Button>
         ) : (
           <div className="flex w-full items-center justify-between">
-            <Button
-              size="small"
-              disabled={busy}
+            <Button variant="secondary"
+              size="sm"
+              isDisabled={busy}
               onClick={() => {
                 if (editing) onOpenChange(false);
                 else setCreateStep("select");
@@ -66,19 +66,19 @@ export function DataSourceForm(props: DataSourceFormProps) {
               })}
             </Button>
             <div className="flex gap-2">
-              <Button
-                size="small"
-                loading={testing}
-                disabled={submitting}
+              <Button variant="secondary"
+                size="sm"
+                isPending={testing}
+                isDisabled={submitting}
                 onClick={() => void handleTest()}
               >
                 {intl.formatMessage({ id: "pages.datasource.modal.button.connTest" })}
               </Button>
               <Button
-                size="small"
+                size="sm"
                 variant="primary"
-                loading={submitting}
-                disabled={testing}
+                isPending={submitting}
+                isDisabled={testing}
                 onClick={() => void handleSubmit()}
               >
                 {intl.formatMessage({

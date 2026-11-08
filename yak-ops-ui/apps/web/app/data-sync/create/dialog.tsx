@@ -47,8 +47,8 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
     <Modal open centered width={560} title="新建同步任务" onClose={onClose}
       footer={
         <>
-          <Button size="small" onClick={onClose}>取消</Button>
-          <Button size="small" variant="primary" disabled={!ready || !name.trim()} onClick={next}>
+          <Button variant="secondary" size="sm" onClick={onClose}>取消</Button>
+          <Button size="sm" variant="primary" isDisabled={!ready || !name.trim()} onClick={next}>
             下一步
           </Button>
         </>

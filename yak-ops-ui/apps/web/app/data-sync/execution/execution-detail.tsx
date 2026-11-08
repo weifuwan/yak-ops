@@ -267,7 +267,7 @@ export function DataSyncExecutionDetailContent({
             <span>调度版本：{record.scheduleRevision}</span>
           ) : null}
           {record.scheduleId && onViewScheduleHistory ? (
-            <Button size="small" variant="ghost" onClick={onViewScheduleHistory}>
+            <Button size="sm" variant="ghost" onClick={onViewScheduleHistory}>
               触发记录
             </Button>
           ) : null}

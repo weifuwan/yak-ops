@@ -71,7 +71,7 @@ export function ScheduleFireHistory({
       width: 110,
       render: (_value, row) =>
         row.outcome === "ADMITTED" && row.instanceId ? (
-          <Button size="small" variant="ghost" onClick={() => onViewInstance(row.instanceId!)}>
+          <Button size="sm" variant="ghost" onClick={() => onViewInstance(row.instanceId!)}>
             查看实例
           </Button>
         ) : (
@@ -133,9 +133,9 @@ export function ScheduleFireHistory({
           />
           {invalidRange ? <FieldError match>结束时间须晚于开始时间</FieldError> : null}
         </Field>
-        <Button
-          size="small"
-          disabled={loading || invalidRange}
+        <Button variant="secondary"
+          size="sm"
+          isDisabled={loading || invalidRange}
           onClick={() => void query.refetch()}
         >
           刷新

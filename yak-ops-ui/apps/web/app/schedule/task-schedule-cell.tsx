@@ -31,7 +31,7 @@ export function TaskScheduleCell({
     );
   if (error)
     return (
-      <Button size="small" variant="ghost" onClick={onConfigure}>
+      <Button size="sm" variant="ghost" onClick={onConfigure}>
         调度加载失败
       </Button>
     );
@@ -40,7 +40,7 @@ export function TaskScheduleCell({
     <div className="min-w-0 space-y-1">
       <div className="flex items-center gap-2">
         <Button
-          size="small"
+          size="sm"
           variant="ghost"
           className="min-w-0 px-0 font-mono text-xs"
           onClick={onConfigure}

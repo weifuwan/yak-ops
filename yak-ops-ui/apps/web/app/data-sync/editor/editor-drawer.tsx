@@ -39,14 +39,14 @@ export function EditorDrawer({
       <DrawerContent width={width} data-base-ui-swipe-ignore="">
         <header className="flex shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-5 py-3">
           <DrawerTitle className="text-base font-semibold">{title}</DrawerTitle>
-          <Button variant="ghost" size="small" aria-label={`关闭${title}`} onClick={onClose}>
+          <Button variant="ghost" size="sm" aria-label={`关闭${title}`} onClick={onClose}>
             <X size={16} />
           </Button>
         </header>
         <DrawerBody>{children}</DrawerBody>
         <footer className="flex shrink-0 items-center gap-2 border-t border-[var(--yak-components-panel-border)] px-5 py-3">
           {footer || (
-            <Button size="small" onClick={onClose}>
+            <Button variant="secondary" size="sm" onClick={onClose}>
               关闭
             </Button>
           )}

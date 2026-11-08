@@ -1,14 +1,4 @@
-/* A login-only neutral action. Shared Button behavior and other pages stay unchanged. */
 .login-form-submit {
-  --yak-components-button-primary-bg: var(--yak-components-page-header-title);
-  --yak-components-button-primary-bg-hover: color-mix(
-    in srgb,
-    var(--yak-components-page-header-title) 90%,
-    #000
-  );
-  --yak-components-button-primary-bg-active: color-mix(
-    in srgb,
-    var(--yak-components-page-header-title) 82%,
-    #000
-  );
+  --button-accent: var(--yak-components-page-header-title);
+  --button-accent-foreground: #fff;
 }

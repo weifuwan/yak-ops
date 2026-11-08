@@ -37,7 +37,7 @@ export function TaskSummary({ task, updatedBy, dataSources, onCopyTaskId }: Prop
               {task.id}
             </span>
             <Button
-              size="small"
+              size="sm"
               variant="ghost"
               className="sync-execution-icon-button h-6 w-6 shrink-0"
               aria-label="复制任务 ID"

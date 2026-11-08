@@ -89,11 +89,11 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         />
         <Button
           variant="ghost"
-          size="small"
+          size="sm"
           type="button"
           aria-label={visible ? hidePasswordLabel : showPasswordLabel}
           aria-pressed={visible}
-          disabled={props.disabled}
+          isDisabled={props.disabled}
           style={variant === "underlined" ? { padding: 0, width: 32, height: 32 } : undefined}
           className={cn(
             "absolute top-1/2 h-7 w-7 -translate-y-1/2 p-0 text-[var(--yak-components-input-icon)]",

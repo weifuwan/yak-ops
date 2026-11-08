@@ -97,9 +97,9 @@ export function DataSyncTaskDetailPage() {
           extra={
             <>
               {supportsScheduling ? (
-                <Button
-                  size="small"
-                  disabled={Boolean(task.configurationError)}
+                <Button variant="secondary"
+                  size="sm"
+                  isDisabled={Boolean(task.configurationError)}
                   onClick={() => {
                     setHistoryScheduleId(undefined);
                     setScheduleOpen(true);
@@ -112,10 +112,10 @@ export function DataSyncTaskDetailPage() {
                 <span className="text-sm text-[var(--yak-components-muted-text)]">已归档 · 仅可查看历史</span>
               ) : task.status === "ONLINE" ? (
                 !activeInstance && !pendingWorkflowInstanceId ? (
-                  <Button
-                    size="small"
-                    loading={running}
-                    disabled={!canStart}
+                  <Button variant="secondary"
+                    size="sm"
+                    isPending={running}
+                    isDisabled={!canStart}
                     onClick={() => void run()}
                   >
                     {realtime ? "启动" : "运行"}
@@ -125,21 +125,21 @@ export function DataSyncTaskDetailPage() {
                     <span className="text-sm text-[var(--yak-components-muted-text)]">
                       已提交 · 等待任务派发
                     </span>
-                    <Button size="small" loading={canceling} onClick={() => void cancel()}>
+                    <Button variant="secondary" size="sm" isPending={canceling} onClick={() => void cancel()}>
                       停止
                     </Button>
                   </div>
                 ) : null
               ) : (
-                <Button
-                  size="small"
-                  disabled={!canStart}
+                <Button variant="secondary"
+                  size="sm"
+                  isDisabled={!canStart}
                   onClick={() => navigate(basePath + "/" + task.id + "/edit")}
                 >
                   编辑
                 </Button>
               )}
-              <Button size="small" onClick={() => navigate(basePath)}>
+              <Button variant="secondary" size="sm" onClick={() => navigate(basePath)}>
                 返回任务列表
               </Button>
             </>

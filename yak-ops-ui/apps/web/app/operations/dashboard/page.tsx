@@ -75,7 +75,7 @@ export function OperationsDashboardPage({ syncType }: { syncType: DataSyncType }
             className="flex items-center gap-3 text-sm text-[var(--yak-color-danger)]"
           >
             {snapshot ? "统计刷新失败" : "统计加载失败"}
-            <Button size="small" onClick={() => void query.refetch()} disabled={query.isFetching}>
+            <Button variant="secondary" size="sm" onClick={() => void query.refetch()} isDisabled={query.isFetching}>
               重试
             </Button>
           </div>

@@ -829,19 +829,19 @@ export function CronSchedulerPicker({
           <div className="flex items-center justify-between gap-3">
             <div>
               {allowClear && value ? (
-                <Button size="small" variant="ghost" disabled={disabled} onClick={clear}>
+                <Button size="sm" variant="ghost" isDisabled={disabled} onClick={clear}>
                   清除
                 </Button>
               ) : null}
             </div>
             <div className="flex items-center gap-2">
-              <Button size="small" disabled={disabled} onClick={() => setOpen(false)}>
+              <Button variant="secondary" size="sm" isDisabled={disabled} onClick={() => setOpen(false)}>
                 取消
               </Button>
               <Button
-                size="small"
+                size="sm"
                 variant="primary"
-                disabled={disabled || !draftCron.trim()}
+                isDisabled={disabled || !draftCron.trim()}
                 onClick={commit}
               >
                 确认

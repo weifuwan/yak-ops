@@ -93,10 +93,10 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
         onClose={() => resolve(false)}
         footer={
           <>
-            <Button size="small" onClick={() => resolve(false)}>
+            <Button variant="secondary" size="sm" onClick={() => resolve(false)}>
               继续编辑
             </Button>
-            <Button size="small" variant="primary" onClick={() => resolve(true)}>
+            <Button size="sm" variant="primary" onClick={() => resolve(true)}>
               放弃修改并离开
             </Button>
           </>
