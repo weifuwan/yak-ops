@@ -34,8 +34,8 @@ import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
-import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
+import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
@@ -58,8 +58,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -259,8 +259,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         Date startTime = Date.from(startDate.atStartOfDay(zone).toInstant());
         Date endTime = Date.from(endDate.plusDays(1).atStartOfDay(zone).toInstant());
         Map<String, DataSyncExecutionStatsVO.Daily> days = new LinkedHashMap<>();
-        for (DataSyncExecutionDailyRow row :
-                taskInstanceDao.queryDataSyncDailyExecution(projectCode, startTime, endTime)) {
+        for (DataSyncExecutionDailyRow row : taskInstanceDao.queryDataSyncDailyExecution(
+                projectCode, startTime, endTime)) {
             if (row.getBucketDate() == null || row.getExecuteType() == null || row.getState() == null) {
                 continue;
             }
