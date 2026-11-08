@@ -224,7 +224,7 @@ export function MultiTableTaskEditor(props: TaskEditorProps) {
             checked={[]}
             onCheckedChange={() => undefined}
             hideFilters
-            disabled={() => true}
+            selectable={false}
           />
         </div>
 
