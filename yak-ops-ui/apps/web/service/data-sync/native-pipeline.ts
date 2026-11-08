@@ -18,6 +18,9 @@ export interface PipelineTableMapping {
   target: PipelineTable;
 }
 
+export type PipelineTransformKey = "projection" | "filter" | "primary-keys";
+
+
 const TABLE_PATH = /^[A-Za-z0-9_$-]+\.[A-Za-z0-9_$-]+$/;
 
 export const SCHEMA_CHANGE_BEHAVIORS: readonly DataSyncSchemaChangeBehavior[] = [
@@ -108,6 +111,92 @@ export function targetTableName(
   return target?.table || "";
 }
 
+export function transformValue(
+  definition: PipelineDefinition,
+  source: PipelineTable,
+  key: PipelineTransformKey,
+): string {
+  const sourcePath = tablePath(source);
+  const transform = definition.transform?.find(
+    (item) => item["source-table"] === sourcePath,
+  );
+  const value = transform?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+export function setPipelineTransformValue(
+  definition: PipelineDefinition,
+  source: PipelineTable,
+  key: PipelineTransformKey,
+  value: string,
+): PipelineDefinition {
+  const next = structuredClone(definition);
+  const sourcePath = tablePath(source);
+  const transforms = next.transform || [];
+  let transform = transforms.find((item) => item["source-table"] === sourcePath);
+  const nextValue = value.trim();
+
+  if (nextValue) {
+    if (!transform) {
+      transform = { "source-table": sourcePath };
+      transforms.push(transform);
+    }
+    transform[key] = nextValue;
+  } else if (transform) {
+    delete transform[key];
+  }
+
+  next.transform = transforms.filter((item) =>
+    Object.keys(item).some((itemKey) => itemKey !== "source-table"),
+  );
+  if (!next.transform.length) delete next.transform;
+  return next;
+}
+
+function chunkKeyColumns(definition: PipelineDefinition): Map<string, string> {
+  const value = definition.source["scan.incremental.snapshot.chunk.key-column"];
+  const result = new Map<string, string>();
+  if (typeof value !== "string") return result;
+
+  for (const item of value.split(";")) {
+    const entry = item.trim();
+    if (!entry) continue;
+    const separator = entry.lastIndexOf(":");
+    if (separator <= 0 || separator === entry.length - 1) continue;
+    result.set(entry.slice(0, separator), entry.slice(separator + 1));
+  }
+  return result;
+}
+
+export function chunkKeyColumn(
+  definition: PipelineDefinition,
+  source: PipelineTable,
+): string {
+  return chunkKeyColumns(definition).get(tablePath(source)) || "";
+}
+
+export function setPipelineChunkKeyColumn(
+  definition: PipelineDefinition,
+  source: PipelineTable,
+  column: string,
+): PipelineDefinition {
+  const next = structuredClone(definition);
+  const values = chunkKeyColumns(next);
+  const sourcePath = tablePath(source);
+  const nextColumn = column.trim();
+
+  if (nextColumn) values.set(sourcePath, nextColumn);
+  else values.delete(sourcePath);
+
+  if (values.size) {
+    next.source["scan.incremental.snapshot.chunk.key-column"] =
+      Array.from(values, ([table, key]) => table + ":" + key).join(";");
+  } else {
+    delete next.source["scan.incremental.snapshot.chunk.key-column"];
+  }
+  return next;
+}
+
 export function createPipelineDefinition(): PipelineDefinition {
   return {
     source: {
@@ -154,7 +243,9 @@ export function setPipelineDatasource(
   if (side === "source") {
     next.source["datasource-id"] = id;
     next.source.tables = "";
+    delete next.source["scan.incremental.snapshot.chunk.key-column"];
     next.route = [];
+    delete next.transform;
   } else {
     next.sink["datasource-id"] = id;
     next.route = next.route.map((route) => ({ ...route, "sink-table": "" }));
@@ -169,7 +260,9 @@ export function setPipelineSourceTable(
   const next = structuredClone(definition);
   const path = tablePath(table);
   next.source.tables = path;
+  delete next.source["scan.incremental.snapshot.chunk.key-column"];
   next.route = [{ "source-table": path, "sink-table": "" }];
+  delete next.transform;
   return next;
 }
 
@@ -211,6 +304,20 @@ export function removePipelineSourceTable(
     .map((route) => String(route["source-table"] || ""))
     .filter(Boolean)
     .join(",");
+
+  if (next.transform) {
+    next.transform = next.transform.filter((item) => item["source-table"] !== path);
+    if (!next.transform.length) delete next.transform;
+  }
+
+  const chunkKeys = chunkKeyColumns(next);
+  chunkKeys.delete(path);
+  if (chunkKeys.size) {
+    next.source["scan.incremental.snapshot.chunk.key-column"] =
+      Array.from(chunkKeys, ([table, key]) => table + ":" + key).join(";");
+  } else {
+    delete next.source["scan.incremental.snapshot.chunk.key-column"];
+  }
   return next;
 }
 
@@ -348,9 +455,48 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
     throw new Error("包含不支持的 Schema 变更类型");
   }
 
-  if (definition.transform !== undefined &&
-      (!Array.isArray(definition.transform) || definition.transform.length !== 0)) {
-    throw new Error("当前 Runtime 不支持 Transform");
+  if (definition.transform !== undefined) {
+    if (!Array.isArray(definition.transform)) {
+      throw new Error("Transform 配置无效");
+    }
+    const transformedSources = new Set<string>();
+    for (const transform of definition.transform) {
+      if (!object(transform)) throw new Error("Transform 配置无效");
+      const transformSource = transform["source-table"];
+      if (typeof transformSource !== "string" ||
+          !sourceSet.has(transformSource) ||
+          transformedSources.has(transformSource)) {
+        throw new Error("Transform 必须与来源表一一对应");
+      }
+      transformedSources.add(transformSource);
+
+      for (const key of Object.keys(transform)) {
+        if (!["source-table", "projection", "filter", "primary-keys"].includes(key)) {
+          throw new Error("包含当前页面不支持的 Transform 配置");
+        }
+        if (key !== "source-table" &&
+            (typeof transform[key] !== "string" || !String(transform[key]).trim())) {
+          throw new Error("Transform 参数不能为空");
+        }
+      }
+    }
+  }
+
+  const chunkKey = source["scan.incremental.snapshot.chunk.key-column"];
+  if (chunkKey !== undefined) {
+    if (typeof chunkKey !== "string" || !chunkKey.trim()) {
+      throw new Error("快照切分列配置无效");
+    }
+    const configuredTables = new Set<string>();
+    for (const item of chunkKey.split(";").map((entry) => entry.trim()).filter(Boolean)) {
+      const separator = item.lastIndexOf(":");
+      const sourcePath = separator > 0 ? item.slice(0, separator) : "";
+      const column = separator > 0 ? item.slice(separator + 1) : "";
+      if (!sourceSet.has(sourcePath) || !column || configuredTables.has(sourcePath)) {
+        throw new Error("快照切分列必须与已选来源表对应");
+      }
+      configuredTables.add(sourcePath);
+    }
   }
 
   const change = pipeline["schema.change.behavior"];
