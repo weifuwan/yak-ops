@@ -134,14 +134,14 @@ export function setPipelineTransformValue(
   const sourcePath = tablePath(source);
   const transforms = next.transform || [];
   let transform = transforms.find((item) => item["source-table"] === sourcePath);
-  const nextValue = value.trim();
+  const hasValue = Boolean(value.trim());
 
-  if (nextValue) {
+  if (hasValue) {
     if (!transform) {
       transform = { "source-table": sourcePath };
       transforms.push(transform);
     }
-    transform[key] = nextValue;
+    transform[key] = value;
   } else if (transform) {
     delete transform[key];
   }
