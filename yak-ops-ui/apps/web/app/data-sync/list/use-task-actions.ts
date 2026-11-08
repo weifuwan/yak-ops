@@ -9,7 +9,7 @@ import {
   unpublishDataSyncTask,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import type { TaskInstanceRecord } from "@/service/task-execution";
+import type { TaskInstanceRecord } from "@/service/task-execution/types";
 import { listQueryKeys } from "./query-keys";
 
 export type TaskCommand =
