@@ -1,4 +1,5 @@
 import { Badge, Button, PageHeader } from "@yak-ops/yak-ui";
+import { ArrowLeft } from "lucide-react";
 import type { TaskDefinitionRecord } from "@/service/data-sync";
 
 export function EditorHeader({
@@ -14,7 +15,10 @@ export function EditorHeader({
     <PageHeader
       title={
         <span className="flex min-w-0 items-center gap-2 text-base">
-          <Button size="sm" variant="ghost" onClick={onBack}>任务列表</Button>
+          <Button size="sm" variant="ghost" onClick={onBack}>
+            <ArrowLeft aria-hidden="true" size={14} />
+            任务列表
+          </Button>
           <span className="text-[var(--yak-components-muted-text)]">/</span>
           <span className="truncate">{name || "新建同步任务"}</span>
         </span>

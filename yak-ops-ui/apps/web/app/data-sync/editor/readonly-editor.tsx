@@ -1,4 +1,5 @@
 import { Alert, Button, PageHeader } from "@yak-ops/yak-ui";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { TaskDefinitionRecord } from "@/service/data-sync";
 
@@ -16,6 +17,7 @@ export function ReadonlyTaskEditor({
         title={
           <span className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => navigate("/data-sync")}>
+              <ArrowLeft aria-hidden="true" size={14} />
               任务列表
             </Button>
             <span>/ {definition.name}</span>
