@@ -40,7 +40,6 @@ public final class DataSyncPipelineValidator {
     private static final Set<String> SUPPORTED_TRANSFORM_KEYS =
             Set.of("source-table", "projection", "filter", "primary-keys");
 
-
     public void validate(JsonNode definition) {
         object(definition, "definition");
         rejectCredentials(definition);
