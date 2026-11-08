@@ -9,6 +9,7 @@ import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.mapper.TaskInstanceMapper;
 import io.yak.ops.dao.mapper.WorkflowInstanceMapper;
 import io.yak.ops.dao.model.TaskInstanceStatusCountDto;
+import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.dao.repository.BaseDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
