@@ -4,7 +4,7 @@ export type DataSyncWriteMode = "UPSERT";
 
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
-export type DataSyncScope = "SINGLE_TABLE" | "DATABASE";
+export type DataSyncScope = "SINGLE_TABLE" | "MULTI_TABLE" | "DATABASE";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
 export interface DataSyncTablePath { database?: string; schema?: string; table: string; }
