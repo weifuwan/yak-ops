@@ -108,7 +108,7 @@ function StatusOverview({ overview }: { overview: DataIntegrationOverview }) {
 
   return (
     <Card>
-      <CardHeader title="任务状态" description="上线状态来自任务定义；运行状态来自每个任务最近一次工作流实例" />
+      <CardHeader title="任务状态" />
       <CardContent className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
         {statuses.map((status) => (
           <div key={status.label} className="rounded border border-[var(--yak-components-panel-border)] p-3">
@@ -124,7 +124,7 @@ function StatusOverview({ overview }: { overview: DataIntegrationOverview }) {
 function TaskDistribution({ overview }: { overview: DataIntegrationOverview }) {
   return (
     <Card>
-      <CardHeader title="同步任务分布" description="按当前任务配置统计，不按执行次数重复计数" />
+      <CardHeader title="同步任务分布" />
       <CardContent className="overflow-x-auto p-0">
         <table className="w-full min-w-[420px] text-sm">
           <thead className="bg-[var(--yak-color-hover)] text-xs text-[var(--yak-components-muted-text)]">
@@ -161,7 +161,7 @@ function TaskDistribution({ overview }: { overview: DataIntegrationOverview }) {
 function RecentFailures({ overview }: { overview: DataIntegrationOverview }) {
   return (
     <Card>
-      <CardHeader title="最近失败任务" description="最近 5 条失败执行记录" />
+      <CardHeader title="最近失败任务" />
       <CardContent className="p-0">
         {overview.recentFailures.length === 0 ? (
           <Empty title="暂无失败记录" className="min-h-52" />
