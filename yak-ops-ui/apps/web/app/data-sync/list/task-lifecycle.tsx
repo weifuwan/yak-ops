@@ -50,6 +50,7 @@ interface DataSyncTaskLifecycleActionsProps {
   record: DataSyncTaskRecord;
   activeInstance?: Pick<DataSyncInstanceRecord, "id" | "status">;
   instanceStateReady?: boolean;
+  workflowActive?: boolean;
   actionKey?: string;
   runtimeAction?: DataSyncTaskRuntimeAction;
   onRun?: (record: DataSyncTaskRecord) => void;
@@ -64,6 +65,7 @@ export function DataSyncTaskLifecycleActions({
   record,
   activeInstance,
   instanceStateReady = false,
+  workflowActive = false,
   actionKey,
   runtimeAction,
   onRun,
@@ -74,7 +76,7 @@ export function DataSyncTaskLifecycleActions({
   onDelete,
 }: DataSyncTaskLifecycleActionsProps) {
   const published = isPublishedTask(record);
-  const canManage = canManageTaskDefinition(instanceStateReady, activeInstance);
+  const canManage = !workflowActive && canManageTaskDefinition(instanceStateReady, activeInstance);
   const lifecycleAction = published ? "unpublish" : "publish";
   const actions: LifecycleAction[] = [
     {
