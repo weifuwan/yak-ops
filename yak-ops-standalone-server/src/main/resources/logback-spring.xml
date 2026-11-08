@@ -53,7 +53,7 @@
                 </encoder>
                 <append>true</append>
             </appender>
-        </sift>
+        </sift>2
     </appender>
 
     <root level="INFO">
