@@ -18,7 +18,7 @@ export type DropdownMenuContentProps = Omit<BaseMenu.Popup.Props, "children" | "
 export function DropdownMenuContent({
   children,
   className,
-  side = "top",
+  side = "bottom",
   align = "start",
   sideOffset = 6,
   ...props
