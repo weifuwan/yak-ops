@@ -232,21 +232,10 @@ export function FieldMappingSection({
             >
               {showExpression ? "隐藏表达式" : "手动编辑映射关系"}
             </Button>
-            <span className="ml-auto text-xs text-[var(--yak-components-muted-text)]">
-              {loading
-                ? "正在加载字段..."
-                : targetExists
-                  ? "去向表已存在"
-                  : "去向表不存在，将按结构迁移创建"}
-            </span>
           </div>
 
           {showExpression ? (
-            <ContentField
-              label="Projection"
-              description="直接编辑 Flink CDC transform.projection；表格无法解析的复杂表达式会原样保留。"
-              wide
-            >
+            <ContentField label="Projection" wide>
               <Input
                 size="small"
                 variant="outlined"
@@ -265,16 +254,7 @@ export function FieldMappingSection({
             </ContentField>
           ) : null}
 
-          <ContentField
-            label="目标同步主键"
-            description={
-              mappedPrimaryKeys?.length
-                ? "当前字段映射后的来源主键：" + mappedPrimaryKeys.join(", ")
-                : inheritedPrimaryKeys.length
-                  ? "默认使用来源主键：" + inheritedPrimaryKeys.join(", ")
-                  : "来源表没有主键，可按目标表需要手动配置"
-            }
-          >
+          <ContentField label="目标同步主键">
             <Input
               size="small"
               variant="outlined"
