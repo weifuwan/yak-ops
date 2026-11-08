@@ -146,6 +146,20 @@
         </if>
     </select>
 
+    <select id="queryDataSyncDailyExecution" resultType="io.yak.ops.dao.model.DataSyncExecutionDailyRow">
+        select date(submit_time) as bucket_date,
+               task_execute_type as execute_type,
+               state,
+               count(*) as count
+        from t_yak_ops_task_instance
+        where project_code = #{projectCode}
+          and task_type = 'DATA_SYNC'
+          and submit_time <![CDATA[ >= ]]> #{startTime}
+          and submit_time <![CDATA[ < ]]> #{endTime}
+        group by date(submit_time), task_execute_type, state
+        order by bucket_date
+    </select>
+
     <select id="queryByProjectAndTaskType" resultType="io.yak.ops.dao.entity.TaskInstance">
         select
         <include refid="listSql"/>
