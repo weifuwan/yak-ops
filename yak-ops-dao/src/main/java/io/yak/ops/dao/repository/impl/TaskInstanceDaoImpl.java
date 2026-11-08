@@ -44,6 +44,11 @@ public class TaskInstanceDaoImpl extends BaseDao<TaskInstance, TaskInstanceMappe
     }
 
     @Override
+    public List<DataSyncExecutionDailyRow> queryDataSyncDailyExecution(long projectCode, Date startTime, Date endTime) {
+        return mybatisMapper.queryDataSyncDailyExecution(projectCode, startTime, endTime);
+    }
+
+    @Override
     public List<TaskInstance> queryLatestByTaskCodes(long projectCode, String taskType,
                                                      List<Long> taskCodes, int[] states) {
         if (taskCodes.isEmpty()) {
