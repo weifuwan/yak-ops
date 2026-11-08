@@ -15,12 +15,15 @@ const USER_API_PREFIX = `${API_PREFIX}/user`;
 export const listUsers = (params: UserPageParams): Promise<UserPageResult> =>
   HttpUtils.postData<UserPageResult>(`${USER_API_PREFIX}/page`, params);
 
-export const getUsersByIds = (ids: readonly UserId[]): Promise<UserRecord[]> => {
-  if (ids.length === 0) return Promise.resolve([]);
+export const getUsersByIds = async (
+  ids: readonly UserId[],
+): Promise<UserRecord[]> => {
+  if (ids.length === 0) return [];
   const query = new URLSearchParams({ ids: ids.join(",") });
-  return HttpUtils.getData<UserRecord[]>(
+  const users = await HttpUtils.getData<Array<Omit<UserRecord, "id"> & { id: string | number }>>(
     `${YAK_OPS_API_PREFIX}/users/by-ids?${query}`,
   );
+  return users.map((user) => ({ ...user, id: String(user.id) }));
 };
 
 export const searchUsers = (keyword: string): Promise<UserBriefRecord[]> => {
