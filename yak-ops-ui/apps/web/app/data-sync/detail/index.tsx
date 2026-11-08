@@ -1,9 +1,13 @@
 import { Button, PageHeader, Spinner } from "@yak-ops/yak-ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { ScheduleDialog } from "@/app/schedule/dialog/schedule-dialog";
 import { useTaskSchedules } from "@/app/schedule/use-task-schedules";
 import { canManageTaskDefinition } from "@/service/data-sync/execution";
+import {
+  canStopWorkflow, getDataSyncWorkflowInstance, isWorkflowActive, workflowStatusText,
+} from "@/service/data-sync";
 import { useActiveTaskInstance } from "./use-active-task-instance";
 import { ExecutionSidebar } from "./execution-sidebar";
 import { TaskSummary } from "./task-summary";
@@ -25,14 +29,18 @@ export function DataSyncTaskDetailPage() {
   const schedules = useTaskSchedules(supportsScheduling && taskId ? [taskId] : []);
   const hasEnabledSchedule = Boolean(taskId && schedules.records.get(taskId)?.enabled);
   const {
+    workflow,
     activeInstance,
     ready: instancesReady,
     refresh: refreshActiveInstances,
-  } = useActiveTaskInstance(scope, taskId);
+  } = useActiveTaskInstance(scope, taskId, task?.workflowCode);
+  const activeWorkflow = Boolean(workflow && isWorkflowActive(workflow.state));
   const canStart =
-    !task?.archived && !task?.configurationError && canManageTaskDefinition(instancesReady, activeInstance);
+    !task?.archived && !task?.configurationError && !activeWorkflow &&
+    canManageTaskDefinition(instancesReady, activeInstance);
   const {
     executionId,
+    workflowInstanceId,
     activeTab,
     instances,
     instancesLoading,
@@ -51,19 +59,36 @@ export function DataSyncTaskDetailPage() {
     changePage,
     changeStatus,
     selectSubmitted,
+    selectWorkflowSubmitted,
     refreshAfterCancel,
     listError,
-  } = useExecutionHistory(scope, taskId, activeInstance, hasEnabledSchedule);
+  } = useExecutionHistory(scope, taskId, activeInstance, hasEnabledSchedule, activeWorkflow);
+  const workflowDetailQuery = useQuery({
+    queryKey: ["data-sync-workflow-detail", scope, workflowInstanceId],
+    queryFn: ({ signal }) => getDataSyncWorkflowInstance(Number(workflowInstanceId), signal),
+    enabled: Boolean(scope && workflowInstanceId),
+    refetchInterval: (result) =>
+      result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : false,
+  });
+  const selectedWorkflow = workflowDetailQuery.data ??
+    (workflow && String(workflow.id) === workflowInstanceId ? workflow : undefined);
   const { run, cancel, copyTaskId, running, canceling, pendingWorkflowInstanceId } = useExecutionActions({
     taskId,
     task,
     canStart,
     selectedInstance,
     activeInstance,
+    workflow,
     refreshActiveInstances,
     refreshAfterCancel,
     selectSubmitted,
+    selectWorkflowSubmitted,
   });
+  useEffect(() => {
+    if (workflowInstanceId && activeInstance?.workflowInstanceId === Number(workflowInstanceId)) {
+      selectSubmitted(activeInstance.id);
+    }
+  }, [workflowInstanceId, activeInstance?.workflowInstanceId, activeInstance?.id]);
 
   if (taskLoading || !task) {
     return (
@@ -111,7 +136,22 @@ export function DataSyncTaskDetailPage() {
               {task.archived ? (
                 <span className="text-sm text-[var(--yak-components-muted-text)]">已归档 · 仅可查看历史</span>
               ) : task.status === "ONLINE" ? (
-                !activeInstance && !pendingWorkflowInstanceId ? (
+                activeWorkflow || activeInstance || pendingWorkflowInstanceId ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-[var(--yak-components-muted-text)]">
+                      {activeInstance?.status === "RUNNING_EXECUTION"
+                        ? "运行中"
+                        : workflow
+                          ? workflowStatusText(workflow.state)
+                          : "启动中"}
+                    </span>
+                    {workflow && canStopWorkflow(workflow.state) ? (
+                      <Button variant="secondary" size="sm" isPending={canceling} onClick={() => void cancel()}>
+                        停止
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : (
                   <Button variant="secondary"
                     size="sm"
                     isPending={running}
@@ -120,16 +160,7 @@ export function DataSyncTaskDetailPage() {
                   >
                     {realtime ? "启动" : "运行"}
                   </Button>
-                ) : pendingWorkflowInstanceId ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-[var(--yak-components-muted-text)]">
-                      已提交 · 等待任务派发
-                    </span>
-                    <Button variant="secondary" size="sm" isPending={canceling} onClick={() => void cancel()}>
-                      停止
-                    </Button>
-                  </div>
-                ) : null
+                )
               ) : (
                 <Button variant="secondary"
                   size="sm"
@@ -160,6 +191,8 @@ export function DataSyncTaskDetailPage() {
               onCopyTaskId={() => void copyTaskId()}
             />
             <ExecutionTabs
+              workflow={workflowInstanceId ? selectedWorkflow : undefined}
+              pendingWorkflowId={workflowInstanceId ? Number(workflowInstanceId) : undefined}
               activeTab={activeTab}
               onChangeTab={changeTab}
               selectedInstance={selectedInstance}
