@@ -4,6 +4,7 @@ import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.model.TaskInstanceStatusCountDto;
+import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import java.util.Collection;
@@ -14,6 +15,8 @@ import java.util.Set;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface TaskInstanceDao extends IDao<TaskInstance> {
+
+    List<DataSyncExecutionDailyRow> queryDataSyncDailyExecution(long projectCode, Date startTime, Date endTime);
 
     List<TaskInstance> queryLatestByTaskCodes(long projectCode, String taskType,
                                               List<Long> taskCodes, int[] states);
