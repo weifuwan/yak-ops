@@ -3,7 +3,12 @@ import { Alert, Button } from "@yak-ops/yak-ui";
 import { Navigate, useParams } from "react-router-dom";
 
 import { useAuth } from "@/hooks/use-auth";
-import type { DataSyncScope, TaskDefinitionRecord } from "@/service/data-sync";
+import {
+  getTaskDefinition,
+  listLatestDataSyncTaskInstances,
+  type DataSyncScope,
+  type TaskDefinitionRecord,
+} from "@/service/data-sync";
 import {
   nativeDraftKey,
   readNativeDraft,
@@ -13,8 +18,6 @@ import {
   type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
 import { getDataSource, type DataSourceRecord } from "@/service/datasource";
-import { getTaskDefinition } from "@/service/data-sync";
-import { listLatestTaskInstances } from "@/service/task-execution";
 import {
   DatabaseTaskEditor,
   MultiTableTaskEditor,
@@ -98,7 +101,8 @@ export function DataSyncTaskEditorPage() {
 
   const activeQuery = useQuery({
     queryKey: ["data-sync-editor-active", currentUser?.id, id],
-    queryFn: ({ signal }) => listLatestTaskInstances([id!], true, signal),
+    queryFn: ({ signal }) =>
+      listLatestDataSyncTaskInstances([id!], true, signal),
     enabled: Boolean(id && currentUser?.id),
     refetchInterval: (query) => (query.state.data?.length ? 2000 : 5000),
     refetchOnWindowFocus: true,
