@@ -11,10 +11,8 @@
   --button-danger: oklch(0.6532 0.2328 25.74);
   --button-danger-foreground: oklch(0.9911 0 0);
 
-  position: relative;
   isolation: isolate;
   display: inline-flex;
-  width: fit-content;
   height: 2.25rem;
   transform-origin: center;
   align-items: center;
@@ -47,6 +45,7 @@
   pointer-events: none;
 }
 .button[data-pending="true"] {
+  position: relative;
   pointer-events: none;
   cursor: wait;
   opacity: 1;
