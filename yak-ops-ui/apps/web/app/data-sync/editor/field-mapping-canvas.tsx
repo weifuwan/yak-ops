@@ -1,10 +1,10 @@
 import {
   Button,
+  Alert,
   Empty,
   Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  Modal,
+  Textarea,
 } from "@yak-ops/yak-ui";
 import {
   useCallback,
@@ -18,7 +18,6 @@ import {
 
 import type { DataSourceCatalogColumn } from "@/service/datasource";
 import type { DirectFieldMapping } from "@/service/data-sync/field-mapping";
-import { DataSyncSearchableSelect } from "../components/searchable-select";
 
 interface Props {
   fields: DirectFieldMapping[];
@@ -120,6 +119,42 @@ const buildPositionMappings = (
     }),
   );
 
+function MappingTextEditor({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const lineCount = Math.max(1, value.split(/\r?\n/).length);
+
+  return (
+    <div className="overflow-hidden rounded-sm border border-[var(--yak-components-panel-border)] bg-white">
+      <div className="border-b border-[var(--yak-components-panel-border)] px-3 py-2 text-xs font-medium">
+        {label}
+      </div>
+      <div className="grid min-h-[320px] grid-cols-[44px_minmax(0,1fr)]">
+        <div className="select-none border-r border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-2 py-2 text-right font-mono text-xs leading-5 text-[var(--yak-components-muted-text)]">
+          {Array.from({ length: lineCount }, (_, index) => (
+            <div key={index}>{index + 1}</div>
+          ))}
+        </div>
+        <Textarea
+          variant="outlined"
+          size="small"
+          value={value}
+          aria-label={label}
+          spellCheck={false}
+          className="min-h-[320px] resize-none rounded-none border-0 px-3 py-2 font-mono text-xs leading-5 focus:border-transparent"
+          onValueChange={(next) => onChange(String(next ?? ""))}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function FieldMappingCanvas({
   fields,
   sourceColumns,
@@ -141,9 +176,9 @@ export function FieldMappingCanvas({
   const [fieldNodes, setFieldNodes] = useState<FieldNodeGeometry[]>([]);
   const [drag, setDrag] = useState<DragState>();
   const [editOpen, setEditOpen] = useState(false);
-  const [editSource, setEditSource] = useState<string | null>(null);
-  const [editTarget, setEditTarget] = useState<string | null>(null);
-  const [editingMappingKey, setEditingMappingKey] = useState<string>();
+  const [editSourceText, setEditSourceText] = useState("");
+  const [editTargetText, setEditTargetText] = useState("");
+  const [editError, setEditError] = useState("");
 
   const targetDerived = targetColumns === undefined;
 
@@ -453,30 +488,6 @@ export function FieldMappingCanvas({
     setDrag(undefined);
   };
 
-  const sourceOptions = useMemo(
-    () =>
-      sourceColumns.map((column) => ({
-        value: column.name,
-        label: column.name,
-        searchText: [column.typeName, column.remarks]
-          .filter(Boolean)
-          .join(" "),
-      })),
-    [sourceColumns],
-  );
-
-  const targetOptions = useMemo(
-    () =>
-      displayTargetColumns.map((column) => ({
-        value: column.name,
-        label: column.name,
-        searchText: [column.typeName, column.remarks]
-          .filter(Boolean)
-          .join(" "),
-      })),
-    [displayTargetColumns],
-  );
-
   const mappingBySource = useMemo(
     () =>
       new Map(
@@ -582,24 +593,71 @@ export function FieldMappingCanvas({
 
   const closeMappingEditor = () => {
     setEditOpen(false);
-    setEditSource(null);
-    setEditTarget(null);
-    setEditingMappingKey(undefined);
+    setEditError("");
   };
 
-  const openMappingEditor = (key?: string) => {
-    const mapping = key
-      ? fields.find((item) => mappingKey(item) === key)
-      : undefined;
-    setEditingMappingKey(key);
-    setEditSource(mapping?.source || null);
-    setEditTarget(mapping?.target || null);
+  const openMappingEditor = () => {
+    setEditSourceText(fields.map((item) => item.source).join("\n"));
+    setEditTargetText(fields.map((item) => item.target).join("\n"));
+    setEditError("");
     setEditOpen(true);
   };
 
-  const saveMapping = () => {
-    if (!editSource || !editTarget?.trim()) return;
-    connectFields(editSource, editTarget, editingMappingKey);
+  const saveMappingEditor = () => {
+    const sources = editSourceText
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const targets = editTargetText
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (!sources.length || !targets.length) {
+      setEditError("来源字段和去向字段不能为空");
+      return;
+    }
+    if (sources.length !== targets.length) {
+      setEditError("来源字段和去向字段行数必须一致");
+      return;
+    }
+
+    const sourceKeys = sources.map(normalizeFieldName);
+    const targetKeys = targets.map(normalizeFieldName);
+    if (new Set(sourceKeys).size !== sourceKeys.length) {
+      setEditError("来源字段不能重复");
+      return;
+    }
+    if (new Set(targetKeys).size !== targetKeys.length) {
+      setEditError("去向字段不能重复");
+      return;
+    }
+
+    const invalidSource = sources.find(
+      (source) => !sourceMap.has(normalizeFieldName(source)),
+    );
+    if (invalidSource) {
+      setEditError("来源字段不存在：" + invalidSource);
+      return;
+    }
+
+    if (!targetDerived) {
+      const invalidTarget = targets.find(
+        (target) => !selectableTargetMap.has(normalizeFieldName(target)),
+      );
+      if (invalidTarget) {
+        setEditError("去向字段不存在：" + invalidTarget);
+        return;
+      }
+    }
+
+    const next = sources.map((source, index) => ({
+      source: sourceMap.get(normalizeFieldName(source))!.name,
+      target: targetDerived
+        ? targets[index]
+        : selectableTargetMap.get(normalizeFieldName(targets[index]))!.name,
+    }));
+    commitMappings(next);
     closeMappingEditor();
   };
 
@@ -628,66 +686,14 @@ export function FieldMappingCanvas({
         >
           同行映射
         </Button>
-        <Popover
-          open={editOpen}
-          onOpenChange={(open) => {
-            if (open) openMappingEditor();
-            else closeMappingEditor();
-          }}
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={disabled || !mappingReady}
+          onClick={openMappingEditor}
         >
-          <PopoverTrigger
-            type="button"
-            disabled={disabled || !mappingReady}
-            className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-button-secondary-border)] bg-[var(--yak-components-button-secondary-bg)] px-3 text-xs font-medium text-[var(--yak-components-button-secondary-text)] outline-none transition-colors hover:bg-[var(--yak-components-button-secondary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            手动编辑映射关系
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-[320px] space-y-3">
-            <DataSyncSearchableSelect
-              value={editSource}
-              options={sourceOptions}
-              placeholder="选择来源字段"
-              searchPlaceholder="搜索来源字段"
-              emptyText="暂无来源字段"
-              onValueChange={setEditSource}
-            />
-            {targetDerived ? (
-              <Input
-                size="small"
-                variant="outlined"
-                value={editTarget || ""}
-                placeholder="输入去向字段名"
-                onChange={(event) => setEditTarget(event.target.value)}
-              />
-            ) : (
-              <DataSyncSearchableSelect
-                value={editTarget}
-                options={targetOptions}
-                placeholder="选择去向字段"
-                searchPlaceholder="搜索去向字段"
-                emptyText="暂无去向字段"
-                onValueChange={setEditTarget}
-              />
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={closeMappingEditor}
-              >
-                取消
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                isDisabled={!editSource || !editTarget?.trim()}
-                onClick={saveMapping}
-              >
-                {editingMappingKey ? "修改" : "添加"}
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+          手动编辑映射关系
+        </Button>
       </div>
 
       {!mappingReady ? (
@@ -868,7 +874,7 @@ export function FieldMappingCanvas({
                     variant="secondary"
                     className="!h-6 !px-2 !text-[11px]"
                     isDisabled={disabled}
-                    onClick={() => openMappingEditor(geometry.key)}
+                    onClick={openMappingEditor}
                   >
                     修改
                   </Button>
@@ -952,6 +958,44 @@ export function FieldMappingCanvas({
           </div>
         </div>
       )}
+
+      <Modal
+        open={editOpen}
+        centered
+        width={800}
+        title="手动编辑表字段"
+        onClose={closeMappingEditor}
+        bodyClassName="!pt-0"
+        footer={
+          <>
+            <Button size="sm" variant="secondary" onClick={closeMappingEditor}>
+              取消
+            </Button>
+            <Button size="sm" variant="primary" onClick={saveMappingEditor}>
+              确定
+            </Button>
+          </>
+        }
+      >
+        <Alert>请手动编辑字段，一行表示一个字段，空行会被忽略</Alert>
+        {editError ? (
+          <div className="mt-3">
+            <Alert>{editError}</Alert>
+          </div>
+        ) : null}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <MappingTextEditor
+            label="来源字段"
+            value={editSourceText}
+            onChange={setEditSourceText}
+          />
+          <MappingTextEditor
+            label="去向字段"
+            value={editTargetText}
+            onChange={setEditTargetText}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
