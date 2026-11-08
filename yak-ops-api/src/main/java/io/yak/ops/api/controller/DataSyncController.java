@@ -4,6 +4,7 @@ import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
@@ -53,9 +54,10 @@ public class DataSyncController extends BaseController {
                                                       @RequestParam(defaultValue = "1") int pageNo,
                                                       @RequestParam(defaultValue = "20") int pageSize,
                                                       @RequestParam(required = false) String keyword,
-                                                      @RequestParam(required = false) ReleaseState status) {
+                                                      @RequestParam(required = false) ReleaseState status,
+                                                      @RequestParam(required = false) DataSyncScope scope) {
         checkPageParams(pageNo, pageSize);
-        return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status));
+        return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status, scope));
     }
 
     @GetMapping("/tasks/{taskCode}")
