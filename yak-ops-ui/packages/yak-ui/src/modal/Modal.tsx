@@ -45,7 +45,7 @@ export function Modal({
       }}
     >
       <BaseDialog.Portal>
-        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-[var(--yak-components-overlay)] transition-opacity duration-[180ms] ease-out will-change-[opacity] data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-[200ms] data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none" />
+        <BaseDialog.Backdrop className="yak-modal-backdrop fixed inset-0 z-50 bg-[var(--yak-components-overlay)]" />
 
         <div
           className={cn(
@@ -57,7 +57,7 @@ export function Modal({
             style={{ width, ...style }}
             className={cn(
               "pointer-events-auto flex max-h-[calc(100dvh-5rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
-              "transition-[opacity,transform] duration-[140ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform] data-starting-style:translate-y-3 data-starting-style:opacity-0 data-ending-style:-translate-y-1 data-ending-style:opacity-0 data-ending-style:duration-[180ms] data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none",
+              "yak-modal-popup",
               className,
             )}
           >
