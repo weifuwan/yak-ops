@@ -182,11 +182,7 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
       />
 
       <ContentSection id="source" title="来源表">
-        <ContentField
-          label="表"
-          required
-          description="单表同步一次只选择一张来源表"
-        >
+        <ContentField label="表" required>
           <DataSyncSearchableSelect
             value={selectedSource?.table || null}
             options={sourceTableOptions}
@@ -220,14 +216,7 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
 
         {selectedSource ? (
           <>
-            <ContentField
-              label="快照切分列"
-              description={
-                selectedSource.primaryKeys?.length
-                  ? "有主键时默认使用主键；无主键表必须显式配置切分列"
-                  : "来源表无主键时必填"
-              }
-            >
+            <ContentField label="快照切分列">
               <Input
                 size="small"
                 variant="outlined"
@@ -249,11 +238,7 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
               />
             </ContentField>
 
-            <ContentField
-              label="数据过滤"
-              description="填写 Flink CDC Transform filter 表达式"
-              wide
-            >
+            <ContentField label="数据过滤" wide>
               <Input
                 size="small"
                 variant="outlined"
@@ -281,11 +266,7 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
 
       <ContentSection id="target" title="数据去向">
         {selectedSource ? (
-          <ContentField
-            label="目标表"
-            required
-            description="目标数据库由去向数据源绑定；目标表默认与来源表同名，也可以填写结构迁移将创建的新表"
-          >
+          <ContentField label="目标表" required>
             <Input
               size="small"
               variant="outlined"
