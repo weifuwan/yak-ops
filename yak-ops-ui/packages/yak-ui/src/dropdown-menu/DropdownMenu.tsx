@@ -35,7 +35,7 @@ export function DropdownMenuContent({
           {...props}
           className={cn(
             "min-w-48 overflow-hidden rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-1 text-sm text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-panel-shadow)] outline-none",
-            "transition-[opacity,transform] data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0 motion-reduce:transition-none",
+            "yak-overlay-popup",
             className,
           )}
         >

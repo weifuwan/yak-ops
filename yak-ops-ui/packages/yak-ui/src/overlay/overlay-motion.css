@@ -1,0 +1,181 @@
+.yak-overlay-popup {
+  transform-origin: var(--transform-origin);
+}
+
+.yak-overlay-popup[data-open] {
+  animation: yak-overlay-enter-90 150ms ease;
+}
+
+.yak-overlay-popup[data-open][data-side="top"] {
+  animation-name: yak-overlay-enter-90-top;
+}
+
+.yak-overlay-popup[data-open][data-side="bottom"] {
+  animation-name: yak-overlay-enter-90-bottom;
+}
+
+.yak-overlay-popup[data-open][data-side="left"] {
+  animation-name: yak-overlay-enter-90-left;
+}
+
+.yak-overlay-popup[data-open][data-side="right"] {
+  animation-name: yak-overlay-enter-90-right;
+}
+
+.yak-overlay-popup.yak-overlay-scale-95[data-open] {
+  animation-name: yak-overlay-enter-95;
+}
+
+.yak-overlay-popup.yak-overlay-scale-95[data-open][data-side="top"] {
+  animation-name: yak-overlay-enter-95-top;
+}
+
+.yak-overlay-popup.yak-overlay-scale-95[data-open][data-side="bottom"] {
+  animation-name: yak-overlay-enter-95-bottom;
+}
+
+.yak-overlay-popup.yak-overlay-scale-95[data-open][data-side="left"] {
+  animation-name: yak-overlay-enter-95-left;
+}
+
+.yak-overlay-popup.yak-overlay-scale-95[data-open][data-side="right"] {
+  animation-name: yak-overlay-enter-95-right;
+}
+
+.yak-overlay-popup[data-closed] {
+  pointer-events: none;
+  animation: yak-overlay-exit 100ms ease;
+}
+
+.yak-overlay-popup[data-instant][data-open],
+.yak-overlay-popup[data-instant][data-closed] {
+  animation: none !important;
+}
+
+@keyframes yak-overlay-enter-90 {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-90-top {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.25rem, 0) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-90-bottom {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -0.25rem, 0) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-90-left {
+  from {
+    opacity: 0;
+    transform: translate3d(0.25rem, 0, 0) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-90-right {
+  from {
+    opacity: 0;
+    transform: translate3d(-0.25rem, 0, 0) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-95 {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-95-top {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.25rem, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-95-bottom {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -0.25rem, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-95-left {
+  from {
+    opacity: 0;
+    transform: translate3d(0.25rem, 0, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-enter-95-right {
+  from {
+    opacity: 0;
+    transform: translate3d(-0.25rem, 0, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes yak-overlay-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yak-overlay-popup[data-open],
+  .yak-overlay-popup[data-closed] {
+    animation: none !important;
+  }
+}

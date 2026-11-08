@@ -1,5 +1,5 @@
 @import "./input/floating-label.css";
-@import "./popover/popover.css";
+@import "./overlay/overlay-motion.css";
 
 :root {
   /* Standalone Yak UI default; the product theme supplies the primary color. */

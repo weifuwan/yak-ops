@@ -88,7 +88,7 @@ export function SelectTrigger({
       className={cn(selectTriggerVariants({ size: resolvedSize, variant }), className)}
     >
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      <BaseSelect.Icon className="shrink-0 rotate-0 text-[var(--yak-components-input-icon)] transition-[rotate] duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)] group-data-popup-open/select-trigger:rotate-180 group-data-popup-open/select-trigger:duration-[360ms] group-data-popup-open/select-trigger:ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none">
+      <BaseSelect.Icon className="shrink-0 rotate-0 text-[var(--yak-components-input-icon)] transition-[rotate] duration-150 ease group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none">
         <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4" fill="none">
           <path
             d="m6 8 4 4 4-4"
@@ -155,13 +155,7 @@ export function SelectContent({
           {...props}
           className={cn(
             "min-w-[var(--anchor-width)] max-w-80 overflow-hidden rounded-[var(--yak-radius-control-medium)] border border-[var(--yak-components-select-border)] bg-[var(--yak-components-select-bg)] shadow-[var(--yak-components-select-shadow)] outline-none",
-            // Reveal the surface without changing positioning geometry or scaling its contents.
-            // Negative insets preserve the existing 0 10px 30px shadow at rest.
-            "[clip-path:inset(-64px)] [--yak-select-closed-clip:inset(0_-64px_100%_-64px)]",
-            "data-[side=top]:[--yak-select-closed-clip:inset(100%_-64px_0_-64px)] data-[side=left]:[--yak-select-closed-clip:inset(-64px_0_-64px_100%)] data-[side=right]:[--yak-select-closed-clip:inset(-64px_100%_-64px_0)]",
-            "transition-[clip-path,opacity] [transition-duration:360ms,160ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-            "data-starting-style:[clip-path:var(--yak-select-closed-clip)] data-starting-style:opacity-0 data-ending-style:[clip-path:var(--yak-select-closed-clip)] data-ending-style:opacity-0",
-            "data-ending-style:[transition-duration:220ms,180ms] data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] data-ending-style:pointer-events-none motion-reduce:transition-none",
+            "yak-overlay-popup yak-overlay-scale-95",
             selectFontSizeClasses[size],
             className,
           )}

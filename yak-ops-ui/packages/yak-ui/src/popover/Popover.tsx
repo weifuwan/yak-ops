@@ -37,7 +37,7 @@ export function PopoverContent({
           {...props}
           className={cn(
             "rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-3 text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-panel-shadow)] outline-none",
-            "yak-popover-popup",
+            "yak-overlay-popup",
             className,
           )}
         >
