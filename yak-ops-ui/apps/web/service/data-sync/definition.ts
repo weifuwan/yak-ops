@@ -1,8 +1,7 @@
 import type { PageInfo } from "@/service/http/page-info";
 import {
+  pipelineTableMappings,
   readPipelineDefinition,
-  sourceTable,
-  sinkTable,
 } from "./native-pipeline";
 import type {
   DataSyncTaskListRecord,
@@ -14,8 +13,8 @@ import type {
 export function toSyncTaskRecord(task: TaskDefinitionRecord): DataSyncTaskRecord {
   if (task.taskType !== "DATA_SYNC") throw new Error("不是 DATA_SYNC 任务");
   const pipeline = readPipelineDefinition(task.parameters);
-  const source = sourceTable(pipeline)!;
-  const target = sinkTable(pipeline)!;
+  const mappings = pipelineTableMappings(pipeline);
+  const { source, target } = mappings[0];
   return {
     id: task.id,
     workflowCode: task.workflowCode,
@@ -42,7 +41,7 @@ export function toSyncTaskRecord(task: TaskDefinitionRecord): DataSyncTaskRecord
     steps: ["SCHEMA", "FULL", "INCREMENTAL"],
     syncType: "REALTIME",
     writeMode: "UPSERT",
-    tableMappings: [{ source, target, writeMode: "UPSERT" }],
+    tableMappings: mappings.map((mapping) => ({ ...mapping, writeMode: "UPSERT" })),
   };
 }
 
