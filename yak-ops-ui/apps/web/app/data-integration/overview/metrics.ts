@@ -57,7 +57,8 @@ export function validRange(range: ExecutionRange, today = new Date()): boolean {
   const start = new Date(range.startDate + "T12:00:00");
   const end = new Date(range.endDate + "T12:00:00");
   const lastDay = rangeForPeriod("yesterday", today).endDate;
-  const days = Math.round((end.getTime() - start.getTime()) / 86_400_000);
+  const days = (Date.parse(range.endDate + "T00:00:00Z") -
+    Date.parse(range.startDate + "T00:00:00Z")) / 86_400_000;
   return !Number.isNaN(days) &&
     dateString(start) === range.startDate &&
     dateString(end) === range.endDate &&
