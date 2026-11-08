@@ -26,6 +26,14 @@ import type {
 } from "./types";
 
 export type * from "./types";
+export {
+  getLatestDataSyncWorkflow,
+  getDataSyncWorkflowInstance,
+  isWorkflowActive,
+  canStopWorkflow,
+  workflowStatusText,
+} from "./workflow";
+export type { DataSyncWorkflowInstance, WorkflowExecutionStatus } from "./workflow";
 
 const qp = (params: Record<string, string | number | boolean | undefined>) => {
   const search = new URLSearchParams();
