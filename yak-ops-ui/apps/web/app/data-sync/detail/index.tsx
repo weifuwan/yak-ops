@@ -88,7 +88,7 @@ export function DataSyncTaskDetailPage() {
     if (workflowInstanceId && activeInstance?.workflowInstanceId === Number(workflowInstanceId)) {
       selectSubmitted(activeInstance.id);
     }
-  }, [workflowInstanceId, activeInstance?.workflowInstanceId, activeInstance?.id]);
+  }, [workflowInstanceId, activeInstance?.workflowInstanceId, activeInstance?.id, selectSubmitted]);
 
   if (taskLoading || !task) {
     return (
