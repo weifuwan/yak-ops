@@ -8,7 +8,11 @@ import {
   type DataSyncTaskListRecord,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import { listLatestDataSyncTaskInstances } from "@/service/data-sync";
+import {
+  getLatestDataSyncWorkflow,
+  isWorkflowActive,
+  listLatestDataSyncTaskInstances,
+} from "@/service/data-sync";
 import { getUsersByIds } from "@/service/user";
 
 import type { TaskListFilters } from "./filters";
@@ -99,14 +103,20 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
   const query = useQuery({
     queryKey: [...listQueryKeys.instances(scope), ids],
     queryFn: async ({ signal }) => {
-      const [latest, active] = await Promise.all([
+      const [latest, active, workflows] = await Promise.all([
         listLatestDataSyncTaskInstances(ids, false, signal),
         listLatestDataSyncTaskInstances(ids, true, signal),
+        Promise.all(records.map(async (record) =>
+          [record.id, await getLatestDataSyncWorkflow(record.workflowCode, signal)] as const)),
       ]);
-      return { latest, active };
+      return { latest, active, workflows };
     },
     enabled: Boolean(scope) && ids.length > 0,
-    refetchInterval: (result) => (result.state.data?.active.length ? 2000 : 15000),
+    refetchInterval: (result) =>
+      result.state.data?.active.length ||
+      result.state.data?.workflows.some(([, instance]) => instance && isWorkflowActive(instance.state))
+        ? 2000
+        : 15000,
   });
   const latestByTask = useMemo(
     () => new Map((query.data?.latest ?? []).map((item) => [item.definitionId, item] as const)),
@@ -116,10 +126,16 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
     () => new Map((query.data?.active ?? []).map((item) => [item.definitionId, item] as const)),
     [query.data],
   );
+  const workflowsByTask = useMemo(
+    () => new Map(query.data?.workflows ?? []),
+    [query.data],
+  );
   return {
     latestByTask,
     activeByTask,
+    workflowsByTask,
     loading: ids.length > 0 && query.isPending,
     ready: safeToAct && (ids.length === 0 || query.isSuccess),
+    error: query.isError,
   };
 }
