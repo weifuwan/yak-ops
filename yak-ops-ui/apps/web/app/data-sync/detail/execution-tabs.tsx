@@ -1,7 +1,8 @@
 import { Button, Spinner, Switch, Tabs, TabsList, TabsPanel, TabsTab } from "@yak-ops/yak-ui";
 import { RefreshCw } from "lucide-react";
 import { canCancelTaskInstance } from "@/service/data-sync/execution";
-import type { DataSyncInstanceRecord } from "@/service/data-sync";
+import { workflowStatusText, type DataSyncInstanceRecord,
+  type DataSyncWorkflowInstance, type WorkflowExecutionStatus } from "@/service/data-sync";
 import {
   DataSyncExecutionDetailContent,
   isActiveDataSyncInstance,
@@ -9,6 +10,8 @@ import {
 import { TaskInstanceLogPanel } from "./log/task-instance-log-panel";
 
 interface Props {
+  workflow?: DataSyncWorkflowInstance;
+  pendingWorkflowId?: number;
   activeTab: string;
   onChangeTab: (value: string) => void;
   selectedInstance?: DataSyncInstanceRecord;
@@ -23,6 +26,8 @@ interface Props {
   onViewScheduleHistory: (id?: string) => void;
 }
 export function ExecutionTabs({
+  workflow,
+  pendingWorkflowId,
   activeTab,
   onChangeTab,
   selectedInstance,
@@ -41,6 +46,17 @@ export function ExecutionTabs({
   const refreshExecution = onRefresh;
   const cancel = onCancel;
   const instances = { length: instanceCount };
+  const workflowHistory = (() => {
+    if (!workflow?.stateHistory) return [];
+    try {
+      return JSON.parse(workflow.stateHistory) as Array<{
+        time: string;
+        state: WorkflowExecutionStatus;
+      }>;
+    } catch {
+      return [];
+    }
+  })();
   return (
     <Tabs value={activeTab} onValueChange={changeTab}>
       <TabsList>
@@ -84,6 +100,27 @@ export function ExecutionTabs({
               </>
             }
           />
+        ) : pendingWorkflowId ? (
+          <div className="rounded-lg border border-[var(--yak-components-panel-border)] p-5">
+            <div className="text-sm font-medium">
+              工作流 #{pendingWorkflowId} · {workflow ? workflowStatusText(workflow.state) : "启动中"}
+            </div>
+            <div className="mt-2 text-xs text-[var(--yak-components-muted-text)]">
+              {workflow?.state === "SERIAL_WAIT"
+                ? "等待串行调度，尚未创建任务执行实例"
+                : "尚未创建任务执行实例"}
+            </div>
+            {workflowHistory.length > 0 ? (
+              <div className="mt-4 space-y-2 border-t border-[var(--yak-components-panel-border)] pt-3">
+                {workflowHistory.map((event, index) => (
+                  <div key={index} className="flex justify-between gap-3 text-xs">
+                    <span>{workflowStatusText(event.state)}</span>
+                    <span className="text-[var(--yak-components-muted-text)]">{event.time}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : selectedLoading ? (
           <div className="flex min-h-40 items-center justify-center">
             <Spinner size="medium" label="加载实例详情" />
@@ -109,7 +146,9 @@ export function ExecutionTabs({
           </div>
         ) : !selectedInstance ? (
           <div className="py-12 text-center text-sm text-[var(--yak-components-muted-text)]">
-            选择左侧执行记录
+            {pendingWorkflowId
+              ? "任务尚未派发到 Worker，暂无运行日志"
+              : "选择左侧执行记录"}
           </div>
         ) : null}
       </TabsPanel>
