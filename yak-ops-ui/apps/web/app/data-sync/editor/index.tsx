@@ -235,7 +235,6 @@ export function TaskEditor({
     try {
       validatePipelineDefinition(definition);
       validateSourceMetadata();
-      validateSourceMetadata();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Pipeline 配置无效");
       return;
@@ -279,6 +278,7 @@ export function TaskEditor({
     }
     try {
       validatePipelineDefinition(definition);
+      validateSourceMetadata();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Pipeline 配置无效");
       return;
