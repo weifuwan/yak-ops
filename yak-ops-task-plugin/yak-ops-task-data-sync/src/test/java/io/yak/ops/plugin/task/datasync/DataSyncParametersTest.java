@@ -89,6 +89,37 @@ class DataSyncParametersTest {
     }
 
     @Test
+    void acceptsNativeTransformAndChunkKeyConfiguration() {
+        DataSyncParameters parameters = valid();
+        ObjectNode definition = (ObjectNode) parameters.getDefinition();
+        ((ObjectNode) definition.path("source"))
+                .put("scan.incremental.snapshot.chunk.key-column", "src_db.orders:id");
+        definition.putArray("transform")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("primary-keys", "tenant_id,id")
+                .put("projection", "*,name AS user_name")
+                .put("filter", "id > 0");
+
+        assertTrue(parameters.checkParameters());
+    }
+
+    @Test
+    void rejectsUnsupportedTransformSettingsAndUnknownChunkKeyTables() {
+        DataSyncParameters parameters = valid();
+        ((ObjectNode) parameters.getDefinition()).putArray("transform")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("partition-keys", "tenant_id");
+        assertFalse(parameters.checkParameters());
+
+        parameters = valid();
+        ((ObjectNode) parameters.getDefinition().path("source"))
+                .put("scan.incremental.snapshot.chunk.key-column", "src_db.other:id");
+        assertFalse(parameters.checkParameters());
+    }
+
+    @Test
     void rejectsRouteMismatches() {
         DataSyncParameters parameters = valid();
         ((ObjectNode) parameters.getDefinition().path("route").get(0)).put("source-table", "src_db.other");
