@@ -111,10 +111,10 @@ class DataSyncServiceImplTest {
     void executionStatsRejectInvalidDateRanges() {
         User user = new User();
         LocalDate end = LocalDate.of(2026, 11, 7);
-        assertThrows(ServiceException.class, () ->
-                service.getExecutionStats(user, PROJECT_CODE, end, end.minusDays(1)));
-        assertThrows(ServiceException.class, () ->
-                service.getExecutionStats(user, PROJECT_CODE, end.minusDays(90), end));
+        assertThrows(ServiceException.class,
+                () -> service.getExecutionStats(user, PROJECT_CODE, end, end.minusDays(1)));
+        assertThrows(ServiceException.class,
+                () -> service.getExecutionStats(user, PROJECT_CODE, end.minusDays(90), end));
         verifyNoInteractions(taskInstanceDao);
     }
 
