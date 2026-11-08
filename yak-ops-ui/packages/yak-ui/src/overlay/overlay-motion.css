@@ -181,11 +181,11 @@
 }
 
 .yak-modal-backdrop[data-open] {
-  animation: yak-modal-backdrop-enter 150ms ease-out;
+  animation: yak-modal-backdrop-enter 150ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 .yak-modal-backdrop[data-closed] {
-  animation: yak-modal-backdrop-exit 100ms ease-out;
+  animation: yak-modal-backdrop-exit 100ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 .yak-modal-popup[data-open] {
