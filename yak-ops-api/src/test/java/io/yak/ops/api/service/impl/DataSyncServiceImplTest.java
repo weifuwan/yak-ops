@@ -84,13 +84,13 @@ class DataSyncServiceImplTest {
     @Test
     void overviewCountsCurrentProjectTasksAndLatestWorkflowStates() {
         DataSyncOverviewTaskRow database = overviewTask(
-                "{\\"definition\\":{\\"source\\":{\\"tables\\":\\"sales.\\\\\\\\.*\\"},\\"pipeline\\":{\\"execution.runtime-mode\\":\\"BATCH\\"}}}",
+                "{\"definition\":{\"source\":{\"tables\":\"sales.\\\\.*\"},\"pipeline\":{\"execution.runtime-mode\":\"BATCH\"}}}",
                 ReleaseState.ONLINE, 1);
         DataSyncOverviewTaskRow multiTable = overviewTask(
-                "{\\"definition\\":{\\"source\\":{\\"tables\\":\\"sales.orders,sales.users\\"},\\"pipeline\\":{\\"execution.runtime-mode\\":\\"STREAMING\\"}}}",
+                "{\"definition\":{\"source\":{\"tables\":\"sales.orders,sales.users\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
                 ReleaseState.ONLINE, 14);
         DataSyncOverviewTaskRow singleTable = overviewTask(
-                "{\\"definition\\":{\\"source\\":{\\"tables\\":\\"sales.orders\\"},\\"pipeline\\":{\\"execution.runtime-mode\\":\\"STREAMING\\"}}}",
+                "{\"definition\":{\"source\":{\"tables\":\"sales.orders\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
                 ReleaseState.OFFLINE, 6);
         when(taskDefinitionDao.queryDataSyncOverview(PROJECT_CODE))
                 .thenReturn(Arrays.asList(database, multiTable, singleTable));
