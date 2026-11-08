@@ -66,7 +66,9 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
     navigate(
       scope === "DATABASE"
         ? "/data-sync/new/database"
-        : "/data-sync/new/single-table",
+        : scope === "MULTI_TABLE"
+          ? "/data-sync/new/multi-table"
+          : "/data-sync/new/single-table",
       { state: { draftKey: key } },
     );
   };
@@ -99,6 +101,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
           <DataSyncSearchableSelect value={supported ? scope : null}
             options={supported ? [
               { value: "DATABASE", label: "整库同步" },
+              { value: "MULTI_TABLE", label: "多表同步" },
               { value: "SINGLE_TABLE", label: "单表同步" },
             ] : []}
             disabled={!supported} placeholder="请选择具体类型"
