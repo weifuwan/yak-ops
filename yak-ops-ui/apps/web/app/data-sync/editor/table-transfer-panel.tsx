@@ -51,6 +51,19 @@ export function TableTransferPanel({
         </span>
       ),
     },
+    {
+      key: "primaryKeys",
+      title: "主键",
+      width: 160,
+      render: (_, row) =>
+        row.primaryKeys?.length ? (
+          <span className="block truncate" title={row.primaryKeys.join(",")}>
+            {row.primaryKeys.join(",")}
+          </span>
+        ) : (
+          <span className="text-[var(--yak-color-danger)]">无主键</span>
+        ),
+    },
   ];
   return (
     <section
