@@ -470,9 +470,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
-    public PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode,
-                                                       Integer datasourceId, String database,
-                                                       String keyword, Integer pageNo, Integer pageSize) {
+    public PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode, Integer datasourceId,
+                                                      String database, String keyword, Integer pageNo, Integer pageSize) {
         DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
         DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
@@ -511,9 +510,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
-    public List<DataSourceCatalogTable> getTableMetadata(
-            User loginUser, long projectCode, Integer datasourceId,
-            String database, List<String> tableNames) {
+    public List<DataSourceCatalogTable> getTableMetadata(User loginUser, long projectCode, Integer datasourceId,
+                                                         String database, List<String> tableNames) {
         DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         if (CollectionUtils.isEmpty(tableNames)) {
             return Collections.emptyList();
@@ -602,9 +600,8 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
     }
 
     @Override
-    public List<DataSourceCatalogColumn> getTableColumns(
-            User loginUser, long projectCode, Integer datasourceId,
-            String database, String table) {
+    public List<DataSourceCatalogColumn> getTableColumns(User loginUser, long projectCode, Integer datasourceId,
+                                                         String database, String table) {
         DataSource dataSource = checkProjectDataSource(loginUser, projectCode, datasourceId, false);
         DataSourceProcessor processor = DataSourceUtils.getDatasourceProcessor(dataSource.getType());
         DataSourceCatalog catalog = processor == null ? null : processor.getCatalog();
