@@ -1,5 +1,9 @@
 import type { PageInfo } from "@/service/http/page-info";
 import {
+  pipelineDatabaseRoute,
+  pipelineScope,
+  pipelineSteps,
+  pipelineSyncType,
   pipelineTableMappings,
   readPipelineDefinition,
 } from "./native-pipeline";
@@ -14,7 +18,16 @@ export function toSyncTaskRecord(task: TaskDefinitionRecord): DataSyncTaskRecord
   if (task.taskType !== "DATA_SYNC") throw new Error("不是 DATA_SYNC 任务");
   const pipeline = readPipelineDefinition(task.parameters);
   const mappings = pipelineTableMappings(pipeline);
-  const { source, target } = mappings[0];
+  const databaseRoute = pipelineDatabaseRoute(pipeline);
+  const firstMapping = mappings[0];
+  if (!databaseRoute && !firstMapping) throw new Error("缺少有效的同步路由");
+  const source = databaseRoute
+    ? { database: databaseRoute.sourceDatabase, table: "*" }
+    : firstMapping!.source;
+  const target = databaseRoute
+    ? { database: databaseRoute.targetDatabase, table: "*" }
+    : firstMapping!.target;
+  const displayMappings = databaseRoute ? [{ source, target }] : mappings;
   return {
     id: task.id,
     workflowCode: task.workflowCode,
@@ -37,11 +50,11 @@ export function toSyncTaskRecord(task: TaskDefinitionRecord): DataSyncTaskRecord
     sourceTable: source.table,
     targetDatabase: target.database,
     targetTable: target.table,
-    productType: "DATABASE_REPLICATION",
-    steps: ["SCHEMA", "FULL", "INCREMENTAL"],
-    syncType: "REALTIME",
+    scope: pipelineScope(pipeline),
+    steps: pipelineSteps(pipeline),
+    syncType: pipelineSyncType(pipeline),
     writeMode: "UPSERT",
-    tableMappings: mappings.map((mapping) => ({ ...mapping, writeMode: "UPSERT" })),
+    tableMappings: displayMappings.map((mapping) => ({ ...mapping, writeMode: "UPSERT" })),
   };
 }
 

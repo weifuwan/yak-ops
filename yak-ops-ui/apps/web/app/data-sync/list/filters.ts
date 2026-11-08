@@ -26,7 +26,6 @@ export function updateTaskListFilters(
   else next.delete("page");
   if (state.keyword.trim()) next.set("keyword", state.keyword.trim());
   else next.delete("keyword");
-  next.delete("productType");
   if (state.status !== "ALL") next.set("status", state.status);
   else next.delete("status");
   return next;

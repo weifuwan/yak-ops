@@ -22,6 +22,12 @@ interface Props {
 }
 export function TaskSummary({ task, updatedBy, dataSources, onCopyTaskId }: Props) {
   const copyTaskId = onCopyTaskId;
+  const scopeLabel = task.scope === "DATABASE" ? "整库同步" : "单表同步";
+  const hasFull = task.steps.includes("FULL");
+  const hasIncremental = task.steps.includes("INCREMENTAL");
+  const modeLabel = hasFull && hasIncremental
+    ? "全量 + 增量"
+    : hasFull ? "全量" : "增量";
   return (
     <section aria-labelledby="task-basic-info">
       <h2
@@ -58,9 +64,11 @@ export function TaskSummary({ task, updatedBy, dataSources, onCopyTaskId }: Prop
           </div>
         </BasicInfoField>
         <BasicInfoField label="同步方案">
-          {"MySQL 实时同步"}
+          MySQL · {scopeLabel} · {modeLabel}
         </BasicInfoField>
-        <BasicInfoField label="同步表数">{task.tableMappings.length} 张表</BasicInfoField>
+        <BasicInfoField label="同步范围">
+          {task.scope === "DATABASE" ? "整库" : task.tableMappings.length + " 张表"}
+        </BasicInfoField>
         <BasicInfoField label="创建时间">{task.createTime || "-"}</BasicInfoField>
         <BasicInfoField label="更新时间">{task.updateTime || "-"}</BasicInfoField>
         <BasicInfoField label="当前版本">v{task.definitionVersion}</BasicInfoField>

@@ -116,6 +116,12 @@ const rowCountText = (value?: number) =>
 
 function ExecutionProgressCard({ record }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
+  const scopeLabel = record.scope === "DATABASE" ? "整库同步" : "单表同步";
+  const hasFull = record.steps.includes("FULL");
+  const hasIncremental = record.steps.includes("INCREMENTAL");
+  const modeLabel = hasFull && hasIncremental
+    ? "全量 + 增量"
+    : hasFull ? "全量" : "增量";
   const summary =
     record.executionReport && record.executionReport.version !== 1
       ? record.executionReport
@@ -134,7 +140,7 @@ function ExecutionProgressCard({ record }: DetailProps) {
       )}
 
       <h3 className="mt-2 text-sm font-semibold text-[#344054]">
-        {"MySQL 实时同步"}
+        MySQL · {scopeLabel} · {modeLabel}
       </h3>
       <div className="mt-1 text-xs text-[#98a2b3]">
         v{record.taskVersion} · {dataSyncTriggerText(record.triggerType)}
@@ -275,7 +281,7 @@ export function DataSyncExecutionDetailContent({
       ) : null}
       <ExecutionProgressCard record={record} />
       <div className="min-w-0 pt-4">
-        {record.productType === "DATABASE_REPLICATION" || record.executionReport ? (
+        {record.scope === "DATABASE" || record.executionReport ? (
           <TableExecutionResults record={record} />
         ) : (
           <Table<TableExecutionRow>

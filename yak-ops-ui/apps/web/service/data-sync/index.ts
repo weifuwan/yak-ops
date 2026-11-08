@@ -160,7 +160,7 @@ export const listDataSyncInstances = async (
       taskName: instance.taskName,
       taskVersion: instance.definitionVersion,
       workflowInstanceId: instance.workflowInstanceId,
-      syncType: "REALTIME" as const,
+      syncType: instance.executeType === "BATCH" ? "OFFLINE" as const : "REALTIME" as const,
       triggerType: instance.triggerType,
       status: instance.status,
       startTime: instance.startTime ?? undefined,

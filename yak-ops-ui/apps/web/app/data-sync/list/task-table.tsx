@@ -23,6 +23,14 @@ function isUnreadable(record: DataSyncTaskListRecord): record is DataSyncUnreada
   return "configurationError" in record;
 }
 
+function syncPlanText(record: DataSyncTaskRecord): string {
+  const scope = record.scope === "DATABASE" ? "整库同步" : "单表同步";
+  const full = record.steps.includes("FULL");
+  const incremental = record.steps.includes("INCREMENTAL");
+  const mode = full && incremental ? "全量 + 增量" : full ? "全量" : "增量";
+  return `MySQL · ${scope} · ${mode}`;
+}
+
 interface Data {
   dataSourceMap: Map<string, DataSourceRecord>;
   dataSourcesLoading: boolean;
@@ -133,9 +141,9 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
           </span>
         ) : (
           <div className="text-xs text-[var(--yak-components-tab-text-hover)]">
-            <div>MySQL 实时同步</div>
+            <div>{syncPlanText(record)}</div>
             <div className="mt-0.5 text-[var(--yak-components-muted-text)]">
-              {record.tableMappings.length} 张表
+              {record.scope === "DATABASE" ? "整库" : record.tableMappings.length + " 张表"}
             </div>
           </div>
         ),
