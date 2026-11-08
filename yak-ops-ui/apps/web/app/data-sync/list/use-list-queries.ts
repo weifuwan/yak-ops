@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { listDataSources } from "@/service/datasource";
@@ -100,23 +100,31 @@ export function useListUpdateUsers(scope: string, records: DataSyncTaskRecord[])
 
 export function useListInstances(scope: string, records: DataSyncTaskRecord[], safeToAct: boolean) {
   const ids = records.map((item) => item.id).sort();
+  const workflowQueries = useQueries({
+    queries: records.map((record) => ({
+      queryKey: [...listQueryKeys.instances(scope), "workflow", record.workflowCode],
+      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+        getLatestDataSyncWorkflow(record.workflowCode, signal),
+      enabled: Boolean(scope),
+      refetchInterval: (result: { state: { data?: { state: import("@/service/data-sync").WorkflowExecutionStatus } } }) =>
+        result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : 15000,
+    })),
+  });
+  const workflowRunning = workflowQueries.some(
+    (result) => result.data && isWorkflowActive(result.data.state),
+  );
   const query = useQuery({
     queryKey: [...listQueryKeys.instances(scope), ids],
     queryFn: async ({ signal }) => {
-      const [latest, active, workflows] = await Promise.all([
+      const [latest, active] = await Promise.all([
         listLatestDataSyncTaskInstances(ids, false, signal),
         listLatestDataSyncTaskInstances(ids, true, signal),
-        Promise.all(records.map(async (record) =>
-          [record.id, await getLatestDataSyncWorkflow(record.workflowCode, signal)] as const)),
       ]);
-      return { latest, active, workflows };
+      return { latest, active };
     },
     enabled: Boolean(scope) && ids.length > 0,
     refetchInterval: (result) =>
-      result.state.data?.active.length ||
-      result.state.data?.workflows.some(([, instance]) => instance && isWorkflowActive(instance.state))
-        ? 2000
-        : 15000,
+      result.state.data?.active.length || workflowRunning ? 2000 : 15000,
   });
   const latestByTask = useMemo(
     () => new Map((query.data?.latest ?? []).map((item) => [item.definitionId, item] as const)),
@@ -126,16 +134,16 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
     () => new Map((query.data?.active ?? []).map((item) => [item.definitionId, item] as const)),
     [query.data],
   );
-  const workflowsByTask = useMemo(
-    () => new Map(query.data?.workflows ?? []),
-    [query.data],
+  const workflowsByTask = new Map(
+    records.map((record, index) => [record.id, workflowQueries[index]?.data] as const),
   );
   return {
     latestByTask,
     activeByTask,
     workflowsByTask,
-    loading: ids.length > 0 && query.isPending,
-    ready: safeToAct && (ids.length === 0 || query.isSuccess),
-    error: query.isError,
+    loading: ids.length > 0 && (query.isPending || workflowQueries.some((result) => result.isPending)),
+    ready: safeToAct && (ids.length === 0 || (query.isSuccess &&
+      workflowQueries.every((result) => result.isSuccess))),
+    error: query.isError || workflowQueries.some((result) => result.isError),
   };
 }
