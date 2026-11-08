@@ -36,7 +36,7 @@ public interface DataSourceService {
     List<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database);
 
     PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode, Integer id, String database,
-                                                String keyword, Integer pageNo, Integer pageSize);
+                                               String keyword, Integer pageNo, Integer pageSize);
 
     List<DataSourceCatalogTable> getTableMetadata(User loginUser, long projectCode, Integer id,
                                                   String database, List<String> tableNames);
