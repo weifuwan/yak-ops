@@ -9,12 +9,9 @@ import type { DataSourceRecord } from "@/service/datasource";
 import { nativeDraftKey, writeNativeDraft, clearNativeDraft, type NativeSyncDraft } from "@/service/data-sync/native-draft";
 import {
   addPipelineSourceTables,
-  removePipelineSourceTable,
   setPipelineDatasource,
   setPipelineSinkDatabase,
-  setPipelineTargetTableName,
   sourceTables,
-  targetTableName,
   validatePipelineDefinition,
   type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
@@ -327,18 +324,10 @@ export function TaskEditor({
               ) : null}
             </ContentSection>
             <TargetTableMapping
+              definition={definition}
               sources={sources}
               targetDatabase={sinkDatasource?.database || ""}
-              targetTableName={(source) => targetTableName(definition, source)}
-              onTargetTableChange={(source, table) =>
-                edit(setPipelineTargetTableName(
-                  definition,
-                  source,
-                  sinkDatasource?.database || "",
-                  table,
-                ))
-              }
-              onRemove={(source) => edit(removePipelineSourceTable(definition, source))}
+              onChange={edit}
             />
           </fieldset>
         </main>
