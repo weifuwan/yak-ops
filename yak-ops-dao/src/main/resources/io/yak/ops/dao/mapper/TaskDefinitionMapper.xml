@@ -173,6 +173,12 @@
         where t.project_code = #{projectCode}
           and t.task_type = #{taskType}
           and t.flag = 1
+        <if test="taskCodes != null">
+            and t.code in
+            <foreach collection="taskCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
         <if test="releaseState != null">
             and w.release_state = #{releaseState}
         </if>
