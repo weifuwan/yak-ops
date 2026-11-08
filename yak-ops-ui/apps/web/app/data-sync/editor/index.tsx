@@ -8,8 +8,15 @@ import type { TaskDefinitionRecord } from "@/service/data-sync";
 import type { DataSourceRecord } from "@/service/datasource";
 import { nativeDraftKey, writeNativeDraft, clearNativeDraft, type NativeSyncDraft } from "@/service/data-sync/native-draft";
 import {
-  sourceTable, setPipelineDatasource, setPipelineSourceTable, setPipelineSinkTable,
-  validatePipelineDefinition, type PipelineDefinition,
+  addPipelineSourceTables,
+  removePipelineSourceTable,
+  setPipelineDatasource,
+  setPipelineSinkDatabase,
+  setPipelineTargetTableName,
+  sourceTables,
+  targetTableName,
+  validatePipelineDefinition,
+  type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
 import {
   createNativeTask, updateNativeTask, publishNativeTask, previewNativeTask,
@@ -26,6 +33,7 @@ import { EditorHeader, EditorFooter } from "./editor-footer";
 import { AdvancedConfigDrawer } from "./advanced-config-drawer";
 import { PropertiesDrawer } from "./properties-drawer";
 import { YamlPreview } from "./yaml-preview";
+import { TargetTableMapping } from "./target-table-mapping";
 
 interface EditorProps {
   initialDraft?: NativeSyncDraft;
@@ -73,7 +81,7 @@ export function TaskEditor({
   const { dataSources, dataSourcesLoading, dataSourcesError, loadDataSources } =
     useEditorDataSources(connections);
   const definition = authored.definition;
-  const source = sourceTable(definition);
+  const sources = sourceTables(definition);
   const sourceId = definition.source["datasource-id"];
   const sinkId = definition.sink["datasource-id"];
   const sourceDatasource = dataSources.find((item) => item.id === sourceId);
@@ -88,8 +96,9 @@ export function TaskEditor({
     sourcePageSize,
     Boolean(sourceId),
   );
-  const sourceTables = sourceCatalog.tables.map(catalogPath);
-  const selectedTables: DataSyncTablePath[] = source ? [source] : [];
+  const catalogTables = sourceCatalog.tables.map(catalogPath);
+  const selectedTables: DataSyncTablePath[] = sources;
+  const selectedTableKeys = new Set(selectedTables.map(tableKey));
   const dirty = pipelineFingerprint(authored) !== baseline;
   const definitionDirty = pipelineFingerprint(definition) !== baselineDefinition;
   const locked = saving || executionLocked || Boolean(task?.archived) || task?.status === "ONLINE";
@@ -117,6 +126,7 @@ export function TaskEditor({
   const anchorItems = useMemo(() => [
     { id: "datasource", label: "数据源" },
     { id: "source", label: "数据来源" },
+    { id: "target", label: "目标表映射" },
   ], []);
 
   const edit = (next: PipelineDefinition) => {
@@ -134,23 +144,25 @@ export function TaskEditor({
   const changeSink = (value: string) => {
     let next = setPipelineDatasource(definition, "sink", value);
     const target = dataSources.find((item) => item.id === value);
-    if (source && target?.database) {
-      next = setPipelineSinkTable(next, { database: target.database, table: source.table });
+    if (target?.database) {
+      next = setPipelineSinkDatabase(next, target.database);
     }
     edit(next);
   };
-  const selectSource = (table: (typeof sourceCatalog.tables)[number]) => {
-    const location = catalogPath(table);
+  const addSelectedSources = () => {
     try {
+      const selected = sourceCatalog.tables
+        .filter((item) => sourceChecked.includes(tableKey(catalogPath(item))))
+        .map((item) => {
+          const location = catalogPath(item);
+          return {
+            database: location.database || location.schema || sourceDatasource?.database || "",
+            table: location.table,
+          };
+        });
+      if (!selected.length) return;
+      edit(addPipelineSourceTables(definition, selected, sinkDatasource?.database || ""));
       setSourceChecked([]);
-      let next = setPipelineSourceTable(definition, {
-        database: location.database || location.schema || sourceDatasource?.database || "",
-        table: location.table,
-      });
-      if (sinkDatasource?.database) {
-        next = setPipelineSinkTable(next, { database: sinkDatasource.database, table: location.table });
-      }
-      edit(next);
     } catch (failure) {
       setCatalogError(failure instanceof Error ? failure.message : "来源表无效");
     }
@@ -287,8 +299,8 @@ export function TaskEditor({
               onSourceChange={changeSource} onTargetChange={changeSink} />
             <ContentSection id="source" title="数据来源">
               <div className="grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-                <TableTransferPanel title="来源库表" tables={sourceTables}
-                  checked={sourceChecked} onCheckedChange={(keys) => setSourceChecked(keys.slice(-1))}
+                <TableTransferPanel title="来源库表" tables={catalogTables}
+                  checked={sourceChecked} onCheckedChange={setSourceChecked}
                   filter={sourceTableFilter}
                   onFilterChange={setSourceTableFilter}
                   loading={sourceCatalog.loading}
@@ -298,18 +310,14 @@ export function TaskEditor({
                     setSourcePageSize(pageSize);
                     setSourceChecked([]);
                   }}
-                  onRefresh={sourceCatalog.refresh} />
+                  onRefresh={sourceCatalog.refresh}
+                  disabled={(table) => selectedTableKeys.has(tableKey(table))} />
                 <Button size="small" disabled={!sourceChecked.length || !sourceId}
-                  onClick={() => {
-                    const selected = sourceCatalog.tables.find(
-                      (item) => tableKey(catalogPath(item)) === sourceChecked[0],
-                    );
-                    if (selected) selectSource(selected);
-                  }}>添加 →</Button>
+                  onClick={addSelectedSources}>添加 →</Button>
                 <TableTransferPanel title="已选库表" tables={selectedTables}
-                  checked={[]} onCheckedChange={() => {
-                    if (sourceId) edit(setPipelineDatasource(definition, "source", sourceId));
-                  }}
+                  checked={selectedTables.map(tableKey)}
+                  onCheckedChange={() => undefined}
+                  disabled={() => true}
                   hideFilters />
               </div>
               {sourceCatalog.error || catalogError ? (
@@ -318,6 +326,20 @@ export function TaskEditor({
                 </Alert>
               ) : null}
             </ContentSection>
+            <TargetTableMapping
+              sources={sources}
+              targetDatabase={sinkDatasource?.database || ""}
+              targetTableName={(source) => targetTableName(definition, source)}
+              onTargetTableChange={(source, table) =>
+                edit(setPipelineTargetTableName(
+                  definition,
+                  source,
+                  sinkDatasource?.database || "",
+                  table,
+                ))
+              }
+              onRemove={(source) => edit(removePipelineSourceTable(definition, source))}
+            />
           </fieldset>
         </main>
         <aside className="hidden w-[176px] shrink-0  pt-4 lg:block">
