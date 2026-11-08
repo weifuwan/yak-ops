@@ -7,6 +7,8 @@ export const detailQueryKeys = {
     [...detailQueryKeys.scope(scope), "sources", sourceId, targetId] as const,
   updatedBy: (scope: string, userId: string) =>
     [...detailQueryKeys.scope(scope), "user", userId] as const,
+  latestWorkflow: (scope: string, workflowCode: string) =>
+    [...detailQueryKeys.scope(scope), "latest-workflow", workflowCode] as const,
   activeInstance: (scope: string, taskId: string) =>
     [...detailQueryKeys.scope(scope), "active-instance", taskId] as const,
   instances: (scope: string, taskId: string) =>
