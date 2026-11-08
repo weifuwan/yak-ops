@@ -9,6 +9,7 @@ import io.yak.ops.dao.mapper.TaskDefinitionMapper;
 import io.yak.ops.dao.mapper.WorkflowDefinitionMapper;
 import io.yak.ops.dao.mapper.WorkflowTaskRelationLogMapper;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.repository.BaseDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 
@@ -113,6 +114,11 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
                                                     String taskType, String keyword, Long taskCode,
                                                     Integer releaseState) {
         return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState);
+    }
+
+    @Override
+    public List<DataSyncOverviewTaskRow> queryDataSyncOverview(long projectCode) {
+        return mybatisMapper.queryDataSyncOverview(projectCode);
     }
 
     @Override
