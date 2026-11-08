@@ -14,7 +14,7 @@ import type {
   DataSyncTaskRecord,
   DataSyncUnreadableTaskRecord,
 } from "@/service/data-sync";
-import type { TaskInstanceRecord } from "@/service/task-execution";
+import type { TaskInstanceRecord } from "@/service/task-execution/types";
 import type { TaskCommand } from "./use-task-actions";
 
 const PAGE_SIZE = 20;
