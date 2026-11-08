@@ -7,7 +7,7 @@ import {
   type DataSyncInstanceSummary,
   type DataSyncInstanceStatus,
 } from "@/service/data-sync";
-import type { TaskInstanceRecord } from "@/service/task-execution";
+import type { TaskInstanceRecord } from "@/service/task-execution/types";
 import { isActiveDataSyncInstance } from "../execution/execution-detail";
 import { detailQueryKeys } from "./query-keys";
 
