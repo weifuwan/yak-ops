@@ -17,7 +17,7 @@
     "format:check": "oxfmt --check apps packages",
     "check": "npm run format:check",
     "test:auth": "node --experimental-strip-types --test tests/auth-contract.test.mjs",
-    "test:data-sync": "node --experimental-strip-types --test tests/data-sync-native-pipeline.test.mjs tests/data-sync-workflow-state.test.mjs",
+    "test:data-sync": "node --experimental-strip-types --test tests/data-sync-native-pipeline.test.mjs tests/data-sync-workflow-state.test.mjs tests/data-sync-list-filters.test.mjs",
     "test:datasource": "node --experimental-strip-types --test tests/datasource-contract.test.mjs tests/datasource-svg-icons.test.mjs tests/datasource-driver-properties.test.mjs"
   },
   "devDependencies": {
