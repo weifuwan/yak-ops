@@ -1,4 +1,4 @@
-import { API_PREFIX } from "@/config/api";
+import { API_PREFIX, YAK_OPS_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
 
 import type {
@@ -17,8 +17,10 @@ export const listUsers = (params: UserPageParams): Promise<UserPageResult> =>
 
 export const getUsersByIds = (ids: readonly UserId[]): Promise<UserRecord[]> => {
   if (ids.length === 0) return Promise.resolve([]);
-  const query = encodeURIComponent(JSON.stringify(ids));
-  return HttpUtils.getData<UserRecord[]>(`${USER_API_PREFIX}?ids=${query}`);
+  const query = new URLSearchParams({ ids: ids.join(",") });
+  return HttpUtils.getData<UserRecord[]>(
+    `${YAK_OPS_API_PREFIX}/users/by-ids?${query}`,
+  );
 };
 
 export const searchUsers = (keyword: string): Promise<UserBriefRecord[]> => {
