@@ -21,6 +21,8 @@ import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogTable;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
 import io.yak.ops.plugin.task.api.utils.ParameterUtils;
@@ -269,7 +271,7 @@ public class DataSourceController extends BaseController {
     @GetMapping(value = "/tables")
     @ResponseStatus(HttpStatus.OK)
     @ApiException(GET_DATASOURCE_TABLES_ERROR)
-    public Result<PageInfo<ParamsOptions>> getTables(
+    public Result<PageInfo<DataSourceCatalogTable>> getTables(
             @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @RequestParam("datasourceId") Integer datasourceId,
@@ -280,6 +282,21 @@ public class DataSourceController extends BaseController {
         checkPageParams(pageNo, pageSize);
         return Result.success(dataSourceService.getTables(
                 loginUser, projectCode, datasourceId, database, keyword, pageNo, pageSize));
+    }
+
+    @Operation(summary = "tableMetadata", description = "GET_DATASOURCE_TABLES_NOTES")
+    @GetMapping(value = "/table-metadata")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(GET_DATASOURCE_TABLES_ERROR)
+    public Result<List<DataSourceCatalogTable>> getTableMetadata(
+            @Parameter(hidden = true)
+            @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @PathVariable("projectCode") long projectCode,
+            @RequestParam("datasourceId") Integer datasourceId,
+            @RequestParam("database") String database,
+            @RequestParam("tableName") List<String> tableNames) {
+        return Result.success(dataSourceService.getTableMetadata(
+                loginUser, projectCode, datasourceId, database, tableNames));
     }
 
     /**
@@ -305,9 +322,10 @@ public class DataSourceController extends BaseController {
                                           @RequestParam("datasourceId") Integer datasourceId,
                                           @RequestParam("database") String database,
                                           @RequestParam("tableName") String tableName) {
-        List<ParamsOptions> options =
-                dataSourceService.getTableColumns(loginUser, projectCode, datasourceId, database, tableName);
-        return Result.success(options);
+        List<DataSourceCatalogColumn> columns =
+                dataSourceService.getTableColumns(
+                        loginUser, projectCode, datasourceId, database, tableName);
+        return Result.success(columns);
     }
 
     /**
