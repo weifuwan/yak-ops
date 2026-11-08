@@ -8,5 +8,5 @@ public class DataSyncExecutionDailyRow {
     private String bucketDate;
     private Integer executeType;
     private Integer state;
-    private long count;
+    private long instanceCount;
 }
