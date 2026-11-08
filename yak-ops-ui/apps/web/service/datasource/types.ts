@@ -134,6 +134,7 @@ export interface DataSourceCatalogTable {
   name: string;
   type?: string;
   remarks?: string;
+  primaryKeys: string[];
 }
 
 export interface DataSourceCatalogColumn {
