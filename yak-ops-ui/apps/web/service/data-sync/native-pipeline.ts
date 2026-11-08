@@ -140,7 +140,7 @@ export function pipelineSyncType(definition: PipelineDefinition): DataSyncType {
 export function pipelineScope(definition: PipelineDefinition): DataSyncScope {
   const paths = sourcePaths(definition);
   if (paths.length === 1 && parseDatabasePattern(paths[0])) return "DATABASE";
-  return paths.length === 1 ? "SINGLE_TABLE" : "DATABASE";
+  return paths.length <= 1 ? "SINGLE_TABLE" : "MULTI_TABLE";
 }
 
 export function setPipelineSteps(
