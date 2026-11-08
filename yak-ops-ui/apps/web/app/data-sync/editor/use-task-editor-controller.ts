@@ -65,7 +65,12 @@ export function useTaskEditorController(
   const steps = useMemo(() => pipelineSteps(definition), [definition]);
   const hasFull = steps.includes("FULL");
   const hasIncremental = steps.includes("INCREMENTAL");
-  const scopeLabel = scope === "DATABASE" ? "整库同步" : "单表同步";
+  const scopeLabel =
+    scope === "DATABASE"
+      ? "整库同步"
+      : scope === "MULTI_TABLE"
+        ? "多表同步"
+        : "单表同步";
   const modeLabel =
     hasFull && hasIncremental ? "全量 + 增量" : hasFull ? "全量" : "增量";
   const syncPlan = `MySQL · ${scopeLabel} · ${modeLabel}`;
