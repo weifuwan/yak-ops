@@ -21,6 +21,7 @@ export interface DataSyncWorkflowInstance {
   state: WorkflowExecutionStatus;
   startTime?: string | null;
   endTime?: string | null;
+  stateHistory?: string | null;
 }
 
 export const isWorkflowActive = (state: WorkflowExecutionStatus): boolean =>
