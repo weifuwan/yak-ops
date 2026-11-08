@@ -30,6 +30,7 @@ interface DataSyncSearchableSelectProps {
   refreshing?: boolean;
   footer?: ReactNode;
   onRefresh?: () => void | Promise<void>;
+  onSearchChange?: (value: string) => void;
   onValueChange: (value: string) => void;
 }
 
@@ -44,6 +45,7 @@ export function DataSyncSearchableSelect({
   refreshing = false,
   footer,
   onRefresh,
+  onSearchChange,
   onValueChange,
 }: DataSyncSearchableSelectProps) {
   const [keyword, setKeyword] = useState("");
@@ -70,7 +72,10 @@ export function DataSyncSearchableSelect({
       value={value}
       disabled={disabled}
       onOpenChange={(open) => {
-        if (!open) setKeyword("");
+        if (!open) {
+          setKeyword("");
+          onSearchChange?.("");
+        }
       }}
       onValueChange={(nextValue) => {
         if (nextValue) onValueChange(String(nextValue));
@@ -84,7 +89,11 @@ export function DataSyncSearchableSelect({
           <SelectSearch
             value={keyword}
             placeholder={searchPlaceholder}
-            onChange={(event) => setKeyword(event.target.value)}
+            onChange={(event) => {
+              const nextKeyword = event.target.value;
+              setKeyword(nextKeyword);
+              onSearchChange?.(nextKeyword);
+            }}
             extra={
               onRefresh ? (
                 <Button variant="secondary"
