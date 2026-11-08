@@ -25,6 +25,7 @@ import {
   TaskEditor,
 } from "./index";
 import { ReadonlyTaskEditor } from "./readonly-editor";
+import { TaskEditorSkeleton } from "./task-editor-skeleton";
 
 interface EditPayload {
   kind: "editable";
@@ -114,11 +115,11 @@ export function DataSyncTaskEditorPage() {
       Boolean(
         activeQuery.data?.some((instance) => instance.definitionId === id),
       ));
-  const executionLockMessage = activeQuery.data?.some(
-    (instance) => instance.definitionId === id,
-  )
-    ? "任务正在执行，完成或停止后才能修改配置。"
-    : "正在确认任务运行状态，暂不可修改配置。";
+  const executionLockMessage = activeQuery.isError
+    ? "运行状态获取失败，暂不可修改配置。"
+    : activeQuery.data?.some((instance) => instance.definitionId === id)
+      ? "任务正在执行，完成或停止后才能修改配置。"
+      : "正在确认任务运行状态，暂不可修改配置。";
 
   const query = useQuery<EditPayload | ReadonlyPayload>({
     queryKey: ["data-sync-editor", currentUser?.id, id],
@@ -164,8 +165,8 @@ export function DataSyncTaskEditorPage() {
       </div>
     );
   }
-  if (!query.data) {
-    return <div className="p-8 text-sm">正在加载同步任务...</div>;
+  if (!query.data || (query.data.kind === "editable" && activeQuery.isPending)) {
+    return <TaskEditorSkeleton />;
   }
   if (query.data.kind === "readonly") {
     return (
