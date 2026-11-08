@@ -10,6 +10,7 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
@@ -34,6 +35,7 @@ import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
+import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
@@ -48,9 +50,15 @@ import io.yak.ops.plugin.task.datasync.DataSyncParameters;
 import io.yak.ops.plugin.task.datasync.DataSyncPipelineBuilder;
 import io.yak.ops.spi.enums.DbType;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -236,6 +244,68 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         } catch (RuntimeException error) {
             return null;
         }
+    }
+
+    @Override
+    public DataSyncExecutionStatsVO getExecutionStats(User user, long projectCode,
+                                                      LocalDate startDate, LocalDate endDate) {
+        authorizeRead(user, projectCode);
+        if (startDate == null || endDate == null || startDate.isAfter(endDate)
+                || endDate.isAfter(LocalDate.now()) || ChronoUnit.DAYS.between(startDate, endDate) > 89) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "dateRange");
+        }
+
+        ZoneId zone = ZoneId.systemDefault();
+        Date startTime = Date.from(startDate.atStartOfDay(zone).toInstant());
+        Date endTime = Date.from(endDate.plusDays(1).atStartOfDay(zone).toInstant());
+        Map<String, DataSyncExecutionStatsVO.Daily> days = new LinkedHashMap<>();
+        for (DataSyncExecutionDailyRow row :
+                taskInstanceDao.queryDataSyncDailyExecution(projectCode, startTime, endTime)) {
+            if (row.getBucketDate() == null || row.getExecuteType() == null || row.getState() == null) {
+                continue;
+            }
+            String type = row.getExecuteType() == TaskExecuteType.BATCH.getCode() ? "OFFLINE"
+                    : row.getExecuteType() == TaskExecuteType.STREAM.getCode() ? "REALTIME" : "UNKNOWN";
+            String key = row.getBucketDate() + ":" + type;
+            DataSyncExecutionStatsVO.Daily daily = days.computeIfAbsent(key,
+                    ignored -> DataSyncExecutionStatsVO.Daily.builder()
+                            .date(row.getBucketDate())
+                            .syncType(type)
+                            .build());
+            long count = row.getCount();
+            daily.setExecutionCount(daily.getExecutionCount() + count);
+            TaskExecutionStatus state = TaskExecutionStatus.of(row.getState());
+            switch (state) {
+                case SUCCESS:
+                case FORCED_SUCCESS:
+                    daily.setSucceededCount(daily.getSucceededCount() + count);
+                    break;
+                case FAILURE:
+                case NEED_FAULT_TOLERANCE:
+                    daily.setFailedCount(daily.getFailedCount() + count);
+                    break;
+                case KILL:
+                    daily.setStoppedCount(daily.getStoppedCount() + count);
+                    break;
+                case RUNNING_EXECUTION:
+                    daily.setRunningCount(daily.getRunningCount() + count);
+                    break;
+                case PAUSE:
+                    daily.setPausedCount(daily.getPausedCount() + count);
+                    break;
+                default:
+                    daily.setQueuedCount(daily.getQueuedCount() + count);
+                    break;
+            }
+        }
+        List<DataSyncExecutionStatsVO.Daily> rows = new ArrayList<>(days.values());
+        rows.sort(Comparator.comparing(DataSyncExecutionStatsVO.Daily::getDate)
+                .thenComparing(DataSyncExecutionStatsVO.Daily::getSyncType));
+        return DataSyncExecutionStatsVO.builder()
+                .startDate(startDate.toString())
+                .endDate(endDate.toString())
+                .days(rows)
+                .build();
     }
 
     @Override
