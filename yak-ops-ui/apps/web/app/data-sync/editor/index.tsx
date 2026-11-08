@@ -329,7 +329,7 @@ export function TaskEditor({
         <main className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto pb-6 pt-4">
           {executionLocked ? <Alert>{executionLockMessage || "任务正在执行，暂不可编辑"}</Alert> : null}
           {task?.status === "ONLINE" ? <Alert>请先下线任务，再修改或重新发布配置。</Alert> : null}
-          {error ? <Alert>{error}</Alert> : null}
+          {error ? <Alert key={error} pop>{error}</Alert> : null}
           {dataSourcesError ? (
             <Alert>{dataSourcesError}<Button variant="secondary" size="sm" onClick={loadDataSources}>重试</Button></Alert>
           ) : null}

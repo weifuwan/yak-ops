@@ -4,6 +4,7 @@ import { cn } from "../cn";
 
 export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   children: ReactNode;
+  pop?: boolean;
 }
 
 function AlertWarningIcon() {
@@ -21,13 +22,14 @@ function AlertWarningIcon() {
   );
 }
 
-export function Alert({ children, className, ...props }: AlertProps) {
+export function Alert({ children, className, pop = false, ...props }: AlertProps) {
   return (
     <div
       {...props}
       role="alert"
       className={cn(
         "flex min-h-9 w-full items-center gap-2 rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-alert-warning-border)] bg-[var(--yak-components-alert-warning-bg)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-alert-warning-text)]",
+        pop && "yak-alert-pop",
         className,
       )}
     >
