@@ -51,7 +51,8 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
                                             @Param("taskType") String taskType,
                                             @Param("keyword") String keyword,
                                             @Param("taskCode") Long taskCode,
-                                            @Param("releaseState") Integer releaseState);
+                                            @Param("releaseState") Integer releaseState,
+                                            @Param("taskCodes") List<Long> taskCodes);
 
     List<DataSyncOverviewTaskRow> queryDataSyncOverview(@Param("projectCode") long projectCode);
 
