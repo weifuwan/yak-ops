@@ -80,7 +80,6 @@ class DataSyncServiceImplTest {
     @InjectMocks
     private DataSyncServiceImpl service;
 
-
     @Test
     void overviewCountsCurrentProjectTasksAndLatestWorkflowStates() {
         DataSyncOverviewTaskRow database = overviewTask(
