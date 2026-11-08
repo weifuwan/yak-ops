@@ -106,16 +106,32 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
           <FieldLabel required className="pt-1.5">同步步骤</FieldLabel>
-          <div className="flex min-h-8 items-center gap-5">
-            <Checkbox checked disabled aria-label="结构迁移">结构迁移</Checkbox>
-            <Checkbox checked={steps.includes("FULL")}
-              onCheckedChange={(checked) => toggleStep("FULL", checked === true)}>
-              全量同步
-            </Checkbox>
-            <Checkbox checked={steps.includes("INCREMENTAL")}
-              onCheckedChange={(checked) => toggleStep("INCREMENTAL", checked === true)}>
-              增量同步
-            </Checkbox>
+          <div className="space-y-1.5">
+            <div className="flex min-h-8 items-center gap-5 text-sm text-[var(--yak-components-field-label)]">
+              <label className="flex items-center gap-2">
+                <Checkbox checked disabled aria-label="结构迁移" />
+                <span>结构迁移</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <Checkbox
+                  checked={steps.includes("FULL")}
+                  aria-label="全量同步"
+                  onCheckedChange={(checked) => toggleStep("FULL", checked === true)}
+                />
+                <span>全量同步</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <Checkbox
+                  checked={steps.includes("INCREMENTAL")}
+                  aria-label="增量同步"
+                  onCheckedChange={(checked) => toggleStep("INCREMENTAL", checked === true)}
+                />
+                <span>增量同步</span>
+              </label>
+            </div>
+            <div className="text-xs text-[var(--yak-components-muted-text)]">
+              结构迁移固定执行；全量同步与增量同步至少选择一项
+            </div>
           </div>
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
