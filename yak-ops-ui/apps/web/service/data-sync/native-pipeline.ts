@@ -326,7 +326,7 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
       throw new Error("来源表映射必须与已选来源表一一对应");
     }
     if (typeof routeTarget !== "string" || !TABLE_PATH.test(routeTarget)) {
-      throw new Error("请配置有效的目标表");
+      throw new Error("请配置有效的目标表映射");
     }
     if (routedTargets.has(routeTarget)) {
       throw new Error("不同来源表不能映射到同一目标表");
