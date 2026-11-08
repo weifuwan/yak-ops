@@ -11,6 +11,13 @@ import {
 } from "@yak-ops/yak-ui";
 import { Plus } from "lucide-react";
 import { DATA_SYNC_TASK_STATUS_ITEMS } from "./task-lifecycle";
+
+const TASK_SCOPE_ITEMS = {
+  ALL: "全部任务类型",
+  SINGLE_TABLE: "单表同步",
+  MULTI_TABLE: "多表同步",
+  DATABASE: "整库同步",
+} as const;
 import type { TaskListFilters } from "./filters";
 
 interface Props {
@@ -42,6 +49,31 @@ export function TaskFilters({
           placeholder="搜索任务名称或表名"
           onChange={(event) => onKeywordChange(event.target.value)}
         />
+      </div>
+      <div className="w-[150px]">
+        <Select
+          size="small"
+          items={TASK_SCOPE_ITEMS}
+          value={filters.scope}
+          onValueChange={(value) =>
+            onFilterChange({
+              scope: String(value || "ALL") as TaskListFilters["scope"],
+              pageNo: 1,
+            })
+          }
+        >
+          <SelectTrigger variant="outlined">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(TASK_SCOPE_ITEMS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                <SelectItemText>{label}</SelectItemText>
+                <SelectItemIndicator />
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="w-[150px]">
         <Select
