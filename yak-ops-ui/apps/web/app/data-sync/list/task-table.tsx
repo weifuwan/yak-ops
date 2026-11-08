@@ -24,7 +24,12 @@ function isUnreadable(record: DataSyncTaskListRecord): record is DataSyncUnreada
 }
 
 function syncPlanText(record: DataSyncTaskRecord): string {
-  const scope = record.scope === "DATABASE" ? "整库同步" : "单表同步";
+  const scope =
+    record.scope === "DATABASE"
+      ? "整库同步"
+      : record.scope === "MULTI_TABLE"
+        ? "多表同步"
+        : "单表同步";
   const full = record.steps.includes("FULL");
   const incremental = record.steps.includes("INCREMENTAL");
   const mode = full && incremental ? "全量 + 增量" : full ? "全量" : "增量";
