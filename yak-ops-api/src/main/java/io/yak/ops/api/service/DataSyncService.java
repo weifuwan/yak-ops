@@ -26,7 +26,7 @@ public interface DataSyncService {
     DataSyncOverviewVO getOverview(User user, long projectCode);
 
     DataSyncExecutionStatsVO getExecutionStats(User user, long projectCode,
-                                              LocalDate startDate, LocalDate endDate);
+                                             LocalDate startDate, LocalDate endDate);
 
     DataSyncTaskVO getTask(User user, long projectCode, long taskCode);
 
