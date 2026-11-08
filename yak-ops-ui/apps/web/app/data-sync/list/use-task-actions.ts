@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "@yak-ops/yak-ui";
 
 import {
@@ -9,24 +10,22 @@ import {
   unpublishDataSyncTask,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import type { TaskInstanceRecord } from "@/service/task-execution/types";
 import { listQueryKeys } from "./query-keys";
 
 export type TaskCommand =
   | { kind: "run" | "publish" | "unpublish" | "delete"; task: DataSyncTaskRecord }
-  | { kind: "stop"; task: DataSyncTaskRecord; instance: TaskInstanceRecord };
+  | { kind: "stop"; task: DataSyncTaskRecord; workflowInstanceId: number };
 
 export function useTaskListActions(scope: string) {
   const queryClient = useQueryClient();
+  const [submittedByTask, setSubmittedByTask] = useState<Record<string, number>>({});
   const mutation = useMutation({
     mutationFn: async (command: TaskCommand) => {
       switch (command.kind) {
         case "run":
-          await runDataSyncTask(command.task.workflowCode);
-          break;
+          return runDataSyncTask(command.task.workflowCode);
         case "stop":
-          if (!command.instance.workflowInstanceId) throw new Error("缺少工作流实例编号");
-          await cancelDataSyncInstance(command.instance.workflowInstanceId);
+          await cancelDataSyncInstance(command.workflowInstanceId);
           break;
         case "publish":
           await publishDataSyncTask(command.task.id, {
@@ -42,7 +41,13 @@ export function useTaskListActions(scope: string) {
           break;
       }
     },
-    onSuccess: async (_, command) => {
+    onSuccess: async (result, command) => {
+      if (command.kind === "run" && result) {
+        setSubmittedByTask((previous) => ({
+          ...previous,
+          [command.task.id]: result.workflowInstanceId,
+        }));
+      }
       const messages = {
         run: "运行请求已提交",
         stop: "已发送停止请求",
@@ -61,5 +66,5 @@ export function useTaskListActions(scope: string) {
     mutation.isPending && mutation.variables
       ? mutation.variables.task.id + ":" + mutation.variables.kind
       : undefined;
-  return { actionKey, pending: mutation.isPending, execute: mutation.mutate };
+  return { actionKey, pending: mutation.isPending, submittedByTask, execute: mutation.mutate };
 }
