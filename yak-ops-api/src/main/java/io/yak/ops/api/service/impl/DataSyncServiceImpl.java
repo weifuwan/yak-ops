@@ -9,6 +9,7 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
@@ -32,6 +33,7 @@ import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
@@ -46,6 +48,7 @@ import io.yak.ops.plugin.task.datasync.DataSyncPipelineBuilder;
 import io.yak.ops.spi.enums.DbType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -105,6 +108,107 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         result.setTotalList(rows);
         result.setTotal((int) page.getTotal());
         return result;
+    }
+
+    @Override
+    public DataSyncOverviewVO getOverview(User user, long projectCode) {
+        authorizeRead(user, projectCode);
+        List<DataSyncOverviewTaskRow> tasks = taskDefinitionDao.queryDataSyncOverview(projectCode);
+        int online = 0;
+        int offline = 0;
+        int running = 0;
+        int queued = 0;
+        int failed = 0;
+        int succeeded = 0;
+        int stopped = 0;
+        int paused = 0;
+        int unreadable = 0;
+        int[][] distribution = new int[3][2];
+
+        for (DataSyncOverviewTaskRow task : tasks) {
+            if (task.getReleaseState() == ReleaseState.ONLINE.getCode()) {
+                online++;
+            } else {
+                offline++;
+            }
+
+            Integer state = task.getLatestWorkflowState();
+            if (state != null) {
+                if (state == WorkflowExecutionStatus.SERIAL_WAIT.getCode()
+                        || state == WorkflowExecutionStatus.SUBMITTED_SUCCESS.getCode()
+                        || state == WorkflowExecutionStatus.FAILOVER.getCode()) {
+                    queued++;
+                } else if (state == WorkflowExecutionStatus.RUNNING_EXECUTION.getCode()
+                        || state == WorkflowExecutionStatus.READY_PAUSE.getCode()
+                        || state == WorkflowExecutionStatus.READY_STOP.getCode()) {
+                    running++;
+                } else if (state == WorkflowExecutionStatus.FAILURE.getCode()) {
+                    failed++;
+                } else if (state == WorkflowExecutionStatus.SUCCESS.getCode()) {
+                    succeeded++;
+                } else if (state == WorkflowExecutionStatus.STOP.getCode()) {
+                    stopped++;
+                } else if (state == WorkflowExecutionStatus.PAUSE.getCode()) {
+                    paused++;
+                }
+            }
+
+            try {
+                JsonNode definition = JSONUtils.parseObject(task.getTaskParams()).path("definition");
+                String tables = definition.path("source").path("tables").asText("");
+                String mode = definition.path("pipeline").path("execution.runtime-mode").asText("");
+                String[] sources = Arrays.stream(tables.split(","))
+                        .map(String::trim).filter(value -> !value.isEmpty()).toArray(String[]::new);
+                if (sources.length == 0 || (!"BATCH".equals(mode) && !"STREAMING".equals(mode))) {
+                    unreadable++;
+                    continue;
+                }
+                int scope = sources.length > 1 ? 1 : sources[0].endsWith(".\\\\.*") ? 0 : 2;
+                distribution[scope]["BATCH".equals(mode) ? 0 : 1]++;
+            } catch (RuntimeException error) {
+                unreadable++;
+            }
+        }
+
+        String[] scopes = {"DATABASE", "MULTI_TABLE", "SINGLE_TABLE"};
+        List<DataSyncOverviewVO.ScopeCount> types = new ArrayList<>();
+        for (int index = 0; index < scopes.length; index++) {
+            types.add(DataSyncOverviewVO.ScopeCount.builder()
+                    .scope(scopes[index])
+                    .offline(distribution[index][0])
+                    .realtime(distribution[index][1])
+                    .total(distribution[index][0] + distribution[index][1])
+                    .build());
+        }
+
+        IPage<TaskInstance> failures = taskInstanceDao.queryByProjectAndTaskType(
+                new Page<>(1, 5), projectCode, TASK_TYPE, null,
+                new int[]{TaskExecutionStatus.FAILURE.getCode()});
+        List<DataSyncOverviewVO.RecentFailure> recentFailures = failures.getRecords().stream()
+                .map(instance -> DataSyncOverviewVO.RecentFailure.builder()
+                        .instanceId(String.valueOf(instance.getId()))
+                        .taskId(String.valueOf(instance.getTaskCode()))
+                        .taskName(instance.getName())
+                        .failedAt(instance.getEndTime() == null
+                                ? instance.getStartTime() : instance.getEndTime())
+                        .build())
+                .collect(Collectors.toList());
+
+        return DataSyncOverviewVO.builder()
+                .dataSourceCount(dataSourceDao.countByProjectCode(projectCode))
+                .taskCount(tasks.size())
+                .onlineCount(online)
+                .offlineCount(offline)
+                .runningCount(running)
+                .queuedCount(queued)
+                .failedCount(failed)
+                .succeededCount(succeeded)
+                .stoppedCount(stopped)
+                .pausedCount(paused)
+                .unreadableCount(unreadable)
+                .taskTypes(types)
+                .recentFailures(recentFailures)
+                .build();
     }
 
     @Override
