@@ -179,9 +179,8 @@ export const listDataSourceColumns = async (
   id: DataSourceId, path: DataSourceCatalogTablePath, signal?: AbortSignal,
 ): Promise<DataSourceCatalogColumn[]> => {
   if (!path.database || !path.table) return [];
-  const options = await HttpUtils.getData<BackendOption[]>(API() + "/tableColumns?" +
+  return HttpUtils.getData<DataSourceCatalogColumn[]>(API() + "/tableColumns?" +
     qs({ datasourceId: id, database: path.database, tableName: path.table }), { signal });
-  return toOptions(options).map((name) => ({ name }));
 };
 
 export const pageDataSourceTables = async (
@@ -191,7 +190,7 @@ export const pageDataSourceTables = async (
   const offset = Math.max(0, query.offset ?? 0);
   const limit = Math.max(1, query.limit ?? 100);
   const pageNo = Math.floor(offset / limit) + 1;
-  const page = await HttpUtils.getData<PageInfo<BackendOption>>(API() + "/tables?" +
+  const page = await HttpUtils.getData<PageInfo<DataSourceCatalogTable>>(API() + "/tables?" +
     qs({
       datasourceId: id,
       database: query.database,
@@ -199,8 +198,9 @@ export const pageDataSourceTables = async (
       pageNo,
       pageSize: limit,
     }), { signal });
-  const items = toOptions(page.totalList).map((name) => ({
-    name,
+  const items = page.totalList.map((table) => ({
+    ...table,
+    primaryKeys: table.primaryKeys ?? [],
     database: query.database,
     schema: query.schema,
   }));
@@ -210,6 +210,28 @@ export const pageDataSourceTables = async (
     nextOffset: offset + items.length < page.total ? offset + limit : null,
   };
 };
+
+export async function listDataSourceTableMetadata(
+  id: DataSourceId,
+  database: string,
+  tableNames: string[],
+  signal?: AbortSignal,
+): Promise<DataSourceCatalogTable[]> {
+  if (!database || !tableNames.length) return [];
+  const search = new URLSearchParams();
+  search.set("datasourceId", id);
+  search.set("database", database);
+  tableNames.forEach((tableName) => search.append("tableName", tableName));
+  const tables = await HttpUtils.getData<DataSourceCatalogTable[]>(
+    API() + "/table-metadata?" + search.toString(),
+    { signal },
+  );
+  return tables.map((table) => ({
+    ...table,
+    primaryKeys: table.primaryKeys ?? [],
+    database,
+  }));
+}
 
 export const previewDataSourceTable = async (
   _id: DataSourceId, _query: DataSourcePreviewQuery, _signal?: AbortSignal,
