@@ -47,6 +47,33 @@ class DataSyncPipelineBuilderTest {
     }
 
     @Test
+    void preservesMultipleTableMappingsInRuntimeYaml() throws Exception {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        com.fasterxml.jackson.databind.node.ObjectNode definition =
+                (com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) definition.path("source"))
+                .put("tables", "src_db.orders,src_db.customers");
+        definition.putArray("route")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("sink-table", "dst_db.orders");
+        ((com.fasterxml.jackson.databind.node.ArrayNode) definition.path("route"))
+                .addObject()
+                .put("source-table", "src_db.customers")
+                .put("sink-table", "dst_db.customers");
+
+        String yaml = new DataSyncPipelineBuilder().build(context(), parameters);
+        new YamlPipelineDefinitionParser().parse(yaml, new Configuration());
+        JsonNode pipeline = YAML.readTree(yaml);
+
+        assertEquals("src_db.orders,src_db.customers",
+                pipeline.path("source").path("tables").asText());
+        assertEquals(2, pipeline.path("route").size());
+        assertEquals("dst_db.customers",
+                pipeline.path("route").get(1).path("sink-table").asText());
+    }
+
+    @Test
     void datasourceUrlPropertiesComeFromRegisteredProcessor() throws Exception {
         TaskExecutionContext ctx = context();
         DataSourceParameters target = (DataSourceParameters) ctx.getResourceParametersHelper()
