@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="120 seconds">
     <property name="log.base" value="logs"/>
-    <property scope="context" name="log.base.ctx" value="${log.base}" />
+    <property scope="context" name="log.base.ctx" value="${log.base}"/>
 
     <conversionRule conversionWord="message"
                     converterClass="io.yak.ops.plugin.task.api.log.SensitiveDataConverter"/>
@@ -9,7 +9,8 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                [WI-%X{workflowInstanceId:-0}][TI-%X{taskInstanceId:-0}] - %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{10}:[%line] - %message%n
+                [WI-%X{workflowInstanceId:-0}][TI-%X{taskInstanceId:-0}] - %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level
+                [%thread] %logger{10}:[%line] - %message%n
             </pattern>
             <charset>UTF-8</charset>
         </encoder>
@@ -26,7 +27,8 @@
         </rollingPolicy>
         <encoder>
             <pattern>
-                [WI-%X{workflowInstanceId:-0}][TI-%X{taskInstanceId:-0}] - %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{10}:[%line] - %message%n
+                [WI-%X{workflowInstanceId:-0}][TI-%X{taskInstanceId:-0}] - %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level
+                [%thread] %logger{10}:[%line] - %message%n
             </pattern>
             <charset>UTF-8</charset>
         </encoder>
@@ -53,7 +55,7 @@
                 </encoder>
                 <append>true</append>
             </appender>
-        </sift>2
+        </sift>
     </appender>
 
     <root level="INFO">
