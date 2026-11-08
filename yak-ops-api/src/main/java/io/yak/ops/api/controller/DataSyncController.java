@@ -9,6 +9,7 @@ import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
@@ -18,8 +19,10 @@ import io.yak.ops.common.enums.ReleaseState;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +48,15 @@ public class DataSyncController extends BaseController {
     public Result<DataSyncOverviewVO> overview(@RequestAttribute(Constants.SESSION_USER) User user,
                                                @PathVariable long projectCode) {
         return Result.success(dataSyncService.getOverview(user, projectCode));
+    }
+
+    @GetMapping("/overview/executions")
+    public Result<DataSyncExecutionStatsVO> executionStats(
+                                                            @RequestAttribute(Constants.SESSION_USER) User user,
+                                                            @PathVariable long projectCode,
+                                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return Result.success(dataSyncService.getExecutionStats(user, projectCode, startDate, endDate));
     }
 
     @GetMapping("/tasks")
