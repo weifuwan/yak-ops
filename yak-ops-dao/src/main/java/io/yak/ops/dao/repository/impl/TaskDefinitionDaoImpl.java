@@ -112,8 +112,8 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     @Override
     public IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                                     String taskType, String keyword, Long taskCode,
-                                                    Integer releaseState) {
-        return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState);
+                                                    Integer releaseState, List<Long> taskCodes) {
+        return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState, taskCodes);
     }
 
     @Override
