@@ -60,6 +60,7 @@ export const listDataSyncTasks = async (
           pageSize: params.pageSize,
           keyword: params.keyword,
           status: params.status,
+          scope: params.scope,
         }),
     ),
     { signal },
