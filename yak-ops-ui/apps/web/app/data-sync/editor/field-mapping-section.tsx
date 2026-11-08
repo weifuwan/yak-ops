@@ -22,7 +22,7 @@ import {
   type PipelineTable,
 } from "@/service/data-sync/native-pipeline";
 import { ContentField, ContentSection } from "./content-layout";
-import { FieldMappingTable } from "./field-mapping-table";
+import { FieldMappingCanvas } from "./field-mapping-canvas";
 
 interface Props {
   definition: PipelineDefinition;
@@ -39,7 +39,6 @@ export function FieldMappingSection({
 }: Props) {
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const [showExpression, setShowExpression] = useState(false);
   const [mappingError, setMappingError] = useState("");
 
   const sourceDataSourceId = definition.source["datasource-id"];
@@ -168,11 +167,13 @@ export function FieldMappingSection({
         ),
       );
     } catch (error) {
-      setMappingError(error instanceof Error ? error.message : "字段映射无效");
+      setMappingError(
+        error instanceof Error ? error.message : "字段映射无效",
+      );
     }
   };
 
-  const applySameName = () => {
+  const replaceWithSameName = () => {
     const next = sameNameFieldMappings(
       sourceColumns,
       targetExists ? targetColumns : undefined,
@@ -182,11 +183,6 @@ export function FieldMappingSection({
       return;
     }
     setFields(next);
-  };
-
-  const useAllFields = () => {
-    setMappingError("");
-    onChange(setPipelineTransformValue(definition, source, "projection", ""));
   };
 
   const retry = () => {
@@ -206,54 +202,12 @@ export function FieldMappingSection({
             重试
           </Button>
         </Alert>
+      ) : loading ? (
+        <div className="flex min-h-40 items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
+          正在加载字段...
+        </div>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              isDisabled={disabled || !sourceColumns.length}
-              onClick={applySameName}
-            >
-              同名映射
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              isDisabled={disabled || !sourceColumns.length}
-              onClick={useAllFields}
-            >
-              全部字段
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowExpression((current) => !current)}
-            >
-              {showExpression ? "隐藏表达式" : "手动编辑映射关系"}
-            </Button>
-          </div>
-
-          {showExpression ? (
-            <ContentField label="Projection" wide>
-              <Input
-                size="small"
-                variant="outlined"
-                value={projection || "*"}
-                onChange={(event) =>
-                  onChange(
-                    setPipelineTransformValue(
-                      definition,
-                      source,
-                      "projection",
-                      event.target.value === "*" ? "" : event.target.value,
-                    ),
-                  )
-                }
-              />
-            </ContentField>
-          ) : null}
-
           <ContentField label="目标同步主键">
             <Input
               size="small"
@@ -278,7 +232,7 @@ export function FieldMappingSection({
           </ContentField>
 
           {direct && fields ? (
-            <FieldMappingTable
+            <FieldMappingCanvas
               fields={fields}
               sourceColumns={sourceColumns}
               targetColumns={targetColumns}
@@ -286,10 +240,35 @@ export function FieldMappingSection({
               onChange={setFields}
             />
           ) : (
-            <Alert>
-              当前 Projection 是复杂表达式，表格模式不会改写它；请使用“手动编辑映射关系”继续编辑，
-              或点击“同名映射”替换为可视化字段映射。
-            </Alert>
+            <>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  isDisabled={!sourceColumns.length}
+                  onClick={replaceWithSameName}
+                >
+                  同名映射
+                </Button>
+              </div>
+              <ContentField label="Projection" wide>
+                <Input
+                  size="small"
+                  variant="outlined"
+                  value={projection}
+                  onChange={(event) =>
+                    onChange(
+                      setPipelineTransformValue(
+                        definition,
+                        source,
+                        "projection",
+                        event.target.value,
+                      ),
+                    )
+                  }
+                />
+              </ContentField>
+            </>
           )}
 
           {mappingError ? <Alert>{mappingError}</Alert> : null}
