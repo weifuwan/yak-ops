@@ -27,7 +27,7 @@ import { TableTransferPanel } from "./table-transfer-panel";
 import { DataSourceSection } from "./data-source-section";
 import { EditorAnchorStepper } from "./anchor-stepper";
 import { ContentSection } from "./content-layout";
-import { catalogPath, tableKey, type DataSyncTablePath } from "./table-catalog";
+import { catalogPath, tableKey } from "./table-catalog";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { EditorHeader, EditorFooter } from "./editor-footer";
@@ -122,7 +122,7 @@ export function TaskEditor({
       .map((table) => [table.name, table]),
   );
   const catalogTables = sourceCatalog.tables.map(catalogPath);
-  const selectedTables: DataSyncTablePath[] = sources.map((source) => ({
+  const selectedTables = sources.map((source) => ({
     ...source,
     primaryKeys: sourceMetadata.get(source.table)?.primaryKeys,
   }));
