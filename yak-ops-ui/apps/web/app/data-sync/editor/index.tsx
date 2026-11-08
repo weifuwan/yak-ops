@@ -12,6 +12,7 @@ import {
 import { nativeDraftKey, writeNativeDraft, clearNativeDraft, type NativeSyncDraft } from "@/service/data-sync/native-draft";
 import {
   addPipelineSourceTables,
+  chunkKeyColumn,
   setPipelineDatasource,
   setPipelineSinkDatabase,
   sourceTables,
@@ -194,6 +195,20 @@ export function TaskEditor({
       setCatalogError(failure instanceof Error ? failure.message : "来源表无效");
     }
   };
+  const validateSourceMetadata = () => {
+    const missingChunkKey = selectedTables.find(
+      (table) =>
+        table.primaryKeys !== undefined &&
+        table.primaryKeys.length === 0 &&
+        !chunkKeyColumn(definition, table),
+    );
+    if (missingChunkKey) {
+      throw new Error(
+        "来源表 " + missingChunkKey.table + " 无主键，请配置快照切分列",
+      );
+    }
+  };
+
   const openAdvanced = () => setAdvancedOpen(true);
   const closeAdvanced = () => {
     setAdvancedOpen(false);
@@ -219,6 +234,8 @@ export function TaskEditor({
     }
     try {
       validatePipelineDefinition(definition);
+      validateSourceMetadata();
+      validateSourceMetadata();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Pipeline 配置无效");
       return;
