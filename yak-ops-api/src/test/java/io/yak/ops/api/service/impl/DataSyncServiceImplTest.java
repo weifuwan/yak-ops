@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ProjectService;
@@ -196,10 +197,55 @@ class DataSyncServiceImplTest {
     @Test
     void taskStatusFilterUsesNativeReleaseState() {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), eq(ReleaseState.ONLINE.getCode()))).thenReturn(new Page<>(1, 20));
+                isNull(), isNull(), eq(ReleaseState.ONLINE.getCode()), isNull())).thenReturn(new Page<>(1, 20));
 
-        assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE)
+        assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE, null)
                 .getTotal());
+    }
+
+    @Test
+    void scopeFilterAppliesBeforeDatabasePagination() {
+        DataSyncOverviewTaskRow database = overviewTask(
+                "{\"definition\":{\"source\":{\"tables\":\"sales.\\\\.*\"},\"pipeline\":{\"execution.runtime-mode\":\"BATCH\"}}}",
+                ReleaseState.ONLINE, 1);
+        database.setTaskCode(11L);
+        DataSyncOverviewTaskRow multiTable = overviewTask(
+                "{\"definition\":{\"source\":{\"tables\":\"sales.orders,sales.users\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
+                ReleaseState.ONLINE, 14);
+        multiTable.setTaskCode(22L);
+        DataSyncOverviewTaskRow singleTable = overviewTask(
+                "{\"definition\":{\"source\":{\"tables\":\"sales.orders\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
+                ReleaseState.OFFLINE, 6);
+        singleTable.setTaskCode(33L);
+        when(taskDefinitionDao.queryDataSyncOverview(PROJECT_CODE))
+                .thenReturn(Arrays.asList(database, multiTable, singleTable));
+        Page<DataSyncTaskPageRow> page = new Page<>(2, 20);
+        page.setTotal(1);
+        when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                eq("sales"), isNull(), eq(ReleaseState.ONLINE.getCode()), eq(Collections.singletonList(22L))))
+                .thenReturn(page);
+
+        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20,
+                "sales", ReleaseState.ONLINE, DataSyncScope.MULTI_TABLE);
+
+        assertEquals(1, result.getTotal());
+        assertEquals(2, result.getCurrentPage());
+        verify(projectService).checkProjectAndAuthThrowException(any(), eq(PROJECT_CODE), isNull());
+    }
+
+    @Test
+    void scopeFilterReturnsEmptyPageWhenNoTaskMatches() {
+        when(taskDefinitionDao.queryDataSyncOverview(PROJECT_CODE))
+                .thenReturn(Collections.singletonList(overviewTask(
+                        "{\"definition\":{\"source\":{\"tables\":\"sales.orders\"},\"pipeline\":{\"execution.runtime-mode\":\"STREAMING\"}}}",
+                        ReleaseState.ONLINE, 1)));
+
+        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 1, 20,
+                null, null, DataSyncScope.DATABASE);
+
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getTotalList().isEmpty());
+        verify(taskDefinitionDao, never()).queryDataSyncPage(any(), any(Long.class), any(), any(), any(), any(), any());
     }
 
     @Test
