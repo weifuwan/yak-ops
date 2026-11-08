@@ -1,8 +1,8 @@
 package io.yak.ops.dao.repository;
 
 import io.yak.ops.dao.entity.TaskDefinition;
-import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
