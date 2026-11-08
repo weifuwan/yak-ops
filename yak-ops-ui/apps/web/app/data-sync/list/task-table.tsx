@@ -188,7 +188,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
         const workflow = workflowFor(record);
         const waiting = awaitingSubmission(record);
         const latest = latestByTask.get(record.id);
-        const instance = workflow && latest?.workflowInstanceId !== workflow.id
+        const instance = waiting || (workflow && latest?.workflowInstanceId !== workflow.id)
           ? undefined
           : latest;
         const workflowId = waiting ? submittedByTask[record.id] : workflow?.id;
@@ -210,7 +210,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             >
               <div>{statusText}</div>
               <div className="mt-1 text-[var(--yak-components-muted-text)]">
-                工作流 #{workflowId} · 等待执行节点
+                工作流 #{workflowId} · {workflow && !isWorkflowActive(workflow.state) ? "未进入节点执行" : "等待执行节点"}
               </div>
             </button>
           );
