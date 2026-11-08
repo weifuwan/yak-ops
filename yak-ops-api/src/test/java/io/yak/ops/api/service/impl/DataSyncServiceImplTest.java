@@ -495,10 +495,10 @@ class DataSyncServiceImplTest {
     @Test
     void taskListNeedsReadPermissionOnly() {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), isNull())).thenReturn(new Page<>(1, 20));
+                isNull(), isNull(), isNull(), isNull())).thenReturn(new Page<>(1, 20));
         User user = new User();
 
-        assertEquals(0, service.listTasks(user, PROJECT_CODE, 1, 20, null, null)
+        assertEquals(0, service.listTasks(user, PROJECT_CODE, 1, 20, null, null, null)
                 .getTotal());
 
         verify(projectService).checkProjectAndAuthThrowException(user, PROJECT_CODE, null);
@@ -510,9 +510,9 @@ class DataSyncServiceImplTest {
         Page<DataSyncTaskPageRow> page = new Page<>(2, 20);
         page.setTotal(45);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), isNull())).thenReturn(page);
+                isNull(), isNull(), isNull(), isNull())).thenReturn(page);
 
-        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null);
+        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null, null);
 
         assertEquals(45, result.getTotal());
         assertEquals(2, result.getCurrentPage());
@@ -536,9 +536,9 @@ class DataSyncServiceImplTest {
         page.setRecords(Collections.singletonList(row));
         page.setTotal(1);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), isNull())).thenReturn(page);
+                isNull(), isNull(), isNull(), isNull())).thenReturn(page);
 
-        DataSyncTaskVO task = service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null)
+        DataSyncTaskVO task = service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null, null)
                 .getTotalList().get(0);
 
         assertEquals("101", task.getWorkflowCode());
