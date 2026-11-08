@@ -17,6 +17,8 @@ public class DataSyncOverviewVO {
     private int runningCount;
     private int queuedCount;
     private int failedCount;
+    private int succeededCount;
+    private int pausedCount;
     private int stoppedCount;
     private int unreadableCount;
     private List<ScopeCount> taskTypes;
