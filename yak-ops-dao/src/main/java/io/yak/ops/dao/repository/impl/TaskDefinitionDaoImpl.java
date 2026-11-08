@@ -8,8 +8,8 @@ import io.yak.ops.dao.mapper.TaskDefinitionLogMapper;
 import io.yak.ops.dao.mapper.TaskDefinitionMapper;
 import io.yak.ops.dao.mapper.WorkflowDefinitionMapper;
 import io.yak.ops.dao.mapper.WorkflowTaskRelationLogMapper;
-import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
+import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.repository.BaseDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 
