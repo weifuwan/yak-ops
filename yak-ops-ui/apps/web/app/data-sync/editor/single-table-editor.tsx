@@ -281,39 +281,29 @@ export function SingleTableTaskEditor(props: TaskEditorProps) {
 
       <ContentSection id="target" title="数据去向">
         {selectedSource ? (
-          <>
-            <ContentField label="目标数据库" required>
-              <Input
-                size="small"
-                variant="outlined"
-                value={editor.sinkDatasource?.database || ""}
-                placeholder="请选择去向数据源"
-                readOnly
-              />
-            </ContentField>
-            <ContentField
-              label="目标表"
-              required
-              description="默认与来源表同名；可以填写已存在表，也可以填写结构迁移将创建的新表"
-            >
-              <Input
-                size="small"
-                variant="outlined"
-                value={targetTableName(editor.definition, selectedSource)}
-                placeholder={selectedSource.table}
-                onChange={(event) =>
-                  edit(
-                    setPipelineTargetTableName(
-                      editor.definition,
-                      selectedSource,
-                      editor.sinkDatasource?.database || "",
-                      event.target.value,
-                    ),
-                  )
-                }
-              />
-            </ContentField>
-          </>
+          <ContentField
+            label="目标表"
+            required
+            description="目标数据库由去向数据源绑定；目标表默认与来源表同名，也可以填写结构迁移将创建的新表"
+          >
+            <Input
+              size="small"
+              variant="outlined"
+              value={targetTableName(editor.definition, selectedSource)}
+              placeholder={selectedSource.table}
+              disabled={!editor.sinkDatasource?.database}
+              onChange={(event) =>
+                edit(
+                  setPipelineTargetTableName(
+                    editor.definition,
+                    selectedSource,
+                    editor.sinkDatasource?.database || "",
+                    event.target.value,
+                  ),
+                )
+              }
+            />
+          </ContentField>
         ) : (
           <Alert>请先选择来源表</Alert>
         )}
