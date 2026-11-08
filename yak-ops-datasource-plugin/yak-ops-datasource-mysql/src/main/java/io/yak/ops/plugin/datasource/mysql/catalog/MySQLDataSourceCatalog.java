@@ -187,7 +187,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
                     result.getString("TABLE_NAME"),
                     result.getString("TABLE_TYPE"),
                     result.getString("TABLE_COMMENT"),
-                    primaryKeys == null || primaryKeys.isBlank()
+                    primaryKeys == null || primaryKeys.trim().isEmpty()
                             ? Collections.emptyList()
                             : Arrays.asList(primaryKeys.split(","))));
         }
