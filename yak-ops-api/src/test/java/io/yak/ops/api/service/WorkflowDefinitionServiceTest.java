@@ -44,6 +44,7 @@ import io.yak.ops.dao.entity.UserWithWorkflowDefinitionCode;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowDefinitionLog;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
+import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.mapper.TaskDefinitionLogMapper;
 import io.yak.ops.dao.mapper.WorkflowDefinitionLogMapper;
 import io.yak.ops.dao.mapper.WorkflowTaskRelationLogMapper;
@@ -1013,6 +1014,79 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
         Assertions.assertEquals(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION.getCode(), exception.getCode());
         Mockito.verify(processService, Mockito.never())
                 .switchVersion(any(WorkflowDefinition.class), any(WorkflowDefinitionLog.class));
+    }
+
+    @Test
+    public void testSwitchWorkflowDefinitionVersionShouldUseTargetVersionRelationsAndOfflineSchedule() {
+        WorkflowDefinition workflowDefinition = getWorkflowDefinition();
+        WorkflowDefinitionLog workflowDefinitionLog = new WorkflowDefinitionLog();
+        workflowDefinitionLog.setCode(processDefinitionCode);
+        workflowDefinitionLog.setProjectCode(projectCode);
+        workflowDefinitionLog.setVersion(2);
+
+        WorkflowTaskRelation targetRelation =
+                getWorkflowTaskRelation(1, 2, projectCode, processDefinitionCode, 0, 0, 223456789L, 3);
+        TaskDefinitionLog targetTask = new TaskDefinitionLog();
+        targetTask.setCode(223456789L);
+        targetTask.setVersion(3);
+        targetTask.setTaskType("SHELL");
+
+        when(workflowDefinitionDao.queryByCode(processDefinitionCode)).thenReturn(Optional.of(workflowDefinition));
+        when(workflowDefinitionLogMapper.queryByDefinitionCodeAndVersion(processDefinitionCode, 2))
+                .thenReturn(workflowDefinitionLog);
+        when(workflowTaskRelationLogMapper.queryByWorkflowCodeAndVersion(processDefinitionCode, 2))
+                .thenReturn(Collections.singletonList(new WorkflowTaskRelationLog(targetRelation)));
+        when(taskDefinitionLogMapper.queryByTaskDefinitions(anyList()))
+                .thenReturn(Collections.singletonList(targetTask));
+        when(processService.switchVersion(workflowDefinition, workflowDefinitionLog)).thenReturn(1);
+
+        workflowDefinitionService.switchWorkflowDefinitionVersion(
+                user, projectCode, processDefinitionCode, 2);
+
+        verify(workflowTaskRelationLogMapper).queryByWorkflowCodeAndVersion(processDefinitionCode, 2);
+        verify(workflowTaskRelationDao, Mockito.never())
+                .queryWorkflowTaskRelationsByWorkflowDefinitionCode(anyLong(), Mockito.anyInt());
+        verify(taskDefinitionLogMapper).queryByTaskDefinitions(Mockito.argThat(taskDefinitions ->
+                taskDefinitions.size() == 1
+                        && taskDefinitions.iterator().next().getCode() == targetRelation.getPostTaskCode()
+                        && taskDefinitions.iterator().next().getVersion() == targetRelation.getPostTaskVersion()));
+        verify(schedulerService).offlineSchedulerByWorkflowCode(processDefinitionCode);
+    }
+
+    @Test
+    public void testSwitchWorkflowDefinitionVersionShouldNotQueryTasksWhenTargetVersionHasNoRelations() {
+        WorkflowDefinition workflowDefinition = getWorkflowDefinition();
+        WorkflowDefinitionLog workflowDefinitionLog = new WorkflowDefinitionLog();
+        workflowDefinitionLog.setCode(processDefinitionCode);
+        workflowDefinitionLog.setProjectCode(projectCode);
+        workflowDefinitionLog.setVersion(2);
+
+        when(workflowDefinitionDao.queryByCode(processDefinitionCode)).thenReturn(Optional.of(workflowDefinition));
+        when(workflowDefinitionLogMapper.queryByDefinitionCodeAndVersion(processDefinitionCode, 2))
+                .thenReturn(workflowDefinitionLog);
+        when(workflowTaskRelationLogMapper.queryByWorkflowCodeAndVersion(processDefinitionCode, 2))
+                .thenReturn(Collections.emptyList());
+        when(processService.switchVersion(workflowDefinition, workflowDefinitionLog)).thenReturn(1);
+
+        workflowDefinitionService.switchWorkflowDefinitionVersion(
+                user, projectCode, processDefinitionCode, 2);
+
+        verify(taskDefinitionLogMapper, Mockito.never()).queryByTaskDefinitions(anyList());
+        verify(schedulerService).offlineSchedulerByWorkflowCode(processDefinitionCode);
+    }
+
+    @Test
+    public void testCheckWorkflowNodeListShouldReportMissingTaskDefinitionAsInvalidDag() {
+        List<TaskDefinitionLog> taskDefinitionLogs = JSONUtils.toList(taskDefinitionJson, TaskDefinitionLog.class);
+        when(processService.transformTask(anyList(), anyList()))
+                .thenThrow(new io.yak.ops.service.exceptions.ServiceException(
+                        "The task definitions of pre taskCodes: [123451235] do not exist"));
+
+        ServiceException exception = Assertions.assertThrows(ServiceException.class,
+                () -> workflowDefinitionService.checkWorkflowNodeList(taskRelationJson, taskDefinitionLogs));
+
+        Assertions.assertEquals(Status.WORKFLOW_DAG_IS_INVALID.getCode(), exception.getCode());
+        Assertions.assertTrue(exception.getMessage().contains("123451235"));
     }
 
     @Test
