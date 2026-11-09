@@ -1,16 +1,42 @@
 import {
-  Boxes,
-  GitBranch,
-  Send,
-  TimerReset,
+  Bot,
+  CircleHelp,
+  ClipboardCheck,
+  Code2,
+  Database,
+  FileCode2,
+  Folder,
+  GitFork,
+  GitPullRequest,
+  History,
+  ListChecks,
+  MousePointer2,
+  PanelLeftClose,
+  Puzzle,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
 export type DataDevelopmentSection =
   | "development"
-  | "schedule"
+  | "manual"
+  | "search"
+  | "component"
+  | "catalog"
   | "resource"
-  | "publish";
+  | "ai-processing"
+  | "history"
+  | "review"
+  | "operation-check"
+  | "smoke-test"
+  | "code-management"
+  | "governance"
+  | "recycle-bin";
 
 type RailItem = {
   id: DataDevelopmentSection;
@@ -19,26 +45,20 @@ type RailItem = {
 };
 
 const RAIL_ITEMS: RailItem[] = [
-  {
-    id: "development",
-    label: "开发",
-    icon: GitBranch,
-  },
-  {
-    id: "schedule",
-    label: "调度",
-    icon: TimerReset,
-  },
-  {
-    id: "resource",
-    label: "资源",
-    icon: Boxes,
-  },
-  {
-    id: "publish",
-    label: "发布",
-    icon: Send,
-  },
+  { id: "development", label: "数据开发", icon: FileCode2 },
+  { id: "manual", label: "手动", icon: MousePointer2 },
+  { id: "search", label: "搜索", icon: Search },
+  { id: "component", label: "组件管理", icon: Puzzle },
+  { id: "catalog", label: "数据目录", icon: Database },
+  { id: "resource", label: "资源管理", icon: Folder },
+  { id: "ai-processing", label: "AI 数据处理", icon: Bot },
+  { id: "history", label: "运行历史", icon: History },
+  { id: "review", label: "代码评审列表", icon: GitPullRequest },
+  { id: "operation-check", label: "操作检查", icon: ClipboardCheck },
+  { id: "smoke-test", label: "冒烟测试记录", icon: ListChecks },
+  { id: "code-management", label: "代码管理", icon: GitFork },
+  { id: "governance", label: "数据资产治理", icon: ShieldCheck },
+  { id: "recycle-bin", label: "回收站", icon: Trash2 },
 ];
 
 type DevelopmentRailProps = {
@@ -46,41 +66,69 @@ type DevelopmentRailProps = {
   onSectionChange: (section: DataDevelopmentSection) => void;
 };
 
+function RailButton({
+  label,
+  icon: Icon,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={active || undefined}
+      onClick={onClick}
+      className="flex h-10 w-11 shrink-0 items-center justify-center text-[#4e535a] outline-none"
+    >
+      <span
+        className={[
+          "flex size-8 items-center justify-center rounded-[2px] transition-colors",
+          active
+            ? "bg-[#cbd7fc] text-[rgba(0,51,204,0.9)]"
+            : "hover:bg-[#f0f0f0] hover:text-[#30343a]",
+        ].join(" ")}
+      >
+        <Icon size={17} strokeWidth={1.6} aria-hidden="true" />
+      </span>
+    </button>
+  );
+}
+
 export function DevelopmentRail({
   activeSection,
   onSectionChange,
 }: DevelopmentRailProps) {
   return (
     <aside
-      aria-label="数据开发工具栏"
-      className="flex w-11 shrink-0 flex-col items-center border-r border-[var(--yak-components-border)] bg-[var(--yak-components-panel-bg)] py-1"
+      aria-label="数据开发活动栏"
+      className="flex w-11 shrink-0 flex-col items-center border-r border-[#f2f2f2] bg-[#fafafa]"
     >
-      {RAIL_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const active = item.id === activeSection;
+      <RailButton label="Data Agent · 数据开发助手" icon={Sparkles} />
 
-        return (
-          <button
+      <nav aria-label="活动视图切换器" className="flex w-full flex-col items-center">
+        {RAIL_ITEMS.map((item) => (
+          <RailButton
             key={item.id}
-            type="button"
-            title={item.label}
-            aria-label={item.label}
-            aria-pressed={active}
+            label={item.label}
+            icon={item.icon}
+            active={item.id === activeSection}
             onClick={() => onSectionChange(item.id)}
-            className={[
-              "relative flex size-10 items-center justify-center transition-colors",
-              active
-                ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
-            ].join(" ")}
-          >
-            {active ? (
-              <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[var(--yak-color-primary)]" />
-            ) : null}
-            <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
-          </button>
-        );
-      })}
+          />
+        ))}
+      </nav>
+
+      <div className="mt-auto flex w-full flex-col items-center">
+        <RailButton label="查看帮助" icon={CircleHelp} />
+        <RailButton label="切换主题" icon={Sun} />
+        <RailButton label="管理" icon={Settings} />
+        <RailButton label="收起活动栏" icon={PanelLeftClose} />
+      </div>
     </aside>
   );
 }
