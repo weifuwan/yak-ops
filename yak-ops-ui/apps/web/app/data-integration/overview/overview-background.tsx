@@ -1,30 +1,34 @@
-import "./overview-background.css";
+import homeBackgroundImage from "./assets/home-background.jpg.png";
+import homeBackgroundVideo from "./assets/home-background.mp4";
 
-const BACKGROUND_IMAGE_URL =
-  "https://lf3-static.bytednsdoc.com/obj/eden-cn/lm-yvahlyj-upfbvk/ljhwZthlaukjlkulzlp/creator-pc-ui-20261013/home-background.jpg";
-const BACKGROUND_VIDEO_URL =
-  "https://lf3-static.bytednsdoc.com/obj/eden-cn/lm-yvahlyj-upfbvk/ljhwZthlaukjlkulzlp/creator-pc-ui-20261013/home-background.mp4";
+const MEDIA_CLASS_NAME =
+  "absolute -top-[150px] right-0 h-[599px] w-[1240px] max-w-none origin-top scale-110 object-cover object-top opacity-80";
 
 export function OverviewBackground() {
   return (
-    <div className="data-integration-overview-background" aria-hidden="true">
+    <div
+      className="pointer-events-none absolute right-0 top-[60px] z-0 h-[449px] w-[1240px] max-w-full overflow-hidden max-md:hidden"
+      aria-hidden="true"
+    >
       <img
-        className="data-integration-overview-background__media"
-        src={BACKGROUND_IMAGE_URL}
+        className={MEDIA_CLASS_NAME}
+        src={homeBackgroundImage}
         alt=""
         draggable={false}
       />
       <video
-        className="data-integration-overview-background__media data-integration-overview-background__video"
-        src={BACKGROUND_VIDEO_URL}
-        poster={BACKGROUND_IMAGE_URL}
+        className={`${MEDIA_CLASS_NAME} motion-reduce:hidden`}
+        src={homeBackgroundVideo}
+        poster={homeBackgroundImage}
         autoPlay
         loop
         muted
         playsInline
         preload="metadata"
       />
-      <div className="data-integration-overview-background__fade" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--yak-color-hover)_80%,transparent)_0,transparent_50%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(270deg,transparent_52%,var(--yak-color-hover)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_71%,var(--yak-color-hover)_100%)]" />
     </div>
   );
 }
