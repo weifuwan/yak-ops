@@ -176,7 +176,7 @@ export function Segmented<Value extends string = string>({
             }}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "group relative z-10 rounded-md bg-transparent px-3 py-1 text-xs font-medium outline-none",
+              "group relative z-10 cursor-pointer rounded-md bg-transparent px-3 py-1 text-xs font-medium outline-none",
               "transition-[color,opacity] duration-150 motion-reduce:transition-none",
               "focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-button-focus-ring)]",
               checked
