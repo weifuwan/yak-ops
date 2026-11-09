@@ -26,7 +26,7 @@ const workflowUrl = (path: string) =>
 export const getLatestDataSyncWorkflow = async (
   workflowCode: string,
   signal?: AbortSignal,
-): Promise<DataSyncWorkflowInstance | undefined> => {
+): Promise<DataSyncWorkflowInstance | null> => {
   const params = new URLSearchParams({
     workflowDefinitionCode: workflowCode,
     pageNo: "1",
@@ -36,7 +36,7 @@ export const getLatestDataSyncWorkflow = async (
     workflowUrl("?" + params.toString()),
     { signal },
   );
-  return page.totalList[0];
+  return page.totalList[0] ?? null;
 };
 
 export const getDataSyncWorkflowInstance = (
