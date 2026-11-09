@@ -48,7 +48,7 @@ export function DataSyncAlertConfigDialog({
             {task.name}
           </div>
           <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-            该配置会作为当前页面会话中此任务后续运行的默认告警设置。
+            当前会话手动运行默认 · 不影响调度与运行中实例
           </div>
         </div>
 
@@ -58,9 +58,6 @@ export function DataSyncAlertConfigDialog({
           onValidChange={setValid}
         />
 
-        <div className="text-xs leading-5 text-[var(--yak-components-muted-text)]">
-          现有后端仅在工作流启动时接收告警参数，因此这里不会修改任务定义，也不会影响已经运行中的实例。
-        </div>
       </div>
     </Modal>
   );
