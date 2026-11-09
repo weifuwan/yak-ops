@@ -1,8 +1,7 @@
-import { useDeferredValue, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDeferredValue, useMemo, useState } from "react";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronDown,
-  ChevronRight,
+  FileCode2,
   RefreshCw,
   Search,
   Workflow,
@@ -19,6 +18,10 @@ import {
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 
+import {
+  VirtualTree,
+  type VirtualTreeNode,
+} from "./virtual-tree";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
 
 const PAGE_SIZE = 200;
@@ -26,105 +29,125 @@ const workflowExplorerKey = ["data-development", "workflow-explorer"] as const;
 
 type WorkflowScope = "ALL" | "MINE";
 
-function WorkflowTreeItem({
-  workflow,
-  workspaceId,
-}: {
-  workflow: WorkflowDefinitionRecord;
-  workspaceId: string;
-}) {
-  const { activeTab, openWorkflow } = useDataDevelopmentWorkbench();
-  const [expanded, setExpanded] = useState(false);
+type WorkflowTreeNode =
+  | (VirtualTreeNode & {
+      kind: "workflow";
+      workflow: WorkflowDefinitionRecord;
+    })
+  | (VirtualTreeNode & {
+      kind: "task";
+      workflow: WorkflowDefinitionRecord;
+      task: WorkflowTaskRecord;
+    })
+  | (VirtualTreeNode & {
+      kind: "message";
+      workflow: WorkflowDefinitionRecord;
+      state: "loading" | "error" | "empty";
+      retry?: () => void;
+    });
 
-  const tasksQuery = useQuery({
-    queryKey: [...workflowExplorerKey, workspaceId, "tasks", workflow.code],
-    queryFn: ({ signal }) => listWorkflowTasks(workflow.code, signal),
-    enabled: expanded,
-  });
+const workflowNodeId = (code: number) => "workflow-tree-" + code;
+const taskNodeId = (workflowCode: number, taskCode: number) =>
+  "workflow-tree-" + workflowCode + "-task-" + taskCode;
 
-  const selected = activeTab?.workflowCode === workflow.code;
+const describeRecord = (record: {
+  modifyBy?: string | null;
+  updateTime?: string | null;
+}) =>
+  [
+    record.modifyBy ? record.modifyBy + "修改" : null,
+    record.updateTime || null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const openTask = (task: WorkflowTaskRecord) => {
-    openWorkflow(workflow, task);
-  };
+function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
+  if (item.kind === "message") {
+    if (item.state === "loading") {
+      return (
+        <span className="min-w-0 flex-1 truncate px-1 text-[11px] text-[var(--yak-components-muted-text)]">
+          正在加载节点…
+        </span>
+      );
+    }
+
+    if (item.state === "error") {
+      return (
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 pr-2">
+          <span className="truncate px-1 text-[11px] text-[var(--yak-color-danger)]">
+            节点加载失败
+          </span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              item.retry?.();
+            }}
+            className="shrink-0 cursor-pointer text-[11px] text-[var(--yak-color-primary)] hover:underline"
+          >
+            重试
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <span className="min-w-0 flex-1 truncate px-1 text-[11px] text-[var(--yak-components-muted-text)]">
+        暂无节点
+      </span>
+    );
+  }
+
+  if (item.kind === "workflow") {
+    const description = describeRecord(item.workflow);
+    const online = item.workflow.releaseState?.toUpperCase() === "ONLINE";
+
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
+        <span
+          title={item.workflow.releaseState || "未知状态"}
+          aria-label={item.workflow.releaseState || "未知状态"}
+          className={[
+            "size-1.5 shrink-0 rounded-full",
+            online
+              ? "bg-[var(--yak-color-success)]"
+              : "bg-[var(--yak-color-primary)]",
+          ].join(" ")}
+        />
+        <Workflow size={14} strokeWidth={1.6} className="shrink-0" />
+        <span className="min-w-0 shrink truncate font-medium">
+          {item.workflow.name}
+        </span>
+        {description ? (
+          <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--yak-components-muted-text)]">
+            {description}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  const description = describeRecord(item.task);
 
   return (
-    <div>
-      <div
-        className={[
-          "group flex h-8 items-center rounded-sm transition-colors",
-          selected
-            ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-            : "hover:bg-[var(--yak-color-hover)]",
-        ].join(" ")}
-      >
-        <button
-          type="button"
-          aria-label={expanded ? "折叠工作流" : "展开工作流"}
-          aria-expanded={expanded}
-          onClick={() => setExpanded((value) => !value)}
-          className="flex size-7 shrink-0 cursor-pointer items-center justify-center"
-        >
-          {expanded ? (
-            <ChevronDown size={13} aria-hidden="true" />
-          ) : (
-            <ChevronRight size={13} aria-hidden="true" />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => openWorkflow(workflow)}
-          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-1 pr-2 text-left text-[13px]"
-        >
-          <Workflow size={14} strokeWidth={1.6} aria-hidden="true" />
-          <span className="truncate">{workflow.name}</span>
-        </button>
-      </div>
-
-      {expanded ? (
-        <div className="pb-1 pl-7">
-          {tasksQuery.isPending ? (
-            <div className="px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
-              正在加载节点…
-            </div>
-          ) : tasksQuery.isError ? (
-            <button
-              type="button"
-              onClick={() => void tasksQuery.refetch()}
-              className="cursor-pointer px-3 py-2 text-left text-xs text-[var(--yak-color-danger)]"
-            >
-              节点加载失败，点击重试
-            </button>
-          ) : (tasksQuery.data?.length ?? 0) === 0 ? (
-            <div className="px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
-              暂无节点
-            </div>
-          ) : (
-            tasksQuery.data?.map((task) => {
-              const taskSelected =
-                selected && activeTab?.selectedTask?.code === task.code;
-              return (
-                <button
-                  key={task.code}
-                  type="button"
-                  onClick={() => openTask(task)}
-                  className={[
-                    "flex h-7 w-full cursor-pointer items-center gap-2 rounded-sm px-3 text-left text-xs transition-colors",
-                    taskSelected
-                      ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                      : "hover:bg-[var(--yak-color-hover)]",
-                  ].join(" ")}
-                >
-                  <span className="min-w-0 flex-1 truncate">{task.name}</span>
-                  <span className="shrink-0 text-[10px] text-[var(--yak-components-muted-text)]">
-                    {task.taskType}
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      ) : null}
+    <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
+      <span className="size-1.5 shrink-0" aria-hidden="true" />
+      <FileCode2
+        size={13}
+        strokeWidth={1.6}
+        className="shrink-0 text-[var(--yak-components-muted-text)]"
+      />
+      <span className="min-w-0 shrink truncate">{item.task.name}</span>
+      {description ? (
+        <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--yak-components-muted-text)]">
+          {description}
+        </span>
+      ) : (
+        <span className="min-w-0 flex-1" />
+      )}
+      <span className="shrink-0 text-[10px] text-[var(--yak-components-muted-text)]">
+        {item.task.taskType}
+      </span>
     </div>
   );
 }
@@ -132,9 +155,13 @@ function WorkflowTreeItem({
 export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { activeTab, openWorkflow } = useDataDevelopmentWorkbench();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<WorkflowScope>("ALL");
+  const [expandedCodes, setExpandedCodes] = useState<Set<number>>(
+    () => new Set(),
+  );
   const deferredSearch = useDeferredValue(search.trim());
   const workspaceId = currentWorkspace?.id ?? "";
   const userId =
@@ -163,6 +190,136 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   });
 
   const workflows = workflowsQuery.data?.totalList ?? [];
+  const expandedWorkflows = workflows.filter((workflow) =>
+    expandedCodes.has(workflow.code),
+  );
+
+  const taskQueries = useQueries({
+    queries: expandedWorkflows.map((workflow) => ({
+      queryKey: [
+        ...workflowExplorerKey,
+        workspaceId,
+        "tasks",
+        workflow.code,
+      ],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        listWorkflowTasks(workflow.code, signal),
+    })),
+  });
+
+  const taskQueryByWorkflowCode = useMemo(
+    () =>
+      new Map(
+        expandedWorkflows.map((workflow, index) => [
+          workflow.code,
+          taskQueries[index],
+        ]),
+      ),
+    [expandedWorkflows, taskQueries],
+  );
+
+  const treeItems = useMemo<WorkflowTreeNode[]>(() => {
+    const items: WorkflowTreeNode[] = [];
+
+    for (const workflow of workflows) {
+      const expanded = expandedCodes.has(workflow.code);
+      const workflowSelected =
+        activeTab?.workflowCode === workflow.code && !activeTab.selectedTask;
+
+      items.push({
+        id: workflowNodeId(workflow.code),
+        level: 1,
+        ariaLabel: [workflow.name, describeRecord(workflow)]
+          .filter(Boolean)
+          .join(" "),
+        expandable: true,
+        expanded,
+        selected: workflowSelected,
+        workflow,
+        kind: "workflow",
+      });
+
+      if (!expanded) continue;
+
+      const taskQuery = taskQueryByWorkflowCode.get(workflow.code);
+      const childBase = {
+        parentId: workflowNodeId(workflow.code),
+        level: 2,
+        workflow,
+      } as const;
+
+      if (!taskQuery || taskQuery.isPending) {
+        items.push({
+          ...childBase,
+          id: workflowNodeId(workflow.code) + "-loading",
+          ariaLabel: "正在加载节点",
+          kind: "message",
+          state: "loading",
+        });
+        continue;
+      }
+
+      if (taskQuery.isError) {
+        items.push({
+          ...childBase,
+          id: workflowNodeId(workflow.code) + "-error",
+          ariaLabel: "节点加载失败",
+          kind: "message",
+          state: "error",
+          retry: () => {
+            void taskQuery.refetch();
+          },
+        });
+        continue;
+      }
+
+      const tasks = taskQuery.data ?? [];
+      if (tasks.length === 0) {
+        items.push({
+          ...childBase,
+          id: workflowNodeId(workflow.code) + "-empty",
+          ariaLabel: "暂无节点",
+          kind: "message",
+          state: "empty",
+        });
+        continue;
+      }
+
+      for (const task of tasks) {
+        items.push({
+          ...childBase,
+          id: taskNodeId(workflow.code, task.code),
+          ariaLabel: [task.name, task.taskType, describeRecord(task)]
+            .filter(Boolean)
+            .join(" "),
+          selected:
+            activeTab?.workflowCode === workflow.code &&
+            activeTab.selectedTask?.code === task.code,
+          kind: "task",
+          task,
+        });
+      }
+    }
+
+    return items;
+  }, [
+    activeTab,
+    expandedCodes,
+    taskQueryByWorkflowCode,
+    workflows,
+  ]);
+
+  const toggleWorkflow = (workflowCode: number) => {
+    setExpandedCodes((current) => {
+      const next = new Set(current);
+      if (next.has(workflowCode)) {
+        next.delete(workflowCode);
+      } else {
+        next.add(workflowCode);
+      }
+      return next;
+    });
+  };
 
   const refresh = async () => {
     await queryClient.invalidateQueries({
@@ -242,7 +399,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div className="min-h-0 flex-1 px-2 pb-2">
         {workflowsQuery.isPending ? (
           <div className="px-3 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
             正在加载工作流…
@@ -266,22 +423,33 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             {deferredSearch ? "没有匹配的工作流" : "暂无工作流"}
           </div>
         ) : (
-          <>
-            {workflows.map((workflow) => (
-              <WorkflowTreeItem
-                key={workflow.code}
-                workflow={workflow}
-                workspaceId={workspaceId}
-              />
-            ))}
-            {(workflowsQuery.data?.total ?? 0) > workflows.length ? (
-              <div className="px-3 py-3 text-center text-[11px] text-[var(--yak-components-muted-text)]">
-                当前显示前 {workflows.length} 个工作流
-              </div>
-            ) : null}
-          </>
+          <VirtualTree
+            ariaLabel="项目目录"
+            items={treeItems}
+            rowHeight={26}
+            className="h-full"
+            onToggle={(item) => {
+              if (item.kind === "workflow") {
+                toggleWorkflow(item.workflow.code);
+              }
+            }}
+            onActivate={(item) => {
+              if (item.kind === "workflow") {
+                openWorkflow(item.workflow);
+              } else if (item.kind === "task") {
+                openWorkflow(item.workflow, item.task);
+              }
+            }}
+            renderItem={(item) => <WorkflowTreeContent item={item} />}
+          />
         )}
       </div>
+
+      {(workflowsQuery.data?.total ?? 0) > workflows.length ? (
+        <div className="shrink-0 border-t border-[var(--yak-components-border)] px-3 py-2 text-center text-[11px] text-[var(--yak-components-muted-text)]">
+          当前显示前 {workflows.length} 个工作流
+        </div>
+      ) : null}
     </aside>
   );
 }
