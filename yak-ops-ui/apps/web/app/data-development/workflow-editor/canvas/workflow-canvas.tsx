@@ -125,7 +125,6 @@ export function WorkflowCanvas({
       window.requestAnimationFrame(() => {
         void instance.fitView({
           padding: 0.22,
-          duration: 220,
           maxZoom: 1,
         });
       });
@@ -145,7 +144,6 @@ export function WorkflowCanvas({
       void instance.fitView({
         nodes: [node],
         padding: 1.6,
-        duration: 220,
         maxZoom: 1.15,
       });
     });
