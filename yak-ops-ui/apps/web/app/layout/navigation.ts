@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowRightLeft,
+  Bell,
   Database,
   LayoutDashboard,
   LayoutGrid,
@@ -77,6 +78,11 @@ export const MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     label: "工作空间管理",
     path: "/management/workspaces",
     icon: LayoutGrid,
+  },
+  {
+    label: "告警中心",
+    path: "/management/alerts",
+    icon: Bell,
   },
 ];
 
