@@ -202,8 +202,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         "tasks",
         workflow.code,
       ],
-      queryFn: ({ signal }: { signal: AbortSignal }) =>
-        listWorkflowTasks(workflow.code, signal),
+      queryFn: ({ signal }) => listWorkflowTasks(workflow.code, signal),
     })),
   });
 
