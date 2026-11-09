@@ -35,8 +35,9 @@ import {
 
 import { AlertChannelForm } from "./channel-form";
 import { AlertGroupForm } from "./group-form";
+import { AlertRecordsPanel } from "./records-panel";
 
-type AlertTab = "channels" | "groups";
+type AlertTab = "channels" | "groups" | "records";
 type PendingDelete =
   | { kind: "channel"; record: AlertChannelRecord }
   | { kind: "group"; record: AlertGroupRecord };
@@ -53,7 +54,9 @@ export function AlertCenterPage() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab: AlertTab = searchParams.get("tab") === "groups" ? "groups" : "channels";
+  const tabValue = searchParams.get("tab");
+  const tab: AlertTab =
+    tabValue === "groups" ? "groups" : tabValue === "records" ? "records" : "channels";
   const [keyword, setKeyword] = useState("");
   const [channelFormOpen, setChannelFormOpen] = useState(false);
   const [groupFormOpen, setGroupFormOpen] = useState(false);
@@ -124,7 +127,7 @@ export function AlertCenterPage() {
     if (tab === "channels") {
       setEditingChannel(undefined);
       setChannelFormOpen(true);
-    } else {
+    } else if (tab === "groups") {
       setEditingGroup(undefined);
       setGroupFormOpen(true);
     }
@@ -297,8 +300,8 @@ export function AlertCenterPage() {
     },
   ];
 
-  const activeQuery = tab === "channels" ? channelsQuery : groupsQuery;
-  const loading = activeQuery.isPending || activeQuery.isFetching;
+  const activeQuery = tab === "channels" ? channelsQuery : tab === "groups" ? groupsQuery : null;
+  const loading = Boolean(activeQuery && (activeQuery.isPending || activeQuery.isFetching));
 
   return (
     <>
@@ -309,40 +312,44 @@ export function AlertCenterPage() {
             <Tabs
               value={tab}
               onValueChange={(value) => {
-                const next = value === "groups" ? "groups" : "channels";
+                const next: AlertTab =
+                  value === "groups" ? "groups" : value === "records" ? "records" : "channels";
                 setKeyword("");
-                setSearchParams(next === "groups" ? { tab: "groups" } : {}, { replace: true });
+                setSearchParams(next === "channels" ? {} : { tab: next }, { replace: true });
               }}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <TabsList>
                   <TabsTab value="channels">通知渠道</TabsTab>
                   <TabsTab value="groups">通知组</TabsTab>
+                  <TabsTab value="records">告警记录</TabsTab>
                 </TabsList>
-                <div className="flex items-center gap-2">
-                  <div className="w-[260px]">
-                    <Input
-                      size="small"
-                      variant="outlined"
-                      value={keyword}
-                      placeholder={tab === "channels" ? "搜索名称或类型" : "搜索名称或描述"}
-                      onChange={(event) => setKeyword(event.target.value)}
-                    />
+                {tab !== "records" ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-[260px]">
+                      <Input
+                        size="small"
+                        variant="outlined"
+                        value={keyword}
+                        placeholder={tab === "channels" ? "搜索名称或类型" : "搜索名称或描述"}
+                        onChange={(event) => setKeyword(event.target.value)}
+                      />
+                    </div>
+                    <Button size="sm" variant="primary" onClick={openCreate}>
+                      <Plus size={14} />
+                      {tab === "channels" ? "新建通知渠道" : "新建通知组"}
+                    </Button>
                   </div>
-                  <Button size="sm" variant="primary" onClick={openCreate}>
-                    <Plus size={14} />
-                    {tab === "channels" ? "新建通知渠道" : "新建通知组"}
-                  </Button>
-                </div>
+                ) : null}
               </div>
 
-              {activeQuery.isError ? (
+              {activeQuery?.isError ? (
                 <div
                   role="alert"
                   className="mt-4 flex items-center gap-3 text-sm text-[var(--yak-components-muted-text)]"
                 >
                   数据加载失败
-                  <Button size="sm" variant="secondary" onClick={() => void activeQuery.refetch()}>
+                  <Button size="sm" variant="secondary" onClick={() => void activeQuery?.refetch()}>
                     重试
                   </Button>
                 </div>
@@ -376,6 +383,10 @@ export function AlertCenterPage() {
                   emptyText={normalizedKeyword ? "未找到匹配通知组" : "暂无通知组"}
                   pagination={false}
                 />
+              </TabsPanel>
+
+              <TabsPanel value="records" className="mt-4 min-h-0 flex-1">
+                <AlertRecordsPanel />
               </TabsPanel>
             </Tabs>
           </div>
