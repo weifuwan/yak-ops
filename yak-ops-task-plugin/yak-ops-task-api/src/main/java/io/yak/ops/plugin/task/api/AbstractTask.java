@@ -92,20 +92,33 @@ public abstract class AbstractTask {
         this.appIds = appIds;
     }
 
+    @Deprecated
     public boolean getNeedAlert() {
-        return needAlert;
+        return needAlert || (taskRequest != null && taskRequest.isNeedAlert());
     }
 
+    @Deprecated
     public void setNeedAlert(boolean needAlert) {
         this.needAlert = needAlert;
+        if (taskRequest != null) {
+            taskRequest.setNeedAlert(needAlert);
+        }
     }
 
+    @Deprecated
     public TaskAlertInfo getTaskAlertInfo() {
-        return taskAlertInfo;
+        if (taskAlertInfo != null) {
+            return taskAlertInfo;
+        }
+        return taskRequest != null ? taskRequest.getTaskAlertInfo() : null;
     }
 
+    @Deprecated
     public void setTaskAlertInfo(TaskAlertInfo taskAlertInfo) {
         this.taskAlertInfo = taskAlertInfo;
+        if (taskRequest != null) {
+            taskRequest.setTaskAlertInfo(taskAlertInfo);
+        }
     }
 
     /**
