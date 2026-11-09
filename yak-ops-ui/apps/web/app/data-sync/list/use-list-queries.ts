@@ -108,7 +108,7 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
       queryFn: ({ signal }) =>
         getLatestDataSyncWorkflow(record.workflowCode, signal),
       enabled: Boolean(scope),
-      refetchInterval: (result: Query<DataSyncWorkflowInstance | undefined>) =>
+      refetchInterval: (result: Query<DataSyncWorkflowInstance | null>) =>
         result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : 15000,
     })),
   });
