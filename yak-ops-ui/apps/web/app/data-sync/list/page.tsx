@@ -59,11 +59,16 @@ export function DataSyncPage() {
     );
   };
 
+  const isStateReadyForTask = (taskId: string) =>
+    instances.stateReadyByTask.get(taskId) === true;
+
   const canManage = (task: DataSyncTaskRecord) =>
     page.safeToAct &&
-    instances.ready &&
     !isWorkflowActiveForTask(task.id) &&
-    canManageTaskDefinition(instances.ready, instances.activeByTask.get(task.id));
+    canManageTaskDefinition(
+      isStateReadyForTask(task.id),
+      instances.activeByTask.get(task.id),
+    );
 
   const command = (value: TaskCommand) => {
     if (!scope || commands.pending || !page.safeToAct) return;
@@ -71,7 +76,7 @@ export function DataSyncPage() {
       const workflow = instances.workflowsByTask.get(value.task.id);
       const active = instances.activeByTask.get(value.task.id);
       if (
-        !instances.ready ||
+        !isStateReadyForTask(value.task.id) ||
         !(
           (workflow &&
             workflow.id === value.workflowInstanceId &&
@@ -83,6 +88,9 @@ export function DataSyncPage() {
       ) {
         return;
       }
+    } else if (value.kind === "unpublish") {
+      const active = instances.activeByTask.get(value.task.id);
+      if (isWorkflowActiveForTask(value.task.id) || active) return;
     } else if (!canManage(value.task)) {
       return;
     }
@@ -123,7 +131,7 @@ export function DataSyncPage() {
             ) : null}
             {instances.error ? (
               <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
-                执行状态获取失败，请刷新任务列表后重试
+                部分任务执行状态获取失败，其他任务仍可正常操作
               </div>
             ) : null}
             {page.invalidCount > 0 ? (
@@ -147,8 +155,9 @@ export function DataSyncPage() {
                   activeByTask: instances.activeByTask,
                   workflowsByTask: instances.workflowsByTask,
                   submittedByTask: commands.submittedByTask,
-                  instancesLoading: instances.loading,
-                  instancesReady: instances.ready,
+                  stateReadyByTask: instances.stateReadyByTask,
+                  stateLoadingByTask: instances.stateLoadingByTask,
+                  stateErrorByTask: instances.stateErrorByTask,
                   actionKey: commands.actionKey,
                 }}
                 actions={{
