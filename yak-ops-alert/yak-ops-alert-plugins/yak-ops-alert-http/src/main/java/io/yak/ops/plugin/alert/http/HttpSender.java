@@ -13,8 +13,11 @@ import org.apache.http.HttpStatus;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -200,12 +203,46 @@ public final class HttpSender {
             return;
         }
 
-        bodyParams.forEach((key, value) -> {
-            String valueOf = String.valueOf(value);
-            if (valueOf.contains(HttpAlertConstants.MSG_PARAMS)) {
-                bodyParams.put(key, valueOf.replace(HttpAlertConstants.MSG_PARAMS, msg));
+        if (msg == null) {
+            if (containsMsgPlaceholder(bodyParams)) {
+                throw new RuntimeException(
+                        String.format("alert content is null, can not replace %s in the body params",
+                                HttpAlertConstants.MSG_PARAMS));
             }
-        });
+            return;
+        }
+
+        bodyParams.replaceAll((key, value) -> replaceMsg(value, msg));
+    }
+
+    private boolean containsMsgPlaceholder(Object value) {
+        if (value instanceof String) {
+            return ((String) value).contains(HttpAlertConstants.MSG_PARAMS);
+        }
+        if (value instanceof Map) {
+            return ((Map<?, ?>) value).values().stream().anyMatch(this::containsMsgPlaceholder);
+        }
+        if (value instanceof List) {
+            return ((List<?>) value).stream().anyMatch(this::containsMsgPlaceholder);
+        }
+        return false;
+    }
+
+    private Object replaceMsg(Object value, String msg) {
+        if (value instanceof String) {
+            return ((String) value).replace(HttpAlertConstants.MSG_PARAMS, msg);
+        }
+        if (value instanceof Map) {
+            Map<String, Object> replaced = new LinkedHashMap<>();
+            ((Map<?, ?>) value).forEach((key, item) -> replaced.put(String.valueOf(key), replaceMsg(item, msg)));
+            return replaced;
+        }
+        if (value instanceof List) {
+            List<Object> replaced = new ArrayList<>();
+            ((List<?>) value).forEach(item -> replaced.add(replaceMsg(item, msg)));
+            return replaced;
+        }
+        return value;
     }
 
 }

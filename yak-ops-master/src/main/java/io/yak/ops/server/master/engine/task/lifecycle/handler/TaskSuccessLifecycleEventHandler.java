@@ -1,5 +1,6 @@
 package io.yak.ops.server.master.engine.task.lifecycle.handler;
 
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.server.master.engine.ILifecycleEventType;
 import io.yak.ops.server.master.engine.task.client.TaskExecutorClient;
 import io.yak.ops.server.master.engine.task.execution.ITaskExecution;
@@ -7,6 +8,7 @@ import io.yak.ops.server.master.engine.task.lifecycle.TaskLifecycleEventType;
 import io.yak.ops.server.master.engine.task.lifecycle.event.TaskSuccessLifecycleEvent;
 import io.yak.ops.server.master.engine.task.statemachine.ITaskStateAction;
 import io.yak.ops.server.master.engine.workflow.execution.IWorkflowExecution;
+import io.yak.ops.service.alert.WorkflowAlertManager;
 import io.yak.ops.task.executor.eventbus.ITaskExecutorLifecycleEventReporter;
 import io.yak.ops.task.executor.events.TaskExecutorLifecycleEventType;
 
@@ -17,8 +19,12 @@ public class TaskSuccessLifecycleEventHandler extends AbstractTaskLifecycleEvent
 
     private final TaskExecutorClient taskExecutorClient;
 
-    public TaskSuccessLifecycleEventHandler(final TaskExecutorClient taskExecutorClient) {
+    private final WorkflowAlertManager workflowAlertManager;
+
+    public TaskSuccessLifecycleEventHandler(final TaskExecutorClient taskExecutorClient,
+                                            final WorkflowAlertManager workflowAlertManager) {
         this.taskExecutorClient = taskExecutorClient;
+        this.workflowAlertManager = workflowAlertManager;
     }
 
     @Override
@@ -27,6 +33,13 @@ public class TaskSuccessLifecycleEventHandler extends AbstractTaskLifecycleEvent
                        final ITaskExecution taskExecution,
                        final TaskSuccessLifecycleEvent taskSuccessEvent) {
         taskStateAction.onSucceedEvent(workflowExecution, taskExecution, taskSuccessEvent);
+        if (taskExecution.getTaskInstance().getState() == TaskExecutionStatus.SUCCESS
+                && taskSuccessEvent.isNeedAlert()) {
+            workflowAlertManager.sendTaskResultAlert(
+                    taskExecution.getWorkflowInstance(),
+                    taskExecution.getTaskInstance(),
+                    taskSuccessEvent.getTaskAlertInfo());
+        }
         taskExecutorClient.ackTaskExecutorLifecycleEvent(
                 taskExecution,
                 new ITaskExecutorLifecycleEventReporter.TaskExecutorLifecycleEventAck(

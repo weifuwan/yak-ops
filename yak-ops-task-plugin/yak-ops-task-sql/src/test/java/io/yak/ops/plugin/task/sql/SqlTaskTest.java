@@ -3,6 +3,7 @@ package io.yak.ops.plugin.task.sql;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.yak.ops.common.enums.AlertType;
 import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.task.api.TaskConstants;
@@ -236,6 +237,27 @@ class SqlTaskTest {
         Assertions.assertEquals("id", varPoolParam.getProp());
         Assertions.assertEquals("1", varPoolParam.getValue());
         Assertions.assertEquals(Direct.OUT, varPoolParam.getDirect());
+    }
+
+    @Test
+    void testPrepareTaskResultAlertCarriesBoundedContentInExecutionContext() throws Exception {
+        ArrayNode rows = JSONUtils.createArrayNode();
+        for (int i = 0; i < 35; i++) {
+            ObjectNode row = JSONUtils.createObjectNode();
+            row.put("id", i);
+            row.put("value", "x".repeat(150));
+            rows.add(row);
+        }
+
+        Method method = SqlTask.class.getDeclaredMethod("prepareTaskResultAlert", ArrayNode.class);
+        method.setAccessible(true);
+        method.invoke(sqlTask, rows);
+
+        Assertions.assertTrue(sqlTask.getNeedAlert());
+        Assertions.assertNotNull(sqlTask.getTaskAlertInfo());
+        Assertions.assertEquals(AlertType.TASK_RESULT, sqlTask.getTaskAlertInfo().getAlertType());
+        Assertions.assertTrue(sqlTask.getTaskAlertInfo().getContent().contains("more rows omitted"));
+        Assertions.assertTrue(sqlTask.getTaskAlertInfo().getContent().getBytes(StandardCharsets.UTF_8).length <= 60000);
     }
 
     @Test

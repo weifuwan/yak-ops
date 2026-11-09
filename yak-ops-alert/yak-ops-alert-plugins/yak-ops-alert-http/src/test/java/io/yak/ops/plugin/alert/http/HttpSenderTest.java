@@ -82,6 +82,38 @@ public class HttpSenderTest {
     }
 
     @Test
+    void testNestedBodyParamsKeepStructureWhenReplacingMessage() throws Exception {
+        String msg = "nested-message";
+        Map<String, Object> nested = new HashMap<>();
+        nested.put("text", "prefix-" + HttpAlertConstants.MSG_PARAMS);
+        nested.put("items", List.of(
+                Map.of("value", HttpAlertConstants.MSG_PARAMS),
+                Map.of("value", "static")));
+
+        Map<String, Object> bodyParams = new HashMap<>();
+        bodyParams.put("payload", nested);
+        paramsMap.put(HttpAlertConstants.NAME_BODY_PARAMS, JSONUtils.toJsonString(bodyParams));
+        paramsMap.put(HttpAlertConstants.NAME_CONTENT_TYPE,
+                OkHttpRequestHeaderContentType.APPLICATION_JSON.getValue());
+        paramsMap.put(HttpAlertConstants.NAME_REQUEST_TYPE, HttpRequestMethod.POST.name());
+
+        MockWebServer server = new MockWebServer();
+        mockWebServers.add(server);
+        server.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK).setBody("{}"));
+        server.start();
+        paramsMap.put(HttpAlertConstants.NAME_URL, server.url("/nested").toString());
+
+        AlertResult alertResult = new HttpSender(paramsMap).send(msg);
+        RecordedRequest request = server.takeRequest();
+        String body = request.getBody().readUtf8();
+
+        Assertions.assertTrue(alertResult.isSuccess());
+        Assertions.assertTrue(body.contains("prefix-" + msg));
+        Assertions.assertTrue(body.contains("\"value\":\"" + msg + "\""));
+        Assertions.assertTrue(body.contains("\"value\":\"static\""));
+    }
+
+    @Test
     void testHttpSenderPut() throws Exception {
         String msg = "msg_test";
         Map<String, String> bodyParams = new HashMap<>();

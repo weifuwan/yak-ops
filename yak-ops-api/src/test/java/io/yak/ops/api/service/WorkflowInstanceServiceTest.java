@@ -42,6 +42,7 @@ import io.yak.ops.dao.entity.WorkerGroup;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowDefinitionLog;
 import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.dao.mapper.TaskDefinitionLogMapper;
 import io.yak.ops.dao.mapper.WorkflowDefinitionLogMapper;
 import io.yak.ops.dao.model.WorkflowInstanceSummaryDto;
 import io.yak.ops.dao.repository.ProjectDao;
@@ -65,12 +66,14 @@ import io.yak.ops.service.process.ProcessService;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -105,6 +108,9 @@ public class WorkflowInstanceServiceTest {
 
     @Mock
     WorkflowInstanceDao workflowInstanceDao;
+
+    @Mock
+    TaskDefinitionLogMapper taskDefinitionLogMapper;
 
     @Mock
     WorkflowDefinitionLogMapper workflowDefinitionLogMapper;
@@ -147,6 +153,12 @@ public class WorkflowInstanceServiceTest {
 
     @Mock
     AlertDao alertDao;
+
+    @BeforeEach
+    public void setUp() {
+        Mockito.when(taskDefinitionLogMapper.queryByTaskDefinitions(Mockito.anyCollection()))
+                .thenReturn(Collections.emptyList());
+    }
 
     private String shellJson = "[{\"name\":\"\",\"preTaskCode\":0,\"preTaskVersion\":0,\"postTaskCode\":123456789,"
             + "\"postTaskVersion\":1,\"conditionType\":0,\"conditionParams\":\"{}\"},{\"name\":\"\",\"preTaskCode\":123456789,"

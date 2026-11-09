@@ -1,5 +1,6 @@
 package io.yak.ops.service.alert;
 
+import io.yak.ops.common.enums.AlertStatus;
 import io.yak.ops.common.enums.AlertType;
 import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.Flag;
@@ -17,6 +18,7 @@ import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.repository.ProjectDao;
 import io.yak.ops.dao.repository.UserDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionLogDao;
+import io.yak.ops.plugin.task.api.model.TaskAlertInfo;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -189,6 +191,33 @@ public class WorkflowAlertManager {
     public void sendWorkflowTimeoutAlert(WorkflowInstance workflowInstance) {
         ProjectUser projectUser = projectDao.queryProjectWithUserByWorkflowInstanceId(workflowInstance.getId());
         alertDao.sendWorkflowTimeoutAlert(workflowInstance, projectUser);
+    }
+
+    public void sendTaskResultAlert(WorkflowInstance workflowInstance,
+                                    TaskInstance taskInstance,
+                                    TaskAlertInfo taskAlertInfo) {
+        if (taskAlertInfo == null || taskAlertInfo.getAlertGroupId() == null
+                || taskAlertInfo.getAlertGroupId() <= 0) {
+            return;
+        }
+
+        Alert alert = new Alert();
+        alert.setTitle(taskAlertInfo.getTitle());
+        alert.setContent(taskAlertInfo.getContent());
+        alert.setWarningType(WarningType.SUCCESS);
+        alert.setAlertStatus(AlertStatus.WAIT_EXECUTION);
+        alert.setCreateTime(new Date());
+        alert.setAlertGroupId(taskAlertInfo.getAlertGroupId());
+        alert.setProjectCode(workflowInstance.getProjectCode());
+        alert.setWorkflowDefinitionCode(workflowInstance.getWorkflowDefinitionCode());
+        alert.setWorkflowInstanceId(workflowInstance.getId());
+        alert.setAlertType(taskAlertInfo.getAlertType() != null
+                ? taskAlertInfo.getAlertType()
+                : AlertType.TASK_RESULT);
+        alert.setTaskInstanceId(taskInstance.getId());
+        alertDao.addTaskResultAlert(alert);
+        log.info("Send task result alert for task: {} in workflow: {}",
+                taskInstance.getName(), workflowInstance.getName());
     }
 
 }

@@ -5,6 +5,7 @@ import io.yak.ops.common.utils.PropertyUtils;
 import io.yak.ops.plugin.storage.api.StorageOperator;
 import io.yak.ops.plugin.task.api.AbstractTask;
 import io.yak.ops.plugin.task.api.TaskCallBack;
+import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.log.TaskLogMarkers;
 import io.yak.ops.plugin.task.api.model.ApplicationInfo;
 import io.yak.ops.plugin.task.api.resource.ResourceContext;
@@ -73,6 +74,10 @@ public class PhysicalTaskExecutor extends AbstractTaskExecutor {
 
     @Override
     protected TaskExecutorState doTrackTaskPluginStatus() {
+        if (physicalTask.getExitStatus() == TaskExecutionStatus.SUCCESS) {
+            taskExecutionContext.setNeedAlert(physicalTask.getNeedAlert());
+            taskExecutionContext.setTaskAlertInfo(physicalTask.getTaskAlertInfo());
+        }
         return TaskExecutorStateMappings.mapState(physicalTask.getExitStatus());
     }
 

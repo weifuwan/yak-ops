@@ -68,6 +68,9 @@ public class Alert {
     private AlertType alertType;
 
     @TableField(exist = false)
+    private Integer taskInstanceId;
+
+    @TableField(exist = false)
     private Map<String, Object> info = new HashMap<>();
 
 }

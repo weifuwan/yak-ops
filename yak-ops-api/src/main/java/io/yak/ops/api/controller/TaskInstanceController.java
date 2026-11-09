@@ -9,12 +9,17 @@ import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.service.TaskInstanceService;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.TaskExecuteType;
+import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.utils.ParameterUtils;
+
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -95,7 +100,7 @@ public class TaskInstanceController extends BaseController {
                                       @RequestParam("pageSize") Integer pageSize) {
         checkPageParams(pageNo, pageSize);
         searchVal = ParameterUtils.handleEscapes(searchVal);
-        return taskInstanceService.queryTaskListPaging(
+        Result result = taskInstanceService.queryTaskListPaging(
                 loginUser,
                 projectCode,
                 workflowInstanceId,
@@ -112,6 +117,16 @@ public class TaskInstanceController extends BaseController {
                 taskExecuteType,
                 pageNo,
                 pageSize);
+        if (result.getData() instanceof PageInfo) {
+            @SuppressWarnings("unchecked")
+            PageInfo<TaskInstance> pageInfo = (PageInfo<TaskInstance>) result.getData();
+            if (pageInfo.getTotalList() != null) {
+                pageInfo.setTotalList(pageInfo.getTotalList().stream()
+                        .map(SensitivePropertyUtils::mask)
+                        .collect(Collectors.toList()));
+            }
+        }
+        return result;
     }
 
     /**

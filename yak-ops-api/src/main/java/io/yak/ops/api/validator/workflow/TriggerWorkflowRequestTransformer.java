@@ -2,10 +2,12 @@ package io.yak.ops.api.validator.workflow;
 
 import io.yak.ops.api.dto.workflow.WorkflowTriggerRequest;
 import io.yak.ops.api.exceptions.ServiceException;
+import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.api.utils.WorkflowUtils;
 import io.yak.ops.api.validator.ITransformer;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
+import io.yak.ops.plugin.task.api.utils.GlobalParameterUtils;
 import io.yak.ops.plugin.task.api.utils.PropertyUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,11 @@ public class TriggerWorkflowRequestTransformer implements ITransformer<WorkflowT
 
     @Override
     public TriggerWorkflowDTO transform(WorkflowTriggerRequest workflowTriggerRequest) {
+        WorkflowDefinition workflowDefinition = workflowDefinitionDao
+                .queryByCode(workflowTriggerRequest.getWorkflowDefinitionCode())
+                .orElseThrow(() -> new ServiceException(
+                        "Cannot find the workflow: " + workflowTriggerRequest.getWorkflowDefinitionCode()));
+
         TriggerWorkflowDTO triggerWorkflowDTO = TriggerWorkflowDTO.builder()
                 .loginUser(workflowTriggerRequest.getLoginUser())
                 .startNodes(WorkflowUtils.parseStartNodeList(workflowTriggerRequest.getStartNodes()))
@@ -34,15 +41,11 @@ public class TriggerWorkflowRequestTransformer implements ITransformer<WorkflowT
                 .workerGroup(workflowTriggerRequest.getWorkerGroup())
                 .tenantCode(workflowTriggerRequest.getTenantCode())
                 .environmentCode(workflowTriggerRequest.getEnvironmentCode())
-                .startParamList(
-                        PropertyUtils.startParamsTransformPropertyList(workflowTriggerRequest.getStartParamList()))
+                .startParamList(SensitivePropertyUtils.restoreStartParams(
+                        PropertyUtils.startParamsTransformPropertyList(workflowTriggerRequest.getStartParamList()),
+                        GlobalParameterUtils.deserializeGlobalParameter(workflowDefinition.getGlobalParams())))
                 .dryRun(workflowTriggerRequest.getDryRun())
                 .build();
-
-        WorkflowDefinition workflowDefinition = workflowDefinitionDao
-                .queryByCode(workflowTriggerRequest.getWorkflowDefinitionCode())
-                .orElseThrow(() -> new ServiceException(
-                        "Cannot find the workflow: " + workflowTriggerRequest.getWorkflowDefinitionCode()));
 
         triggerWorkflowDTO.setWorkflowDefinition(workflowDefinition);
         return triggerWorkflowDTO;

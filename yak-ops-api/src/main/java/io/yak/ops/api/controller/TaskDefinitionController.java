@@ -11,13 +11,17 @@ import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.service.TaskDefinitionService;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.api.vo.TaskDefinitionVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.ReleaseState;
+import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.User;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -71,7 +75,18 @@ public class TaskDefinitionController extends BaseController {
                                               @RequestParam(value = "pageNo") int pageNo,
                                               @RequestParam(value = "pageSize") int pageSize) {
         checkPageParams(pageNo, pageSize);
-        return taskDefinitionService.queryTaskDefinitionVersions(loginUser, projectCode, code, pageNo, pageSize);
+        Result result = taskDefinitionService.queryTaskDefinitionVersions(
+                loginUser, projectCode, code, pageNo, pageSize);
+        if (result.getData() instanceof PageInfo) {
+            @SuppressWarnings("unchecked")
+            PageInfo<TaskDefinitionLog> pageInfo = (PageInfo<TaskDefinitionLog>) result.getData();
+            if (pageInfo.getTotalList() != null) {
+                pageInfo.setTotalList(pageInfo.getTotalList().stream()
+                        .map(log -> (TaskDefinitionLog) SensitivePropertyUtils.mask(log))
+                        .collect(Collectors.toList()));
+            }
+        }
+        return result;
     }
 
     /**
@@ -146,7 +161,7 @@ public class TaskDefinitionController extends BaseController {
                                                               @PathVariable(value = "code") long code) {
         TaskDefinitionVO taskDefinitionVO =
                 taskDefinitionService.queryTaskDefinitionDetail(loginUser, projectCode, code);
-        return Result.success(taskDefinitionVO);
+        return Result.success((TaskDefinitionVO) SensitivePropertyUtils.mask(taskDefinitionVO));
     }
 
     /**

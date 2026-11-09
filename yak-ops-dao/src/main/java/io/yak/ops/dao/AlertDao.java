@@ -93,6 +93,19 @@ public class AlertDao {
         return count;
     }
 
+    public int addTaskResultAlert(Alert alert) {
+        if (null == alert.getAlertGroupId() || NumberUtils.INTEGER_ZERO.equals(alert.getAlertGroupId())) {
+            log.warn("the value of alertGroupId is null or 0 ");
+            return 0;
+        }
+
+        String sign = generateSign(alert);
+        alert.setSign(sign);
+        int count = alertMapper.insert(alert);
+        log.info("add task result alert to db , alert: {}", alert);
+        return count;
+    }
+
     /**
      * update alert sending(execution) status
      *
@@ -117,6 +130,9 @@ public class AlertDao {
      * @return sign's str
      */
     private String generateSign(Alert alert) {
+        if (alert.getTaskInstanceId() != null) {
+            return DigestUtils.sha1Hex(alert.getTaskInstanceId() + "|" + alert.getContent()).toLowerCase();
+        }
         return Optional.of(alert)
                 .map(Alert::getContent)
                 .map(DigestUtils::sha1Hex)

@@ -42,6 +42,12 @@ public final class Constants {
      */
     public static final String SHELL_KILL_WAIT_TIMEOUT = "shell.kill.wait.timeout";
 
+    public static final String SQL_TASK_ALERT_MAX_ROWS = "sql.task.alert.max.rows";
+
+    public static final String SQL_TASK_ALERT_MAX_ROW_VALUE_LENGTH = "sql.task.alert.max.row.value.length";
+
+    public static final String SQL_TASK_ALERT_MAX_CONTENT_BYTES = "sql.task.alert.max.content.bytes";
+
     public static final String SUDO_ENABLE = "sudo.enable";
 
     public static final String RESOURCE_STORAGE_TYPE = "resource.storage.type";

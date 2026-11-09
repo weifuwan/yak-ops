@@ -32,6 +32,7 @@ import io.yak.ops.api.service.WorkflowLineageService;
 import io.yak.ops.api.utils.CheckUtils;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.api.validator.GlobalParamsValidator;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.ReleaseState;
@@ -81,6 +82,7 @@ import io.yak.ops.plugin.task.api.model.SwitchResultVo;
 import io.yak.ops.plugin.task.api.parameters.ConditionsParameters;
 import io.yak.ops.plugin.task.api.parameters.DependentParameters;
 import io.yak.ops.plugin.task.api.parameters.SwitchParameters;
+import io.yak.ops.plugin.task.api.utils.GlobalParameterUtils;
 import io.yak.ops.plugin.task.api.utils.TaskTypeUtils;
 import io.yak.ops.service.model.TaskNode;
 import io.yak.ops.service.process.ProcessService;
@@ -245,6 +247,12 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
 
         List<TaskDefinitionLog> taskDefinitionLogs = generateTaskDefinitionList(taskDefinitionJson);
         List<WorkflowTaskRelationLog> taskRelationList = generateTaskRelationList(taskRelationJson, taskDefinitionLogs);
+        SensitivePropertyUtils.requireNoPlaceholder(
+                GlobalParameterUtils.deserializeGlobalParameter(globalParams));
+        for (TaskDefinitionLog taskDefinitionLog : CollectionUtils.emptyIfNull(taskDefinitionLogs)) {
+            taskDefinitionLog.setTaskParams(
+                    SensitivePropertyUtils.mergeLocalParams(taskDefinitionLog.getTaskParams(), null));
+        }
 
         long workflowDefinitionCode = CodeGenerateUtils.genCode();
         WorkflowDefinition workflowDefinition =
@@ -658,6 +666,37 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
                 throw new ServiceException(Status.WORKFLOW_DEFINITION_NAME_EXIST, name);
             }
         }
+
+        List<Property> submittedGlobalParams =
+                GlobalParameterUtils.deserializeGlobalParameter(globalParams);
+        if (CollectionUtils.isNotEmpty(submittedGlobalParams)) {
+            globalParams = GlobalParameterUtils.serializeGlobalParameter(
+                    SensitivePropertyUtils.merge(submittedGlobalParams,
+                            GlobalParameterUtils.deserializeGlobalParameter(workflowDefinition.getGlobalParams())));
+        }
+
+        List<TaskDefinition> versionKeys = new ArrayList<>();
+        for (TaskDefinitionLog taskDefinitionLog : CollectionUtils.emptyIfNull(taskDefinitionLogs)) {
+            if (taskDefinitionLog.getCode() > 0 && taskDefinitionLog.getVersion() > 0) {
+                versionKeys.add(new TaskDefinition(taskDefinitionLog.getCode(), taskDefinitionLog.getVersion()));
+            }
+        }
+        List<TaskDefinitionLog> existingTaskLogs = CollectionUtils.isEmpty(versionKeys)
+                ? Collections.emptyList()
+                : taskDefinitionLogMapper.queryByTaskDefinitions(versionKeys);
+        Map<String, String> existingTaskParamsMap = existingTaskLogs.stream()
+                .collect(Collectors.toMap(
+                        log -> log.getCode() + "_" + log.getVersion(),
+                        TaskDefinitionLog::getTaskParams,
+                        (left, right) -> left));
+        for (TaskDefinitionLog submitted : CollectionUtils.emptyIfNull(taskDefinitionLogs)) {
+            String existingTaskParams = submitted.getCode() <= 0 || submitted.getVersion() <= 0
+                    ? null
+                    : existingTaskParamsMap.get(submitted.getCode() + "_" + submitted.getVersion());
+            submitted.setTaskParams(SensitivePropertyUtils.mergeLocalParams(
+                    submitted.getTaskParams(), existingTaskParams));
+        }
+
         WorkflowDefinition workflowDefinitionDeepCopy =
                 JSONUtils.parseObject(JSONUtils.toJsonString(workflowDefinition), WorkflowDefinition.class);
         workflowDefinition.set(projectCode, name, description, globalParams, locations, timeout);
