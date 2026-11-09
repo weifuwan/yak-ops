@@ -18,7 +18,7 @@ const QUEUE_API = `${YAK_OPS_API_PREFIX}/queues`;
 const queryString = (values: Record<string, string | number | undefined>) => {
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") query.set(key, String(value));
+    if (value !== undefined) query.set(key, String(value));
   });
   return query.toString();
 };
