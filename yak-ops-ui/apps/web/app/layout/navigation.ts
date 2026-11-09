@@ -3,6 +3,7 @@ import {
   ArrowRightLeft,
   Bell,
   Database,
+  GitBranch,
   LayoutDashboard,
   LayoutGrid,
   Settings,
@@ -32,6 +33,7 @@ type AllProductGroup = {
 };
 
 export const DATA_INTEGRATION_PRODUCT_LABEL = "数据集成";
+export const DATA_DEVELOPMENT_PRODUCT_LABEL = "数据开发";
 export const OPERATIONS_PRODUCT_LABEL = "运维中心";
 export const MANAGEMENT_PRODUCT_LABEL = "管理中心";
 
@@ -50,6 +52,14 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
     label: "数据同步",
     path: "/data-sync",
     icon: ArrowRightLeft,
+  },
+];
+
+export const DATA_DEVELOPMENT_NAVIGATION: ProductNavigationItem[] = [
+  {
+    label: "开发工作区",
+    path: "/data-development",
+    icon: GitBranch,
   },
 ];
 
@@ -93,6 +103,13 @@ const DATA_INTEGRATION_PRODUCT: GlobalProductMenuItem = {
   path: "/overview",
 };
 
+const DATA_DEVELOPMENT_PRODUCT: GlobalProductMenuItem = {
+  id: "data-development",
+  label: DATA_DEVELOPMENT_PRODUCT_LABEL,
+  icon: GitBranch,
+  path: "/data-development",
+};
+
 const OPERATIONS_PRODUCT: GlobalProductMenuItem = {
   id: "operations",
   label: OPERATIONS_PRODUCT_LABEL,
@@ -109,6 +126,7 @@ const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
 
 export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
   DATA_INTEGRATION_PRODUCT,
+  DATA_DEVELOPMENT_PRODUCT,
   OPERATIONS_PRODUCT,
   MANAGEMENT_PRODUCT,
 ];
@@ -118,6 +136,11 @@ export const ALL_PRODUCT_GROUPS: AllProductGroup[] = [
     id: "data-integration",
     label: DATA_INTEGRATION_PRODUCT_LABEL,
     products: [DATA_INTEGRATION_PRODUCT],
+  },
+  {
+    id: "data-development",
+    label: DATA_DEVELOPMENT_PRODUCT_LABEL,
+    products: [DATA_DEVELOPMENT_PRODUCT],
   },
   {
     id: "operations",
