@@ -41,7 +41,7 @@ export function useTaskInformation(taskId: string | undefined, scope: string) {
     queryKey: detailQueryKeys.updatedBy(scope, userId || ""),
     queryFn: async () => {
       const users = await getUsersByIds([userId!]);
-      return users[0]?.realName || users[0]?.userName || "-";
+      return users[0]?.userName || "-";
     },
     enabled: Boolean(scope && userId && userId !== "system"),
   });
