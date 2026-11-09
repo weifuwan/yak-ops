@@ -231,6 +231,7 @@ const MAIN_TAB_CLASS = [
   "data-active:!border-b-white",
   "data-active:!font-medium",
   "data-active:!text-[var(--yak-color-primary)]",
+  "after:!hidden",
   "before:absolute before:inset-x-0 before:-top-px",
   "before:h-0.5 before:bg-transparent before:content-['']",
   "data-active:before:bg-[var(--yak-color-primary)]",
