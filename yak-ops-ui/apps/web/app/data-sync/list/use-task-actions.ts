@@ -58,10 +58,19 @@ export function useTaskListActions(scope: string) {
         delete: "同步任务已删除",
       };
       toast.success(messages[command.kind]);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: listQueryKeys.tasks(scope) }),
-        queryClient.invalidateQueries({ queryKey: listQueryKeys.instances(scope) }),
-      ]);
+
+      if (command.kind === "run" || command.kind === "stop") {
+        await queryClient.refetchQueries(
+          { queryKey: listQueryKeys.instances(scope), type: "active" },
+          { cancelRefetch: false },
+        );
+        return;
+      }
+
+      await queryClient.refetchQueries(
+        { queryKey: listQueryKeys.tasks(scope), type: "active" },
+        { cancelRefetch: false },
+      );
     },
   });
   const actionKey =
