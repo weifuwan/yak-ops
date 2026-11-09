@@ -94,11 +94,11 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
   }, [open, editing, values.tenantId, tenants]);
 
   useEffect(() => {
-    if (!open || !selectedTenant || values.queue) return;
+    if (!open || editing || !selectedTenant || values.queue) return;
     const tenantQueue = queues.find((queue) => queue.id === selectedTenant.queueId);
     if (tenantQueue) setValues((current) => ({ ...current, queue: tenantQueue.queue }));
     else if (selectedTenant.queue) setValues((current) => ({ ...current, queue: selectedTenant.queue ?? "" }));
-  }, [open, selectedTenant, queues, values.queue]);
+  }, [open, editing, selectedTenant, queues, values.queue]);
 
   const patch = (key: keyof FormValues, value: string) => {
     setValues((current) => ({
