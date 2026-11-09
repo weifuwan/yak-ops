@@ -9,9 +9,18 @@ import java.util.Date;
 import java.util.List;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 @Mapper
 public interface AlertMapper extends BaseMapper<Alert> {
+
+    IPage<Alert> queryAlertPage(Page<Alert> page,
+                                @Param("projectCode") long projectCode,
+                                @Param("alertStatus") Integer alertStatus,
+                                @Param("alertType") Integer alertType,
+                                @Param("keyword") String keyword);
+
 
     /**
      * Query the alert which id > minAlertId and status = alertStatus order by id asc.
