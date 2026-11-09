@@ -1046,8 +1046,8 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
         verify(workflowTaskRelationLogMapper).queryByWorkflowCodeAndVersion(processDefinitionCode, 2);
         verify(workflowTaskRelationDao, Mockito.never())
                 .queryWorkflowTaskRelationsByWorkflowDefinitionCode(anyLong(), Mockito.anyInt());
-        verify(taskDefinitionLogMapper).queryByTaskDefinitions(Mockito.argThat(taskDefinitions ->
-                taskDefinitions.size() == 1
+        verify(taskDefinitionLogMapper).queryByTaskDefinitions(Mockito.argThat(
+                taskDefinitions -> taskDefinitions.size() == 1
                         && taskDefinitions.iterator().next().getCode() == targetRelation.getPostTaskCode()
                         && taskDefinitions.iterator().next().getVersion() == targetRelation.getPostTaskVersion()));
         verify(schedulerService).offlineSchedulerByWorkflowCode(processDefinitionCode);

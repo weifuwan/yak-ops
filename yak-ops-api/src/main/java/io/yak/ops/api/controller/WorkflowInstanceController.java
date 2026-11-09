@@ -138,10 +138,11 @@ public class WorkflowInstanceController extends BaseController {
         }
         return Result.success(new WorkflowInstanceTaskListDTO(
                 taskList.getWorkflowInstanceState(),
-                taskList.getTaskList() == null ? null : taskList.getTaskList().stream()
-                        .map(task -> (TaskInstanceDependentDetails<AbstractTaskInstanceContext>)
-                                SensitivePropertyUtils.mask(task))
-                        .collect(Collectors.toList())));
+                taskList.getTaskList() == null ? null
+                        : taskList.getTaskList().stream()
+                                .map(task -> (TaskInstanceDependentDetails<AbstractTaskInstanceContext>) SensitivePropertyUtils
+                                        .mask(task))
+                                .collect(Collectors.toList())));
     }
 
     /**

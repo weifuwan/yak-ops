@@ -422,9 +422,10 @@ public class WorkflowDefinitionController extends BaseController {
                                                              @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode) {
         List<DagData> dagDataList =
                 workflowDefinitionService.queryWorkflowDefinitionList(loginUser, projectCode);
-        return Result.success(dagDataList == null ? null : dagDataList.stream()
-                .map(SensitivePropertyUtils::mask)
-                .collect(Collectors.toList()));
+        return Result.success(dagDataList == null ? null
+                : dagDataList.stream()
+                        .map(SensitivePropertyUtils::mask)
+                        .collect(Collectors.toList()));
     }
 
     /**
@@ -533,9 +534,10 @@ public class WorkflowDefinitionController extends BaseController {
                                                                     @PathVariable("code") long code) {
         List<TaskDefinition> taskDefinitions =
                 workflowDefinitionService.getTaskNodeListByDefinitionCode(loginUser, projectCode, code);
-        return Result.success(taskDefinitions == null ? null : taskDefinitions.stream()
-                .map(SensitivePropertyUtils::mask)
-                .collect(Collectors.toList()));
+        return Result.success(taskDefinitions == null ? null
+                : taskDefinitions.stream()
+                        .map(SensitivePropertyUtils::mask)
+                        .collect(Collectors.toList()));
     }
 
     /**
