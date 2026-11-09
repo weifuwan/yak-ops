@@ -229,9 +229,9 @@ export function AlertRecordsPanel() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="w-[260px]">
+      <div className="mb-4 flex min-w-0 items-center gap-3 overflow-x-auto">
+        <div className="flex min-w-max items-center gap-2">
+          <div className="w-[240px] shrink-0">
             <Input
               size="small"
               variant="outlined"
@@ -246,50 +246,55 @@ export function AlertRecordsPanel() {
           <Button size="sm" variant="secondary" onClick={applyKeyword}>
             搜索
           </Button>
-          <Select<string>
-            size="small"
-            items={STATUS_OPTIONS}
-            value={status ?? "ALL"}
-            onValueChange={(value) => {
-              setPageNo(1);
-              setStatus(value && value !== "ALL" ? (value as AlertRecordStatus) : undefined);
-            }}
-          >
-            <SelectTrigger variant="outlined" className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(STATUS_OPTIONS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  <SelectItemText>{label}</SelectItemText>
-                  <SelectItemIndicator />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select<string>
-            size="small"
-            items={TYPE_OPTIONS}
-            value={type ?? "ALL"}
-            onValueChange={(value) => {
-              setPageNo(1);
-              setType(value && value !== "ALL" ? (value as AlertRecordType) : undefined);
-            }}
-          >
-            <SelectTrigger variant="outlined" className="w-[150px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(TYPE_OPTIONS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  <SelectItemText>{label}</SelectItemText>
-                  <SelectItemIndicator />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-[150px] shrink-0">
+            <Select<string>
+              size="small"
+              items={STATUS_OPTIONS}
+              value={status ?? "ALL"}
+              onValueChange={(value) => {
+                setPageNo(1);
+                setStatus(value && value !== "ALL" ? (value as AlertRecordStatus) : undefined);
+              }}
+            >
+              <SelectTrigger variant="outlined" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(STATUS_OPTIONS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    <SelectItemText>{label}</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-[160px] shrink-0">
+            <Select<string>
+              size="small"
+              items={TYPE_OPTIONS}
+              value={type ?? "ALL"}
+              onValueChange={(value) => {
+                setPageNo(1);
+                setType(value && value !== "ALL" ? (value as AlertRecordType) : undefined);
+              }}
+            >
+              <SelectTrigger variant="outlined" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(TYPE_OPTIONS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    <SelectItemText>{label}</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <Button
+          className="ml-auto shrink-0"
           size="sm"
           variant="secondary"
           isPending={recordsQuery.isFetching}
