@@ -10,7 +10,7 @@ export function TabsList({ className, ...props }: TabsListProps) {
   return (
     <BaseTabs.List
       className={cn(
-        "flex items-end gap-7 border-b border-[var(--yak-components-control-border)]",
+        "relative flex items-end gap-6 border-b border-[var(--yak-components-control-border)]",
         className,
       )}
       {...props}
@@ -23,8 +23,10 @@ export function TabsTab({ className, ...props }: TabsTabProps) {
   return (
     <BaseTabs.Tab
       className={cn(
-        "relative cursor-pointer border-b-2 border-transparent pb-2.5 text-[13px] font-medium text-[var(--yak-components-tab-text)] outline-none",
-        "hover:text-[var(--yak-components-tab-text-hover)] data-active:border-[var(--yak-components-tab-active)] data-active:font-semibold data-active:text-[var(--yak-components-tab-text-active)]",
+        "relative cursor-pointer px-1 pb-2.5 text-[13px] font-medium text-[var(--yak-components-tab-text)] outline-none",
+        "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-[var(--yak-components-tab-active)] after:content-['']",
+        "after:transition-transform after:duration-200 after:ease-out",
+        "hover:text-[var(--yak-components-tab-text-hover)] data-active:font-semibold data-active:text-[var(--yak-components-tab-text-active)] data-active:after:scale-x-100",
         "focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-input-focus-ring)] data-disabled:cursor-not-allowed data-disabled:opacity-40",
         className,
       )}
