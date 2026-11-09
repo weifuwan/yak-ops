@@ -1,18 +1,20 @@
 import { useMemo, useState } from "react";
 import type { EChartsCoreOption } from "echarts/core";
-import { CalendarDays, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import {
   Button,
+  DateField,
+  DateI18nProvider,
+  DateRangePicker,
   Empty,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  RangeCalendar,
   Segmented,
   Skeleton,
   Tabs,
   TabsList,
   TabsPanel,
   TabsTab,
+  parseDate,
 } from "@yak-ops/yak-ui";
 
 import type { DataSyncExecutionStats } from "@/service/data-sync/overview";
@@ -46,64 +48,74 @@ const TABS: Array<{ value: ExecutionTab; label: string }> = [
 
 const formatCount = (value: number) => value.toLocaleString("zh-CN");
 
-function DateRangePicker({
+function ExecutionDateRangePicker({
   range,
   onChange,
 }: {
   range: ExecutionRange;
   onChange: (next: ExecutionRange) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(range);
   const latest = rangeForPeriod("yesterday").endDate;
-  const valid = validRange(draft);
+  const value = useMemo(() => ({
+    start: parseDate(range.startDate),
+    end: parseDate(range.endDate),
+  }), [range.startDate, range.endDate]);
+  const maxValue = useMemo(() => parseDate(latest), [latest]);
+
   return (
-    <Popover open={open} onOpenChange={(next) => {
-      setOpen(next);
-      if (next) setDraft(range);
-    }}>
-      <PopoverTrigger
-        className="flex h-8 items-center gap-2 rounded-lg bg-[var(--yak-color-hover)] px-3 text-[12px] font-medium text-[var(--yak-components-panel-text)] hover:brightness-95"
-        aria-label="选择统计日期范围"
+    <DateI18nProvider locale="zh-CN">
+      <DateRangePicker
+        aria-label="统计日期范围"
+        value={value}
+        maxValue={maxValue}
+        onChange={(nextValue) => {
+          if (!nextValue) return;
+          const next = {
+            startDate: nextValue.start.toString(),
+            endDate: nextValue.end.toString(),
+          };
+          if (validRange(next)) onChange(next);
+        }}
+        className="w-[236px]"
       >
-        <CalendarDays size={14} aria-hidden="true" />
-        {range.startDate.slice(5).replace("-", ".")}-{range.endDate.slice(5).replace("-", ".")}
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[280px] space-y-3">
-        <div className="text-sm font-semibold">统计日期</div>
-        <label className="flex items-center justify-between gap-2 text-xs">
-          开始日期
-          <input
-            type="date"
-            value={draft.startDate}
-            max={latest}
-            onChange={(event) => setDraft((previous) => ({
-              ...previous, startDate: event.target.value,
-            }))}
-            className="rounded-md border border-[var(--yak-components-panel-border)] bg-transparent px-2 py-1.5 text-sm"
-          />
-        </label>
-        <label className="flex items-center justify-between gap-2 text-xs">
-          结束日期
-          <input
-            type="date"
-            value={draft.endDate}
-            max={latest}
-            onChange={(event) => setDraft((previous) => ({
-              ...previous, endDate: event.target.value,
-            }))}
-            className="rounded-md border border-[var(--yak-components-panel-border)] bg-transparent px-2 py-1.5 text-sm"
-          />
-        </label>
-        <div className="flex justify-end gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setOpen(false)}>取消</Button>
-          <Button size="sm" isDisabled={!valid} onClick={() => {
-            onChange(draft);
-            setOpen(false);
-          }}>应用</Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+        <DateField.Group fullWidth>
+          <DateField.Input slot="start" className="min-w-0 px-2">
+            {(segment) => <DateField.Segment segment={segment} />}
+          </DateField.Input>
+          <DateRangePicker.RangeSeparator />
+          <DateField.Input slot="end" className="min-w-0 px-2">
+            {(segment) => <DateField.Segment segment={segment} />}
+          </DateField.Input>
+          <DateField.Suffix>
+            <DateRangePicker.Trigger aria-label="打开日期范围选择器">
+              <DateRangePicker.TriggerIndicator />
+            </DateRangePicker.Trigger>
+          </DateField.Suffix>
+        </DateField.Group>
+
+        <DateRangePicker.Popover className="w-auto">
+          <RangeCalendar
+            aria-label="统计日期范围"
+            maxValue={maxValue}
+            firstDayOfWeek="mon"
+          >
+            <RangeCalendar.Header>
+              <RangeCalendar.NavButton slot="previous" aria-label="上个月" />
+              <RangeCalendar.Heading />
+              <RangeCalendar.NavButton slot="next" aria-label="下个月" />
+            </RangeCalendar.Header>
+            <RangeCalendar.Grid>
+              <RangeCalendar.GridHeader>
+                {(day) => <RangeCalendar.HeaderCell>{day}</RangeCalendar.HeaderCell>}
+              </RangeCalendar.GridHeader>
+              <RangeCalendar.GridBody>
+                {(date) => <RangeCalendar.Cell date={date} />}
+              </RangeCalendar.GridBody>
+            </RangeCalendar.Grid>
+          </RangeCalendar>
+        </DateRangePicker.Popover>
+      </DateRangePicker>
+    </DateI18nProvider>
   );
 }
 
@@ -296,7 +308,7 @@ export function ExecutionMetricsSection() {
             options={PERIODS}
             onValueChange={(period) => setRange(rangeForPeriod(period))}
           />
-          <DateRangePicker range={range} onChange={setRange} />
+          <ExecutionDateRangePicker range={range} onChange={setRange} />
           <Button
             variant="secondary"
             size="sm"
