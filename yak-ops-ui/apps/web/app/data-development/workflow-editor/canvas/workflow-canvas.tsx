@@ -155,7 +155,7 @@ export function WorkflowCanvas({
   };
 
   return (
-    <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#fbfcfe]">
+    <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#eff2f8]">
       <ReactFlow<WorkflowCanvasNode, WorkflowCanvasEdge>
         nodes={nodes}
         edges={renderEdges}
