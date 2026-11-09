@@ -157,7 +157,7 @@ function graphHistorySnapshot(
       ...edge,
       selected: false,
       data: {
-        ...edge.data,
+        backend: edge.data?.backend ?? false,
         hovered: false,
       },
     })),
