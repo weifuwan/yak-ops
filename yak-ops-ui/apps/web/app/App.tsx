@@ -8,7 +8,14 @@ import { LeaveGuardProvider } from "@/context/leave-guard-context";
 
 import AppRouter from "./router/AppRouter";
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const router = createBrowserRouter([
   {
     path: "*",
