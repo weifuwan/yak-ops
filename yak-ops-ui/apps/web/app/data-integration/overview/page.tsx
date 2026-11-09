@@ -16,6 +16,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { ExecutionMetricsSection } from "./execution-metrics-section";
+import { OverviewAmbientAsciiBackground } from "./ambient-ascii-background";
 import { useDataIntegrationOverview } from "./use-overview";
 
 const number = (value: number) => value.toLocaleString("zh-CN");
@@ -62,11 +63,12 @@ export function DataIntegrationOverviewPage() {
   const overview = query.data;
 
   return (
-    <div className="min-h-full bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
+    <div className="relative isolate min-h-full bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
+      <OverviewAmbientAsciiBackground />
       <PageHeader
         title="概览"
         bordered
-        className="bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
+        className="relative z-10 bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
         extra={
           <Button
             size="sm"
@@ -79,7 +81,7 @@ export function DataIntegrationOverviewPage() {
           </Button>
         }
       />
-      <div className="space-y-4 px-6 pb-8 pt-5 max-md:px-4">
+      <div className="relative z-10 space-y-4 px-6 pb-8 pt-5 max-md:px-4">
         {query.isError ? (
           <Alert>
             {overview ? "概览刷新失败，当前显示上一次统计结果。" : "概览加载失败。"}
