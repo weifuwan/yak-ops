@@ -8,7 +8,8 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import { canStopWorkflow, isWorkflowActive } from "@/service/data-sync";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
-import { TaskFilters } from "./task-filters";\nimport { RunDataSyncTaskDialog } from "./run-dialog";
+import { TaskFilters } from "./task-filters";
+import { RunDataSyncTaskDialog } from "./run-dialog";
 import { TaskTable } from "./task-table";
 import { useTaskListFilters } from "./use-list-filters";
 import {
@@ -24,7 +25,8 @@ export function DataSyncPage() {
   const location = useLocation();
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const scope = currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
+  const scope =
+    currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
   const filters = useTaskListFilters();
   const page = useTaskPage(scope, filters);
   const sources = useListDataSources(scope);
@@ -35,14 +37,15 @@ export function DataSyncPage() {
   const [createOpen, setCreateOpen] = useState(
     new URLSearchParams(location.search).get("create") === "1",
   );
-  const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();\n  const [pendingRun, setPendingRun] = useState<DataSyncTaskRecord>();
+  const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();
+  const [pendingRun, setPendingRun] = useState<DataSyncTaskRecord>();
 
   const isWorkflowActiveForTask = (taskId: string) => {
     const workflow = instances.workflowsByTask.get(taskId);
     const submittedId = commands.submittedByTask[taskId];
     return Boolean(
       (submittedId && (!workflow || workflow.id < submittedId)) ||
-      (workflow && isWorkflowActive(workflow.state)),
+        (workflow && isWorkflowActive(workflow.state)),
     );
   };
 
@@ -57,10 +60,19 @@ export function DataSyncPage() {
     if (value.kind === "stop") {
       const workflow = instances.workflowsByTask.get(value.task.id);
       const active = instances.activeByTask.get(value.task.id);
-      if (!instances.ready || !(
-        (workflow && workflow.id === value.workflowInstanceId && canStopWorkflow(workflow.state)) ||
-        (active && active.workflowInstanceId === value.workflowInstanceId && canCancelTaskInstance(active.status))
-      )) return;
+      if (
+        !instances.ready ||
+        !(
+          (workflow &&
+            workflow.id === value.workflowInstanceId &&
+            canStopWorkflow(workflow.state)) ||
+          (active &&
+            active.workflowInstanceId === value.workflowInstanceId &&
+            canCancelTaskInstance(active.status))
+        )
+      ) {
+        return;
+      }
     } else if (!canManage(value.task)) {
       return;
     }
@@ -181,7 +193,8 @@ export function DataSyncPage() {
         }}
         footer={
           <>
-            <Button variant="secondary"
+            <Button
+              variant="secondary"
               size="sm"
               isDisabled={commands.pending}
               onClick={() => setPendingDelete(undefined)}
@@ -193,8 +206,9 @@ export function DataSyncPage() {
               variant="danger"
               isPending={commands.actionKey === (pendingDelete?.id || "") + ":delete"}
               onClick={() => {
-                if (pendingDelete && canManage(pendingDelete))
+                if (pendingDelete && canManage(pendingDelete)) {
                   command({ kind: "delete", task: pendingDelete });
+                }
               }}
             >
               删除
