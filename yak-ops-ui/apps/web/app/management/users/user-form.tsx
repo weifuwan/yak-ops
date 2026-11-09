@@ -6,6 +6,13 @@ import {
   Input,
   Modal,
   PasswordInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
 } from "@yak-ops/yak-ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -53,8 +60,6 @@ const EMPTY_VALUES: FormValues = {
 };
 
 const HORIZONTAL_FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
-const CONTROL_CLASS =
-  "h-8 w-full rounded-md border border-[var(--yak-components-input-border)] bg-white px-2.5 text-sm text-[var(--yak-components-panel-text)] outline-none focus:border-[var(--yak-color-primary)]";
 
 export default function UserForm({ open, record, onClose, onSaved }: UserFormProps) {
   const editing = Boolean(record?.id);
@@ -155,10 +160,25 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
     onChange: (value: string) => void,
     disabled = false,
   ) => (
-    <select id={id} className={CONTROL_CLASS} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
-      <option value="">{placeholder}</option>
-      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-    </select>
+    <Select<string>
+      size="small"
+      disabled={disabled}
+      items={Object.fromEntries(options.map((option) => [option.value, option.label]))}
+      value={value || null}
+      onValueChange={(nextValue) => onChange(nextValue ?? "")}
+    >
+      <SelectTrigger variant="outlined">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            <SelectItemText>{option.label}</SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 
   const renderField = (
