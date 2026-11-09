@@ -61,6 +61,59 @@ const describeRecord = (record: {
     .filter(Boolean)
     .join(" ");
 
+function TaskTypeIcon({ taskType }: { taskType: string }) {
+  const type = taskType.toUpperCase();
+
+  if (type === "SQL" || type === "DATA_SYNC") {
+    return (
+      <Database
+        size={13}
+        strokeWidth={1.6}
+        className="shrink-0 text-[var(--yak-components-muted-text)]"
+      />
+    );
+  }
+
+  if (
+    type === "SHELL" ||
+    type === "REMOTESHELL" ||
+    type === "HIVECLI"
+  ) {
+    return (
+      <Terminal
+        size={13}
+        strokeWidth={1.6}
+        className="shrink-0 text-[var(--yak-components-muted-text)]"
+      />
+    );
+  }
+
+  if (
+    type === "JAVA" ||
+    type === "PYTHON" ||
+    type === "PROCEDURE" ||
+    type === "SPARK" ||
+    type === "FLINK" ||
+    type === "FLINK_STREAM"
+  ) {
+    return (
+      <Code2
+        size={13}
+        strokeWidth={1.6}
+        className="shrink-0 text-[var(--yak-components-muted-text)]"
+      />
+    );
+  }
+
+  return (
+    <FileCode2
+      size={13}
+      strokeWidth={1.6}
+      className="shrink-0 text-[var(--yak-components-muted-text)]"
+    />
+  );
+}
+
 function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
   if (item.kind === "message") {
     if (item.state === "loading") {
@@ -132,11 +185,7 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
       <span className="size-1.5 shrink-0" aria-hidden="true" />
-      <FileCode2
-        size={13}
-        strokeWidth={1.6}
-        className="shrink-0 text-[var(--yak-components-muted-text)]"
-      />
+      <TaskTypeIcon taskType={item.task.taskType} />
       <span className="min-w-0 shrink truncate">{item.task.name}</span>
       {description ? (
         <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--yak-components-muted-text)]">
