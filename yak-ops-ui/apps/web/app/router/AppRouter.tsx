@@ -32,6 +32,7 @@ import {
   OPERATIONS_PRODUCT_LABEL,
 } from "../layout/navigation";
 import AppLoading from "./AppLoading";
+import WorkspaceGate from "./WorkspaceGate";
 
 const DEFAULT_AUTHENTICATED_PATH = "/overview";
 const AUTHENTICATED_PATHS = new Set([
@@ -113,8 +114,9 @@ export default function AppRouter() {
       <Route path="/login" element={<LoginRoute />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route
-          element={
+        <Route element={<WorkspaceGate />}>
+          <Route
+            element={
             <AppLayout
               productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
               productPath="/overview"
@@ -170,8 +172,9 @@ export default function AppRouter() {
           <Route path="/management/alerts" element={<AlertCenterPage />} />
         </Route>
 
-        <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
-        <Route path="*" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
+          <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
+          <Route path="*" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
+        </Route>
       </Route>
     </Routes>
   );
