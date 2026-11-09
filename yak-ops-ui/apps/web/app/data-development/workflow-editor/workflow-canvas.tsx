@@ -185,6 +185,8 @@ export function WorkflowCanvas({
               : edge.style?.stroke ?? "var(--yak-components-border)",
             strokeWidth: selected ? 2 : edge.style?.strokeWidth ?? 1.25,
           },
+          deletable: true,
+          interactionWidth: 24,
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 14,
@@ -399,7 +401,6 @@ export function WorkflowCanvas({
         nodesDraggable={false}
         nodesConnectable
         edgesFocusable
-        edgesDeletable
         connectOnClick={false}
         connectionLineType={ConnectionLineType.SmoothStep}
         connectionLineStyle={{
