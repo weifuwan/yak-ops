@@ -386,6 +386,24 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
                             JSONUtils.toJsonString(workflowTaskRelationLog),
                             WorkflowTaskRelation.class))
                     .collect(Collectors.toList());
+            Set<Long> taskDefinitionCodes =
+                    taskDefinitionLogs.stream().map(TaskDefinitionLog::getCode).collect(Collectors.toSet());
+            Set<Long> missedTaskCodes = new HashSet<>();
+            for (WorkflowTaskRelationLog workflowTaskRelationLog : taskRelationList) {
+                if (!taskDefinitionCodes.contains(workflowTaskRelationLog.getPostTaskCode())) {
+                    missedTaskCodes.add(workflowTaskRelationLog.getPostTaskCode());
+                }
+                if (workflowTaskRelationLog.getPreTaskCode() != 0L
+                        && !taskDefinitionCodes.contains(workflowTaskRelationLog.getPreTaskCode())) {
+                    missedTaskCodes.add(workflowTaskRelationLog.getPreTaskCode());
+                }
+            }
+            if (CollectionUtils.isNotEmpty(missedTaskCodes)) {
+                String taskCodes = StringUtils.join(missedTaskCodes, Constants.COMMA);
+                log.error("Task definitions do not exist, taskCodes:{}.", taskCodes);
+                throw new ServiceException(Status.WORKFLOW_DAG_IS_INVALID,
+                        "the task definitions of taskCodes: [" + taskCodes + "] do not exist");
+            }
             List<TaskNode> taskNodeList = processService.transformTask(workflowTaskRelations, taskDefinitionLogs);
             if (taskNodeList.size() != taskRelationList.size()) {
                 Set<Long> postTaskCodes = taskRelationList.stream().map(WorkflowTaskRelationLog::getPostTaskCode)
@@ -395,7 +413,8 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
                 if (CollectionUtils.isNotEmpty(codes)) {
                     String taskCodes = StringUtils.join(codes, Constants.COMMA);
                     log.error("Task definitions do not exist, taskCodes:{}.", taskCodes);
-                    throw new ServiceException(Status.TASK_DEFINE_NOT_EXIST, taskCodes);
+                    throw new ServiceException(Status.WORKFLOW_DAG_IS_INVALID,
+                            "the task definitions of taskCodes: [" + taskCodes + "] do not exist");
                 }
             }
             if (graphHasCycle(taskNodeList)) {
@@ -925,7 +944,13 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
             List<WorkflowTaskRelation> taskRelationList =
                     JSONUtils.toList(workflowTaskRelationJson, WorkflowTaskRelation.class);
             // Check whether the task node is normal
-            List<TaskNode> taskNodes = processService.transformTask(taskRelationList, taskDefinitionLogsList);
+            List<TaskNode> taskNodes;
+            try {
+                taskNodes = processService.transformTask(taskRelationList, taskDefinitionLogsList);
+            } catch (io.yak.ops.service.exceptions.ServiceException e) {
+                log.error("Failed to build the workflow dag from the given workflowTaskRelationJson", e);
+                throw new ServiceException(Status.WORKFLOW_DAG_IS_INVALID, e.getMessage());
+            }
 
             if (CollectionUtils.isEmpty(taskNodes)) {
                 log.error("Task node data is empty.");
@@ -1586,12 +1611,15 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
                     Status.SWITCH_WORKFLOW_DEFINITION_VERSION_NOT_EXIST_WORKFLOW_DEFINITION_VERSION_ERROR,
                     workflowDefinition.getCode(), version);
         }
-        List<WorkflowTaskRelation> workflowTaskRelationList = workflowTaskRelationDao
-                .queryWorkflowTaskRelationsByWorkflowDefinitionCode(workflowDefinitionLog.getCode(),
-                        workflowDefinitionLog.getVersion());
+        List<WorkflowTaskRelation> workflowTaskRelationList = workflowTaskRelationLogMapper
+                .queryByWorkflowCodeAndVersion(workflowDefinitionLog.getCode(), workflowDefinitionLog.getVersion())
+                .stream()
+                .map(WorkflowTaskRelation::new)
+                .collect(Collectors.toList());
         List<TaskCodeVersionDto> taskDefinitionList = getTaskCodeVersionDtos(workflowTaskRelationList);
-        List<TaskDefinitionLog> taskDefinitionLogList =
-                taskDefinitionLogMapper.queryByTaskDefinitions(taskDefinitionList.stream()
+        List<TaskDefinitionLog> taskDefinitionLogList = CollectionUtils.isEmpty(taskDefinitionList)
+                ? Collections.emptyList()
+                : taskDefinitionLogMapper.queryByTaskDefinitions(taskDefinitionList.stream()
                         .flatMap(taskCodeVersionDto -> {
                             TaskDefinitionLog taskDefinitionLog = new TaskDefinitionLog();
                             taskDefinitionLog.setCode(taskCodeVersionDto.getCode());
@@ -1608,6 +1636,7 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
                     projectCode, code, version);
             throw new ServiceException(Status.SWITCH_WORKFLOW_DEFINITION_VERSION_ERROR);
         }
+        schedulerService.offlineSchedulerByWorkflowCode(code);
 
         saveWorkflowLineage(workflowDefinitionLog.getProjectCode(), workflowDefinitionLog.getCode(),
                 workflowDefinitionLog.getVersion(), taskDefinitionLogList);
