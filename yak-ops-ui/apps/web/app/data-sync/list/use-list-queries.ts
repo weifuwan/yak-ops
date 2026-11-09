@@ -138,7 +138,7 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
     [query.data],
   );
   const workflowsByTask = new Map(
-    records.map((record, index) => [record.id, workflowQueries[index]?.data] as const),
+    records.map((record, index) => [record.id, workflowQueries[index]?.data ?? undefined] as const),
   );
   const stateReadyByTask = new Map(
     records.map((record, index) => [
