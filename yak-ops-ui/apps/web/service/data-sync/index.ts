@@ -110,28 +110,8 @@ export const getTaskDefinition = async (id: string, signal?: AbortSignal) =>
 
 export const runDataSyncTask = async (
   workflowCode: string,
-  options?: { workerGroup?: string; startParams?: Record<string, string> },
-): Promise<{ workflowInstanceId: number }> => {
-  const ids = await HttpUtils.postData<number[]>(
-    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
-      "/executors/start-workflow-instance?" +
-      qp({
-        workflowDefinitionCode: workflowCode,
-        execType: "START_PROCESS",
-        failureStrategy: "END",
-        taskDependType: "TASK_POST",
-        warningType: "NONE",
-        workflowInstancePriority: "MEDIUM",
-        workerGroup: options?.workerGroup || "default",
-        tenantCode: "default",
-        dryRun: 0,
-        startParams: options?.startParams ? JSON.stringify(options.startParams) : undefined,
-      }),
-    undefined,
-  );
-  if (!ids?.length) throw new Error("工作流启动未返回实例编号");
-  return { workflowInstanceId: ids[0] };
-};
+  options?: StartWorkflowOptions,
+): Promise<{ workflowInstanceId: number }> => startWorkflowInstance(workflowCode, options);
 
 const instanceUrl = (id: string, base = url("")) => base + "/instances/" + encodeURIComponent(id);
 
