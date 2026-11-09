@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 import { DataSourcePage } from "@/app/datasource/list/page";
 import { DataIntegrationOverviewPage } from "@/app/data-integration/overview/page";
 import LoginPage from "@/app/login";
+import { AlertCenterPage } from "@/app/management/alerts/page";
 import { UserManagementPage } from "@/app/management/users/page";
 import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
 import { DataSyncPage } from "@/app/data-sync/list/page";
@@ -43,6 +44,7 @@ const AUTHENTICATED_PATHS = new Set([
   "/operations/realtime-tasks",
   "/management/users",
   "/management/workspaces",
+  "/management/alerts",
 ]);
 
 const isAuthenticatedPath = (pathname: string) =>
@@ -165,6 +167,7 @@ export default function AppRouter() {
           <Route path="/management" element={<Navigate replace to="/management/users" />} />
           <Route path="/management/users" element={<UserManagementPage />} />
           <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
+          <Route path="/management/alerts" element={<AlertCenterPage />} />
         </Route>
 
         <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
