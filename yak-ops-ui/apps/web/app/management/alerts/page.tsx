@@ -21,6 +21,7 @@ import { Plus } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
+  alertChannelTypeLabel,
   deleteAlertChannel,
   deleteAlertGroup,
   listAlertChannels,
@@ -176,7 +177,7 @@ export function AlertCenterPage() {
       title: "类型",
       dataIndex: "alertPluginName",
       width: 160,
-      render: (_value, record) => record.alertPluginName || "-",
+      render: (_value, record) => alertChannelTypeLabel(record.alertPluginName),
     },
     {
       key: "updateTime",
