@@ -21,6 +21,7 @@ export * from "./pagination";
 export * from "./popover";
 export * from "./radio";
 export * from "./select";
+export * from "./segmented";
 export * from "./skeleton";
 export * from "./spinner";
 export * from "./switch";

@@ -7,6 +7,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Segmented,
   Skeleton,
   Tabs,
   TabsList,
@@ -289,24 +290,12 @@ export function ExecutionMetricsSection() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg bg-[var(--yak-color-hover)] p-1">
-            {PERIODS.map((period) => (
-              <button
-                key={period.value}
-                type="button"
-                aria-pressed={selectedPreset === period.value}
-                onClick={() => setRange(rangeForPeriod(period.value))}
-                className={[
-                  "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-                  selectedPreset === period.value
-                    ? "bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-sm"
-                    : "text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
-                ].join(" ")}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            aria-label="统计周期"
+            value={selectedPreset}
+            options={PERIODS}
+            onValueChange={(period) => setRange(rangeForPeriod(period))}
+          />
           <DateRangePicker range={range} onChange={setRange} />
           <Button
             variant="secondary"
