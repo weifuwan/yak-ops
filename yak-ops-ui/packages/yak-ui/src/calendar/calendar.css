@@ -1,0 +1,208 @@
+.yak-calendar,
+.yak-range-calendar {
+  width: 252px;
+  max-width: 252px;
+  color: var(--yak-components-panel-text);
+  container-type: inline-size;
+}
+
+.yak-calendar__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px 16px;
+}
+
+.yak-calendar__heading-group {
+  order: 1;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 3px;
+}
+
+.yak-calendar__heading {
+  min-width: 0;
+  margin: 0;
+  color: var(--yak-components-panel-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 24px;
+  text-align: left;
+}
+
+.yak-calendar__heading-indicator {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--yak-color-primary);
+}
+
+.yak-calendar__nav-button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--yak-color-primary);
+  outline: none;
+  cursor: pointer;
+  transition:
+    transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    opacity 150ms ease-out;
+}
+
+.yak-calendar__nav-button[data-nav="previous"] {
+  order: 2;
+}
+
+.yak-calendar__nav-button[data-nav="next"] {
+  order: 3;
+}
+
+@media (hover: hover) {
+  .yak-calendar__nav-button:hover,
+  .yak-calendar__nav-button[data-hovered] {
+    background: var(--yak-color-hover);
+  }
+}
+
+.yak-calendar__nav-button:active,
+.yak-calendar__nav-button[data-pressed] {
+  transform: scale(0.95);
+}
+
+.yak-calendar__nav-button:focus-visible,
+.yak-calendar__nav-button[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--yak-components-button-focus-ring);
+}
+
+.yak-calendar__nav-button:disabled,
+.yak-calendar__nav-button[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.yak-calendar__grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.yak-calendar__grid-header,
+.yak-calendar__grid-header > tr,
+.yak-calendar__grid-body,
+.yak-calendar__grid-body > tr {
+  display: contents;
+}
+
+.yak-calendar__grid-body > tr:first-child > td {
+  margin-top: 4px;
+}
+
+.yak-calendar__header-cell {
+  display: block;
+  min-width: 0;
+  padding: 0 0 8px;
+  overflow: hidden;
+  color: var(--yak-components-muted-text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yak-calendar__cell {
+  position: relative;
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1;
+  place-self: center;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--yak-components-panel-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 100ms ease-out,
+    color 100ms ease-out,
+    box-shadow 100ms ease-out;
+}
+
+.yak-calendar__cell[data-today]:not([data-selected]) {
+  background: var(--yak-color-primary-subtle);
+  color: var(--yak-color-primary);
+}
+
+.yak-calendar__cell[data-selected] {
+  background: var(--yak-color-primary);
+  color: #ffffff;
+}
+
+@media (hover: hover) {
+  .yak-calendar__cell:hover:not([data-selected]),
+  .yak-calendar__cell[data-hovered]:not([data-selected]) {
+    background: var(--yak-color-hover);
+  }
+}
+
+.yak-calendar__cell:active,
+.yak-calendar__cell[data-pressed] {
+  transform: scale(0.95);
+}
+
+.yak-calendar__cell[data-selected]:active,
+.yak-calendar__cell[data-selected][data-pressed] {
+  background: var(--yak-color-primary-hover);
+}
+
+.yak-calendar__cell:focus-visible,
+.yak-calendar__cell[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--yak-components-button-focus-ring);
+}
+
+.yak-calendar__cell[data-outside-month] {
+  color: var(--yak-components-muted-text);
+  opacity: 0.45;
+}
+
+.yak-calendar__cell[data-selected][data-outside-month] {
+  background: var(--yak-color-hover);
+  color: var(--yak-components-muted-text);
+}
+
+.yak-calendar__cell[data-unavailable],
+.yak-calendar__cell[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.yak-calendar__cell[data-disabled]:not([data-outside-month]) {
+  text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yak-calendar__nav-button,
+  .yak-calendar__cell {
+    transition: none;
+  }
+}

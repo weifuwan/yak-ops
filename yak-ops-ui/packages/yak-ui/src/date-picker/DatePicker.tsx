@@ -156,7 +156,7 @@ export function DatePickerPopover({
       offset={offset}
       placement={placement}
       className={cn(
-        "z-60 min-w-[var(--trigger-width)] rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-1 text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-panel-shadow)] outline-none",
+        "z-60 w-fit min-w-[var(--trigger-width)] overflow-y-auto overscroll-contain rounded-[20px] border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-3 text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-panel-shadow)] outline-none",
         "transition-[opacity,transform] duration-150 data-entering:scale-[0.98] data-entering:opacity-0 data-exiting:scale-[0.98] data-exiting:opacity-0 motion-reduce:transition-none",
         className,
       )}

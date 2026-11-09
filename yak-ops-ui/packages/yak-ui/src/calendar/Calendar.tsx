@@ -20,17 +20,29 @@ import { Button as ButtonPrimitive } from "react-aria-components/Button";
 
 import { cn } from "../cn";
 
+import "./calendar.css";
+
 function ChevronLeftIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current" strokeWidth="1.8">
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="size-4 fill-none stroke-current"
+      strokeWidth="1.8"
+    >
       <path d="m12.5 4.5-5 5.5 5 5.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function ChevronRightIcon() {
+function ChevronRightIcon({ className }: { className?: string }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current" strokeWidth="1.8">
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className={cn("size-4 fill-none stroke-current", className)}
+      strokeWidth="1.8"
+    >
       <path d="m7.5 4.5 5 5.5-5 5.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -47,36 +59,31 @@ export function CalendarRoot<T extends DateValue>({
   className,
   ...props
 }: CalendarRootProps<T>) {
-  return (
-    <CalendarPrimitive
-      {...props}
-      className={cn(
-        "w-[280px] rounded-xl bg-[var(--yak-components-panel-bg)] p-2 text-[var(--yak-components-panel-text)]",
-        className,
-      )}
-    />
-  );
+  return <CalendarPrimitive {...props} className={cn("yak-calendar", className)} />;
 }
 
 export type CalendarHeaderProps = ComponentPropsWithoutRef<"div">;
+
 export function CalendarHeader({ className, ...props }: CalendarHeaderProps) {
-  return <div {...props} className={cn("mb-2 flex items-center gap-1", className)} />;
+  return <div {...props} className={cn("yak-calendar__header", className)} />;
 }
 
 export type CalendarHeadingProps = Omit<
   ComponentPropsWithoutRef<typeof CalendarHeadingPrimitive>,
   "className"
-> & { className?: string };
+> & {
+  className?: string;
+};
 
 export function CalendarHeading({ className, ...props }: CalendarHeadingProps) {
   return (
-    <CalendarHeadingPrimitive
-      {...props}
-      className={cn(
-        "mx-1 flex-1 text-center text-[13px] font-semibold text-[var(--yak-components-panel-text)]",
-        className,
-      )}
-    />
+    <div className="yak-calendar__heading-group">
+      <CalendarHeadingPrimitive
+        {...props}
+        className={cn("yak-calendar__heading", className)}
+      />
+      <ChevronRightIcon className="yak-calendar__heading-indicator" />
+    </div>
   );
 }
 
@@ -98,12 +105,8 @@ export function CalendarNavButton({
     <ButtonPrimitive
       {...props}
       slot={slot}
-      className={cn(
-        "inline-flex size-7 cursor-pointer items-center justify-center rounded-[var(--yak-radius-control-small)] text-[var(--yak-components-muted-text)] outline-none",
-        "transition-[background-color,color,transform] duration-150 hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] active:scale-[0.96] motion-reduce:transition-none",
-        "focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-button-focus-ring)] disabled:cursor-not-allowed disabled:opacity-40",
-        className,
-      )}
+      data-nav={slot}
+      className={cn("yak-calendar__nav-button", className)}
     >
       {children ?? (slot === "previous" ? <ChevronLeftIcon /> : <ChevronRightIcon />)}
     </ButtonPrimitive>
@@ -113,13 +116,20 @@ export function CalendarNavButton({
 export type CalendarGridProps = Omit<
   ComponentPropsWithoutRef<typeof CalendarGridPrimitive>,
   "className"
-> & { className?: string };
+> & {
+  className?: string;
+};
 
-export function CalendarGrid({ className, ...props }: CalendarGridProps) {
+export function CalendarGrid({
+  className,
+  weekdayStyle = "short",
+  ...props
+}: CalendarGridProps) {
   return (
     <CalendarGridPrimitive
       {...props}
-      className={cn("w-full border-separate border-spacing-1", className)}
+      weekdayStyle={weekdayStyle}
+      className={cn("yak-calendar__grid", className)}
     />
   );
 }
@@ -127,34 +137,47 @@ export function CalendarGrid({ className, ...props }: CalendarGridProps) {
 export type CalendarGridHeaderProps = Omit<
   ComponentPropsWithoutRef<typeof CalendarGridHeaderPrimitive>,
   "className"
-> & { className?: string };
+> & {
+  className?: string;
+};
 
 export function CalendarGridHeader({ className, ...props }: CalendarGridHeaderProps) {
-  return <CalendarGridHeaderPrimitive {...props} className={className} />;
+  return (
+    <CalendarGridHeaderPrimitive
+      {...props}
+      className={cn("yak-calendar__grid-header", className)}
+    />
+  );
 }
 
 export type CalendarGridBodyProps = Omit<
   ComponentPropsWithoutRef<typeof CalendarGridBodyPrimitive>,
   "className"
-> & { className?: string };
+> & {
+  className?: string;
+};
 
 export function CalendarGridBody({ className, ...props }: CalendarGridBodyProps) {
-  return <CalendarGridBodyPrimitive {...props} className={className} />;
+  return (
+    <CalendarGridBodyPrimitive
+      {...props}
+      className={cn("yak-calendar__grid-body", className)}
+    />
+  );
 }
 
 export type CalendarHeaderCellProps = Omit<
   ComponentPropsWithoutRef<typeof CalendarHeaderCellPrimitive>,
   "className"
-> & { className?: string };
+> & {
+  className?: string;
+};
 
 export function CalendarHeaderCell({ className, ...props }: CalendarHeaderCellProps) {
   return (
     <CalendarHeaderCellPrimitive
       {...props}
-      className={cn(
-        "h-7 text-center text-[11px] font-medium text-[var(--yak-components-muted-text)]",
-        className,
-      )}
+      className={cn("yak-calendar__header-cell", className)}
     />
   );
 }
@@ -166,38 +189,12 @@ export type CalendarCellProps = Omit<
   className?: string;
 };
 
-export function CalendarCell({
-  children,
-  className,
-  ...props
-}: CalendarCellProps) {
+export function CalendarCell({ className, ...props }: CalendarCellProps) {
   return (
     <CalendarCellPrimitive
       {...props}
-      className={cn("group size-8 p-0 text-center outline-none", className)}
-    >
-      {(values) => {
-        const content =
-          typeof children === "function"
-            ? children(values)
-            : children ?? values.formattedDate;
-        return (
-          <span
-            className={cn(
-              "mx-auto flex size-8 cursor-pointer items-center justify-center rounded-md text-[12px] tabular-nums",
-              "transition-[background-color,color,transform,box-shadow] duration-150 group-hover:bg-[var(--yak-color-hover)] group-active:scale-[0.96] motion-reduce:transition-none",
-              values.isSelected &&
-                "bg-[var(--yak-color-primary)] text-white group-hover:bg-[var(--yak-color-primary-hover)]",
-              values.isDisabled && "cursor-not-allowed opacity-35",
-              values.isFocusVisible &&
-                "ring-[3px] ring-[var(--yak-components-button-focus-ring)]",
-            )}
-          >
-            {content}
-          </span>
-        );
-      }}
-    </CalendarCellPrimitive>
+      className={cn("yak-calendar__cell", className)}
+    />
   );
 }
 

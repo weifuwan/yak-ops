@@ -1,0 +1,139 @@
+.yak-range-calendar__cell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 2px 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0;
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    background-color 100ms ease-out;
+}
+
+.yak-range-calendar__cell-button {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--yak-components-panel-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 100ms ease-out,
+    color 100ms ease-out,
+    box-shadow 100ms ease-out;
+}
+
+.yak-range-calendar__cell[data-selected]:not([data-outside-month]) {
+  border-radius: 0;
+  background: var(--yak-color-primary-subtle);
+}
+
+.yak-range-calendar__cell[data-selection-start]:not([data-outside-month]) {
+  border-radius: 999px 0 0 999px;
+}
+
+.yak-range-calendar__cell[data-selection-end]:not([data-outside-month]) {
+  border-radius: 0 999px 999px 0;
+}
+
+.yak-range-calendar__cell[data-selection-start][data-selection-end]:not([data-outside-month]) {
+  border-radius: 999px;
+}
+
+.yak-range-calendar__cell[data-selection-start]:not([data-outside-month])
+  > .yak-range-calendar__cell-button,
+.yak-range-calendar__cell[data-selection-end]:not([data-outside-month])
+  > .yak-range-calendar__cell-button {
+  background: var(--yak-color-primary);
+  color: #ffffff;
+}
+
+.yak-range-calendar__cell[data-today]:not([data-selected])
+  > .yak-range-calendar__cell-button {
+  background: var(--yak-color-primary-subtle);
+  color: var(--yak-color-primary);
+}
+
+@media (hover: hover) {
+  .yak-range-calendar__cell:hover:not([data-selected])
+    > .yak-range-calendar__cell-button,
+  .yak-range-calendar__cell[data-hovered]:not([data-selected])
+    > .yak-range-calendar__cell-button {
+    background: var(--yak-color-hover);
+  }
+
+  .yak-range-calendar__cell[data-selection-start]:hover
+    > .yak-range-calendar__cell-button,
+  .yak-range-calendar__cell[data-selection-end]:hover
+    > .yak-range-calendar__cell-button {
+    background: var(--yak-color-primary-hover);
+  }
+}
+
+.yak-range-calendar__cell:active > .yak-range-calendar__cell-button,
+.yak-range-calendar__cell[data-pressed] > .yak-range-calendar__cell-button {
+  transform: scale(0.9);
+}
+
+.yak-range-calendar__cell:focus-visible,
+.yak-range-calendar__cell[data-focus-visible] {
+  z-index: 2;
+}
+
+.yak-range-calendar__cell:focus-visible > .yak-range-calendar__cell-button,
+.yak-range-calendar__cell[data-focus-visible] > .yak-range-calendar__cell-button {
+  box-shadow: 0 0 0 3px var(--yak-components-button-focus-ring);
+}
+
+.yak-range-calendar__cell[data-outside-month] {
+  color: var(--yak-components-muted-text);
+  opacity: 0.45;
+}
+
+.yak-range-calendar__cell[data-selected][data-outside-month] {
+  background: color-mix(in srgb, var(--yak-color-hover) 55%, transparent);
+}
+
+.yak-range-calendar__cell[data-unavailable],
+.yak-range-calendar__cell[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.yak-range-calendar__cell[data-disabled]:not([data-outside-month])
+  > .yak-range-calendar__cell-button {
+  text-decoration: line-through;
+}
+
+.yak-calendar__grid-body
+  td:first-child
+  > .yak-range-calendar__cell[data-selected]:not([data-selection-start]) {
+  border-radius: 8px 0 0 8px;
+}
+
+.yak-calendar__grid-body
+  td:last-child
+  > .yak-range-calendar__cell[data-selected]:not([data-selection-end]) {
+  border-radius: 0 8px 8px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yak-range-calendar__cell,
+  .yak-range-calendar__cell-button {
+    transition: none;
+  }
+}

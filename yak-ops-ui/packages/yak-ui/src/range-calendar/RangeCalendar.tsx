@@ -23,6 +23,8 @@ import {
 } from "../calendar/Calendar";
 import { cn } from "../cn";
 
+import "./range-calendar.css";
+
 export type RangeCalendarRootProps<T extends DateValue> = Omit<
   RangeCalendarPrimitiveProps<T>,
   "className"
@@ -37,10 +39,7 @@ export function RangeCalendarRoot<T extends DateValue>({
   return (
     <RangeCalendarPrimitive
       {...props}
-      className={cn(
-        "w-[280px] rounded-xl bg-[var(--yak-components-panel-bg)] p-2 text-[var(--yak-components-panel-text)]",
-        className,
-      )}
+      className={cn("yak-range-calendar", className)}
     />
   );
 }
@@ -60,33 +59,15 @@ export function RangeCalendarCell({
   return (
     <CalendarCellPrimitive
       {...props}
-      className={cn("group size-8 p-0 text-center outline-none", className)}
+      className={cn("yak-range-calendar__cell", className)}
     >
       {(values) => {
         const content =
           typeof children === "function"
             ? children(values)
             : children ?? values.formattedDate;
-        const cap = values.isSelected && (values.isSelectionStart || values.isSelectionEnd);
-        return (
-          <span
-            className={cn(
-              "mx-auto flex size-8 cursor-pointer items-center justify-center rounded-md text-[12px] tabular-nums",
-              "transition-[background-color,color,transform,box-shadow] duration-150 group-hover:bg-[var(--yak-color-hover)] group-active:scale-[0.96] motion-reduce:transition-none",
-              values.isSelected &&
-                "rounded-none bg-[var(--yak-color-primary-subtle)] text-[var(--yak-components-panel-text)]",
-              values.isSelectionStart && "rounded-l-md",
-              values.isSelectionEnd && "rounded-r-md",
-              cap &&
-                "bg-[var(--yak-color-primary)] text-white group-hover:bg-[var(--yak-color-primary-hover)]",
-              values.isDisabled && "cursor-not-allowed opacity-35",
-              values.isFocusVisible &&
-                "ring-[3px] ring-[var(--yak-components-button-focus-ring)]",
-            )}
-          >
-            {content}
-          </span>
-        );
+
+        return <span className="yak-range-calendar__cell-button">{content}</span>;
       }}
     </CalendarCellPrimitive>
   );
