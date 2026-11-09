@@ -25,8 +25,6 @@ import { useAuth } from "@/hooks/use-auth";
 
 import AppLayout from "../layout/AppLayout";
 import {
-  DATA_DEVELOPMENT_NAVIGATION,
-  DATA_DEVELOPMENT_PRODUCT_LABEL,
   DATA_INTEGRATION_NAVIGATION,
   DATA_INTEGRATION_PRODUCT_LABEL,
   MANAGEMENT_NAVIGATION,
@@ -145,17 +143,7 @@ export default function AppRouter() {
             <Route path="/data-sync/:id/detail" element={<DataSyncTaskDetailPage />} />
           </Route>
 
-          <Route
-            element={
-              <AppLayout
-                productLabel={DATA_DEVELOPMENT_PRODUCT_LABEL}
-                productPath="/data-development"
-                navigation={DATA_DEVELOPMENT_NAVIGATION}
-              />
-            }
-          >
-            <Route path="/data-development" element={<DataDevelopmentPage />} />
-          </Route>
+          <Route path="/data-development" element={<DataDevelopmentPage />} />
 
           <Route
             element={

@@ -1,15 +1,24 @@
-import { DataDevelopmentResourcePanel } from "./resource-panel";
-import { DataDevelopmentWorkbench } from "./workbench";
+import { useWorkspace } from "@/hooks/use-workspace";
+
+import AppShell from "../layout/AppShell";
+import { DATA_DEVELOPMENT_PRODUCT_LABEL } from "../layout/navigation";
+import { DataDevelopmentLayout } from "./layout/data-development-layout";
 import { DataDevelopmentWorkbenchProvider } from "./workbench-context";
 
 export function DataDevelopmentPage() {
+  const { currentWorkspace } = useWorkspace();
+
   return (
-    <DataDevelopmentWorkbenchProvider>
-      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)]">
-        <DataDevelopmentResourcePanel />
-        <DataDevelopmentWorkbench />
-      </div>
-    </DataDevelopmentWorkbenchProvider>
+    <AppShell
+      productLabel={DATA_DEVELOPMENT_PRODUCT_LABEL}
+      productPath="/data-development"
+    >
+      <DataDevelopmentWorkbenchProvider
+        key={currentWorkspace?.id ?? "no-project"}
+      >
+        <DataDevelopmentLayout />
+      </DataDevelopmentWorkbenchProvider>
+    </AppShell>
   );
 }
 

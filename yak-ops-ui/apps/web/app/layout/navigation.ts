@@ -55,14 +55,6 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
   },
 ];
 
-export const DATA_DEVELOPMENT_NAVIGATION: ProductNavigationItem[] = [
-  {
-    label: "开发工作区",
-    path: "/data-development",
-    icon: GitBranch,
-  },
-];
-
 export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
   {
     label: "离线任务",
