@@ -12,6 +12,7 @@ import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.service.WorkflowInstanceService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.api.vo.WorkflowInstanceSummaryVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.WorkflowExecutionStatus;
@@ -19,6 +20,7 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.plugin.task.api.utils.ParameterUtils;
+import io.yak.ops.plugin.task.api.utils.PropertySensitiveUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,6 +28,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -128,7 +131,15 @@ public class WorkflowInstanceController extends BaseController {
                                                                                  @PathVariable("id") Integer id) {
         WorkflowInstanceTaskListDTO taskList =
                 workflowInstanceService.queryTaskListByWorkflowInstanceId(loginUser, projectCode, id);
-        return Result.success(taskList);
+        if (taskList == null) {
+            return Result.success(null);
+        }
+        return Result.success(new WorkflowInstanceTaskListDTO(
+                taskList.getWorkflowInstanceState(),
+                taskList.getTaskList() == null ? null : taskList.getTaskList().stream()
+                        .map(task -> (io.yak.ops.dao.entity.TaskInstanceDependentDetails<io.yak.ops.dao.entity.AbstractTaskInstanceContext>)
+                                SensitivePropertyUtils.mask(task))
+                        .collect(Collectors.toList())));
     }
 
     /**
@@ -194,7 +205,7 @@ public class WorkflowInstanceController extends BaseController {
                                                               @PathVariable("id") Integer id) {
         WorkflowInstance workflowInstance =
                 workflowInstanceService.queryWorkflowInstanceById(loginUser, projectCode, id);
-        return Result.success(workflowInstance);
+        return Result.success(SensitivePropertyUtils.mask(workflowInstance));
     }
 
     /**
@@ -315,7 +326,12 @@ public class WorkflowInstanceController extends BaseController {
                                                               @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
                                                               @PathVariable("id") Integer id) {
         WorkflowInstanceVariablesDTO variables = workflowInstanceService.viewVariables(loginUser, projectCode, id);
-        return Result.success(variables);
+        if (variables == null) {
+            return Result.success(null);
+        }
+        return Result.success(new WorkflowInstanceVariablesDTO(
+                PropertySensitiveUtils.maskSensitiveValues(variables.getGlobalParams()),
+                SensitivePropertyUtils.mask(variables.getLocalParams())));
     }
 
     /**
