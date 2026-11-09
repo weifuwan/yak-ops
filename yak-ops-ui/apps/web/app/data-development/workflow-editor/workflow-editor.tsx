@@ -87,18 +87,9 @@ export function WorkflowEditor({
     staleTime: Infinity,
   });
 
-  if (query.isPending || layoutQuery.isPending) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--yak-components-muted-text)]">
-        正在加载工作流…
-      </div>
-    );
-  }
-
   if (
     query.isError ||
-    layoutQuery.isError ||
-    !layoutQuery.data
+    layoutQuery.isError
   ) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -110,11 +101,22 @@ export function WorkflowEditor({
             size="sm"
             variant="secondary"
             className="mt-3"
-            onClick={() => void query.refetch()}
+            onClick={() => {
+              void query.refetch();
+              if (sourceGraph) void layoutQuery.refetch();
+            }}
           >
             重试
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (query.isPending || layoutQuery.isPending || !layoutQuery.data) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--yak-components-muted-text)]">
+        正在加载工作流…
       </div>
     );
   }
