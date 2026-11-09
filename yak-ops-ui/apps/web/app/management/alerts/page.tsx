@@ -17,7 +17,7 @@ import {
   toast,
   type TableColumns,
 } from "@yak-ops/yak-ui";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
