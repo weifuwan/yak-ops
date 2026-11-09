@@ -136,7 +136,8 @@ export function alertParamLabel(value?: string | null, field?: string): string {
     const match = /^\$t\(['"](.+?)['"]\)$/.exec(value);
     const key = match?.[1] ?? value;
     if (ALERT_PARAM_LABELS[key]) return ALERT_PARAM_LABELS[key];
-    if (!match) return value;
+    if (match) return key;
+    return value;
   }
   return (field && ALERT_PARAM_LABELS[field]) || field || "-";
 }
