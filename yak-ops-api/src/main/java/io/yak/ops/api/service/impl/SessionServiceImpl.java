@@ -1,7 +1,7 @@
 package io.yak.ops.api.service.impl;
 
+import io.yak.ops.api.configuration.ApiConfig;
 import io.yak.ops.api.service.SessionService;
-import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.Session;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.SessionDao;
@@ -29,6 +29,9 @@ public class SessionServiceImpl extends BaseServiceImpl implements SessionServic
     @Autowired
     private SessionDao sessionDao;
 
+    @Autowired
+    private ApiConfig apiConfig;
+
     @Override
     public Session getSession(String sessionId) {
         if (StringUtils.isBlank(sessionId)) {
@@ -51,7 +54,7 @@ public class SessionServiceImpl extends BaseServiceImpl implements SessionServic
                 }
             }
             session = sessionList.get(0);
-            if (isSessionExpire(session)) {
+            if (!isSessionExpire(session)) {
                 session.setLastLoginTime(new Date());
                 sessionDao.updateById(session);
                 return session;
@@ -77,7 +80,8 @@ public class SessionServiceImpl extends BaseServiceImpl implements SessionServic
 
     @Override
     public boolean isSessionExpire(Session session) {
-        return System.currentTimeMillis() - session.getLastLoginTime().getTime() >= Constants.SESSION_TIME_OUT * 1000;
+        return System.currentTimeMillis() - session.getLastLoginTime().getTime() >= apiConfig.getSessionTimeout()
+                .toMillis();
     }
 
 }
