@@ -4,9 +4,12 @@ import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 
 export type WorkflowWarningType = "NONE" | "SUCCESS" | "FAILURE" | "ALL";
 
-export interface StartWorkflowOptions {
-  warningType?: WorkflowWarningType;
+export interface WorkflowAlertOptions {
+  warningType: WorkflowWarningType;
   warningGroupId?: number;
+}
+
+export interface StartWorkflowOptions extends Partial<WorkflowAlertOptions> {
   workerGroup?: string;
   startParams?: Record<string, string>;
 }
