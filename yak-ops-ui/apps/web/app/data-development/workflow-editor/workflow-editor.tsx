@@ -1,18 +1,50 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  ReactFlowProvider,
+} from "@xyflow/react";
 import { Button } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
 import { getWorkflowDefinition } from "@/service/workflow/definition";
 
-import { WorkflowNodePalette } from "./node-palette";
-import { WorkflowCanvas } from "./workflow-canvas";
-import { WorkflowToolbar } from "./workflow-toolbar";
+import { workflowDagToGraph } from "./adapter/workflow-adapter";
+import { WorkflowCanvas } from "./canvas/workflow-canvas";
+import { WorkflowNodeSelector } from "./node-selector/node-selector";
+import {
+  WorkflowStoreProvider,
+  useWorkflowStore,
+} from "./store/workflow-store";
+import { WorkflowToolbar } from "./toolbar/workflow-toolbar";
 
 type WorkflowEditorProps = {
   workflowCode: number;
   selectedTaskCode?: number;
 };
+
+function WorkflowEditorShell({
+  selectedTaskCode,
+}: {
+  selectedTaskCode?: number;
+}) {
+  const selectorOpen = useWorkflowStore(
+    (state) => Boolean(state.selectorRequest),
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <WorkflowToolbar />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {selectorOpen ? (
+          <WorkflowNodeSelector />
+        ) : null}
+        <WorkflowCanvas
+          selectedTaskCode={selectedTaskCode}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function WorkflowEditor({
   workflowCode,
@@ -20,7 +52,6 @@ export function WorkflowEditor({
 }: WorkflowEditorProps) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id ?? "";
-  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const query = useQuery({
     queryKey: [
@@ -29,9 +60,18 @@ export function WorkflowEditor({
       workspaceId,
       workflowCode,
     ],
-    queryFn: ({ signal }) => getWorkflowDefinition(workflowCode, signal),
+    queryFn: ({ signal }) =>
+      getWorkflowDefinition(workflowCode, signal),
     enabled: Boolean(workspaceId && workflowCode),
   });
+
+  const graph = useMemo(
+    () =>
+      query.data
+        ? workflowDagToGraph(query.data)
+        : null,
+    [query.data],
+  );
 
   if (query.isPending) {
     return (
@@ -41,7 +81,7 @@ export function WorkflowEditor({
     );
   }
 
-  if (query.isError) {
+  if (query.isError || !graph) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div className="text-center">
@@ -61,25 +101,20 @@ export function WorkflowEditor({
     );
   }
 
-  const tasks = query.data.taskDefinitionList ?? [];
-  const relations = query.data.workflowTaskRelationList ?? [];
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <WorkflowToolbar
-        paletteOpen={paletteOpen}
-        onTogglePalette={() => setPaletteOpen((open) => !open)}
-      />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {paletteOpen ? (
-          <WorkflowNodePalette onClose={() => setPaletteOpen(false)} />
-        ) : null}
-        <WorkflowCanvas
-          tasks={tasks}
-          relations={relations}
+    <WorkflowStoreProvider
+      key={
+        workflowCode +
+        ":" +
+        (query.data?.workflowDefinition.version ?? 0)
+      }
+      initialGraph={graph}
+    >
+      <ReactFlowProvider>
+        <WorkflowEditorShell
           selectedTaskCode={selectedTaskCode}
         />
-      </div>
-    </div>
+      </ReactFlowProvider>
+    </WorkflowStoreProvider>
   );
 }

@@ -1,4 +1,8 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import {
+  useDeferredValue,
+  useMemo,
+  useState,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
@@ -13,8 +17,8 @@ import {
   type WorkflowTaskTypeRecord,
 } from "@/service/workflow/task-type";
 
-export const WORKFLOW_TASK_DRAG_TYPE =
-  "application/x-yak-ops-workflow-task-type";
+import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
+import { useWorkflowStore } from "../store/workflow-store";
 
 const CATEGORY_LABELS: Record<string, string> = {
   universal: "通用",
@@ -25,10 +29,32 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "其他",
 };
 
-const displayCategory = (category: string) =>
-  CATEGORY_LABELS[category] ?? category;
+function selectorTitle(
+  kind:
+    | "add"
+    | "upstream"
+    | "downstream"
+    | "edge",
+) {
+  switch (kind) {
+    case "upstream":
+      return "新建上游";
+    case "downstream":
+      return "新建下游";
+    case "edge":
+      return "在线路中插入节点";
+    default:
+      return "添加节点";
+  }
+}
 
-function TaskTypeItem({ task }: { task: WorkflowTaskTypeRecord }) {
+function TaskTypeItem({
+  task,
+  onSelect,
+}: {
+  task: WorkflowTaskTypeRecord;
+  onSelect: () => void;
+}) {
   return (
     <button
       type="button"
@@ -43,66 +69,78 @@ function TaskTypeItem({ task }: { task: WorkflowTaskTypeRecord }) {
           }),
         );
       }}
-      className="flex h-8 w-full cursor-grab items-center rounded-sm border border-[var(--yak-components-border)] bg-white px-2 text-left text-xs text-[var(--yak-components-panel-text)] hover:border-[var(--yak-color-primary)] hover:bg-[var(--yak-color-hover)] active:cursor-grabbing"
+      onClick={onSelect}
+      className="flex h-8 w-full cursor-grab items-center rounded-md border border-[var(--yak-components-border)] bg-white px-2 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:border-[var(--yak-color-primary)] hover:bg-[var(--yak-color-hover)] active:cursor-grabbing"
     >
       <span className="truncate">{task.taskType}</span>
     </button>
   );
 }
 
-export function WorkflowNodePalette({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+export function WorkflowNodeSelector() {
+  const request = useWorkflowStore(
+    (state) => state.selectorRequest,
+  );
+  const closeSelector = useWorkflowStore(
+    (state) => state.closeSelector,
+  );
+  const insertNode = useWorkflowStore(
+    (state) => state.insertNodeFromSelector,
+  );
+
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const deferredSearch = useDeferredValue(search.trim().toLowerCase());
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    new Set(),
+  );
+  const deferredSearch = useDeferredValue(
+    search.trim().toLowerCase(),
+  );
 
   const query = useQuery({
-    queryKey: ["data-development", "workflow-task-types"],
-    queryFn: ({ signal }) => listWorkflowTaskTypes(signal),
+    queryKey: [
+      "data-development",
+      "workflow-task-types",
+    ],
+    queryFn: ({ signal }) =>
+      listWorkflowTaskTypes(signal),
   });
 
   const grouped = useMemo(() => {
     const source = query.data ?? [];
     const filtered = deferredSearch
       ? source.filter((item) =>
-          item.taskType.toLowerCase().includes(deferredSearch),
+          item.taskType
+            .toLowerCase()
+            .includes(deferredSearch),
         )
       : source;
 
-    const groups = new Map<string, WorkflowTaskTypeRecord[]>();
+    const groups = new Map<
+      string,
+      WorkflowTaskTypeRecord[]
+    >();
+
     for (const item of filtered) {
       const items = groups.get(item.taskCategory) ?? [];
       items.push(item);
       groups.set(item.taskCategory, items);
     }
+
     return Array.from(groups.entries());
   }, [deferredSearch, query.data]);
 
-  const isExpanded = (category: string) =>
-    deferredSearch.length > 0 || expanded.size === 0 || expanded.has(category);
-
-  const toggleCategory = (category: string) => {
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
-  };
+  if (!request) return null;
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-white">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-3">
+    <aside className="flex w-[232px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-white">
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-3">
         <span className="text-xs font-semibold text-[var(--yak-color-primary)]">
-          新建节点
+          {selectorTitle(request.kind)}
         </span>
         <button
           type="button"
-          aria-label="关闭节点面板"
-          onClick={onClose}
+          aria-label="关闭节点选择器"
+          onClick={closeSelector}
           className="flex size-6 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]"
         >
           <X size={13} />
@@ -120,7 +158,9 @@ export function WorkflowNodePalette({
             size="small"
             variant="outlined"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
             placeholder="搜索节点类型"
             className="pl-8"
           />
@@ -146,27 +186,51 @@ export function WorkflowNodePalette({
           </div>
         ) : (
           grouped.map(([category, tasks]) => {
-            const opened = isExpanded(category);
+            const isCollapsed =
+              collapsed.has(category) &&
+              deferredSearch.length === 0;
+
             return (
               <div key={category} className="mb-2">
                 <button
                   type="button"
-                  onClick={() => toggleCategory(category)}
-                  className="flex h-8 w-full cursor-pointer items-center gap-1 rounded-sm bg-[var(--yak-color-hover)] px-2 text-left text-xs font-medium"
+                  onClick={() =>
+                    setCollapsed((current) => {
+                      const next = new Set(current);
+                      if (next.has(category)) {
+                        next.delete(category);
+                      } else {
+                        next.add(category);
+                      }
+                      return next;
+                    })
+                  }
+                  className="flex h-8 w-full cursor-pointer items-center gap-1 rounded-md bg-[var(--yak-color-hover)] px-2 text-left text-xs font-medium"
                 >
-                  {opened ? (
-                    <ChevronDown size={13} />
-                  ) : (
+                  {isCollapsed ? (
                     <ChevronRight size={13} />
+                  ) : (
+                    <ChevronDown size={13} />
                   )}
-                  <span>{displayCategory(category)}</span>
+                  <span>
+                    {CATEGORY_LABELS[category] ??
+                      category}
+                  </span>
                 </button>
-                {opened ? (
+
+                {!isCollapsed ? (
                   <div className="grid gap-1 pt-1">
                     {tasks.map((task) => (
                       <TaskTypeItem
-                        key={`${task.taskCategory}:${task.taskType}`}
+                        key={
+                          task.taskCategory +
+                          ":" +
+                          task.taskType
+                        }
                         task={task}
+                        onSelect={() =>
+                          insertNode(task.taskType)
+                        }
                       />
                     ))}
                   </div>
