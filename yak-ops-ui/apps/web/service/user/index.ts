@@ -24,7 +24,7 @@ const queryString = (values: Record<string, string | number | undefined>) => {
 };
 
 export const listUsers = async (params: UserPageParams): Promise<UserPageResult> => {
-  const query = queryString(params);
+  const query = queryString({ ...params });
   const page = await HttpUtils.getData<{
     totalList: Array<Omit<UserRecord, "id"> & { id: string | number }>;
     total: number;
