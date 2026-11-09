@@ -62,6 +62,12 @@ export function DataSyncPage() {
   const isStateReadyForTask = (taskId: string) =>
     instances.stateReadyByTask.get(taskId) === true;
 
+  const canRun = (task: DataSyncTaskRecord) =>
+    page.safeToAct &&
+    task.status === "ONLINE" &&
+    !isWorkflowActiveForTask(task.id) &&
+    !instances.activeByTask.has(task.id);
+
   const canManage = (task: DataSyncTaskRecord) =>
     page.safeToAct &&
     !isWorkflowActiveForTask(task.id) &&
@@ -76,7 +82,6 @@ export function DataSyncPage() {
       const workflow = instances.workflowsByTask.get(value.task.id);
       const active = instances.activeByTask.get(value.task.id);
       if (
-        !isStateReadyForTask(value.task.id) ||
         !(
           (workflow &&
             workflow.id === value.workflowInstanceId &&
@@ -91,6 +96,8 @@ export function DataSyncPage() {
     } else if (value.kind === "unpublish") {
       const active = instances.activeByTask.get(value.task.id);
       if (isWorkflowActiveForTask(value.task.id) || active) return;
+    } else if (value.kind === "run") {
+      if (!canRun(value.task)) return;
     } else if (!canManage(value.task)) {
       return;
     }
@@ -201,7 +208,7 @@ export function DataSyncPage() {
             if (!commands.pending) setPendingRun(undefined);
           }}
           onRun={(options) => {
-            if (canManage(pendingRun)) {
+            if (canRun(pendingRun)) {
               setAlertDefaultsByTask((current) => ({
                 ...current,
                 [pendingRun.id]: {
