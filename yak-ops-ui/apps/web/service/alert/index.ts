@@ -71,15 +71,19 @@ export interface AlertGroupRecord {
 
 export function parseAlertPluginParams(value?: string | null): AlertPluginParam[] {
   if (!value) return [];
-  const parsed: unknown = JSON.parse(value);
-  if (!Array.isArray(parsed)) return [];
-  return parsed.filter(
-    (item): item is AlertPluginParam =>
-      Boolean(item) &&
-      typeof item === "object" &&
-      typeof (item as AlertPluginParam).field === "string" &&
-      typeof (item as AlertPluginParam).type === "string",
-  );
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is AlertPluginParam =>
+        Boolean(item) &&
+        typeof item === "object" &&
+        typeof (item as AlertPluginParam).field === "string" &&
+        typeof (item as AlertPluginParam).type === "string",
+    );
+  } catch {
+    return [];
+  }
 }
 
 export function parseAlertInstanceIds(value?: string | null): number[] {
