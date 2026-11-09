@@ -62,20 +62,6 @@ export function DataDevelopmentWorkbench() {
 
       {activeTab ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <Workflow
-                size={14}
-                aria-hidden="true"
-                className="text-[var(--yak-color-primary)]"
-              />
-              <span className="truncate text-sm font-medium">{activeTab.title}</span>
-            </div>
-            <span className="text-xs text-[var(--yak-components-muted-text)]">
-              工作流开发
-            </span>
-          </div>
-
           <WorkflowEditor
             workflowCode={activeTab.workflowCode}
             selectedTaskCode={activeTab.selectedTask?.code}
