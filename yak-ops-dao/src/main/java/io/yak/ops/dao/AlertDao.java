@@ -37,6 +37,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
@@ -283,6 +285,14 @@ public class AlertDao {
     public List<Alert> listPendingAlerts(int minAlertId) {
         return alertMapper.listingAlertByStatus(minAlertId, AlertStatus.WAIT_EXECUTION.getCode(),
                 QUERY_ALERT_THRESHOLD);
+    }
+
+    public IPage<Alert> queryAlertPage(Page<Alert> page,
+                                       long projectCode,
+                                       Integer alertStatus,
+                                       Integer alertType,
+                                       String keyword) {
+        return alertMapper.queryAlertPage(page, projectCode, alertStatus, alertType, keyword);
     }
 
     public List<Alert> listAlerts(int workflowInstanceId) {
