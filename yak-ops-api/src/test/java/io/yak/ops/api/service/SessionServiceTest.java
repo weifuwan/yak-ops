@@ -1,5 +1,6 @@
 package io.yak.ops.api.service;
 
+import io.yak.ops.api.configuration.ApiConfig;
 import io.yak.ops.api.service.impl.SessionServiceImpl;
 import io.yak.ops.common.enums.UserType;
 import io.yak.ops.common.utils.DateUtils;
@@ -7,6 +8,7 @@ import io.yak.ops.dao.entity.Session;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.repository.SessionDao;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,10 +34,14 @@ public class SessionServiceTest {
     @Mock
     private SessionDao sessionDao;
 
+    @Spy
+    private ApiConfig apiConfig = new ApiConfig();
+
     private String sessionId = "aaaaaaaaaaaaaaaaaa";
 
     @BeforeEach
     public void setUp() {
+        apiConfig.setSessionTimeout(Duration.ofHours(2));
     }
 
     @AfterEach
@@ -81,6 +88,54 @@ public class SessionServiceTest {
 
         sessionService.expireSession(userId);
 
+    }
+
+    @Test
+    public void testIsSessionExpireUsesConfiguredTimeout() {
+        apiConfig.setSessionTimeout(Duration.ofHours(1));
+
+        Session stillAlive = getSession();
+        stillAlive.setLastLoginTime(new Date(System.currentTimeMillis() - Duration.ofMinutes(30).toMillis()));
+        Assertions.assertFalse(sessionService.isSessionExpire(stillAlive));
+
+        Session expired = getSession();
+        expired.setLastLoginTime(new Date(System.currentTimeMillis() - Duration.ofMinutes(90).toMillis()));
+        Assertions.assertTrue(sessionService.isSessionExpire(expired));
+    }
+
+    @Test
+    public void testCreateSessionIfAbsentReusesUnexpiredSession() {
+        User user = new User();
+        user.setUserType(UserType.GENERAL_USER);
+        user.setId(1);
+        Mockito.when(sessionDao.queryByUserId(1)).thenReturn(getSessions());
+
+        Session session = sessionService.createSessionIfAbsent(user);
+
+        Assertions.assertNotNull(session);
+        Assertions.assertEquals(sessionId, session.getId());
+        Mockito.verify(sessionDao).updateById(session);
+        Mockito.verify(sessionDao, Mockito.never()).deleteById(Mockito.anyString());
+        Mockito.verify(sessionDao, Mockito.never()).insert(Mockito.any(Session.class));
+    }
+
+    @Test
+    public void testCreateSessionIfAbsentReplacesExpiredSession() {
+        User user = new User();
+        user.setUserType(UserType.GENERAL_USER);
+        user.setId(1);
+        Session expired = getSession();
+        expired.setLastLoginTime(DateUtils.add(new Date(), Calendar.DAY_OF_MONTH, -40));
+        List<Session> sessions = new ArrayList<>();
+        sessions.add(expired);
+        Mockito.when(sessionDao.queryByUserId(1)).thenReturn(sessions);
+
+        Session session = sessionService.createSessionIfAbsent(user);
+
+        Assertions.assertNotNull(session);
+        Assertions.assertNotEquals(sessionId, session.getId());
+        Mockito.verify(sessionDao).deleteById(sessionId);
+        Mockito.verify(sessionDao).insert(Mockito.any(Session.class));
     }
 
     private Session getSession() {
