@@ -7,6 +7,27 @@
             workflow_definition_code, workflow_instance_id, alert_type
     </sql>
 
+
+    <select id="queryAlertPage" resultType="io.yak.ops.dao.entity.Alert">
+        select
+        <include refid="baseSql"/>
+        from t_yak_ops_alert
+        where project_code = #{projectCode}
+        <if test="alertStatus != null">
+            and alert_status = #{alertStatus}
+        </if>
+        <if test="alertType != null">
+            and alert_type = #{alertType}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (
+                title like concat('%', #{keyword}, '%')
+                or content like concat('%', #{keyword}, '%')
+            )
+        </if>
+        order by create_time desc, id desc
+    </select>
+
     <select id="selectByWorkflowInstanceId" resultType="io.yak.ops.dao.entity.Alert">
         select
         <include refid="baseSql"/>
