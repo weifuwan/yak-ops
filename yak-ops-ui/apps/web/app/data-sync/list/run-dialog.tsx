@@ -46,14 +46,20 @@ export function RunDataSyncTaskDialog({
   const [warningGroupId, setWarningGroupId] = useState<number>();
   const groupsQuery = useQuery({
     queryKey: ["workflow", "run", "alert-groups", currentUser?.id ?? ""],
-    queryFn: listAlertGroups,
+    queryFn: () => listAlertGroups(),
     enabled: Boolean(currentUser?.id),
   });
   const groups = groupsQuery.data ?? [];
   const alertEnabled = warningType !== "NONE";
   const effectiveGroupId = warningGroupId ?? (alertEnabled ? groups[0]?.id : undefined);
-  const groupRequiredError =
-    alertEnabled && !groupsQuery.isPending && !groupsQuery.isFetching && groups.length === 0;
+  const groupRequiredError = alertEnabled && groupsQuery.isSuccess && groups.length === 0;
+  const groupLoadError = alertEnabled && groupsQuery.isError && groups.length === 0;
+  const runBlocked =
+    alertEnabled &&
+    (groupsQuery.isPending ||
+      groupsQuery.isFetching ||
+      groupLoadError ||
+      !effectiveGroupId);
 
   return (
     <Modal
@@ -73,7 +79,7 @@ export function RunDataSyncTaskDialog({
             size="sm"
             variant="primary"
             isPending={pending}
-            isDisabled={groupRequiredError || (alertEnabled && !effectiveGroupId)}
+            isDisabled={runBlocked}
             onClick={() =>
               onRun({
                 warningType,
@@ -154,7 +160,7 @@ export function RunDataSyncTaskDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {groupsQuery.isError ? (
+              {groupLoadError ? (
                 <div className="mt-1 flex items-center gap-2 text-xs text-[var(--yak-components-danger-text)]">
                   通知组加载失败
                   <Button
