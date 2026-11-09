@@ -5,9 +5,16 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Boxes,
   ChevronDown,
   ChevronRight,
+  Code2,
+  Database,
+  FileCode2,
+  Globe,
   Search,
+  Terminal,
+  Workflow,
   X,
 } from "lucide-react";
 import { Input } from "@yak-ops/yak-ui";
@@ -21,12 +28,12 @@ import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowStore } from "../store/workflow-store";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  universal: "通用",
-  cloud: "云服务",
-  logic: "逻辑节点",
-  dataIntegration: "数据集成",
-  machineLearning: "机器学习",
-  other: "其他",
+  universal: "Universal",
+  cloud: "Cloud",
+  logic: "Logic",
+  dataIntegration: "DataIntegration",
+  machineLearning: "MachineLearning",
+  other: "Other",
 };
 
 function selectorTitle(
@@ -46,6 +53,43 @@ function selectorTitle(
     default:
       return "添加节点";
   }
+}
+
+function TaskTypeIcon({ taskType }: { taskType: string }) {
+  const type = taskType.toUpperCase();
+
+  let Icon = FileCode2;
+
+  if (
+    type === "SHELL" ||
+    type === "REMOTESHELL" ||
+    type === "HIVECLI"
+  ) {
+    Icon = Terminal;
+  } else if (type === "SQL" || type === "PROCEDURE") {
+    Icon = Database;
+  } else if (type === "JAVA" || type === "PYTHON") {
+    Icon = Code2;
+  } else if (
+    type === "SPARK" ||
+    type === "FLINK" ||
+    type === "FLINK_STREAM"
+  ) {
+    Icon = Workflow;
+  } else if (type === "GRPC" || type === "HTTP") {
+    Icon = Globe;
+  } else if (type === "MR" || type === "DINKY") {
+    Icon = Boxes;
+  }
+
+  return (
+    <Icon
+      size={16}
+      strokeWidth={1.6}
+      aria-hidden="true"
+      className="shrink-0 text-[var(--yak-components-muted-text)]"
+    />
+  );
 }
 
 function TaskTypeItem({
@@ -70,9 +114,12 @@ function TaskTypeItem({
         );
       }}
       onClick={onSelect}
-      className="flex h-8 w-full cursor-grab items-center rounded-md border border-[var(--yak-components-border)] bg-white px-2 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:border-[var(--yak-color-primary)] hover:bg-[var(--yak-color-hover)] active:cursor-grabbing"
+      className="group flex h-7 w-full cursor-grab items-center gap-2 rounded-[2px] border border-[var(--yak-components-border)] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[var(--yak-components-muted-text)] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"
     >
-      <span className="truncate">{task.taskType}</span>
+      <TaskTypeIcon taskType={task.taskType} />
+      <span className="min-w-0 truncate leading-4">
+        {task.taskType}
+      </span>
     </button>
   );
 }
@@ -132,27 +179,28 @@ export function WorkflowNodeSelector() {
   if (!request) return null;
 
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-white">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-3">
-        <span className="text-xs font-semibold text-[var(--yak-color-primary)]">
-          {selectorTitle(request.kind)}
-        </span>
-        <button
-          type="button"
-          aria-label="关闭节点选择器"
-          onClick={closeSelector}
-          className="flex size-6 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]"
-        >
-          <X size={13} />
-        </button>
-      </div>
+    <aside className="flex w-[220px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-white">
+      <div className="relative shrink-0 border-b border-[var(--yak-components-border)] px-3 pb-1.5 pt-2">
+        <div className="relative mb-1 flex h-6 items-center pr-7">
+          <span className="truncate text-xs font-bold leading-6 text-[var(--yak-color-primary)]">
+            {selectorTitle(request.kind)}
+          </span>
+          <button
+            type="button"
+            aria-label="关闭节点选择器"
+            onClick={closeSelector}
+            className="absolute right-0 top-0 flex size-6 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
+          >
+            <X size={14} strokeWidth={1.6} />
+          </button>
+        </div>
 
-      <div className="p-2">
         <div className="relative">
           <Search
             size={13}
+            strokeWidth={1.6}
             aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
+            className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
           />
           <Input
             size="small"
@@ -162,12 +210,12 @@ export function WorkflowNodeSelector() {
               setSearch(event.target.value)
             }
             placeholder="搜索节点类型"
-            className="pl-8"
+            className="h-8 rounded-[4px] pl-8 text-xs"
           />
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
         {query.isPending ? (
           <div className="px-2 py-5 text-center text-xs text-[var(--yak-components-muted-text)]">
             正在加载节点类型…
@@ -185,59 +233,77 @@ export function WorkflowNodeSelector() {
             没有匹配的节点类型
           </div>
         ) : (
-          grouped.map(([category, tasks]) => {
-            const isCollapsed =
-              collapsed.has(category) &&
-              deferredSearch.length === 0;
+          <div>
+            {grouped.map(([category, tasks]) => {
+              const isCollapsed =
+                collapsed.has(category) &&
+                deferredSearch.length === 0;
 
-            return (
-              <div key={category} className="mb-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCollapsed((current) => {
-                      const next = new Set(current);
-                      if (next.has(category)) {
-                        next.delete(category);
-                      } else {
-                        next.add(category);
-                      }
-                      return next;
-                    })
-                  }
-                  className="flex h-8 w-full cursor-pointer items-center gap-1 rounded-md bg-[var(--yak-color-hover)] px-2 text-left text-xs font-medium"
+              return (
+                <section
+                  key={category}
+                  className="border-t-2 border-t-transparent first:border-t-0"
                 >
-                  {isCollapsed ? (
-                    <ChevronRight size={13} />
-                  ) : (
-                    <ChevronDown size={13} />
-                  )}
-                  <span>
-                    {CATEGORY_LABELS[category] ??
-                      category}
-                  </span>
-                </button>
-
-                {!isCollapsed ? (
-                  <div className="grid gap-1 pt-1">
-                    {tasks.map((task) => (
-                      <TaskTypeItem
-                        key={
-                          task.taskCategory +
-                          ":" +
-                          task.taskType
+                  <button
+                    type="button"
+                    aria-expanded={!isCollapsed}
+                    onClick={() =>
+                      setCollapsed((current) => {
+                        const next = new Set(current);
+                        if (next.has(category)) {
+                          next.delete(category);
+                        } else {
+                          next.add(category);
                         }
-                        task={task}
-                        onSelect={() =>
-                          insertNode(task.taskType)
-                        }
+                        return next;
+                      })
+                    }
+                    className="relative flex h-[34px] w-full cursor-pointer items-center rounded-[4px] bg-[#f7f9fa] pl-5 pr-2 text-left text-xs font-medium text-[#333] transition-colors hover:bg-[#eff3f8]"
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight
+                        size={12}
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                        className="absolute left-1"
                       />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
+                    ) : (
+                      <ChevronDown
+                        size={12}
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                        className="absolute left-1"
+                      />
+                    )}
+                    <span className="truncate">
+                      {CATEGORY_LABELS[category] ??
+                        category}
+                    </span>
+                  </button>
+
+                  {!isCollapsed ? (
+                    <div className="pb-1 pt-1">
+                      <div className="grid gap-1">
+                        {tasks.map((task) => (
+                          <TaskTypeItem
+                            key={
+                              task.taskCategory +
+                              ":" +
+                              task.taskType
+                            }
+                            task={task}
+                            onSelect={() =>
+                              insertNode(task.taskType)
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+              );
+            })}
+          </div>
         )}
       </div>
     </aside>
