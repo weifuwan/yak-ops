@@ -12,15 +12,14 @@ import type { WorkflowCanvasNode } from "./workflow-node";
 
 const NODE_WIDTH = 220;
 const HORIZONTAL_GAP = 80;
-const VERTICAL_GAP = 110;
-const CANVAS_PADDING = 80;
+const VERTICAL_GAP = 160;
+const CANVAS_PADDING = 100;
 
 const taskId = (code: number) => String(code);
 
 export function buildWorkflowCanvas(
   tasks: WorkflowTaskRecord[],
   relations: WorkflowTaskRelationRecord[],
-  selectedTaskCode?: number,
 ): { nodes: WorkflowCanvasNode[]; edges: Edge[] } {
   const taskCodes = new Set(tasks.map((task) => task.code));
   const validRelations = relations.filter(
@@ -110,10 +109,10 @@ export function buildWorkflowCanvas(
         y: CANVAS_PADDING + level * VERTICAL_GAP,
       },
       data: {
+        taskCode: task.code,
         name: task.name,
         taskType: task.taskType,
       },
-      selected: task.code === selectedTaskCode,
       draggable: false,
       selectable: true,
     } satisfies WorkflowCanvasNode;
