@@ -2,6 +2,7 @@ package io.yak.ops.plugin.task.api;
 
 import io.yak.ops.plugin.task.api.enums.TaskTimeoutStrategy;
 import io.yak.ops.plugin.task.api.model.Property;
+import io.yak.ops.plugin.task.api.model.TaskAlertInfo;
 import io.yak.ops.plugin.task.api.parameters.resource.ResourceParametersHelper;
 import io.yak.ops.plugin.task.api.resource.ResourceContext;
 
@@ -108,6 +109,10 @@ public class TaskExecutionContext implements Serializable {
     private Integer memoryMax;
 
     private int dispatchFailTimes;
+
+    private boolean needAlert;
+
+    private TaskAlertInfo taskAlertInfo;
 
     private final long firstDispatchTime = System.currentTimeMillis();
 
