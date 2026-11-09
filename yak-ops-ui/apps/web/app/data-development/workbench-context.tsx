@@ -6,20 +6,29 @@ import {
   type PropsWithChildren,
 } from "react";
 
-export type DataDevelopmentResourceType = "workflow" | "sql" | "script";
+import type {
+  WorkflowDefinitionRecord,
+  WorkflowTaskRecord,
+} from "@/service/workflow/definition";
 
-export type DataDevelopmentResource = {
+export type WorkflowWorkbenchTab = {
   id: string;
+  workflowCode: number;
   title: string;
-  type: DataDevelopmentResourceType;
-  description: string;
+  version: number;
+  releaseState: string;
+  description?: string | null;
+  selectedTask?: WorkflowTaskRecord;
 };
 
 type DataDevelopmentWorkbenchContextValue = {
-  tabs: DataDevelopmentResource[];
+  tabs: WorkflowWorkbenchTab[];
   activeTabId: string | null;
-  activeTab: DataDevelopmentResource | null;
-  openResource: (resource: DataDevelopmentResource) => void;
+  activeTab: WorkflowWorkbenchTab | null;
+  openWorkflow: (
+    workflow: WorkflowDefinitionRecord,
+    selectedTask?: WorkflowTaskRecord,
+  ) => void;
   activateTab: (id: string) => void;
   closeTab: (id: string) => void;
 };
@@ -27,36 +36,39 @@ type DataDevelopmentWorkbenchContextValue = {
 const DataDevelopmentWorkbenchContext =
   createContext<DataDevelopmentWorkbenchContextValue | null>(null);
 
-const INITIAL_TABS: DataDevelopmentResource[] = [
-  {
-    id: "workflow:customer-sync",
-    title: "客户同步工作流",
-    type: "workflow",
-    description: "这里将接入工作流编辑器。",
-  },
-  {
-    id: "sql:daily-report",
-    title: "日报汇总.sql",
-    type: "sql",
-    description: "这里将接入 SQL 编辑器。",
-  },
-];
+const toTab = (
+  workflow: WorkflowDefinitionRecord,
+  selectedTask?: WorkflowTaskRecord,
+): WorkflowWorkbenchTab => ({
+  id: "workflow:" + workflow.code,
+  workflowCode: workflow.code,
+  title: workflow.name,
+  version: workflow.version,
+  releaseState: workflow.releaseState,
+  description: workflow.description,
+  selectedTask,
+});
 
 export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren) {
-  const [tabs, setTabs] = useState<DataDevelopmentResource[]>(INITIAL_TABS);
-  const [activeTabId, setActiveTabId] = useState<string | null>(
-    INITIAL_TABS[0]?.id ?? null,
-  );
+  const [tabs, setTabs] = useState<WorkflowWorkbenchTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
 
-  const openResource = (resource: DataDevelopmentResource) => {
-    setTabs((current) =>
-      current.some((tab) => tab.id === resource.id)
-        ? current
-        : [...current, resource],
-    );
-    setActiveTabId(resource.id);
+  const openWorkflow = (
+    workflow: WorkflowDefinitionRecord,
+    selectedTask?: WorkflowTaskRecord,
+  ) => {
+    const nextTab = toTab(workflow, selectedTask);
+    setTabs((current) => {
+      const existingIndex = current.findIndex((tab) => tab.id === nextTab.id);
+      if (existingIndex < 0) return [...current, nextTab];
+
+      return current.map((tab, index) =>
+        index === existingIndex ? nextTab : tab,
+      );
+    });
+    setActiveTabId(nextTab.id);
   };
 
   const activateTab = (id: string) => {
@@ -84,7 +96,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       tabs,
       activeTabId,
       activeTab,
-      openResource,
+      openWorkflow,
       activateTab,
       closeTab,
     }),
