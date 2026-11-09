@@ -5,6 +5,63 @@ const CHANNEL_API = YAK_OPS_API_PREFIX + "/alert-plugin-instances";
 const GROUP_API = YAK_OPS_API_PREFIX + "/alert-groups";
 const PLUGIN_API = YAK_OPS_API_PREFIX + "/ui-plugins";
 
+const ALERT_CHANNEL_TYPE_LABELS: Record<string, string> = {
+  DingTalk: "钉钉",
+  Feishu: "飞书",
+  Email: "邮件",
+  WeChat: "企业微信",
+  Http: "Webhook",
+  Script: "脚本",
+};
+
+const ALERT_PARAM_LABELS: Record<string, string> = {
+  receivers: "收件人",
+  receiverCcs: "抄送人",
+  mailSender: "发件人",
+  mailUser: "用户名",
+  mailPasswd: "密码",
+  isEnableProxy: "启用代理",
+  webhook: "Webhook",
+  keyword: "关键词",
+  secret: "密钥",
+  msgType: "消息类型",
+  atMobiles: "@手机号",
+  atDingtalkIds: "@用户",
+  isAtAll: "@所有人",
+  proxy: "代理地址",
+  port: "端口",
+  user: "用户名",
+  password: "密码",
+  scriptType: "脚本类型",
+  scriptPath: "脚本路径",
+  userParams: "脚本参数",
+  "mail.smtp.host": "SMTP 地址",
+  "mail.smtp.port": "SMTP 端口",
+  "mail.smtp.auth": "SMTP 认证",
+  "mail.smtp.starttls.enable": "STARTTLS",
+  "mail.smtp.ssl.enable": "SSL",
+  "mail.smtp.ssl.trust": "SSL 信任地址",
+  serverHost: "SMTP 地址",
+  serverPort: "SMTP 端口",
+  sender: "发件人",
+  enableSmtpAuth: "SMTP 认证",
+  User: "用户名",
+  Password: "密码",
+  starttlsEnable: "STARTTLS",
+  sslEnable: "SSL",
+  smtpSslTrust: "SSL 信任地址",
+  WebHook: "Webhook",
+  IsEnableProxy: "启用代理",
+  Proxy: "代理地址",
+  Port: "端口",
+  Keyword: "关键词",
+  Secret: "密钥",
+  MsgType: "消息类型",
+  AtMobiles: "@手机号",
+  AtDingtalkIds: "@用户",
+  IsAtAll: "@所有人",
+};
+
 export type AlertPluginFormType = "input" | "input-number" | "radio" | "select";
 
 export interface AlertPluginOption {
@@ -67,6 +124,21 @@ export interface AlertGroupRecord {
   createTime?: string;
   updateTime?: string;
   createUserId?: number;
+}
+
+export function alertChannelTypeLabel(value?: string | null): string {
+  if (!value) return "-";
+  return ALERT_CHANNEL_TYPE_LABELS[value] ?? value;
+}
+
+export function alertParamLabel(value?: string | null, field?: string): string {
+  if (value) {
+    const match = /^\$t\(['"](.+?)['"]\)$/.exec(value);
+    const key = match?.[1] ?? value;
+    if (ALERT_PARAM_LABELS[key]) return ALERT_PARAM_LABELS[key];
+    if (!match) return value;
+  }
+  return (field && ALERT_PARAM_LABELS[field]) || field || "-";
 }
 
 export function parseAlertPluginParams(value?: string | null): AlertPluginParam[] {
