@@ -49,13 +49,13 @@ public class AlertController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(LIST_PAGING_ALERT_RECORD_ERROR)
     public Result<PageInfo<Alert>> listAlerts(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
-            @RequestParam("pageNo") int pageNo,
-            @RequestParam("pageSize") int pageSize,
-            @RequestParam(value = "alertStatus", required = false) AlertStatus alertStatus,
-            @RequestParam(value = "alertType", required = false) AlertType alertType,
-            @RequestParam(value = "keyword", required = false) String keyword) {
+                                              @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                              @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
+                                              @RequestParam("pageNo") int pageNo,
+                                              @RequestParam("pageSize") int pageSize,
+                                              @RequestParam(value = "alertStatus", required = false) AlertStatus alertStatus,
+                                              @RequestParam(value = "alertType", required = false) AlertType alertType,
+                                              @RequestParam(value = "keyword", required = false) String keyword) {
         checkPageParams(pageNo, pageSize);
         keyword = ParameterUtils.handleEscapes(keyword);
         return Result.success(alertService.listPaging(

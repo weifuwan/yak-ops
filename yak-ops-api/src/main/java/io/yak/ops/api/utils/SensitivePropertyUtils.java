@@ -7,10 +7,10 @@ import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.vo.TaskDefinitionVO;
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.dao.entity.AbstractTaskInstanceContext;
 import io.yak.ops.dao.entity.DagData;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
-import io.yak.ops.dao.entity.AbstractTaskInstanceContext;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.TaskInstanceDependentDetails;
 import io.yak.ops.dao.entity.WorkflowDefinition;
@@ -35,12 +35,12 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import lombok.experimental.UtilityClass;
-
 import org.springframework.beans.BeanUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class SensitivePropertyUtils {

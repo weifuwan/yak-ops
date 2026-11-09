@@ -16,6 +16,8 @@ import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.api.vo.WorkflowInstanceSummaryVO;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.WorkflowExecutionStatus;
+import io.yak.ops.dao.entity.AbstractTaskInstanceContext;
+import io.yak.ops.dao.entity.TaskInstanceDependentDetails;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowInstance;
@@ -137,7 +139,7 @@ public class WorkflowInstanceController extends BaseController {
         return Result.success(new WorkflowInstanceTaskListDTO(
                 taskList.getWorkflowInstanceState(),
                 taskList.getTaskList() == null ? null : taskList.getTaskList().stream()
-                        .map(task -> (io.yak.ops.dao.entity.TaskInstanceDependentDetails<io.yak.ops.dao.entity.AbstractTaskInstanceContext>)
+                        .map(task -> (TaskInstanceDependentDetails<AbstractTaskInstanceContext>)
                                 SensitivePropertyUtils.mask(task))
                         .collect(Collectors.toList())));
     }

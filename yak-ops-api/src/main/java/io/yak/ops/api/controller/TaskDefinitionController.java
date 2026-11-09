@@ -75,7 +75,8 @@ public class TaskDefinitionController extends BaseController {
                                               @RequestParam(value = "pageNo") int pageNo,
                                               @RequestParam(value = "pageSize") int pageSize) {
         checkPageParams(pageNo, pageSize);
-        Result result = taskDefinitionService.queryTaskDefinitionVersions(loginUser, projectCode, code, pageNo, pageSize);
+        Result result = taskDefinitionService.queryTaskDefinitionVersions(
+                loginUser, projectCode, code, pageNo, pageSize);
         if (result.getData() instanceof PageInfo) {
             @SuppressWarnings("unchecked")
             PageInfo<TaskDefinitionLog> pageInfo = (PageInfo<TaskDefinitionLog>) result.getData();
