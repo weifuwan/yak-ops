@@ -98,7 +98,7 @@ export function WorkflowCanvas({
       edges.map((edge) => ({
         ...edge,
         data: {
-          ...edge.data,
+          backend: edge.data?.backend ?? false,
           hovered: edge.id === hoveredEdgeId,
         },
       })),
