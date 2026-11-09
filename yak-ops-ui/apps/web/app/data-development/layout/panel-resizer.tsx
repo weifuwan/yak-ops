@@ -71,9 +71,9 @@ export function PanelResizer({ width, onResize }: PanelResizerProps) {
           onResize(clampWidth(width + KEYBOARD_STEP));
         }
       }}
-      className="group relative z-10 w-1 shrink-0 cursor-col-resize touch-none outline-none"
+      className="group relative z-10 -ml-px w-2 shrink-0 cursor-col-resize touch-none outline-none"
     >
-      <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--yak-components-border)] transition-colors group-hover:bg-[var(--yak-color-primary)] group-focus-visible:bg-[var(--yak-color-primary)]" />
+      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[#d9d9d9] transition-colors group-hover:bg-[var(--yak-color-primary)] group-focus-visible:bg-[var(--yak-color-primary)] group-active:bg-[var(--yak-color-primary)]" />
     </div>
   );
 }
