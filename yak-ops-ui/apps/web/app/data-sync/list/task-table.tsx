@@ -93,7 +93,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     if (!record.updateBy) return "-";
     if (record.updateBy === "system") return "SYSTEM";
     const user = updateUserMap.get(record.updateBy);
-    return user?.realName || user?.userName || "未知用户";
+    return user?.userName || "未知用户";
   };
   const workflowFor = (record: DataSyncTaskRecord) => workflowsByTask.get(record.id);
   const awaitingSubmission = (record: DataSyncTaskRecord) => {
