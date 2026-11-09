@@ -324,7 +324,6 @@ export function AlertCenterPage() {
                       size="small"
                       variant="outlined"
                       value={keyword}
-                      prefix={<Search size={14} />}
                       placeholder={tab === "channels" ? "搜索名称或类型" : "搜索名称或描述"}
                       onChange={(event) => setKeyword(event.target.value)}
                     />
