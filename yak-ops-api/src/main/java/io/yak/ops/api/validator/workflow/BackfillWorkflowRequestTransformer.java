@@ -2,6 +2,7 @@ package io.yak.ops.api.validator.workflow;
 
 import io.yak.ops.api.dto.workflow.WorkflowBackFillRequest;
 import io.yak.ops.api.exceptions.ServiceException;
+import io.yak.ops.api.utils.SensitivePropertyUtils;
 import io.yak.ops.api.utils.WorkflowUtils;
 import io.yak.ops.api.validator.ITransformer;
 import io.yak.ops.common.utils.CodeGenerateUtils;
@@ -9,6 +10,7 @@ import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.dao.entity.Schedule;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
+import io.yak.ops.plugin.task.api.utils.GlobalParameterUtils;
 import io.yak.ops.plugin.task.api.utils.PropertyUtils;
 import io.yak.ops.service.cron.CronUtils;
 import io.yak.ops.service.process.ProcessService;
@@ -37,6 +39,10 @@ public class BackfillWorkflowRequestTransformer implements ITransformer<Workflow
     @Override
     public BackfillWorkflowDTO transform(WorkflowBackFillRequest workflowBackFillRequest) {
 
+        WorkflowDefinition workflowDefinition = workflowDefinitionDao
+                .queryByCode(workflowBackFillRequest.getWorkflowDefinitionCode())
+                .orElseThrow(() -> new ServiceException(
+                        "Cannot find the workflow: " + workflowBackFillRequest.getWorkflowDefinitionCode()));
         final BackfillWorkflowDTO.BackfillParamsDTO backfillParams =
                 transformBackfillParamsDTO(workflowBackFillRequest);
         final BackfillWorkflowDTO backfillWorkflowDTO = BackfillWorkflowDTO.builder()
@@ -52,17 +58,13 @@ public class BackfillWorkflowRequestTransformer implements ITransformer<Workflow
                 .workerGroup(workflowBackFillRequest.getWorkerGroup())
                 .tenantCode(workflowBackFillRequest.getTenantCode())
                 .environmentCode(workflowBackFillRequest.getEnvironmentCode())
-                .startParamList(
-                        PropertyUtils.startParamsTransformPropertyList(workflowBackFillRequest.getStartParamList()))
+                .startParamList(SensitivePropertyUtils.restoreStartParams(
+                        PropertyUtils.startParamsTransformPropertyList(workflowBackFillRequest.getStartParamList()),
+                        GlobalParameterUtils.deserializeGlobalParameter(workflowDefinition.getGlobalParams())))
                 .dryRun(workflowBackFillRequest.getDryRun())
                 .triggerCode(CodeGenerateUtils.genCode())
                 .backfillParams(backfillParams)
                 .build();
-
-        WorkflowDefinition workflowDefinition = workflowDefinitionDao
-                .queryByCode(workflowBackFillRequest.getWorkflowDefinitionCode())
-                .orElseThrow(() -> new ServiceException(
-                        "Cannot find the workflow: " + workflowBackFillRequest.getWorkflowDefinitionCode()));
 
         backfillWorkflowDTO.setWorkflowDefinition(workflowDefinition);
         return backfillWorkflowDTO;
