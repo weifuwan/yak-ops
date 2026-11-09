@@ -1,5 +1,7 @@
 import {
+  useLayoutEffect,
   useRef,
+  useState,
   type ComponentPropsWithoutRef,
   type KeyboardEvent,
   type ReactNode,
@@ -23,6 +25,13 @@ export type SegmentedProps<Value extends string = string> = Omit<
   isDisabled?: boolean;
 };
 
+interface IndicatorLayout {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export function Segmented<Value extends string = string>({
   className,
   isDisabled = false,
@@ -31,13 +40,50 @@ export function Segmented<Value extends string = string>({
   value,
   ...props
 }: SegmentedProps<Value>) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [indicator, setIndicator] = useState<IndicatorLayout | null>(null);
+  const [indicatorReady, setIndicatorReady] = useState(false);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const firstEnabledIndex = options.findIndex((option) => !isDisabled && !option.isDisabled);
   const activeTabIndex =
     selectedIndex >= 0 && !isDisabled && !options[selectedIndex]?.isDisabled
       ? selectedIndex
       : firstEnabledIndex;
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const selectedButton = selectedIndex >= 0 ? buttonRefs.current[selectedIndex] : null;
+
+    if (!root || !selectedButton) {
+      setIndicator(null);
+      return;
+    }
+
+    const updateIndicator = () => {
+      setIndicator({
+        left: selectedButton.offsetLeft,
+        top: selectedButton.offsetTop,
+        width: selectedButton.offsetWidth,
+        height: selectedButton.offsetHeight,
+      });
+    };
+
+    updateIndicator();
+
+    const observer = new ResizeObserver(updateIndicator);
+    observer.observe(root);
+    observer.observe(selectedButton);
+
+    return () => observer.disconnect();
+  }, [selectedIndex, options.length]);
+
+  useLayoutEffect(() => {
+    if (!indicator || indicatorReady) return;
+
+    const frame = requestAnimationFrame(() => setIndicatorReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, [indicator, indicatorReady]);
 
   const selectIndex = (index: number) => {
     const option = options[index];
@@ -90,12 +136,30 @@ export function Segmented<Value extends string = string>({
   return (
     <div
       {...props}
+      ref={rootRef}
       role="radiogroup"
       className={cn(
-        "inline-flex rounded-lg bg-[var(--yak-color-hover)] p-1",
+        "relative isolate inline-flex rounded-lg bg-[var(--yak-color-hover)] p-1",
         className,
       )}
     >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute z-0 rounded-md bg-[var(--yak-components-panel-bg)] shadow-sm",
+          "will-change-[transform,width,height] motion-reduce:transition-none",
+          indicatorReady
+            ? "transition-[transform,width,height,opacity] duration-[250ms] [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
+            : "transition-none",
+        )}
+        style={{
+          width: indicator?.width ?? 0,
+          height: indicator?.height ?? 0,
+          opacity: indicator ? 1 : 0,
+          transform: `translate3d(${indicator?.left ?? 0}px, ${indicator?.top ?? 0}px, 0)`,
+        }}
+      />
+
       {options.map((option, index) => {
         const checked = option.value === value;
         const disabled = isDisabled || option.isDisabled;
@@ -115,15 +179,18 @@ export function Segmented<Value extends string = string>({
             }}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "rounded-md px-3 py-1 text-xs font-medium outline-none transition-[background-color,color,box-shadow] duration-150",
+              "group relative z-10 rounded-md bg-transparent px-3 py-1 text-xs font-medium outline-none",
+              "transition-[color,opacity] duration-150 motion-reduce:transition-none",
               "focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-button-focus-ring)]",
               checked
-                ? "bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-sm"
+                ? "text-[var(--yak-components-panel-text)]"
                 : "text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
               disabled && "cursor-not-allowed opacity-40",
             )}
           >
-            {option.label}
+            <span className="inline-block transition-transform duration-150 group-active:scale-[0.97] motion-reduce:transition-none">
+              {option.label}
+            </span>
           </button>
         );
       })}
