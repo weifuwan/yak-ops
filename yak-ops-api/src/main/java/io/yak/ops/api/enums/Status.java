@@ -449,6 +449,7 @@ public enum Status {
     ALERT_CHANNEL_NOT_EXIST(110015, "Alert channel not exist", "alert channel不存在"),
     SEND_TEST_ALERT_PLUGIN_INSTANCE_ERROR(110016, "send test alert plugin instance error", "发送测试告警错误"),
     ALERT_SERVER_NOT_EXIST(110017, "Alert server does not exist", "Alert server不存在"),
+    LIST_PAGING_ALERT_RECORD_ERROR(110018, "query alert record page error", "分页查询告警记录失败"),
     CREATE_ENVIRONMENT_ERROR(120001, "create environment error", "创建环境失败"),
     ENVIRONMENT_NAME_EXISTS(120002, "this environment name [{0}] already exists", "环境名称[{0}]已经存在"),
     ENVIRONMENT_NAME_IS_NULL(120003, "this environment name shouldn't be empty.", "环境名称不能为空"),
