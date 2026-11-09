@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { test } from "node:test";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "../apps/web/app/data-sync/list");
+const queries = readFileSync(join(root, "use-list-queries.ts"), "utf8");
+const page = readFileSync(join(root, "page.tsx"), "utf8");
+const lifecycle = readFileSync(join(root, "task-lifecycle.tsx"), "utf8");
+
+test("task list derives active instances from the single latest-instance request", () => {
+  assert.match(
+    queries,
+    /queryFn: \(\{ signal \}\) => listLatestDataSyncTaskInstances\(ids, false, signal\)/,
+  );
+  assert.doesNotMatch(queries, /listLatestDataSyncTaskInstances\(ids, true/);
+  assert.match(queries, /filter\(\(item\) => isTaskInstanceActive\(item\.status\)\)/);
+});
+
+test("workflow state failures are isolated to the affected task", () => {
+  assert.match(queries, /const stateReadyByTask = new Map/);
+  assert.match(queries, /workflowQueries\[index\]\?\.isSuccess === true/);
+  assert.match(queries, /const stateErrorByTask = new Set/);
+  assert.doesNotMatch(page, /instances\.ready/);
+});
+
+test("published tasks can be unpublished when state reads fail and backend validates running state", () => {
+  assert.match(lifecycle, /const canUnpublish = !workflowActive && !activeInstance/);
+  assert.match(lifecycle, /disabled: published \? !canUnpublish : !canManage/);
+});
