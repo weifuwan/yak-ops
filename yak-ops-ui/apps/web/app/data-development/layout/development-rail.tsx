@@ -82,7 +82,7 @@ function RailButton({
       aria-label={label}
       aria-pressed={active || undefined}
       onClick={onClick}
-      className="flex h-9 w-11 shrink-0 items-center justify-center text-[#4e535a] outline-none"
+      className="flex h-9 w-11 shrink-0 cursor-pointer items-center justify-center text-[#4e535a] outline-none"
     >
       <span
         className={[
