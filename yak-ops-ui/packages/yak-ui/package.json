@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
-    "class-variance-authority": "^0.7.1"
+    "class-variance-authority": "^0.7.1",
+    "@internationalized/date": "3.12.4",
+    "react-aria-components": "1.22.1"
   },
   "peerDependencies": {
     "react": "^18.3.1",
