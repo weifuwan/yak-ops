@@ -247,7 +247,6 @@ export function createWorkflowStore(
               selected: false,
             })),
             draftNodeSequence: sequence,
-            selectorRequest: null,
           }));
 
           return node.id;
@@ -377,7 +376,8 @@ export function createWorkflowStore(
             })),
             draftNodeSequence: sequence,
             draftEdgeSequence: edgeSequence,
-            selectorRequest: null,
+            selectorRequest:
+              request.kind === "add" ? request : null,
           });
 
           return node.id;
