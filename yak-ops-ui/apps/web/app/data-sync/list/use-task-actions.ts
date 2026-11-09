@@ -10,10 +10,12 @@ import {
   unpublishDataSyncTask,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import type { StartWorkflowOptions } from "@/service/workflow/execution";\nimport { listQueryKeys } from "./query-keys";
+import type { StartWorkflowOptions } from "@/service/workflow/execution";
+import { listQueryKeys } from "./query-keys";
 
 export type TaskCommand =
-  | { kind: "run" | "publish" | "unpublish" | "delete"; task: DataSyncTaskRecord }
+  | { kind: "run"; task: DataSyncTaskRecord; options?: StartWorkflowOptions }
+  | { kind: "publish" | "unpublish" | "delete"; task: DataSyncTaskRecord }
   | { kind: "stop"; task: DataSyncTaskRecord; workflowInstanceId: number };
 
 export function useTaskListActions(scope: string) {
@@ -23,7 +25,7 @@ export function useTaskListActions(scope: string) {
     mutationFn: async (command: TaskCommand) => {
       switch (command.kind) {
         case "run":
-          return runDataSyncTask(command.task.workflowCode);
+          return runDataSyncTask(command.task.workflowCode, command.options);
         case "stop":
           await cancelDataSyncInstance(command.workflowInstanceId);
           break;
