@@ -2,7 +2,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type DragEvent,
 } from "react";
 import {
   Background,
@@ -20,6 +22,7 @@ import type {
   WorkflowTaskRelationRecord,
 } from "@/service/workflow/definition";
 
+import { WORKFLOW_TASK_DRAG_TYPE } from "./node-palette";
 import { buildWorkflowCanvas } from "./workflow-layout";
 import {
   WorkflowTaskNode,
@@ -54,11 +57,17 @@ export function WorkflowCanvas({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     selectedTaskCode ? String(selectedTaskCode) : null,
   );
+  const [draftNodes, setDraftNodes] = useState<WorkflowCanvasNode[]>([]);
+  const draftSequenceRef = useRef(0);
 
   const canvas = useMemo(
     () => buildWorkflowCanvas(tasks, relations),
     [tasks, relations],
   );
+
+  useEffect(() => {
+    setDraftNodes([]);
+  }, [tasks]);
 
   useEffect(() => {
     if (selectedTaskCode) {
@@ -67,15 +76,18 @@ export function WorkflowCanvas({
     }
 
     setSelectedNodeId((current) =>
-      current && canvas.nodes.some((node) => node.id === current)
+      current &&
+      [...canvas.nodes, ...draftNodes].some((node) => node.id === current)
         ? current
         : null,
     );
-  }, [canvas.nodes, selectedTaskCode]);
+  }, [canvas.nodes, draftNodes, selectedTaskCode]);
 
   const handleNodeAction = useCallback(
     (action: WorkflowNodeAction, taskCode: number) => {
-      setSelectedNodeId(String(taskCode));
+      setSelectedNodeId(
+        taskCode < 0 ? `draft:${Math.abs(taskCode)}` : String(taskCode),
+      );
 
       if (action === "open") {
         toast.info("节点已选中", {
@@ -93,7 +105,7 @@ export function WorkflowCanvas({
 
   const nodes = useMemo(
     () =>
-      canvas.nodes.map((node) => ({
+      [...canvas.nodes, ...draftNodes].map((node) => ({
         ...node,
         selected: node.id === selectedNodeId,
         data: {
@@ -101,7 +113,7 @@ export function WorkflowCanvas({
           onAction: handleNodeAction,
         },
       })),
-    [canvas.nodes, handleNodeAction, selectedNodeId],
+    [canvas.nodes, draftNodes, handleNodeAction, selectedNodeId],
   );
 
   useEffect(() => {
@@ -134,8 +146,55 @@ export function WorkflowCanvas({
     return () => window.cancelAnimationFrame(frame);
   }, [instance, nodes, selectedNodeId, selectedTaskCode]);
 
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!instance) return;
+
+    const raw = event.dataTransfer.getData(WORKFLOW_TASK_DRAG_TYPE);
+    if (!raw) return;
+
+    let taskType = "";
+    try {
+      const payload = JSON.parse(raw) as { taskType?: string };
+      taskType = payload.taskType ?? "";
+    } catch {
+      return;
+    }
+    if (!taskType) return;
+
+    draftSequenceRef.current += 1;
+    const sequence = draftSequenceRef.current;
+    const id = `draft:${sequence}`;
+    const taskCode = -sequence;
+    const position = instance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const nextNode: WorkflowCanvasNode = {
+      id,
+      type: "workflowTask",
+      position,
+      data: {
+        taskCode,
+        taskType,
+        name: `${taskType} 节点`,
+      },
+      draggable: false,
+      selectable: true,
+    };
+
+    setDraftNodes((current) => [...current, nextNode]);
+    setSelectedNodeId(id);
+  };
+
   return (
-    <div className="h-full min-h-0 w-full bg-[#fbfcfe]">
+    <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#fbfcfe]">
       <ReactFlow<WorkflowCanvasNode, Edge>
         nodes={nodes}
         edges={canvas.edges}
@@ -143,6 +202,8 @@ export function WorkflowCanvas({
         onInit={setInstance}
         onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
         onPaneClick={() => setSelectedNodeId(null)}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         fitView
         fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
         nodesDraggable={false}
@@ -166,6 +227,17 @@ export function WorkflowCanvas({
           fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
         />
       </ReactFlow>
+
+      {nodes.length === 0 ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="rounded-md border border-dashed border-[var(--yak-components-border)] bg-white/80 px-5 py-4 text-center">
+            <div className="text-sm font-medium">暂无工作流节点</div>
+            <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
+              点击“添加节点”，将节点类型拖入画布。
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

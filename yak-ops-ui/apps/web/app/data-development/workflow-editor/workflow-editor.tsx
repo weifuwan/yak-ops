@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Workflow } from "lucide-react";
 import { Button } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
 import { getWorkflowDefinition } from "@/service/workflow/definition";
 
+import { WorkflowNodePalette } from "./node-palette";
 import { WorkflowCanvas } from "./workflow-canvas";
+import { WorkflowToolbar } from "./workflow-toolbar";
 
 type WorkflowEditorProps = {
   workflowCode: number;
@@ -18,6 +20,7 @@ export function WorkflowEditor({
 }: WorkflowEditorProps) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id ?? "";
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const query = useQuery({
     queryKey: [
@@ -61,31 +64,22 @@ export function WorkflowEditor({
   const tasks = query.data.taskDefinitionList ?? [];
   const relations = query.data.workflowTaskRelationList ?? [];
 
-  if (tasks.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-center">
-        <div>
-          <Workflow
-            size={24}
-            aria-hidden="true"
-            className="mx-auto text-[var(--yak-components-muted-text)]"
-          />
-          <div className="mt-3 text-sm font-medium">暂无工作流节点</div>
-          <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-            当前工作流定义中还没有任务节点。
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-0 flex-1">
-      <WorkflowCanvas
-        tasks={tasks}
-        relations={relations}
-        selectedTaskCode={selectedTaskCode}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <WorkflowToolbar
+        paletteOpen={paletteOpen}
+        onTogglePalette={() => setPaletteOpen((open) => !open)}
       />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {paletteOpen ? (
+          <WorkflowNodePalette onClose={() => setPaletteOpen(false)} />
+        ) : null}
+        <WorkflowCanvas
+          tasks={tasks}
+          relations={relations}
+          selectedTaskCode={selectedTaskCode}
+        />
+      </div>
     </div>
   );
 }
