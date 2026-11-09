@@ -1,23 +1,21 @@
 import {
+  Archive,
   Bot,
+  Box,
   CircleHelp,
-  ClipboardCheck,
-  Code2,
-  Database,
-  FileCode2,
-  Folder,
-  GitFork,
-  GitPullRequest,
+  Ear,
+  FileText,
   History,
-  ListChecks,
-  MousePointer2,
   PanelLeftClose,
   Puzzle,
-  Search,
+  Server,
   Settings,
-  ShieldCheck,
   Sparkles,
+  SquareCheckBig,
+  SquareCode,
+  Stamp,
   Sun,
+  Table2,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -25,7 +23,6 @@ import {
 export type DataDevelopmentSection =
   | "development"
   | "manual"
-  | "search"
   | "component"
   | "catalog"
   | "resource"
@@ -45,19 +42,18 @@ type RailItem = {
 };
 
 const RAIL_ITEMS: RailItem[] = [
-  { id: "development", label: "数据开发", icon: FileCode2 },
-  { id: "manual", label: "手动", icon: MousePointer2 },
-  { id: "search", label: "搜索", icon: Search },
+  { id: "development", label: "数据开发", icon: SquareCode },
+  { id: "manual", label: "手动", icon: Ear },
   { id: "component", label: "组件管理", icon: Puzzle },
-  { id: "catalog", label: "数据目录", icon: Database },
-  { id: "resource", label: "资源管理", icon: Folder },
+  { id: "catalog", label: "数据目录", icon: Table2 },
+  { id: "resource", label: "资源管理", icon: Archive },
   { id: "ai-processing", label: "AI 数据处理", icon: Bot },
   { id: "history", label: "运行历史", icon: History },
-  { id: "review", label: "代码评审列表", icon: GitPullRequest },
-  { id: "operation-check", label: "操作检查", icon: ClipboardCheck },
-  { id: "smoke-test", label: "冒烟测试记录", icon: ListChecks },
-  { id: "code-management", label: "代码管理", icon: GitFork },
-  { id: "governance", label: "数据资产治理", icon: ShieldCheck },
+  { id: "review", label: "代码评审列表", icon: Stamp },
+  { id: "operation-check", label: "操作检查", icon: SquareCheckBig },
+  { id: "smoke-test", label: "冒烟测试记录", icon: FileText },
+  { id: "code-management", label: "代码管理", icon: Server },
+  { id: "governance", label: "数据资产治理", icon: Box },
   { id: "recycle-bin", label: "回收站", icon: Trash2 },
 ];
 
@@ -70,11 +66,13 @@ function RailButton({
   label,
   icon: Icon,
   active = false,
+  indicator = false,
   onClick,
 }: {
   label: string;
   icon: LucideIcon;
   active?: boolean;
+  indicator?: boolean;
   onClick?: () => void;
 }) {
   return (
@@ -84,17 +82,20 @@ function RailButton({
       aria-label={label}
       aria-pressed={active || undefined}
       onClick={onClick}
-      className="flex h-10 w-11 shrink-0 items-center justify-center text-[#4e535a] outline-none"
+      className="flex h-9 w-11 shrink-0 items-center justify-center text-[#4e535a] outline-none"
     >
       <span
         className={[
-          "flex size-8 items-center justify-center rounded-[2px] transition-colors",
+          "relative flex size-8 items-center justify-center rounded-[2px] transition-colors",
           active
             ? "bg-[#cbd7fc] text-[rgba(0,51,204,0.9)]"
             : "hover:bg-[#f0f0f0] hover:text-[#30343a]",
         ].join(" ")}
       >
-        <Icon size={17} strokeWidth={1.6} aria-hidden="true" />
+        <Icon size={16} strokeWidth={1.45} aria-hidden="true" />
+        {indicator ? (
+          <span className="absolute right-[3px] top-[3px] size-[5px] rounded-full border border-[#fafafa] bg-[#1f63ff]" />
+        ) : null}
       </span>
     </button>
   );
@@ -109,9 +110,16 @@ export function DevelopmentRail({
       aria-label="数据开发活动栏"
       className="flex w-11 shrink-0 flex-col items-center border-r border-[#f2f2f2] bg-[#fafafa]"
     >
-      <RailButton label="Data Agent · 数据开发助手" icon={Sparkles} />
+      <RailButton
+        label="Data Agent · 数据开发助手"
+        icon={Sparkles}
+        indicator
+      />
 
-      <nav aria-label="活动视图切换器" className="flex w-full flex-col items-center">
+      <nav
+        aria-label="活动视图切换器"
+        className="flex w-full flex-col items-center"
+      >
         {RAIL_ITEMS.map((item) => (
           <RailButton
             key={item.id}

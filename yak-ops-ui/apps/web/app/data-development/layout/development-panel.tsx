@@ -6,7 +6,6 @@ const PANEL_COPY: Record<
   { title: string; content: string }
 > = {
   manual: { title: "手动", content: "这里将展示手动任务相关内容。" },
-  search: { title: "搜索", content: "这里将展示全局搜索内容。" },
   component: { title: "组件管理", content: "这里将展示组件管理内容。" },
   catalog: { title: "数据目录", content: "这里将展示数据目录内容。" },
   resource: { title: "资源管理", content: "这里将展示资源管理内容。" },
