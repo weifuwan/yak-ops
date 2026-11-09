@@ -1,0 +1,19 @@
+@keyframes yak-app-shell-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.yak-app-shell-enter {
+  animation: yak-app-shell-enter 180ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yak-app-shell-enter {
+    animation: none;
+  }
+}

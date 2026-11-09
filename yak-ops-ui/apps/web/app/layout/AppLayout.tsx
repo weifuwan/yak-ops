@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 
+import "./app-layout.css";
+
 import ProductLauncher from "./ProductLauncher";
 import ProductSidebar from "./ProductSidebar";
 import TopBar from "./TopBar";
@@ -34,7 +36,7 @@ export default function AppLayout({ productLabel, productPath, navigation }: App
   }, [launcherOpen]);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-white text-[#161823]">
+    <div className="yak-app-shell-enter flex h-dvh flex-col overflow-hidden bg-white text-[#161823]">
       <TopBar
         launcherOpen={launcherOpen}
         onToggleLauncher={() => setLauncherOpen((open) => !open)}
