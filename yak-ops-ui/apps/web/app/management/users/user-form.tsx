@@ -8,7 +8,7 @@ import {
   PasswordInput,
 } from "@yak-ops/yak-ui";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
   createUser,
@@ -118,7 +118,6 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
     }
     if (!values.tenantId) next.tenantId = "请选择租户";
     if (!values.email.trim()) next.email = "请输入邮箱";
-    if (!values.phone.trim()) next.phone = "请输入手机号";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -165,7 +164,7 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
   const renderField = (
     key: keyof FormValues,
     label: string,
-    control: React.ReactNode,
+    control: ReactNode,
     required = false,
   ) => (
     <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors[key])}>
