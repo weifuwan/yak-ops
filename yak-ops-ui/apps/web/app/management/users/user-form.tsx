@@ -167,7 +167,7 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
       value={value || null}
       onValueChange={(nextValue) => onChange(nextValue ?? "")}
     >
-      <SelectTrigger variant="outlined">
+      <SelectTrigger id={id} variant="outlined">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
