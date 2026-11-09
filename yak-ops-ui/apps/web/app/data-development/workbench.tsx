@@ -1,12 +1,7 @@
 import { Workflow, X } from "lucide-react";
 
+import { WorkflowEditor } from "./workflow-editor/workflow-editor";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
-
-const stateText = (state: string) => {
-  if (state === "ONLINE") return "已上线";
-  if (state === "OFFLINE") return "未上线";
-  return state || "-";
-};
 
 export function DataDevelopmentWorkbench() {
   const { tabs, activeTab, activeTabId, activateTab, closeTab } =
@@ -81,35 +76,10 @@ export function DataDevelopmentWorkbench() {
             </span>
           </div>
 
-          <div className="flex min-h-0 flex-1 items-center justify-center p-8">
-            <div className="w-full max-w-lg text-center">
-              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]">
-                <Workflow size={18} aria-hidden="true" />
-              </div>
-              <h1 className="text-base font-semibold">{activeTab.title}</h1>
-              <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-[var(--yak-components-muted-text)]">
-                <span>工作流编码：{activeTab.workflowCode}</span>
-                <span>版本：v{activeTab.version}</span>
-                <span>状态：{stateText(activeTab.releaseState)}</span>
-              </div>
-              {activeTab.selectedTask ? (
-                <div className="mx-auto mt-5 max-w-sm rounded-md border border-[var(--yak-components-border)] px-4 py-3 text-left">
-                  <div className="text-xs text-[var(--yak-components-muted-text)]">
-                    当前节点
-                  </div>
-                  <div className="mt-1 text-sm font-medium">
-                    {activeTab.selectedTask.name}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-                    {activeTab.selectedTask.taskType || "-"} · {activeTab.selectedTask.code}
-                  </div>
-                </div>
-              ) : null}
-              <p className="mt-5 text-[13px] leading-6 text-[var(--yak-components-muted-text)]">
-                工作流定义与节点已经接入真实后端数据，工作流编辑器将在这里继续接入。
-              </p>
-            </div>
-          </div>
+          <WorkflowEditor
+            workflowCode={activeTab.workflowCode}
+            selectedTaskCode={activeTab.selectedTask?.code}
+          />
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center p-8 text-center">

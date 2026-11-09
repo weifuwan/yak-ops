@@ -33,6 +33,24 @@ export interface WorkflowTaskRecord {
   modifyBy?: string | null;
 }
 
+export interface WorkflowTaskRelationRecord {
+  id: number;
+  name?: string | null;
+  workflowDefinitionVersion: number;
+  projectCode: number;
+  workflowDefinitionCode: number;
+  preTaskCode: number;
+  preTaskVersion: number;
+  postTaskCode: number;
+  postTaskVersion: number;
+}
+
+export interface WorkflowDagRecord {
+  workflowDefinition: WorkflowDefinitionRecord;
+  workflowTaskRelationList: WorkflowTaskRelationRecord[];
+  taskDefinitionList: WorkflowTaskRecord[];
+}
+
 export interface WorkflowDefinitionPageParams {
   pageNo: number;
   pageSize: number;
@@ -76,5 +94,15 @@ export const listWorkflowTasks = (
 ): Promise<WorkflowTaskRecord[]> =>
   HttpUtils.getData<WorkflowTaskRecord[]>(
     baseUrl() + "/" + encodeURIComponent(String(workflowCode)) + "/tasks",
+    { signal },
+  );
+
+
+export const getWorkflowDefinition = (
+  workflowCode: number,
+  signal?: AbortSignal,
+): Promise<WorkflowDagRecord> =>
+  HttpUtils.getData<WorkflowDagRecord>(
+    baseUrl() + "/" + encodeURIComponent(String(workflowCode)),
     { signal },
   );
