@@ -32,7 +32,9 @@ import io.yak.ops.server.master.engine.workflow.lifecycle.event.WorkflowTopology
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.function.Consumer;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -107,9 +109,10 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
     private void persistentTaskInstanceFatalEventToDB(final ITaskExecution taskExecution,
                                                       final TaskFatalLifecycleEvent taskFatalEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(TaskExecutionStatus.FAILURE);
-        taskInstance.setEndTime(taskFatalEvent.getEndTime());
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            instance.setState(TaskExecutionStatus.FAILURE);
+            instance.setEndTime(taskFatalEvent.getEndTime());
+        });
     }
 
     @Override
@@ -117,9 +120,10 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
                                   final ITaskExecution taskExecution,
                                   final TaskDispatchedLifecycleEvent taskDispatchedEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(DISPATCH);
-        taskInstance.setHost(taskDispatchedEvent.getExecutorHost());
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            instance.setState(DISPATCH);
+            instance.setHost(taskDispatchedEvent.getExecutorHost());
+        });
     }
 
     @Override
@@ -127,19 +131,21 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
                                              final ITaskExecution taskExecution,
                                              final TaskRuntimeContextChangedEvent taskRuntimeContextChangedEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        if (StringUtils.isNotEmpty(taskRuntimeContextChangedEvent.getRuntimeContext())) {
-            taskInstance.setAppLink(taskRuntimeContextChangedEvent.getRuntimeContext());
-        }
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            if (StringUtils.isNotEmpty(taskRuntimeContextChangedEvent.getRuntimeContext())) {
+                instance.setAppLink(taskRuntimeContextChangedEvent.getRuntimeContext());
+            }
+        });
     }
 
     protected void persistentTaskInstanceStartedEventToDB(final ITaskExecution taskExecution,
                                                           final TaskRunningLifecycleEvent taskRunningEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(TaskExecutionStatus.RUNNING_EXECUTION);
-        taskInstance.setStartTime(taskRunningEvent.getStartTime());
-        taskInstance.setLogPath(taskRunningEvent.getLogPath());
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            instance.setState(TaskExecutionStatus.RUNNING_EXECUTION);
+            instance.setStartTime(taskRunningEvent.getStartTime());
+            instance.setLogPath(taskRunningEvent.getLogPath());
+        });
     }
 
     @Override
@@ -155,8 +161,7 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
     private void persistentTaskInstancePausedEventToDB(final ITaskExecution taskExecution,
                                                        final TaskPausedLifecycleEvent taskPausedEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(TaskExecutionStatus.PAUSE);
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> instance.setState(TaskExecutionStatus.PAUSE));
     }
 
     @Override
@@ -172,9 +177,10 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
     private void persistentTaskInstanceKilledEventToDB(final ITaskExecution taskExecution,
                                                        final TaskKilledLifecycleEvent taskKilledEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(TaskExecutionStatus.KILL);
-        taskInstance.setEndTime(taskKilledEvent.getEndTime());
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            instance.setState(TaskExecutionStatus.KILL);
+            instance.setEndTime(taskKilledEvent.getEndTime());
+        });
 
     }
 
@@ -205,9 +211,10 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
     private void persistentTaskInstanceFailedEventToDB(final ITaskExecution taskExecution,
                                                        final TaskFailedLifecycleEvent taskFailedEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(TaskExecutionStatus.FAILURE);
-        taskInstance.setEndTime(taskFailedEvent.getEndTime());
-        taskInstanceDao.updateById(taskInstance);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            instance.setState(TaskExecutionStatus.FAILURE);
+            instance.setEndTime(taskFailedEvent.getEndTime());
+        });
     }
 
     @Override
@@ -229,15 +236,26 @@ public abstract class AbstractTaskStateAction implements ITaskStateAction {
         workflowInstance.setVarPool(VarPoolUtils.serializeVarPool(finalVarPool));
     }
 
+    protected void persistTaskInstanceUpdate(final TaskInstance taskInstance,
+                                             final Consumer<TaskInstance> updater) {
+        final TaskInstance taskInstanceToUpdate = new TaskInstance();
+        BeanUtils.copyProperties(taskInstance, taskInstanceToUpdate);
+        updater.accept(taskInstanceToUpdate);
+        taskInstanceDao.updateById(taskInstanceToUpdate);
+        updater.accept(taskInstance);
+    }
+
     protected void persistentTaskInstanceSuccessEventToDB(final ITaskExecution taskExecution,
                                                           final TaskSuccessLifecycleEvent taskSuccessEvent) {
         final TaskInstance taskInstance = taskExecution.getTaskInstance();
-        taskInstance.setState(TaskExecutionStatus.SUCCESS);
-        taskInstance.setEndTime(taskSuccessEvent.getEndTime());
         final List<Property> finalVarPool = VarPoolUtils.mergeVarPoolJsonString(taskInstance.getVarPool(),
                 JSONUtils.toJsonString(taskSuccessEvent.getVarPool()));
-        taskInstance.setVarPool(VarPoolUtils.serializeVarPool(finalVarPool));
-        taskInstanceDao.updateById(taskInstance);
+        final String serializedFinalVarPool = VarPoolUtils.serializeVarPool(finalVarPool);
+        persistTaskInstanceUpdate(taskInstance, instance -> {
+            instance.setState(TaskExecutionStatus.SUCCESS);
+            instance.setEndTime(taskSuccessEvent.getEndTime());
+            instance.setVarPool(serializedFinalVarPool);
+        });
     }
 
     /**
