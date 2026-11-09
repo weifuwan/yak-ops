@@ -8,7 +8,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import { canStopWorkflow, isWorkflowActive } from "@/service/data-sync";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
-import { TaskFilters } from "./task-filters";
+import { TaskFilters } from "./task-filters";\nimport { RunDataSyncTaskDialog } from "./run-dialog";
 import { TaskTable } from "./task-table";
 import { useTaskListFilters } from "./use-list-filters";
 import {
@@ -35,7 +35,7 @@ export function DataSyncPage() {
   const [createOpen, setCreateOpen] = useState(
     new URLSearchParams(location.search).get("create") === "1",
   );
-  const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();
+  const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();\n  const [pendingRun, setPendingRun] = useState<DataSyncTaskRecord>();
 
   const isWorkflowActiveForTask = (taskId: string) => {
     const workflow = instances.workflowsByTask.get(taskId);
@@ -64,9 +64,16 @@ export function DataSyncPage() {
     } else if (!canManage(value.task)) {
       return;
     }
+
+    if (value.kind === "run" && !value.options) {
+      setPendingRun(value.task);
+      return;
+    }
+
     commands.execute(value, {
       onSuccess: () => {
         if (value.kind === "delete") setPendingDelete(undefined);
+        if (value.kind === "run") setPendingRun(undefined);
       },
     });
   };
@@ -134,6 +141,22 @@ export function DataSyncPage() {
           </div>
         </div>
       </div>
+
+      {pendingRun ? (
+        <RunDataSyncTaskDialog
+          key={pendingRun.id}
+          task={pendingRun}
+          pending={commands.actionKey === pendingRun.id + ":run"}
+          onClose={() => {
+            if (!commands.pending) setPendingRun(undefined);
+          }}
+          onRun={(options) => {
+            if (canManage(pendingRun)) {
+              command({ kind: "run", task: pendingRun, options });
+            }
+          }}
+        />
+      ) : null}
 
       {createOpen ? (
         <CreateSyncTaskDialog
