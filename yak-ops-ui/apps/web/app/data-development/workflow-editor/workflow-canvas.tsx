@@ -9,8 +9,12 @@ import {
 import {
   Background,
   BackgroundVariant,
+  ConnectionLineType,
   Controls,
+  MarkerType,
   ReactFlow,
+  addEdge,
+  type Connection,
   type Edge,
   type ReactFlowInstance,
 } from "@xyflow/react";
@@ -47,6 +51,36 @@ const actionLabel: Record<WorkflowNodeAction, string> = {
   "create-downstream": "新建下游",
 };
 
+const edgePairKey = (source: string, target: string) => `${source}->${target}`;
+
+const createsCycle = (
+  source: string,
+  target: string,
+  edges: Edge[],
+): boolean => {
+  const outgoing = new Map<string, string[]>();
+
+  for (const edge of edges) {
+    const targets = outgoing.get(edge.source) ?? [];
+    targets.push(edge.target);
+    outgoing.set(edge.source, targets);
+  }
+
+  const queue = [target];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || visited.has(current)) continue;
+    if (current === source) return true;
+
+    visited.add(current);
+    queue.push(...(outgoing.get(current) ?? []));
+  }
+
+  return false;
+};
+
 export function WorkflowCanvas({
   tasks,
   relations,
@@ -57,7 +91,12 @@ export function WorkflowCanvas({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     selectedTaskCode ? String(selectedTaskCode) : null,
   );
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [draftNodes, setDraftNodes] = useState<WorkflowCanvasNode[]>([]);
+  const [draftEdges, setDraftEdges] = useState<Edge[]>([]);
+  const [removedBackendEdgeIds, setRemovedBackendEdgeIds] = useState<Set<string>>(
+    new Set(),
+  );
   const draftSequenceRef = useRef(0);
 
   const canvas = useMemo(
@@ -67,11 +106,15 @@ export function WorkflowCanvas({
 
   useEffect(() => {
     setDraftNodes([]);
-  }, [tasks]);
+    setDraftEdges([]);
+    setRemovedBackendEdgeIds(new Set());
+    setSelectedEdgeId(null);
+  }, [tasks, relations]);
 
   useEffect(() => {
     if (selectedTaskCode) {
       setSelectedNodeId(String(selectedTaskCode));
+      setSelectedEdgeId(null);
       return;
     }
 
@@ -88,6 +131,7 @@ export function WorkflowCanvas({
       setSelectedNodeId(
         taskCode < 0 ? `draft:${Math.abs(taskCode)}` : String(taskCode),
       );
+      setSelectedEdgeId(null);
 
       if (action === "open") {
         toast.info("节点已选中", {
@@ -116,6 +160,132 @@ export function WorkflowCanvas({
     [canvas.nodes, draftNodes, handleNodeAction, selectedNodeId],
   );
 
+  const visibleBackendEdges = useMemo(
+    () =>
+      canvas.edges.filter((edge) => !removedBackendEdgeIds.has(edge.id)),
+    [canvas.edges, removedBackendEdgeIds],
+  );
+
+  const rawEdges = useMemo(
+    () => [...visibleBackendEdges, ...draftEdges],
+    [draftEdges, visibleBackendEdges],
+  );
+
+  const edges = useMemo(
+    () =>
+      rawEdges.map((edge) => {
+        const selected = edge.id === selectedEdgeId;
+        return {
+          ...edge,
+          selected,
+          style: {
+            ...edge.style,
+            stroke: selected
+              ? "var(--yak-color-primary)"
+              : edge.style?.stroke ?? "var(--yak-components-border)",
+            strokeWidth: selected ? 2 : edge.style?.strokeWidth ?? 1.25,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 14,
+            height: 14,
+            color: selected
+              ? "var(--yak-color-primary)"
+              : "var(--yak-components-muted-text)",
+          },
+        };
+      }),
+    [rawEdges, selectedEdgeId],
+  );
+
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) => {
+      const source = connection.source;
+      const target = connection.target;
+
+      if (!source || !target || source === target) return false;
+
+      const pair = edgePairKey(source, target);
+      if (
+        rawEdges.some(
+          (edge) => edgePairKey(edge.source, edge.target) === pair,
+        )
+      ) {
+        return false;
+      }
+
+      return !createsCycle(source, target, rawEdges);
+    },
+    [rawEdges],
+  );
+
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+
+      if (!isValidConnection(connection)) {
+        toast.warning("无法创建连线", {
+          description: "不允许自连接、重复连接或形成环路。",
+        });
+        return;
+      }
+
+      const id = `draft-edge:${edgePairKey(
+        connection.source,
+        connection.target,
+      )}`;
+
+      setDraftEdges((current) =>
+        addEdge(
+          {
+            ...connection,
+            id,
+            type: "smoothstep",
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 14,
+              height: 14,
+            },
+            style: {
+              stroke: "var(--yak-components-muted-text)",
+              strokeWidth: 1.25,
+            },
+          },
+          current,
+        ),
+      );
+      setSelectedNodeId(null);
+      setSelectedEdgeId(id);
+    },
+    [isValidConnection],
+  );
+
+  const deleteEdges = useCallback(
+    (deletedEdges: Edge[]) => {
+      if (deletedEdges.length === 0) return;
+
+      const backendIds = new Set(canvas.edges.map((edge) => edge.id));
+      const deletingIds = new Set(deletedEdges.map((edge) => edge.id));
+
+      setDraftEdges((current) =>
+        current.filter((edge) => !deletingIds.has(edge.id)),
+      );
+
+      setRemovedBackendEdgeIds((current) => {
+        const next = new Set(current);
+        for (const edge of deletedEdges) {
+          if (backendIds.has(edge.id)) next.add(edge.id);
+        }
+        return next;
+      });
+
+      setSelectedEdgeId((current) =>
+        current && deletingIds.has(current) ? null : current,
+      );
+    },
+    [canvas.edges],
+  );
+
   useEffect(() => {
     if (!instance || nodes.length === 0) return;
 
@@ -134,7 +304,7 @@ export function WorkflowCanvas({
         return;
       }
 
-      if (!selectedNodeId) {
+      if (!selectedNodeId && !selectedEdgeId) {
         void instance.fitView({
           duration: 220,
           padding: 0.28,
@@ -144,7 +314,13 @@ export function WorkflowCanvas({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [instance, nodes, selectedNodeId, selectedTaskCode]);
+  }, [
+    instance,
+    nodes,
+    selectedEdgeId,
+    selectedNodeId,
+    selectedTaskCode,
+  ]);
 
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -191,26 +367,47 @@ export function WorkflowCanvas({
 
     setDraftNodes((current) => [...current, nextNode]);
     setSelectedNodeId(id);
+    setSelectedEdgeId(null);
   };
 
   return (
     <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#fbfcfe]">
       <ReactFlow<WorkflowCanvasNode, Edge>
         nodes={nodes}
-        edges={canvas.edges}
+        edges={edges}
         nodeTypes={nodeTypes}
         onInit={setInstance}
-        onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
-        onPaneClick={() => setSelectedNodeId(null)}
+        onNodeClick={(_event, node) => {
+          setSelectedNodeId(node.id);
+          setSelectedEdgeId(null);
+        }}
+        onEdgeClick={(_event, edge) => {
+          setSelectedNodeId(null);
+          setSelectedEdgeId(edge.id);
+        }}
+        onPaneClick={() => {
+          setSelectedNodeId(null);
+          setSelectedEdgeId(null);
+        }}
+        onConnect={handleConnect}
+        isValidConnection={isValidConnection}
+        onEdgesDelete={deleteEdges}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         fitView
         fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
         nodesDraggable={false}
-        nodesConnectable={false}
-        edgesFocusable={false}
+        nodesConnectable
+        edgesFocusable
+        edgesDeletable
         connectOnClick={false}
-        deleteKeyCode={null}
+        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineStyle={{
+          stroke: "var(--yak-color-primary)",
+          strokeWidth: 1.5,
+        }}
+        connectionRadius={24}
+        deleteKeyCode={["Backspace", "Delete"]}
         minZoom={0.25}
         maxZoom={1.8}
         proOptions={{ hideAttribution: true }}

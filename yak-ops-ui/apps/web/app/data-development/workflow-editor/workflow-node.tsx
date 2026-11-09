@@ -109,8 +109,8 @@ export function WorkflowTaskNode({
         <Handle
           type="target"
           position={Position.Top}
-          isConnectable={false}
-          className="!size-2 !border !border-white !bg-[var(--yak-color-primary)]"
+          isConnectable
+          className="!size-2.5 !cursor-crosshair !border !border-white !bg-[var(--yak-color-primary)] !transition-transform hover:!scale-125"
         />
         <div className="truncate text-[11px] font-medium uppercase tracking-wide text-[var(--yak-components-muted-text)]">
           {data.taskType || "TASK"}
@@ -121,8 +121,8 @@ export function WorkflowTaskNode({
         <Handle
           type="source"
           position={Position.Bottom}
-          isConnectable={false}
-          className="!size-2 !border !border-white !bg-[var(--yak-color-primary)]"
+          isConnectable
+          className="!size-2.5 !cursor-crosshair !border !border-white !bg-[var(--yak-color-primary)] !transition-transform hover:!scale-125"
         />
       </div>
 
