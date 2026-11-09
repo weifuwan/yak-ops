@@ -10,6 +10,7 @@ import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +50,21 @@ class TaskInstanceDaoImplTest extends BaseDaoTest {
     }
 
     @Test
+    void queryLastTaskInstanceListIntervalInWorkflowInstanceWhenAttemptsShareTheSameEndTime() {
+        Date sameEndTime = new Date();
+
+        insertTaskInstance(EXTRACT_TASK, TaskExecutionStatus.FAILURE, sameEndTime, Flag.NO);
+        insertTaskInstance(EXTRACT_TASK, TaskExecutionStatus.SUCCESS, sameEndTime, Flag.YES);
+
+        Set<Long> taskCodes = new HashSet<>(Collections.singletonList(EXTRACT_TASK));
+        List<TaskInstance> result = taskInstanceDao.queryLastTaskInstanceListIntervalInWorkflowInstance(
+                WORKFLOW_INSTANCE_ID, taskCodes);
+
+        assertEquals(1, result.size());
+        assertEquals(TaskExecutionStatus.SUCCESS, result.get(0).getState());
+    }
+
+    @Test
     void queryLastTaskInstanceIntervalInWorkflowInstance() {
         Date earlier = new Date(System.currentTimeMillis() - 3600_000);
         Date later = new Date();
@@ -63,6 +79,10 @@ class TaskInstanceDaoImplTest extends BaseDaoTest {
     }
 
     private void insertTaskInstance(long taskCode, TaskExecutionStatus state, Date endTime) {
+        insertTaskInstance(taskCode, state, endTime, Flag.YES);
+    }
+
+    private void insertTaskInstance(long taskCode, TaskExecutionStatus state, Date endTime, Flag flag) {
         TaskInstance ti = TaskInstance.builder()
                 .name("shell-task-" + taskCode)
                 .taskType("SHELL")
@@ -71,7 +91,7 @@ class TaskInstanceDaoImplTest extends BaseDaoTest {
                 .taskCode(taskCode)
                 .taskDefinitionVersion(1)
                 .state(state)
-                .flag(Flag.YES)
+                .flag(flag)
                 .submitTime(new Date())
                 .firstSubmitTime(new Date())
                 .startTime(new Date())
