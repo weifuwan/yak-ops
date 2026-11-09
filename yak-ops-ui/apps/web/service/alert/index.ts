@@ -1,5 +1,7 @@
 import { YAK_OPS_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
+import type { PageInfo } from "@/service/http/page-info";
+import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 
 const CHANNEL_API = YAK_OPS_API_PREFIX + "/alert-plugin-instances";
 const GROUP_API = YAK_OPS_API_PREFIX + "/alert-groups";
@@ -61,6 +63,47 @@ const ALERT_PARAM_LABELS: Record<string, string> = {
   AtDingtalkIds: "@用户",
   IsAtAll: "@所有人",
 };
+
+
+export type AlertRecordStatus =
+  | "WAIT_EXECUTION"
+  | "EXECUTION_SUCCESS"
+  | "EXECUTION_FAILURE"
+  | "EXECUTION_PARTIAL_SUCCESS";
+
+export type AlertRecordType =
+  | "WORKFLOW_INSTANCE_FAILURE"
+  | "WORKFLOW_INSTANCE_SUCCESS"
+  | "WORKFLOW_INSTANCE_BLOCKED"
+  | "WORKFLOW_INSTANCE_TIMEOUT"
+  | "FAULT_TOLERANCE_WARNING"
+  | "TASK_FAILURE"
+  | "TASK_SUCCESS"
+  | "TASK_TIMEOUT";
+
+export interface AlertRecord {
+  id: number;
+  title: string;
+  content?: string | null;
+  alertStatus?: AlertRecordStatus | null;
+  warningType?: "NONE" | "SUCCESS" | "FAILURE" | "ALL" | null;
+  log?: string | null;
+  alertGroupId?: number | null;
+  createTime?: string;
+  updateTime?: string;
+  projectCode?: number | string | null;
+  workflowDefinitionCode?: number | string | null;
+  workflowInstanceId?: number | null;
+  alertType?: AlertRecordType | null;
+}
+
+export interface AlertRecordPageParams {
+  pageNo: number;
+  pageSize: number;
+  keyword?: string;
+  alertStatus?: AlertRecordStatus;
+  alertType?: AlertRecordType;
+}
 
 export type AlertPluginFormType = "input" | "input-number" | "radio" | "select";
 
@@ -165,6 +208,29 @@ export function parseAlertInstanceIds(value?: string | null): number[] {
     .split(",")
     .map((item) => Number(item.trim()))
     .filter((item) => Number.isInteger(item) && item > 0);
+}
+
+
+export async function listAlertRecords(
+  params: AlertRecordPageParams,
+  signal?: AbortSignal,
+): Promise<PageInfo<AlertRecord>> {
+  const search = new URLSearchParams({
+    pageNo: String(params.pageNo),
+    pageSize: String(params.pageSize),
+  });
+  if (params.keyword?.trim()) search.set("keyword", params.keyword.trim());
+  if (params.alertStatus) search.set("alertStatus", params.alertStatus);
+  if (params.alertType) search.set("alertType", params.alertType);
+
+  return HttpUtils.getData<PageInfo<AlertRecord>>(
+    YAK_OPS_API_PREFIX +
+      "/projects/" +
+      encodeURIComponent(requireActiveProjectCode()) +
+      "/alerts?" +
+      search.toString(),
+    { signal },
+  );
 }
 
 export async function listAlertPluginDefinitions(): Promise<AlertPluginDefinition[]> {
