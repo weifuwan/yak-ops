@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button, Modal, PageHeader, toast } from "@yak-ops/yak-ui";
@@ -43,6 +43,12 @@ export function DataSyncPage() {
   const [pendingRun, setPendingRun] = useState<DataSyncTaskRecord>();
   const [pendingAlertConfig, setPendingAlertConfig] = useState<DataSyncTaskRecord>();
   const [alertDefaultsByTask, setAlertDefaultsByTask] = useState<Record<string, WorkflowAlertOptions>>({});
+
+  useEffect(() => {
+    setPendingAlertConfig(undefined);
+    setPendingRun(undefined);
+    setAlertDefaultsByTask({});
+  }, [scope]);
 
   const isWorkflowActiveForTask = (taskId: string) => {
     const workflow = instances.workflowsByTask.get(taskId);
@@ -171,7 +177,7 @@ export function DataSyncPage() {
               [pendingAlertConfig.id]: value,
             }));
             setPendingAlertConfig(undefined);
-            toast.success("告警配置已应用到后续运行");
+            toast.success("告警配置已应用到当前会话的手动运行");
           }}
         />
       ) : null}
