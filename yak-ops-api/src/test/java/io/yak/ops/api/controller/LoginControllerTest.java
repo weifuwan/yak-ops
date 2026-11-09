@@ -65,6 +65,9 @@ public class LoginControllerTest extends AbstractControllerTest {
     @Autowired
     private SessionDao sessionDao;
 
+    @Autowired
+    private ApiConfig apiConfig;
+
     @Test
     public void testLogin() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
@@ -126,7 +129,7 @@ public class LoginControllerTest extends AbstractControllerTest {
     @Test
     void testSignOutWithExpireSession() throws Exception {
         final Session session = sessionDao.queryById(sessionId);
-        session.setLastLoginTime(new Date(System.currentTimeMillis() - Constants.SESSION_TIME_OUT * 1000 - 1));
+        session.setLastLoginTime(new Date(System.currentTimeMillis() - apiConfig.getSessionTimeout().toMillis() - 1));
         sessionDao.updateById(session);
 
         mockMvc.perform(post("/signOut")

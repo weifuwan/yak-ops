@@ -2,6 +2,7 @@ package io.yak.ops.api.configuration;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ public class ApiConfig implements Validator {
     private String baseUrl;
     private String uiUrl;
     private boolean auditEnable = false;
+    private Duration sessionTimeout = Duration.ofHours(2);
 
     private TrafficConfiguration trafficControl = new TrafficConfiguration();
 
@@ -40,6 +42,7 @@ public class ApiConfig implements Validator {
     @Override
     public void validate(Object target, Errors errors) {
         validatePythonGateway(errors);
+        validateSessionTimeout(errors);
         printConfig();
     }
 
@@ -49,10 +52,17 @@ public class ApiConfig implements Validator {
         }
     }
 
+    private void validateSessionTimeout(Errors errors) {
+        if (sessionTimeout.isZero() || sessionTimeout.isNegative()) {
+            errors.rejectValue("sessionTimeout", null, "should be positive");
+        }
+    }
+
     private void printConfig() {
         log.info("API config: baseUrl -> {} ", baseUrl);
         log.info("API config: uiUrl -> {} ", uiUrl);
         log.info("API config: auditEnable -> {} ", auditEnable);
+        log.info("API config: sessionTimeout -> {} ", sessionTimeout);
         log.info("API config: trafficControl -> {} ", trafficControl);
         log.info("API config: pythonGateway -> {} ", pythonGateway);
     }
