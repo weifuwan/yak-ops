@@ -10,6 +10,7 @@ import { getWorkflowDefinition } from "@/service/workflow/definition";
 
 import { workflowDagToGraph } from "./adapter/workflow-adapter";
 import { WorkflowCanvas } from "./canvas/workflow-canvas";
+import { layoutWorkflowGraph } from "./layout/elk-layout";
 import { WorkflowNodeSelector } from "./node-selector/node-selector";
 import {
   WorkflowStoreProvider,
@@ -65,7 +66,7 @@ export function WorkflowEditor({
     enabled: Boolean(workspaceId && workflowCode),
   });
 
-  const graph = useMemo(
+  const sourceGraph = useMemo(
     () =>
       query.data
         ? workflowDagToGraph(query.data)
@@ -73,7 +74,20 @@ export function WorkflowEditor({
     [query.data],
   );
 
-  if (query.isPending) {
+  const layoutQuery = useQuery({
+    queryKey: [
+      "data-development",
+      "workflow-definition-layout",
+      workspaceId,
+      workflowCode,
+      query.data?.workflowDefinition.version ?? 0,
+    ],
+    queryFn: () => layoutWorkflowGraph(sourceGraph!),
+    enabled: Boolean(sourceGraph),
+    staleTime: Infinity,
+  });
+
+  if (query.isPending || layoutQuery.isPending) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--yak-components-muted-text)]">
         正在加载工作流…
@@ -81,7 +95,11 @@ export function WorkflowEditor({
     );
   }
 
-  if (query.isError || !graph) {
+  if (
+    query.isError ||
+    layoutQuery.isError ||
+    !layoutQuery.data
+  ) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div className="text-center">
@@ -108,7 +126,7 @@ export function WorkflowEditor({
         ":" +
         (query.data?.workflowDefinition.version ?? 0)
       }
-      initialGraph={graph}
+      initialGraph={layoutQuery.data}
     >
       <ReactFlowProvider>
         <WorkflowEditorShell

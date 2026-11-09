@@ -1,7 +1,6 @@
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
   type DragEvent,
 } from "react";
@@ -21,10 +20,8 @@ import {
 
 import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowInteractions } from "../hooks/use-workflow-interactions";
-import { layoutWorkflowGraph } from "../layout/elk-layout";
 import {
   useWorkflowStore,
-  useWorkflowStoreApi,
 } from "../store/workflow-store";
 import type {
   WorkflowCanvasEdge,
@@ -47,7 +44,6 @@ export function WorkflowCanvas({
 }: {
   selectedTaskCode?: number;
 }) {
-  const store = useWorkflowStoreApi();
   const nodes = useWorkflowStore(
     (state) => state.nodes,
   );
@@ -91,8 +87,6 @@ export function WorkflowCanvas({
   >(null);
   const [hoveredEdgeId, setHoveredEdgeId] =
     useState<string | null>(null);
-  const initialLayoutDone = useRef(false);
-
   const renderEdges = useMemo(
     () =>
       edges.map((edge) => ({
@@ -104,32 +98,6 @@ export function WorkflowCanvas({
       })),
     [edges, hoveredEdgeId],
   );
-
-  useEffect(() => {
-    if (!instance || initialLayoutDone.current) return;
-    initialLayoutDone.current = true;
-
-    const state = store.getState();
-    if (state.nodes.length === 0) return;
-
-    void layoutWorkflowGraph({
-      nodes: state.nodes,
-      edges: state.edges,
-    }).then((layouted) => {
-      store.setState({
-        nodes: layouted.nodes,
-        edges: layouted.edges,
-      });
-      store.temporal.getState().clear();
-
-      window.requestAnimationFrame(() => {
-        void instance.fitView({
-          padding: 0.22,
-          maxZoom: 1,
-        });
-      });
-    });
-  }, [instance, store]);
 
   useEffect(() => {
     if (!instance || !selectedTaskCode) return;
@@ -195,7 +163,15 @@ export function WorkflowCanvas({
         edges={renderEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onInit={setInstance}
+        onInit={(flow) => {
+          setInstance(flow);
+          if (nodes.length > 0) {
+            void flow.fitView({
+              padding: 0.22,
+              maxZoom: 1,
+            });
+          }
+        }}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodesDelete={handleNodesDelete}
