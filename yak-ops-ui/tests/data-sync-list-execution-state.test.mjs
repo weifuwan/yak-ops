@@ -8,6 +8,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../apps/web/app/data
 const queries = readFileSync(join(root, "use-list-queries.ts"), "utf8");
 const page = readFileSync(join(root, "page.tsx"), "utf8");
 const lifecycle = readFileSync(join(root, "task-lifecycle.tsx"), "utf8");
+const workflow = readFileSync(
+  join(root, "../../../service/data-sync/workflow.ts"),
+  "utf8",
+);
 
 test("task list derives active instances from the single latest-instance request", () => {
   assert.match(
@@ -28,4 +32,17 @@ test("workflow state failures are isolated to the affected task", () => {
 test("published tasks can be unpublished when state reads fail and backend validates running state", () => {
   assert.match(lifecycle, /const canUnpublish = !workflowActive && !activeInstance/);
   assert.match(lifecycle, /disabled: published \? !canUnpublish : !canManage/);
+});
+
+
+test("missing workflow instance is a successful null result instead of undefined", () => {
+  assert.match(
+    workflow,
+    /Promise<DataSyncWorkflowInstance \| null>/,
+  );
+  assert.match(workflow, /return page\.totalList\[0\] \?\? null;/);
+  assert.doesNotMatch(
+    workflow,
+    /Promise<DataSyncWorkflowInstance \| undefined>/,
+  );
 });
