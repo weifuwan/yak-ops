@@ -49,8 +49,9 @@ interface Data {
   activeByTask: Map<string, TaskInstanceRecord>;
   workflowsByTask: Map<string, DataSyncWorkflowInstance | undefined>;
   submittedByTask: Record<string, number>;
-  instancesLoading: boolean;
-  instancesReady: boolean;
+  stateReadyByTask: Map<string, boolean>;
+  stateLoadingByTask: Map<string, boolean>;
+  stateErrorByTask: Set<string>;
   actionKey?: string;
 }
 
@@ -82,8 +83,9 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     activeByTask,
     workflowsByTask,
     submittedByTask,
-    instancesLoading,
-    instancesReady,
+    stateReadyByTask,
+    stateLoadingByTask,
+    stateErrorByTask,
     actionKey,
   } = data;
 
@@ -104,7 +106,11 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     return awaitingSubmission(record) || Boolean(workflow && isWorkflowActive(workflow.state));
   };
   const canManageTask = (record: DataSyncTaskRecord) =>
-    !workflowActive(record) && canManageTaskDefinition(instancesReady, activeByTask.get(record.id));
+    !workflowActive(record) &&
+    canManageTaskDefinition(
+      stateReadyByTask.get(record.id) === true,
+      activeByTask.get(record.id),
+    );
   const runTask = (task: DataSyncTaskRecord) => actions.command({ kind: "run", task });
   const stopTask = (task: DataSyncTaskRecord, workflowInstanceId: number) =>
     actions.command({ kind: "stop", task, workflowInstanceId });
@@ -201,7 +207,16 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
               ? workflowStatusText(workflow.state)
               : "暂无执行";
         if (!instance) {
-          if (!workflowId && instancesLoading) return <Skeleton width="100%" height={22} />;
+          if (!workflowId && stateLoadingByTask.get(record.id)) {
+            return <Skeleton width="100%" height={22} />;
+          }
+          if (!workflowId && stateErrorByTask.has(record.id)) {
+            return (
+              <span className="text-xs text-[var(--yak-components-danger-text)]">
+                状态获取失败
+              </span>
+            );
+          }
           if (!workflowId) return <span className="text-xs text-[var(--yak-components-muted-text)]">暂无执行</span>;
           return (
             <button
@@ -283,7 +298,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             record={record}
             activeInstance={activeByTask.get(record.id)}
             workflowActive={workflowActive(record)}
-            instanceStateReady={instancesReady}
+            instanceStateReady={stateReadyByTask.get(record.id) === true}
             actionKey={actionKey}
             runtimeAction={{
               label: workflowActive(record)
@@ -307,14 +322,13 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
                 ? "text-[var(--yak-components-danger-text)]"
                 : "text-[var(--yak-color-primary)]",
               loading: actionKey === `${record.id}:run` || actionKey === `${record.id}:stop`,
-              disabled: !instancesReady ||
-                (workflowActive(record)
-                  ? awaitingSubmission(record) ||
-                    !workflowFor(record) ||
-                    !canStopWorkflow(workflowFor(record)!.state)
-                  : activeByTask.has(record.id)
-                    ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
-                    : record.status !== "ONLINE"),
+              disabled: workflowActive(record)
+                ? awaitingSubmission(record) ||
+                  !workflowFor(record) ||
+                  !canStopWorkflow(workflowFor(record)!.state)
+                : activeByTask.has(record.id)
+                  ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
+                  : record.status !== "ONLINE",
               onClick: () => {
                 const workflow = workflowFor(record);
                 const active = activeByTask.get(record.id);
