@@ -79,7 +79,7 @@ const RESOURCE_GROUPS: ResourceGroup[] = [
   },
 ];
 
-export function DataDevelopmentResourcePanel() {
+export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const { activeTabId, openResource } = useDataDevelopmentWorkbench();
   const [search, setSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<
@@ -109,7 +109,8 @@ export function DataDevelopmentResourcePanel() {
   return (
     <aside
       aria-label="项目目录"
-      className="flex w-[280px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-[var(--yak-components-panel-bg)]"
+      className="flex shrink-0 flex-col bg-[var(--yak-components-panel-bg)]"
+      style={{ width }}
     >
       <div className="flex h-10 shrink-0 items-center border-b border-[var(--yak-components-border)] px-3">
         <span className="text-sm font-semibold">项目目录</span>

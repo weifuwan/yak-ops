@@ -21,13 +21,15 @@ const PANEL_COPY: Record<
 
 type DevelopmentPanelProps = {
   activeSection: DataDevelopmentSection;
+  width: number;
 };
 
 export function DevelopmentPanel({
   activeSection,
+  width,
 }: DevelopmentPanelProps) {
   if (activeSection === "development") {
-    return <DataDevelopmentResourcePanel />;
+    return <DataDevelopmentResourcePanel width={width} />;
   }
 
   const panel = PANEL_COPY[activeSection];
@@ -35,7 +37,8 @@ export function DevelopmentPanel({
   return (
     <aside
       aria-label={panel.title}
-      className="flex w-[280px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-[var(--yak-components-panel-bg)]"
+      className="flex shrink-0 flex-col bg-[var(--yak-components-panel-bg)]"
+      style={{ width }}
     >
       <div className="flex h-10 shrink-0 items-center border-b border-[var(--yak-components-border)] px-3">
         <span className="text-sm font-semibold">{panel.title}</span>
