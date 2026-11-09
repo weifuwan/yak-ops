@@ -5,11 +5,14 @@ import static io.yak.ops.plugin.task.api.TaskConstants.LOCAL_PARAMS_LIST;
 
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
+import io.yak.ops.api.vo.TaskDefinitionVO;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DagData;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
+import io.yak.ops.dao.entity.AbstractTaskInstanceContext;
 import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.dao.entity.TaskInstanceDependentDetails;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowDefinitionLog;
 import io.yak.ops.dao.entity.WorkflowInstance;
@@ -103,9 +106,14 @@ public class SensitivePropertyUtils {
         if (source == null) {
             return null;
         }
-        TaskDefinition copy = source instanceof TaskDefinitionLog
-                ? new TaskDefinitionLog()
-                : new TaskDefinition();
+        TaskDefinition copy;
+        if (source instanceof TaskDefinitionVO) {
+            copy = new TaskDefinitionVO();
+        } else if (source instanceof TaskDefinitionLog) {
+            copy = new TaskDefinitionLog();
+        } else {
+            copy = new TaskDefinition();
+        }
         BeanUtils.copyProperties(source, copy);
         copy.setTaskParams(rewriteLocalParams(copy.getTaskParams(),
                 PropertySensitiveUtils::maskSensitiveValues));
@@ -117,7 +125,9 @@ public class SensitivePropertyUtils {
         if (source == null) {
             return null;
         }
-        TaskInstance copy = new TaskInstance();
+        TaskInstance copy = source instanceof TaskInstanceDependentDetails
+                ? new TaskInstanceDependentDetails<AbstractTaskInstanceContext>()
+                : new TaskInstance();
         BeanUtils.copyProperties(source, copy);
         copy.setTaskParams(rewriteLocalParams(copy.getTaskParams(),
                 PropertySensitiveUtils::maskSensitiveValues));
