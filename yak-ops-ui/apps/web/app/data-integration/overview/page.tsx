@@ -16,7 +16,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { ExecutionMetricsSection } from "./execution-metrics-section";
-import { OverviewAmbientAsciiBackground } from "./ambient-ascii-background";
+import { OverviewBackground } from "./overview-background";
 import { useDataIntegrationOverview } from "./use-overview";
 
 const number = (value: number) => value.toLocaleString("zh-CN");
@@ -64,7 +64,7 @@ export function DataIntegrationOverviewPage() {
 
   return (
     <div className="relative isolate min-h-full bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      <OverviewAmbientAsciiBackground />
+      <OverviewBackground />
       <PageHeader
         title="概览"
         bordered

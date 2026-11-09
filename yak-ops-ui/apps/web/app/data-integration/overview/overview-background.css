@@ -1,0 +1,50 @@
+.data-integration-overview-background {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  z-index: 0;
+  width: 1240px;
+  max-width: 100%;
+  height: 449px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.data-integration-overview-background__media {
+  position: absolute;
+  top: -150px;
+  right: 0;
+  width: 1240px;
+  max-width: none;
+  height: 599px;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.8;
+  transform: scale(1.1);
+  transform-origin: center top;
+}
+
+.data-integration-overview-background__fade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yak-color-hover) 80%, transparent) 0,
+      transparent 50%
+    ),
+    linear-gradient(270deg, transparent 52%, var(--yak-color-hover) 100%),
+    linear-gradient(180deg, transparent 71%, var(--yak-color-hover) 100%);
+}
+
+@media (max-width: 767px) {
+  .data-integration-overview-background {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-integration-overview-background__video {
+    display: none;
+  }
+}
