@@ -971,8 +971,8 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
         when(workflowDefinitionDao.queryByCode(processDefinitionCode)).thenReturn(Optional.of(workflowDefinition));
         when(workflowDefinitionLogMapper.queryByDefinitionCodeAndVersion(processDefinitionCode, 1))
                 .thenReturn(workflowDefinitionLog);
-        when(workflowTaskRelationDao.queryWorkflowTaskRelationsByWorkflowDefinitionCode(processDefinitionCode, 1))
-                .thenReturn(Collections.singletonList(workflowTaskRelation));
+        when(workflowTaskRelationLogMapper.queryByWorkflowCodeAndVersion(processDefinitionCode, 1))
+                .thenReturn(Collections.singletonList(new WorkflowTaskRelationLog(workflowTaskRelation)));
         when(taskDefinitionLogMapper.queryByTaskDefinitions(anyList()))
                 .thenReturn(Collections.singletonList(new TaskDefinitionLog()));
         doThrow(new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION))
@@ -1000,8 +1000,8 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
         when(workflowDefinitionDao.queryByCode(processDefinitionCode)).thenReturn(Optional.of(workflowDefinition));
         when(workflowDefinitionLogMapper.queryByDefinitionCodeAndVersion(processDefinitionCode, 1))
                 .thenReturn(workflowDefinitionLog);
-        when(workflowTaskRelationDao.queryWorkflowTaskRelationsByWorkflowDefinitionCode(processDefinitionCode, 1))
-                .thenReturn(Collections.singletonList(workflowTaskRelation));
+        when(workflowTaskRelationLogMapper.queryByWorkflowCodeAndVersion(processDefinitionCode, 1))
+                .thenReturn(Collections.singletonList(new WorkflowTaskRelationLog(workflowTaskRelation)));
         when(taskDefinitionLogMapper.queryByTaskDefinitions(anyList()))
                 .thenReturn(Collections.singletonList(new TaskDefinitionLog()));
         doThrow(new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION))
