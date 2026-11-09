@@ -219,16 +219,55 @@ function MetricContent({
 
 function ExecutionMetricsSkeleton() {
   return (
-    <div className="space-y-4 pt-4" role="status" aria-label="正在加载执行统计">
-      <div className="grid grid-cols-4 gap-px overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-border)] md:grid-cols-8">
-        {Array.from({ length: 8 }, (_, index) => (
-          <div key={index} className="space-y-3 bg-[var(--yak-components-panel-bg)] px-4 py-4">
-            <Skeleton width={62} height={12} />
-            <Skeleton width={42} height={22} />
-          </div>
-        ))}
+    <div className="pt-4" role="status" aria-label="正在加载执行统计">
+      <div className="overflow-x-auto rounded-t-lg border border-[var(--yak-components-panel-border)]">
+        <div
+          className="grid min-w-[960px]"
+          style={{ gridTemplateColumns: `repeat(${EXECUTION_METRICS.length}, minmax(120px, 1fr))` }}
+        >
+          {EXECUTION_METRICS.map((item, index) => (
+            <div
+              key={item.key}
+              className={[
+                "min-h-[92px] border-b-2 border-b-transparent bg-[var(--yak-color-hover)] px-4 py-3",
+                index ? "border-l border-[var(--yak-components-panel-border)]" : "",
+              ].join(" ")}
+            >
+              <Skeleton width={58 + (index % 3) * 10} height={12} />
+              <Skeleton width={34 + (index % 2) * 12} height={24} className="mt-2" />
+            </div>
+          ))}
+        </div>
       </div>
-      <Skeleton height={300} />
+
+      <div className="border-x border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
+        <div className="relative h-[300px] w-full overflow-hidden" aria-hidden="true">
+          <div className="absolute bottom-7 left-0 top-4 flex w-10 flex-col justify-between">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} width={28} height={10} />
+            ))}
+          </div>
+
+          <div className="absolute bottom-7 left-12 right-2 top-4 flex flex-col justify-between">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div
+                key={index}
+                className="border-t border-[var(--yak-components-panel-border)]"
+              />
+            ))}
+          </div>
+
+          <div className="absolute bottom-1 left-12 right-2 flex justify-between">
+            {Array.from({ length: 8 }, (_, index) => (
+              <Skeleton key={index} width={28} height={10} />
+            ))}
+          </div>
+
+          <div className="absolute bottom-[52px] left-12 right-2">
+            <Skeleton height={2} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
