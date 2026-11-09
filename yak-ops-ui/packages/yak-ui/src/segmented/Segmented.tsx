@@ -55,10 +55,7 @@ export function Segmented<Value extends string = string>({
     const root = rootRef.current;
     const selectedButton = selectedIndex >= 0 ? buttonRefs.current[selectedIndex] : null;
 
-    if (!root || !selectedButton) {
-      setIndicator(null);
-      return;
-    }
+    if (!root || !selectedButton) return;
 
     const updateIndicator = () => {
       setIndicator({
@@ -146,7 +143,7 @@ export function Segmented<Value extends string = string>({
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute z-0 rounded-md bg-[var(--yak-components-panel-bg)] shadow-sm",
+          "pointer-events-none absolute left-0 top-0 z-0 rounded-md bg-[var(--yak-components-panel-bg)] shadow-sm",
           "will-change-[transform,width,height] motion-reduce:transition-none",
           indicatorReady
             ? "transition-[transform,width,height,opacity] duration-[250ms] [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
@@ -155,7 +152,7 @@ export function Segmented<Value extends string = string>({
         style={{
           width: indicator?.width ?? 0,
           height: indicator?.height ?? 0,
-          opacity: indicator ? 1 : 0,
+          opacity: selectedIndex >= 0 && indicator ? 1 : 0,
           transform: `translate3d(${indicator?.left ?? 0}px, ${indicator?.top ?? 0}px, 0)`,
         }}
       />
