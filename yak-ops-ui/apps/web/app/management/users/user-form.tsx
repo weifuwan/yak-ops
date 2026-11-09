@@ -113,7 +113,7 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
     const next: FormErrors = {};
     if (!values.userName.trim()) next.userName = "请输入用户名";
     if (!editing && !values.password) next.password = "请输入初始密码";
-    if (values.password && (values.password.length < 6 || values.password.length > 20)) {
+    if (values.password && (values.password.length < 2 || values.password.length > 20)) {
       next.password = "密码长度需为 6～20 位";
     }
     if (!values.tenantId) next.tenantId = "请选择租户";
