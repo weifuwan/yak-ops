@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { Button, Modal, PageHeader } from "@yak-ops/yak-ui";
+import { Button, Modal, PageHeader, toast } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -9,6 +9,7 @@ import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-s
 import { canStopWorkflow, isWorkflowActive } from "@/service/data-sync";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
 import { TaskFilters } from "./task-filters";
+import { DataSyncAlertConfigDialog } from "./alert-config-dialog";
 import { RunDataSyncTaskDialog } from "./run-dialog";
 import { TaskTable } from "./task-table";
 import { useTaskListFilters } from "./use-list-filters";
@@ -19,6 +20,7 @@ import {
   useListInstances,
 } from "./use-list-queries";
 import { useTaskListActions, type TaskCommand } from "./use-task-actions";
+import type { WorkflowAlertOptions } from "@/service/workflow/execution";
 
 export function DataSyncPage() {
   const navigate = useNavigate();
@@ -39,6 +41,8 @@ export function DataSyncPage() {
   );
   const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();
   const [pendingRun, setPendingRun] = useState<DataSyncTaskRecord>();
+  const [pendingAlertConfig, setPendingAlertConfig] = useState<DataSyncTaskRecord>();
+  const [alertDefaultsByTask, setAlertDefaultsByTask] = useState<Record<string, WorkflowAlertOptions>>({});
 
   const isWorkflowActiveForTask = (taskId: string) => {
     const workflow = instances.workflowsByTask.get(taskId);
@@ -143,6 +147,7 @@ export function DataSyncPage() {
                 }}
                 actions={{
                   command,
+                  alert: (task) => setPendingAlertConfig(task),
                   delete: (task) => {
                     if (canManage(task)) setPendingDelete(task);
                   },
@@ -154,16 +159,41 @@ export function DataSyncPage() {
         </div>
       </div>
 
+      {pendingAlertConfig ? (
+        <DataSyncAlertConfigDialog
+          key={pendingAlertConfig.id}
+          task={pendingAlertConfig}
+          value={alertDefaultsByTask[pendingAlertConfig.id] ?? { warningType: "NONE" }}
+          onClose={() => setPendingAlertConfig(undefined)}
+          onSave={(value) => {
+            setAlertDefaultsByTask((current) => ({
+              ...current,
+              [pendingAlertConfig.id]: value,
+            }));
+            setPendingAlertConfig(undefined);
+            toast.success("告警配置已应用到后续运行");
+          }}
+        />
+      ) : null}
+
       {pendingRun ? (
         <RunDataSyncTaskDialog
           key={pendingRun.id}
           task={pendingRun}
+          initialAlert={alertDefaultsByTask[pendingRun.id] ?? { warningType: "NONE" }}
           pending={commands.actionKey === pendingRun.id + ":run"}
           onClose={() => {
             if (!commands.pending) setPendingRun(undefined);
           }}
           onRun={(options) => {
             if (canManage(pendingRun)) {
+              setAlertDefaultsByTask((current) => ({
+                ...current,
+                [pendingRun.id]: {
+                  warningType: options.warningType ?? "NONE",
+                  warningGroupId: options.warningGroupId,
+                },
+              }));
               command({ kind: "run", task: pendingRun, options });
             }
           }}
