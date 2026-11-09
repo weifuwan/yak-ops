@@ -42,7 +42,7 @@ export default function WorkspaceGate() {
     );
   }
 
-  if (currentWorkspace || workspaces.length > 0) {
+  if (currentWorkspace) {
     return <Outlet />;
   }
 
@@ -54,7 +54,7 @@ export default function WorkspaceGate() {
     try {
       await createWorkspace({ name: trimmedName });
     } catch {
-      // The HTTP layer owns request failure feedback.
+      return;
     } finally {
       setCreating(false);
     }
