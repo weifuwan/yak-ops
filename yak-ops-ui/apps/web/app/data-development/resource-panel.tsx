@@ -1,9 +1,12 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Code2,
+  Database,
   FileCode2,
   RefreshCw,
   Search,
+  Terminal,
   Workflow,
   X,
 } from "lucide-react";
