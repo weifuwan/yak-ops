@@ -117,60 +117,69 @@ export default function AppRouter() {
         <Route element={<WorkspaceGate />}>
           <Route
             element={
-            <AppLayout
-              productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
-              productPath="/overview"
-              navigation={DATA_INTEGRATION_NAVIGATION}
+              <AppLayout
+                productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
+                productPath="/overview"
+                navigation={DATA_INTEGRATION_NAVIGATION}
+              />
+            }
+          >
+            <Route path="/overview" element={<DataIntegrationOverviewPage />} />
+            <Route path="/data-source" element={<DataSourcePage />} />
+            <Route path="/data-sync" element={<DataSyncPage />} />
+            <Route path="/data-sync/new" element={<NewDataSyncTaskEditorRedirect />} />
+            <Route path="/data-sync/new/database" element={<DatabaseSyncTaskEditorPage />} />
+            <Route
+              path="/data-sync/new/multi-table"
+              element={<MultiTableSyncTaskEditorPage />}
             />
-          }
-        >
-          <Route path="/overview" element={<DataIntegrationOverviewPage />} />
-          <Route path="/data-source" element={<DataSourcePage />} />
-          <Route path="/data-sync" element={<DataSyncPage />} />
-          <Route path="/data-sync/new" element={<NewDataSyncTaskEditorRedirect />} />
-          <Route path="/data-sync/new/database" element={<DatabaseSyncTaskEditorPage />} />
-          <Route path="/data-sync/new/multi-table" element={<MultiTableSyncTaskEditorPage />} />
-          <Route path="/data-sync/new/single-table" element={<SingleTableSyncTaskEditorPage />} />
-          <Route path="/data-sync/:id/edit" element={<DataSyncTaskEditorPage />} />
-          <Route path="/data-sync/:id/detail" element={<DataSyncTaskDetailPage />} />
-        </Route>
+            <Route
+              path="/data-sync/new/single-table"
+              element={<SingleTableSyncTaskEditorPage />}
+            />
+            <Route path="/data-sync/:id/edit" element={<DataSyncTaskEditorPage />} />
+            <Route path="/data-sync/:id/detail" element={<DataSyncTaskDetailPage />} />
+          </Route>
 
-        <Route
-          element={
-            <AppLayout
-              productLabel={OPERATIONS_PRODUCT_LABEL}
-              productPath="/operations/offline-tasks"
-              navigation={OPERATIONS_NAVIGATION}
+          <Route
+            element={
+              <AppLayout
+                productLabel={OPERATIONS_PRODUCT_LABEL}
+                productPath="/operations/offline-tasks"
+                navigation={OPERATIONS_NAVIGATION}
+              />
+            }
+          >
+            <Route
+              path="/operations"
+              element={<Navigate replace to="/operations/offline-tasks" />}
             />
-          }
-        >
-          <Route path="/operations" element={<Navigate replace to="/operations/offline-tasks" />} />
-          <Route path="/operations/offline-tasks" element={<OfflineTaskOperationsPage />} />
-          <Route
-            path="/operations/offline-tasks/instances/:id"
-            element={<DataSyncInstanceRedirect />}
-          />
-          <Route path="/operations/realtime-tasks" element={<RealtimeTaskOperationsPage />} />
-          <Route
-            path="/operations/realtime-tasks/instances/:id"
-            element={<DataSyncInstanceRedirect />}
-          />
-        </Route>
+            <Route path="/operations/offline-tasks" element={<OfflineTaskOperationsPage />} />
+            <Route
+              path="/operations/offline-tasks/instances/:id"
+              element={<DataSyncInstanceRedirect />}
+            />
+            <Route path="/operations/realtime-tasks" element={<RealtimeTaskOperationsPage />} />
+            <Route
+              path="/operations/realtime-tasks/instances/:id"
+              element={<DataSyncInstanceRedirect />}
+            />
+          </Route>
 
-        <Route
-          element={
-            <AppLayout
-              productLabel={MANAGEMENT_PRODUCT_LABEL}
-              productPath="/management/users"
-              navigation={MANAGEMENT_NAVIGATION}
-            />
-          }
-        >
-          <Route path="/management" element={<Navigate replace to="/management/users" />} />
-          <Route path="/management/users" element={<UserManagementPage />} />
-          <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
-          <Route path="/management/alerts" element={<AlertCenterPage />} />
-        </Route>
+          <Route
+            element={
+              <AppLayout
+                productLabel={MANAGEMENT_PRODUCT_LABEL}
+                productPath="/management/users"
+                navigation={MANAGEMENT_NAVIGATION}
+              />
+            }
+          >
+            <Route path="/management" element={<Navigate replace to="/management/users" />} />
+            <Route path="/management/users" element={<UserManagementPage />} />
+            <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
+            <Route path="/management/alerts" element={<AlertCenterPage />} />
+          </Route>
 
           <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
           <Route path="*" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
