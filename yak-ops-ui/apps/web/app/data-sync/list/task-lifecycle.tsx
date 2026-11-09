@@ -89,6 +89,7 @@ export function DataSyncTaskLifecycleActions({
 }: DataSyncTaskLifecycleActionsProps) {
   const published = isPublishedTask(record);
   const canManage = !workflowActive && canManageTaskDefinition(instanceStateReady, activeInstance);
+  const canUnpublish = !workflowActive && !activeInstance;
   const lifecycleAction = published ? "unpublish" : "publish";
   const actions: LifecycleAction[] = [
     {
@@ -96,7 +97,7 @@ export function DataSyncTaskLifecycleActions({
       label: published ? "下线" : "上线",
       className: "text-[var(--yak-color-primary)]",
       loading: actionKey === `${record.id}:${lifecycleAction}`,
-      disabled: !canManage,
+      disabled: published ? !canUnpublish : !canManage,
       onClick: () => (published ? onUnpublish(record) : onPublish(record)),
     },
   ];
