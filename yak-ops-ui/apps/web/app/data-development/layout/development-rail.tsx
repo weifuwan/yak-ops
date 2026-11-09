@@ -7,6 +7,7 @@ import {
   FileText,
   History,
   PanelLeftClose,
+  PanelLeftOpen,
   Puzzle,
   Server,
   Settings,
@@ -59,7 +60,9 @@ const RAIL_ITEMS: RailItem[] = [
 
 type DevelopmentRailProps = {
   activeSection: DataDevelopmentSection;
+  panelCollapsed: boolean;
   onSectionChange: (section: DataDevelopmentSection) => void;
+  onTogglePanel: () => void;
 };
 
 function RailButton({
@@ -103,7 +106,9 @@ function RailButton({
 
 export function DevelopmentRail({
   activeSection,
+  panelCollapsed,
   onSectionChange,
+  onTogglePanel,
 }: DevelopmentRailProps) {
   return (
     <aside
@@ -135,7 +140,11 @@ export function DevelopmentRail({
         <RailButton label="查看帮助" icon={CircleHelp} />
         <RailButton label="切换主题" icon={Sun} />
         <RailButton label="管理" icon={Settings} />
-        <RailButton label="收起活动栏" icon={PanelLeftClose} />
+        <RailButton
+          label={panelCollapsed ? "展开侧边面板" : "收起侧边面板"}
+          icon={panelCollapsed ? PanelLeftOpen : PanelLeftClose}
+          onClick={onTogglePanel}
+        />
       </div>
     </aside>
   );
