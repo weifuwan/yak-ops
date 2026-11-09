@@ -8,7 +8,6 @@ import AppLoading from "./AppLoading";
 
 export default function WorkspaceGate() {
   const {
-    workspaces,
     currentWorkspace,
     loading,
     error,
