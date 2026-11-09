@@ -5,9 +5,9 @@ export interface UserRecord {
   userName: string;
   email?: string | null;
   phone?: string | null;
-  userType: "ADMIN_USER" | "GENERAL_USER";
-  tenantId: number;
-  state: number;
+  userType?: "ADMIN_USER" | "GENERAL_USER";
+  tenantId?: number;
+  state?: number;
   queue?: string | null;
   timeZone?: string | null;
   createTime?: string;
