@@ -14,6 +14,7 @@ import {
   MarkerType,
   ReactFlow,
   addEdge,
+  type NodeChange,
   type Connection,
   type Edge,
   type ReactFlowInstance,
@@ -98,6 +99,9 @@ export function WorkflowCanvas({
   );
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [draftNodes, setDraftNodes] = useState<WorkflowCanvasNode[]>([]);
+  const [nodePositionOverrides, setNodePositionOverrides] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
   const [draftEdges, setDraftEdges] = useState<Edge[]>([]);
   const [removedBackendEdgeIds, setRemovedBackendEdgeIds] = useState<Set<string>>(
     new Set(),
@@ -111,6 +115,7 @@ export function WorkflowCanvas({
 
   useEffect(() => {
     setDraftNodes([]);
+    setNodePositionOverrides({});
     setDraftEdges([]);
     setRemovedBackendEdgeIds(new Set());
     setSelectedEdgeId(null);
@@ -156,13 +161,41 @@ export function WorkflowCanvas({
     () =>
       [...canvas.nodes, ...draftNodes].map((node) => ({
         ...node,
+        position: nodePositionOverrides[node.id] ?? node.position,
         selected: node.id === selectedNodeId,
         data: {
           ...node.data,
           onAction: handleNodeAction,
         },
       })),
-    [canvas.nodes, draftNodes, handleNodeAction, selectedNodeId],
+    [
+      canvas.nodes,
+      draftNodes,
+      handleNodeAction,
+      nodePositionOverrides,
+      selectedNodeId,
+    ],
+  );
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<WorkflowCanvasNode>[]) => {
+      const positionChanges = changes.filter(
+        (change) => change.type === "position" && change.position,
+      );
+
+      if (positionChanges.length === 0) return;
+
+      setNodePositionOverrides((current) => {
+        const next = { ...current };
+        for (const change of positionChanges) {
+          if (change.type === "position" && change.position) {
+            next[change.id] = change.position;
+          }
+        }
+        return next;
+      });
+    },
+    [],
   );
 
   const visibleBackendEdges = useMemo(
@@ -368,7 +401,6 @@ export function WorkflowCanvas({
         taskType,
         name: `${taskType} 节点`,
       },
-      draggable: false,
       selectable: true,
     };
 
@@ -384,6 +416,7 @@ export function WorkflowCanvas({
         edges={edges}
         nodeTypes={nodeTypes}
         onInit={setInstance}
+        onNodesChange={handleNodesChange}
         onNodeClick={(_event, node) => {
           setSelectedNodeId(node.id);
           setSelectedEdgeId(null);
@@ -403,7 +436,7 @@ export function WorkflowCanvas({
         onDrop={handleDrop}
         fitView
         fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
-        nodesDraggable={false}
+        nodesDraggable={interactionMode === "pointer"}
         nodesConnectable
         edgesFocusable
         elementsSelectable={interactionMode === "pointer"}

@@ -113,7 +113,6 @@ export function buildWorkflowCanvas(
         name: task.name,
         taskType: task.taskType,
       },
-      draggable: false,
       selectable: true,
     } satisfies WorkflowCanvasNode;
   });
