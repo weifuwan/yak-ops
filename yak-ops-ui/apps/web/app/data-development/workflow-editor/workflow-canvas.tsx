@@ -19,6 +19,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { Hand, MousePointer2 } from "lucide-react";
 import { toast } from "@yak-ops/yak-ui";
 
 import type {
@@ -43,6 +44,8 @@ type WorkflowCanvasProps = {
   relations: WorkflowTaskRelationRecord[];
   selectedTaskCode?: number;
 };
+
+type InteractionMode = "pointer" | "pan";
 
 const actionLabel: Record<WorkflowNodeAction, string> = {
   "create-upstream": "新建上游",
@@ -88,6 +91,8 @@ export function WorkflowCanvas({
 }: WorkflowCanvasProps) {
   const [instance, setInstance] =
     useState<ReactFlowInstance<WorkflowCanvasNode, Edge> | null>(null);
+  const [interactionMode, setInteractionMode] =
+    useState<InteractionMode>("pan");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     selectedTaskCode ? String(selectedTaskCode) : null,
   );
@@ -401,6 +406,9 @@ export function WorkflowCanvas({
         nodesDraggable={false}
         nodesConnectable
         edgesFocusable
+        elementsSelectable={interactionMode === "pointer"}
+        panOnDrag={interactionMode === "pan"}
+        selectionOnDrag={interactionMode === "pointer"}
         connectOnClick={false}
         connectionLineType={ConnectionLineType.SmoothStep}
         connectionLineStyle={{
@@ -422,9 +430,43 @@ export function WorkflowCanvas({
         <Controls
           position="top-right"
           showInteractive={false}
+          className="!top-12"
           fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
         />
       </ReactFlow>
+
+      <div className="absolute right-3 top-3 z-10 flex overflow-hidden rounded-sm border border-[var(--yak-components-border)] bg-white shadow-sm">
+        <button
+          type="button"
+          title="指针模式"
+          aria-label="指针模式"
+          aria-pressed={interactionMode === "pointer"}
+          onClick={() => setInteractionMode("pointer")}
+          className={[
+            "flex size-8 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] transition-colors",
+            interactionMode === "pointer"
+              ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+              : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
+          ].join(" ")}
+        >
+          <MousePointer2 size={15} strokeWidth={1.7} />
+        </button>
+        <button
+          type="button"
+          title="抓手模式"
+          aria-label="抓手模式"
+          aria-pressed={interactionMode === "pan"}
+          onClick={() => setInteractionMode("pan")}
+          className={[
+            "flex size-8 cursor-pointer items-center justify-center transition-colors",
+            interactionMode === "pan"
+              ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+              : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
+          ].join(" ")}
+        >
+          <Hand size={15} strokeWidth={1.7} />
+        </button>
+      </div>
 
       {nodes.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
