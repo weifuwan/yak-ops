@@ -29,7 +29,7 @@ export function RunDataSyncTaskDialog({
       open
       centered
       width={600}
-      title="运行同步任务"
+      title={task.syncType === "REALTIME" ? "启动同步任务" : "运行同步任务"}
       onClose={() => {
         if (!pending) onClose();
       }}
@@ -51,7 +51,7 @@ export function RunDataSyncTaskDialog({
               })
             }
           >
-            运行
+            {task.syncType === "REALTIME" ? "启动" : "运行"}
           </Button>
         </>
       }
