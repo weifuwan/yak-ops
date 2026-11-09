@@ -4,8 +4,10 @@
   --button-bg-hover: var(--button-bg);
   --button-bg-pressed: var(--button-bg-hover);
   --button-fg: currentColor;
-  --button-accent: oklch(0.6204 0.195 253.83);
-  --button-accent-foreground: oklch(0.9911 0 0);
+  --button-accent: var(--yak-color-primary);
+  --button-accent-hover: var(--yak-color-primary-hover);
+  --button-accent-active: var(--yak-color-primary-active);
+  --button-accent-foreground: #ffffff;
   --button-default: oklch(94% 0.001 286.375);
   --button-default-foreground: oklch(0.2103 0.0059 285.89);
   --button-danger: oklch(0.6532 0.2328 25.74);
@@ -93,8 +95,8 @@
 .button--lg:active, .button--lg[data-pressed] { transform: scale(0.96); }
 .button--primary {
   --button-bg: var(--button-accent);
-  --button-bg-hover: color-mix(in oklab, var(--button-accent) 90%, var(--button-accent-foreground) 10%);
-  --button-bg-pressed: var(--button-bg-hover);
+  --button-bg-hover: var(--button-accent-hover);
+  --button-bg-pressed: var(--button-accent-active);
   --button-fg: var(--button-accent-foreground);
 }
 .button--secondary {
