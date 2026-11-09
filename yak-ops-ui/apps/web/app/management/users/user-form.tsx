@@ -7,9 +7,19 @@ import {
   Modal,
   PasswordInput,
 } from "@yak-ops/yak-ui";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
-import { createUser, updateUser, type UserRecord, type UserSavePayload } from "@/service/user";
+import {
+  createUser,
+  listQueues,
+  listTenants,
+  updateUser,
+  type QueueOption,
+  type TenantOption,
+  type UserRecord,
+  type UserSavePayload,
+} from "@/service/user";
 
 type UserFormProps = {
   open: boolean;
@@ -21,9 +31,12 @@ type UserFormProps = {
 type FormValues = {
   userName: string;
   password: string;
-  realName: string;
-  phone: string;
+  tenantId: string;
+  queue: string;
   email: string;
+  phone: string;
+  state: string;
+  timeZone: string;
 };
 
 type FormErrors = Partial<Record<keyof FormValues, string>>;
@@ -31,57 +44,81 @@ type FormErrors = Partial<Record<keyof FormValues, string>>;
 const EMPTY_VALUES: FormValues = {
   userName: "",
   password: "",
-  realName: "",
-  phone: "",
+  tenantId: "",
+  queue: "",
   email: "",
+  phone: "",
+  state: "1",
+  timeZone: "",
 };
 
-const USERNAME_PATTERN = /^[0-9a-zA-Z_]{3,50}$/;
-const PHONE_PATTERN = /^1\d{10}$/;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HORIZONTAL_FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
+const CONTROL_CLASS =
+  "h-8 w-full rounded-md border border-[var(--yak-components-input-border)] bg-white px-2.5 text-sm text-[var(--yak-components-panel-text)] outline-none focus:border-[var(--yak-color-primary)]";
 
 export default function UserForm({ open, record, onClose, onSaved }: UserFormProps) {
   const editing = Boolean(record?.id);
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const tenantsQuery = useQuery({ queryKey: ["management", "user-form", "tenants"], queryFn: listTenants, enabled: open });
+  const queuesQuery = useQuery({ queryKey: ["management", "user-form", "queues"], queryFn: listQueues, enabled: open });
+  const tenants = tenantsQuery.data ?? [];
+  const queues = queuesQuery.data ?? [];
+  const selectedTenant = tenants.find((tenant) => String(tenant.id) === values.tenantId);
+
+  const tenantQueues = useMemo(() => {
+    if (!selectedTenant) return queues;
+    const matched = queues.find((queue) => queue.id === selectedTenant.queueId);
+    return matched ? [matched] : queues;
+  }, [queues, selectedTenant]);
 
   useEffect(() => {
     if (!open) return;
     setValues({
-      userName: record?.userName || "",
+      userName: record?.userName ?? "",
       password: "",
-      realName: record?.realName || "",
-      phone: "",
-      email: record?.email || "",
+      tenantId: record ? String(record.tenantId) : "",
+      queue: record?.queue ?? "",
+      email: record?.email ?? "",
+      phone: record?.phone ?? "",
+      state: String(record?.state ?? 1),
+      timeZone: record?.timeZone ?? "",
     });
     setErrors({});
   }, [open, record]);
 
+  useEffect(() => {
+    if (!open || editing || values.tenantId || tenants.length === 0) return;
+    setValues((current) => ({ ...current, tenantId: String(tenants[0].id) }));
+  }, [open, editing, values.tenantId, tenants]);
+
+  useEffect(() => {
+    if (!open || !selectedTenant || values.queue) return;
+    const tenantQueue = queues.find((queue) => queue.id === selectedTenant.queueId);
+    if (tenantQueue) setValues((current) => ({ ...current, queue: tenantQueue.queue }));
+    else if (selectedTenant.queue) setValues((current) => ({ ...current, queue: selectedTenant.queue ?? "" }));
+  }, [open, selectedTenant, queues, values.queue]);
+
   const patch = (key: keyof FormValues, value: string) => {
-    setValues((current) => ({ ...current, [key]: value }));
-    setErrors((current) => ({ ...current, [key]: undefined }));
+    setValues((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "tenantId" ? { queue: "" } : {}),
+    }));
+    setErrors((current) => ({ ...current, [key]: undefined, ...(key === "tenantId" ? { queue: undefined } : {}) }));
   };
 
   const validate = () => {
     const next: FormErrors = {};
-    const userName = values.userName.trim();
-    const phone = values.phone.trim();
-    const email = values.email.trim();
-
-    if (!userName) next.userName = "请输入用户名";
-    else if (!USERNAME_PATTERN.test(userName))
-      next.userName = "用户名需为 3～50 位字母、数字或下划线";
-
+    if (!values.userName.trim()) next.userName = "请输入用户名";
     if (!editing && !values.password) next.password = "请输入初始密码";
-    else if (values.password && (values.password.length < 8 || values.password.length > 64)) {
-      next.password = "密码长度需为 8～64 位";
+    if (values.password && (values.password.length < 6 || values.password.length > 20)) {
+      next.password = "密码长度需为 6～20 位";
     }
-
-    if (phone && !PHONE_PATTERN.test(phone)) next.phone = "请输入 11 位手机号码";
-    if (email && !EMAIL_PATTERN.test(email)) next.email = "请输入正确的邮箱地址";
-
+    if (!values.tenantId) next.tenantId = "请选择租户";
+    if (!values.email.trim()) next.email = "请输入邮箱";
+    if (!values.phone.trim()) next.phone = "请输入手机号";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -92,21 +129,53 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
     try {
       const payload: UserSavePayload = {
         userName: values.userName.trim(),
-        pw: values.password || undefined,
-        realName: values.realName.trim() || undefined,
-        phone: values.phone.trim() || undefined,
-        email: values.email.trim() || undefined,
+        userPassword: values.password,
+        tenantId: Number(values.tenantId),
+        queue: values.queue,
+        email: values.email.trim(),
+        phone: values.phone.trim(),
+        state: Number(values.state),
+        timeZone: values.timeZone.trim() || undefined,
       };
-
-      if (editing) await updateUser(payload);
+      if (editing && record) await updateUser(record.id, payload);
       else await createUser(payload);
-
       onClose();
       onSaved();
+    } catch {
+      // The shared HTTP layer already reports request and business errors.
     } finally {
       setSaving(false);
     }
   };
+
+  const renderSelect = (
+    id: string,
+    value: string,
+    options: Array<{ value: string; label: string }>,
+    placeholder: string,
+    onChange: (value: string) => void,
+    disabled = false,
+  ) => (
+    <select id={id} className={CONTROL_CLASS} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{placeholder}</option>
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  );
+
+  const renderField = (
+    key: keyof FormValues,
+    label: string,
+    control: React.ReactNode,
+    required = false,
+  ) => (
+    <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors[key])}>
+      <FieldLabel required={required} className="pt-1.5 text-xs leading-4">{label}</FieldLabel>
+      <div className="min-w-0">
+        {control}
+        <FieldError match={Boolean(errors[key])} className="mt-1">{errors[key]}</FieldError>
+      </div>
+    </Field>
+  );
 
   return (
     <Modal
@@ -115,126 +184,33 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
       width={600}
       bodyClassName="py-3"
       title={editing ? "编辑用户" : "新增用户"}
-      onClose={() => {
-        if (!saving) onClose();
-      }}
+      onClose={() => { if (!saving) onClose(); }}
       footer={
         <>
-          <Button variant="secondary" size="sm" isDisabled={saving} onClick={onClose}>
-            取消
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            isPending={saving}
-            onClick={() => void handleSubmit()}
-          >
+          <Button variant="secondary" size="sm" isDisabled={saving} onClick={onClose}>取消</Button>
+          <Button size="sm" variant="primary" isPending={saving} onClick={() => void handleSubmit()}>
             {editing ? "保存" : "创建"}
           </Button>
         </>
       }
     >
       <div className="space-y-2.5">
-        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.userName)}>
-          <FieldLabel required htmlFor="management-user-name" className="pt-1.5 text-xs leading-4">
-            用户名
-          </FieldLabel>
-          <div className="min-w-0">
-            <Input
-              id="management-user-name"
-              size="small"
-              variant="outlined"
-              value={values.userName}
-              readOnly={editing}
-              aria-invalid={Boolean(errors.userName) || undefined}
-              placeholder="请输入用户名"
-              onChange={(event) => patch("userName", event.target.value)}
-            />
-            <FieldError match={Boolean(errors.userName)} className="mt-1">
-              {errors.userName}
-            </FieldError>
-          </div>
-        </Field>
-
-        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.password)}>
-          <FieldLabel
-            required={!editing}
-            htmlFor="management-user-password"
-            className="pt-1.5 text-xs leading-4"
-          >
-            {editing ? "新密码" : "初始密码"}
-          </FieldLabel>
-          <div className="min-w-0">
-            <PasswordInput
-              id="management-user-password"
-              size="small"
-              variant="outlined"
-              value={values.password}
-              aria-invalid={Boolean(errors.password) || undefined}
-              placeholder={editing ? "留空表示不修改密码" : "请输入 8～64 位密码"}
-              onChange={(event) => patch("password", event.target.value)}
-            />
-            <FieldError match={Boolean(errors.password)} className="mt-1">
-              {errors.password}
-            </FieldError>
-          </div>
-        </Field>
-
-        <Field className={HORIZONTAL_FIELD_CLASS}>
-          <FieldLabel htmlFor="management-user-real-name" className="pt-1.5 text-xs leading-4">
-            姓名
-          </FieldLabel>
-          <Input
-            id="management-user-real-name"
-            size="small"
-            variant="outlined"
-            value={values.realName}
-            placeholder="请输入姓名"
-            onChange={(event) => patch("realName", event.target.value)}
-          />
-        </Field>
-
-        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.phone)}>
-          <FieldLabel htmlFor="management-user-phone" className="pt-1.5 text-xs leading-4">
-            手机号
-          </FieldLabel>
-          <div className="min-w-0">
-            <Input
-              id="management-user-phone"
-              size="small"
-              variant="outlined"
-              value={values.phone}
-              aria-invalid={Boolean(errors.phone) || undefined}
-              placeholder={
-                editing && record?.phone ? `当前：${record.phone}，留空表示不修改` : "请输入手机号"
-              }
-              onChange={(event) => patch("phone", event.target.value)}
-            />
-            <FieldError match={Boolean(errors.phone)} className="mt-1">
-              {errors.phone}
-            </FieldError>
-          </div>
-        </Field>
-
-        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.email)}>
-          <FieldLabel htmlFor="management-user-email" className="pt-1.5 text-xs leading-4">
-            邮箱
-          </FieldLabel>
-          <div className="min-w-0">
-            <Input
-              id="management-user-email"
-              size="small"
-              variant="outlined"
-              value={values.email}
-              aria-invalid={Boolean(errors.email) || undefined}
-              placeholder="请输入邮箱"
-              onChange={(event) => patch("email", event.target.value)}
-            />
-            <FieldError match={Boolean(errors.email)} className="mt-1">
-              {errors.email}
-            </FieldError>
-          </div>
-        </Field>
+        {renderField("userName", "用户名",
+          <Input size="small" variant="outlined" value={values.userName} readOnly={editing} placeholder="请输入用户名" onChange={(event) => patch("userName", event.target.value)} />, true)}
+        {renderField("password", editing ? "新密码" : "初始密码",
+          <PasswordInput size="small" variant="outlined" value={values.password} placeholder={editing ? "留空表示不修改密码" : "请输入初始密码"} onChange={(event) => patch("password", event.target.value)} />, !editing)}
+        {renderField("tenantId", "所属租户",
+          renderSelect("management-user-tenant", values.tenantId, tenants.map((tenant: TenantOption) => ({ value: String(tenant.id), label: tenant.tenantCode })), tenantsQuery.isLoading ? "正在加载租户..." : "请选择租户", (value) => patch("tenantId", value), tenantsQuery.isLoading), true)}
+        {renderField("queue", "队列",
+          renderSelect("management-user-queue", values.queue, tenantQueues.map((queue: QueueOption) => ({ value: queue.queue, label: queue.queueName + " (" + queue.queue + ")" })), queuesQuery.isLoading ? "正在加载队列..." : "请选择队列", (value) => patch("queue", value), queuesQuery.isLoading))}
+        {renderField("email", "邮箱",
+          <Input size="small" variant="outlined" value={values.email} placeholder="请输入邮箱" onChange={(event) => patch("email", event.target.value)} />, true)}
+        {renderField("phone", "手机号",
+          <Input size="small" variant="outlined" value={values.phone} placeholder="请输入手机号" onChange={(event) => patch("phone", event.target.value)} />, true)}
+        {renderField("state", "用户状态",
+          renderSelect("management-user-state", values.state, [{ value: "1", label: "启用" }, { value: "0", label: "禁用" }], "请选择状态", (value) => patch("state", value)), true)}
+        {renderField("timeZone", "时区",
+          <Input size="small" variant="outlined" value={values.timeZone} placeholder="例如 Asia/Shanghai" onChange={(event) => patch("timeZone", event.target.value)} />)}
       </div>
     </Modal>
   );
