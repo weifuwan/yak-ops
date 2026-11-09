@@ -1,6 +1,19 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Modal, Table, toast, type TableColumns } from "@yak-ops/yak-ui";
+import {
+  Button,
+  Modal,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+  Table,
+  toast,
+  type TableColumns,
+} from "@yak-ops/yak-ui";
 import { Plus } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -95,13 +108,26 @@ export function MemberDialog({ workspace, onClose }: Props) {
         </div>
         {adding && canAdd ? (
           <div className="flex flex-wrap items-center gap-2 rounded-md border p-3">
-            <select value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}
-              aria-label="选择用户" className="h-8 min-w-52 rounded-md border border-black/15 bg-white px-2 text-sm">
-              <option value="">请选择用户</option>
-              {selectable.map((user) => (
-                <option key={user.id} value={user.id}>{user.userName}</option>
-              ))}
-            </select>
+            <div className="min-w-52">
+              <Select<string>
+                size="small"
+                items={Object.fromEntries(selectable.map((user) => [user.id, user.userName]))}
+                value={selectedUserId || null}
+                onValueChange={(value) => setSelectedUserId(value ?? "")}
+              >
+                <SelectTrigger variant="outlined" aria-label="选择用户">
+                  <SelectValue placeholder="请选择用户" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectable.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <SelectItemText>{user.userName}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button size="sm" variant="primary" isPending={add.isPending}
               isDisabled={!selectedUserId || usersQuery.isLoading}
               onClick={() => add.mutate(selectedUserId)}>授权写入权限</Button>
