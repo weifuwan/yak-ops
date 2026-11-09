@@ -56,6 +56,7 @@ interface Data {
 
 interface Actions {
   command: (value: TaskCommand) => void;
+  alert: (task: DataSyncTaskRecord) => void;
   delete: (task: DataSyncTaskRecord) => void;
   page: (page: number) => void;
 }
@@ -265,7 +266,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
     {
       key: "actions",
       title: "操作",
-      width: 280,
+      width: 210,
       fixed: "right",
       align: "center",
       render: (_value, record) =>
@@ -330,6 +331,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             }}
             onPublish={(value) => publishTask(value)}
             onUnpublish={(value) => unpublishTask(value)}
+            onAlertConfig={(value) => actions.alert(value)}
             onEdit={(value) => {
               navigate(`/data-sync/${value.id}/edit`);
             }}
@@ -352,7 +354,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
       bordered
       size="medium"
       rowHeight={64}
-      scroll={{ x: 1700 }}
+      scroll={{ x: 1630 }}
       emptyText={failed ? "任务列表加载失败" : "还没有同步任务"}
       pagination={
         total > 0
