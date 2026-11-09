@@ -327,14 +327,13 @@ export function WorkflowCanvas({
   );
 
   useEffect(() => {
-    if (!instance || nodes.length === 0) return;
-
-    const selectedNode = selectedNodeId
-      ? nodes.find((node) => node.id === selectedNodeId)
-      : undefined;
+    if (!instance || canvas.nodes.length === 0) return;
 
     const frame = window.requestAnimationFrame(() => {
-      if (selectedTaskCode && selectedNode) {
+      if (selectedTaskCode) {
+        const selectedNode = instance.getNode(String(selectedTaskCode));
+        if (!selectedNode) return;
+
         void instance.fitView({
           nodes: [selectedNode],
           duration: 220,
@@ -344,23 +343,15 @@ export function WorkflowCanvas({
         return;
       }
 
-      if (!selectedNodeId && !selectedEdgeId) {
-        void instance.fitView({
-          duration: 220,
-          padding: 0.28,
-          maxZoom: 1,
-        });
-      }
+      void instance.fitView({
+        duration: 220,
+        padding: 0.28,
+        maxZoom: 1,
+      });
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [
-    instance,
-    nodes,
-    selectedEdgeId,
-    selectedNodeId,
-    selectedTaskCode,
-  ]);
+  }, [instance, canvas.nodes, selectedTaskCode]);
 
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
