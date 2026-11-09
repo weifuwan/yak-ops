@@ -105,15 +105,13 @@ export function WorkflowCanvas({
     const nodeId = selectTaskCode(selectedTaskCode);
     if (!nodeId) return;
 
-    window.requestAnimationFrame(() => {
-      const node = instance.getNode(nodeId);
-      if (!node) return;
+    const node = instance.getNode(nodeId);
+    if (!node) return;
 
-      void instance.fitView({
-        nodes: [node],
-        padding: 1.6,
-        maxZoom: 1.15,
-      });
+    void instance.fitView({
+      nodes: [node],
+      padding: 1.6,
+      maxZoom: 1.15,
     });
   }, [instance, selectTaskCode, selectedTaskCode]);
 
@@ -165,6 +163,22 @@ export function WorkflowCanvas({
         edgeTypes={edgeTypes}
         onInit={(flow) => {
           setInstance(flow);
+
+          if (selectedTaskCode) {
+            const selectedNode = nodes.find(
+              (node) =>
+                node.data.taskCode === selectedTaskCode,
+            );
+            if (selectedNode) {
+              void flow.fitView({
+                nodes: [selectedNode],
+                padding: 1.6,
+                maxZoom: 1.15,
+              });
+              return;
+            }
+          }
+
           if (nodes.length > 0) {
             void flow.fitView({
               padding: 0.22,
