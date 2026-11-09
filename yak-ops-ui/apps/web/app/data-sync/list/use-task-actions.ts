@@ -10,7 +10,7 @@ import {
   unpublishDataSyncTask,
   type DataSyncTaskRecord,
 } from "@/service/data-sync";
-import { listQueryKeys } from "./query-keys";
+import type { StartWorkflowOptions } from "@/service/workflow/execution";\nimport { listQueryKeys } from "./query-keys";
 
 export type TaskCommand =
   | { kind: "run" | "publish" | "unpublish" | "delete"; task: DataSyncTaskRecord }
