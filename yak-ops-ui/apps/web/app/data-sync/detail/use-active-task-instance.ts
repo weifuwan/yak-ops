@@ -22,7 +22,7 @@ export function useActiveTaskInstance(scope: string, taskId?: string, workflowCo
       result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : 15000,
   });
   return {
-    workflow: workflowQuery.data,
+    workflow: workflowQuery.data ?? undefined,
     activeInstance: query.data?.find((instance) => instance.definitionId === taskId),
     ready: Boolean(scope && taskId && workflowCode && query.isSuccess && workflowQuery.isSuccess &&
       !query.isFetching && !workflowQuery.isFetching),
