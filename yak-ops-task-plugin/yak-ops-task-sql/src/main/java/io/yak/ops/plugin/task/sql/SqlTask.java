@@ -1,7 +1,10 @@
 package io.yak.ops.plugin.task.sql;
 
+import io.yak.ops.common.constants.Constants;
+import io.yak.ops.common.enums.AlertType;
 import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.common.utils.PropertyUtils;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceClientProvider;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginManager;
 import io.yak.ops.plugin.datasource.api.utils.DataSourceUtils;
@@ -39,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +51,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -72,6 +77,21 @@ public class SqlTask extends AbstractTask {
      * default query sql limit
      */
     private static final int QUERY_LIMIT = 10000;
+
+    private static final int DEFAULT_ALERT_MAX_ROWS = 30;
+
+    private static final int DEFAULT_ALERT_MAX_ROW_VALUE_LENGTH = 100;
+
+    private static final int DEFAULT_ALERT_MAX_CONTENT_BYTES = 60000;
+
+    private final int alertMaxRows =
+            PropertyUtils.getInt(Constants.SQL_TASK_ALERT_MAX_ROWS, DEFAULT_ALERT_MAX_ROWS);
+
+    private final int alertMaxRowValueLength =
+            PropertyUtils.getInt(Constants.SQL_TASK_ALERT_MAX_ROW_VALUE_LENGTH, DEFAULT_ALERT_MAX_ROW_VALUE_LENGTH);
+
+    private final int alertMaxContentBytes =
+            PropertyUtils.getInt(Constants.SQL_TASK_ALERT_MAX_CONTENT_BYTES, DEFAULT_ALERT_MAX_CONTENT_BYTES);
 
     private final SQLTaskExecutionContext sqlTaskExecutionContext;
 
@@ -270,13 +290,18 @@ public class SqlTask extends AbstractTask {
             }
         }
 
-        String result = resultJSONArray.isEmpty() ? JSONUtils.toJsonString(generateEmptyRow(resultSet))
-                : JSONUtils.toJsonString(resultJSONArray);
+        String result;
+        ArrayNode alertArray = resultJSONArray;
+        if (resultJSONArray.isEmpty()) {
+            ArrayNode emptyRow = generateEmptyRow(resultSet);
+            result = JSONUtils.toJsonString(emptyRow);
+            alertArray = emptyRow;
+        } else {
+            result = JSONUtils.toJsonString(resultJSONArray);
+        }
 
         if (Boolean.TRUE.equals(sqlParameters.getSendEmail())) {
-            sendAttachment(sqlParameters.getGroupId(), StringUtils.isNotEmpty(sqlParameters.getTitle())
-                    ? sqlParameters.getTitle()
-                    : taskExecutionContext.getTaskName() + " query result sets", result);
+            prepareTaskResultAlert(alertArray);
         }
         log.debug("execute sql result : {}", result);
         return result;
@@ -302,19 +327,87 @@ public class SqlTask extends AbstractTask {
         return resultJSONArray;
     }
 
-    /**
-     * send alert as an attachment
-     *
-     * @param title   title
-     * @param content content
-     */
-    private void sendAttachment(int groupId, String title, String content) {
-        setNeedAlert(Boolean.TRUE);
+    private void prepareTaskResultAlert(ArrayNode resultJSONArray) {
         TaskAlertInfo taskAlertInfo = new TaskAlertInfo();
-        taskAlertInfo.setAlertGroupId(groupId);
-        taskAlertInfo.setContent(content);
-        taskAlertInfo.setTitle(title);
-        setTaskAlertInfo(taskAlertInfo);
+        taskAlertInfo.setAlertGroupId(sqlParameters.getGroupId());
+        taskAlertInfo.setTitle(StringUtils.isNotEmpty(sqlParameters.getTitle())
+                ? sqlParameters.getTitle()
+                : taskExecutionContext.getTaskName() + " query result sets");
+        taskAlertInfo.setContent(limitAlertContent(resultJSONArray));
+        taskAlertInfo.setAlertType(AlertType.TASK_RESULT);
+
+        taskExecutionContext.setNeedAlert(true);
+        taskExecutionContext.setTaskAlertInfo(taskAlertInfo);
+        log.debug("Prepare task result alert: title={}, alertGroupId={}, alertType={}, totalRows={}",
+                taskAlertInfo.getTitle(), taskAlertInfo.getAlertGroupId(), taskAlertInfo.getAlertType(),
+                resultJSONArray.size());
+    }
+
+    private String limitAlertContent(ArrayNode resultJSONArray) {
+        int totalRows = resultJSONArray.size();
+        ArrayNode limited = JSONUtils.createArrayNode();
+        int rowsToKeep = Math.min(totalRows, alertMaxRows);
+        for (int i = 0; i < rowsToKeep; i++) {
+            limited.add(limitRowValues(resultJSONArray.get(i)));
+        }
+
+        int omittedRows = totalRows - rowsToKeep;
+        while (true) {
+            if (omittedRows > 0) {
+                limited.add(createOmissionMarker(omittedRows));
+            }
+            String content = JSONUtils.toJsonString(limited);
+            if (content.getBytes(StandardCharsets.UTF_8).length <= alertMaxContentBytes) {
+                return content;
+            }
+            if (omittedRows > 0) {
+                limited.remove(limited.size() - 1);
+            }
+            if (limited.isEmpty()) {
+                return JSONUtils.toJsonString(createOmissionMarkerArray(totalRows));
+            }
+            limited.remove(limited.size() - 1);
+            omittedRows++;
+        }
+    }
+
+    private ObjectNode createOmissionMarker(int omittedRows) {
+        ObjectNode omitted = JSONUtils.createObjectNode();
+        omitted.put("...", omittedRows + " more rows omitted");
+        return omitted;
+    }
+
+    private ArrayNode createOmissionMarkerArray(int totalRows) {
+        ArrayNode markerArray = JSONUtils.createArrayNode();
+        markerArray.add(createOmissionMarker(totalRows));
+        return markerArray;
+    }
+
+    private JsonNode limitRowValues(JsonNode row) {
+        if (!row.isObject()) {
+            return row;
+        }
+        ObjectNode limitedRow = JSONUtils.createObjectNode();
+        Iterator<Map.Entry<String, JsonNode>> fields = row.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            JsonNode value = entry.getValue();
+            if (value.isTextual() && value.textValue().codePointCount(0, value.textValue().length())
+                    > alertMaxRowValueLength) {
+                limitedRow.put(entry.getKey(),
+                        truncateAtCodePointBoundary(value.textValue(), alertMaxRowValueLength) + "...");
+            } else {
+                limitedRow.set(entry.getKey(), value);
+            }
+        }
+        return limitedRow;
+    }
+
+    private String truncateAtCodePointBoundary(String text, int maxChars) {
+        if (text.codePointCount(0, text.length()) <= maxChars) {
+            return text;
+        }
+        return text.substring(0, text.offsetByCodePoints(0, maxChars));
     }
 
     private String executeQuery(Connection connection, SqlBinds sqlBinds, String handlerType) throws Exception {
