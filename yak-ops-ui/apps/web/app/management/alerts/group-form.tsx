@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 
 import {
+  alertChannelTypeLabel,
   createAlertGroup,
   parseAlertInstanceIds,
   updateAlertGroup,
@@ -145,7 +146,7 @@ export function AlertGroupForm({ open, record, channels, onClose, onSaved }: Pro
                           <span className="truncate">{channel.instanceName}</span>
                         </span>
                         <span className="shrink-0 text-xs text-[var(--yak-components-muted-text)]">
-                          {channel.alertPluginName || "-"}
+                          {alertChannelTypeLabel(channel.alertPluginName)}
                         </span>
                       </label>
                     );
