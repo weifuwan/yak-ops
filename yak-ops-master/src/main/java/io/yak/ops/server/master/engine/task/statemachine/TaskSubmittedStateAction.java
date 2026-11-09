@@ -2,7 +2,6 @@ package io.yak.ops.server.master.engine.task.statemachine;
 
 import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.dao.entity.TaskInstance;
-import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.server.master.engine.task.dispatcher.WorkerGroupDispatcherCoordinator;
 import io.yak.ops.server.master.engine.task.execution.ITaskExecution;
@@ -38,9 +37,6 @@ public class TaskSubmittedStateAction extends AbstractTaskStateAction {
 
     @Autowired
     private WorkerGroupDispatcherCoordinator workerGroupDispatcherCoordinator;
-
-    @Autowired
-    private TaskInstanceDao taskInstanceDao;
 
     @Override
     public void onStartEvent(final IWorkflowExecution workflowExecution,
@@ -87,8 +83,8 @@ public class TaskSubmittedStateAction extends AbstractTaskStateAction {
                 taskInstance.getFirstSubmitTime(),
                 taskInstance.getDelayTime() * 60L) * 1_000;
         if (remainTimeMills > 0) {
-            taskInstance.setState(TaskExecutionStatus.DELAY_EXECUTION);
-            taskInstanceDao.updateById(taskInstance);
+            persistTaskInstanceUpdate(taskInstance,
+                    instance -> instance.setState(TaskExecutionStatus.DELAY_EXECUTION));
             log.info("Current taskInstance: {} is choose delay execution, delay time: {}/min, remainTime: {}/ms",
                     taskInstance.getName(),
                     taskInstance.getDelayTime(),
