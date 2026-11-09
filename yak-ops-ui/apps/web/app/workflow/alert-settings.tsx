@@ -46,7 +46,13 @@ export function WorkflowAlertSettings({
   });
   const groups = groupsQuery.data ?? [];
   const alertEnabled = value.warningType !== "NONE";
-  const effectiveGroupId = value.warningGroupId ?? (alertEnabled ? groups[0]?.id : undefined);
+  const configuredGroupExists =
+    value.warningGroupId !== undefined && groups.some((group) => group.id === value.warningGroupId);
+  const effectiveGroupId = alertEnabled
+    ? configuredGroupExists
+      ? value.warningGroupId
+      : groups[0]?.id
+    : undefined;
   const groupRequiredError = alertEnabled && groupsQuery.isSuccess && groups.length === 0;
   const groupLoadError = alertEnabled && groupsQuery.isError && groups.length === 0;
   const valid =
@@ -61,10 +67,10 @@ export function WorkflowAlertSettings({
   }, [onValidChange, valid]);
 
   useEffect(() => {
-    if (alertEnabled && !value.warningGroupId && groups.length > 0) {
-      onChange({ ...value, warningGroupId: groups[0].id });
+    if (alertEnabled && effectiveGroupId && value.warningGroupId !== effectiveGroupId) {
+      onChange({ ...value, warningGroupId: effectiveGroupId });
     }
-  }, [alertEnabled, groups, onChange, value]);
+  }, [alertEnabled, effectiveGroupId, onChange, value]);
 
   return (
     <div className="space-y-2.5">
