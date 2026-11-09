@@ -18,6 +18,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  alertChannelTypeLabel,
+  alertParamLabel,
   createAlertChannel,
   parseAlertPluginParams,
   testAlertChannel,
@@ -41,7 +43,7 @@ function optionLabel(value: unknown, fallback: string) {
   if (value === "success") return "成功";
   if (value === "failure") return "失败";
   if (value === "all") return "全部";
-  return fallback;
+  return alertParamLabel(fallback);
 }
 
 export function AlertChannelForm({ open, record, plugins, onClose, onSaved }: Props) {
@@ -204,14 +206,14 @@ export function AlertChannelForm({ open, record, plugins, onClose, onSaved }: Pr
             <Input
               size="small"
               variant="outlined"
-              value={record.alertPluginName || selectedPlugin?.pluginName || "-"}
+              value={alertChannelTypeLabel(record.alertPluginName || selectedPlugin?.pluginName)}
               disabled
             />
           ) : (
             <Select<string>
               size="small"
               items={Object.fromEntries(
-                plugins.map((plugin) => [String(plugin.id), plugin.pluginName]),
+                plugins.map((plugin) => [String(plugin.id), alertChannelTypeLabel(plugin.pluginName)]),
               )}
               value={pluginId ? String(pluginId) : null}
               onValueChange={(value) => {
@@ -224,7 +226,7 @@ export function AlertChannelForm({ open, record, plugins, onClose, onSaved }: Pr
               <SelectContent>
                 {plugins.map((plugin) => (
                   <SelectItem key={plugin.id} value={String(plugin.id)}>
-                    <SelectItemText>{plugin.pluginName}</SelectItemText>
+                    <SelectItemText>{alertChannelTypeLabel(plugin.pluginName)}</SelectItemText>
                     <SelectItemIndicator />
                   </SelectItem>
                 ))}
@@ -259,7 +261,7 @@ export function AlertChannelForm({ open, record, plugins, onClose, onSaved }: Pr
         {visibleParams.map((param) => {
           const required = param.validate?.some((rule) => rule.required);
           const value = values[param.field] ?? "";
-          const label = param.title || param.name || param.field;
+          const label = alertParamLabel(param.title || param.name, param.field);
           const placeholder =
             typeof param.props?.placeholder === "string" ? param.props.placeholder : undefined;
 
