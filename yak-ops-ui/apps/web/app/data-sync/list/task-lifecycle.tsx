@@ -1,4 +1,14 @@
-import { Badge, Button, type BadgeProps } from "@yak-ops/yak-ui";
+import {
+  Badge,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  type BadgeProps,
+} from "@yak-ops/yak-ui";
+import { Ellipsis } from "lucide-react";
 import { Fragment } from "react";
 
 import { canManageTaskDefinition } from "@/service/data-sync/execution";
@@ -56,6 +66,7 @@ interface DataSyncTaskLifecycleActionsProps {
   onRun?: (record: DataSyncTaskRecord) => void;
   onPublish: (record: DataSyncTaskRecord) => void;
   onUnpublish: (record: DataSyncTaskRecord) => void;
+  onAlertConfig: (record: DataSyncTaskRecord) => void;
   onEdit: (record: DataSyncTaskRecord) => void;
   onDetail: (record: DataSyncTaskRecord) => void;
   onDelete: (record: DataSyncTaskRecord) => void;
@@ -71,6 +82,7 @@ export function DataSyncTaskLifecycleActions({
   onRun,
   onPublish,
   onUnpublish,
+  onAlertConfig,
   onEdit,
   onDetail,
   onDelete,
@@ -83,34 +95,9 @@ export function DataSyncTaskLifecycleActions({
       key: "lifecycle",
       label: published ? "下线" : "上线",
       className: "text-[var(--yak-color-primary)]",
-
       loading: actionKey === `${record.id}:${lifecycleAction}`,
       disabled: !canManage,
       onClick: () => (published ? onUnpublish(record) : onPublish(record)),
-    },
-    {
-      key: "edit",
-      label: "编辑",
-      disabled: !canManage,
-      className:
-        "text-[var(--yak-components-collapse-section-icon)] hover:text-[var(--yak-color-primary)]",
-      onClick: () => onEdit(record),
-    },
-    {
-      key: "detail",
-      label: "详情",
-      className:
-        "text-[var(--yak-components-collapse-section-icon)] hover:text-[var(--yak-color-primary)]",
-      onClick: () => onDetail(record),
-    },
-    {
-      key: "delete",
-      label: "删除",
-      className: published
-        ? "text-[var(--yak-components-collapse-section-icon)]"
-        : "text-[var(--yak-components-collapse-section-icon)] hover:text-[var(--yak-components-danger-text)]",
-      disabled: published || !canManage,
-      onClick: () => onDelete(record),
     },
   ];
 
@@ -152,6 +139,37 @@ export function DataSyncTaskLifecycleActions({
           </Button>
         </Fragment>
       ))}
+
+      <span className="mx-0.5 h-3 w-px bg-[var(--yak-components-table-border-strong)]" />
+
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label="更多操作"
+          disabled={Boolean(actionKey)}
+          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-[var(--yak-radius-control-small)] border-0 bg-transparent px-1.5 text-xs text-[var(--yak-components-collapse-section-icon)] outline-none hover:bg-[var(--yak-components-menu-item-hover)] hover:text-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          更多
+          <Ellipsis className="h-3.5 w-3.5" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="bottom" align="end" className="w-36">
+          <DropdownMenuItem onClick={() => onAlertConfig(record)}>
+            告警配置
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled={!canManage} onClick={() => onEdit(record)}>
+            编辑
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onDetail(record)}>详情</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            tone="danger"
+            disabled={published || !canManage}
+            onClick={() => onDelete(record)}
+          >
+            删除
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
