@@ -16,6 +16,8 @@ import io.yak.ops.dao.entity.TaskInstanceDependentDetails;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowDefinitionLog;
 import io.yak.ops.dao.entity.WorkflowInstance;
+import io.yak.ops.extract.master.command.AbstractCommandParam;
+import io.yak.ops.extract.master.command.ICommandParam;
 import io.yak.ops.plugin.task.api.model.Property;
 import io.yak.ops.plugin.task.api.utils.GlobalParameterUtils;
 import io.yak.ops.plugin.task.api.utils.PropertySensitiveUtils;
@@ -29,6 +31,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -62,6 +65,35 @@ public class SensitivePropertyUtils {
                             + "' cannot use ****** without an existing sensitive value; please re-enter the value");
         }
         return PropertySensitiveUtils.mergeSensitiveValuePlaceholders(submittedProperties, existingProperties);
+    }
+
+    public List<Property> restoreStartParams(List<Property> startParams, List<Property> globalParams) {
+        if (CollectionUtils.isEmpty(startParams)) {
+            return startParams;
+        }
+        Map<String, Property> globals = CollectionUtils.emptyIfNull(globalParams).stream()
+                .filter(Objects::nonNull)
+                .filter(property -> property.getProp() != null)
+                .collect(Collectors.toMap(Property::getProp, Function.identity(), (left, right) -> right));
+        List<Property> restored = new ArrayList<>();
+        for (Property startParam : startParams) {
+            if (startParam == null) {
+                continue;
+            }
+            Property global = globals.get(startParam.getProp());
+            if (global != null) {
+                Property inherited = PropertySensitiveUtils.copy(global);
+                if (!PropertySensitiveUtils.isSensitiveValuePlaceholder(startParam.getValue())) {
+                    inherited.setValue(startParam.getValue());
+                }
+                restored.add(inherited);
+            } else if (!PropertySensitiveUtils.isSensitiveValuePlaceholder(startParam.getValue())) {
+                Property nonGlobal = PropertySensitiveUtils.copy(startParam);
+                nonGlobal.setSensitive(false);
+                restored.add(nonGlobal);
+            }
+        }
+        return restored;
     }
 
     public String mergeLocalParams(String submittedTaskParams, String existingTaskParams) {
@@ -143,6 +175,7 @@ public class SensitivePropertyUtils {
         BeanUtils.copyProperties(source, copy);
         copy.setGlobalParams(maskGlobalParams(copy.getGlobalParams()));
         copy.setVarPool(maskVarPool(copy.getVarPool()));
+        copy.setCommandParam(maskCommandParam(copy.getCommandParam()));
         copy.setDagData(mask(source.getDagData()));
         return copy;
     }
@@ -192,6 +225,23 @@ public class SensitivePropertyUtils {
             return varPool;
         }
         return VarPoolUtils.serializeVarPool(PropertySensitiveUtils.maskSensitiveValues(properties));
+    }
+
+    private String maskCommandParam(String commandParam) {
+        if (StringUtils.isEmpty(commandParam)) {
+            return commandParam;
+        }
+        ICommandParam parsed = JSONUtils.parseObject(commandParam, ICommandParam.class);
+        if (!(parsed instanceof AbstractCommandParam)) {
+            return commandParam;
+        }
+        AbstractCommandParam abstractCommandParam = (AbstractCommandParam) parsed;
+        if (CollectionUtils.isEmpty(abstractCommandParam.getCommandParams())) {
+            return commandParam;
+        }
+        abstractCommandParam.setCommandParams(
+                PropertySensitiveUtils.maskSensitiveValues(abstractCommandParam.getCommandParams()));
+        return JSONUtils.toJsonString(abstractCommandParam);
     }
 
     private List<Property> getLocalParams(String taskParams) {
