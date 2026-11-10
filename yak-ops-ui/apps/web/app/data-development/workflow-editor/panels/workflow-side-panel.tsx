@@ -93,7 +93,6 @@ const TEXTAREA_CLASS =
 const PROPERTY_CONTROL_CLASS = CONTROL_CLASS.replace("h-8", "h-7");
 const PROPERTY_TEXTAREA_CLASS = TEXTAREA_CLASS.replace("py-2", "py-1.5") + " min-h-[48px]";
 const SCHEDULE_CONTROL_CLASS = CONTROL_CLASS.replace("h-8", "h-7");
-const LABEL_CLASS = "mb-1.5 block text-xs font-medium text-[#596273]";
 const MUTED_CLASS = "text-[11px] leading-5 text-[#8b93a1]";
 
 const GLOBAL_PARAMETER_TYPES: GlobalParameterType[] = [
@@ -1014,6 +1013,9 @@ export function WorkflowSidePanel({
 
     const navigateToSection = (section: ScheduleSection) => {
       setScheduleSection(section);
+      setScheduleCollapsed((current) =>
+        current[section] ? { ...current, [section]: false } : current,
+      );
       document
         .getElementById(`workflow-schedule-${section}`)
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
