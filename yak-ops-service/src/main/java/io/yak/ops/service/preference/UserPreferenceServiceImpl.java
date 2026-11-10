@@ -39,8 +39,9 @@ public class UserPreferenceServiceImpl implements UserPreferenceService {
                                                int userId) {
         checkUser(userId);
         checkScene(scene);
-        if (scene != UserPreferenceScene.PRODUCT_MENU) {
-            throw new IllegalArgumentException("Only PRODUCT_MENU supports favorites");
+        if (scene != UserPreferenceScene.PRODUCT_MENU
+                && scene != UserPreferenceScene.DATA_DEVELOPMENT_RESOURCE) {
+            throw new IllegalArgumentException("This preference scene does not support favorites");
         }
         String key = checkItemKey(itemKey);
         Optional<UserPreference> existing = dao.find(userId, scene.name(), key);
