@@ -1,5 +1,6 @@
 import { FileCode2, Workflow, X } from "lucide-react";
 
+import { TaskEditor } from "./task-editor/task-editor";
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
 
@@ -63,13 +64,18 @@ export function DataDevelopmentWorkbench() {
 
       {activeTab ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <WorkflowEditor
-            key={activeTab.id}
-            workflowCode={activeTab.workflowCode}
-            selectedTaskCode={
-              activeTab.kind === "task" ? activeTab.task.code : undefined
-            }
-          />
+          {activeTab.kind === "workflow" ? (
+            <WorkflowEditor
+              key={activeTab.id}
+              workflowCode={activeTab.workflowCode}
+            />
+          ) : (
+            <TaskEditor
+              key={activeTab.id}
+              workflowCode={activeTab.workflowCode}
+              task={activeTab.task}
+            />
+          )}
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center p-8 text-center">
