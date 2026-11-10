@@ -42,6 +42,7 @@ function WorkflowEditorShell({
           <WorkflowNodeSelector />
         ) : null}
         <WorkflowCanvas
+          workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
         />
       </div>
