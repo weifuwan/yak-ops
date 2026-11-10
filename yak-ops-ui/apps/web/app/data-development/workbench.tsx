@@ -30,6 +30,23 @@ export function DataDevelopmentWorkbench() {
     closeTabs,
   } = useDataDevelopmentWorkbench();
   const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTabId);
+  const protectedTabIds = new Set<string>();
+  if (activeTab) {
+    protectedTabIds.add(activeTab.id);
+    if (activeTab.kind === "draft-task") {
+      // Keep the parent workflow open while its draft task remains active.
+      protectedTabIds.add(`workflow:${activeTab.workflowCode}`);
+    }
+  }
+  const tabsToCloseOther = tabs.filter(
+    (tab) => !protectedTabIds.has(tab.id),
+  );
+  const tabsToCloseLeft = tabs
+    .slice(0, activeTabIndex)
+    .filter((tab) => !protectedTabIds.has(tab.id));
+  const tabsToCloseRight = tabs
+    .slice(activeTabIndex + 1)
+    .filter((tab) => !protectedTabIds.has(tab.id));
 
   return (
     <section
@@ -120,9 +137,9 @@ export function DataDevelopmentWorkbench() {
                 关闭当前标签页
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={activeTabIndex < 0 || tabs.length <= 1}
+                disabled={activeTabIndex < 0 || tabsToCloseOther.length === 0}
                 onClick={() =>
-                  closeTabs(tabs.filter((tab) => tab.id !== activeTabId).map((tab) => tab.id))
+                  closeTabs(tabsToCloseOther.map((tab) => tab.id))
                 }
               >
                 <XCircle size={14} />
@@ -130,18 +147,18 @@ export function DataDevelopmentWorkbench() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                disabled={activeTabIndex <= 0}
+                disabled={activeTabIndex < 0 || tabsToCloseLeft.length === 0}
                 onClick={() =>
-                  closeTabs(tabs.slice(0, activeTabIndex).map((tab) => tab.id))
+                  closeTabs(tabsToCloseLeft.map((tab) => tab.id))
                 }
               >
                 <ArrowLeftToLine size={14} />
                 关闭左侧标签页
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={activeTabIndex < 0 || activeTabIndex >= tabs.length - 1}
+                disabled={activeTabIndex < 0 || tabsToCloseRight.length === 0}
                 onClick={() =>
-                  closeTabs(tabs.slice(activeTabIndex + 1).map((tab) => tab.id))
+                  closeTabs(tabsToCloseRight.map((tab) => tab.id))
                 }
               >
                 <ArrowRightToLine size={14} />
