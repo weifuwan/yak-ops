@@ -93,6 +93,10 @@ export function WorkflowTaskNode({
     ? "pointer-events-auto opacity-100"
     : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100";
 
+  const addButtonVisibility = selected
+    ? "opacity-100"
+    : "opacity-0 group-hover:opacity-100";
+
   return (
     <div className="group relative">
       <div
@@ -200,7 +204,7 @@ export function WorkflowTaskNode({
           });
         }}
         className={[
-          "!z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+          "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
           "!top-4 !-right-[9px] !translate-y-0",
           "before:absolute before:-inset-1",
           "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
@@ -210,13 +214,14 @@ export function WorkflowTaskNode({
         <span
           aria-hidden="true"
           className={[
-            "pointer-events-none absolute -left-1 -top-1 flex size-6 items-center justify-center rounded-full",
-            "border border-[var(--yak-components-border)] bg-white text-[var(--yak-color-primary)] shadow-sm",
-            "transition-opacity duration-150",
-            controlsVisibility,
+            "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+            "bg-[var(--yak-color-primary)] text-white shadow-sm",
+            "transition-[opacity,transform] duration-150 ease-out",
+            "group-hover/handle:scale-125",
+            addButtonVisibility,
           ].join(" ")}
         >
-          <Plus size={13} />
+          <Plus size={10} strokeWidth={2.5} />
         </span>
       </Handle>
     </div>
