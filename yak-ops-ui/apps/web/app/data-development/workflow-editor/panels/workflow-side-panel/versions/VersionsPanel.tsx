@@ -130,23 +130,6 @@ export function VersionsPanel({
 
   return (
     <div className="space-y-3 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold text-[#303846]">工作流版本</div>
-          <div className={MUTED_CLASS}>
-            当前版本 V{definition.version} · 最近 20 个版本
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => void versionsQuery.refetch()}
-          className="inline-flex items-center gap-1 text-[11px] text-[#6d7787] hover:text-[#315efb]"
-        >
-          <RefreshCw size={12} />
-          刷新
-        </button>
-      </div>
-
       {workflowIsOnline ? (
         <PanelNotice tone="warning">
           工作流上线期间不能切换版本，请先下线工作流。

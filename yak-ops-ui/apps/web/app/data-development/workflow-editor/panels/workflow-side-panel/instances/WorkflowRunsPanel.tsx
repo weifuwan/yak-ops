@@ -218,20 +218,7 @@ export function WorkflowRunsPanel({
 
   const renderHistory = () => (
     <div className="space-y-3 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold text-[#303846]">工作流运行记录</div>
-          <div className={MUTED_CLASS}>最近 20 条实例记录</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => void instancesQuery.refetch()}
-          className="inline-flex items-center gap-1 text-[11px] text-[#6d7787] hover:text-[#315efb]"
-        >
-          <RefreshCw size={12} />
-          刷新
-        </button>
-      </div>
+      
       <Table<WorkflowInstanceSummary>
         className="w-full"
         columns={historyColumns}
