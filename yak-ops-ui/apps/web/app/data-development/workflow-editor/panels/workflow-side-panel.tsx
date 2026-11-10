@@ -556,6 +556,22 @@ export function WorkflowSidePanel({
       return;
     }
     const keys = globalParameters.map((item) => item.prop.trim());
+    const originalSensitiveKeys = new Set(
+      parseGlobalParameters(definition.globalParams)
+        .filter((item) => item.sensitive && item.value === "******")
+        .map((item) => item.prop),
+    );
+    if (
+      globalParameters.some(
+        (item) =>
+          item.sensitive &&
+          item.value === "******" &&
+          !originalSensitiveKeys.has(item.prop.trim()),
+      )
+    ) {
+      toast.error("新增或重命名敏感参数时，请重新填写实际参数值");
+      return;
+    }
     if (keys.some((key) => !key)) {
       toast.error("请填写所有全局参数名称");
       return;
@@ -627,7 +643,7 @@ export function WorkflowSidePanel({
     environmentCode: -1,
   });
 
-  const validateScheduleForm = (): boolean => {
+  const validateScheduleForm = (validateNotification = true): boolean => {
     if (!scheduleForm.crontab.trim()) {
       toast.error("请配置 Cron 表达式");
       return false;
@@ -640,11 +656,12 @@ export function WorkflowSidePanel({
       toast.error("调度结束时间必须晚于开始时间");
       return false;
     }
-    if (notificationGroupMissing) {
+    if (validateNotification && notificationGroupMissing) {
       toast.error("当前没有可用的通知组，请先创建通知组");
       return false;
     }
     if (
+      validateNotification &&
       scheduleForm.warningType !== "NONE" &&
       (alertGroupsQuery.isPending ||
         alertGroupsQuery.isFetching ||
@@ -688,7 +705,7 @@ export function WorkflowSidePanel({
   };
 
   const previewSchedule = async () => {
-    if (!validateScheduleForm()) return;
+    if (!validateScheduleForm(false)) return;
     setSchedulePreviewing(true);
     try {
       const result = await previewWorkflowSchedule(toScheduleParam(scheduleForm));
@@ -736,6 +753,9 @@ export function WorkflowSidePanel({
       await invalidateDefinition();
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition-layout", workspaceId, workflowCode],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["workflow-management", "schedule", workspaceId, workflowCode],
       });
       await versionsQuery.refetch();
       onVersionSwitched();
@@ -910,7 +930,7 @@ export function WorkflowSidePanel({
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className={LABEL_CLASS}>超时时间（秒）</span>
+            <span className={LABEL_CLASS}>超时时间（分钟）</span>
             <input
               className={CONTROL_CLASS}
               type="number"
@@ -1168,9 +1188,17 @@ export function WorkflowSidePanel({
                           type="checkbox"
                           checked={parameter.sensitive}
                           disabled={workflowIsOnline}
-                          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            updateGlobalParameter(index, { sensitive: event.target.checked })
-                          }
+                          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                            if (
+                              !event.target.checked &&
+                              parameter.sensitive &&
+                              parameter.value === "******"
+                            ) {
+                              toast.error("敏感参数值已脱敏，请先重新填写实际值");
+                              return;
+                            }
+                            updateGlobalParameter(index, { sensitive: event.target.checked });
+                          }}
                         />
                         敏感参数
                       </label>
