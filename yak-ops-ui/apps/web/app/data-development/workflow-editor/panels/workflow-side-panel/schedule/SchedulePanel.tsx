@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronDown, Clock3, RefreshCw } from "lucide-react";
+import { ChevronDown, Clock3, RefreshCw, Save } from "lucide-react";
 
 import { PanelButton, PanelNotice } from "../components/PanelPrimitives";
 import { MUTED_CLASS } from "../shared/constants";
@@ -147,6 +147,8 @@ export function SchedulePanel({
             <GlobalParametersSection controller={controller} renderSectionHeader={renderSectionHeader} />
             <ScheduleStrategySection controller={controller} renderSectionHeader={renderSectionHeader} />
             <ScheduleTimeSection controller={controller} renderSectionHeader={renderSectionHeader} />
+          </div>
+        </div>
         <div className="shrink-0 border-t border-[#e8ebf0] bg-white px-3 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <PanelButton

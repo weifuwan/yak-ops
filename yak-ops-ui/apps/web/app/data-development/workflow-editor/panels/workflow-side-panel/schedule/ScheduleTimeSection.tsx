@@ -118,7 +118,5 @@ export function ScheduleTimeSection({
                 </div>
               ) : null}
             </section>
-          </div>
-        </div>
   );
 }
