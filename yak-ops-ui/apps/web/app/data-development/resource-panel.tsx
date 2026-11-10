@@ -356,7 +356,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         }
       />
 
-      <div className="px-3 pb-2 pt-3">
+      <div className="px-3 pb-2 pt-1.5">
         <div className="relative">
           <Search
             size={14}
