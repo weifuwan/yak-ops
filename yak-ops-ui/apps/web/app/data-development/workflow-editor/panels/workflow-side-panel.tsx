@@ -892,7 +892,7 @@ export function WorkflowSidePanel({
 
   const renderProperties = () => (
     <div className="px-4 py-3">
-      <div className="divide-y divide-[#edf0f3]">
+      <div className="space-y-1">
         <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
           <label htmlFor="workflow-property-name" className="text-xs text-[#687385]">
             名称
