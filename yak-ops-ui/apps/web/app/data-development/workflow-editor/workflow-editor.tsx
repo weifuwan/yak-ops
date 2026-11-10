@@ -6,7 +6,10 @@ import {
 import { Button } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
-import { getWorkflowDefinition } from "@/service/workflow/definition";
+import {
+  getWorkflowDefinition,
+  type WorkflowDagRecord,
+} from "@/service/workflow/definition";
 
 import { workflowDagToGraph } from "./adapter/workflow-adapter";
 import { WorkflowCanvas } from "./canvas/workflow-canvas";
@@ -17,6 +20,7 @@ import {
   useWorkflowStore,
 } from "./store/workflow-store";
 import { WorkflowToolbar } from "./toolbar/workflow-toolbar";
+import { WorkflowSidePanel } from "./panels/workflow-side-panel";
 
 type WorkflowEditorProps = {
   workflowCode: number;
@@ -27,10 +31,12 @@ function WorkflowEditorShell({
   workflowCode,
   selectedTaskCode,
   workflowReleaseState,
+  dag,
 }: {
   workflowCode: number;
   selectedTaskCode?: number;
   workflowReleaseState: string;
+  dag: WorkflowDagRecord;
 }) {
   const selectorOpen = useWorkflowStore(
     (state) => Boolean(state.selectorRequest),
@@ -48,6 +54,7 @@ function WorkflowEditorShell({
           selectedTaskCode={selectedTaskCode}
           workflowReleaseState={workflowReleaseState}
         />
+        <WorkflowSidePanel workflowCode={workflowCode} dag={dag} />
       </div>
     </div>
   );
@@ -142,6 +149,7 @@ export function WorkflowEditor({
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
           workflowReleaseState={query.data?.workflowDefinition.releaseState ?? "OFFLINE"}
+          dag={query.data}
         />
       </ReactFlowProvider>
     </WorkflowStoreProvider>
