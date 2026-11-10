@@ -1,5 +1,4 @@
 import {
-  Activity,
   Code2,
   List,
   X,
@@ -49,7 +48,10 @@ export function CanvasSidePanel({
       role="complementary"
       aria-label={content?.title ?? "画布辅助面板"}
       aria-hidden={!content}
-      className="h-full min-h-0 shrink-0 overflow-hidden border-l border-[#e5e7eb] bg-white transition-[width,flex-basis] duration-200 ease-out"
+      className={[
+        "h-full min-h-0 shrink-0 overflow-hidden bg-white transition-[width,flex-basis] duration-200 ease-out",
+        content ? "border-l border-[#e5e7eb]" : "",
+      ].join(" ")}
       style={{
         width: content ? "min(48%, 600px)" : "0px",
         flexBasis: content ? "min(48%, 600px)" : "0px",
