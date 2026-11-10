@@ -89,6 +89,8 @@ const CONTROL_CLASS =
   "h-8 w-full min-w-0 rounded-md border border-[#dfe3e8] bg-white px-2 text-xs text-[#252a32] outline-none transition-colors placeholder:text-[#a0a7b2] focus:border-[#8ba9ff] disabled:cursor-not-allowed disabled:bg-[#f7f8fa] disabled:text-[#9ca3af]";
 const TEXTAREA_CLASS =
   "w-full min-w-0 resize-y rounded-md border border-[#dfe3e8] bg-white px-2 py-2 text-xs text-[#252a32] outline-none transition-colors placeholder:text-[#a0a7b2] focus:border-[#8ba9ff] disabled:cursor-not-allowed disabled:bg-[#f7f8fa] disabled:text-[#9ca3af]";
+const PROPERTY_CONTROL_CLASS = CONTROL_CLASS.replace("h-8", "h-7");
+const PROPERTY_TEXTAREA_CLASS = TEXTAREA_CLASS.replace("py-2", "py-1.5") + " min-h-[48px]";
 const LABEL_CLASS = "mb-1.5 block text-xs font-medium text-[#596273]";
 const MUTED_CLASS = "text-[11px] leading-5 text-[#8b93a1]";
 
@@ -897,7 +899,7 @@ export function WorkflowSidePanel({
           </label>
           <input
             id="workflow-property-name"
-            className={CONTROL_CLASS}
+            className={PROPERTY_CONTROL_CLASS}
             value={propertyForm.name}
             disabled={workflowIsOnline}
             maxLength={100}
@@ -913,7 +915,7 @@ export function WorkflowSidePanel({
           </label>
           <textarea
             id="workflow-property-description"
-            className={TEXTAREA_CLASS + " min-h-[64px]"}
+            className={PROPERTY_TEXTAREA_CLASS}
             rows={2}
             maxLength={255}
             value={propertyForm.description}
@@ -933,7 +935,7 @@ export function WorkflowSidePanel({
           </label>
           <input
             id="workflow-property-timeout"
-            className={CONTROL_CLASS}
+            className={PROPERTY_CONTROL_CLASS}
             type="number"
             min={0}
             step={1}
@@ -951,7 +953,7 @@ export function WorkflowSidePanel({
           </label>
           <select
             id="workflow-property-execution-type"
-            className={CONTROL_CLASS}
+            className={PROPERTY_CONTROL_CLASS}
             value={propertyForm.executionType}
             disabled={workflowIsOnline}
             onChange={(event: ChangeEvent<HTMLSelectElement>) =>
