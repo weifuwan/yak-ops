@@ -13,6 +13,9 @@ export type DropdownMenuContentProps = Omit<BaseMenu.Popup.Props, "children" | "
   side?: BaseMenu.Positioner.Props["side"];
   align?: BaseMenu.Positioner.Props["align"];
   sideOffset?: BaseMenu.Positioner.Props["sideOffset"];
+  collisionBoundary?: BaseMenu.Positioner.Props["collisionBoundary"];
+  collisionPadding?: BaseMenu.Positioner.Props["collisionPadding"];
+  collisionAvoidance?: BaseMenu.Positioner.Props["collisionAvoidance"];
 };
 
 export function DropdownMenuContent({
@@ -21,6 +24,9 @@ export function DropdownMenuContent({
   side = "bottom",
   align = "start",
   sideOffset = 6,
+  collisionBoundary,
+  collisionPadding,
+  collisionAvoidance,
   ...props
 }: DropdownMenuContentProps) {
   return (
@@ -29,6 +35,9 @@ export function DropdownMenuContent({
         side={side}
         align={align}
         sideOffset={sideOffset}
+        collisionBoundary={collisionBoundary}
+        collisionPadding={collisionPadding}
+        collisionAvoidance={collisionAvoidance}
         className="z-60 outline-none"
       >
         <BaseMenu.Popup
