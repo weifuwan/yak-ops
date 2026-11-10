@@ -18,6 +18,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Check,
+  CirclePlus,
   FolderOpen,
   Hand,
   Maximize2,
@@ -117,6 +118,9 @@ export function WorkflowCanvas({
   );
   const setEdgeStyle = useWorkflowStore(
     (state) => state.setEdgeStyle,
+  );
+  const openSelector = useWorkflowStore(
+    (state) => state.openSelector,
   );
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
@@ -657,166 +661,188 @@ export function WorkflowCanvas({
         ) : null}
       </Dialog>
 
-      <div className="absolute right-3 top-3 z-10 flex h-8 items-center overflow-hidden rounded-md border border-[var(--yak-components-border)] bg-white shadow-sm">
-        <button
-          type="button"
-          title="指针模式"
-          aria-label="指针模式"
-          aria-pressed={interactionMode === "pointer"}
-          onClick={() => setInteractionMode("pointer")}
-          className={[
-            "flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] transition-colors",
-            interactionMode === "pointer"
-              ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-              : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]",
-          ].join(" ")}
-        >
-          <MousePointer2 size={15} strokeWidth={1.7} />
-        </button>
-        <button
-          type="button"
-          title="抓手模式"
-          aria-label="抓手模式"
-          aria-pressed={interactionMode === "pan"}
-          onClick={() => setInteractionMode("pan")}
-          className={[
-            "flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] transition-colors",
-            interactionMode === "pan"
-              ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-              : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]",
-          ].join(" ")}
-        >
-          <Hand size={15} strokeWidth={1.7} />
-        </button>
-
-        <button
-          type="button"
-          title="缩小"
-          aria-label="缩小画布"
-          disabled={!instance}
-          onClick={() => instance?.zoomOut({ duration: 160 })}
-          className="flex size-8 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Minus size={15} strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          title="点击恢复到 100%"
-          aria-label={`当前缩放比例 ${zoomPercent}%，点击恢复到 100%`}
-          disabled={!instance}
-          onClick={() => instance?.zoomTo(1, { duration: 160 })}
-          className="flex h-8 min-w-[48px] shrink-0 cursor-pointer items-center justify-center px-1 text-[12px] font-medium tabular-nums text-[#475569] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {zoomPercent}%
-        </button>
-        <button
-          type="button"
-          title="放大"
-          aria-label="放大画布"
-          disabled={!instance}
-          onClick={() => instance?.zoomIn({ duration: 160 })}
-          className="flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Plus size={15} strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          title="适应画布"
-          aria-label="适应画布"
-          disabled={!instance}
-          onClick={() =>
-            instance?.fitView({
-              padding: 0.22,
-              maxZoom: 1,
-              duration: 180,
-            })
-          }
-          className="flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Maximize2 size={15} strokeWidth={1.7} />
-        </button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={`连线样式：${edgeStyleLabel}`}
-            title={`连线样式：${edgeStyleLabel}`}
-            className="flex size-8 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] data-[popup-open]:bg-[var(--yak-color-hover)] data-[popup-open]:text-[var(--yak-color-primary)]"
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-12 items-center justify-center pl-2">
+        <div className="pointer-events-auto flex flex-col items-center rounded-lg border-[0.5px] border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-0.5 text-[var(--yak-components-muted-text)] shadow-[var(--yak-components-panel-shadow)]">
+          <button
+            type="button"
+            title="新建节点"
+            aria-label="新建节点"
+            disabled={isWorkflowOnline}
+            onClick={() => openSelector({ kind: "add" })}
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Spline size={15} strokeWidth={1.7} />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="bottom"
-            align="end"
-            sideOffset={6}
-            className="w-44"
+            <CirclePlus size={16} strokeWidth={1.8} />
+          </button>
+
+          <div className="my-1 h-px w-3.5 bg-[var(--yak-components-control-border)]" />
+
+          <button
+            type="button"
+            title="指针模式"
+            aria-label="指针模式"
+            aria-pressed={interactionMode === "pointer"}
+            onClick={() => setInteractionMode("pointer")}
+            className={[
+              "flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors",
+              interactionMode === "pointer"
+                ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
+            ].join(" ")}
           >
-            <div className="px-2.5 py-2 text-[11px] font-medium text-[var(--yak-components-muted-text)]">
-              连线样式
-            </div>
-            <DropdownMenuItem
-              onClick={() => setEdgeStyle("bezier")}
-              className={
-                edgeStyle === "bezier"
-                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                  : ""
-              }
+            <MousePointer2 size={16} strokeWidth={1.7} />
+          </button>
+          <button
+            type="button"
+            title="抓手模式"
+            aria-label="抓手模式"
+            aria-pressed={interactionMode === "pan"}
+            onClick={() => setInteractionMode("pan")}
+            className={[
+              "flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors",
+              interactionMode === "pan"
+                ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
+            ].join(" ")}
+          >
+            <Hand size={16} strokeWidth={1.7} />
+          </button>
+
+          <div className="my-1 h-px w-3.5 bg-[var(--yak-components-control-border)]" />
+
+          <button
+            type="button"
+            title="适应画布"
+            aria-label="适应画布"
+            disabled={!instance}
+            onClick={() =>
+              instance?.fitView({
+                padding: 0.22,
+                maxZoom: 1,
+                duration: 180,
+              })
+            }
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Maximize2 size={16} strokeWidth={1.7} />
+          </button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`连线样式：${edgeStyleLabel}`}
+              title={`连线样式：${edgeStyleLabel}`}
+              className="flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-muted-text)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[popup-open]:bg-[var(--yak-color-hover)] data-[popup-open]:text-[var(--yak-color-primary)]"
             >
-              <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
-                <path
-                  d="M2 14 C10 14 9 4 16 4 S22 14 30 4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="flex-1">曲线</span>
-              {edgeStyle === "bezier" ? <Check size={14} /> : null}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setEdgeStyle("step")}
-              className={
-                edgeStyle === "step"
-                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                  : ""
-              }
+              <Spline size={16} strokeWidth={1.7} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="right"
+              align="start"
+              sideOffset={8}
+              className="w-44"
             >
-              <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
-                <path
-                  d="M2 14 H12 V4 H22 V14 H30"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="flex-1">阶梯线</span>
-              {edgeStyle === "step" ? <Check size={14} /> : null}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setEdgeStyle("smoothstep")}
-              className={
-                edgeStyle === "smoothstep"
-                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                  : ""
-              }
-            >
-              <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
-                <path
-                  d="M2 14 H9 Q12 14 12 11 V7 Q12 4 15 4 H19 Q22 4 22 7 V11 Q22 14 25 14 H30"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="flex-1">平滑阶梯线</span>
-              {edgeStyle === "smoothstep" ? <Check size={14} /> : null}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <div className="px-2.5 py-2 text-[11px] font-medium text-[var(--yak-components-muted-text)]">
+                连线样式
+              </div>
+              <DropdownMenuItem
+                onClick={() => setEdgeStyle("bezier")}
+                className={
+                  edgeStyle === "bezier"
+                    ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                    : ""
+                }
+              >
+                <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
+                  <path
+                    d="M2 14 C10 14 9 4 16 4 S22 14 30 4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="flex-1">曲线</span>
+                {edgeStyle === "bezier" ? <Check size={14} /> : null}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setEdgeStyle("step")}
+                className={
+                  edgeStyle === "step"
+                    ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                    : ""
+                }
+              >
+                <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
+                  <path
+                    d="M2 14 H12 V4 H22 V14 H30"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="flex-1">阶梯线</span>
+                {edgeStyle === "step" ? <Check size={14} /> : null}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setEdgeStyle("smoothstep")}
+                className={
+                  edgeStyle === "smoothstep"
+                    ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                    : ""
+                }
+              >
+                <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
+                  <path
+                    d="M2 14 H9 Q12 14 12 11 V7 Q12 4 15 4 H19 Q22 4 22 7 V11 Q22 14 25 14 H30"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="flex-1">平滑阶梯线</span>
+                {edgeStyle === "smoothstep" ? <Check size={14} /> : null}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10">
+        <div className="pointer-events-auto flex h-9 items-center rounded-lg border-[0.5px] border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-0.5 text-[13px] text-[var(--yak-components-muted-text)] shadow-[var(--yak-components-panel-shadow)]">
+          <button
+            type="button"
+            title="缩小"
+            aria-label="缩小画布"
+            disabled={!instance}
+            onClick={() => instance?.zoomOut({ duration: 160 })}
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Minus size={15} strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            title="点击恢复到 100%"
+            aria-label={`当前缩放比例 ${zoomPercent}%，点击恢复到 100%`}
+            disabled={!instance}
+            onClick={() => instance?.zoomTo(1, { duration: 160 })}
+            className="flex h-8 min-w-10 cursor-pointer items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-[var(--yak-components-panel-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {zoomPercent}%
+          </button>
+          <button
+            type="button"
+            title="放大"
+            aria-label="放大画布"
+            disabled={!instance}
+            onClick={() => instance?.zoomIn({ duration: 160 })}
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Plus size={15} strokeWidth={1.8} />
+          </button>
+        </div>
       </div>
 
       {nodes.length === 0 ? (
