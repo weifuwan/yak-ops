@@ -187,7 +187,7 @@ export function createWorkflowStore(
       (set, get) => ({
         nodes: initialGraph.nodes,
         edges: initialGraph.edges,
-        interactionMode: "pan",
+        interactionMode: "pointer",
         selectorRequest: null,
         draftNodeSequence: 0,
         draftEdgeSequence: 0,
