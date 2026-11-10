@@ -99,7 +99,7 @@ export function WorkflowToolbar({
           onClick={() => onTogglePanel("nodes")}
         />
         <ToolbarButton
-          label={activePanel === "spec" ? "隐藏 Spec" : "显示 Spec"}
+          label={activePanel === "spec" ? "隐藏Spec" : "显示Spec"}
           icon={<Code2 size={14} />}
           active={activePanel === "spec"}
           onClick={() => onTogglePanel("spec")}
