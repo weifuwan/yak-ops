@@ -10,7 +10,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import ReactFlow, {
   Background,
   BackgroundVariant,
-  Controls,
   SelectionMode,
   type ReactFlowInstance,
 } from "reactflow";
@@ -20,8 +19,11 @@ import {
   ArrowUpFromLine,
   FolderOpen,
   Hand,
+  Maximize2,
+  Minus,
   MousePointer2,
   Play,
+  Plus,
   Unlink,
 } from "lucide-react";
 import {
@@ -150,6 +152,7 @@ export function WorkflowCanvas({
       WorkflowEdgeData
     > | null
   >(null);
+  const [zoomPercent, setZoomPercent] = useState(100);
   const [hoveredEdgeId, setHoveredEdgeId] =
     useState<string | null>(null);
   const renderEdges = useMemo(
@@ -340,6 +343,7 @@ export function WorkflowCanvas({
         edgeTypes={edgeTypes}
         onInit={(flow) => {
           setInstance(flow);
+          setZoomPercent(Math.round(flow.getZoom() * 100));
 
           if (selectedTaskCode) {
             const selectedNode = nodes.find(
@@ -362,6 +366,9 @@ export function WorkflowCanvas({
               maxZoom: 1,
             });
           }
+        }}
+        onMove={(_event, viewport) => {
+          setZoomPercent(Math.round(viewport.zoom * 100));
         }}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -411,15 +418,7 @@ export function WorkflowCanvas({
           size={1.5}
           color="#C5CBD5"
         />
-        <Controls
-          position="top-right"
-          showInteractive={false}
-          className="!top-12"
-          fitViewOptions={{
-            padding: 0.22,
-            maxZoom: 1,
-          }}
-        />
+
       </ReactFlow>
 
       {contextMenu && contextMenuPortalRoot
@@ -644,45 +643,83 @@ export function WorkflowCanvas({
         ) : null}
       </Dialog>
 
-      <div className="absolute right-3 top-3 z-10 flex overflow-hidden rounded-md border border-[var(--yak-components-border)] bg-white shadow-sm">
+      <div className="absolute right-3 top-3 z-10 flex h-8 items-center overflow-hidden rounded-md border border-[var(--yak-components-border)] bg-white shadow-sm">
         <button
           type="button"
           title="指针模式"
           aria-label="指针模式"
-          aria-pressed={
-            interactionMode === "pointer"
-          }
-          onClick={() =>
-            setInteractionMode("pointer")
-          }
+          aria-pressed={interactionMode === "pointer"}
+          onClick={() => setInteractionMode("pointer")}
           className={[
-            "flex size-8 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] transition-colors",
+            "flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] transition-colors",
             interactionMode === "pointer"
               ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
               : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]",
           ].join(" ")}
         >
-          <MousePointer2
-            size={15}
-            strokeWidth={1.7}
-          />
+          <MousePointer2 size={15} strokeWidth={1.7} />
         </button>
         <button
           type="button"
           title="抓手模式"
           aria-label="抓手模式"
           aria-pressed={interactionMode === "pan"}
-          onClick={() =>
-            setInteractionMode("pan")
-          }
+          onClick={() => setInteractionMode("pan")}
           className={[
-            "flex size-8 cursor-pointer items-center justify-center transition-colors",
+            "flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] transition-colors",
             interactionMode === "pan"
               ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
               : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]",
           ].join(" ")}
         >
           <Hand size={15} strokeWidth={1.7} />
+        </button>
+
+        <button
+          type="button"
+          title="缩小"
+          aria-label="缩小画布"
+          disabled={!instance}
+          onClick={() => instance?.zoomOut({ duration: 160 })}
+          className="flex size-8 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Minus size={15} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          title="点击恢复到 100%"
+          aria-label={`当前缩放比例 ${zoomPercent}%，点击恢复到 100%`}
+          disabled={!instance}
+          onClick={() => instance?.zoomTo(1, { duration: 160 })}
+          className="flex h-8 min-w-[48px] shrink-0 cursor-pointer items-center justify-center px-1 text-[12px] font-medium tabular-nums text-[#475569] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {zoomPercent}%
+        </button>
+        <button
+          type="button"
+          title="放大"
+          aria-label="放大画布"
+          disabled={!instance}
+          onClick={() => instance?.zoomIn({ duration: 160 })}
+          className="flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Plus size={15} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          title="适应画布"
+          aria-label="适应画布"
+          disabled={!instance}
+          onClick={() =>
+            instance?.fitView({
+              padding: 0.22,
+              maxZoom: 1,
+              duration: 180,
+            })
+          }
+          className="flex size-8 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Maximize2 size={15} strokeWidth={1.7} />
         </button>
       </div>
 
