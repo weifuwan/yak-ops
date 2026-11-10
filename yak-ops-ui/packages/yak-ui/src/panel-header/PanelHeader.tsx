@@ -31,7 +31,7 @@ export function PanelHeader({
   return (
     <header
       className={cn(
-        "flex h-[35px] w-full shrink-0 items-center gap-2 border-b border-[var(--yak-components-border)] bg-[var(--yak-components-panel-bg)] px-2",
+        "flex h-[35px] w-full shrink-0 items-center gap-2 bg-[var(--yak-components-panel-bg)] px-2",
         className,
       )}
     >
