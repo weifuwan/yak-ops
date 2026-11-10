@@ -429,7 +429,15 @@ export function WorkflowSidePanel({
     const nextParameters = parseGlobalParameters(definition.globalParams);
     setGlobalParameters(nextParameters);
     setSavedGlobalParameterCount(nextParameters.length);
-  }, [workflowCode, definition.version]);
+  }, [
+    workflowCode,
+    definition.version,
+    definition.name,
+    definition.description,
+    definition.timeout,
+    definition.executionType,
+    definition.globalParams,
+  ]);
 
   const scheduleQuery = useQuery({
     queryKey: ["workflow-management", "schedule", workspaceId, workflowCode],
@@ -881,18 +889,22 @@ export function WorkflowSidePanel({
   };
 
   const renderProperties = () => (
-    <div className="space-y-4 p-4">
+    <div className="px-4 py-3">
       {workflowIsOnline ? (
-        <PanelNotice tone="warning">
-          工作流处于上线状态，后端禁止修改定义。请先下线工作流，再编辑属性和全局参数。
-        </PanelNotice>
+        <div className="mb-3">
+          <PanelNotice tone="warning">
+            工作流已上线，需下线后才能修改属性。
+          </PanelNotice>
+        </div>
       ) : null}
 
-      <section className="space-y-3">
-        <div className="text-xs font-semibold text-[#303846]">基本属性</div>
-        <label className="block">
-          <span className={LABEL_CLASS}>名称</span>
+      <div className="divide-y divide-[#edf0f3]">
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <label htmlFor="workflow-property-name" className="text-xs text-[#687385]">
+            名称
+          </label>
           <input
+            id="workflow-property-name"
             className={CONTROL_CLASS}
             value={propertyForm.name}
             disabled={workflowIsOnline}
@@ -901,16 +913,36 @@ export function WorkflowSidePanel({
               setPropertyForm((current) => ({ ...current, name: event.target.value }))
             }
           />
-        </label>
-        <label className="block">
-          <span className={LABEL_CLASS}>描述</span>
+        </div>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <span className="text-xs text-[#687385]">类型</span>
+          <span className="text-xs text-[#303846]">工作流</span>
+        </div>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <span className="text-xs text-[#687385]">工作流编码</span>
+          <span className="break-all text-xs text-[#4b5563]">{definition.code || "-"}</span>
+        </div>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <span className="text-xs text-[#687385]">负责人</span>
+          <span className="truncate text-xs text-[#303846]">
+            {definition.userName || definition.modifyBy || definition.userId || "-"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-3 py-2.5">
+          <label htmlFor="workflow-property-description" className="pt-2 text-xs text-[#687385]">
+            描述
+          </label>
           <textarea
-            className={TEXTAREA_CLASS}
-            rows={3}
+            id="workflow-property-description"
+            className={TEXTAREA_CLASS + " min-h-[64px]"}
+            rows={2}
             maxLength={255}
             value={propertyForm.description}
             disabled={workflowIsOnline}
-            placeholder="填写工作流用途或说明"
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
               setPropertyForm((current) => ({
                 ...current,
@@ -918,77 +950,75 @@ export function WorkflowSidePanel({
               }))
             }
           />
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className={LABEL_CLASS}>超时时间（分钟，0 表示不限制）</span>
-            <input
-              className={CONTROL_CLASS}
-              type="number"
-              min={0}
-              step={1}
-              value={propertyForm.timeout}
-              disabled={workflowIsOnline}
-              onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                setPropertyForm((current) => ({ ...current, timeout: event.target.value }))
-              }
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL_CLASS}>执行方式</span>
-            <select
-              className={CONTROL_CLASS}
-              value={propertyForm.executionType}
-              disabled={workflowIsOnline}
-              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                setPropertyForm((current) => ({
-                  ...current,
-                  executionType: event.target.value as ExecutionType,
-                }))
-              }
-            >
-              {EXECUTION_TYPES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
-        <div className="grid grid-cols-2 gap-3 rounded-md bg-[#f7f8fa] p-3">
-          <div>
-            <div className={MUTED_CLASS}>工作流编码</div>
-            <div className="mt-1 break-all text-xs text-[#4b5563]">{definition.code}</div>
-          </div>
-          <div>
-            <div className={MUTED_CLASS}>当前版本</div>
-            <div className="mt-1 text-xs text-[#4b5563]">V{definition.version}</div>
-          </div>
-          <div>
-            <div className={MUTED_CLASS}>负责人</div>
-            <div className="mt-1 truncate text-xs text-[#4b5563]">
-              {definition.userName || definition.modifyBy || definition.userId}
-            </div>
-          </div>
-          <div>
-            <div className={MUTED_CLASS}>发布状态</div>
-            <div className="mt-1 text-xs text-[#4b5563]">
-              {workflowIsOnline ? "已上线" : "未上线"}
-            </div>
-          </div>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <label htmlFor="workflow-property-timeout" className="text-xs text-[#687385]">
+            超时时间（分钟）
+          </label>
+          <input
+            id="workflow-property-timeout"
+            className={CONTROL_CLASS}
+            type="number"
+            min={0}
+            step={1}
+            value={propertyForm.timeout}
+            disabled={workflowIsOnline}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setPropertyForm((current) => ({ ...current, timeout: event.target.value }))
+            }
+          />
         </div>
-        <div className="flex justify-end">
-          <PanelButton
-            onClick={() => void saveProperties()}
-            disabled={workflowIsOnline || propertySaving}
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <label htmlFor="workflow-property-execution-type" className="text-xs text-[#687385]">
+            执行方式
+          </label>
+          <select
+            id="workflow-property-execution-type"
+            className={CONTROL_CLASS}
+            value={propertyForm.executionType}
+            disabled={workflowIsOnline}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              setPropertyForm((current) => ({
+                ...current,
+                executionType: event.target.value as ExecutionType,
+              }))
+            }
           >
-            <Save size={13} />
-            {propertySaving ? "保存中..." : "保存属性"}
-          </PanelButton>
+            {EXECUTION_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
-      </section>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <span className="text-xs text-[#687385]">当前版本</span>
+          <span className="text-xs text-[#303846]">V{definition.version}</span>
+        </div>
+
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
+          <span className="text-xs text-[#687385]">发布状态</span>
+          <span className="text-xs text-[#303846]">
+            {workflowIsOnline ? "已上线" : "未上线"}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-4">
+        <PanelButton
+          onClick={() => void saveProperties()}
+          disabled={workflowIsOnline || propertySaving}
+        >
+          <Save size={13} />
+          {propertySaving ? "保存中..." : "保存属性"}
+        </PanelButton>
+      </div>
     </div>
   );
+
 
   const renderSchedulePanel = () => {
     if (scheduleQuery.isPending) {
@@ -1772,20 +1802,59 @@ export function WorkflowSidePanel({
 
   const activeTitle = PANEL_ITEMS.find((item) => item.key === activePanel)?.label;
 
+  const refreshActivePanel = async () => {
+    if (activePanel === "properties") {
+      setPropertyForm({
+        name: definition.name,
+        description: definition.description ?? "",
+        timeout: String(definition.timeout ?? 0),
+        executionType: (definition.executionType ?? "PARALLEL") as ExecutionType,
+      });
+      await invalidateDefinition();
+      return;
+    }
+    if (activePanel === "schedule") {
+      await scheduleQuery.refetch();
+      return;
+    }
+    if (activePanel === "history" || activePanel === "ops") {
+      await instancesQuery.refetch();
+      return;
+    }
+    if (activePanel === "versions") {
+      await versionsQuery.refetch();
+    }
+  };
+
   return (
     <aside className="flex h-full min-h-0 shrink-0 border-l border-[#e5e7eb] bg-white">
       {activePanel ? (
         <section className="flex h-full min-h-0 w-[360px] max-w-[calc(100vw-64px)] flex-col">
-          <header className="flex h-10 shrink-0 items-center justify-between border-b border-[#e8ebf0] px-3">
-            <span className="text-xs font-semibold text-[#303846]">{activeTitle}</span>
-            <button
-              type="button"
-              title="收起面板"
-              onClick={() => setActivePanel(null)}
-              className="flex size-6 items-center justify-center rounded text-[#8b93a1] hover:bg-[#f0f2f5] hover:text-[#303846]"
-            >
-              <X size={14} />
-            </button>
+          <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-4">
+            <div className="flex h-6 items-center">
+              <span className="text-sm font-semibold text-[#303846]">{activeTitle}</span>
+            </div>
+            <div className="inline-flex items-center gap-1">
+              <button
+                type="button"
+                title="刷新当前面板"
+                onClick={() => void refreshActivePanel()}
+                className="inline-flex items-center gap-1 rounded px-1 py-1 text-xs text-[#687385] transition-colors hover:bg-[#f3f4f6] hover:text-[#303846]"
+              >
+                <RefreshCw size={13} />
+                刷新
+              </button>
+              <span aria-hidden="true" className="mx-1 h-4 w-px bg-[#cbd0d8]" />
+              <button
+                type="button"
+                title="收起面板"
+                aria-label="收起面板"
+                onClick={() => setActivePanel(null)}
+                className="flex size-6 items-center justify-center rounded text-[#8b93a1] transition-colors hover:bg-[#f0f2f5] hover:text-[#303846]"
+              >
+                <X size={14} />
+              </button>
+            </div>
           </header>
           {activePanel === "properties" ? (
             <div className="min-h-0 flex-1 overflow-y-auto">{renderProperties()}</div>
