@@ -165,7 +165,7 @@ export function WorkflowCanvas({
   };
 
   return (
-    <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#eff2f8]">
+    <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#f2f4f7]">
       <ReactFlow<WorkflowCanvasNode, WorkflowCanvasEdge>
         nodes={nodes}
         edges={renderEdges}
@@ -236,9 +236,9 @@ export function WorkflowCanvas({
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={16}
-          size={1}
-          color="#d9dee7"
+          gap={14}
+          size={2}
+          color="rgba(133, 133, 173, 0.15)"
         />
         <Controls
           position="top-right"
