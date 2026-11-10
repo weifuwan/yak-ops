@@ -7,8 +7,9 @@ import {
   GLOBAL_PARAMETER_TYPES,
   SCHEDULE_CONTROL_CLASS,
 } from "../shared/constants";
-import type { GlobalParameterType, ScheduleSection } from "../shared/types";
+import type { ScheduleSection } from "../shared/types";
 import type { WorkflowSidePanelController } from "../hooks/useWorkflowSidePanelController";
+import { ScheduleSelect } from "./ScheduleSelect";
 
 type RenderSectionHeader = (
   section: ScheduleSection,
@@ -126,38 +127,31 @@ export function GlobalParametersSection({
                           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
                             <label className="inline-flex items-center gap-1.5 text-[11px] text-[#7a8492]">
                               类型
-                              <select
-                                className="h-7 rounded-md border border-[#dfe3e8] bg-white px-1.5 text-[11px] text-[#465064] outline-none focus:border-[#8ba9ff] disabled:bg-[#f7f8fa]"
+                              <ScheduleSelect
+                                ariaLabel="参数类型"
                                 value={parameter.type}
+                                options={GLOBAL_PARAMETER_TYPES.map((type) => ({
+                                  value: type,
+                                  label: type,
+                                }))}
                                 disabled={workflowIsOnline}
-                                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                                  updateGlobalParameter(index, {
-                                    type: event.target.value as GlobalParameterType,
-                                  })
-                                }
-                              >
-                                {GLOBAL_PARAMETER_TYPES.map((type) => (
-                                  <option key={type} value={type}>
-                                    {type}
-                                  </option>
-                                ))}
-                              </select>
+                                triggerClassName="w-auto min-w-[112px]"
+                                onValueChange={(type) => updateGlobalParameter(index, { type })}
+                              />
                             </label>
                             <label className="inline-flex items-center gap-1.5 text-[11px] text-[#7a8492]">
                               方向
-                              <select
-                                className="h-7 rounded-md border border-[#dfe3e8] bg-white px-1.5 text-[11px] text-[#465064] outline-none focus:border-[#8ba9ff] disabled:bg-[#f7f8fa]"
+                              <ScheduleSelect
+                                ariaLabel="参数方向"
                                 value={parameter.direct}
+                                options={[
+                                  { value: "IN", label: "输入" },
+                                  { value: "OUT", label: "输出" },
+                                ]}
                                 disabled={workflowIsOnline}
-                                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                                  updateGlobalParameter(index, {
-                                    direct: event.target.value as "IN" | "OUT",
-                                  })
-                                }
-                              >
-                                <option value="IN">输入</option>
-                                <option value="OUT">输出</option>
-                              </select>
+                                triggerClassName="w-auto min-w-[76px]"
+                                onValueChange={(direct) => updateGlobalParameter(index, { direct })}
+                              />
                             </label>
                             <label className="inline-flex items-center gap-1.5 text-[11px] text-[#7a8492]">
                               <input

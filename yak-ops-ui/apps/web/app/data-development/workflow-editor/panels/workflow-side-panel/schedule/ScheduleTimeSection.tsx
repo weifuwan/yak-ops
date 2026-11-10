@@ -4,6 +4,7 @@ import { CronSchedulerPicker } from "@yak-ops/yak-ui";
 import { SCHEDULE_CONTROL_CLASS } from "../shared/constants";
 import type { ScheduleSection } from "../shared/types";
 import type { WorkflowSidePanelController } from "../hooks/useWorkflowSidePanelController";
+import { ScheduleSelect } from "./ScheduleSelect";
 
 type RenderSectionHeader = (
   section: ScheduleSection,
@@ -25,6 +26,18 @@ export function ScheduleTimeSection({
     updateScheduleField,
     previewTimes,
   } = controller;
+  const timezoneOptions = Array.from(
+    new Set([
+      "Asia/Shanghai",
+      "Asia/Singapore",
+      "Asia/Hong_Kong",
+      "Asia/Tokyo",
+      "UTC",
+      "Europe/London",
+      "America/New_York",
+      scheduleForm.timezoneId,
+    ]),
+  ).map((zone) => ({ value: zone, label: zone }));
 
   return (
 <section id="workflow-schedule-time" className="scroll-mt-3">
@@ -48,31 +61,13 @@ export function ScheduleTimeSection({
 
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                     <span className="text-xs text-[#687385]">调度时区</span>
-                    <select
-                      className={SCHEDULE_CONTROL_CLASS}
+                    <ScheduleSelect
+                      ariaLabel="调度时区"
                       value={scheduleForm.timezoneId}
+                      options={timezoneOptions}
                       disabled={scheduleIsOnline}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                        updateScheduleField("timezoneId", event.target.value)
-                      }
-                    >
-                      {Array.from(
-                        new Set([
-                          "Asia/Shanghai",
-                          "Asia/Singapore",
-                          "Asia/Hong_Kong",
-                          "Asia/Tokyo",
-                          "UTC",
-                          "Europe/London",
-                          "America/New_York",
-                          scheduleForm.timezoneId,
-                        ]),
-                      ).map((zone) => (
-                        <option key={zone} value={zone}>
-                          {zone}
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(value) => updateScheduleField("timezoneId", value)}
+                    />
                   </label>
 
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">

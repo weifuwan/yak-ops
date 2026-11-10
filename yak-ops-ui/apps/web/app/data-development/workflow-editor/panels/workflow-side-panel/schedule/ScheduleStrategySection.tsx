@@ -1,11 +1,5 @@
 import type { ChangeEvent, ReactNode } from "react";
 
-import type {
-  WorkflowFailureStrategy,
-  WorkflowMissedFirePolicy,
-  WorkflowPriority,
-  WorkflowWarningType,
-} from "@/service/workflow/management";
 import {
   FAILURE_STRATEGIES,
   MISSED_FIRE_POLICIES,
@@ -15,6 +9,7 @@ import {
 } from "../shared/constants";
 import type { ScheduleSection } from "../shared/types";
 import type { WorkflowSidePanelController } from "../hooks/useWorkflowSidePanelController";
+import { ScheduleSelect } from "./ScheduleSelect";
 
 type RenderSectionHeader = (
   section: ScheduleSection,
@@ -47,106 +42,71 @@ export function ScheduleStrategySection({
                 <div className="space-y-2.5 pb-2 pt-3">
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                     <span className="text-xs text-[#687385]">失败策略</span>
-                    <select
-                      className={SCHEDULE_CONTROL_CLASS}
+                    <ScheduleSelect
+                      ariaLabel="失败策略"
                       value={scheduleForm.failureStrategy}
+                      options={FAILURE_STRATEGIES}
                       disabled={scheduleIsOnline}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                        updateScheduleField(
-                          "failureStrategy",
-                          event.target.value as WorkflowFailureStrategy,
-                        )
-                      }
-                    >
-                      {FAILURE_STRATEGIES.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(value) => updateScheduleField("failureStrategy", value)}
+                    />
                   </label>
 
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                     <span className="text-xs text-[#687385]">错过调度处理</span>
-                    <select
-                      className={SCHEDULE_CONTROL_CLASS}
+                    <ScheduleSelect
+                      ariaLabel="错过调度处理"
                       value={scheduleForm.missedFirePolicy}
+                      options={MISSED_FIRE_POLICIES}
                       disabled={scheduleIsOnline}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                        updateScheduleField(
-                          "missedFirePolicy",
-                          event.target.value as WorkflowMissedFirePolicy,
-                        )
-                      }
-                    >
-                      {MISSED_FIRE_POLICIES.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(value) => updateScheduleField("missedFirePolicy", value)}
+                    />
                   </label>
 
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                     <span className="text-xs text-[#687385]">实例优先级</span>
-                    <select
-                      className={SCHEDULE_CONTROL_CLASS}
+                    <ScheduleSelect
+                      ariaLabel="实例优先级"
                       value={scheduleForm.workflowInstancePriority}
+                      options={PRIORITIES}
                       disabled={scheduleIsOnline}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                        updateScheduleField(
-                          "workflowInstancePriority",
-                          event.target.value as WorkflowPriority,
-                        )
+                      onValueChange={(value) =>
+                        updateScheduleField("workflowInstancePriority", value)
                       }
-                    >
-                      {PRIORITIES.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
 
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                     <span className="text-xs text-[#687385]">通知策略</span>
-                    <select
-                      className={SCHEDULE_CONTROL_CLASS}
+                    <ScheduleSelect
+                      ariaLabel="通知策略"
                       value={scheduleForm.warningType}
+                      options={WARNING_TYPES}
                       disabled={scheduleIsOnline}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                        updateScheduleField(
-                          "warningType",
-                          event.target.value as WorkflowWarningType,
-                        )
-                      }
-                    >
-                      {WARNING_TYPES.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(value) => updateScheduleField("warningType", value)}
+                    />
                   </label>
 
                   {scheduleForm.warningType !== "NONE" ? (
                     <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                       <span className="text-xs text-[#687385]">通知组</span>
                       <div className="min-w-0">
-                        <select
-                          className={SCHEDULE_CONTROL_CLASS}
-                          value={String(notificationGroupId)}
-                          disabled={scheduleIsOnline || alertGroupsQuery.isPending}
-                          onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                            updateScheduleField("warningGroupId", Number(event.target.value))
+                        <ScheduleSelect
+                          ariaLabel="通知组"
+                          value={
+                            alertGroups.some((group) => group.id === notificationGroupId)
+                              ? String(notificationGroupId)
+                              : null
                           }
-                        >
-                          {alertGroups.map((group) => (
-                            <option key={group.id} value={String(group.id)}>
-                              {group.groupName}
-                            </option>
-                          ))}
-                        </select>
+                          options={alertGroups.map((group) => ({
+                            value: String(group.id),
+                            label: group.groupName,
+                          }))}
+                          disabled={scheduleIsOnline || alertGroupsQuery.isPending}
+                          placeholder="请选择通知组"
+                          onValueChange={(value) =>
+                            updateScheduleField("warningGroupId", Number(value))
+                          }
+                        />
                         {alertGroupsQuery.isPending ? (
                           <span className="mt-1 block text-[11px] text-[#8b93a1]">
                             正在加载通知组...
