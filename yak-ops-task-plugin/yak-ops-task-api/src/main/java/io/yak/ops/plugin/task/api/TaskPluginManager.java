@@ -5,7 +5,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.spi.plugin.PrioritySPIFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,6 +39,17 @@ public class TaskPluginManager {
             log.info("Success register task plugin: {}", factoryName);
         }
 
+    }
+
+    /**
+     * Return a snapshot of task types that were actually registered by SPI.
+     *
+     * @return sorted registered task type names
+     */
+    public static List<String> getRegisteredTaskTypes() {
+        List<String> taskTypes = new ArrayList<>(taskChannelMap.keySet());
+        Collections.sort(taskTypes);
+        return taskTypes;
     }
 
     /**

@@ -50,6 +50,32 @@ public class TaskTypeConfiguration {
         return defaultTaskTypes;
     }
 
+    public String getTaskCategory(String taskType) {
+        if (containsTaskType(universal, taskType)) {
+            return Constants.TYPE_UNIVERSAL;
+        }
+        if (containsTaskType(cloud, taskType)) {
+            return Constants.TYPE_CLOUD;
+        }
+        if (containsTaskType(logic, taskType)) {
+            return Constants.TYPE_LOGIC;
+        }
+        if (containsTaskType(dataIntegration, taskType)) {
+            return Constants.TYPE_DATA_INTEGRATION;
+        }
+        if (containsTaskType(machineLearning, taskType)) {
+            return Constants.TYPE_MACHINE_LEARNING;
+        }
+        if (containsTaskType(other, taskType)) {
+            return Constants.TYPE_OTHER;
+        }
+        return Constants.TYPE_OTHER;
+    }
+
+    private boolean containsTaskType(List<String> taskTypes, String taskType) {
+        return CollectionUtils.isNotEmpty(taskTypes) && taskTypes.contains(taskType);
+    }
+
     public void printDefaultTypes() {
         log.info("support default universal task types: {}", universal);
         log.info("support default cloud task types: {}", cloud);

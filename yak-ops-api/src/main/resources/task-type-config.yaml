@@ -30,6 +30,7 @@ task:
     - 'SEATUNNEL'
     - 'DATAX'
     - 'SQOOP'
+    - 'DATA_SYNC'
   machineLearning:
     - 'JUPYTER'
     - 'MLFLOW'
@@ -40,5 +41,4 @@ task:
   other:
     - 'ZEPPELIN'
     - 'CHUNJUN'
-    - 'DATASYNC'
     - 'LINKIS'
