@@ -594,7 +594,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               side="bottom"
-              align="end"
+              align="start"
               sideOffset={2}
               className="min-w-40"
             >
