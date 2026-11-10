@@ -1458,14 +1458,6 @@ export function WorkflowSidePanel({
                   }
                 />
               </label>
-              <PanelButton
-                variant="secondary"
-                disabled={schedulePreviewing || !scheduleForm.crontab.trim()}
-                onClick={() => void previewSchedule()}
-              >
-                <Clock3 size={13} />
-                {schedulePreviewing ? "预览中..." : "预览触发时间"}
-              </PanelButton>
               {previewTimes.length > 0 ? (
                 <div className="rounded-md border border-[#e5e9ef] bg-[#fbfcfe] p-3">
                   <div className="mb-2 text-xs font-semibold text-[#455064]">
@@ -1639,7 +1631,7 @@ export function WorkflowSidePanel({
           <>
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-[#e4e9f0] bg-white p-2.5">
-                <div className={MUTED_CLASS}>运行中</div>
+                <div className={MUTED_CLASS}>进行中</div>
                 <div className="mt-1 text-xl font-semibold tabular-nums text-[#3568c8]">
                   {activeInstanceCount}
                 </div>
