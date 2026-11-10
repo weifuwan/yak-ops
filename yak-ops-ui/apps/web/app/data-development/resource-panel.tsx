@@ -7,6 +7,7 @@ import {
   ExternalLink,
   FolderInput,
   Pencil,
+  Plus,
   RefreshCw,
   Search,
   Star,
@@ -34,12 +35,14 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { listUserPreferences, updateUserPreferenceFavorite } from "@/service/preference";
 import {
   copyWorkflowDefinition,
+  createWorkflowDefinition,
   deleteWorkflowDefinition,
   listWorkflowDefinitions,
   listWorkflowTasks,
   moveWorkflowDefinition,
   renameWorkflowDefinition,
   renameWorkflowTask,
+  type WorkflowDefinitionCreatePayload,
   type WorkflowDefinitionRecord,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
@@ -84,6 +87,7 @@ type ActionableWorkflowTreeNode = Extract<
 >;
 type WorkflowTreeWorkflowNode = Extract<WorkflowTreeNode, { kind: "workflow" }>;
 type ResourceActionDialog =
+  | { kind: "create" }
   | { kind: "rename"; item: ActionableWorkflowTreeNode }
   | { kind: "move"; item: WorkflowTreeWorkflowNode }
   | { kind: "delete"; item: WorkflowTreeWorkflowNode };
@@ -217,6 +221,8 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     y: number;
   } | null>(null);
   const [dialog, setDialog] = useState<ResourceActionDialog | null>(null);
+  const [createName, setCreateName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
   const [renameValue, setRenameValue] = useState("");
   const [targetWorkspaceId, setTargetWorkspaceId] = useState("");
   const [actionPending, setActionPending] = useState(false);
@@ -486,12 +492,34 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     setDialog({ kind: "delete", item });
   };
 
+  const openCreateDialog = () => {
+    setCreateName("");
+    setCreateDescription("");
+    setDialog({ kind: "create" });
+  };
+
   const submitDialog = async () => {
     if (!dialog || actionPending) return;
 
     setActionPending(true);
     try {
-      if (dialog.kind === "rename") {
+      if (dialog.kind === "create") {
+        const name = createName.trim();
+        if (!name) {
+          toast.error("请输入工作流名称");
+          return;
+        }
+
+        const created = await createWorkflowDefinition({
+          name,
+          description: createDescription.trim(),
+        });
+        setSearch("");
+        setScope("ALL");
+        setExpandedCodes((current) => new Set(current).add(created.code));
+        openWorkflow(created);
+        toast.success("工作流创建成功");
+      } else if (dialog.kind === "rename") {
         const name = renameValue.trim();
         if (!name) {
           toast.error("名称不能为空");
@@ -548,11 +576,36 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
       <PanelHeader
         title="数据开发"
         ariaLabel="数据开发操作"
-        moreActions={
-          <DropdownMenuItem onClick={() => void refresh()}>
-            <RefreshCw size={14} aria-hidden="true" />
-            刷新
-          </DropdownMenuItem>
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="新建"
+              title="新建"
+              className="inline-flex size-[22px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] border-0 bg-transparent p-[3px] text-[var(--yak-components-muted-text)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] focus-visible:ring-1 focus-visible:ring-[var(--yak-color-primary)]"
+            >
+              <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="end"
+              sideOffset={2}
+              className="min-w-40"
+            >
+              <DropdownMenuItem
+                disabled={!workspaceId}
+                title={!workspaceId ? "请先选择项目" : undefined}
+                onClick={openCreateDialog}
+              >
+                <Plus size={14} aria-hidden="true" />
+                新建工作流
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void refresh()}>
+                <RefreshCw size={14} aria-hidden="true" />
+                刷新
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
 
@@ -809,6 +862,75 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
+
+      <Dialog
+        open={dialog?.kind === "create"}
+        onOpenChange={(open) => {
+          if (!open && !actionPending) setDialog(null);
+        }}
+      >
+        {dialog?.kind === "create" ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">
+              新建工作流
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
+              在当前项目下创建一个空白工作流，创建后自动打开编辑器。
+            </DialogDescription>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1.5 block text-xs text-[var(--yak-components-muted-text)]">
+                  工作流名称
+                </label>
+                <Input
+                  size="small"
+                  value={createName}
+                  onChange={(event) => setCreateName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void submitDialog();
+                    }
+                  }}
+                  placeholder="请输入工作流名称"
+                  aria-label="工作流名称"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs text-[var(--yak-components-muted-text)]">
+                  描述（选填）
+                </label>
+                <Input
+                  size="small"
+                  value={createDescription}
+                  onChange={(event) => setCreateDescription(event.target.value)}
+                  placeholder="请输入工作流描述"
+                  aria-label="工作流描述"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={actionPending}
+                onClick={() => setDialog(null)}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                isPending={actionPending}
+                onClick={() => void submitDialog()}
+              >
+                创建
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
 
       <Dialog
         open={dialog?.kind === "rename"}
