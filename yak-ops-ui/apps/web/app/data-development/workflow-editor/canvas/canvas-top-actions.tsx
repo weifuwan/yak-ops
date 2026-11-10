@@ -16,7 +16,10 @@ export function CanvasTopActions({
   onSelect: (panel: CanvasPanelKey) => void;
 }) {
   return (
-    <div className="pointer-events-none absolute right-3 top-3 z-30 max-w-[calc(100%-24px)]">
+    <div
+      className="pointer-events-none absolute right-3 top-3 z-30 max-w-full"
+      style={{ maxWidth: "calc(100% - 24px)" }}
+    >
       <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-[#dfe3e8] bg-white/95 p-1 shadow-sm backdrop-blur">
         {ACTIONS.map(({ key, label, Icon }) => {
           const isActive = activePanel === key;
