@@ -17,6 +17,7 @@ export * from "./icons";
 export * from "./modal";
 export * from "./number-field";
 export * from "./page-header";
+export * from "./panel-header";
 export * from "./pagination";
 export * from "./popover";
 export * from "./radio";

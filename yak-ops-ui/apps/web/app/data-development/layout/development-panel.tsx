@@ -1,3 +1,5 @@
+import { PanelHeader } from "@yak-ops/yak-ui";
+
 import { DataDevelopmentResourcePanel } from "../resource-panel";
 import type { DataDevelopmentSection } from "./development-rail";
 
@@ -40,9 +42,7 @@ export function DevelopmentPanel({
       className="flex shrink-0 flex-col bg-[var(--yak-components-panel-bg)]"
       style={{ width }}
     >
-      <div className="flex h-10 shrink-0 items-center border-b border-[var(--yak-components-border)] px-3">
-        <span className="text-sm font-semibold">{panel.title}</span>
-      </div>
+      <PanelHeader title={panel.title} />
       <div className="p-4 text-[13px] leading-6 text-[var(--yak-components-muted-text)]">
         {panel.content}
       </div>

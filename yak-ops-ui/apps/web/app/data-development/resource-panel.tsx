@@ -5,7 +5,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { Button, Input } from "@yak-ops/yak-ui";
+import { Button, DropdownMenuItem, Input, PanelHeader } from "@yak-ops/yak-ui";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -341,25 +341,20 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
 
   return (
     <aside
-      aria-label="工作流开发"
+      aria-label="数据开发"
       className="flex shrink-0 flex-col bg-[var(--yak-components-panel-bg)]"
       style={{ width }}
     >
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-3">
-        <span className="text-sm font-semibold">工作流开发</span>
-        <button
-          type="button"
-          aria-label="刷新工作流"
-          title="刷新"
-          onClick={() => void refresh()}
-          className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
-        >
-          <RefreshCw
-            size={14}
-            className={workflowsQuery.isFetching ? "animate-spin" : ""}
-          />
-        </button>
-      </div>
+      <PanelHeader
+        title="数据开发"
+        ariaLabel="数据开发操作"
+        moreActions={
+          <DropdownMenuItem onClick={() => void refresh()}>
+            <RefreshCw size={14} aria-hidden="true" />
+            刷新
+          </DropdownMenuItem>
+        }
+      />
 
       <div className="px-3 pb-2 pt-3">
         <div className="relative">
