@@ -4,17 +4,29 @@ const PANEL_MIN_WIDTH = 220;
 const PANEL_MAX_WIDTH = 520;
 const KEYBOARD_STEP = 16;
 
-const clampWidth = (width: number) =>
-  Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, width));
+const clampWidth = (width: number, minWidth: number, maxWidth: number) =>
+  Math.min(maxWidth, Math.max(minWidth, width));
 
 type PanelResizerProps = {
   width: number;
   onResize: (width: number) => void;
+  minWidth?: number;
+  maxWidth?: number;
+  resizeDirection?: "left" | "right";
+  ariaLabel?: string;
 };
 
-export function PanelResizer({ width, onResize }: PanelResizerProps) {
+export function PanelResizer({
+  width,
+  onResize,
+  minWidth = PANEL_MIN_WIDTH,
+  maxWidth = PANEL_MAX_WIDTH,
+  resizeDirection = "right",
+  ariaLabel = "调整项目面板宽度",
+}: PanelResizerProps) {
   const startXRef = useRef(0);
   const startWidthRef = useRef(width);
+  const direction = resizeDirection === "left" ? -1 : 1;
 
   useEffect(
     () => () => {
@@ -37,7 +49,7 @@ export function PanelResizer({ width, onResize }: PanelResizerProps) {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
 
     const delta = event.clientX - startXRef.current;
-    onResize(clampWidth(startWidthRef.current + delta));
+    onResize(clampWidth(startWidthRef.current + delta * direction, minWidth, maxWidth));
   };
 
   const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
@@ -51,10 +63,10 @@ export function PanelResizer({ width, onResize }: PanelResizerProps) {
   return (
     <div
       role="separator"
-      aria-label="调整项目面板宽度"
+      aria-label={ariaLabel}
       aria-orientation="vertical"
-      aria-valuemin={PANEL_MIN_WIDTH}
-      aria-valuemax={PANEL_MAX_WIDTH}
+      aria-valuemin={minWidth}
+      aria-valuemax={maxWidth}
       aria-valuenow={Math.round(width)}
       tabIndex={0}
       onPointerDown={handlePointerDown}
@@ -64,11 +76,11 @@ export function PanelResizer({ width, onResize }: PanelResizerProps) {
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft") {
           event.preventDefault();
-          onResize(clampWidth(width - KEYBOARD_STEP));
+          onResize(clampWidth(width - KEYBOARD_STEP * direction, minWidth, maxWidth));
         }
         if (event.key === "ArrowRight") {
           event.preventDefault();
-          onResize(clampWidth(width + KEYBOARD_STEP));
+          onResize(clampWidth(width + KEYBOARD_STEP * direction, minWidth, maxWidth));
         }
       }}
       className="group relative z-10 -ml-px w-2 shrink-0 cursor-col-resize touch-none outline-none"
