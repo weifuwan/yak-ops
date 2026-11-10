@@ -140,7 +140,7 @@ export function WorkflowTaskNode({
           "!top-4 !-left-[9px] !translate-y-0",
           "before:absolute before:-inset-1",
           "after:absolute after:left-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-          hasIncomingEdge ? "after:opacity-100" : "after:opacity-0",
+          "after:opacity-100",
         ].join(" ")}
       />
 
@@ -204,7 +204,7 @@ export function WorkflowTaskNode({
           "!top-4 !-right-[9px] !translate-y-0",
           "before:absolute before:-inset-1",
           "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-          hasOutgoingEdge ? "after:opacity-100" : "after:opacity-0",
+          "after:opacity-100",
         ].join(" ")}
       >
         <span
