@@ -747,127 +747,127 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
                 if (!open) setContextMenu(null);
               }}
             >
-            <DropdownMenuTrigger
-              aria-hidden="true"
-              tabIndex={-1}
-              className="pointer-events-none fixed size-px opacity-0"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-            />
-            <DropdownMenuContent
-              side="bottom"
-              align="start"
-              sideOffset={0}
-              className="w-[228px] rounded-md p-1"
-            >
-              <DropdownMenuItem disabled title="DataAgent 功能尚未接入">
-                <Bot size={14} aria-hidden="true" />
-                添加到 DataAgent
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={contextMenu.item.kind !== "workflow"}
-                title={
-                  contextMenu.item.kind === "task"
-                    ? "单节点克隆尚未接入"
-                    : undefined
-                }
-                onClick={() => void cloneWorkflow(contextMenu.item)}
+              <DropdownMenuTrigger
+                aria-hidden="true"
+                tabIndex={-1}
+                className="pointer-events-none fixed size-px opacity-0"
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+              />
+              <DropdownMenuContent
+                side="bottom"
+                align="start"
+                sideOffset={0}
+                className="w-[228px] rounded-md p-1"
               >
-                <CopyPlus size={14} aria-hidden="true" />
-                克隆
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  void copyText(
-                    contextMenu.item.kind === "workflow"
-                      ? contextMenu.item.workflow.name
-                      : contextMenu.item.task.name,
-                    "名称",
-                  )
-                }
-              >
-                <Copy size={14} aria-hidden="true" />
-                复制名称
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => void copyText(resourcePath(contextMenu.item), "路径")}
-              >
-                <Copy size={14} aria-hidden="true" />
-                复制路径
-              </DropdownMenuItem>
-  
-              <DropdownMenuSeparator />
-  
-              <DropdownMenuItem onClick={() => openResource(contextMenu.item)}>
-                <ExternalLink size={14} aria-hidden="true" />
-                在侧边打开
-                <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
-                  Ctrl+Enter
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void toggleFavorite(contextMenu.item)}>
-                <Star
-                  size={14}
-                  aria-hidden="true"
-                  className={isFavorite(contextMenu.item) ? "fill-current text-amber-500" : ""}
-                />
-                {isFavorite(contextMenu.item) ? "取消收藏" : "收藏"}
-              </DropdownMenuItem>
-  
-              <DropdownMenuSeparator />
-  
-              <DropdownMenuItem
-                disabled={contextMenu.item.kind !== "workflow" || workspaces.length < 2}
-                title={
-                  contextMenu.item.kind === "task"
-                    ? "暂不支持单节点跨项目移动"
-                    : workspaces.length < 2
-                      ? "当前没有其他可移动的项目"
+                <DropdownMenuItem disabled title="DataAgent 功能尚未接入">
+                  <Bot size={14} aria-hidden="true" />
+                  添加到 DataAgent
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={contextMenu.item.kind !== "workflow"}
+                  title={
+                    contextMenu.item.kind === "task"
+                      ? "单节点克隆尚未接入"
                       : undefined
-                }
-                onClick={() => {
-                  if (contextMenu.item.kind === "workflow") {
-                    openMoveDialog(contextMenu.item);
                   }
-                }}
-              >
-                <FolderInput size={14} aria-hidden="true" />
-                移动...
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={contextMenu.item.workflow.releaseState?.toUpperCase() === "ONLINE"}
-                title={
-                  contextMenu.item.workflow.releaseState?.toUpperCase() === "ONLINE"
-                    ? "在线工作流需要先下线才能修改"
-                    : undefined
-                }
-                onClick={() => openRenameDialog(contextMenu.item)}
-              >
-                <Pencil size={14} aria-hidden="true" />
-                重命名...
-                <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
-                  Enter
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                tone="danger"
-                disabled={contextMenu.item.kind !== "workflow"}
-                title={
-                  contextMenu.item.kind === "task"
-                    ? "单节点删除需要先完善依赖校验和连线调整"
-                    : undefined
-                }
-                onClick={() => {
-                  if (contextMenu.item.kind === "workflow") {
-                    openDeleteDialog(contextMenu.item);
+                  onClick={() => void cloneWorkflow(contextMenu.item)}
+                >
+                  <CopyPlus size={14} aria-hidden="true" />
+                  克隆
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    void copyText(
+                      contextMenu.item.kind === "workflow"
+                        ? contextMenu.item.workflow.name
+                        : contextMenu.item.task.name,
+                      "名称",
+                    )
                   }
-                }}
-              >
-                <Trash2 size={14} aria-hidden="true" />
-                删除
-                <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
-                  Windows+Backspace
-                </span>
-              </DropdownMenuItem>
+                >
+                  <Copy size={14} aria-hidden="true" />
+                  复制名称
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => void copyText(resourcePath(contextMenu.item), "路径")}
+                >
+                  <Copy size={14} aria-hidden="true" />
+                  复制路径
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem onClick={() => openResource(contextMenu.item)}>
+                  <ExternalLink size={14} aria-hidden="true" />
+                  在侧边打开
+                  <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
+                    Ctrl+Enter
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void toggleFavorite(contextMenu.item)}>
+                  <Star
+                    size={14}
+                    aria-hidden="true"
+                    className={isFavorite(contextMenu.item) ? "fill-current text-amber-500" : ""}
+                  />
+                  {isFavorite(contextMenu.item) ? "取消收藏" : "收藏"}
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  disabled={contextMenu.item.kind !== "workflow" || workspaces.length < 2}
+                  title={
+                    contextMenu.item.kind === "task"
+                      ? "暂不支持单节点跨项目移动"
+                      : workspaces.length < 2
+                        ? "当前没有其他可移动的项目"
+                        : undefined
+                  }
+                  onClick={() => {
+                    if (contextMenu.item.kind === "workflow") {
+                      openMoveDialog(contextMenu.item);
+                    }
+                  }}
+                >
+                  <FolderInput size={14} aria-hidden="true" />
+                  移动...
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={contextMenu.item.workflow.releaseState?.toUpperCase() === "ONLINE"}
+                  title={
+                    contextMenu.item.workflow.releaseState?.toUpperCase() === "ONLINE"
+                      ? "在线工作流需要先下线才能修改"
+                      : undefined
+                  }
+                  onClick={() => openRenameDialog(contextMenu.item)}
+                >
+                  <Pencil size={14} aria-hidden="true" />
+                  重命名...
+                  <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
+                    Enter
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  tone="danger"
+                  disabled={contextMenu.item.kind !== "workflow"}
+                  title={
+                    contextMenu.item.kind === "task"
+                      ? "单节点删除需要先完善依赖校验和连线调整"
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (contextMenu.item.kind === "workflow") {
+                      openDeleteDialog(contextMenu.item);
+                    }
+                  }}
+                >
+                  <Trash2 size={14} aria-hidden="true" />
+                  删除
+                  <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
+                    Windows+Backspace
+                  </span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>,
             contextMenuPortalRoot,
