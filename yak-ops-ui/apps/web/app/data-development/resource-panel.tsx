@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
@@ -220,6 +221,12 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     x: number;
     y: number;
   } | null>(null);
+  const [contextMenuPortalRoot, setContextMenuPortalRoot] =
+    useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setContextMenuPortalRoot(document.body);
+  }, []);
   const [dialog, setDialog] = useState<ResourceActionDialog | null>(null);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
@@ -731,13 +738,14 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         </div>
       ) : null}
 
-      {contextMenu ? (
-        <DropdownMenu
-          open
-          onOpenChange={(open) => {
-            if (!open) setContextMenu(null);
-          }}
-        >
+      {contextMenu && contextMenuPortalRoot
+        ? createPortal(
+            <DropdownMenu
+              open
+              onOpenChange={(open) => {
+                if (!open) setContextMenu(null);
+              }}
+            >
           <DropdownMenuTrigger
             aria-hidden="true"
             tabIndex={-1}
@@ -859,9 +867,11 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
                 Windows+Backspace
               </span>
             </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
+            </DropdownMenuContent>
+            </DropdownMenu>,
+            contextMenuPortalRoot,
+          )
+        : null}
 
       <Dialog
         open={dialog?.kind === "create"}
