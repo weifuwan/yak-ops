@@ -1,17 +1,45 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Bot,
+  Copy,
+  CopyPlus,
+  ExternalLink,
+  FolderInput,
+  Pencil,
   RefreshCw,
   Search,
+  Star,
+  Trash2,
   X,
 } from "lucide-react";
-import { Button, DropdownMenuItem, Input, PanelHeader } from "@yak-ops/yak-ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Input,
+  PanelHeader,
+  toast,
+} from "@yak-ops/yak-ui";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { listUserPreferences, updateUserPreferenceFavorite } from "@/service/preference";
 import {
+  copyWorkflowDefinition,
+  deleteWorkflowDefinition,
   listWorkflowDefinitions,
   listWorkflowTasks,
+  moveWorkflowDefinition,
+  renameWorkflowDefinition,
+  renameWorkflowTask,
   type WorkflowDefinitionRecord,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
@@ -49,6 +77,22 @@ type WorkflowTreeNode =
 const workflowNodeId = (code: number) => "workflow-tree-" + code;
 const taskNodeId = (workflowCode: number, taskCode: number) =>
   "workflow-tree-" + workflowCode + "-task-" + taskCode;
+
+type ActionableWorkflowTreeNode = Extract<
+  WorkflowTreeNode,
+  { kind: "workflow" | "task" }
+>;
+type WorkflowTreeWorkflowNode = Extract<WorkflowTreeNode, { kind: "workflow" }>;
+type ResourceActionDialog =
+  | { kind: "rename"; item: ActionableWorkflowTreeNode }
+  | { kind: "move"; item: WorkflowTreeWorkflowNode }
+  | { kind: "delete"; item: WorkflowTreeWorkflowNode };
+
+const DATA_DEVELOPMENT_PREFERENCE_SCENE = "DATA_DEVELOPMENT_RESOURCE" as const;
+const preferenceItemKey = (item: ActionableWorkflowTreeNode) =>
+  item.kind === "workflow"
+    ? "workflow:" + item.workflow.code
+    : "task:" + item.workflow.code + ":" + item.task.code;
 
 const describeRecord = (record: {
   modifyBy?: string | null;
@@ -153,16 +197,43 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
 
 export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const { activeTab, openTask, openWorkflow } = useDataDevelopmentWorkbench();
+  const { workspaces, currentWorkspace } = useWorkspace();
+  const {
+    activeTab,
+    openTask,
+    openWorkflow,
+    updateTabTitle,
+    closeTab,
+  } = useDataDevelopmentWorkbench();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<WorkflowScope>("ALL");
   const [expandedCodes, setExpandedCodes] = useState<Set<number>>(
     () => new Set(),
   );
+  const [contextMenu, setContextMenu] = useState<{
+    item: ActionableWorkflowTreeNode;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [dialog, setDialog] = useState<ResourceActionDialog | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [targetWorkspaceId, setTargetWorkspaceId] = useState("");
+  const [actionPending, setActionPending] = useState(false);
   const deferredSearch = useDeferredValue(search.trim());
   const workspaceId = currentWorkspace?.id ?? "";
+  const preferenceQueryKey = [
+    "user-preferences",
+    DATA_DEVELOPMENT_PREFERENCE_SCENE,
+    currentUser?.id ?? "",
+  ] as const;
+
+  const preferencesQuery = useQuery({
+    queryKey: preferenceQueryKey,
+    queryFn: ({ signal }) =>
+      listUserPreferences(DATA_DEVELOPMENT_PREFERENCE_SCENE, signal),
+    enabled: Boolean(currentUser?.id),
+  });
 
   useEffect(() => {
     if (activeTab?.kind !== "task") return;
@@ -339,6 +410,135 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     });
   };
 
+  const isFavorite = (item: ActionableWorkflowTreeNode) =>
+    Boolean(
+      preferencesQuery.data?.some(
+        (record) =>
+          record.itemKey === preferenceItemKey(item) && record.favorite,
+      ),
+    );
+
+  const resourcePath = (item: ActionableWorkflowTreeNode) => {
+    const projectName = currentWorkspace?.name || "当前项目";
+    return item.kind === "workflow"
+      ? `/${projectName}/${item.workflow.name}`
+      : `/${projectName}/${item.workflow.name}/${item.task.name}`;
+  };
+
+  const copyText = async (value: string, label: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label}已复制`);
+    } catch {
+      toast.error("复制失败，请检查浏览器剪贴板权限");
+    }
+  };
+
+  const toggleFavorite = async (item: ActionableWorkflowTreeNode) => {
+    const favorite = isFavorite(item);
+    try {
+      await updateUserPreferenceFavorite(
+        DATA_DEVELOPMENT_PREFERENCE_SCENE,
+        preferenceItemKey(item),
+        { favorite: !favorite },
+      );
+      await queryClient.invalidateQueries({ queryKey: preferenceQueryKey });
+      toast.success(favorite ? "已取消收藏" : "已收藏");
+    } catch {
+      // The HTTP layer reports the request failure.
+    }
+  };
+
+  const openResource = (item: ActionableWorkflowTreeNode) => {
+    if (item.kind === "workflow") {
+      openWorkflow(item.workflow);
+    } else {
+      openTask(item.workflow.code, item.task);
+    }
+  };
+
+  const cloneWorkflow = async (item: ActionableWorkflowTreeNode) => {
+    if (item.kind !== "workflow" || !workspaceId) return;
+    try {
+      await copyWorkflowDefinition(item.workflow.code, Number(workspaceId));
+      toast.success("工作流克隆成功");
+      await refresh();
+    } catch {
+      // The HTTP layer reports the request failure.
+    }
+  };
+
+  const openRenameDialog = (item: ActionableWorkflowTreeNode) => {
+    setRenameValue(item.kind === "workflow" ? item.workflow.name : item.task.name);
+    setDialog({ kind: "rename", item });
+  };
+
+  const openMoveDialog = (item: WorkflowTreeWorkflowNode) => {
+    const nextTarget = workspaces.find((workspace) => workspace.id !== workspaceId);
+    setTargetWorkspaceId(nextTarget?.id ?? "");
+    setDialog({ kind: "move", item });
+  };
+
+  const openDeleteDialog = (item: WorkflowTreeWorkflowNode) => {
+    setDialog({ kind: "delete", item });
+  };
+
+  const submitDialog = async () => {
+    if (!dialog || actionPending) return;
+
+    setActionPending(true);
+    try {
+      if (dialog.kind === "rename") {
+        const name = renameValue.trim();
+        if (!name) {
+          toast.error("名称不能为空");
+          return;
+        }
+
+        if (dialog.item.kind === "workflow") {
+          await renameWorkflowDefinition(dialog.item.workflow.code, name);
+          updateTabTitle("workflow:" + dialog.item.workflow.code, name);
+        } else {
+          await renameWorkflowTask(
+            dialog.item.workflow.code,
+            dialog.item.task.code,
+            name,
+          );
+          updateTabTitle(
+            "task:" + dialog.item.workflow.code + ":" + dialog.item.task.code,
+            name,
+          );
+        }
+        toast.success("重命名成功");
+      } else if (dialog.kind === "move") {
+        if (!targetWorkspaceId) {
+          toast.error("请选择目标项目");
+          return;
+        }
+        await moveWorkflowDefinition(
+          dialog.item.workflow.code,
+          Number(targetWorkspaceId),
+        );
+        closeTab("workflow:" + dialog.item.workflow.code);
+        toast.success("工作流已移动");
+      } else {
+        await deleteWorkflowDefinition(dialog.item.workflow.code);
+        closeTab("workflow:" + dialog.item.workflow.code);
+        toast.success("工作流已删除");
+      }
+
+      setDialog(null);
+      await refresh();
+    } catch {
+      // Keep the dialog open so the user can review and retry.
+    } finally {
+      setActionPending(false);
+    }
+  };
+
   return (
     <aside
       aria-label="数据开发"
@@ -459,6 +659,14 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
                 openTask(item.workflow.code, item.task);
               }
             }}
+            onContextMenu={(item, event) => {
+              if (item.kind === "message") return;
+              setContextMenu({
+                item,
+                x: event.clientX,
+                y: event.clientY,
+              });
+            }}
             renderItem={(item) => <WorkflowTreeContent item={item} />}
           />
         )}
@@ -469,6 +677,269 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
           当前显示前 {workflows.length} 个工作流
         </div>
       ) : null}
+
+      {contextMenu ? (
+        <DropdownMenu
+          open
+          onOpenChange={(open) => {
+            if (!open) setContextMenu(null);
+          }}
+        >
+          <DropdownMenuTrigger
+            aria-hidden="true"
+            tabIndex={-1}
+            className="pointer-events-none fixed size-px opacity-0"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          />
+          <DropdownMenuContent
+            side="bottom"
+            align="start"
+            sideOffset={0}
+            className="w-[228px] rounded-md p-1"
+          >
+            <DropdownMenuItem disabled title="DataAgent 功能尚未接入">
+              <Bot size={14} aria-hidden="true" />
+              添加到 DataAgent
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={contextMenu.item.kind !== "workflow"}
+              title={
+                contextMenu.item.kind === "task"
+                  ? "单节点克隆尚未接入"
+                  : undefined
+              }
+              onClick={() => void cloneWorkflow(contextMenu.item)}
+            >
+              <CopyPlus size={14} aria-hidden="true" />
+              克隆
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                void copyText(
+                  contextMenu.item.kind === "workflow"
+                    ? contextMenu.item.workflow.name
+                    : contextMenu.item.task.name,
+                  "名称",
+                )
+              }
+            >
+              <Copy size={14} aria-hidden="true" />
+              复制名称
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => void copyText(resourcePath(contextMenu.item), "路径")}
+            >
+              <Copy size={14} aria-hidden="true" />
+              复制路径
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onClick={() => openResource(contextMenu.item)}>
+              <ExternalLink size={14} aria-hidden="true" />
+              在侧边打开
+              <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
+                Ctrl+Enter
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void toggleFavorite(contextMenu.item)}>
+              <Star
+                size={14}
+                aria-hidden="true"
+                className={isFavorite(contextMenu.item) ? "fill-current text-amber-500" : ""}
+              />
+              {isFavorite(contextMenu.item) ? "取消收藏" : "收藏"}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              disabled={contextMenu.item.kind !== "workflow" || workspaces.length < 2}
+              title={
+                contextMenu.item.kind === "task"
+                  ? "暂不支持单节点跨项目移动"
+                  : workspaces.length < 2
+                    ? "当前没有其他可移动的项目"
+                    : undefined
+              }
+              onClick={() => {
+                if (contextMenu.item.kind === "workflow") {
+                  openMoveDialog(contextMenu.item);
+                }
+              }}
+            >
+              <FolderInput size={14} aria-hidden="true" />
+              移动...
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={contextMenu.item.workflow.releaseState?.toUpperCase() === "ONLINE"}
+              title={
+                contextMenu.item.workflow.releaseState?.toUpperCase() === "ONLINE"
+                  ? "在线工作流需要先下线才能修改"
+                  : undefined
+              }
+              onClick={() => openRenameDialog(contextMenu.item)}
+            >
+              <Pencil size={14} aria-hidden="true" />
+              重命名...
+              <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
+                Enter
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              tone="danger"
+              disabled={contextMenu.item.kind !== "workflow"}
+              title={
+                contextMenu.item.kind === "task"
+                  ? "单节点删除需要先完善依赖校验和连线调整"
+                  : undefined
+              }
+              onClick={() => {
+                if (contextMenu.item.kind === "workflow") {
+                  openDeleteDialog(contextMenu.item);
+                }
+              }}
+            >
+              <Trash2 size={14} aria-hidden="true" />
+              删除
+              <span className="ml-auto text-[11px] text-[var(--yak-components-muted-text)]">
+                Windows+Backspace
+              </span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+
+      <Dialog
+        open={dialog?.kind === "rename"}
+        onOpenChange={(open) => {
+          if (!open && !actionPending) setDialog(null);
+        }}
+      >
+        {dialog?.kind === "rename" ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">
+              重命名{dialog.item.kind === "workflow" ? "工作流" : "节点"}
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
+              修改后会同步更新资源目录和已打开的工作区标签。
+            </DialogDescription>
+            <div className="mt-4">
+              <Input
+                size="small"
+                value={renameValue}
+                onChange={(event) => setRenameValue(event.target.value)}
+                aria-label="资源名称"
+                autoFocus
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={actionPending}
+                onClick={() => setDialog(null)}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                isPending={actionPending}
+                onClick={() => void submitDialog()}
+              >
+                保存
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+
+      <Dialog
+        open={dialog?.kind === "move"}
+        onOpenChange={(open) => {
+          if (!open && !actionPending) setDialog(null);
+        }}
+      >
+        {dialog?.kind === "move" ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">移动工作流</DialogTitle>
+            <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
+              将“{dialog.item.workflow.name}”移动到另一个项目。
+            </DialogDescription>
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs text-[var(--yak-components-muted-text)]">
+                目标项目
+              </label>
+              <select
+                value={targetWorkspaceId}
+                onChange={(event) => setTargetWorkspaceId(event.target.value)}
+                className="h-9 w-full rounded-md border border-[var(--yak-components-control-border)] bg-[var(--yak-components-input-bg)] px-3 text-sm outline-none focus:border-[var(--yak-color-primary)]"
+              >
+                <option value="">请选择目标项目</option>
+                {workspaces
+                  .filter((workspace) => workspace.id !== workspaceId)
+                  .map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={actionPending}
+                onClick={() => setDialog(null)}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                isPending={actionPending}
+                isDisabled={!targetWorkspaceId}
+                onClick={() => void submitDialog()}
+              >
+                移动
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+
+      <Dialog
+        open={dialog?.kind === "delete"}
+        onOpenChange={(open) => {
+          if (!open && !actionPending) setDialog(null);
+        }}
+      >
+        {dialog?.kind === "delete" ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">删除工作流</DialogTitle>
+            <DialogDescription className="mt-2 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+              确定删除“{dialog.item.workflow.name}”吗？删除后无法恢复。
+            </DialogDescription>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={actionPending}
+                onClick={() => setDialog(null)}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                isPending={actionPending}
+                onClick={() => void submitDialog()}
+              >
+                删除
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </aside>
   );
 }
