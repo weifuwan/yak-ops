@@ -915,23 +915,6 @@ export function WorkflowSidePanel({
           />
         </div>
 
-        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
-          <span className="text-xs text-[#687385]">类型</span>
-          <span className="text-xs text-[#303846]">工作流</span>
-        </div>
-
-        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
-          <span className="text-xs text-[#687385]">工作流编码</span>
-          <span className="break-all text-xs text-[#4b5563]">{definition.code || "-"}</span>
-        </div>
-
-        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
-          <span className="text-xs text-[#687385]">负责人</span>
-          <span className="truncate text-xs text-[#303846]">
-            {definition.userName || definition.modifyBy || definition.userId || "-"}
-          </span>
-        </div>
-
         <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-3 py-2.5">
           <label htmlFor="workflow-property-description" className="pt-2 text-xs text-[#687385]">
             描述
@@ -993,18 +976,6 @@ export function WorkflowSidePanel({
             ))}
           </select>
         </div>
-
-        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
-          <span className="text-xs text-[#687385]">当前版本</span>
-          <span className="text-xs text-[#303846]">V{definition.version}</span>
-        </div>
-
-        <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
-          <span className="text-xs text-[#687385]">发布状态</span>
-          <span className="text-xs text-[#303846]">
-            {workflowIsOnline ? "已上线" : "未上线"}
-          </span>
-        </div>
       </div>
 
       <div className="flex justify-end pt-4">
@@ -1018,7 +989,6 @@ export function WorkflowSidePanel({
       </div>
     </div>
   );
-
 
   const renderSchedulePanel = () => {
     if (scheduleQuery.isPending) {
