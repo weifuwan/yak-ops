@@ -308,7 +308,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
               }}
               onDrop={(event) => handleDrop(event, item)}
               className={[
-                "group absolute left-0 right-0 flex select-none items-center text-[12px] outline-none",
+                "group absolute left-0 right-0 flex select-none items-center text-[12px] leading-none outline-none",
                 isItemInteractive?.(item) ? "cursor-pointer" : "cursor-default",
                 item.selected
                   ? "bg-[var(--yak-color-primary-subtle)]"
@@ -323,7 +323,6 @@ export function VirtualTree<T extends VirtualTreeNode>({
               style={{
                 top: index * rowHeight,
                 height: rowHeight,
-                lineHeight: rowHeight + "px",
               }}
             >
               {Array.from({ length: Math.max(0, item.level - 1) }).map(
@@ -345,7 +344,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
               ) : null}
 
               <div
-                className="flex min-w-0 flex-1 items-center"
+                className="flex h-full min-w-0 flex-1 items-center"
                 style={{ paddingLeft: 4 + (item.level - 1) * INDENT_SIZE }}
               >
                 {item.expandable ? (
@@ -358,7 +357,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
                       setActiveId(item.id);
                       onToggle?.(item);
                     }}
-                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
+                    className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
                   >
                     {item.expanded ? (
                       <ChevronDown size={12} aria-hidden="true" />
@@ -367,7 +366,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
                     )}
                   </button>
                 ) : (
-                  <span className="size-5 shrink-0" aria-hidden="true" />
+                  <span className="size-4 shrink-0" aria-hidden="true" />
                 )}
 
                 {renderItem(item, { active })}
