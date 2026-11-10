@@ -4,6 +4,8 @@ import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 
 export type WorkflowWarningType = "NONE" | "SUCCESS" | "FAILURE" | "ALL";
 
+export type WorkflowTaskDependType = "TASK_ONLY" | "TASK_PRE" | "TASK_POST";
+
 export interface WorkflowAlertOptions {
   warningType: WorkflowWarningType;
   warningGroupId?: number;
@@ -12,6 +14,8 @@ export interface WorkflowAlertOptions {
 export interface StartWorkflowOptions extends Partial<WorkflowAlertOptions> {
   workerGroup?: string;
   startParams?: Record<string, string>;
+  startNodeList?: number;
+  taskDependType?: WorkflowTaskDependType;
 }
 
 const queryString = (params: Record<string, string | number | undefined>) => {
@@ -35,7 +39,8 @@ export async function startWorkflowInstance(
         workflowDefinitionCode,
         execType: "START_PROCESS",
         failureStrategy: "END",
-        taskDependType: "TASK_POST",
+        startNodeList: options?.startNodeList,
+        taskDependType: options?.taskDependType ?? "TASK_POST",
         warningType: options?.warningType ?? "NONE",
         warningGroupId:
           options?.warningType && options.warningType !== "NONE"
