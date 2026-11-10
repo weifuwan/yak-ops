@@ -26,9 +26,11 @@ type WorkflowEditorProps = {
 function WorkflowEditorShell({
   workflowCode,
   selectedTaskCode,
+  workflowReleaseState,
 }: {
   workflowCode: number;
   selectedTaskCode?: number;
+  workflowReleaseState: string;
 }) {
   const selectorOpen = useWorkflowStore(
     (state) => Boolean(state.selectorRequest),
@@ -44,6 +46,7 @@ function WorkflowEditorShell({
         <WorkflowCanvas
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
+          workflowReleaseState={workflowReleaseState}
         />
       </div>
     </div>
@@ -138,6 +141,7 @@ export function WorkflowEditor({
         <WorkflowEditorShell
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
+          workflowReleaseState={query.data.workflowDefinition.releaseState}
         />
       </ReactFlowProvider>
     </WorkflowStoreProvider>
