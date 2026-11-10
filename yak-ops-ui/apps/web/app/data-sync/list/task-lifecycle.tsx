@@ -1,12 +1,10 @@
 import {
-  Badge,
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  type BadgeProps,
 } from "@yak-ops/yak-ui";
 import { Ellipsis } from "lucide-react";
 import { Fragment } from "react";
@@ -29,14 +27,35 @@ export const isPublishedTask = (record: DataSyncTaskRecord) => record.status ===
 
 export const taskStatusMeta = (
   status: DataSyncTaskStatus | string,
-): { label: string; tone: BadgeProps["tone"] } =>
+): { label: string; dotClassName: string } =>
   status === "ONLINE"
-    ? { label: "已上线", tone: "success" }
-    : { label: "已下线", tone: "neutral" };
+    ? {
+        label: "已上线",
+        dotClassName: "bg-[var(--yak-components-badge-success-text)]",
+      }
+    : {
+        label: "已下线",
+        dotClassName: "bg-[var(--yak-components-muted-text)]",
+      };
 
-export function DataSyncTaskStatusBadge({ status }: { status: DataSyncTaskStatus | string }) {
+export function DataSyncTaskStatusIndicator({
+  status,
+}: {
+  status: DataSyncTaskStatus | string;
+}) {
   const meta = taskStatusMeta(status);
-  return <Badge tone={meta.tone}>{meta.label}</Badge>;
+
+  return (
+    <span className="inline-flex w-fit self-center items-center justify-center gap-1.5 text-xs leading-5">
+      <span
+        aria-hidden="true"
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dotClassName}`}
+      />
+      <span className="font-medium text-[var(--yak-components-tab-text-hover)]">
+        {meta.label}
+      </span>
+    </span>
+  );
 }
 
 interface LifecycleAction {
