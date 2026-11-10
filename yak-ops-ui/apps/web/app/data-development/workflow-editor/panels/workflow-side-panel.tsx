@@ -1819,17 +1819,19 @@ export function WorkflowSidePanel({
                 setActivePanel((current) => (current === item.key ? null : item.key))
               }
               className={[
-                "relative block w-full shrink-0 cursor-pointer border-b border-[#e5e7eb] px-0 py-3 text-center text-xs leading-9 tracking-[3px] [writing-mode:vertical-rl] [word-break:keep-all] opacity-70 transition-colors first:border-t first:border-[#e5e7eb]",
-                selected ? "text-[#315efb] opacity-100" : "text-[#7c8796]",
+                "relative flex w-full shrink-0 cursor-pointer items-center justify-center border-b border-[#e5e7eb] px-0 py-2 text-xs leading-[18px] transition-colors first:border-t first:border-[#e5e7eb] hover:bg-[#f7f9fc] hover:text-[#315efb]",
+                selected ? "bg-white text-[#315efb]" : "bg-white text-[#7c8796]",
               ].join(" ")}
             >
               {selected ? (
                 <span
                   aria-hidden="true"
-                  className="absolute left-0 top-0 z-[1] h-full w-px bg-[#315efb]"
+                  className="absolute inset-y-0 left-0 z-[1] w-0.5 bg-[#315efb]"
                 />
               ) : null}
-              {item.label}
+              <span className="[writing-mode:vertical-rl] [text-orientation:upright] [word-break:keep-all] whitespace-nowrap tracking-[2px]">
+                {item.label}
+              </span>
             </button>
           );
         })}
