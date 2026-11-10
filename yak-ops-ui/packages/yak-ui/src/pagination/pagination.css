@@ -1,15 +1,15 @@
 /* Pagination button styles are defined after button.css so they can override
    the base .button border and padding reset without leaking to other buttons. */
 .yak-pagination-button.button {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px solid var(--yak-components-pagination-border);
   border-radius: 6px;
   background-color: var(--yak-components-pagination-bg);
   color: var(--yak-components-pagination-text);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1;
   box-shadow: none;
@@ -35,9 +35,9 @@
 
 .yak-pagination-ellipsis {
   display: flex;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   color: var(--yak-components-muted-text);
