@@ -1,4 +1,7 @@
-export type UserPreferenceScene = "PRODUCT_MENU" | "DATASOURCE_CREATE_TYPE";
+export type UserPreferenceScene =
+  | "PRODUCT_MENU"
+  | "DATASOURCE_CREATE_TYPE"
+  | "DATA_DEVELOPMENT_RESOURCE";
 
 export interface UserPreferenceRecord {
   scene: UserPreferenceScene;
