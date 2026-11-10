@@ -24,13 +24,11 @@ import type {
 function ToolbarButton({
   label,
   disabled = false,
-  active = false,
   icon,
   onClick,
 }: {
   label: string;
   disabled?: boolean;
-  active?: boolean;
   icon: React.ReactNode;
   onClick: () => void;
 }) {
@@ -39,12 +37,7 @@ function ToolbarButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={[
-        "flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        active
-          ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-          : "hover:bg-[var(--yak-color-hover)]",
-      ].join(" ")}
+      className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
     >
       {icon}
       {label}
@@ -59,9 +52,6 @@ export function WorkflowToolbar() {
   const [layoutPending, setLayoutPending] =
     useState(false);
 
-  const selectorOpen = useWorkflowStore(
-    (state) => Boolean(state.selectorRequest),
-  );
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );
@@ -110,7 +100,6 @@ export function WorkflowToolbar() {
     <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[var(--yak-components-border)] bg-white px-2">
       <ToolbarButton
         label="添加节点"
-        active={selectorOpen}
         icon={<Plus size={14} />}
         onClick={() => openSelector({ kind: "add" })}
       />
