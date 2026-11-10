@@ -1,4 +1,4 @@
-import { FileCode2, X } from "lucide-react";
+import { FileCode2, Workflow, X } from "lucide-react";
 
 import { TaskEditor } from "./task-editor/task-editor";
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
