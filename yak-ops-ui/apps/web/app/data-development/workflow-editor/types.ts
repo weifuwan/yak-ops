@@ -4,6 +4,8 @@ import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 export type WorkflowInteractionMode = "pointer" | "pan";
 
+export type WorkflowEdgeStyle = "bezier" | "step" | "smoothstep";
+
 export type WorkflowSelectorRequest =
   | { kind: "add" }
   | { kind: "upstream"; nodeId: string }
