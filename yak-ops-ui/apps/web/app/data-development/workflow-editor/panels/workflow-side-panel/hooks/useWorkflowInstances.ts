@@ -79,7 +79,7 @@ export function useWorkflowInstances({
       workspaceId,
       selectedInstanceId,
     ],
-    queryFn: () => getWorkflowInstanceTasks(selectedInstanceId!),
+    queryFn: ({ signal }) => getWorkflowInstanceTasks(selectedInstanceId!, signal),
     enabled: Boolean(
       workspaceId &&
         selectedInstanceId !== null &&
