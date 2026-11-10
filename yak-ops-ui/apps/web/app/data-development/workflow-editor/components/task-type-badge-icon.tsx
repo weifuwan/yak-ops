@@ -257,7 +257,7 @@ export function TaskTypeBadgeIcon({
       height={size}
       viewBox="0 0 16 16"
       aria-hidden="true"
-      className="shrink-0"
+      className="block shrink-0"
     >
       <rect
         x="1.25"
