@@ -28,6 +28,7 @@ export function workflowDagToGraph(
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: {
+        workflowCode: dag.workflowDefinition.code,
         taskCode: task.code,
         name: task.name,
         taskType: task.taskType,

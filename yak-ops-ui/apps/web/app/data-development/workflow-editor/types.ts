@@ -11,6 +11,7 @@ export type WorkflowSelectorRequest =
   | { kind: "edge"; edgeId: string };
 
 export type WorkflowNodeData = {
+  workflowCode?: number;
   taskCode: number | null;
   name: string;
   taskType: string;

@@ -11,6 +11,7 @@ import {
 } from "@xyflow/react";
 import { toast } from "@yak-ops/yak-ui";
 
+import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { useWorkflowStore } from "../store/workflow-store";
 import type { WorkflowCanvasNode } from "../types";
 
@@ -58,6 +59,18 @@ export function WorkflowTaskNode({
   const removeNodes = useWorkflowStore(
     (state) => state.removeNodes,
   );
+  const { openTask } = useDataDevelopmentWorkbench();
+
+  const openCurrentTask = () => {
+    if (!data.workflowCode || !data.task) {
+      toast.info("打开节点", {
+        description: "请先保存工作流节点后再打开。",
+      });
+      return;
+    }
+
+    openTask(data.workflowCode, data.task);
+  };
 
   const controlsVisibility = selected
     ? "pointer-events-auto opacity-100"
@@ -84,12 +97,7 @@ export function WorkflowTaskNode({
         <ActionButton
           label="打开节点"
           icon={<FolderOpen size={14} />}
-          onClick={() =>
-            toast.info("打开节点", {
-              description:
-                "节点参数面板将在下一阶段接入。",
-            })
-          }
+          onClick={openCurrentTask}
         />
         <ActionButton
           danger
@@ -107,6 +115,10 @@ export function WorkflowTaskNode({
       />
 
       <div
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          openCurrentTask();
+        }}
         className={[
           "min-w-[220px] rounded-lg border bg-white px-4 py-3 shadow-sm transition-[border-color,box-shadow]",
           selected

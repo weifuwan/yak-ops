@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Code2,
@@ -207,7 +207,7 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
 export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const { activeTab, openWorkflow } = useDataDevelopmentWorkbench();
+  const { activeTab, openTask, openWorkflow } = useDataDevelopmentWorkbench();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<WorkflowScope>("ALL");
@@ -216,6 +216,18 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   );
   const deferredSearch = useDeferredValue(search.trim());
   const workspaceId = currentWorkspace?.id ?? "";
+
+  useEffect(() => {
+    if (activeTab?.kind !== "task") return;
+
+    setExpandedCodes((current) => {
+      if (current.has(activeTab.workflowCode)) return current;
+
+      const next = new Set(current);
+      next.add(activeTab.workflowCode);
+      return next;
+    });
+  }, [activeTab]);
   const userId =
     scope === "MINE" && currentUser?.id ? Number(currentUser.id) : undefined;
 
@@ -275,7 +287,8 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     for (const workflow of workflows) {
       const expanded = expandedCodes.has(workflow.code);
       const workflowSelected =
-        activeTab?.workflowCode === workflow.code && !activeTab.selectedTask;
+        activeTab?.kind === "workflow" &&
+        activeTab.workflowCode === workflow.code;
 
       items.push({
         id: workflowNodeId(workflow.code),
@@ -344,8 +357,9 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             .filter(Boolean)
             .join(" "),
           selected:
-            activeTab?.workflowCode === workflow.code &&
-            activeTab.selectedTask?.code === task.code,
+            activeTab?.kind === "task" &&
+            activeTab.workflowCode === workflow.code &&
+            activeTab.task.code === task.code,
           kind: "task",
           task,
         });
@@ -488,7 +502,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
               if (item.kind === "workflow") {
                 openWorkflow(item.workflow);
               } else if (item.kind === "task") {
-                openWorkflow(item.workflow, item.task);
+                openTask(item.workflow.code, item.task);
               }
             }}
             renderItem={(item) => <WorkflowTreeContent item={item} />}

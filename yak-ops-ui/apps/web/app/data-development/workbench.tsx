@@ -1,4 +1,4 @@
-import { Workflow, X } from "lucide-react";
+import { FileCode2, Workflow, X } from "lucide-react";
 
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
@@ -15,6 +15,7 @@ export function DataDevelopmentWorkbench() {
       <div className="flex h-10 shrink-0 items-stretch overflow-x-auto border-b border-[var(--yak-components-border)]">
         {tabs.map((tab) => {
           const active = tab.id === activeTabId;
+          const TabIcon = tab.kind === "workflow" ? Workflow : FileCode2;
 
           return (
             <div
@@ -36,7 +37,7 @@ export function DataDevelopmentWorkbench() {
                     : "border-transparent text-[var(--yak-components-muted-text)]",
                 ].join(" ")}
               >
-                <Workflow
+                <TabIcon
                   size={14}
                   aria-hidden="true"
                   className={
@@ -63,8 +64,11 @@ export function DataDevelopmentWorkbench() {
       {activeTab ? (
         <div className="flex min-h-0 flex-1 flex-col">
           <WorkflowEditor
+            key={activeTab.id}
             workflowCode={activeTab.workflowCode}
-            selectedTaskCode={activeTab.selectedTask?.code}
+            selectedTaskCode={
+              activeTab.kind === "task" ? activeTab.task.code : undefined
+            }
           />
         </div>
       ) : (
