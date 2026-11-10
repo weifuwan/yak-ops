@@ -91,6 +91,8 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
                   >
                     <Link
                       to={item.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       tabIndex={open ? 0 : -1}
                       className="flex h-full min-w-0 flex-1 cursor-pointer items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                       onClick={onClose}
