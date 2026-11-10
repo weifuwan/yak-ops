@@ -1,16 +1,11 @@
 import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Activity,
   AlertCircle,
-  CalendarClock,
   Clock3,
-  GitBranch,
-  History,
   Plus,
   RefreshCw,
   Save,
-  SlidersHorizontal,
   Trash2,
   X,
 } from "lucide-react";
@@ -175,13 +170,12 @@ const MISSED_FIRE_POLICIES: Array<{ value: WorkflowMissedFirePolicy; label: stri
 const PANEL_ITEMS: Array<{
   key: PanelKey;
   label: string;
-  icon: typeof SlidersHorizontal;
 }> = [
-  { key: "properties", label: "属性", icon: SlidersHorizontal },
-  { key: "schedule", label: "调度配置", icon: CalendarClock },
-  { key: "history", label: "运行历史", icon: History },
-  { key: "versions", label: "版本", icon: GitBranch },
-  { key: "ops", label: "运维", icon: Activity },
+  { key: "properties", label: "属性" },
+  { key: "schedule", label: "调度配置" },
+  { key: "history", label: "运行历史" },
+  { key: "versions", label: "版本" },
+  { key: "ops", label: "运维" },
 ];
 
 function parseGlobalParameters(value?: string | null): GlobalParameter[] {
@@ -1810,10 +1804,9 @@ export function WorkflowSidePanel({
       ) : null}
       <nav
         aria-label="工作流配置面板"
-        className="flex w-10 shrink-0 flex-col items-center gap-1 border-l border-[#edf0f4] bg-[#fafbfc] py-2"
+        className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
       >
         {PANEL_ITEMS.map((item) => {
-          const Icon = item.icon;
           const selected = activePanel === item.key;
           return (
             <button
@@ -1826,16 +1819,17 @@ export function WorkflowSidePanel({
                 setActivePanel((current) => (current === item.key ? null : item.key))
               }
               className={[
-                "relative flex size-8 items-center justify-center rounded-md transition-colors",
-                selected
-                  ? "bg-[#edf2ff] text-[#315efb]"
-                  : "text-[#7c8796] hover:bg-[#f0f2f5] hover:text-[#3f4a5a]",
+                "relative block w-full shrink-0 cursor-pointer border-b border-[#e5e7eb] px-0 py-3 text-center text-xs leading-9 tracking-[3px] [writing-mode:vertical-rl] [word-break:keep-all] opacity-70 transition-colors first:border-t first:border-[#e5e7eb]",
+                selected ? "text-[#315efb] opacity-100" : "text-[#7c8796]",
               ].join(" ")}
             >
               {selected ? (
-                <span className="absolute -left-[7px] top-1.5 h-5 w-0.5 rounded-full bg-[#315efb]" />
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 top-0 z-[1] h-full w-px bg-[#315efb]"
+                />
               ) : null}
-              <Icon size={16} strokeWidth={1.8} />
+              {item.label}
             </button>
           );
         })}
