@@ -191,7 +191,7 @@ export const renameWorkflowTask = async (
   const taskDefinitionList = dag.taskDefinitionList.map((item) =>
     item.code === taskCode ? { ...item, name } : item,
   );
-  await updateWorkflowDefinitionGraph(dag, dag.workflowDefinition.name, taskDefinitionList);
+  await updateWorkflowDefinitionGraph(dag, { name: dag.workflowDefinition.name }, taskDefinitionList);
 };
 
 export const removeWorkflowTask = async (
