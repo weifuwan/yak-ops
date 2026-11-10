@@ -3,6 +3,7 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
+  getSmoothStepPath,
   Position,
   type EdgeProps,
 } from "reactflow";
@@ -25,16 +26,25 @@ export function WorkflowEdge({
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );
+  const edgeStyle = useWorkflowStore(
+    (state) => state.edgeStyle,
+  );
 
-  const [path, labelX, labelY] = getBezierPath({
+  const pathOptions = {
     sourceX: sourceX - 8,
     sourceY,
     sourcePosition: Position.Right,
     targetX: targetX + 8,
     targetY,
     targetPosition: Position.Left,
-    curvature: 0.16,
-  });
+  };
+  const [path, labelX, labelY] =
+    edgeStyle === "bezier"
+      ? getBezierPath({ ...pathOptions, curvature: 0.16 })
+      : getSmoothStepPath({
+          ...pathOptions,
+          borderRadius: edgeStyle === "step" ? 0 : 8,
+        });
 
   const active = Boolean(
     selected || data?.hovered || focused || triggerHovered,
