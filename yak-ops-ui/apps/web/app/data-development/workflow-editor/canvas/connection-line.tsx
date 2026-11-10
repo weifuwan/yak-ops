@@ -1,8 +1,11 @@
 import {
   getBezierPath,
+  getSmoothStepPath,
   Position,
   type ConnectionLineComponentProps,
 } from "reactflow";
+
+import { useWorkflowStore } from "../store/workflow-store";
 
 export function WorkflowConnectionLine({
   fromX,
@@ -10,15 +13,24 @@ export function WorkflowConnectionLine({
   toX,
   toY,
 }: ConnectionLineComponentProps) {
-  const [path] = getBezierPath({
+  const edgeStyle = useWorkflowStore(
+    (state) => state.edgeStyle,
+  );
+  const pathOptions = {
     sourceX: fromX,
     sourceY: fromY,
     sourcePosition: Position.Right,
     targetX: toX,
     targetY: toY,
     targetPosition: Position.Left,
-    curvature: 0.16,
-  });
+  };
+  const [path] =
+    edgeStyle === "bezier"
+      ? getBezierPath({ ...pathOptions, curvature: 0.16 })
+      : getSmoothStepPath({
+          ...pathOptions,
+          borderRadius: edgeStyle === "step" ? 0 : 8,
+        });
 
   return (
     <g>
