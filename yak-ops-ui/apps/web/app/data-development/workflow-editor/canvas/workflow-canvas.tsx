@@ -227,9 +227,9 @@ export function WorkflowCanvas({
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={14}
-          size={2}
-          color="rgba(133, 133, 173, 0.15)"
+          gap={16}
+          size={1.5}
+          color="#C5CBD5"
         />
         <Controls
           position="top-right"
