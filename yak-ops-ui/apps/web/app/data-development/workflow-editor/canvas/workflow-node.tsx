@@ -32,6 +32,7 @@ function ActionButton({
       type="button"
       aria-label={label}
       title={label}
+      onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
@@ -90,8 +91,8 @@ export function WorkflowTaskNode({
   };
 
   const controlsVisibility = selected
-    ? "pointer-events-auto opacity-100"
-    : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100";
+    ? "visible pointer-events-auto opacity-100"
+    : "invisible pointer-events-none opacity-0 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 focus-within:visible focus-within:pointer-events-auto focus-within:opacity-100";
 
   const addButtonVisibility = selected
     ? "opacity-100"
@@ -101,12 +102,13 @@ export function WorkflowTaskNode({
     <div className="group relative">
       <div
         className={[
-          "pointer-events-none absolute -top-8 right-0 z-20 flex h-8 origin-bottom-right pb-1 opacity-0 transition-opacity",
+          "absolute -top-8 right-0 z-20 flex h-8 origin-bottom-right pb-1 opacity-0 transition-[opacity,visibility] duration-150",
           controlsVisibility,
         ].join(" ")}
       >
         <div
           className="nodrag nopan nowheel flex h-7 items-center rounded-lg border border-[var(--yak-components-border)] bg-white/95 px-0.5 text-[var(--yak-components-muted-text)] shadow-md backdrop-blur-[5px]"
+          onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
