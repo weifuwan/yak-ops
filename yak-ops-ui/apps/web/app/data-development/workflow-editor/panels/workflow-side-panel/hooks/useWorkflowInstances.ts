@@ -8,7 +8,7 @@ import {
 } from "@/service/workflow/management";
 import type { PanelKey } from "../shared/types";
 
-const HISTORY_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+const HISTORY_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const OPERATIONS_PAGE_SIZE = 20;
 
 interface UseWorkflowInstancesOptions {
