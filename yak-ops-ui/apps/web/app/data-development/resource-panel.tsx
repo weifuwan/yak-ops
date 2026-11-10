@@ -885,9 +885,6 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             <DialogTitle className="text-base font-semibold">
               新建工作流
             </DialogTitle>
-            <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
-              在当前项目下创建一个空白工作流，创建后自动打开编辑器。
-            </DialogDescription>
             <div className="mt-4 space-y-3">
               <div>
                 <label className="mb-1.5 block text-xs text-[var(--yak-components-muted-text)]">
@@ -911,7 +908,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs text-[var(--yak-components-muted-text)]">
-                  描述（选填）
+                  描述
                 </label>
                 <Input
                   size="small"
