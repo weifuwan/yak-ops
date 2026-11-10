@@ -72,7 +72,7 @@ export function SchedulePanel({
     };
 
     const renderSectionHeader = (section: ScheduleSection, title: string, action?: ReactNode) => (
-      <div className="flex h-9 items-center justify-between rounded-sm bg-[#f7f7f7] px-2.5 transition-colors">
+      <div className="flex h-7 items-center justify-between rounded-sm bg-[#f7f7f7] px-2.5 transition-colors">
         <button
           type="button"
           aria-expanded={!scheduleCollapsed[section]}
@@ -86,7 +86,7 @@ export function SchedulePanel({
               scheduleCollapsed[section] ? "-rotate-90" : "rotate-0",
             ].join(" ")}
           />
-          <span className="text-[13px] font-semibold text-[#303846]">{title}</span>
+          <span className="text-[12px] font-semibold text-[#303846]">{title}</span>
         </button>
         {action}
       </div>
