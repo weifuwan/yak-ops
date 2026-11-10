@@ -29,8 +29,8 @@ export async function layoutWorkflowGraph(
     },
     children: graph.nodes.map((node) => ({
       id: node.id,
-      width: node.measured?.width ?? WORKFLOW_NODE_WIDTH,
-      height: node.measured?.height ?? WORKFLOW_NODE_HEIGHT,
+      width: node.width ?? WORKFLOW_NODE_WIDTH,
+      height: node.height ?? WORKFLOW_NODE_HEIGHT,
     })),
     edges: graph.edges.map((edge) => ({
       id: edge.id,
