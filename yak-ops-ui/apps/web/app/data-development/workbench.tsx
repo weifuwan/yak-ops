@@ -1,4 +1,17 @@
-import { X } from "lucide-react";
+import {
+  ArrowLeftToLine,
+  ArrowRightToLine,
+  Ellipsis,
+  X,
+  XCircle,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@yak-ops/yak-ui";
 
 import { TaskEditor } from "./task-editor/task-editor";
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
@@ -8,8 +21,15 @@ import { WorkflowTreeIcon } from "./workflow-editor/components/workflow-tree-ico
 import { useDataDevelopmentWorkbench } from "./workbench-context";
 
 export function DataDevelopmentWorkbench() {
-  const { tabs, activeTab, activeTabId, activateTab, closeTab } =
-    useDataDevelopmentWorkbench();
+  const {
+    tabs,
+    activeTab,
+    activeTabId,
+    activateTab,
+    closeTab,
+    closeTabs,
+  } = useDataDevelopmentWorkbench();
+  const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTabId);
 
   return (
     <section
@@ -17,11 +37,11 @@ export function DataDevelopmentWorkbench() {
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)]"
     >
       {tabs.length > 0 ? (
-        <div className="flex h-[35px] shrink-0 items-center overflow-hidden border-b border-[#e2e2e2] bg-[#f2f2f2] px-2">
+        <div className="flex h-[35px] min-w-0 shrink-0 items-center gap-1 overflow-hidden border-b border-[#e2e2e2] bg-[#f2f2f2] px-2">
           <div
             role="tablist"
             aria-label="工作区选项卡"
-            className="flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            className="flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
             {tabs.map((tab) => {
               const active = tab.id === activeTabId;
@@ -80,6 +100,63 @@ export function DataDevelopmentWorkbench() {
               );
             })}
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="标签页更多操作"
+              title="标签页更多操作"
+              className="flex h-[27px] w-8 shrink-0 cursor-pointer items-center justify-center rounded-[3px] border-0 bg-transparent p-0 text-[#616161] outline-none transition-colors hover:bg-[#e8e8e8] hover:text-[#26282c] focus-visible:ring-1 focus-visible:ring-[#9bb6ff]"
+            >
+              <Ellipsis size={18} strokeWidth={1.8} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="bottom" align="end" sideOffset={4} className="w-48">
+              <DropdownMenuItem
+                disabled={activeTabIndex < 0}
+                onClick={() => {
+                  if (activeTabId) closeTab(activeTabId);
+                }}
+              >
+                <X size={14} />
+                关闭当前标签页
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={activeTabIndex < 0 || tabs.length <= 1}
+                onClick={() =>
+                  closeTabs(tabs.filter((tab) => tab.id !== activeTabId).map((tab) => tab.id))
+                }
+              >
+                <XCircle size={14} />
+                关闭其他标签页
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={activeTabIndex <= 0}
+                onClick={() =>
+                  closeTabs(tabs.slice(0, activeTabIndex).map((tab) => tab.id))
+                }
+              >
+                <ArrowLeftToLine size={14} />
+                关闭左侧标签页
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={activeTabIndex < 0 || activeTabIndex >= tabs.length - 1}
+                onClick={() =>
+                  closeTabs(tabs.slice(activeTabIndex + 1).map((tab) => tab.id))
+                }
+              >
+                <ArrowRightToLine size={14} />
+                关闭右侧标签页
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                tone="danger"
+                onClick={() => closeTabs(tabs.map((tab) => tab.id))}
+              >
+                <XCircle size={14} />
+                关闭全部标签页
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ) : null}
 
