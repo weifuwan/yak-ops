@@ -930,7 +930,7 @@ export function WorkflowSidePanel({
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className={LABEL_CLASS}>超时时间（分钟）</span>
+            <span className={LABEL_CLASS}>超时时间（分钟，0 表示不限制）</span>
             <input
               className={CONTROL_CLASS}
               type="number"
