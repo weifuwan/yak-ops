@@ -63,6 +63,11 @@ import type {
 import { WorkflowConnectionLine } from "./connection-line";
 import { WorkflowEdge } from "./workflow-edge";
 import { WorkflowTaskNode } from "./workflow-node";
+import { CanvasTopActions } from "./canvas-top-actions";
+import {
+  CanvasSidePanel,
+  type CanvasPanelKey,
+} from "./canvas-side-panel";
 
 const nodeTypes = {
   workflowTask: WorkflowTaskNode,
@@ -158,6 +163,8 @@ export function WorkflowCanvas({
   const [pendingRun, setPendingRun] =
     useState<PendingNodeRun | null>(null);
   const [runPending, setRunPending] = useState(false);
+  const [activeCanvasPanel, setActiveCanvasPanel] =
+    useState<CanvasPanelKey | null>(null);
 
   const {
     handleConnect,
@@ -190,6 +197,17 @@ export function WorkflowCanvas({
   useEffect(() => {
     setContextMenuPortalRoot(document.body);
   }, []);
+
+  useEffect(() => {
+    if (!activeCanvasPanel) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveCanvasPanel(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeCanvasPanel]);
 
   useEffect(() => {
     if (!instance || !selectedTaskCode) return;
@@ -440,6 +458,19 @@ export function WorkflowCanvas({
         />
 
       </ReactFlow>
+
+      <CanvasTopActions
+        activePanel={activeCanvasPanel}
+        onSelect={(panel) =>
+          setActiveCanvasPanel((current) =>
+            current === panel ? null : panel,
+          )
+        }
+      />
+      <CanvasSidePanel
+        activePanel={activeCanvasPanel}
+        onClose={() => setActiveCanvasPanel(null)}
+      />
 
       {contextMenu && contextMenuPortalRoot
         ? createPortal(
