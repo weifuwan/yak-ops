@@ -131,6 +131,7 @@ export function WorkflowTaskNode({
       </div>
 
       <Handle
+        id="target"
         type="target"
         position={Position.Left}
         isConnectable
@@ -187,9 +188,17 @@ export function WorkflowTaskNode({
       </div>
 
       <Handle
+        id="source"
         type="source"
         position={Position.Right}
         isConnectable
+        onClick={(event) => {
+          event.stopPropagation();
+          openSelector({
+            kind: "downstream",
+            nodeId: id,
+          });
+        }}
         className={[
           "!z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
           "!top-4 !-right-[9px] !translate-y-0",
@@ -198,27 +207,17 @@ export function WorkflowTaskNode({
           hasOutgoingEdge ? "after:opacity-100" : "after:opacity-0",
         ].join(" ")}
       >
-        <button
-          type="button"
-          title="新建下游"
-          aria-label="新建下游"
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            openSelector({
-              kind: "downstream",
-              nodeId: id,
-            });
-          }}
+        <span
+          aria-hidden="true"
           className={[
-            "nodrag nopan absolute -left-1 -top-1 flex size-6 cursor-pointer items-center justify-center rounded-full",
+            "pointer-events-none absolute -left-1 -top-1 flex size-6 items-center justify-center rounded-full",
             "border border-[var(--yak-components-border)] bg-white text-[var(--yak-color-primary)] shadow-sm",
             "transition-opacity duration-150",
             controlsVisibility,
           ].join(" ")}
         >
           <Plus size={13} />
-        </button>
+        </span>
       </Handle>
     </div>
   );

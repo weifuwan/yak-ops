@@ -57,7 +57,9 @@ export function workflowDagToGraph(
           relation.postTaskCode,
         type: "workflowEdge",
         source: String(relation.preTaskCode),
+        sourceHandle: "source",
         target: String(relation.postTaskCode),
+        targetHandle: "target",
         data: {
           backend: true,
         },

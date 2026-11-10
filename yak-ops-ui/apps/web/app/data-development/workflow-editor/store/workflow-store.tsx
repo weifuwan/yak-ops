@@ -95,7 +95,9 @@ function createDraftEdge(
     id: edgeId(sequence, source, target),
     type: "workflowEdge",
     source,
+    sourceHandle: "source",
     target,
+    targetHandle: "target",
     data: {
       backend: false,
     },
