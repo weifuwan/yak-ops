@@ -185,9 +185,7 @@ export function DataDevelopmentWorkbench() {
               aria-hidden={tab.id !== activeTabId}
               className={[
                 "absolute inset-0 min-h-0",
-                tab.id === activeTabId
-                  ? "flex"
-                  : "invisible pointer-events-none flex",
+                tab.id === activeTabId ? "flex" : "hidden",
               ].join(" ")}
             >
               <WorkflowEditor workflowCode={tab.workflowCode} />
