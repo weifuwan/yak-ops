@@ -17,6 +17,7 @@ import "reactflow/dist/style.css";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Check,
   FolderOpen,
   Hand,
   Maximize2,
@@ -24,6 +25,7 @@ import {
   MousePointer2,
   Play,
   Plus,
+  Spline,
   Unlink,
 } from "lucide-react";
 import {
@@ -101,6 +103,9 @@ export function WorkflowCanvas({
   const interactionMode = useWorkflowStore(
     (state) => state.interactionMode,
   );
+  const edgeStyle = useWorkflowStore(
+    (state) => state.edgeStyle,
+  );
   const onNodesChange = useWorkflowStore(
     (state) => state.onNodesChange,
   );
@@ -109,6 +114,9 @@ export function WorkflowCanvas({
   );
   const setInteractionMode = useWorkflowStore(
     (state) => state.setInteractionMode,
+  );
+  const setEdgeStyle = useWorkflowStore(
+    (state) => state.setEdgeStyle,
   );
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
@@ -127,6 +135,12 @@ export function WorkflowCanvas({
   const { openDraftTask, openTask } = useDataDevelopmentWorkbench();
   const isWorkflowOnline =
     workflowReleaseState.toUpperCase() === "ONLINE";
+  const edgeStyleLabel =
+    edgeStyle === "bezier"
+      ? "曲线"
+      : edgeStyle === "step"
+        ? "阶梯线"
+        : "平滑阶梯线";
 
   const [contextMenu, setContextMenu] =
     useState<NodeContextMenuState | null>(null);
@@ -717,10 +731,92 @@ export function WorkflowCanvas({
               duration: 180,
             })
           }
-          className="flex size-8 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex size-8 shrink-0 cursor-pointer items-center justify-center border-r border-[var(--yak-components-border)] text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Maximize2 size={15} strokeWidth={1.7} />
         </button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={`连线样式：${edgeStyleLabel}`}
+            title={`连线样式：${edgeStyleLabel}`}
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] data-[popup-open]:bg-[var(--yak-color-hover)] data-[popup-open]:text-[var(--yak-color-primary)]"
+          >
+            <Spline size={15} strokeWidth={1.7} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="bottom"
+            align="end"
+            sideOffset={6}
+            className="w-44"
+          >
+            <div className="px-2.5 py-2 text-[11px] font-medium text-[var(--yak-components-muted-text)]">
+              连线样式
+            </div>
+            <DropdownMenuItem
+              onClick={() => setEdgeStyle("bezier")}
+              className={
+                edgeStyle === "bezier"
+                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                  : ""
+              }
+            >
+              <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
+                <path
+                  d="M2 14 C10 14 9 4 16 4 S22 14 30 4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="flex-1">曲线</span>
+              {edgeStyle === "bezier" ? <Check size={14} /> : null}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setEdgeStyle("step")}
+              className={
+                edgeStyle === "step"
+                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                  : ""
+              }
+            >
+              <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
+                <path
+                  d="M2 14 H12 V4 H22 V14 H30"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="flex-1">阶梯线</span>
+              {edgeStyle === "step" ? <Check size={14} /> : null}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setEdgeStyle("smoothstep")}
+              className={
+                edgeStyle === "smoothstep"
+                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                  : ""
+              }
+            >
+              <svg viewBox="0 0 32 18" className="h-5 w-8 shrink-0" aria-hidden="true">
+                <path
+                  d="M2 14 H9 Q12 14 12 11 V7 Q12 4 15 4 H19 Q22 4 22 7 V11 Q22 14 25 14 H30"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="flex-1">平滑阶梯线</span>
+              {edgeStyle === "smoothstep" ? <Check size={14} /> : null}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {nodes.length === 0 ? (
