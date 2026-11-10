@@ -41,8 +41,10 @@ const edgeTypes = {
 };
 
 export function WorkflowCanvas({
+  workflowCode,
   selectedTaskCode,
 }: {
+  workflowCode: number;
   selectedTaskCode?: number;
 }) {
   const nodes = useWorkflowStore(
@@ -158,6 +160,7 @@ export function WorkflowCanvas({
   return (
     <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#f2f4f7]">
       <ReactFlow
+        id={`workflow-${workflowCode}`}
         nodes={nodes}
         edges={renderEdges}
         nodeTypes={nodeTypes}
