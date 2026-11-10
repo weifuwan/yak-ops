@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Filter,
   RefreshCw,
   Search,
   X,
@@ -357,31 +358,50 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
       />
 
       <div className="px-3 pb-2 pt-1.5">
-        <div className="relative">
-          <Search
-            size={14}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
-          />
+        <div className="flex h-[30px] min-w-0 items-center rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] transition-colors hover:border-[var(--yak-components-input-border-hover)] focus-within:border-[var(--yak-components-input-border-focus)]">
           <Input
             size="small"
-            variant="outlined"
-            aria-label="搜索工作流"
-            placeholder="搜索工作流"
+            variant="filled"
+            aria-label="搜索名称 / 节点ID / 修改人"
+            placeholder="搜索名称 / 节点ID / 修改人"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="pl-8"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void workflowsQuery.refetch();
+              }
+            }}
+            className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2.5 text-xs shadow-none hover:border-transparent hover:bg-transparent focus:border-transparent focus:bg-transparent"
           />
+          <span
+            title="搜索范围：全部字段"
+            aria-label="搜索范围：全部字段"
+            className="flex size-6 shrink-0 items-center justify-center text-[var(--yak-components-muted-text)]"
+          >
+            <Filter size={14} aria-hidden="true" />
+          </span>
           {search ? (
             <button
               type="button"
-              aria-label="清空搜索"
+              aria-label="清除搜索"
+              title="清除搜索"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-0.5 text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]"
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
             >
-              <X size={13} />
+              <X size={13} aria-hidden="true" />
             </button>
           ) : null}
+          <button
+            type="button"
+            aria-label="搜索"
+            title="搜索"
+            onClick={() => void workflowsQuery.refetch()}
+            disabled={workflowsQuery.isFetching}
+            className="mr-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Search size={14} aria-hidden="true" />
+          </button>
         </div>
       </div>
 
