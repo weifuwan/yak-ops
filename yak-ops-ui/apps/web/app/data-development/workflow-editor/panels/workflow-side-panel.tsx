@@ -752,9 +752,6 @@ export function WorkflowSidePanel({
       setConfirmVersion(null);
       await invalidateDefinition();
       await queryClient.invalidateQueries({
-        queryKey: ["data-development", "workflow-definition-layout", workspaceId, workflowCode],
-      });
-      await queryClient.invalidateQueries({
         queryKey: ["workflow-management", "schedule", workspaceId, workflowCode],
       });
       await versionsQuery.refetch();
