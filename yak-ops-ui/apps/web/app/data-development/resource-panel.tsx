@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
@@ -206,7 +206,6 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     closeTab,
   } = useDataDevelopmentWorkbench();
   const queryClient = useQueryClient();
-  const treeViewportRef = useRef<HTMLDivElement | null>(null);
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<WorkflowScope>("ALL");
   const [expandedCodes, setExpandedCodes] = useState<Set<number>>(
@@ -619,7 +618,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         ))}
       </div>
 
-      <div ref={treeViewportRef} className="min-h-0 flex-1 px-2 pb-2">
+      <div className="min-h-0 flex-1 px-2 pb-2">
         {workflowsQuery.isPending ? (
           <div className="px-3 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
             正在加载工作流…
@@ -696,13 +695,6 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             side="bottom"
             align="start"
             sideOffset={0}
-            collisionBoundary={treeViewportRef.current ?? undefined}
-            collisionPadding={8}
-            collisionAvoidance={{
-              side: "shift",
-              align: "shift",
-              fallbackAxisSide: "none",
-            }}
             className="w-[228px] rounded-md p-1"
           >
             <DropdownMenuItem disabled title="DataAgent 功能尚未接入">
