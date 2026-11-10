@@ -22,6 +22,10 @@ export function VersionsPanel({
     confirmVersion,
     setConfirmVersion,
     switchingVersion,
+    versionsPageNo,
+    versionsPageSize,
+    versionsTotal,
+    onVersionsPageChange,
     switchVersion,
   } = controller;
 
@@ -159,7 +163,20 @@ export function VersionsPanel({
         size="small"
         rowHeight={48}
         scroll={{ x: 532 }}
-        pagination={false}
+        pagination={
+          versionsTotal > 0
+            ? {
+                current: versionsPageNo,
+                pageSize: versionsPageSize,
+                total: versionsTotal,
+                pageSizeOptions: [10, 20, 50, 100],
+                pageSizeLabel: "每页：",
+                showSizeChanger: true,
+                disabled: versionsQuery.isFetching || switchingVersion,
+                onChange: onVersionsPageChange,
+              }
+            : false
+        }
         emptyText={
           versionsQuery.isError
             ? "版本列表加载失败"

@@ -197,9 +197,14 @@ export function previewWorkflowSchedule(
 
 export async function listWorkflowDefinitionVersions(
   workflowDefinitionCode: number,
+  pageNo = 1,
+  pageSize = 10,
   signal?: AbortSignal,
 ): Promise<PageInfo<WorkflowDefinitionVersionRecord>> {
-  const params = new URLSearchParams({ pageNo: "1", pageSize: "20" });
+  const params = new URLSearchParams({
+    pageNo: String(pageNo),
+    pageSize: String(pageSize),
+  });
   return HttpUtils.getData<PageInfo<WorkflowDefinitionVersionRecord>>(
     definitionBase() +
       "/" +
@@ -226,12 +231,14 @@ export function switchWorkflowDefinitionVersion(
 
 export async function listWorkflowInstances(
   workflowDefinitionCode: number,
+  pageNo = 1,
+  pageSize = 10,
   signal?: AbortSignal,
 ): Promise<PageInfo<WorkflowInstanceSummary>> {
   const params = new URLSearchParams({
     workflowDefinitionCode: String(workflowDefinitionCode),
-    pageNo: "1",
-    pageSize: "20",
+    pageNo: String(pageNo),
+    pageSize: String(pageSize),
   });
   return HttpUtils.getData<PageInfo<WorkflowInstanceSummary>>(
     instanceBase() + "?" + params.toString(),

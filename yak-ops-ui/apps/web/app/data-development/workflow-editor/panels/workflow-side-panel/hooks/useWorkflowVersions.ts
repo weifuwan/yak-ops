@@ -8,6 +8,8 @@ import {
 } from "@/service/workflow/management";
 import type { PanelKey } from "../shared/types";
 
+const VERSION_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
 interface UseWorkflowVersionsOptions {
   workflowCode: number;
   workspaceId: string;
@@ -25,14 +27,41 @@ export function useWorkflowVersions({
 }: UseWorkflowVersionsOptions) {
   const [confirmVersion, setConfirmVersion] = useState<number | null>(null);
   const [switchingVersion, setSwitchingVersion] = useState(false);
+  const [pagination, setPagination] = useState({
+    workflowCode,
+    pageNo: 1,
+    pageSize: VERSION_PAGE_SIZE_OPTIONS[0],
+  });
+
+  const pageNo = pagination.workflowCode === workflowCode ? pagination.pageNo : 1;
+  const pageSize =
+    pagination.workflowCode === workflowCode
+      ? pagination.pageSize
+      : VERSION_PAGE_SIZE_OPTIONS[0];
 
   const queryClient = useQueryClient();
 
   const versionsQuery = useQuery({
-    queryKey: ["workflow-management", "versions", workspaceId, workflowCode],
-    queryFn: ({ signal }) => listWorkflowDefinitionVersions(workflowCode, signal),
+    queryKey: [
+      "workflow-management",
+      "versions",
+      workspaceId,
+      workflowCode,
+      pageNo,
+      pageSize,
+    ],
+    queryFn: ({ signal }) =>
+      listWorkflowDefinitionVersions(workflowCode, pageNo, pageSize, signal),
     enabled: Boolean(workspaceId && activePanel === "versions"),
   });
+
+  const onVersionsPageChange = (nextPageNo: number, nextPageSize: number) => {
+    setPagination({
+      workflowCode,
+      pageNo: nextPageSize === pageSize ? nextPageNo : 1,
+      pageSize: nextPageSize,
+    });
+  };
 
   const switchVersion = async (version: number) => {
     setSwitchingVersion(true);
@@ -63,6 +92,10 @@ export function useWorkflowVersions({
     switchingVersion,
     versionsQuery,
     versions,
+    versionsPageNo: pageNo,
+    versionsPageSize: pageSize,
+    versionsTotal: versionsQuery.data?.total ?? 0,
+    onVersionsPageChange,
     switchVersion,
   };
 }

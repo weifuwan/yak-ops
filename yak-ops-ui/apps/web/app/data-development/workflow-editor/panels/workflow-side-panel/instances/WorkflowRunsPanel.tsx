@@ -30,6 +30,10 @@ export function WorkflowRunsPanel({
     activeInstanceCount,
     failedInstanceCount,
     successInstanceCount,
+    historyPageNo,
+    historyPageSize,
+    historyTotal,
+    onHistoryPageChange,
   } = controller;
 
   const renderInstanceDetail = () => {
@@ -228,7 +232,20 @@ export function WorkflowRunsPanel({
         size="small"
         rowHeight={56}
         scroll={{ x: 362 }}
-        pagination={false}
+        pagination={
+          historyTotal > 0
+            ? {
+                current: historyPageNo,
+                pageSize: historyPageSize,
+                total: historyTotal,
+                pageSizeOptions: [10, 20, 50, 100],
+                pageSizeLabel: "每页：",
+                showSizeChanger: true,
+                disabled: instancesQuery.isFetching,
+                onChange: onHistoryPageChange,
+              }
+            : false
+        }
         emptyText={
           instancesQuery.isError
             ? "运行记录加载失败"
