@@ -149,7 +149,7 @@ export function WorkflowEditor({
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
           workflowReleaseState={query.data?.workflowDefinition.releaseState ?? "OFFLINE"}
-          dag={query.data}
+          dag={query.data!}
         />
       </ReactFlowProvider>
     </WorkflowStoreProvider>
