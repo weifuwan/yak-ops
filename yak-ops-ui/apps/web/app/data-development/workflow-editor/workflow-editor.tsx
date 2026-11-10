@@ -39,10 +39,9 @@ function WorkflowEditorShell({
       <WorkflowToolbar />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {selectorOpen ? (
-          <WorkflowNodeSelector workflowCode={workflowCode} />
+          <WorkflowNodeSelector />
         ) : null}
         <WorkflowCanvas
-          workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
         />
       </div>
