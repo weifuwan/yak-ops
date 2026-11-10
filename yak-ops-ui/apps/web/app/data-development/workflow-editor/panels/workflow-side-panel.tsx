@@ -1,11 +1,9 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   AlertCircle,
   CalendarClock,
-  Check,
-  ChevronDown,
   Clock3,
   GitBranch,
   History,
@@ -324,7 +322,7 @@ function PanelNotice({
   children,
   tone = "info",
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   tone?: "info" | "warning";
 }) {
   return (
@@ -502,7 +500,6 @@ export function WorkflowSidePanel({
     enabled: Boolean(
       workspaceId &&
         activePanel === "schedule" &&
-        scheduleSection === "strategy" &&
         scheduleForm.warningType !== "NONE",
     ),
   });
@@ -607,8 +604,12 @@ export function WorkflowSidePanel({
   const currentSchedule = scheduleQuery.data;
   const scheduleIsOnline = currentSchedule?.releaseState === "ONLINE";
   const alertGroups = alertGroupsQuery.data ?? [];
-  const notificationGroupId =
-    scheduleForm.warningGroupId || alertGroups[0]?.id || 1;
+  const configuredNotificationGroupExists = alertGroups.some(
+    (group) => group.id === scheduleForm.warningGroupId,
+  );
+  const notificationGroupId = configuredNotificationGroupExists
+    ? scheduleForm.warningGroupId
+    : alertGroups[0]?.id ?? scheduleForm.warningGroupId;
   const notificationGroupMissing =
     scheduleForm.warningType !== "NONE" &&
     alertGroupsQuery.isSuccess &&
@@ -643,9 +644,11 @@ export function WorkflowSidePanel({
     }
     if (
       scheduleForm.warningType !== "NONE" &&
-      alertGroupsQuery.isError
+      (alertGroupsQuery.isPending ||
+        alertGroupsQuery.isFetching ||
+        alertGroupsQuery.isError)
     ) {
-      toast.error("通知组加载失败，请重试后再保存");
+      toast.error("通知组尚未加载完成，请重试后再保存");
       return false;
     }
     return true;
@@ -966,176 +969,6 @@ export function WorkflowSidePanel({
     </div>
   );
 
-  const renderGlobalParameters = () => (
-    <div className="space-y-3 p-4">
-      {workflowIsOnline ? (
-        <PanelNotice tone="warning">
-          工作流上线期间不能修改全局参数，请先下线工作流。
-        </PanelNotice>
-      ) : null}
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold text-[#303846]">全局参数</div>
-          <div className={MUTED_CLASS}>保存到工作流定义，供运行实例引用</div>
-        </div>
-        <button
-          type="button"
-          disabled={workflowIsOnline}
-          onClick={() =>
-            setGlobalParameters((current) => [
-              ...current,
-              {
-                prop: "PARAM_" + (current.length + 1),
-                direct: "IN",
-                type: "VARCHAR",
-                value: "",
-                sensitive: false,
-              },
-            ])
-          }
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#dce4f8] px-2 text-xs text-[#315efb] hover:bg-[#f4f7ff] disabled:opacity-40"
-        >
-          <Plus size={13} />
-          添加参数
-        </button>
-      </div>
-      {globalParameters.length === 0 ? (
-        <EmptyState
-          title="暂无全局参数"
-          description="点击右上角添加参数，参数名称不能重复。"
-        />
-      ) : (
-        <div className="space-y-2">
-          {globalParameters.map((parameter, index) => (
-            <div
-              key={index}
-              className="space-y-2 rounded-lg border border-[#e5e9ef] bg-white p-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-[#8a93a1]">
-                  参数 {index + 1}
-                </span>
-                <button
-                  type="button"
-                  title={
-                    savedGlobalParameterCount > 0 && globalParameters.length <= 1
-                      ? "后端当前不支持清空全部已保存的全局参数"
-                      : "删除参数"
-                  }
-                  disabled={
-                    workflowIsOnline ||
-                    (savedGlobalParameterCount > 0 && globalParameters.length <= 1)
-                  }
-                  onClick={() =>
-                    setGlobalParameters((current) =>
-                      current.filter((_item, itemIndex) => itemIndex !== index),
-                    )
-                  }
-                  className="flex size-6 items-center justify-center rounded text-[#a0a8b4] hover:bg-[#fff2f1] hover:text-[#cf4a43] disabled:cursor-not-allowed disabled:opacity-35"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_100px] gap-2">
-                <label className="min-w-0">
-                  <span className={LABEL_CLASS}>参数名称</span>
-                  <input
-                    className={CONTROL_CLASS}
-                    value={parameter.prop}
-                    disabled={workflowIsOnline}
-                    placeholder="例如：BIZ_DATE"
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      updateGlobalParameter(index, { prop: event.target.value })
-                    }
-                  />
-                </label>
-                <label className="min-w-0">
-                  <span className={LABEL_CLASS}>方向</span>
-                  <select
-                    className={CONTROL_CLASS}
-                    value={parameter.direct}
-                    disabled={workflowIsOnline}
-                    onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                      updateGlobalParameter(index, {
-                        direct: event.target.value as "IN" | "OUT",
-                      })
-                    }
-                  >
-                    <option value="IN">输入</option>
-                    <option value="OUT">输出</option>
-                  </select>
-                </label>
-              </div>
-              <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
-                <label className="min-w-0">
-                  <span className={LABEL_CLASS}>数据类型</span>
-                  <select
-                    className={CONTROL_CLASS}
-                    value={parameter.type}
-                    disabled={workflowIsOnline}
-                    onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                      updateGlobalParameter(index, {
-                        type: event.target.value as GlobalParameterType,
-                      })
-                    }
-                  >
-                    {GLOBAL_PARAMETER_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="min-w-0">
-                  <span className={LABEL_CLASS}>参数值</span>
-                  <input
-                    className={CONTROL_CLASS}
-                    type={parameter.sensitive ? "password" : "text"}
-                    value={parameter.value}
-                    disabled={workflowIsOnline}
-                    placeholder="请输入参数值"
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      updateGlobalParameter(index, { value: event.target.value })
-                    }
-                  />
-                </label>
-              </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-[#697383]">
-                <input
-                  type="checkbox"
-                  checked={parameter.sensitive}
-                  disabled={workflowIsOnline}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    updateGlobalParameter(index, { sensitive: event.target.checked })
-                  }
-                />
-                敏感参数
-              </label>
-            </div>
-          ))}
-        </div>
-      )}
-      {savedGlobalParameterCount > 0 && globalParameters.length === 1 ? (
-        <div className={MUTED_CLASS}>
-          当前后端更新逻辑不会将空数组写回，因此暂时需要至少保留一个已保存参数。
-        </div>
-      ) : null}
-      <div className="flex justify-end">
-        <PanelButton
-          onClick={() => void saveGlobalParameters()}
-          disabled={
-            workflowIsOnline ||
-            globalParametersSaving ||
-            (globalParameters.length === 0 && savedGlobalParameterCount === 0)
-          }
-        >
-          <Save size={13} />
-          {globalParametersSaving ? "保存中..." : "保存全局参数"}
-        </PanelButton>
-      </div>
-    </div>
-  );
-
   const renderSchedulePanel = () => {
     if (scheduleQuery.isPending) {
       return <div className="p-4 text-xs text-[#8b93a1]">正在加载调度配置...</div>;
@@ -1290,6 +1123,22 @@ export function WorkflowSidePanel({
                           </select>
                         </label>
                       </div>
+                      <label className="mt-2 block">
+                        <span className={LABEL_CLASS}>参数方向</span>
+                        <select
+                          className={CONTROL_CLASS}
+                          value={parameter.direct}
+                          disabled={workflowIsOnline}
+                          onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                            updateGlobalParameter(index, {
+                              direct: event.target.value as "IN" | "OUT",
+                            })
+                          }
+                        >
+                          <option value="IN">输入（IN）</option>
+                          <option value="OUT">输出（OUT）</option>
+                        </select>
+                      </label>
                       <label className="mt-2 block">
                         <span className={LABEL_CLASS}>参数值</span>
                         <input
@@ -1633,7 +1482,10 @@ export function WorkflowSidePanel({
                   scheduleIsOnline ||
                   !scheduleForm.crontab.trim() ||
                   (scheduleForm.warningType !== "NONE" &&
-                    (alertGroupsQuery.isError || notificationGroupMissing))
+                    (alertGroupsQuery.isPending ||
+                      alertGroupsQuery.isFetching ||
+                      alertGroupsQuery.isError ||
+                      notificationGroupMissing))
                 }
               >
                 <Save size={13} />
