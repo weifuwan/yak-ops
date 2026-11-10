@@ -913,7 +913,7 @@ export function WorkflowSidePanel({
           <textarea
             className={TEXTAREA_CLASS}
             rows={3}
-            maxLength={500}
+            maxLength={255}
             value={propertyForm.description}
             disabled={workflowIsOnline}
             placeholder="填写工作流用途或说明"
