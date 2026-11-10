@@ -890,14 +890,6 @@ export function WorkflowSidePanel({
 
   const renderProperties = () => (
     <div className="px-4 py-3">
-      {workflowIsOnline ? (
-        <div className="mb-3">
-          <PanelNotice tone="warning">
-            工作流已上线，需下线后才能修改属性。
-          </PanelNotice>
-        </div>
-      ) : null}
-
       <div className="divide-y divide-[#edf0f3]">
         <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-2.5">
           <label htmlFor="workflow-property-name" className="text-xs text-[#687385]">
