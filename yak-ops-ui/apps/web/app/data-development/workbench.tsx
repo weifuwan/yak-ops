@@ -1,7 +1,8 @@
-import { FileCode2, Workflow, X } from "lucide-react";
+import { FileCode2, X } from "lucide-react";
 
 import { TaskEditor } from "./task-editor/task-editor";
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
+import { WorkflowWelcome } from "./workflow-welcome";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
 
 export function DataDevelopmentWorkbench() {
@@ -104,21 +105,7 @@ export function DataDevelopmentWorkbench() {
           </div>
         ) : null}
 
-        {!activeTab ? (
-          <div className="flex h-full items-center justify-center p-8 text-center">
-            <div>
-              <Workflow
-                size={24}
-                aria-hidden="true"
-                className="mx-auto text-[var(--yak-components-muted-text)]"
-              />
-              <h1 className="mt-3 text-base font-semibold">工作流开发</h1>
-              <p className="mt-2 text-[13px] text-[var(--yak-components-muted-text)]">
-                从左侧打开一个工作流定义。
-              </p>
-            </div>
-          </div>
-        ) : null}
+        {!activeTab ? <WorkflowWelcome /> : null}
       </div>
     </section>
   );
