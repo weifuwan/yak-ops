@@ -52,6 +52,7 @@ type DataDevelopmentWorkbenchContextValue = {
   activateTab: (id: string) => void;
   updateTabTitle: (id: string, title: string) => void;
   closeTab: (id: string) => void;
+  closeTabs: (ids: string[]) => void;
 };
 
 const DataDevelopmentWorkbenchContext =
@@ -147,23 +148,27 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     );
   };
 
-  const closeTab = (id: string) => {
-    const closingIndex = tabs.findIndex((tab) => tab.id === id);
-    if (closingIndex < 0) return;
+  const closeTabs = (ids: string[]) => {
+    const closingIds = new Set(ids);
+    if (closingIds.size === 0) return;
 
-    const closingTab = tabs[closingIndex];
-    const closingIds = new Set<string>([id]);
+    // Draft task tabs depend on their parent workflow tab, so preserve the
+    // existing behavior of closing those drafts together with the workflow.
+    for (const tab of tabs) {
+      if (tab.kind !== "workflow" || !closingIds.has(tab.id)) continue;
 
-    if (closingTab.kind === "workflow") {
-      for (const tab of tabs) {
+      for (const relatedTab of tabs) {
         if (
-          tab.kind === "draft-task" &&
-          tab.workflowCode === closingTab.workflowCode
+          relatedTab.kind === "draft-task" &&
+          relatedTab.workflowCode === tab.workflowCode
         ) {
-          closingIds.add(tab.id);
+          closingIds.add(relatedTab.id);
         }
       }
     }
+
+    const closingIndex = tabs.findIndex((tab) => closingIds.has(tab.id));
+    if (closingIndex < 0) return;
 
     const nextTabs = tabs.filter((tab) => !closingIds.has(tab.id));
     setTabs(nextTabs);
@@ -174,6 +179,8 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       );
     }
   };
+
+  const closeTab = (id: string) => closeTabs([id]);
 
   const value = useMemo(
     () => ({
@@ -186,6 +193,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       activateTab,
       updateTabTitle,
       closeTab,
+      closeTabs,
     }),
     [tabs, activeTabId, activeTab],
   );
