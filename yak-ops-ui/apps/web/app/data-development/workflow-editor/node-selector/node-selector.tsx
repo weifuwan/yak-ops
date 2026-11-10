@@ -12,6 +12,7 @@ import {
   Database,
   FileCode2,
   Globe,
+  Pin,
   Search,
   Terminal,
   Workflow,
@@ -56,9 +57,9 @@ function selectorTitle(
     case "downstream":
       return "新建下游";
     case "edge":
-      return "在线路中插入节点";
+      return "插入节点";
     default:
-      return "添加节点";
+      return "新建节点";
   }
 }
 
@@ -121,9 +122,11 @@ function TaskTypeItem({
         );
       }}
       onClick={onSelect}
-      className="group flex h-7 w-full cursor-grab items-center gap-2 rounded-[2px] border border-[var(--yak-components-border)] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[var(--yak-components-muted-text)] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"
+      className="group flex h-7 w-full cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"
     >
-      <TaskTypeIcon taskType={task.taskType} />
+      <span className="mr-2 flex size-4 shrink-0 items-center justify-center">
+        <TaskTypeIcon taskType={task.taskType} />
+      </span>
       <span className="min-w-0 truncate leading-4">
         {task.taskType}
       </span>
@@ -202,20 +205,40 @@ export function WorkflowNodeSelector({
   if (!request) return null;
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-[var(--yak-components-border)] bg-white">
-      <div className="relative shrink-0 border-b border-[var(--yak-components-border)] px-3 pb-1.5 pt-2">
-        <div className="relative mb-1 flex h-6 items-center pr-7">
-          <span className="truncate text-xs font-bold leading-6 text-[var(--yak-color-primary)]">
-            {selectorTitle(request.kind)}
-          </span>
-          <button
-            type="button"
-            aria-label="关闭节点选择器"
-            onClick={closeSelector}
-            className="absolute right-0 top-0 flex size-6 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
-          >
-            <X size={14} strokeWidth={1.6} />
-          </button>
+    <aside className="flex h-full w-[220px] shrink-0 flex-col overflow-hidden border-r border-[#dcdee3] bg-white">
+      <div className="relative shrink-0 border-b border-[#e6e8eb] px-3 pb-1.5 pt-2 text-xs">
+        <div className="relative mb-1 flex h-6 items-center pr-12 font-bold leading-6">
+          <div className="flex min-w-0 items-center">
+            <span className="truncate text-[var(--yak-color-primary)]">
+              {selectorTitle(request.kind)}
+            </span>
+            <span className="mx-0.5 shrink-0 font-normal text-[#8a9199]">
+              |
+            </span>
+            <span className="shrink-0 font-normal text-[#333]">
+              导入节点
+            </span>
+          </div>
+
+          <div className="absolute right-0 top-0 flex h-6 items-center">
+            <button
+              type="button"
+              aria-label="固定节点选择器"
+              title="固定"
+              className="flex size-6 cursor-pointer items-center justify-center text-[#7f8792] transition-colors hover:text-[#333]"
+            >
+              <Pin size={13} strokeWidth={1.6} />
+            </button>
+            <button
+              type="button"
+              aria-label="关闭节点选择器"
+              title="关闭"
+              onClick={closeSelector}
+              className="ml-1 flex size-6 cursor-pointer items-center justify-center text-[#7f8792] transition-colors hover:text-[#333]"
+            >
+              <X size={14} strokeWidth={1.6} />
+            </button>
+          </div>
         </div>
 
         <div className="relative">
@@ -223,7 +246,7 @@ export function WorkflowNodeSelector({
             size={13}
             strokeWidth={1.6}
             aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
+            className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[#a0a6ad]"
           />
           <Input
             size="small"
@@ -233,7 +256,7 @@ export function WorkflowNodeSelector({
               setSearch(event.target.value)
             }
             placeholder="搜索节点类型"
-            className="h-8 rounded-[4px] pl-8 text-xs"
+            className="h-7 rounded-[3px] border-[#dcdee3] pl-8 text-xs"
           />
         </div>
       </div>
@@ -257,7 +280,7 @@ export function WorkflowNodeSelector({
           </div>
         ) : (
           <div>
-            {grouped.map(([category, tasks]) => {
+            {grouped.map(([category, tasks], index) => {
               const isCollapsed =
                 collapsed.has(category) &&
                 deferredSearch.length === 0;
@@ -265,7 +288,7 @@ export function WorkflowNodeSelector({
               return (
                 <section
                   key={category}
-                  className="border-t-2 border-t-transparent first:border-t-0"
+                  className={index === 0 ? "pt-2" : "pt-2"}
                 >
                   <button
                     type="button"
@@ -281,21 +304,21 @@ export function WorkflowNodeSelector({
                         return next;
                       })
                     }
-                    className="relative flex h-[34px] w-full cursor-pointer items-center rounded-[4px] bg-[#f7f9fa] pl-5 pr-2 text-left text-xs font-medium text-[#333] transition-colors hover:bg-[#eff3f8]"
+                    className="relative flex h-7 w-full cursor-pointer items-center bg-[#f7f8fa] pl-5 pr-2 text-left text-xs font-semibold text-[#333] transition-colors hover:bg-[#f1f3f5]"
                   >
                     {isCollapsed ? (
                       <ChevronRight
-                        size={12}
+                        size={11}
                         strokeWidth={1.8}
                         aria-hidden="true"
-                        className="absolute left-1"
+                        className="absolute left-1.5 text-[#707780]"
                       />
                     ) : (
                       <ChevronDown
-                        size={12}
+                        size={11}
                         strokeWidth={1.8}
                         aria-hidden="true"
-                        className="absolute left-1"
+                        className="absolute left-1.5 text-[#707780]"
                       />
                     )}
                     <span className="truncate">
@@ -305,7 +328,7 @@ export function WorkflowNodeSelector({
                   </button>
 
                   {!isCollapsed ? (
-                    <div className="pb-1 pt-1">
+                    <div className="pt-1">
                       <div className="grid gap-1">
                         {tasks.map((task) => (
                           <TaskTypeItem
