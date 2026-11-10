@@ -77,7 +77,7 @@ export function SchedulePanel({
           type="button"
           aria-expanded={!scheduleCollapsed[section]}
           onClick={() => toggleSection(section)}
-          className="flex h-full min-w-0 flex-1 items-center gap-2 text-left"
+          className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
         >
           <ChevronDown
             size={14}
@@ -111,7 +111,7 @@ export function SchedulePanel({
               type="button"
               onClick={() => navigateToSection(item.key)}
               className={[
-                "relative shrink-0 px-2 text-xs transition-colors",
+                "relative shrink-0 cursor-pointer px-2 text-xs transition-colors",
                 scheduleSection === item.key
                   ? "font-semibold text-[#315efb]"
                   : "text-[#7b8492] hover:text-[#465064]",
