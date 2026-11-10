@@ -3,7 +3,10 @@ import {
   useMemo,
   useState,
   type DragEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -13,10 +16,35 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  FolderOpen,
   Hand,
   MousePointer2,
+  Play,
+  Unlink,
 } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  toast,
+} from "@yak-ops/yak-ui";
 
+import { removeWorkflowTask } from "@/service/workflow/definition";
+import {
+  startWorkflowInstance,
+  type WorkflowTaskDependType,
+} from "@/service/workflow/execution";
+
+import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowInteractions } from "../hooks/use-workflow-interactions";
 import {
@@ -40,12 +68,27 @@ const edgeTypes = {
   workflowEdge: WorkflowEdge,
 };
 
+type NodeContextMenuState = {
+  node: WorkflowCanvasNode;
+  x: number;
+  y: number;
+};
+
+type PendingNodeRun = {
+  node: WorkflowCanvasNode;
+  taskDependType: WorkflowTaskDependType;
+  title: string;
+  scopeDescription: string;
+};
+
 export function WorkflowCanvas({
   workflowCode,
   selectedTaskCode,
+  workflowReleaseState,
 }: {
   workflowCode: number;
   selectedTaskCode?: number;
+  workflowReleaseState: string;
 }) {
   const nodes = useWorkflowStore(
     (state) => state.nodes,
@@ -74,6 +117,25 @@ export function WorkflowCanvas({
   const clearSelection = useWorkflowStore(
     (state) => state.clearSelection,
   );
+  const removeNodes = useWorkflowStore(
+    (state) => state.removeNodes,
+  );
+
+  const queryClient = useQueryClient();
+  const { openDraftTask, openTask } = useDataDevelopmentWorkbench();
+  const isWorkflowOnline =
+    workflowReleaseState.toUpperCase() === "ONLINE";
+
+  const [contextMenu, setContextMenu] =
+    useState<NodeContextMenuState | null>(null);
+  const [contextMenuPortalRoot, setContextMenuPortalRoot] =
+    useState<HTMLElement | null>(null);
+  const [pendingRemoval, setPendingRemoval] =
+    useState<WorkflowCanvasNode | null>(null);
+  const [removalPending, setRemovalPending] = useState(false);
+  const [pendingRun, setPendingRun] =
+    useState<PendingNodeRun | null>(null);
+  const [runPending, setRunPending] = useState(false);
 
   const {
     handleConnect,
@@ -103,6 +165,10 @@ export function WorkflowCanvas({
   );
 
   useEffect(() => {
+    setContextMenuPortalRoot(document.body);
+  }, []);
+
+  useEffect(() => {
     if (!instance || !selectedTaskCode) return;
 
     const nodeId = selectTaskCode(selectedTaskCode);
@@ -117,6 +183,113 @@ export function WorkflowCanvas({
       maxZoom: 1.15,
     });
   }, [instance, selectTaskCode, selectedTaskCode]);
+
+  const handleNodeContextMenu = (
+    event: ReactMouseEvent,
+    node: WorkflowCanvasNode,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      node,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const openNode = (node: WorkflowCanvasNode) => {
+    setContextMenu(null);
+    const nodeWorkflowCode = node.data.workflowCode ?? workflowCode;
+
+    if (node.data.task) {
+      openTask(nodeWorkflowCode, node.data.task);
+      return;
+    }
+
+    openDraftTask(
+      nodeWorkflowCode,
+      node.id,
+      node.data.taskType,
+      node.data.name,
+    );
+  };
+
+  const requestNodeRemoval = (node: WorkflowCanvasNode) => {
+    setContextMenu(null);
+    setPendingRemoval(node);
+  };
+
+  const confirmNodeRemoval = async () => {
+    if (!pendingRemoval) return;
+
+    setRemovalPending(true);
+    try {
+      if (
+        !pendingRemoval.data.draft &&
+        pendingRemoval.data.taskCode !== null
+      ) {
+        await removeWorkflowTask(
+          workflowCode,
+          pendingRemoval.data.taskCode,
+        );
+        void queryClient.invalidateQueries({
+          queryKey: ["data-development", "workflow-explorer"],
+        });
+      }
+
+      removeNodes([pendingRemoval.id]);
+      setPendingRemoval(null);
+      toast.success("节点已从工作流移除");
+    } catch (error) {
+      toast.error("移除节点失败", {
+        description:
+          error instanceof Error ? error.message : "请稍后重试。",
+      });
+    } finally {
+      setRemovalPending(false);
+    }
+  };
+
+  const requestNodeRun = (
+    node: WorkflowCanvasNode,
+    taskDependType: WorkflowTaskDependType,
+    title: string,
+    scopeDescription: string,
+  ) => {
+    setContextMenu(null);
+    setPendingRun({
+      node,
+      taskDependType,
+      title,
+      scopeDescription,
+    });
+  };
+
+  const confirmNodeRun = async () => {
+    if (!pendingRun || pendingRun.node.data.taskCode === null) return;
+
+    setRunPending(true);
+    try {
+      const result = await startWorkflowInstance(
+        String(workflowCode),
+        {
+          startNodeList: pendingRun.node.data.taskCode,
+          taskDependType: pendingRun.taskDependType,
+        },
+      );
+      toast.success("节点运行已提交", {
+        description: "工作流实例 ID：" + result.workflowInstanceId,
+      });
+      setPendingRun(null);
+    } catch (error) {
+      toast.error("节点运行失败", {
+        description:
+          error instanceof Error ? error.message : "请稍后重试。",
+      });
+    } finally {
+      setRunPending(false);
+    }
+  };
 
   const handleDragOver = (
     event: DragEvent<HTMLDivElement>,
@@ -196,7 +369,11 @@ export function WorkflowCanvas({
         onEdgesDelete={handleEdgesDelete}
         onConnect={handleConnect}
         isValidConnection={isValidConnection}
-        onPaneClick={clearSelection}
+        onPaneClick={() => {
+          setContextMenu(null);
+          clearSelection();
+        }}
+        onNodeContextMenu={handleNodeContextMenu}
         onEdgeMouseEnter={(_event, edge) =>
           setHoveredEdgeId(edge.id)
         }
@@ -244,6 +421,228 @@ export function WorkflowCanvas({
           }}
         />
       </ReactFlow>
+
+      {contextMenu && contextMenuPortalRoot
+        ? createPortal(
+            <DropdownMenu
+              open
+              onOpenChange={(open) => {
+                if (!open) setContextMenu(null);
+              }}
+            >
+              <DropdownMenuTrigger
+                aria-hidden="true"
+                tabIndex={-1}
+                className="pointer-events-none fixed size-px opacity-0"
+                style={{
+                  left: contextMenu.x,
+                  top: contextMenu.y,
+                }}
+              />
+              <DropdownMenuContent
+                side="bottom"
+                align="start"
+                sideOffset={0}
+                className="w-[216px] rounded-md p-1"
+              >
+                <DropdownMenuItem
+                  onClick={() => openNode(contextMenu.node)}
+                >
+                  <FolderOpen size={14} aria-hidden="true" />
+                  打开节点
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={
+                    !contextMenu.node.data.draft &&
+                    (isWorkflowOnline ||
+                      contextMenu.node.data.taskCode === null ||
+                      nodes.filter(
+                        (node) =>
+                          !node.data.draft &&
+                          node.data.taskCode !== null,
+                      ).length <= 1)
+                  }
+                  title={
+                    !contextMenu.node.data.draft && isWorkflowOnline
+                      ? "在线工作流需要先下线才能修改"
+                      : !contextMenu.node.data.draft &&
+                          nodes.filter(
+                            (node) =>
+                              !node.data.draft &&
+                              node.data.taskCode !== null,
+                          ).length <= 1
+                        ? "工作流至少需要保留一个节点"
+                        : undefined
+                  }
+                  onClick={() =>
+                    requestNodeRemoval(contextMenu.node)
+                  }
+                >
+                  <Unlink size={14} aria-hidden="true" />
+                  从工作流移除
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  disabled={
+                    !isWorkflowOnline ||
+                    contextMenu.node.data.draft ||
+                    contextMenu.node.data.taskCode === null
+                  }
+                  title={
+                    !isWorkflowOnline
+                      ? "请先发布工作流"
+                      : contextMenu.node.data.draft ||
+                          contextMenu.node.data.taskCode === null
+                        ? "未保存节点暂不支持运行"
+                        : undefined
+                  }
+                  onClick={() =>
+                    requestNodeRun(
+                      contextMenu.node,
+                      "TASK_ONLY",
+                      "运行该节点",
+                      "仅执行当前节点。",
+                    )
+                  }
+                >
+                  <Play size={14} aria-hidden="true" />
+                  运行该节点
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={
+                    !isWorkflowOnline ||
+                    contextMenu.node.data.draft ||
+                    contextMenu.node.data.taskCode === null
+                  }
+                  title={
+                    !isWorkflowOnline
+                      ? "请先发布工作流"
+                      : contextMenu.node.data.draft ||
+                          contextMenu.node.data.taskCode === null
+                        ? "未保存节点暂不支持运行"
+                        : undefined
+                  }
+                  onClick={() =>
+                    requestNodeRun(
+                      contextMenu.node,
+                      "TASK_PRE",
+                      "运行到该节点",
+                      "执行当前节点及其所有上游依赖节点。",
+                    )
+                  }
+                >
+                  <ArrowDownToLine size={14} aria-hidden="true" />
+                  运行到该节点
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={
+                    !isWorkflowOnline ||
+                    contextMenu.node.data.draft ||
+                    contextMenu.node.data.taskCode === null
+                  }
+                  title={
+                    !isWorkflowOnline
+                      ? "请先发布工作流"
+                      : contextMenu.node.data.draft ||
+                          contextMenu.node.data.taskCode === null
+                        ? "未保存节点暂不支持运行"
+                        : undefined
+                  }
+                  onClick={() =>
+                    requestNodeRun(
+                      contextMenu.node,
+                      "TASK_POST",
+                      "从该节点运行",
+                      "从当前节点开始，执行其所有下游依赖节点。",
+                    )
+                  }
+                >
+                  <ArrowUpFromLine size={14} aria-hidden="true" />
+                  从该节点运行
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>,
+            contextMenuPortalRoot,
+          )
+        : null}
+
+      <Dialog
+        open={Boolean(pendingRemoval)}
+        onOpenChange={(open) => {
+          if (!open && !removalPending) setPendingRemoval(null);
+        }}
+      >
+        {pendingRemoval ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">
+              从工作流移除节点
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+              {pendingRemoval.data.draft ||
+              pendingRemoval.data.taskCode === null
+                ? "该节点尚未保存，只会从当前画布移除。"
+                : "确定将“" +
+                  pendingRemoval.data.name +
+                  "”从当前工作流移除吗？相关连线也会一并移除，任务定义本身不会删除。"}
+            </DialogDescription>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={removalPending}
+                onClick={() => setPendingRemoval(null)}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                isPending={removalPending}
+                onClick={() => void confirmNodeRemoval()}
+              >
+                移除
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingRun)}
+        onOpenChange={(open) => {
+          if (!open && !runPending) setPendingRun(null);
+        }}
+      >
+        {pendingRun ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">
+              {pendingRun.title}
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+              将创建一次新的工作流实例，{pendingRun.scopeDescription}
+            </DialogDescription>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={runPending}
+                onClick={() => setPendingRun(null)}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                isPending={runPending}
+                onClick={() => void confirmNodeRun()}
+              >
+                确认运行
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
 
       <div className="absolute right-3 top-3 z-10 flex overflow-hidden rounded-md border border-[var(--yak-components-border)] bg-white shadow-sm">
         <button
