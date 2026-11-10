@@ -11,6 +11,9 @@ export interface WorkflowDefinitionRecord {
   releaseState: string;
   projectCode: number;
   description?: string | null;
+  globalParams?: string | null;
+  locations?: string | null;
+  timeout?: number;
   createTime?: string | null;
   updateTime?: string | null;
   userId: number;
@@ -105,4 +108,77 @@ export const getWorkflowDefinition = (
   HttpUtils.getData<WorkflowDagRecord>(
     baseUrl() + "/" + encodeURIComponent(String(workflowCode)),
     { signal },
+  );
+
+const updateWorkflowDefinitionGraph = (
+  dag: WorkflowDagRecord,
+  name: string,
+  taskDefinitionList: WorkflowTaskRecord[] = dag.taskDefinitionList,
+): Promise<unknown> => {
+  const workflow = dag.workflowDefinition;
+  const body = new URLSearchParams({
+    name,
+    code: String(workflow.code),
+    description: workflow.description ?? "",
+    globalParams: workflow.globalParams ?? "[]",
+    locations: workflow.locations ?? "",
+    timeout: String(workflow.timeout ?? 0),
+    taskRelationJson: JSON.stringify(dag.workflowTaskRelationList ?? []),
+    taskDefinitionJson: JSON.stringify(taskDefinitionList ?? []),
+    executionType: workflow.executionType ?? "PARALLEL",
+  });
+
+  return HttpUtils.putData<unknown>(
+    baseUrl() + "/" + encodeURIComponent(String(workflow.code)),
+    undefined,
+    { body },
+  );
+};
+
+export const renameWorkflowDefinition = async (
+  workflowCode: number,
+  name: string,
+): Promise<void> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  await updateWorkflowDefinitionGraph(dag, name);
+};
+
+export const renameWorkflowTask = async (
+  workflowCode: number,
+  taskCode: number,
+  name: string,
+): Promise<void> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  const task = dag.taskDefinitionList.find((item) => item.code === taskCode);
+  if (!task) throw new Error("工作流节点不存在或已被删除");
+
+  const taskDefinitionList = dag.taskDefinitionList.map((item) =>
+    item.code === taskCode ? { ...item, name } : item,
+  );
+  await updateWorkflowDefinitionGraph(dag, dag.workflowDefinition.name, taskDefinitionList);
+};
+
+export const copyWorkflowDefinition = (
+  workflowCode: number,
+  targetProjectCode: number,
+): Promise<void> =>
+  HttpUtils.postData<void>(
+    baseUrl() +
+      "/batch-copy?" +
+      qp({ codes: workflowCode, targetProjectCode }),
+  );
+
+export const moveWorkflowDefinition = (
+  workflowCode: number,
+  targetProjectCode: number,
+): Promise<void> =>
+  HttpUtils.postData<void>(
+    baseUrl() +
+      "/batch-move?" +
+      qp({ codes: workflowCode, targetProjectCode }),
+  );
+
+export const deleteWorkflowDefinition = (workflowCode: number): Promise<void> =>
+  HttpUtils.deleteData<void>(
+    baseUrl() + "/" + encodeURIComponent(String(workflowCode)),
   );
