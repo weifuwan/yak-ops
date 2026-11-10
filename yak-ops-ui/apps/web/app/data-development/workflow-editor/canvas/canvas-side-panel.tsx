@@ -53,8 +53,8 @@ export function CanvasSidePanel({
         content ? "border-l border-[#e5e7eb]" : "",
       ].join(" ")}
       style={{
-        width: content ? "min(48%, 600px)" : "0px",
-        flexBasis: content ? "min(48%, 600px)" : "0px",
+        width: content ? "min(64%, 600px)" : "0px",
+        flexBasis: content ? "min(64%, 600px)" : "0px",
         pointerEvents: content ? "auto" : "none",
       }}
     >
