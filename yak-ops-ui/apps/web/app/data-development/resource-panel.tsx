@@ -1,13 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Code2,
-  Database,
-  FileCode2,
   RefreshCw,
   Search,
-  Terminal,
-  Workflow,
   X,
 } from "lucide-react";
 import { Button, Input } from "@yak-ops/yak-ui";
@@ -26,6 +21,8 @@ import {
   type VirtualTreeNode,
 } from "./virtual-tree";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
+import { TaskTypeBadgeIcon } from "./workflow-editor/components/task-type-badge-icon";
+import { WorkflowTreeIcon } from "./workflow-editor/components/workflow-tree-icon";
 
 const PAGE_SIZE = 200;
 const workflowExplorerKey = ["data-development", "workflow-explorer"] as const;
@@ -63,59 +60,6 @@ const describeRecord = (record: {
   ]
     .filter(Boolean)
     .join(" ");
-
-function TaskTypeIcon({ taskType }: { taskType: string }) {
-  const type = taskType.toUpperCase();
-
-  if (type === "SQL" || type === "DATA_SYNC") {
-    return (
-      <Database
-        size={13}
-        strokeWidth={1.6}
-        className="shrink-0 text-[var(--yak-components-muted-text)]"
-      />
-    );
-  }
-
-  if (
-    type === "SHELL" ||
-    type === "REMOTESHELL" ||
-    type === "HIVECLI"
-  ) {
-    return (
-      <Terminal
-        size={13}
-        strokeWidth={1.6}
-        className="shrink-0 text-[var(--yak-components-muted-text)]"
-      />
-    );
-  }
-
-  if (
-    type === "JAVA" ||
-    type === "PYTHON" ||
-    type === "PROCEDURE" ||
-    type === "SPARK" ||
-    type === "FLINK" ||
-    type === "FLINK_STREAM"
-  ) {
-    return (
-      <Code2
-        size={13}
-        strokeWidth={1.6}
-        className="shrink-0 text-[var(--yak-components-muted-text)]"
-      />
-    );
-  }
-
-  return (
-    <FileCode2
-      size={13}
-      strokeWidth={1.6}
-      className="shrink-0 text-[var(--yak-components-muted-text)]"
-    />
-  );
-}
 
 function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
   if (item.kind === "message") {
@@ -170,7 +114,7 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
               : "bg-[var(--yak-color-primary)]",
           ].join(" ")}
         />
-        <Workflow size={14} strokeWidth={1.6} className="shrink-0" />
+        <WorkflowTreeIcon size={14} />
         <span className="min-w-0 shrink truncate font-medium">
           {item.workflow.name}
         </span>
@@ -188,7 +132,10 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
       <span className="size-1.5 shrink-0" aria-hidden="true" />
-      <TaskTypeIcon taskType={item.task.taskType} />
+      <TaskTypeBadgeIcon
+        taskType={item.task.taskType}
+        size={14}
+      />
       <span className="min-w-0 shrink truncate">{item.task.name}</span>
       {description ? (
         <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--yak-components-muted-text)]">
