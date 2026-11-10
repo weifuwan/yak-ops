@@ -24,15 +24,22 @@ import {
   type WorkflowTaskTypeRecord,
 } from "@/service/workflow/task-type";
 
+import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowStore } from "../store/workflow-store";
 
 const CATEGORY_LABELS: Record<string, string> = {
+  Universal: "Universal",
   universal: "Universal",
+  Cloud: "Cloud",
   cloud: "Cloud",
+  Logic: "Logic",
   logic: "Logic",
+  DataIntegration: "DataIntegration",
   dataIntegration: "DataIntegration",
+  MachineLearning: "MachineLearning",
   machineLearning: "MachineLearning",
+  Other: "Other",
   other: "Other",
 };
 
@@ -124,7 +131,11 @@ function TaskTypeItem({
   );
 }
 
-export function WorkflowNodeSelector() {
+export function WorkflowNodeSelector({
+  workflowCode,
+}: {
+  workflowCode: number;
+}) {
   const request = useWorkflowStore(
     (state) => state.selectorRequest,
   );
@@ -134,6 +145,7 @@ export function WorkflowNodeSelector() {
   const insertNode = useWorkflowStore(
     (state) => state.insertNodeFromSelector,
   );
+  const { openDraftTask } = useDataDevelopmentWorkbench();
 
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(
@@ -175,6 +187,17 @@ export function WorkflowNodeSelector() {
 
     return Array.from(groups.entries());
   }, [deferredSearch, query.data]);
+
+  const handleSelectTaskType = (task: WorkflowTaskTypeRecord) => {
+    const nodeId = insertNode(task.taskType);
+    closeSelector();
+    openDraftTask(
+      workflowCode,
+      nodeId,
+      task.taskType,
+      task.taskType + " 节点",
+    );
+  };
 
   if (!request) return null;
 
@@ -293,7 +316,7 @@ export function WorkflowNodeSelector() {
                             }
                             task={task}
                             onSelect={() =>
-                              insertNode(task.taskType)
+                              handleSelectTaskType(task)
                             }
                           />
                         ))}

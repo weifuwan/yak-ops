@@ -18,6 +18,7 @@ import {
   MousePointer2,
 } from "lucide-react";
 
+import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowInteractions } from "../hooks/use-workflow-interactions";
 import {
@@ -40,8 +41,10 @@ const edgeTypes = {
 };
 
 export function WorkflowCanvas({
+  workflowCode,
   selectedTaskCode,
 }: {
+  workflowCode: number;
   selectedTaskCode?: number;
 }) {
   const nodes = useWorkflowStore(
@@ -71,6 +74,7 @@ export function WorkflowCanvas({
   const clearSelection = useWorkflowStore(
     (state) => state.clearSelection,
   );
+  const { openDraftTask } = useDataDevelopmentWorkbench();
 
   const {
     handleConnect,
@@ -145,12 +149,18 @@ export function WorkflowCanvas({
 
     if (!taskType) return;
 
-    addDroppedNode(
+    const nodeId = addDroppedNode(
       taskType,
       instance.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       }),
+    );
+    openDraftTask(
+      workflowCode,
+      nodeId,
+      taskType,
+      taskType + " 节点",
     );
   };
 

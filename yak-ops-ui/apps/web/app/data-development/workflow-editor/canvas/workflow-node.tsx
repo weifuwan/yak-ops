@@ -59,17 +59,27 @@ export function WorkflowTaskNode({
   const removeNodes = useWorkflowStore(
     (state) => state.removeNodes,
   );
-  const { openTask } = useDataDevelopmentWorkbench();
+  const { openDraftTask, openTask } = useDataDevelopmentWorkbench();
 
   const openCurrentTask = () => {
-    if (!data.workflowCode || !data.task) {
+    if (!data.workflowCode) {
       toast.info("打开节点", {
-        description: "请先保存工作流节点后再打开。",
+        description: "当前节点缺少工作流信息。",
       });
       return;
     }
 
-    openTask(data.workflowCode, data.task);
+    if (data.task) {
+      openTask(data.workflowCode, data.task);
+      return;
+    }
+
+    openDraftTask(
+      data.workflowCode,
+      id,
+      data.taskType,
+      data.name,
+    );
   };
 
   const controlsVisibility = selected
