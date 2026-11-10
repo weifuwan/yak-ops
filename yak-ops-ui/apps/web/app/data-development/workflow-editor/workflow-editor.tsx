@@ -24,8 +24,10 @@ type WorkflowEditorProps = {
 };
 
 function WorkflowEditorShell({
+  workflowCode,
   selectedTaskCode,
 }: {
+  workflowCode: number;
   selectedTaskCode?: number;
 }) {
   const selectorOpen = useWorkflowStore(
@@ -37,9 +39,10 @@ function WorkflowEditorShell({
       <WorkflowToolbar />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {selectorOpen ? (
-          <WorkflowNodeSelector />
+          <WorkflowNodeSelector workflowCode={workflowCode} />
         ) : null}
         <WorkflowCanvas
+          workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
         />
       </div>
@@ -129,9 +132,11 @@ export function WorkflowEditor({
         (query.data?.workflowDefinition.version ?? 0)
       }
       initialGraph={layoutQuery.data}
+      workflowCode={workflowCode}
     >
       <ReactFlowProvider>
         <WorkflowEditorShell
+          workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
         />
       </ReactFlowProvider>

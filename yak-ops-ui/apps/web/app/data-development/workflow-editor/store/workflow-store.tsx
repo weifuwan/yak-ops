@@ -111,6 +111,7 @@ function createDraftNode(
   sequence: number,
   taskType: string,
   position: XYPosition,
+  workflowCode: number,
 ): WorkflowCanvasNode {
   return {
     id: "draft:" + sequence,
@@ -119,6 +120,7 @@ function createDraftNode(
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     data: {
+      workflowCode,
       taskCode: null,
       taskType,
       name: taskType + " 节点",
@@ -173,6 +175,7 @@ function historyEquals(
 
 export function createWorkflowStore(
   initialGraph: WorkflowGraph,
+  workflowCode: number,
 ): WorkflowStoreApi {
   return createStore<WorkflowEditorState>()(
     temporal<
@@ -232,6 +235,7 @@ export function createWorkflowStore(
             sequence,
             taskType,
             position,
+            workflowCode,
           );
 
           set((state) => ({
@@ -315,6 +319,7 @@ export function createWorkflowStore(
             sequence,
             taskType,
             position,
+            workflowCode,
           );
 
           if (
@@ -491,14 +496,16 @@ const WorkflowStoreContext =
 
 export function WorkflowStoreProvider({
   initialGraph,
+  workflowCode,
   children,
 }: PropsWithChildren<{
   initialGraph: WorkflowGraph;
+  workflowCode: number;
 }>) {
   const storeRef = useRef<WorkflowStoreApi | null>(null);
 
   if (!storeRef.current) {
-    storeRef.current = createWorkflowStore(initialGraph);
+    storeRef.current = createWorkflowStore(initialGraph, workflowCode);
   }
 
   return (
