@@ -15,11 +15,7 @@ import {
 
 type PageItem = number | "ellipsis-start" | "ellipsis-end";
 
-const paginationButtonClass =
-  "h-7 w-7 min-w-7 rounded border border-[var(--yak-components-pagination-border)] bg-[var(--yak-components-pagination-bg)] px-0 font-normal text-[var(--yak-components-pagination-text)] shadow-none hover:bg-[var(--yak-components-pagination-bg-hover)] hover:text-[var(--yak-components-pagination-text)]";
-
-const activePaginationButtonClass =
-  "border-[var(--yak-components-pagination-active-border)] bg-[var(--yak-components-pagination-active-bg)] text-[var(--yak-components-pagination-active-text)] hover:bg-[var(--yak-components-pagination-active-bg)] hover:text-[var(--yak-components-pagination-active-text)]";
+const paginationButtonClass = "yak-pagination-button";
 
 const buildItems = (page: number, totalPages: number): PageItem[] => {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -108,10 +104,7 @@ export function Pagination({
               variant="ghost"
               isDisabled={disabled}
               aria-current={item === currentPage ? "page" : undefined}
-              className={cn(
-                paginationButtonClass,
-                item === currentPage && activePaginationButtonClass,
-              )}
+              className={paginationButtonClass}
               onClick={() => onChange(item, pageSize)}
             >
               {item}
@@ -119,7 +112,7 @@ export function Pagination({
           ) : (
             <span
               key={item}
-              className="flex h-7 min-w-7 items-center justify-center text-[var(--yak-components-muted-text)]"
+              className="yak-pagination-ellipsis"
             >
               …
             </span>
@@ -150,7 +143,7 @@ export function Pagination({
             value={pageSize}
             onValueChange={(nextSize) => onChange(1, Number(nextSize))}
           >
-            <SelectTrigger className="w-[68px] rounded bg-white">
+            <SelectTrigger variant="outlined" className="w-[76px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

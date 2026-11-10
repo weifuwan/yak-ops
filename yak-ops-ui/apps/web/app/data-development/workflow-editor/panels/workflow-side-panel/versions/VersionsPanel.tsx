@@ -170,7 +170,7 @@ export function VersionsPanel({
                 pageSize: versionsPageSize,
                 total: versionsTotal,
                 pageSizeOptions: [10, 20, 50, 100],
-                pageSizeLabel: "每页：",
+                pageSizeLabel: "每页显示：",
                 showSizeChanger: true,
                 disabled: versionsQuery.isFetching || switchingVersion,
                 onChange: onVersionsPageChange,

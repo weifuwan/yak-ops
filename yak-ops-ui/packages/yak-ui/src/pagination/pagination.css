@@ -1,0 +1,44 @@
+/* Pagination button styles are defined after button.css so they can override
+   the base .button border and padding reset without leaking to other buttons. */
+.yak-pagination-button.button {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--yak-components-pagination-border);
+  border-radius: 6px;
+  background-color: var(--yak-components-pagination-bg);
+  color: var(--yak-components-pagination-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.yak-pagination-button.button:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--yak-components-pagination-border);
+  background-color: var(--yak-components-pagination-bg-hover);
+  color: var(--yak-components-pagination-text);
+}
+
+.yak-pagination-button.button[aria-current="page"] {
+  border-color: var(--yak-components-pagination-active-border);
+  background-color: var(--yak-color-primary-subtle);
+  color: var(--yak-components-pagination-active-text);
+}
+
+.yak-pagination-button.button[aria-current="page"]:hover:not(:disabled) {
+  border-color: var(--yak-components-pagination-active-border);
+  background-color: var(--yak-color-primary-subtle);
+  color: var(--yak-components-pagination-active-text);
+}
+
+.yak-pagination-ellipsis {
+  display: flex;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  color: var(--yak-components-muted-text);
+}

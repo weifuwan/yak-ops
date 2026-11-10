@@ -239,7 +239,7 @@ export function WorkflowRunsPanel({
                 pageSize: historyPageSize,
                 total: historyTotal,
                 pageSizeOptions: [10, 20, 50, 100],
-                pageSizeLabel: "每页：",
+                pageSizeLabel: "每页显示：",
                 showSizeChanger: true,
                 disabled: instancesQuery.isFetching,
                 onChange: onHistoryPageChange,
