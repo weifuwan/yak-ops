@@ -100,6 +100,7 @@ export function WorkflowEditor({
       "workflow-definition-layout",
       workspaceId,
       workflowCode,
+      graphReloadToken,
     ],
     queryFn: () => layoutWorkflowGraph(sourceGraph!),
     enabled: Boolean(sourceGraph),
