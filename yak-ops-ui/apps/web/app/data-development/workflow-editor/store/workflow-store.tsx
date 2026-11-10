@@ -23,6 +23,7 @@ import type {
   WorkflowCanvasNode,
   WorkflowGraph,
   WorkflowInteractionMode,
+  WorkflowEdgeStyle,
   WorkflowSelectorRequest,
 } from "../types";
 
@@ -35,6 +36,7 @@ export type WorkflowEditorState = {
   nodes: WorkflowCanvasNode[];
   edges: WorkflowCanvasEdge[];
   interactionMode: WorkflowInteractionMode;
+  edgeStyle: WorkflowEdgeStyle;
   selectorRequest: WorkflowSelectorRequest | null;
   draftNodeSequence: number;
   draftEdgeSequence: number;
@@ -48,6 +50,7 @@ export type WorkflowEditorState = {
   setInteractionMode: (
     mode: WorkflowInteractionMode,
   ) => void;
+  setEdgeStyle: (style: WorkflowEdgeStyle) => void;
   openSelector: (
     request: WorkflowSelectorRequest,
   ) => void;
@@ -185,6 +188,7 @@ export function createWorkflowStore(
         nodes: initialGraph.nodes,
         edges: initialGraph.edges,
         interactionMode: "pointer",
+        edgeStyle: "bezier",
         selectorRequest: null,
         draftNodeSequence: 0,
         draftEdgeSequence: 0,
@@ -219,6 +223,9 @@ export function createWorkflowStore(
 
         setInteractionMode: (interactionMode) =>
           set({ interactionMode }),
+
+        setEdgeStyle: (edgeStyle) =>
+          set({ edgeStyle }),
 
         openSelector: (selectorRequest) =>
           set({ selectorRequest }),
