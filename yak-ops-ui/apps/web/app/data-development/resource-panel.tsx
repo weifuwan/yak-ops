@@ -151,12 +151,12 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
     const online = item.workflow.releaseState?.toUpperCase() === "ONLINE";
 
     return (
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
+      <div className="flex min-w-0 flex-1 items-center gap-1 pr-2 leading-none">
         <span
           title={item.workflow.releaseState || "未知状态"}
           aria-label={item.workflow.releaseState || "未知状态"}
           className={[
-            "size-1.5 shrink-0 rounded-full",
+            "size-1 shrink-0 rounded-full",
             online
               ? "bg-[var(--yak-color-success)]"
               : "bg-[var(--yak-color-primary)]",
@@ -178,8 +178,8 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
   const description = describeRecord(item.task);
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
-      <span className="size-1.5 shrink-0" aria-hidden="true" />
+    <div className="flex min-w-0 flex-1 items-center gap-1 pr-2 leading-none">
+      <span className="size-1 shrink-0" aria-hidden="true" />
       <TaskTypeBadgeIcon
         taskType={item.task.taskType}
         size={14}
