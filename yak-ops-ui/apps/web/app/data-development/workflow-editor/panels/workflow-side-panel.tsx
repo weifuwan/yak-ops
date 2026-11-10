@@ -659,6 +659,10 @@ export function WorkflowSidePanel({
       toast.error("请先下线调度，再修改配置");
       return;
     }
+    if (!currentSchedule && !workflowIsOnline) {
+      toast.error("请先发布工作流，再创建调度");
+      return;
+    }
     if (!validateScheduleForm()) return;
 
     setScheduleSaving(true);
@@ -1018,8 +1022,10 @@ export function WorkflowSidePanel({
               调度上线期间不能修改调度参数。请先下线调度，修改并保存后再重新上线。
             </PanelNotice>
           ) : !currentSchedule ? (
-            <PanelNotice>
-              首次保存会创建工作流级调度，创建后默认为下线状态。工作流发布上线后，才能上线调度。
+            <PanelNotice tone={workflowIsOnline ? "info" : "warning"}>
+              {workflowIsOnline
+                ? "首次保存会创建工作流级调度，创建后默认为下线状态。"
+                : "后端只允许为已发布的工作流创建调度，请先发布工作流。"}
             </PanelNotice>
           ) : null}
           <div className="flex items-center gap-1 border-b border-[#e8ebf0]">
@@ -1443,6 +1449,7 @@ export function WorkflowSidePanel({
             </div>
           ) : null}
         </div>
+        {scheduleSection !== "params" ? (
         <div className="shrink-0 border-t border-[#e8ebf0] bg-white p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <PanelButton
@@ -1480,6 +1487,7 @@ export function WorkflowSidePanel({
                 disabled={
                   scheduleSaving ||
                   scheduleIsOnline ||
+                  (!currentSchedule && !workflowIsOnline) ||
                   !scheduleForm.crontab.trim() ||
                   (scheduleForm.warningType !== "NONE" &&
                     (alertGroupsQuery.isPending ||
@@ -1494,6 +1502,7 @@ export function WorkflowSidePanel({
             </div>
           </div>
         </div>
+        ) : null}
       </div>
     );
   };
