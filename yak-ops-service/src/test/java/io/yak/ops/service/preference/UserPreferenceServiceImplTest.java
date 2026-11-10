@@ -50,6 +50,22 @@ class UserPreferenceServiceImplTest {
     }
 
     @Test
+    void favoritesSupportDataDevelopmentResources() {
+        UserPreference saved = preference(
+                7, UserPreferenceScene.DATA_DEVELOPMENT_RESOURCE, "workflow:123", true, 1, 0);
+        when(dao.find(7, "DATA_DEVELOPMENT_RESOURCE", "workflow:123"))
+                .thenReturn(Optional.empty(), Optional.of(saved));
+        when(dao.listByUserAndScene(7, "DATA_DEVELOPMENT_RESOURCE"))
+                .thenReturn(Collections.emptyList());
+        when(dao.upsertFavorite(7, "DATA_DEVELOPMENT_RESOURCE", "workflow:123", true, 1))
+                .thenReturn(1);
+
+        assertEquals(true, service.updateFavorite(
+                UserPreferenceScene.DATA_DEVELOPMENT_RESOURCE, "workflow:123", true, 7).getFavorite());
+        verify(dao).upsertFavorite(7, "DATA_DEVELOPMENT_RESOURCE", "workflow:123", true, 1);
+    }
+
+    @Test
     void newFavoriteAppendsAfterCurrentFavorites() {
         UserPreference previous = preference(7, UserPreferenceScene.PRODUCT_MENU, "data-integration", true, 4, 0);
         UserPreference saved = preference(7, UserPreferenceScene.PRODUCT_MENU, "management", true, 5, 0);
