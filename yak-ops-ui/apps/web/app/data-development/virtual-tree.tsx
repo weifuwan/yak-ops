@@ -5,6 +5,7 @@ import {
   useState,
   type DragEvent,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -34,6 +35,7 @@ interface VirtualTreeProps<T extends VirtualTreeNode> {
   className?: string;
   onToggle?: (item: T) => void;
   onActivate?: (item: T) => void;
+  onContextMenu?: (item: T, event: MouseEvent<HTMLDivElement>) => void;
   onMove?: (
     source: T,
     target: T,
@@ -54,6 +56,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
   className,
   onToggle,
   onActivate,
+  onContextMenu,
   onMove,
   renderItem,
 }: VirtualTreeProps<T>) {
@@ -266,6 +269,13 @@ export function VirtualTree<T extends VirtualTreeNode>({
               draggable={Boolean(onMove && item.draggable)}
               onMouseDown={() => setActiveId(item.id)}
               onClick={() => onActivate?.(item)}
+              onContextMenu={(event) => {
+                if (!onContextMenu) return;
+                event.preventDefault();
+                event.stopPropagation();
+                setActiveId(item.id);
+                onContextMenu(item, event);
+              }}
               onDoubleClick={() => {
                 if (item.expandable) onToggle?.(item);
               }}
