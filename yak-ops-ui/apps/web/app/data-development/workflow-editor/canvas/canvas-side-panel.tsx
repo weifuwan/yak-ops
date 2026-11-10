@@ -6,7 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type CanvasPanelKey = "nodes" | "spec" | "operations";
+export type CanvasPanelKey = "nodes" | "spec";
 
 const PANEL_CONTENT: Record<
   CanvasPanelKey,
@@ -25,18 +25,11 @@ const PANEL_CONTENT: Record<
     Icon: List,
   },
   spec: {
-    title: "Workflow Spec",
+    title: "Spec",
     description: "查看当前工作流的定义内容。",
     placeholder:
       "Spec 内容区域已预留。后续在这里展示工作流基本信息、节点定义和依赖关系。",
     Icon: Code2,
-  },
-  operations: {
-    title: "运维中心",
-    description: "查看当前工作流相关的运维信息。",
-    placeholder:
-      "运维中心区域已预留。后续在这里接入运行状态、实例记录和运维操作。",
-    Icon: Activity,
   },
 };
 
@@ -56,48 +49,49 @@ export function CanvasSidePanel({
       role="complementary"
       aria-label={content?.title ?? "画布辅助面板"}
       aria-hidden={!content}
-      className="absolute bottom-3 right-3 top-[60px] z-20 flex w-[380px] max-w-full flex-col overflow-hidden rounded-lg border border-[#dfe3e8] bg-white shadow-xl transition-transform duration-200 ease-out"
+      className="h-full min-h-0 shrink-0 overflow-hidden border-l border-[#e5e7eb] bg-white transition-[width,flex-basis] duration-200 ease-out"
       style={{
-        maxWidth: "calc(100% - 24px)",
-        transform: content
-          ? "translateX(0)"
-          : "translateX(calc(100% + 16px))",
+        width: content ? "min(48%, 600px)" : "0px",
+        flexBasis: content ? "min(48%, 600px)" : "0px",
+        pointerEvents: content ? "auto" : "none",
       }}
     >
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#edf0f3] px-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {Icon ? (
-            <Icon size={15} className="shrink-0 text-[#4779df]" />
-          ) : null}
-          <span className="truncate text-sm font-medium text-[#303846]">
-            {content?.title ?? "画布辅助面板"}
-          </span>
-        </div>
-        <button
-          type="button"
-          title="关闭面板"
-          aria-label="关闭面板"
-          tabIndex={content ? 0 : -1}
-          onClick={onClose}
-          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#7b8492] transition-colors hover:bg-[#f3f5f8] hover:text-[#303846]"
-        >
-          <X size={15} />
-        </button>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-auto p-4">
-        {content ? (
-          <div className="space-y-3">
-            <p className="text-xs leading-5 text-[#687282]">
-              {content.description}
-            </p>
-            <div className="rounded-md border border-dashed border-[#dfe3e8] bg-[#fafbfc] p-4">
-              <p className="text-xs leading-6 text-[#7b8492]">
-                {content.placeholder}
-              </p>
-            </div>
+      <div className="flex h-full min-h-0 w-full flex-col">
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            {Icon ? (
+              <Icon size={15} className="shrink-0 text-[#687385]" />
+            ) : null}
+            <span className="truncate text-sm font-semibold text-[#303846]">
+              {content?.title ?? "画布辅助面板"}
+            </span>
           </div>
-        ) : null}
+          <button
+            type="button"
+            title="关闭面板"
+            aria-label="关闭面板"
+            tabIndex={content ? 0 : -1}
+            onClick={onClose}
+            className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#7b8492] transition-colors hover:bg-[#f3f5f8] hover:text-[#303846]"
+          >
+            <X size={15} />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          {content ? (
+            <div className="space-y-3">
+              <p className="text-xs leading-5 text-[#687282]">
+                {content.description}
+              </p>
+              <div className="rounded-md border border-dashed border-[#dfe3e8] bg-[#fafbfc] p-4">
+                <p className="text-xs leading-6 text-[#7b8492]">
+                  {content.placeholder}
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </aside>
   );
