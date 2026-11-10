@@ -35,6 +35,7 @@ interface VirtualTreeProps<T extends VirtualTreeNode> {
   className?: string;
   onToggle?: (item: T) => void;
   onActivate?: (item: T) => void;
+  isItemInteractive?: (item: T) => boolean;
   onContextMenu?: (item: T, event: MouseEvent<HTMLDivElement>) => void;
   onMove?: (
     source: T,
@@ -56,6 +57,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
   className,
   onToggle,
   onActivate,
+  isItemInteractive,
   onContextMenu,
   onMove,
   renderItem,
@@ -306,7 +308,8 @@ export function VirtualTree<T extends VirtualTreeNode>({
               }}
               onDrop={(event) => handleDrop(event, item)}
               className={[
-                "group absolute left-0 right-0 flex cursor-default select-none items-center text-[12px] outline-none",
+                "group absolute left-0 right-0 flex select-none items-center text-[12px] outline-none",
+                isItemInteractive?.(item) ? "cursor-pointer" : "cursor-default",
                 item.selected
                   ? "bg-[var(--yak-color-primary-subtle)]"
                   : active
