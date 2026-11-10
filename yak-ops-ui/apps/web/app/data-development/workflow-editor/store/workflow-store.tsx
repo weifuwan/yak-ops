@@ -5,7 +5,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import {
-  MarkerType,
+  
   Position,
   applyEdgeChanges,
   applyNodeChanges,
@@ -98,11 +98,6 @@ function createDraftEdge(
     target,
     data: {
       backend: false,
-    },
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      width: 14,
-      height: 14,
     },
   };
 }

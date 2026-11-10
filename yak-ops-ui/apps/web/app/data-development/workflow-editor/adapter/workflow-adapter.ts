@@ -1,4 +1,4 @@
-import { MarkerType, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 
 import type { WorkflowDagRecord } from "@/service/workflow/definition";
 
@@ -60,11 +60,6 @@ export function workflowDagToGraph(
         target: String(relation.postTaskCode),
         data: {
           backend: true,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 14,
-          height: 14,
         },
       }));
 

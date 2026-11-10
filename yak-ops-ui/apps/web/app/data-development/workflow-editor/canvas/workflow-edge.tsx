@@ -18,26 +18,26 @@ export function WorkflowEdge({
   targetX,
   targetY,
   selected,
-  markerEnd,
   data,
 }: EdgeProps<WorkflowCanvasEdge>) {
   const [focused, setFocused] = useState(false);
+  const [triggerHovered, setTriggerHovered] = useState(false);
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );
 
   const [path, labelX, labelY] = getBezierPath({
-    sourceX: sourceX + 4,
+    sourceX: sourceX - 8,
     sourceY,
     sourcePosition: Position.Right,
-    targetX: targetX - 4,
+    targetX: targetX + 8,
     targetY,
     targetPosition: Position.Left,
-    curvature: 0.18,
+    curvature: 0.16,
   });
 
   const active = Boolean(
-    selected || data?.hovered || focused,
+    selected || data?.hovered || focused || triggerHovered,
   );
 
   return (
@@ -45,37 +45,23 @@ export function WorkflowEdge({
       <BaseEdge
         id={id}
         path={path}
-        markerEnd={markerEnd}
         interactionWidth={24}
         style={{
           stroke: active
             ? "var(--yak-color-primary)"
-            : "var(--yak-components-muted-text)",
-          strokeWidth: active ? 2 : 1.25,
+            : "#D0D5DD",
+          strokeWidth: 2,
+          opacity: 1,
         }}
       />
 
       <EdgeLabelRenderer>
-        <button
-          type="button"
-          title="在线路中插入节点"
-          aria-label="在线路中插入节点"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            openSelector({
-              kind: "edge",
-              edgeId: id,
-            });
-          }}
-          className={[
-            "nodrag nopan absolute flex size-6 cursor-pointer items-center justify-center rounded-full border border-[var(--yak-components-border)] bg-white text-[var(--yak-color-primary)] shadow-sm transition-opacity",
-            active
-              ? "pointer-events-auto opacity-100"
-              : "pointer-events-none opacity-0",
-          ].join(" ")}
+        <div
+          className="nodrag nopan absolute transition-opacity duration-150"
+          onMouseEnter={() => setTriggerHovered(true)}
+          onMouseLeave={() => setTriggerHovered(false)}
+          onFocusCapture={() => setFocused(true)}
+          onBlurCapture={() => setFocused(false)}
           style={{
             transform:
               "translate(-50%, -50%) translate(" +
@@ -83,10 +69,27 @@ export function WorkflowEdge({
               "px, " +
               labelY +
               "px)",
+            pointerEvents: active ? "auto" : "none",
+            opacity: active ? 1 : 0,
           }}
         >
-          <Plus size={13} />
-        </button>
+          <button
+            type="button"
+            title="在线路中插入节点"
+            aria-label="在线路中插入节点"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              openSelector({
+                kind: "edge",
+                edgeId: id,
+              });
+            }}
+            className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-[var(--yak-components-border)] bg-white text-[var(--yak-color-primary)] shadow-sm"
+          >
+            <Plus size={13} />
+          </button>
+        </div>
       </EdgeLabelRenderer>
     </>
   );
