@@ -50,6 +50,7 @@ type DataDevelopmentWorkbenchContextValue = {
     title: string,
   ) => void;
   activateTab: (id: string) => void;
+  updateTabTitle: (id: string, title: string) => void;
   closeTab: (id: string) => void;
 };
 
@@ -134,6 +135,18 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     }
   };
 
+  const updateTabTitle = (id: string, title: string) => {
+    setTabs((current) =>
+      current.map((tab) => {
+        if (tab.id !== id) return tab;
+        if (tab.kind === "task") {
+          return { ...tab, title, task: { ...tab.task, name: title } };
+        }
+        return { ...tab, title };
+      }),
+    );
+  };
+
   const closeTab = (id: string) => {
     const closingIndex = tabs.findIndex((tab) => tab.id === id);
     if (closingIndex < 0) return;
@@ -171,6 +184,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       openTask,
       openDraftTask,
       activateTab,
+      updateTabTitle,
       closeTab,
     }),
     [tabs, activeTabId, activeTab],
