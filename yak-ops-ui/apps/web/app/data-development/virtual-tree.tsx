@@ -308,7 +308,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
               className={[
                 "group absolute left-0 right-0 flex cursor-default select-none items-center text-[12px] outline-none",
                 item.selected
-                  ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                  ? "bg-[var(--yak-color-primary-subtle)]"
                   : active
                     ? "bg-[var(--yak-color-hover)]"
                     : "hover:bg-[var(--yak-color-hover)]",
