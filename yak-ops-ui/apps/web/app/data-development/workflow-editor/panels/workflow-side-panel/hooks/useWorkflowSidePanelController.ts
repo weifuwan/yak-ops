@@ -32,6 +32,7 @@ import type {
   ExecutionType,
   GlobalParameter,
   PanelKey,
+  ScheduleSection,
   WorkflowPropertyForm,
   WorkflowScheduleForm,
 } from "../shared/types";
