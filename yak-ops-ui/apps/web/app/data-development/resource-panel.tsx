@@ -696,7 +696,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             side="bottom"
             align="start"
             sideOffset={0}
-            collisionBoundary={treeViewportRef.current}
+            collisionBoundary={treeViewportRef.current ?? undefined}
             collisionPadding={8}
             collisionAvoidance={{
               side: "shift",
