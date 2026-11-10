@@ -43,7 +43,6 @@ import {
   moveWorkflowDefinition,
   renameWorkflowDefinition,
   renameWorkflowTask,
-  type WorkflowDefinitionCreatePayload,
   type WorkflowDefinitionRecord,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
