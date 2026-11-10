@@ -1,7 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Filter,
   RefreshCw,
   Search,
   X,
@@ -374,13 +373,6 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
             }}
             className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2.5 text-xs shadow-none hover:border-transparent hover:bg-transparent focus:border-transparent focus:bg-transparent"
           />
-          <span
-            title="搜索范围：全部字段"
-            aria-label="搜索范围：全部字段"
-            className="flex size-6 shrink-0 items-center justify-center text-[var(--yak-components-muted-text)]"
-          >
-            <Filter size={14} aria-hidden="true" />
-          </span>
           {search ? (
             <button
               type="button"
