@@ -66,6 +66,13 @@ export interface WorkflowDefinitionCreatePayload {
   description?: string;
 }
 
+export type WorkflowDefinitionSettingsPatch = Partial<
+  Pick<
+    WorkflowDefinitionRecord,
+    "name" | "description" | "globalParams" | "timeout" | "executionType"
+  >
+>;
+
 const qp = (params: Record<string, string | number | undefined>) => {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -133,20 +140,20 @@ export const getWorkflowDefinition = (
 
 const updateWorkflowDefinitionGraph = (
   dag: WorkflowDagRecord,
-  name: string,
+  patch: WorkflowDefinitionSettingsPatch,
   taskDefinitionList: WorkflowTaskRecord[] = dag.taskDefinitionList,
 ): Promise<unknown> => {
   const workflow = dag.workflowDefinition;
   const body = new URLSearchParams({
-    name,
+    name: patch.name ?? workflow.name,
     code: String(workflow.code),
-    description: workflow.description ?? "",
-    globalParams: workflow.globalParams ?? "[]",
+    description: patch.description ?? workflow.description ?? "",
+    globalParams: patch.globalParams ?? workflow.globalParams ?? "[]",
     locations: workflow.locations ?? "",
-    timeout: String(workflow.timeout ?? 0),
+    timeout: String(patch.timeout ?? workflow.timeout ?? 0),
     taskRelationJson: JSON.stringify(dag.workflowTaskRelationList ?? []),
     taskDefinitionJson: JSON.stringify(taskDefinitionList ?? []),
-    executionType: workflow.executionType ?? "PARALLEL",
+    executionType: patch.executionType ?? workflow.executionType ?? "PARALLEL",
   });
 
   return HttpUtils.putData<unknown>(
@@ -156,12 +163,20 @@ const updateWorkflowDefinitionGraph = (
   );
 };
 
+export const updateWorkflowDefinitionSettings = async (
+  workflowCode: number,
+  patch: WorkflowDefinitionSettingsPatch,
+): Promise<void> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  await updateWorkflowDefinitionGraph(dag, patch);
+};
+
 export const renameWorkflowDefinition = async (
   workflowCode: number,
   name: string,
 ): Promise<void> => {
   const dag = await getWorkflowDefinition(workflowCode);
-  await updateWorkflowDefinitionGraph(dag, name);
+  await updateWorkflowDefinitionGraph(dag, { name });
 };
 
 export const renameWorkflowTask = async (
@@ -210,7 +225,7 @@ export const removeWorkflowTask = async (
 
   await updateWorkflowDefinitionGraph(
     nextDag,
-    dag.workflowDefinition.name,
+    { name: dag.workflowDefinition.name },
     taskDefinitionList,
   );
 };
