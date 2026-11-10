@@ -1,6 +1,8 @@
-import { Braces, FileCode2 } from "lucide-react";
+import { Braces } from "lucide-react";
 
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
+
+import { TaskTypeBadgeIcon } from "../workflow-editor/components/task-type-badge-icon";
 
 type DraftTaskRecord = {
   nodeId: string;
@@ -39,11 +41,7 @@ export function TaskEditor({
     >
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <FileCode2
-            size={15}
-            aria-hidden="true"
-            className="shrink-0 text-[var(--yak-color-primary)]"
-          />
+          <TaskTypeBadgeIcon taskType={taskType} size={18} />
           <span className="truncate text-sm font-medium">
             {taskName}
           </span>

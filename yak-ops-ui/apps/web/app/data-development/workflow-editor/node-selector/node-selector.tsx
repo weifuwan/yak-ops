@@ -5,16 +5,9 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Boxes,
   ChevronDown,
   ChevronRight,
-  Code2,
-  Database,
-  FileCode2,
-  Globe
   Search,
-  Terminal,
-  Workflow,
   X,
 } from "lucide-react";
 import { Input } from "@yak-ops/yak-ui";
@@ -25,6 +18,7 @@ import {
 } from "@/service/workflow/task-type";
 
 import { useDataDevelopmentWorkbench } from "../../workbench-context";
+import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowStore } from "../store/workflow-store";
 
@@ -62,43 +56,6 @@ function selectorTitle(
   }
 }
 
-function TaskTypeIcon({ taskType }: { taskType: string }) {
-  const type = taskType.toUpperCase();
-
-  let Icon = FileCode2;
-
-  if (
-    type === "SHELL" ||
-    type === "REMOTESHELL" ||
-    type === "HIVECLI"
-  ) {
-    Icon = Terminal;
-  } else if (type === "SQL" || type === "PROCEDURE") {
-    Icon = Database;
-  } else if (type === "JAVA" || type === "PYTHON") {
-    Icon = Code2;
-  } else if (
-    type === "SPARK" ||
-    type === "FLINK" ||
-    type === "FLINK_STREAM"
-  ) {
-    Icon = Workflow;
-  } else if (type === "GRPC" || type === "HTTP") {
-    Icon = Globe;
-  } else if (type === "MR" || type === "DINKY") {
-    Icon = Boxes;
-  }
-
-  return (
-    <Icon
-      size={16}
-      strokeWidth={1.6}
-      aria-hidden="true"
-      className="shrink-0 text-[var(--yak-components-muted-text)]"
-    />
-  );
-}
-
 function TaskTypeItem({
   task,
   onSelect,
@@ -124,7 +81,7 @@ function TaskTypeItem({
       className="group flex h-7 w-full cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"
     >
       <span className="mr-2 flex size-4 shrink-0 items-center justify-center">
-        <TaskTypeIcon taskType={task.taskType} />
+        <TaskTypeBadgeIcon taskType={task.taskType} />
       </span>
       <span className="min-w-0 truncate leading-4">
         {task.taskType}

@@ -12,6 +12,7 @@ import {
 import { toast } from "@yak-ops/yak-ui";
 
 import { useDataDevelopmentWorkbench } from "../../workbench-context";
+import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { useWorkflowStore } from "../store/workflow-store";
 import type { WorkflowCanvasNode } from "../types";
 
@@ -136,11 +137,19 @@ export function WorkflowTaskNode({
             : "border-[var(--yak-components-border)]",
         ].join(" ")}
       >
-        <div className="truncate text-[11px] font-medium uppercase tracking-wide text-[var(--yak-components-muted-text)]">
-          {data.taskType || "TASK"}
-        </div>
-        <div className="mt-1 truncate text-[13px] font-medium text-[var(--yak-components-panel-text)]">
-          {data.name}
+        <div className="flex items-center gap-2">
+          <TaskTypeBadgeIcon
+            taskType={data.taskType || "TASK"}
+            size={22}
+          />
+          <div className="min-w-0">
+            <div className="truncate text-[11px] font-medium uppercase tracking-wide text-[var(--yak-components-muted-text)]">
+              {data.taskType || "TASK"}
+            </div>
+            <div className="mt-0.5 truncate text-[13px] font-medium text-[var(--yak-components-panel-text)]">
+              {data.name}
+            </div>
+          </div>
         </div>
       </div>
 
