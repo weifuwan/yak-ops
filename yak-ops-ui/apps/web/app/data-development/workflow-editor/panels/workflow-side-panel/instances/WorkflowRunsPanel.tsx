@@ -1,4 +1,5 @@
 import { RefreshCw, X } from "lucide-react";
+import { Table, type TableColumns } from "@yak-ops/yak-ui";
 
 import {
   EmptyState,
@@ -173,6 +174,48 @@ export function WorkflowRunsPanel({
   );
 
 
+  const historyColumns: TableColumns<WorkflowInstanceSummary> = [
+    {
+      key: "instance",
+      title: "实例信息",
+      minWidth: 140,
+      render: (_value, instance) => (
+        <div className="min-w-0">
+          <div className="truncate text-xs font-medium text-[#374151]">
+            {instance.name || "工作流实例 #" + instance.id}
+          </div>
+          <div className="mt-0.5 text-[10px] text-[#8a93a1]">ID: {instance.id}</div>
+        </div>
+      ),
+    },
+    {
+      key: "state",
+      title: "状态",
+      width: 72,
+      align: "center",
+      render: (_value, instance) => (
+        <span className={"inline-flex rounded px-1.5 py-0.5 text-[10px] " + statusClass(instance.state)}>
+          {statusLabel(instance.state)}
+        </span>
+      ),
+    },
+    {
+      key: "execution",
+      title: "开始时间 / 耗时",
+      minWidth: 150,
+      render: (_value, instance) => (
+        <div className="min-w-0">
+          <div className="truncate text-[11px] text-[#4c5666]">
+            {formatTime(instance.startTime)}
+          </div>
+          <div className="mt-0.5 text-[10px] text-[#8a93a1]">
+            耗时：{instance.duration || "-"}
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   const renderHistory = () => (
     <div className="space-y-3 p-4">
       <div className="flex items-center justify-between gap-2">
@@ -189,21 +232,47 @@ export function WorkflowRunsPanel({
           刷新
         </button>
       </div>
-      {instancesQuery.isPending ? (
-        <div className={MUTED_CLASS}>正在加载运行记录...</div>
-      ) : instancesQuery.isError ? (
-        <div className="space-y-2">
-          <PanelNotice tone="warning">运行记录加载失败。</PanelNotice>
+      <Table<WorkflowInstanceSummary>
+        className="w-full"
+        columns={historyColumns}
+        dataSource={instances}
+        rowKey="id"
+        loading={instancesQuery.isFetching}
+        size="small"
+        rowHeight={56}
+        scroll={{ x: 362 }}
+        pagination={false}
+        emptyText={
+          instancesQuery.isError
+            ? "运行记录加载失败"
+            : "工作流执行后，实例记录会显示在这里。"
+        }
+        onRow={(instance) => ({
+          onClick: () => setSelectedInstanceId(instance.id),
+          onKeyDown: (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setSelectedInstanceId(instance.id);
+            }
+          },
+          tabIndex: 0,
+          "aria-selected": selectedInstanceId === instance.id,
+          title: "点击查看实例详情",
+          className: [
+            "cursor-pointer",
+            selectedInstanceId === instance.id ? "bg-[#f5f8ff]" : "",
+            "focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#8ba9ff]",
+          ].join(" "),
+        })}
+      />
+      {instancesQuery.isError ? (
+        <div className="flex justify-end pt-2">
           <PanelButton variant="secondary" onClick={() => void instancesQuery.refetch()}>
             <RefreshCw size={13} />
             重试
           </PanelButton>
         </div>
-      ) : instances.length === 0 ? (
-        <EmptyState title="暂无运行记录" description="工作流执行后，实例记录会显示在这里。" />
-      ) : (
-        renderInstanceList(instances)
-      )}
+      ) : null}
       {renderInstanceDetail()}
     </div>
   );
