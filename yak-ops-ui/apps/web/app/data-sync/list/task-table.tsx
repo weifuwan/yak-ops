@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ExecutionProgressBar } from "../execution/execution-progress-bar";
 import { ExecutionStages } from "../execution/execution-stages";
 import { TaskRoute } from "./task-route";
-import { DataSyncTaskLifecycleActions, DataSyncTaskStatusBadge } from "./task-lifecycle";
+import { DataSyncTaskLifecycleActions, DataSyncTaskStatusIndicator } from "./task-lifecycle";
 import { readExecutionSummary } from "@/service/data-sync/report";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
 import {
@@ -182,7 +182,8 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
       key: "status",
       title: "状态",
       width: 100,
-      render: (_value, record) => <DataSyncTaskStatusBadge status={record.status} />,
+      align: "center",
+      render: (_value, record) => <DataSyncTaskStatusIndicator status={record.status} />,
     },
     {
       key: "execution",
