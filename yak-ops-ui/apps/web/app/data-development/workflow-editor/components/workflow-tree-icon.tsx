@@ -10,7 +10,7 @@ export function WorkflowTreeIcon({
       viewBox="0 0 16 16"
       fill="none"
       aria-hidden="true"
-      className="shrink-0 text-[#2563eb]"
+      className="block shrink-0 text-[#2563eb]"
     >
       <rect
         x="1.5"
