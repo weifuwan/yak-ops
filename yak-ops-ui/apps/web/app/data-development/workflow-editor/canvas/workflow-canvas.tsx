@@ -18,7 +18,6 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Check,
-  CirclePlus,
   FolderOpen,
   Hand,
   Maximize2,
@@ -121,6 +120,9 @@ export function WorkflowCanvas({
   );
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
+  );
+  const selectorRequest = useWorkflowStore(
+    (state) => state.selectorRequest,
   );
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
@@ -668,10 +670,20 @@ export function WorkflowCanvas({
             title="新建节点"
             aria-label="新建节点"
             disabled={isWorkflowOnline}
+            aria-expanded={selectorRequest?.kind === "add"}
             onClick={() => openSelector({ kind: "add" })}
-            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[selector-open=true]:bg-[var(--yak-color-primary-subtle)] data-[selector-open=true]:text-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+            data-selector-open={selectorRequest?.kind === "add" ? "true" : undefined}
           >
-            <CirclePlus size={16} strokeWidth={1.8} />
+            <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+              <circle cx="8" cy="8" r="7" fill="currentColor" />
+              <path
+                d="M8 4.5v7M4.5 8h7"
+                stroke="var(--yak-components-panel-bg)"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
 
           <div className="my-1 h-[0.5px] w-3.5 bg-[var(--yak-components-control-border)]" />
