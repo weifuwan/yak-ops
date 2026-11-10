@@ -62,36 +62,64 @@ export function DataDevelopmentWorkbench() {
         })}
       </div>
 
-      {activeTab ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          {activeTab.kind === "workflow" ? (
-            <WorkflowEditor
-              key={activeTab.id}
-              workflowCode={activeTab.workflowCode}
-            />
-          ) : (
+      <div className="relative min-h-0 flex-1">
+        {tabs.map((tab) =>
+          tab.kind === "workflow" ? (
+            <div
+              key={tab.id}
+              aria-hidden={tab.id !== activeTabId}
+              className={[
+                "absolute inset-0 min-h-0",
+                tab.id === activeTabId
+                  ? "flex"
+                  : "invisible pointer-events-none flex",
+              ].join(" ")}
+            >
+              <WorkflowEditor workflowCode={tab.workflowCode} />
+            </div>
+          ) : null,
+        )}
+
+        {activeTab?.kind === "task" ? (
+          <div className="absolute inset-0 flex min-h-0">
             <TaskEditor
               key={activeTab.id}
               workflowCode={activeTab.workflowCode}
               task={activeTab.task}
             />
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center p-8 text-center">
-          <div>
-            <Workflow
-              size={24}
-              aria-hidden="true"
-              className="mx-auto text-[var(--yak-components-muted-text)]"
-            />
-            <h1 className="mt-3 text-base font-semibold">工作流开发</h1>
-            <p className="mt-2 text-[13px] text-[var(--yak-components-muted-text)]">
-              从左侧打开一个工作流定义。
-            </p>
           </div>
-        </div>
-      )}
+        ) : null}
+
+        {activeTab?.kind === "draft-task" ? (
+          <div className="absolute inset-0 flex min-h-0">
+            <TaskEditor
+              key={activeTab.id}
+              workflowCode={activeTab.workflowCode}
+              draftTask={{
+                nodeId: activeTab.nodeId,
+                name: activeTab.title,
+                taskType: activeTab.taskType,
+              }}
+            />
+          </div>
+        ) : null}
+
+        {!activeTab ? (
+          <div className="flex h-full items-center justify-center p-8 text-center">
+            <div>
+              <Workflow
+                size={24}
+                aria-hidden="true"
+                className="mx-auto text-[var(--yak-components-muted-text)]"
+              />
+              <h1 className="mt-3 text-base font-semibold">工作流开发</h1>
+              <p className="mt-2 text-[13px] text-[var(--yak-components-muted-text)]">
+                从左侧打开一个工作流定义。
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

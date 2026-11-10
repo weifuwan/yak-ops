@@ -2,23 +2,39 @@ import { Braces, FileCode2 } from "lucide-react";
 
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
+type DraftTaskRecord = {
+  nodeId: string;
+  name: string;
+  taskType: string;
+};
+
 type TaskEditorProps = {
   workflowCode: number;
-  task: WorkflowTaskRecord;
+  task?: WorkflowTaskRecord;
+  draftTask?: DraftTaskRecord;
 };
 
 export function TaskEditor({
   workflowCode,
   task,
+  draftTask,
 }: TaskEditorProps) {
-  const payload = {
-    workflowCode,
-    task,
-  };
+  const taskName = task?.name ?? draftTask?.name ?? "未命名节点";
+  const taskType = task?.taskType ?? draftTask?.taskType ?? "UNKNOWN";
+  const payload = task
+    ? {
+        workflowCode,
+        task,
+      }
+    : {
+        workflowCode,
+        draft: true,
+        node: draftTask,
+      };
 
   return (
     <section
-      aria-label={`${task.name} 节点内容`}
+      aria-label={`${taskName} 节点内容`}
       className="flex min-h-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-4">
@@ -29,10 +45,10 @@ export function TaskEditor({
             className="shrink-0 text-[var(--yak-color-primary)]"
           />
           <span className="truncate text-sm font-medium">
-            {task.name}
+            {taskName}
           </span>
           <span className="shrink-0 rounded bg-[var(--yak-color-hover)] px-1.5 py-0.5 text-[10px] text-[var(--yak-components-muted-text)]">
-            {task.taskType}
+            {taskType}
           </span>
         </div>
 

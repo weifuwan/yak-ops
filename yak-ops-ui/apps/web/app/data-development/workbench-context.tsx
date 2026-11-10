@@ -27,6 +27,14 @@ export type WorkflowWorkbenchTab =
       workflowCode: number;
       title: string;
       task: WorkflowTaskRecord;
+    }
+  | {
+      id: string;
+      kind: "draft-task";
+      workflowCode: number;
+      title: string;
+      nodeId: string;
+      taskType: string;
     };
 
 type DataDevelopmentWorkbenchContextValue = {
@@ -35,6 +43,12 @@ type DataDevelopmentWorkbenchContextValue = {
   activeTab: WorkflowWorkbenchTab | null;
   openWorkflow: (workflow: WorkflowDefinitionRecord) => void;
   openTask: (workflowCode: number, task: WorkflowTaskRecord) => void;
+  openDraftTask: (
+    workflowCode: number,
+    nodeId: string,
+    taskType: string,
+    title: string,
+  ) => void;
   activateTab: (id: string) => void;
   closeTab: (id: string) => void;
 };
@@ -65,6 +79,20 @@ const toTaskTab = (
   task,
 });
 
+const toDraftTaskTab = (
+  workflowCode: number,
+  nodeId: string,
+  taskType: string,
+  title: string,
+): WorkflowWorkbenchTab => ({
+  id: "draft-task:" + workflowCode + ":" + nodeId,
+  kind: "draft-task",
+  workflowCode,
+  title,
+  nodeId,
+  taskType,
+});
+
 export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren) {
   const [tabs, setTabs] = useState<WorkflowWorkbenchTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -91,6 +119,15 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     openTab(toTaskTab(workflowCode, task));
   };
 
+  const openDraftTask = (
+    workflowCode: number,
+    nodeId: string,
+    taskType: string,
+    title: string,
+  ) => {
+    openTab(toDraftTaskTab(workflowCode, nodeId, taskType, title));
+  };
+
   const activateTab = (id: string) => {
     if (tabs.some((tab) => tab.id === id)) {
       setActiveTabId(id);
@@ -101,10 +138,24 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     const closingIndex = tabs.findIndex((tab) => tab.id === id);
     if (closingIndex < 0) return;
 
-    const nextTabs = tabs.filter((tab) => tab.id !== id);
+    const closingTab = tabs[closingIndex];
+    const closingIds = new Set<string>([id]);
+
+    if (closingTab.kind === "workflow") {
+      for (const tab of tabs) {
+        if (
+          tab.kind === "draft-task" &&
+          tab.workflowCode === closingTab.workflowCode
+        ) {
+          closingIds.add(tab.id);
+        }
+      }
+    }
+
+    const nextTabs = tabs.filter((tab) => !closingIds.has(tab.id));
     setTabs(nextTabs);
 
-    if (activeTabId === id) {
+    if (activeTabId && closingIds.has(activeTabId)) {
       setActiveTabId(
         nextTabs[Math.min(closingIndex, nextTabs.length - 1)]?.id ?? null,
       );
@@ -118,6 +169,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       activeTab,
       openWorkflow,
       openTask,
+      openDraftTask,
       activateTab,
       closeTab,
     }),
