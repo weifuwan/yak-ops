@@ -662,7 +662,7 @@ export function WorkflowCanvas({
       </Dialog>
 
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-12 items-center justify-center pl-2">
-        <div className="pointer-events-auto flex flex-col items-center rounded-lg border-[0.5px] border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-0.5 text-[var(--yak-components-muted-text)] shadow-[var(--yak-components-panel-shadow)]">
+        <div className="pointer-events-auto flex flex-col items-center rounded-lg border-[0.5px] border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-0.5 text-[var(--yak-components-input-icon)] shadow-lg">
           <button
             type="button"
             title="新建节点"
@@ -674,7 +674,7 @@ export function WorkflowCanvas({
             <CirclePlus size={16} strokeWidth={1.8} />
           </button>
 
-          <div className="my-1 h-px w-3.5 bg-[var(--yak-components-control-border)]" />
+          <div className="my-1 h-[0.5px] w-3.5 bg-[var(--yak-components-control-border)]" />
 
           <button
             type="button"
@@ -686,7 +686,7 @@ export function WorkflowCanvas({
               "flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors",
               interactionMode === "pointer"
                 ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
+                : "text-[var(--yak-components-input-icon)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
             ].join(" ")}
           >
             <MousePointer2 size={16} strokeWidth={1.7} />
@@ -701,13 +701,13 @@ export function WorkflowCanvas({
               "flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors",
               interactionMode === "pan"
                 ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
+                : "text-[var(--yak-components-input-icon)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]",
             ].join(" ")}
           >
             <Hand size={16} strokeWidth={1.7} />
           </button>
 
-          <div className="my-1 h-px w-3.5 bg-[var(--yak-components-control-border)]" />
+          <div className="my-1 h-[0.5px] w-3.5 bg-[var(--yak-components-control-border)]" />
 
           <button
             type="button"
@@ -721,7 +721,7 @@ export function WorkflowCanvas({
                 duration: 180,
               })
             }
-            className="flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-input-icon)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Maximize2 size={16} strokeWidth={1.7} />
           </button>
@@ -730,7 +730,7 @@ export function WorkflowCanvas({
             <DropdownMenuTrigger
               aria-label={`连线样式：${edgeStyleLabel}`}
               title={`连线样式：${edgeStyleLabel}`}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-muted-text)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[popup-open]:bg-[var(--yak-color-hover)] data-[popup-open]:text-[var(--yak-color-primary)]"
+              className="flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-input-icon)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[popup-open]:bg-[var(--yak-color-hover)] data-[popup-open]:text-[var(--yak-color-primary)]"
             >
               <Spline size={16} strokeWidth={1.7} />
             </DropdownMenuTrigger>
@@ -811,7 +811,7 @@ export function WorkflowCanvas({
       </div>
 
       <div className="pointer-events-none absolute bottom-3 right-3 z-10">
-        <div className="pointer-events-auto flex h-9 items-center rounded-lg border-[0.5px] border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-0.5 text-[13px] text-[var(--yak-components-muted-text)] shadow-[var(--yak-components-panel-shadow)]">
+        <div className="pointer-events-auto flex h-9 items-center rounded-lg border-[0.5px] border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-0.5 text-[13px] text-[var(--yak-components-input-icon)] shadow-lg">
           <button
             type="button"
             title="缩小"
