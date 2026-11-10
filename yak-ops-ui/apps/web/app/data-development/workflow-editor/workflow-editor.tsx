@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ReactFlowProvider,
@@ -13,6 +13,7 @@ import {
 
 import { workflowDagToGraph } from "./adapter/workflow-adapter";
 import { WorkflowCanvas } from "./canvas/workflow-canvas";
+import type { CanvasPanelKey } from "./canvas/canvas-side-panel";
 import { layoutWorkflowGraph } from "./layout/elk-layout";
 import { WorkflowNodeSelector } from "./node-selector/node-selector";
 import {
@@ -43,10 +44,32 @@ function WorkflowEditorShell({
   const selectorOpen = useWorkflowStore(
     (state) => Boolean(state.selectorRequest),
   );
+  const [activeCanvasPanel, setActiveCanvasPanel] =
+    useState<CanvasPanelKey | null>(null);
+
+  useEffect(() => {
+    if (!activeCanvasPanel) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveCanvasPanel(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeCanvasPanel]);
+
+  const toggleCanvasPanel = (panel: CanvasPanelKey) => {
+    setActiveCanvasPanel((current) =>
+      current === panel ? null : panel,
+    );
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <WorkflowToolbar />
+      <WorkflowToolbar
+        activePanel={activeCanvasPanel}
+        onTogglePanel={toggleCanvasPanel}
+      />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {selectorOpen ? (
           <WorkflowNodeSelector />
@@ -55,6 +78,8 @@ function WorkflowEditorShell({
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
           workflowReleaseState={workflowReleaseState}
+          activeCanvasPanel={activeCanvasPanel}
+          onCloseCanvasPanel={() => setActiveCanvasPanel(null)}
         />
         <WorkflowSidePanel
           workflowCode={workflowCode}
