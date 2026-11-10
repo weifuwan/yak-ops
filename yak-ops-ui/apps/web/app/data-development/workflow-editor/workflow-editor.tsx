@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ReactFlowProvider,
@@ -32,11 +32,13 @@ function WorkflowEditorShell({
   selectedTaskCode,
   workflowReleaseState,
   dag,
+  onVersionSwitched,
 }: {
   workflowCode: number;
   selectedTaskCode?: number;
   workflowReleaseState: string;
   dag: WorkflowDagRecord;
+  onVersionSwitched: () => void;
 }) {
   const selectorOpen = useWorkflowStore(
     (state) => Boolean(state.selectorRequest),
@@ -54,7 +56,11 @@ function WorkflowEditorShell({
           selectedTaskCode={selectedTaskCode}
           workflowReleaseState={workflowReleaseState}
         />
-        <WorkflowSidePanel workflowCode={workflowCode} dag={dag} />
+        <WorkflowSidePanel
+          workflowCode={workflowCode}
+          dag={dag}
+          onVersionSwitched={onVersionSwitched}
+        />
       </div>
     </div>
   );
@@ -66,6 +72,7 @@ export function WorkflowEditor({
 }: WorkflowEditorProps) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id ?? "";
+  const [graphReloadToken, setGraphReloadToken] = useState(0);
 
   const query = useQuery({
     queryKey: [
@@ -93,7 +100,6 @@ export function WorkflowEditor({
       "workflow-definition-layout",
       workspaceId,
       workflowCode,
-      query.data?.workflowDefinition.version ?? 0,
     ],
     queryFn: () => layoutWorkflowGraph(sourceGraph!),
     enabled: Boolean(sourceGraph),
@@ -136,11 +142,7 @@ export function WorkflowEditor({
 
   return (
     <WorkflowStoreProvider
-      key={
-        workflowCode +
-        ":" +
-        (query.data?.workflowDefinition.version ?? 0)
-      }
+      key={workflowCode + ":" + graphReloadToken}
       initialGraph={layoutQuery.data}
       workflowCode={workflowCode}
     >
@@ -150,6 +152,9 @@ export function WorkflowEditor({
           selectedTaskCode={selectedTaskCode}
           workflowReleaseState={query.data?.workflowDefinition.releaseState ?? "OFFLINE"}
           dag={query.data!}
+          onVersionSwitched={() =>
+            setGraphReloadToken((current) => current + 1)
+          }
         />
       </ReactFlowProvider>
     </WorkflowStoreProvider>
