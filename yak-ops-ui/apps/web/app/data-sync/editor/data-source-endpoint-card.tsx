@@ -35,6 +35,7 @@ export function DataSourceEndpointCard({
               {
                 value: item.id,
                 label: item.name || item.id,
+                icon: <DatabaseIcons dbType={item.dbType} width="16px" height="16px" />,
                 searchText: [item.dbType, item.database, item.schema].filter(Boolean).join(" "),
               },
             ]
