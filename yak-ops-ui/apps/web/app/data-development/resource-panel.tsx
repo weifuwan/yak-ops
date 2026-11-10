@@ -829,6 +829,12 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
                 size="small"
                 value={renameValue}
                 onChange={(event) => setRenameValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void submitDialog();
+                  }
+                }}
                 aria-label="资源名称"
                 autoFocus
               />
