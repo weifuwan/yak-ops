@@ -387,9 +387,11 @@ function EmptyState({ title, description }: { title: string; description?: strin
 export function WorkflowSidePanel({
   workflowCode,
   dag,
+  onVersionSwitched,
 }: {
   workflowCode: number;
   dag: WorkflowDagRecord;
+  onVersionSwitched: () => void;
 }) {
   const [activePanel, setActivePanel] = useState<PanelKey | null>("properties");
   const [scheduleSection, setScheduleSection] = useState<ScheduleSection>("params");
@@ -732,7 +734,11 @@ export function WorkflowSidePanel({
       await switchWorkflowDefinitionVersion(workflowCode, version);
       setConfirmVersion(null);
       await invalidateDefinition();
+      await queryClient.invalidateQueries({
+        queryKey: ["data-development", "workflow-definition-layout", workspaceId, workflowCode],
+      });
       await versionsQuery.refetch();
+      onVersionSwitched();
       toast.success("已切换到版本 V" + version);
     } catch (error) {
       toast.error("切换版本失败", {
