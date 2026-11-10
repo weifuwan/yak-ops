@@ -25,16 +25,16 @@ export function useWorkflowProperties({
   const { updateTabTitle } = useDataDevelopmentWorkbench();
 
   const [propertyForm, setPropertyForm] = useState<WorkflowPropertyForm>({
-    name: dag.workflowDefinition.name,
-    description: dag.workflowDefinition.description ?? "",
-    timeout: String(dag.workflowDefinition.timeout ?? 0),
-    executionType: (dag.workflowDefinition.executionType ?? "PARALLEL") as ExecutionType,
+    name: definition.name,
+    description: definition.description ?? "",
+    timeout: String(definition.timeout ?? 0),
+    executionType: (definition.executionType ?? "PARALLEL") as ExecutionType,
   });
   const [globalParameters, setGlobalParameters] = useState<GlobalParameter[]>(
-    () => parseGlobalParameters(dag.workflowDefinition.globalParams),
+    () => parseGlobalParameters(definition.globalParams),
   );
   const [savedGlobalParameterCount, setSavedGlobalParameterCount] = useState(
-    () => parseGlobalParameters(dag.workflowDefinition.globalParams).length,
+    () => parseGlobalParameters(definition.globalParams).length,
   );
   const [propertySaving, setPropertySaving] = useState(false);
   const [globalParametersSaving, setGlobalParametersSaving] = useState(false);
