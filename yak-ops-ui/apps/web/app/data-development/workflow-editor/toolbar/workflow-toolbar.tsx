@@ -37,7 +37,7 @@ export function WorkflowToolbar() {
   );
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[var(--yak-components-border)] bg-white px-2">
+    <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[#e5e7eb] bg-white px-2">
       <ToolbarButton
         label="添加节点"
         icon={<Plus size={14} />}
