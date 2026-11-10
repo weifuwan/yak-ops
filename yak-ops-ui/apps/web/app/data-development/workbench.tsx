@@ -15,11 +15,11 @@ export function DataDevelopmentWorkbench() {
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)]"
     >
       {tabs.length > 0 ? (
-        <div className="flex h-[35px] shrink-0 items-stretch overflow-hidden bg-[#f2f2f2]">
+        <div className="flex h-[35px] shrink-0 items-center overflow-hidden border-b border-[#e2e2e2] bg-[#f2f2f2] px-2">
           <div
             role="tablist"
             aria-label="工作区选项卡"
-            className="flex min-w-0 flex-1 items-stretch overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            className="flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
             {tabs.map((tab) => {
               const active = tab.id === activeTabId;
@@ -29,10 +29,10 @@ export function DataDevelopmentWorkbench() {
                 <div
                   key={tab.id}
                   className={[
-                    "group relative flex h-[35px] w-[120px] min-w-fit shrink-0 items-center border-r border-[#e5e5e5]",
+                    "group relative flex h-[27px] w-fit min-w-[120px] max-w-[240px] shrink-0 items-center rounded-[3px]",
                     active
-                      ? "bg-white text-[#26282c]"
-                      : "bg-[#f2f2f2] text-[#616161] hover:bg-white/70",
+                      ? "bg-[#cedaff] text-[#26282c]"
+                      : "bg-transparent text-[#616161] hover:bg-[#e8e8e8]",
                   ].join(" ")}
                 >
                   <button
@@ -42,19 +42,20 @@ export function DataDevelopmentWorkbench() {
                     tabIndex={active ? 0 : -1}
                     title={tab.title}
                     onClick={() => activateTab(tab.id)}
-                    className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 pl-[5px] pr-0 text-left text-[13px] leading-none outline-none"
+                    className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 pl-2 pr-0 text-left text-[13px] leading-none outline-none"
                   >
                     <TabIcon
                       size={16}
                       strokeWidth={1.8}
                       aria-hidden="true"
-                      className={
-                        active
-                          ? "shrink-0 text-[#0033cc]"
-                          : "shrink-0 text-[#6b7280]"
-                      }
+                      className={[
+                        "shrink-0",
+                        tab.kind === "workflow"
+                          ? "text-[#7397f7]"
+                          : "text-[#df985d]",
+                      ].join(" ")}
                     />
-                    <span className="min-w-0 flex-1 whitespace-nowrap">
+                    <span className="min-w-0 flex-1 truncate whitespace-nowrap">
                       {tab.title}
                     </span>
                   </button>
@@ -65,21 +66,14 @@ export function DataDevelopmentWorkbench() {
                     title={`关闭 ${tab.title}`}
                     onClick={() => closeTab(tab.id)}
                     className={[
-                      "mr-1 flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[#616161] transition-opacity hover:bg-black/5 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none",
+                      "mr-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[#343434] transition-opacity hover:bg-black/5 focus-visible:opacity-100 focus-visible:outline-none",
                       active
-                        ? "opacity-50"
+                        ? "opacity-100"
                         : "opacity-0 group-hover:opacity-100",
                     ].join(" ")}
                   >
-                    <X size={14} strokeWidth={1.8} />
+                    <X size={15} strokeWidth={1.8} />
                   </button>
-
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[rgba(0,51,204,0.9)]"
-                    />
-                  ) : null}
                 </div>
               );
             })}
