@@ -61,6 +61,11 @@ export interface WorkflowDefinitionPageParams {
   userId?: number;
 }
 
+export interface WorkflowDefinitionCreatePayload {
+  name: string;
+  description?: string;
+}
+
 const qp = (params: Record<string, string | number | undefined>) => {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -90,6 +95,22 @@ export const listWorkflowDefinitions = (
       }),
     { signal },
   );
+
+export const createWorkflowDefinition = (
+  payload: WorkflowDefinitionCreatePayload,
+): Promise<WorkflowDefinitionRecord> =>
+  HttpUtils.postData<WorkflowDefinitionRecord>(baseUrl(), undefined, {
+    body: new URLSearchParams({
+      name: payload.name,
+      description: payload.description ?? "",
+      globalParams: "[]",
+      locations: "[]",
+      timeout: "0",
+      taskRelationJson: "[]",
+      taskDefinitionJson: "[]",
+      executionType: "PARALLEL",
+    }),
+  });
 
 export const listWorkflowTasks = (
   workflowCode: number,
