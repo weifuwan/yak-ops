@@ -1,25 +1,11 @@
-import { useState } from "react";
 import {
-  LayoutTemplate,
   PlayCircle,
   Plus,
-  Redo2,
   Send,
-  Undo2,
 } from "lucide-react";
-import { useReactFlow } from "@xyflow/react";
 import { toast } from "@yak-ops/yak-ui";
 
-import { layoutWorkflowGraph } from "../layout/elk-layout";
-import {
-  useWorkflowHistory,
-  useWorkflowStore,
-  useWorkflowStoreApi,
-} from "../store/workflow-store";
-import type {
-  WorkflowCanvasEdge,
-  WorkflowCanvasNode,
-} from "../types";
+import { useWorkflowStore } from "../store/workflow-store";
 
 function ToolbarButton({
   label,
@@ -46,55 +32,9 @@ function ToolbarButton({
 }
 
 export function WorkflowToolbar() {
-  const store = useWorkflowStoreApi();
-  const reactFlow =
-    useReactFlow<WorkflowCanvasNode, WorkflowCanvasEdge>();
-  const [layoutPending, setLayoutPending] =
-    useState(false);
-
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );
-  const replaceGraph = useWorkflowStore(
-    (state) => state.replaceGraph,
-  );
-
-  const undo = useWorkflowHistory(
-    (state) => state.undo,
-  );
-  const redo = useWorkflowHistory(
-    (state) => state.redo,
-  );
-  const canUndo = useWorkflowHistory(
-    (state) => state.pastStates.length > 0,
-  );
-  const canRedo = useWorkflowHistory(
-    (state) => state.futureStates.length > 0,
-  );
-
-  const handleAutoLayout = async () => {
-    if (layoutPending) return;
-
-    setLayoutPending(true);
-    try {
-      const state = store.getState();
-      const layouted = await layoutWorkflowGraph({
-        nodes: state.nodes,
-        edges: state.edges,
-      });
-      replaceGraph(layouted);
-
-      window.requestAnimationFrame(() => {
-        void reactFlow.fitView({
-          padding: 0.22,
-          duration: 220,
-          maxZoom: 1,
-        });
-      });
-    } finally {
-      setLayoutPending(false);
-    }
-  };
 
   return (
     <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[var(--yak-components-border)] bg-white px-2">
@@ -102,27 +42,6 @@ export function WorkflowToolbar() {
         label="添加节点"
         icon={<Plus size={14} />}
         onClick={() => openSelector({ kind: "add" })}
-      />
-
-      <span className="mx-1 h-4 w-px bg-[var(--yak-components-border)]" />
-
-      <ToolbarButton
-        label="撤销"
-        disabled={!canUndo}
-        icon={<Undo2 size={14} />}
-        onClick={undo}
-      />
-      <ToolbarButton
-        label="重做"
-        disabled={!canRedo}
-        icon={<Redo2 size={14} />}
-        onClick={redo}
-      />
-      <ToolbarButton
-        label={layoutPending ? "布局中" : "自动布局"}
-        disabled={layoutPending}
-        icon={<LayoutTemplate size={14} />}
-        onClick={() => void handleAutoLayout()}
       />
 
       <span className="mx-1 h-4 w-px bg-[var(--yak-components-border)]" />
