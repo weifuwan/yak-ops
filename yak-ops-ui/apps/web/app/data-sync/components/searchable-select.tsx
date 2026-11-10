@@ -17,6 +17,7 @@ export interface DataSyncSearchableSelectOption {
   value: string;
   label: string;
   searchText?: string;
+  icon?: ReactNode;
 }
 
 interface DataSyncSearchableSelectProps {
@@ -53,6 +54,7 @@ export function DataSyncSearchableSelect({
     () => Object.fromEntries(options.map((option) => [option.value, option.label])),
     [options],
   );
+  const selectedOption = options.find((option) => option.value === value);
   const filteredOptions = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase();
     if (!normalizedKeyword) return options;
@@ -82,7 +84,14 @@ export function DataSyncSearchableSelect({
       }}
     >
       <SelectTrigger variant="outlined" aria-label={ariaLabel}>
-        <SelectValue placeholder={placeholder} />
+        <span className="flex min-w-0 items-center gap-2">
+          {selectedOption?.icon ? (
+            <span className="flex size-4 shrink-0 items-center justify-center">
+              {selectedOption.icon}
+            </span>
+          ) : null}
+          <SelectValue placeholder={placeholder} />
+        </span>
       </SelectTrigger>
       <SelectContent
         header={
@@ -117,6 +126,11 @@ export function DataSyncSearchableSelect({
       >
         {filteredOptions.map((option) => (
           <SelectItem key={option.value} value={option.value}>
+            {option.icon ? (
+              <span className="flex size-4 shrink-0 items-center justify-center">
+                {option.icon}
+              </span>
+            ) : null}
             <SelectItemText>{option.label}</SelectItemText>
             <SelectItemIndicator />
           </SelectItem>
