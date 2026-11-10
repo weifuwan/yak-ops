@@ -2,6 +2,7 @@ import { Button, Checkbox, Field, FieldLabel, Input, Modal } from "@yak-ops/yak-
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { COMMON_DB_OPTIONS } from "@/app/datasource/constants";
+import DatabaseIcons from "@/app/datasource/icons/DatabaseIcons";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createPipelineDefinition,
@@ -15,6 +16,11 @@ import {
   type NativeSyncDraft,
 } from "@/service/data-sync/native-draft";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
+
+const COMMON_DB_OPTIONS_WITH_ICONS = COMMON_DB_OPTIONS.map((option) => ({
+  ...option,
+  icon: <DatabaseIcons dbType={option.value} width="16px" height="16px" />,
+}));
 
 export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const { currentUser } = useAuth();
@@ -86,13 +92,13 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
       <div className="space-y-4">
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>数据来源类型</FieldLabel>
-          <DataSyncSearchableSelect value={sourceType || null} options={COMMON_DB_OPTIONS}
+          <DataSyncSearchableSelect value={sourceType || null} options={COMMON_DB_OPTIONS_WITH_ICONS}
             placeholder="请选择来源类型"
             onValueChange={setSourceType} />
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>数据去向类型</FieldLabel>
-          <DataSyncSearchableSelect value={targetType || null} options={COMMON_DB_OPTIONS}
+          <DataSyncSearchableSelect value={targetType || null} options={COMMON_DB_OPTIONS_WITH_ICONS}
             placeholder="请选择去向类型"
             onValueChange={setTargetType} />
         </Field>
