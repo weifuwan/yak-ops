@@ -245,8 +245,11 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
 
         globalParamsValidator.validate(globalParams);
 
-        List<TaskDefinitionLog> taskDefinitionLogs = generateTaskDefinitionList(taskDefinitionJson);
-        List<WorkflowTaskRelationLog> taskRelationList = generateTaskRelationList(taskRelationJson, taskDefinitionLogs);
+        // A newly created workflow may start with an empty canvas. Keep the node and relation
+        // lists empty together; non-empty workflows still go through the normal DAG validation.
+        List<TaskDefinitionLog> taskDefinitionLogs = generateTaskDefinitionList(taskDefinitionJson, true);
+        List<WorkflowTaskRelationLog> taskRelationList =
+                generateTaskRelationList(taskRelationJson, taskDefinitionLogs, true);
         SensitivePropertyUtils.requireNoPlaceholder(
                 GlobalParameterUtils.deserializeGlobalParameter(globalParams));
         for (TaskDefinitionLog taskDefinitionLog : CollectionUtils.emptyIfNull(taskDefinitionLogs)) {
@@ -344,11 +347,11 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
         return workflowTaskLineageList;
     }
 
-    private List<TaskDefinitionLog> generateTaskDefinitionList(String taskDefinitionJson) {
+    private List<TaskDefinitionLog> generateTaskDefinitionList(String taskDefinitionJson, boolean allowEmpty) {
         try {
             List<TaskDefinitionLog> taskDefinitionLogs = JSONUtils.toList(taskDefinitionJson, TaskDefinitionLog.class);
 
-            if (CollectionUtils.isEmpty(taskDefinitionLogs)) {
+            if (taskDefinitionLogs == null || (!allowEmpty && taskDefinitionLogs.isEmpty())) {
                 log.error("Generate task definition list failed, the given taskDefinitionJson is invalided: {}",
                         taskDefinitionJson);
                 throw new ServiceException(Status.DATA_IS_NOT_VALID, taskDefinitionJson);
@@ -380,12 +383,27 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
     }
 
     private List<WorkflowTaskRelationLog> generateTaskRelationList(String taskRelationJson,
-                                                                   List<TaskDefinitionLog> taskDefinitionLogs) {
+                                                                   List<TaskDefinitionLog> taskDefinitionLogs,
+                                                                   boolean allowEmpty) {
         try {
             List<WorkflowTaskRelationLog> taskRelationList =
                     JSONUtils.toList(taskRelationJson, WorkflowTaskRelationLog.class);
-            if (CollectionUtils.isEmpty(taskRelationList)) {
+            if (taskRelationList == null) {
+                log.error("Generate task relation list failed, the given taskRelationJson is invalid: {}",
+                        taskRelationJson);
+                throw new ServiceException(Status.DATA_IS_NOT_VALID);
+            }
+            if (taskRelationList.isEmpty()) {
+                if (allowEmpty && CollectionUtils.isEmpty(taskDefinitionLogs)) {
+                    log.info("Creating an empty workflow definition without task nodes.");
+                    return Collections.emptyList();
+                }
                 log.error("Generate task relation list failed the taskRelation list is empty, taskRelationJson: {}",
+                        taskRelationJson);
+                throw new ServiceException(Status.DATA_IS_NOT_VALID);
+            }
+            if (CollectionUtils.isEmpty(taskDefinitionLogs)) {
+                log.error("Task relations cannot be created without task definitions, taskRelationJson: {}",
                         taskRelationJson);
                 throw new ServiceException(Status.DATA_IS_NOT_VALID);
             }
@@ -642,8 +660,9 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
 
         globalParamsValidator.validate(globalParams);
 
-        List<TaskDefinitionLog> taskDefinitionLogs = generateTaskDefinitionList(taskDefinitionJson);
-        List<WorkflowTaskRelationLog> taskRelationList = generateTaskRelationList(taskRelationJson, taskDefinitionLogs);
+        List<TaskDefinitionLog> taskDefinitionLogs = generateTaskDefinitionList(taskDefinitionJson, false);
+        List<WorkflowTaskRelationLog> taskRelationList =
+                generateTaskRelationList(taskRelationJson, taskDefinitionLogs, false);
 
         WorkflowDefinition workflowDefinition = workflowDefinitionDao.queryByCode(code).orElse(null);
         // check workflow definition exists

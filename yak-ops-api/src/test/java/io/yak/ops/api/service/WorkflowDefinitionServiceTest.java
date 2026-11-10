@@ -919,6 +919,53 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
     }
 
     @Test
+    public void testCreateWorkflowDefinitionShouldAllowEmptyWorkflow() {
+        Project project = getProject(projectCode);
+        when(projectDao.queryByCode(projectCode)).thenReturn(project);
+        Mockito.doNothing().when(projectService).checkHasProjectWritePermissionThrowException(eq(user), eq(project));
+        when(workflowDefinitionDao.verifyByDefineName(projectCode, name)).thenReturn(null);
+        when(processService.saveWorkflowDefine(any(User.class), any(WorkflowDefinition.class), eq(Boolean.TRUE),
+                eq(Boolean.TRUE))).thenReturn(1);
+
+        WorkflowDefinition workflowDefinition = workflowDefinitionService.createWorkflowDefinition(
+                user, projectCode, name, description, "[]", "[]", timeout,
+                "[]", "[]", null, WorkflowExecutionTypeEnum.PARALLEL);
+
+        Assertions.assertNotNull(workflowDefinition);
+        Assertions.assertEquals(1, workflowDefinition.getVersion());
+        Mockito.verify(processService).saveTaskDefine(eq(user), eq(projectCode),
+                Mockito.argThat(taskDefinitions -> taskDefinitions.isEmpty()), eq(Boolean.TRUE));
+        Mockito.verify(processService).saveWorkflowDefine(any(User.class), any(WorkflowDefinition.class),
+                eq(Boolean.TRUE), eq(Boolean.TRUE));
+        Mockito.verify(processService).saveTaskRelation(eq(user), eq(projectCode), anyLong(), eq(1),
+                Mockito.argThat(relations -> relations.isEmpty()),
+                Mockito.argThat(taskDefinitions -> taskDefinitions.isEmpty()), eq(Boolean.TRUE));
+        Mockito.verify(processService, Mockito.never()).transformTask(anyList(), anyList());
+        Mockito.verify(workflowLineageService).updateWorkflowLineage(anyLong(),
+                Mockito.argThat(lineage -> lineage.isEmpty()));
+    }
+
+    @Test
+    public void testCreateWorkflowDefinitionShouldRejectMismatchedEmptyTaskAndRelationLists() {
+        Project project = getProject(projectCode);
+        when(projectDao.queryByCode(projectCode)).thenReturn(project);
+        Mockito.doNothing().when(projectService).checkHasProjectWritePermissionThrowException(eq(user), eq(project));
+        when(workflowDefinitionDao.verifyByDefineName(projectCode, name)).thenReturn(null);
+
+        ServiceException missingRelationException = Assertions.assertThrows(ServiceException.class,
+                () -> workflowDefinitionService.createWorkflowDefinition(
+                        user, projectCode, name, description, "[]", "[]", timeout,
+                        "[]", taskDefinitionJson, null, WorkflowExecutionTypeEnum.PARALLEL));
+        Assertions.assertEquals(Status.DATA_IS_NOT_VALID.getCode(), missingRelationException.getCode());
+
+        ServiceException missingTaskException = Assertions.assertThrows(ServiceException.class,
+                () -> workflowDefinitionService.createWorkflowDefinition(
+                        user, projectCode, name, description, "[]", "[]", timeout,
+                        taskRelationJson, "[]", null, WorkflowExecutionTypeEnum.PARALLEL));
+        Assertions.assertEquals(Status.DATA_IS_NOT_VALID.getCode(), missingTaskException.getCode());
+    }
+
+    @Test
     public void testCreateWorkflowDefinitionShouldRejectUnauthorizedDatasource() {
         Project project = getProject(projectCode);
         when(projectDao.queryByCode(projectCode)).thenReturn(project);
