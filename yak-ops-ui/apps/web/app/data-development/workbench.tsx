@@ -1,8 +1,10 @@
-import { FileCode2, Workflow, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { TaskEditor } from "./task-editor/task-editor";
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
 import { WorkflowWelcome } from "./workflow-welcome";
+import { TaskTypeBadgeIcon } from "./workflow-editor/components/task-type-badge-icon";
+import { WorkflowTreeIcon } from "./workflow-editor/components/workflow-tree-icon";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
 
 export function DataDevelopmentWorkbench() {
@@ -23,7 +25,6 @@ export function DataDevelopmentWorkbench() {
           >
             {tabs.map((tab) => {
               const active = tab.id === activeTabId;
-              const TabIcon = tab.kind === "workflow" ? Workflow : FileCode2;
 
               return (
                 <div
@@ -44,17 +45,18 @@ export function DataDevelopmentWorkbench() {
                     onClick={() => activateTab(tab.id)}
                     className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 pl-2 pr-0 text-left text-[13px] leading-none outline-none"
                   >
-                    <TabIcon
-                      size={16}
-                      strokeWidth={1.8}
-                      aria-hidden="true"
-                      className={[
-                        "shrink-0",
-                        tab.kind === "workflow"
-                          ? "text-[#7397f7]"
-                          : "text-[#df985d]",
-                      ].join(" ")}
-                    />
+                    {tab.kind === "workflow" ? (
+                      <WorkflowTreeIcon size={16} />
+                    ) : (
+                      <TaskTypeBadgeIcon
+                        taskType={
+                          tab.kind === "task"
+                            ? tab.task.taskType
+                            : tab.taskType
+                        }
+                        size={16}
+                      />
+                    )}
                     <span className="min-w-0 flex-1 truncate whitespace-nowrap">
                       {tab.title}
                     </span>
