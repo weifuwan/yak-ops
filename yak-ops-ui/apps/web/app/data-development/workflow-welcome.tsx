@@ -63,7 +63,7 @@ function ShortcutKeys({ keys }: { keys: readonly string[] }) {
 export function WorkflowWelcome() {
   return (
     <div className="flex h-full min-h-0 items-center justify-center overflow-hidden p-8 text-center">
-      <div className="mx-auto flex h-[calc(100%-30px)] w-full max-w-[290px] flex-col items-center justify-center">
+      <div className="mx-auto flex h-[calc(100%_-_30px)] w-full max-w-[290px] flex-col items-center justify-center">
         <WorkflowWelcomeLogo />
 
         <div className="mt-5 grid grid-cols-[1fr_auto] items-center gap-x-[10px] gap-y-[13px]">
