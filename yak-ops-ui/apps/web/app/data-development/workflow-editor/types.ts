@@ -1,4 +1,4 @@
-import type { Edge, Node, XYPosition } from "@xyflow/react";
+import type { Edge, Node, XYPosition } from "reactflow";
 
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -24,8 +24,8 @@ export type WorkflowEdgeData = {
   hovered?: boolean;
 };
 
-export type WorkflowCanvasNode = Node<WorkflowNodeData, "workflowTask">;
-export type WorkflowCanvasEdge = Edge<WorkflowEdgeData, "workflowEdge">;
+export type WorkflowCanvasNode = Node<WorkflowNodeData>;
+export type WorkflowCanvasEdge = Edge<WorkflowEdgeData>;
 
 export type WorkflowGraph = {
   nodes: WorkflowCanvasNode[];

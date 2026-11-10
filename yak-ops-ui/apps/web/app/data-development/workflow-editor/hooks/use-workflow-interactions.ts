@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { Connection } from "@xyflow/react";
+import type { Connection } from "reactflow";
 import { toast } from "@yak-ops/yak-ui";
 
 import {

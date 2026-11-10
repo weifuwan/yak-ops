@@ -5,7 +5,6 @@
   "type": "module",
   "dependencies": {
     "@tanstack/react-query": "5.90.5",
-    "@xyflow/react": "12.12.1",
     "@yak-ops/yak-ui": "*",
     "echarts": "5.6.0",
     "elkjs": "0.12.1",
@@ -13,6 +12,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.4",
+    "reactflow": "11.11.4",
     "zundo": "2.3.0",
     "zustand": "4.5.7"
   }

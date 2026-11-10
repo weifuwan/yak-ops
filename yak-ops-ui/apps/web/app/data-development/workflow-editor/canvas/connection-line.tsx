@@ -2,7 +2,7 @@ import {
   getBezierPath,
   Position,
   type ConnectionLineComponentProps,
-} from "@xyflow/react";
+} from "reactflow";
 
 export function WorkflowConnectionLine({
   fromX,

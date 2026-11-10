@@ -8,13 +8,13 @@ import {
   Handle,
   Position,
   type NodeProps,
-} from "@xyflow/react";
+} from "reactflow";
 import { toast } from "@yak-ops/yak-ui";
 
 import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { useWorkflowStore } from "../store/workflow-store";
-import type { WorkflowCanvasNode } from "../types";
+import type { WorkflowNodeData } from "../types";
 
 function ActionButton({
   label,
@@ -53,7 +53,7 @@ export function WorkflowTaskNode({
   id,
   data,
   selected,
-}: NodeProps<WorkflowCanvasNode>) {
+}: NodeProps<WorkflowNodeData>) {
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );

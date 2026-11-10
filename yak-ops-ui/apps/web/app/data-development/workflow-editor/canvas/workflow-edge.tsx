@@ -5,11 +5,11 @@ import {
   getBezierPath,
   Position,
   type EdgeProps,
-} from "@xyflow/react";
+} from "reactflow";
 import { Plus } from "lucide-react";
 
 import { useWorkflowStore } from "../store/workflow-store";
-import type { WorkflowCanvasEdge } from "../types";
+import type { WorkflowEdgeData } from "../types";
 
 export function WorkflowEdge({
   id,
@@ -19,7 +19,7 @@ export function WorkflowEdge({
   targetY,
   selected,
   data,
-}: EdgeProps<WorkflowCanvasEdge>) {
+}: EdgeProps<WorkflowEdgeData>) {
   const [focused, setFocused] = useState(false);
   const [triggerHovered, setTriggerHovered] = useState(false);
   const openSelector = useWorkflowStore(

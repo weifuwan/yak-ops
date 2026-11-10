@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ReactFlowProvider,
-} from "@xyflow/react";
+} from "reactflow";
 import { Button } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";

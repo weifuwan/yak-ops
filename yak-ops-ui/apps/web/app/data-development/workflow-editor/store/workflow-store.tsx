@@ -13,7 +13,7 @@ import {
   type EdgeChange,
   type NodeChange,
   type XYPosition,
-} from "@xyflow/react";
+} from "reactflow";
 import { temporal, type TemporalState } from "zundo";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
@@ -40,10 +40,10 @@ export type WorkflowEditorState = {
   draftEdgeSequence: number;
 
   onNodesChange: (
-    changes: NodeChange<WorkflowCanvasNode>[],
+    changes: NodeChange[],
   ) => void;
   onEdgesChange: (
-    changes: EdgeChange<WorkflowCanvasEdge>[],
+    changes: EdgeChange[],
   ) => void;
   setInteractionMode: (
     mode: WorkflowInteractionMode,

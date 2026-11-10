@@ -1,4 +1,4 @@
-import { Position } from "@xyflow/react";
+import { Position } from "reactflow";
 
 import type { WorkflowDagRecord } from "@/service/workflow/definition";
 

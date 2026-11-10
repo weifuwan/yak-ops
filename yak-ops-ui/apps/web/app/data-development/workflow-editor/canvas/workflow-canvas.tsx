@@ -4,15 +4,14 @@ import {
   useState,
   type DragEvent,
 } from "react";
-import {
+import ReactFlow, {
   Background,
   BackgroundVariant,
   Controls,
-  ReactFlow,
   SelectionMode,
   type ReactFlowInstance,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
+} from "reactflow";
+import "reactflow/dist/style.css";
 import {
   Hand,
   MousePointer2,
@@ -26,6 +25,8 @@ import {
 import type {
   WorkflowCanvasEdge,
   WorkflowCanvasNode,
+  WorkflowEdgeData,
+  WorkflowNodeData,
 } from "../types";
 import { WorkflowConnectionLine } from "./connection-line";
 import { WorkflowEdge } from "./workflow-edge";
@@ -81,8 +82,8 @@ export function WorkflowCanvas({
 
   const [instance, setInstance] = useState<
     ReactFlowInstance<
-      WorkflowCanvasNode,
-      WorkflowCanvasEdge
+      WorkflowNodeData,
+      WorkflowEdgeData
     > | null
   >(null);
   const [hoveredEdgeId, setHoveredEdgeId] =
@@ -156,7 +157,7 @@ export function WorkflowCanvas({
 
   return (
     <div className="relative h-full min-h-0 min-w-0 flex-1 bg-[#f2f4f7]">
-      <ReactFlow<WorkflowCanvasNode, WorkflowCanvasEdge>
+      <ReactFlow
         nodes={nodes}
         edges={renderEdges}
         nodeTypes={nodeTypes}
