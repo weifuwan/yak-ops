@@ -11,8 +11,7 @@ import {
   Code2,
   Database,
   FileCode2,
-  Globe,
-  Pin,
+  Globe
   Search,
   Terminal,
   Workflow,
@@ -212,23 +211,9 @@ export function WorkflowNodeSelector({
             <span className="truncate text-[var(--yak-color-primary)]">
               {selectorTitle(request.kind)}
             </span>
-            <span className="mx-0.5 shrink-0 font-normal text-[#8a9199]">
-              |
-            </span>
-            <span className="shrink-0 font-normal text-[#333]">
-              导入节点
-            </span>
           </div>
 
           <div className="absolute right-0 top-0 flex h-6 items-center">
-            <button
-              type="button"
-              aria-label="固定节点选择器"
-              title="固定"
-              className="flex size-6 cursor-pointer items-center justify-center text-[#7f8792] transition-colors hover:text-[#333]"
-            >
-              <Pin size={13} strokeWidth={1.6} />
-            </button>
             <button
               type="button"
               aria-label="关闭节点选择器"
