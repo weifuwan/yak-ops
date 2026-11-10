@@ -56,8 +56,9 @@ export function CanvasSidePanel({
       role="complementary"
       aria-label={content?.title ?? "画布辅助面板"}
       aria-hidden={!content}
-      className="absolute bottom-3 right-3 top-[60px] z-20 flex w-[380px] max-w-[calc(100%-24px)] flex-col overflow-hidden rounded-lg border border-[#dfe3e8] bg-white shadow-xl transition-transform duration-200 ease-out"
+      className="absolute bottom-3 right-3 top-[60px] z-20 flex w-[380px] max-w-full flex-col overflow-hidden rounded-lg border border-[#dfe3e8] bg-white shadow-xl transition-transform duration-200 ease-out"
       style={{
+        maxWidth: "calc(100% - 24px)",
         transform: content
           ? "translateX(0)"
           : "translateX(calc(100% + 16px))",
