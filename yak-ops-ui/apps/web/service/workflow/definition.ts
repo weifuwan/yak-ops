@@ -179,6 +179,42 @@ export const renameWorkflowTask = async (
   await updateWorkflowDefinitionGraph(dag, dag.workflowDefinition.name, taskDefinitionList);
 };
 
+export const removeWorkflowTask = async (
+  workflowCode: number,
+  taskCode: number,
+): Promise<void> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  const taskExists = dag.taskDefinitionList.some(
+    (task) => task.code === taskCode,
+  );
+
+  if (!taskExists) {
+    throw new Error("工作流节点不存在或已被移除");
+  }
+  if (dag.taskDefinitionList.length <= 1) {
+    throw new Error("工作流至少需要保留一个节点");
+  }
+
+  const taskDefinitionList = dag.taskDefinitionList.filter(
+    (task) => task.code !== taskCode,
+  );
+  const nextDag: WorkflowDagRecord = {
+    ...dag,
+    taskDefinitionList,
+    workflowTaskRelationList: dag.workflowTaskRelationList.filter(
+      (relation) =>
+        relation.preTaskCode !== taskCode &&
+        relation.postTaskCode !== taskCode,
+    ),
+  };
+
+  await updateWorkflowDefinitionGraph(
+    nextDag,
+    dag.workflowDefinition.name,
+    taskDefinitionList,
+  );
+};
+
 export const copyWorkflowDefinition = (
   workflowCode: number,
   targetProjectCode: number,
