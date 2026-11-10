@@ -678,7 +678,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 px-2 pb-2">
+      <div className="min-h-0 flex-1 px-3 pb-2">
         {workflowsQuery.isPending ? (
           <div className="px-3 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
             正在加载工作流…
