@@ -719,6 +719,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
                 openTask(item.workflow.code, item.task);
               }
             }}
+            isItemInteractive={(item) => item.kind !== "message"}
             onContextMenu={(item, event) => {
               if (item.kind === "message") return;
               setContextMenu({
