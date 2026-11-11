@@ -141,7 +141,7 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
 
     return (
       <span className="min-w-0 flex-1 truncate px-1 text-[11px] text-[var(--yak-components-muted-text)]">
-        暂无节点
+        暂无已保存节点
       </span>
     );
   }
@@ -373,7 +373,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         items.push({
           ...childBase,
           id: workflowNodeId(workflow.code) + "-empty",
-          ariaLabel: "暂无节点",
+          ariaLabel: "暂无已保存节点",
           kind: "message",
           state: "empty",
         });
