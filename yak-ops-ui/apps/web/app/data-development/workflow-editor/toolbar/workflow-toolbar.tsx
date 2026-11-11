@@ -87,7 +87,7 @@ export function WorkflowToolbar({
         }
       />
 
-      <div className="ml-auto flex min-w-0 items-center gap-1 border-l border-[#e5e7eb] pl-2">
+      <div className="ml-auto flex min-w-0 items-center gap-1 pl-2">
         <ToolbarButton
           label={
             activePanel === "nodes"
