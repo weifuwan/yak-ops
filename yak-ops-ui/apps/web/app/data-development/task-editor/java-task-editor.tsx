@@ -9,9 +9,9 @@ import {
   Input,
   Segmented,
   Textarea,
+  toast,
 } from "@yak-ops/yak-ui";
 import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
-import { toast } from "@yak-ops/yak-ui";
 
 import {
   updateWorkflowTaskDefinition,
@@ -508,10 +508,7 @@ export function JavaTaskEditor({
               </datalist>
 
               <div className="flex items-center justify-between border-t border-[var(--yak-components-panel-border)] pt-3">
-                <label
-                  htmlFor={modulePathId}
-                  className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]"
-                >
+                <div className="flex items-center gap-2 text-xs text-[var(--yak-components-field-label)]">
                   <Checkbox
                     id={modulePathId}
                     checked={form.isModulePath}
@@ -519,8 +516,10 @@ export function JavaTaskEditor({
                       updateField("isModulePath", checked === true)
                     }
                   />
-                  使用 Java Module Path
-                </label>
+                  <label htmlFor={modulePathId} className="cursor-pointer">
+                    使用 Java Module Path
+                  </label>
+                </div>
                 <Button
                   type="button"
                   size="sm"
