@@ -751,16 +751,7 @@ export function WorkflowCanvas({
             <DialogTitle className="text-base font-semibold">
               设置节点名称
             </DialogTitle>
-            <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
-              为新建的 {pendingNodeRename.taskType} 节点设置名称。
-            </DialogDescription>
             <div className="mt-5">
-              <label
-                htmlFor="workflow-draft-node-name"
-                className="mb-1.5 block text-xs font-medium text-[var(--yak-components-panel-text)]"
-              >
-                节点名称
-              </label>
               <Input
                 id="workflow-draft-node-name"
                 autoFocus
