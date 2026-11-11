@@ -334,13 +334,13 @@ export function JavaTaskEditor({
       </div>
 
       {activeView === "json" ? (
-        <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-color-hover)] p-4">
+        <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-components-panel-bg)] p-4">
           <pre className="w-full overflow-auto rounded-sm border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
             {jsonText}
           </pre>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
           <div className="mx-auto max-w-[1120px] space-y-3">
             <CollapseSection
               id="java-run-type"
