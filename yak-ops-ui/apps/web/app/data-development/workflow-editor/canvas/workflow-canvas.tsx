@@ -42,7 +42,10 @@ import {
   toast,
 } from "@yak-ops/yak-ui";
 
-import { removeWorkflowTask } from "@/service/workflow/definition";
+import {
+  removeWorkflowTask,
+  type WorkflowDagRecord,
+} from "@/service/workflow/definition";
 import {
   startWorkflowInstance,
   type WorkflowTaskDependType,
@@ -95,12 +98,18 @@ export function WorkflowCanvas({
   workflowReleaseState,
   activeCanvasPanel,
   onCloseCanvasPanel,
+  dag,
+  onRefreshSpec,
+  isRefreshingSpec,
 }: {
   workflowCode: number;
   selectedTaskCode?: number;
   workflowReleaseState: string;
   activeCanvasPanel: CanvasPanelKey | null;
   onCloseCanvasPanel: () => void;
+  dag: WorkflowDagRecord;
+  onRefreshSpec: () => Promise<void>;
+  isRefreshingSpec: boolean;
 }) {
   const nodes = useWorkflowStore(
     (state) => state.nodes,
@@ -882,6 +891,9 @@ export function WorkflowCanvas({
       <CanvasSidePanel
         activePanel={activeCanvasPanel}
         onClose={onCloseCanvasPanel}
+        dag={dag}
+        onRefresh={onRefreshSpec}
+        isRefreshing={isRefreshingSpec}
       />
     </div>
   );
