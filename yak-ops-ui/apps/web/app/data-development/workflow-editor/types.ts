@@ -19,6 +19,7 @@ export type WorkflowNodeData = {
   taskType: string;
   draft: boolean;
   task?: WorkflowTaskRecord;
+  focused?: boolean;
 };
 
 export type WorkflowEdgeData = {
