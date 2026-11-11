@@ -230,6 +230,7 @@ export function JavaTaskEditor({
   );
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
+  const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
@@ -240,7 +241,8 @@ export function JavaTaskEditor({
   useEffect(() => {
     setForm(initialForm);
     setBaselineForm(initialForm);
-  }, [initialForm]);
+    setCurrentTask(task);
+  }, [initialForm, task]);
 
   const resourceQuery = useQuery({
     queryKey: ["data-development", "java-task-resources"],
@@ -292,7 +294,7 @@ export function JavaTaskEditor({
   const isDirty = JSON.stringify(form) !== JSON.stringify(baselineForm);
 
   const handleSave = async (): Promise<boolean> => {
-    if (!task) return false;
+    if (!currentTask) return false;
     if (!form.mainJar.trim()) {
       toast.warning("请选择主程序 JAR");
       return false;
@@ -300,10 +302,14 @@ export function JavaTaskEditor({
 
     setSaving(true);
     try {
+      const taskParams = buildJavaTaskParams(form);
       await updateWorkflowTaskDefinition(
         workflowCode,
-        task.code,
-        buildJavaTaskParams(form),
+        currentTask.code,
+        taskParams,
+      );
+      setCurrentTask((current) =>
+        current ? { ...current, taskParams } : current,
       );
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
@@ -320,7 +326,7 @@ export function JavaTaskEditor({
   };
 
   const handleRun = async () => {
-    if (!task) return;
+    if (!currentTask) return;
     if (!form.mainJar.trim()) {
       toast.warning("请先选择主程序 JAR");
       return;
@@ -331,7 +337,7 @@ export function JavaTaskEditor({
     setRunning(true);
     try {
       const result = await startWorkflowInstance(String(workflowCode), {
-        startNodeList: task.code,
+        startNodeList: currentTask.code,
         taskDependType: "TASK_ONLY",
       });
       setLastWorkflowInstanceId(result.workflowInstanceId);
@@ -373,14 +379,15 @@ export function JavaTaskEditor({
     setRefreshing(true);
     try {
       const refreshTasks: Array<Promise<unknown>> = [resourceQuery.refetch()];
-      if (task) {
+      if (currentTask) {
         refreshTasks.push(
           getWorkflowDefinition(workflowCode).then((dag) => {
             const latestTask = dag.taskDefinitionList.find(
-              (item) => item.code === task.code,
+              (item) => item.code === currentTask.code,
             );
             if (!latestTask) throw new Error("节点不存在或已被删除");
             const nextForm = parseJavaTaskForm(latestTask.taskParams);
+            setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
           }),
@@ -390,7 +397,7 @@ export function JavaTaskEditor({
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
       });
-      toast.success(task ? "节点配置已刷新" : "资源列表已刷新");
+      toast.success(currentTask ? "节点配置已刷新" : "资源列表已刷新");
     } catch (error) {
       toast.error("刷新失败", {
         description: error instanceof Error ? error.message : "请稍后重试。",
@@ -402,7 +409,7 @@ export function JavaTaskEditor({
 
   return (
     <NodeEditorFrame
-      task={task}
+      task={currentTask}
       taskName={taskName}
       taskType="JAVA"
       workflowCode={workflowCode}
