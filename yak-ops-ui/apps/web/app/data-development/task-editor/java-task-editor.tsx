@@ -8,9 +8,13 @@ import {
   Input,
   Segmented,
   Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
   toast,
 } from "@yak-ops/yak-ui";
-import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Info, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 
 import {
   updateWorkflowTaskDefinition,
@@ -52,8 +56,8 @@ type ResourceNode = {
 };
 
 const runTypeOptions = [
-  { value: "FAT_JAR", label: "FAT_JAR" },
-  { value: "NORMAL_JAR", label: "NORMAL_JAR" },
+  { value: "FAT_JAR", label: "依赖内置 JAR" },
+  { value: "NORMAL_JAR", label: "普通 JAR" },
 ] as const;
 
 function readObject(value: unknown): Record<string, unknown> {
@@ -165,11 +169,13 @@ function flattenResourceFiles(nodes: ResourceNode[]): string[] {
 
 function JavaField({
   label,
+  labelAddon,
   children,
   required = false,
   align = "center",
 }: {
   label: string;
+  labelAddon?: ReactNode;
   children: ReactNode;
   required?: boolean;
   align?: "center" | "start";
@@ -181,9 +187,12 @@ function JavaField({
         align === "center" ? "items-center" : "items-start",
       ].join(" ")}
     >
-      <FieldLabel required={required} className={align === "start" ? "pt-1.5" : ""}>
-        {label}
-      </FieldLabel>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <FieldLabel required={required} className={align === "start" ? "pt-1.5" : ""}>
+          {label}
+        </FieldLabel>
+        {labelAddon}
+      </div>
       <div className="min-w-0 max-w-[760px]">{children}</div>
     </Field>
   );
@@ -348,7 +357,38 @@ export function JavaTaskEditor({
               triggerClassName="!h-8 rounded-sm px-3"
               contentClassName="space-y-3 pt-3"
             >
-              <JavaField label="运行类型">
+              <JavaField
+                label="运行类型"
+                labelAddon={
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label="查看运行方式说明"
+                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
+                          />
+                        }
+                      >
+                        <Info size={13} aria-hidden="true" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="start">
+                        <div className="space-y-2">
+                          <div>
+                            <div className="font-medium">依赖内置 JAR</div>
+                            <div>主程序和运行依赖已打包在同一个 JAR 中，指定 JAR 即可运行。</div>
+                          </div>
+                          <div>
+                            <div className="font-medium">普通 JAR</div>
+                            <div>需要指定主类；如果还有外部依赖，可在「依赖资源」中添加。</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                }
+              >
                 <Segmented
                   aria-label="运行类型"
                   value={form.runType}
