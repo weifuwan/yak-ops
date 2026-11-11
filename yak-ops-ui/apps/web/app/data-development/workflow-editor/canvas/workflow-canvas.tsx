@@ -296,9 +296,15 @@ export function WorkflowCanvas({
   const openNode = (node: WorkflowCanvasNode) => {
     setContextMenu(null);
     const nodeWorkflowCode = node.data.workflowCode ?? workflowCode;
+    const latestTask =
+      node.data.taskCode === null
+        ? node.data.task
+        : dag.taskDefinitionList.find(
+            (item) => item.code === node.data.taskCode,
+          ) ?? node.data.task;
 
-    if (node.data.task) {
-      openTask(nodeWorkflowCode, node.data.task);
+    if (latestTask) {
+      openTask(nodeWorkflowCode, latestTask);
       return;
     }
 
