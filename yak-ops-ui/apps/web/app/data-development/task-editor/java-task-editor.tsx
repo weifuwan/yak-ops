@@ -67,6 +67,24 @@ const runTypeOptions = [
   { value: "NORMAL_JAR", label: "普通 JAR" },
 ] as const;
 
+const jvmArgTemplates = [
+  {
+    key: "light",
+    label: "轻量型",
+    value: "-Xms256m -Xmx512m -Dfile.encoding=UTF-8",
+  },
+  {
+    key: "general",
+    label: "通用型",
+    value: "-Xms512m -Xmx1024m -Dfile.encoding=UTF-8",
+  },
+  {
+    key: "large",
+    label: "大内存型",
+    value: "-Xms1024m -Xmx2048m -Dfile.encoding=UTF-8",
+  },
+] as const;
+
 function readObject(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
     try {
@@ -545,18 +563,90 @@ export function JavaTaskEditor({
                   className={textareaClassName}
                 />
               </JavaField>
-              <JavaField label="JVM 参数" align="start">
-                <Textarea
-                  size="small"
-                  variant="outlined"
-                  rows={2}
-                  value={form.jvmArgs}
-                  onValueChange={(value) =>
-                    updateField("jvmArgs", String(value ?? ""))
-                  }
-                  placeholder="请输入 JVM 参数"
-                  className={textareaClassName}
-                />
+              <JavaField
+                label="JVM 参数"
+                align="start"
+                labelAddon={
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label="查看 JVM 参数说明"
+                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
+                          >
+                            <Info size={13} aria-hidden="true" />
+                          </button>
+                        }
+                      />
+                      <TooltipContent
+                        side="top"
+                        align="start"
+                        className="max-w-[280px] shadow-xl"
+                      >
+                        <div className="space-y-1.5 text-xs leading-5">
+                          <div>
+                            <code className="font-semibold">-Xms</code>
+                            <span>：Java 初始堆内存。</span>
+                          </div>
+                          <div>
+                            <code className="font-semibold">-Xmx</code>
+                            <span>：Java 最大堆内存。</span>
+                          </div>
+                          <div>
+                            <code className="font-semibold">-D</code>
+                            <span>：设置 Java 系统属性，例如文件编码。</span>
+                          </div>
+                          <p className="pt-1 text-[var(--yak-components-muted-text)]">
+                            最大堆内存不应超过 Worker 可用内存，模板可按实际运行环境调整。
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                }
+              >
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="mr-1 text-[11px] text-[var(--yak-components-muted-text)]">
+                      快捷模板
+                    </span>
+                    {jvmArgTemplates.map((template) => {
+                      const active = form.jvmArgs.trim() === template.value;
+                      return (
+                        <button
+                          key={template.key}
+                          type="button"
+                          onClick={() => updateField("jvmArgs", template.value)}
+                          aria-pressed={active}
+                          className={[
+                            "inline-flex h-6 cursor-pointer items-center rounded-md border px-2 text-[11px] transition-colors",
+                            active
+                              ? "border-[#cbd7ff] bg-[#eef3ff] text-[#315efb]"
+                              : "border-[var(--yak-components-panel-border)] bg-white text-[var(--yak-components-field-label)] hover:border-[#cbd7ff] hover:bg-[#f8faff]",
+                          ].join(" ")}
+                        >
+                          {template.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Textarea
+                    size="small"
+                    variant="outlined"
+                    rows={2}
+                    value={form.jvmArgs}
+                    onValueChange={(value) =>
+                      updateField("jvmArgs", String(value ?? ""))
+                    }
+                    placeholder="例如：-Xms512m -Xmx1024m"
+                    className={textareaClassName}
+                  />
+                  <p className="text-[11px] leading-4 text-[var(--yak-components-muted-text)]">
+                    选择模板后仍可修改，也可以直接输入自定义参数。
+                  </p>
+                </div>
               </JavaField>
             </CollapseSection>
 
