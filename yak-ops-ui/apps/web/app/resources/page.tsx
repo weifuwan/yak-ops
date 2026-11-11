@@ -16,7 +16,6 @@ import {
   FolderPlus,
   LoaderCircle,
   Pencil,
-  Plus,
   RefreshCw,
   Search,
   Trash2,
@@ -65,8 +64,10 @@ const isDirectoryNode = (node: WorkflowResourceNode) =>
 const isDirectoryItem = (item: ResourceItemRecord) =>
   Boolean(item.isDirectory ?? item.directory ?? item.isDirctory);
 
-const getName = (item: ResourceItemRecord) =>
-  item.fileName || item.alias || item.fullName.split(/[\\/]/).filter(Boolean).at(-1) || "未命名资源";
+const getName = (item: ResourceItemRecord) => {
+  const pathParts = item.fullName.split(/[\\/]/).filter(Boolean);
+  return item.fileName || item.alias || pathParts[pathParts.length - 1] || "未命名资源";
+};
 
 const getExtension = (name: string) => {
   const dot = name.lastIndexOf(".");
@@ -74,7 +75,7 @@ const getExtension = (name: string) => {
 };
 
 const formatSize = (size?: number) => {
-  if (!size || size <= 0) return isFinite(size ?? 0) ? "—" : "—";
+  if (size === undefined || size <= 0) return "—";
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -391,8 +392,6 @@ export function ResourceManagementPage() {
     toast.success("资源列表已刷新");
   };
 
-  const selectedDirectoryName =
-    directoryPath[directoryPath.length - 1]?.name || "资源文件";
   const isLoading =
     baseDirQuery.isPending ||
     treeQuery.isPending ||
@@ -417,7 +416,7 @@ export function ResourceManagementPage() {
                   type="button"
                   title="刷新目录"
                   aria-label="刷新目录"
-                  onClick={() => void treeQuery.refetch()}
+                  onClick={() => void refresh()}
                   className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
                 >
                   <RefreshCw size={14} />
