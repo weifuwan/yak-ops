@@ -1,10 +1,12 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Code2,
   Copy,
   Download,
   List,
+  LocateFixed,
   RefreshCw,
+  Search,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -12,7 +14,9 @@ import { toast } from "@yak-ops/yak-ui";
 
 import type { WorkflowDagRecord } from "@/service/workflow/definition";
 
+import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { buildWorkflowSpec } from "../adapter/workflow-spec";
+import type { WorkflowCanvasNode } from "../types";
 
 export type CanvasPanelKey = "nodes" | "spec";
 
@@ -21,21 +25,17 @@ const PANEL_CONTENT: Record<
   {
     title: string;
     description: string;
-    placeholder: string;
     Icon: LucideIcon;
   }
 > = {
   nodes: {
     title: "内部节点列表",
-    description: "查看当前工作流中的节点。",
-    placeholder:
-      "内部节点列表区域已预留。后续在这里实现节点搜索、列表展示和画布定位。",
+    description: "点击节点，在画布中快速定位。",
     Icon: List,
   },
   spec: {
     title: "Spec",
     description: "查看当前工作流的结构化定义。",
-    placeholder: "",
     Icon: Code2,
   },
 };
@@ -83,15 +83,22 @@ export function CanvasSidePanel({
   activePanel,
   onClose,
   dag,
+  nodes,
+  focusedNodeId,
+  onLocateNode,
   onRefresh,
   isRefreshing,
 }: {
   activePanel: CanvasPanelKey | null;
   onClose: () => void;
   dag: WorkflowDagRecord;
+  nodes: WorkflowCanvasNode[];
+  focusedNodeId: string | null;
+  onLocateNode: (nodeId: string) => void;
   onRefresh: () => Promise<void>;
   isRefreshing: boolean;
 }) {
+  const [searchValue, setSearchValue] = useState("");
   const content = activePanel ? PANEL_CONTENT[activePanel] : null;
   const Icon = content?.Icon;
   const specText = useMemo(
@@ -99,6 +106,23 @@ export function CanvasSidePanel({
     [dag],
   );
   const specLines = useMemo(() => specText.split("\n"), [specText]);
+  const filteredNodes = useMemo(() => {
+    const keyword = searchValue.trim().toLocaleLowerCase();
+    if (!keyword) return nodes;
+
+    return nodes.filter((node) => {
+      const searchableText = [
+        node.id,
+        node.data.name,
+        node.data.taskType,
+        node.data.taskCode === null ? "" : String(node.data.taskCode),
+      ]
+        .join(" ")
+        .toLocaleLowerCase();
+
+      return searchableText.includes(keyword);
+    });
+  }, [nodes, searchValue]);
 
   const handleCopy = async () => {
     try {
@@ -150,8 +174,16 @@ export function CanvasSidePanel({
         content ? "border-l border-[#e5e7eb]" : "",
       ].join(" ")}
       style={{
-        width: content ? "min(64%, 600px)" : "0px",
-        flexBasis: content ? "min(64%, 600px)" : "0px",
+        width: content
+          ? activePanel === "nodes"
+            ? "min(320px, 36%)"
+            : "min(64%, 600px)"
+          : "0px",
+        flexBasis: content
+          ? activePanel === "nodes"
+            ? "min(320px, 36%)"
+            : "min(64%, 600px)"
+          : "0px",
         pointerEvents: content ? "auto" : "none",
       }}
     >
@@ -164,6 +196,11 @@ export function CanvasSidePanel({
             <span className="truncate text-sm font-semibold text-[#303846]">
               {content?.title ?? "画布辅助面板"}
             </span>
+            {activePanel === "nodes" ? (
+              <span className="rounded bg-[#f3f5f8] px-1.5 py-0.5 text-[10px] tabular-nums text-[#7b8492]">
+                {nodes.length}
+              </span>
+            ) : null}
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
@@ -248,17 +285,119 @@ export function CanvasSidePanel({
             </footer>
           </div>
         ) : activePanel === "nodes" ? (
-          <div className="min-h-0 flex-1 overflow-auto p-4">
-            <div className="space-y-3">
-              <p className="text-xs leading-5 text-[#687282]">
-                {content?.description}
-              </p>
-              <div className="rounded-md border border-dashed border-[#dfe3e8] bg-[#fafbfc] p-4">
-                <p className="text-xs leading-6 text-[#7b8492]">
-                  {content?.placeholder}
-                </p>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="shrink-0 border-b border-[#eef0f3] p-3">
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#98a1ad]"
+                />
+                <input
+                  type="search"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  placeholder="搜索节点名称 / 类型 / ID"
+                  aria-label="搜索内部节点"
+                  autoComplete="off"
+                  className="h-9 w-full rounded-md border border-[#e5e7eb] bg-white pl-9 pr-9 text-xs text-[#303846] outline-none transition-colors placeholder:text-[#a0a8b4] focus:border-[#9bb5ff] focus:ring-2 focus:ring-[#315efb]/10"
+                />
+                {searchValue ? (
+                  <button
+                    type="button"
+                    title="清空搜索"
+                    aria-label="清空搜索"
+                    onClick={() => setSearchValue("")}
+                    className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-[#98a1ad] transition-colors hover:bg-[#f3f5f8] hover:text-[#475467]"
+                  >
+                    <X size={13} />
+                  </button>
+                ) : null}
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-[#687282]">
+                  {content?.description}
+                </span>
+                <span className="text-[11px] tabular-nums text-[#98a1ad]">
+                  {filteredNodes.length} / {nodes.length}
+                </span>
               </div>
             </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {nodes.length === 0 ? (
+                <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center">
+                  <List size={22} className="text-[#c0c7d1]" />
+                  <span className="text-xs text-[#98a1ad]">
+                    当前工作流还没有节点
+                  </span>
+                </div>
+              ) : filteredNodes.length === 0 ? (
+                <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center">
+                  <Search size={20} className="text-[#c0c7d1]" />
+                  <span className="text-xs text-[#98a1ad]">
+                    没有找到匹配的节点
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredNodes.map((node) => {
+                    const isFocused = focusedNodeId === node.id;
+
+                    return (
+                      <button
+                        key={node.id}
+                        type="button"
+                        title={`定位到 ${node.data.name}`}
+                        aria-pressed={isFocused}
+                        onClick={() => onLocateNode(node.id)}
+                        className={[
+                          "group flex w-full cursor-pointer items-center gap-2.5 rounded-md border px-2.5 py-2 text-left transition-colors",
+                          isFocused
+                            ? "border-[#cbd8ff] bg-[#f4f7ff]"
+                            : "border-transparent hover:border-[#e8edf5] hover:bg-[#f8fafc]",
+                        ].join(" ")}
+                      >
+                        <TaskTypeBadgeIcon
+                          taskType={node.data.taskType || "TASK"}
+                          size={24}
+                        />
+                        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span
+                            className={[
+                              "truncate text-xs font-medium",
+                              isFocused ? "text-[#315efb]" : "text-[#303846]",
+                            ].join(" ")}
+                          >
+                            {node.data.name}
+                          </span>
+                          <span className="truncate text-[10px] text-[#98a1ad]">
+                            {node.data.taskType || "TASK"}
+                            {node.data.draft
+                              ? " · 未保存"
+                              : node.data.taskCode !== null
+                                ? ` · ${node.data.taskCode}`
+                                : ""}
+                          </span>
+                        </span>
+                        <LocateFixed
+                          size={14}
+                          className={[
+                            "shrink-0 transition-colors",
+                            isFocused
+                              ? "text-[#315efb]"
+                              : "text-[#a0a8b4] opacity-0 group-hover:opacity-100",
+                          ].join(" ")}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <footer className="flex h-8 shrink-0 items-center border-t border-[#eef0f3] px-3 text-[11px] text-[#98a1ad]">
+              点击节点可定位到画布
+            </footer>
           </div>
         ) : null}
       </div>
