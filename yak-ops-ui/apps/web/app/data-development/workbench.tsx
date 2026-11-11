@@ -178,44 +178,61 @@ export function DataDevelopmentWorkbench() {
       ) : null}
 
       <div className="relative min-h-0 flex-1">
-        {tabs.map((tab) =>
-          tab.kind === "workflow" ? (
-            <div
-              key={tab.id}
-              aria-hidden={tab.id !== activeTabId}
-              className={[
-                "absolute inset-0 min-h-0",
-                tab.id === activeTabId ? "flex" : "hidden",
-              ].join(" ")}
-            >
-              <WorkflowEditor workflowCode={tab.workflowCode} />
-            </div>
-          ) : null,
-        )}
+        {tabs.map((tab) => {
+          const isActive = tab.id === activeTabId;
+          const tabClassName = [
+            "absolute inset-0 min-h-0",
+            isActive ? "flex" : "hidden",
+          ].join(" ");
 
-        {activeTab?.kind === "task" ? (
-          <div className="absolute inset-0 flex min-h-0">
-            <TaskEditor
-              key={activeTab.id}
-              workflowCode={activeTab.workflowCode}
-              task={activeTab.task}
-            />
-          </div>
-        ) : null}
+          if (tab.kind === "workflow") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <WorkflowEditor workflowCode={tab.workflowCode} />
+              </div>
+            );
+          }
 
-        {activeTab?.kind === "draft-task" ? (
-          <div className="absolute inset-0 flex min-h-0">
-            <TaskEditor
-              key={activeTab.id}
-              workflowCode={activeTab.workflowCode}
-              draftTask={{
-                nodeId: activeTab.nodeId,
-                name: activeTab.title,
-                taskType: activeTab.taskType,
-              }}
-            />
-          </div>
-        ) : null}
+          if (tab.kind === "task") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <TaskEditor
+                  workflowCode={tab.workflowCode}
+                  task={tab.task}
+                />
+              </div>
+            );
+          }
+
+          if (tab.kind === "draft-task") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <TaskEditor
+                  workflowCode={tab.workflowCode}
+                  draftTask={{
+                    nodeId: tab.nodeId,
+                    name: tab.title,
+                    taskType: tab.taskType,
+                  }}
+                />
+              </div>
+            );
+          }
+
+          return null;
+        })}
 
         {!activeTab ? <WorkflowWelcome /> : null}
       </div>
