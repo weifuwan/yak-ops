@@ -1,8 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Activity,
   ArrowLeft,
-  CalendarClock,
   Code2,
   PlayCircle,
   RefreshCw,
@@ -15,14 +13,10 @@ import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 import { PanelResizer } from "../layout/panel-resizer";
 
 type NodeEditorView = "form" | "json";
-type NodePanelKey = "properties" | "runtime" | "schedule" | "versions" | "ops";
+type NodePanelKey = "properties";
 
 const PANEL_ITEMS: Array<{ key: NodePanelKey; label: string }> = [
   { key: "properties", label: "属性" },
-  { key: "runtime", label: "运行配置" },
-  { key: "schedule", label: "调度配置" },
-  { key: "versions", label: "版本" },
-  { key: "ops", label: "运维" },
 ];
 
 const PANEL_WIDTH = 340;
@@ -100,131 +94,39 @@ function PanelSection({
 }
 
 function NodePanelContent({
-  panel,
   task,
   taskName,
   taskType,
   workflowCode,
-  lastWorkflowInstanceId,
-  onBack,
 }: {
-  panel: NodePanelKey;
   task?: WorkflowTaskRecord;
   taskName: string;
   taskType: string;
   workflowCode: number;
-  lastWorkflowInstanceId: number | null;
-  onBack: () => void;
 }) {
-  if (panel === "properties") {
-    return (
-      <div className="space-y-3 p-3">
-        <PanelSection title="节点信息">
-          <InfoRow label="节点名称" value={taskName} />
-          <InfoRow label="节点类型" value={task?.taskType ?? taskType} />
-          <InfoRow label="节点编码" value={task?.code} />
-          <InfoRow label="节点版本" value={task?.version} />
-          <InfoRow label="所属工作流" value={workflowCode} />
-          <InfoRow label="修改人" value={task?.modifyBy} />
-          <InfoRow label="更新时间" value={task?.updateTime} />
-        </PanelSection>
-        {task?.description ? (
-          <PanelSection title="节点描述">
-            <p className="whitespace-pre-wrap break-words py-1 text-xs leading-5 text-[#687385]">
-              {task.description}
-            </p>
-          </PanelSection>
-        ) : null}
-        {!task ? (
-          <p className="px-1 text-xs leading-5 text-[#8b93a1]">
-            当前为草稿节点，保存到工作流后可查看完整节点属性。
-          </p>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (panel === "runtime") {
-    return task ? (
-      <div className="space-y-3 p-3">
-        <PanelSection title="执行参数">
-          <InfoRow label="Worker 分组" value={task.workerGroup} />
-          <InfoRow label="任务优先级" value={task.taskPriority} />
-          <InfoRow label="执行方式" value={task.taskExecuteType} />
-          <InfoRow label="环境 ID" value={task.environmentCode} />
-          <InfoRow label="超时时间" value={task.timeout} />
-          <InfoRow label="超时策略" value={task.timeoutFlag} />
-          <InfoRow label="失败重试次数" value={task.failRetryTimes} />
-          <InfoRow label="重试间隔" value={task.failRetryInterval} />
-          <InfoRow label="CPU 配额" value={task.cpuQuota} />
-          <InfoRow label="内存上限" value={task.memoryMax} />
-        </PanelSection>
-        <p className="px-1 text-xs leading-5 text-[#8b93a1]">
-          当前展示工作流定义中已有的节点运行参数；本阶段暂不提供独立编辑入口。
-        </p>
-      </div>
-    ) : (
-      <div className="p-4 text-xs leading-5 text-[#8b93a1]">
-        节点保存后，这里会展示运行参数。
-      </div>
-    );
-  }
-
-  if (panel === "schedule") {
-    return (
-      <div className="space-y-3 p-3">
-        <PanelSection title="调度归属">
-          <div className="flex items-start gap-2 py-1">
-            <CalendarClock size={15} className="mt-0.5 shrink-0 text-[#8b93a1]" />
-            <p className="text-xs leading-5 text-[#687385]">
-              节点不单独配置调度周期，调度时间由所属工作流统一管理。
-            </p>
-          </div>
-          <InfoRow label="所属工作流" value={workflowCode} />
-        </PanelSection>
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-8 w-full cursor-pointer items-center justify-center rounded-md border border-[#dfe3e8] text-xs text-[#475467] transition-colors hover:border-[#315efb] hover:text-[#315efb]"
-        >
-          <ArrowLeft size={13} className="mr-1.5" />
-          回到工作流
-        </button>
-      </div>
-    );
-  }
-
-  if (panel === "versions") {
-    return (
-      <div className="space-y-3 p-3">
-        <PanelSection title="当前版本">
-          <InfoRow label="节点版本" value={task?.version} />
-          <InfoRow label="节点编码" value={task?.code} />
-          <InfoRow label="工作流编码" value={workflowCode} />
-        </PanelSection>
-        <p className="px-1 text-xs leading-5 text-[#8b93a1]">
-          节点版本信息来自当前工作流定义。版本发布与切换统一在工作流中管理。
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3 p-3">
-      <PanelSection title="最近一次单节点运行">
-        <InfoRow
-          label="工作流实例 ID"
-          value={lastWorkflowInstanceId ?? "尚未发起运行"}
-        />
+      <PanelSection title="节点信息">
         <InfoRow label="节点名称" value={taskName} />
+        <InfoRow label="节点类型" value={task?.taskType ?? taskType} />
         <InfoRow label="节点编码" value={task?.code} />
+        <InfoRow label="节点版本" value={task?.version} />
+        <InfoRow label="所属工作流" value={workflowCode} />
+        <InfoRow label="修改人" value={task?.modifyBy} />
+        <InfoRow label="更新时间" value={task?.updateTime} />
       </PanelSection>
-      <div className="flex items-start gap-2 px-1">
-        <Activity size={14} className="mt-0.5 shrink-0 text-[#8b93a1]" />
-        <p className="text-xs leading-5 text-[#8b93a1]">
-          本阶段记录当前编辑器发起的实例编号；运行状态和日志查询尚未接入。
+      {task?.description ? (
+        <PanelSection title="节点描述">
+          <p className="whitespace-pre-wrap break-words py-1 text-xs leading-5 text-[#687385]">
+            {task.description}
+          </p>
+        </PanelSection>
+      ) : null}
+      {!task ? (
+        <p className="px-1 text-xs leading-5 text-[#8b93a1]">
+          当前为草稿节点，保存到工作流后可查看完整节点属性。
         </p>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -241,7 +143,6 @@ export function NodeEditorFrame({
   running,
   stopping,
   refreshing,
-  lastWorkflowInstanceId,
   onRun,
   onStop,
   onSave,
@@ -260,7 +161,6 @@ export function NodeEditorFrame({
   running: boolean;
   stopping: boolean;
   refreshing: boolean;
-  lastWorkflowInstanceId: number | null;
   onRun: () => void;
   onStop: () => void;
   onSave: () => void;
@@ -365,8 +265,6 @@ export function NodeEditorFrame({
                     taskName={taskName}
                     taskType={taskType}
                     workflowCode={workflowCode}
-                    lastWorkflowInstanceId={lastWorkflowInstanceId}
-                    onBack={onBack}
                   />
                 </div>
               </section>
