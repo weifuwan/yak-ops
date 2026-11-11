@@ -3,17 +3,39 @@ import type {
   WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 
+const SENSITIVE_KEY_PATTERN =
+  /password|passwd|secret|token|access.?key|api.?key|private.?key|credential|authorization|cookie/i;
+
+function sanitizeSensitiveValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeSensitiveValues);
+  }
+
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        SENSITIVE_KEY_PATTERN.test(key) && item !== null && item !== undefined
+          ? "******"
+          : sanitizeSensitiveValues(item),
+      ]),
+    );
+  }
+
+  return value;
+}
+
 function parseJsonValue(value: unknown, fallback: unknown): unknown {
   if (value === null || value === undefined || value === "") {
     return fallback;
   }
 
   if (typeof value !== "string") {
-    return value;
+    return sanitizeSensitiveValues(value);
   }
 
   try {
-    return JSON.parse(value) as unknown;
+    return sanitizeSensitiveValues(JSON.parse(value) as unknown);
   } catch {
     return value;
   }
@@ -26,7 +48,7 @@ function buildNode(task: WorkflowTaskRecord) {
     type: task.taskType,
     version: task.version,
     description: task.description ?? "",
-    // The workflow-definition API masks sensitive values before returning taskParams.
+    // The API masks sensitive local/global parameters; this also redacts common credential-like keys.
     params: parseJsonValue(task.taskParams, {}),
     execution: {
       workerGroup: task.workerGroup,
