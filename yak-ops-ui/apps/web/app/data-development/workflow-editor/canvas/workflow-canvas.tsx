@@ -34,12 +34,12 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  Input,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Input,
   toast,
 } from "@yak-ops/yak-ui";
 
@@ -755,7 +755,14 @@ export function WorkflowCanvas({
               为新建的 {pendingNodeRename.taskType} 节点设置名称。
             </DialogDescription>
             <div className="mt-5">
+              <label
+                htmlFor="workflow-draft-node-name"
+                className="mb-1.5 block text-xs font-medium text-[var(--yak-components-panel-text)]"
+              >
+                节点名称
+              </label>
               <Input
+                id="workflow-draft-node-name"
                 autoFocus
                 aria-label="节点名称"
                 aria-invalid={Boolean(nodeNameError)}
@@ -768,7 +775,10 @@ export function WorkflowCanvas({
                 }}
                 onFocus={(event) => event.currentTarget.select()}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                  if (
+                    event.key === "Enter" &&
+                    !event.nativeEvent.isComposing
+                  ) {
                     event.preventDefault();
                     confirmNodeRename();
                   }
