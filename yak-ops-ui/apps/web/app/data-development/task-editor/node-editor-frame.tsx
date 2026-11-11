@@ -122,11 +122,6 @@ function NodePanelContent({
           </p>
         </PanelSection>
       ) : null}
-      {!task ? (
-        <p className="px-1 text-xs leading-5 text-[#8b93a1]">
-          当前为草稿节点，保存到工作流后可查看完整节点属性。
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -181,7 +176,7 @@ export function NodeEditorFrame({
           label="运行"
           icon={<PlayCircle size={14} />}
           disabled={!task || running || saving}
-          title={task ? "仅运行当前 Java 节点" : "草稿节点暂不可运行"}
+          title={task ? "仅运行当前 Java 节点" : "当前节点暂不可运行"}
           onClick={onRun}
         />
         <ToolbarButton
@@ -200,7 +195,7 @@ export function NodeEditorFrame({
           label="保存"
           icon={<Save size={14} />}
           disabled={!task || !isDirty || saving}
-          title={!task ? "草稿节点暂不支持独立保存" : isDirty ? "保存节点配置" : "配置没有变更"}
+          title={!task ? "当前节点暂不可保存" : isDirty ? "保存节点配置" : "配置没有变更"}
           onClick={onSave}
         />
         <ToolbarButton
@@ -217,9 +212,6 @@ export function NodeEditorFrame({
         />
 
         <div className="ml-auto flex min-w-0 items-center gap-2 pl-2">
-          <span className="whitespace-nowrap text-[11px] text-[#8b93a1]">
-            {task ? (isDirty ? "未保存" : "已保存") : "草稿节点"}
-          </span>
           <ToolbarButton
             label="回到工作流"
             icon={<ArrowLeft size={14} />}
