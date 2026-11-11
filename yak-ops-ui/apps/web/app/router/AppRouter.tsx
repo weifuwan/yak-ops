@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
+import { ResourceManagementPage } from "@/app/resources/page";
 import { DataSourcePage } from "@/app/datasource/list/page";
 import { DataIntegrationOverviewPage } from "@/app/data-integration/overview/page";
 import LoginPage from "@/app/login";
@@ -31,6 +32,8 @@ import {
   MANAGEMENT_PRODUCT_LABEL,
   OPERATIONS_NAVIGATION,
   OPERATIONS_PRODUCT_LABEL,
+  RESOURCE_MANAGEMENT_NAVIGATION,
+  RESOURCE_MANAGEMENT_PRODUCT_LABEL,
 } from "../layout/navigation";
 import AppLoading from "./AppLoading";
 import WorkspaceGate from "./WorkspaceGate";
@@ -39,6 +42,7 @@ const DEFAULT_AUTHENTICATED_PATH = "/overview";
 const AUTHENTICATED_PATHS = new Set([
   "/overview",
   "/data-development",
+  "/resources",
   "/data-source",
   "/data-sync",
   "/data-sync/new",
@@ -187,6 +191,18 @@ export default function AppRouter() {
 
           <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
           <Route path="*" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
+        </Route>
+
+        <Route
+          element={
+            <AppLayout
+              productLabel={RESOURCE_MANAGEMENT_PRODUCT_LABEL}
+              productPath="/resources"
+              navigation={RESOURCE_MANAGEMENT_NAVIGATION}
+            />
+          }
+        >
+          <Route path="/resources" element={<ResourceManagementPage />} />
         </Route>
       </Route>
     </Routes>
