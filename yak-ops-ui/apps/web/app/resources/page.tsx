@@ -2,11 +2,6 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
-  ArrowDownWideNarrow,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Download,
   File,
   FileCode2,
@@ -39,7 +34,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
+  Pagination,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Table,
   toast,
+  type TableColumns,
 } from "@yak-ops/yak-ui";
 
 import {
@@ -350,10 +353,6 @@ export function ResourceManagementPage() {
   const total = itemsQuery.data?.total ?? 0;
   const totalPage = Math.max(1, itemsQuery.data?.totalPage ?? Math.ceil(total / pageSize));
   const selectedItems = visibleItems.filter((item) => selectedFullNames.has(item.fullName));
-  const allVisibleSelected =
-    visibleItems.length > 0 &&
-    visibleItems.every((item) => selectedFullNames.has(item.fullName));
-  const someVisibleSelected = visibleItems.some((item) => selectedFullNames.has(item.fullName));
 
   useEffect(() => {
     if (
@@ -505,21 +504,7 @@ export function ResourceManagementPage() {
     });
   };
 
-  const toggleVisibleSelection = () => {
-    setSelectedFullNames((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) {
-        visibleItems.forEach((item) => next.delete(item.fullName));
-      } else {
-        visibleItems.forEach((item) => next.add(item.fullName));
-      }
-      return next;
-    });
-  };
-
   const isLoading = baseDirQuery.isPending || itemsQuery.isPending;
-  const rangeStart = total === 0 ? 0 : (pageNo - 1) * pageSize + 1;
-  const rangeEnd = Math.min(pageNo * pageSize, total);
 
   const renderResourceCard = (item: ResourceItemRecord) => {
     const directory = isDirectoryItem(item);
@@ -578,18 +563,100 @@ export function ResourceManagementPage() {
     );
   };
 
+  const tableColumns: TableColumns<ResourceItemRecord> = [
+    {
+      key: "name",
+      title: "名称",
+      minWidth: 320,
+      render: (_value, item) => {
+        const directory = isDirectoryItem(item);
+        const name = getName(item);
+        return (
+          <div className="flex min-w-0 items-center gap-3">
+            <ResourceFileIcon item={item} />
+            <button
+              type="button"
+              title={name}
+              disabled={!directory}
+              onClick={() => {
+                if (directory) openDirectory(item);
+              }}
+              className={[
+                "min-w-0 truncate text-left text-[13px] font-medium",
+                directory
+                  ? "cursor-pointer text-[var(--yak-components-panel-text)] hover:text-[var(--yak-color-primary)]"
+                  : "cursor-default text-[var(--yak-components-panel-text)]",
+              ].join(" ")}
+            >
+              {name}
+            </button>
+          </div>
+        );
+      },
+    },
+    {
+      key: "size",
+      title: "大小",
+      width: 116,
+      render: (_value, item) => (
+        <span className="text-xs tabular-nums text-[var(--yak-components-muted-text)]">
+          {isDirectoryItem(item) ? "—" : formatSize(item.size)}
+        </span>
+      ),
+    },
+    {
+      key: "type",
+      title: "类型",
+      width: 112,
+      render: (_value, item) => {
+        const name = getName(item);
+        return (
+          <span className="text-xs text-[var(--yak-components-muted-text)]">
+            {isDirectoryItem(item) ? "文件夹" : getExtension(name).toUpperCase() || "文件"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "modified",
+      title: "修改时间",
+      width: 176,
+      render: (_value, item) => {
+        const date = getDateParts(item.updateTime);
+        return (
+          <div className="flex flex-col gap-0.5 text-xs text-[var(--yak-components-tab-text-hover)]">
+            <span>{date.date}</span>
+            {date.time ? (
+              <span className="text-[11px] text-[var(--yak-components-muted-text)]">{date.time}</span>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
+      key: "actions",
+      title: "操作",
+      width: 72,
+      align: "center",
+      render: (_value, item) => (
+        <ResourceActions
+          item={item}
+          onOpen={openDirectory}
+          onDownload={handleDownload}
+          onRename={openRenameDialog}
+          onDelete={(resource) => setDialog({ kind: "delete", item: resource })}
+        />
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
-        <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-[#edf0f3] px-7 py-4 max-md:px-4">
-          <div className="min-w-0">
-            <h1 className="text-[18px] font-semibold tracking-[-0.02em] text-[#202631]">
-              资源管理
-            </h1>
-            <p className="mt-1 text-[11px] text-[#9aa2ad]">
-              管理工作流运行所需的文件与脚本
-            </p>
-          </div>
+        <header className="flex h-[60px] shrink-0 items-center justify-between gap-4 border-b border-[#edf0f3] px-6 max-md:px-4">
+          <h1 className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--yak-components-panel-text)]">
+            资源管理
+          </h1>
           <div className="flex shrink-0 items-center gap-2">
             <Button
               size="sm"
@@ -610,7 +677,7 @@ export function ResourceManagementPage() {
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload size={14} />
-              上传文件
+              上传
             </Button>
             <input
               ref={fileInputRef}
@@ -625,11 +692,14 @@ export function ResourceManagementPage() {
         <main className="flex min-h-0 flex-1 flex-col px-7 pb-5 pt-5 max-md:px-4">
           <div className="mb-4 flex min-h-9 flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex h-9 w-[280px] max-w-full min-w-[180px] items-center gap-2 rounded-md border border-[#e6e9ee] bg-white px-3 transition-colors focus-within:border-[#cbd2dc]">
-                <Search size={15} className="shrink-0 text-[#9aa2ad]" />
+              <div className="relative w-[280px] max-w-full min-w-[180px]">
+                <Search
+                  size={15}
+                  className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
+                />
                 <Input
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                   aria-label="搜索资源"
                   placeholder="搜索文件或文件夹"
                   value={keyword}
@@ -638,125 +708,137 @@ export function ResourceManagementPage() {
                     setPageNo(1);
                     setSelectedFullNames(new Set());
                   }}
-                  className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 text-[12px] shadow-none hover:border-transparent hover:bg-transparent focus:border-transparent focus:bg-transparent"
+                  className="h-9 pl-9 pr-9 text-xs"
                 />
                 {keyword ? (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
+                    isIconOnly
                     aria-label="清除搜索"
                     title="清除搜索"
                     onClick={() => {
                       setKeyword("");
                       setPageNo(1);
+                      setSelectedFullNames(new Set());
                     }}
-                    className="flex size-5 cursor-pointer items-center justify-center rounded text-[#9aa2ad] hover:bg-[#f1f3f6] hover:text-[#3f4855]"
+                    className="absolute right-1 top-1/2 size-7 -translate-y-1/2"
                   >
                     <X size={13} />
-                  </button>
+                  </Button>
                 ) : null}
               </div>
+
               {selectedFullNames.size > 0 ? (
-                <div className="flex items-center gap-2 text-[12px] text-[#687386]">
+                <div className="flex items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
                   <span>已选择 {selectedFullNames.size} 项</span>
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-1.5 text-xs"
                     onClick={() => setSelectedFullNames(new Set())}
-                    className="cursor-pointer text-[#8b94a2] hover:text-[#303846]"
                   >
                     取消选择
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    isDisabled={selectedItems.length === 0}
                     onClick={() => setDialog({ kind: "delete-selected", items: selectedItems })}
-                    disabled={selectedItems.length === 0}
-                    className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md px-2 text-[#d94a4a] transition-colors hover:bg-[#fff1f1] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-7 px-1.5 text-xs text-[var(--yak-color-danger)] hover:text-[var(--yak-color-danger)]"
                   >
                     <Trash2 size={13} />
                     批量删除
-                  </button>
+                  </Button>
                 </div>
               ) : null}
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
-              <label className="flex h-8 items-center gap-1.5 rounded-md border border-[#e6e9ee] bg-white px-2.5 text-[11px] text-[#687386]">
-                <span>全部类型</span>
-                <ChevronDown size={13} className="text-[#9aa2ad]" />
-                <select
-                  aria-label="资源类型筛选"
-                  value={typeFilter}
-                  onChange={(event) => {
-                    setTypeFilter(event.target.value as ResourceTypeFilter);
-                    setSelectedFullNames(new Set());
-                  }}
-                  className="absolute h-px w-px opacity-0"
-                >
-                  <option value="ALL">全部类型</option>
-                  <option value="FOLDER">文件夹</option>
-                  <option value="FILE">所有文件</option>
-                  <option value="SQL">SQL</option>
-                  <option value="JAR">JAR</option>
-                  <option value="PYTHON">Python</option>
-                  <option value="SHELL">Shell</option>
-                  <option value="IMAGE">图片</option>
-                  <option value="DOCUMENT">文档与配置</option>
-                  <option value="OTHER">其他</option>
-                </select>
-              </label>
+              <Select
+                size="small"
+                value={typeFilter}
+                onValueChange={(value) => {
+                  setTypeFilter(value as ResourceTypeFilter);
+                  setPageNo(1);
+                  setSelectedFullNames(new Set());
+                }}
+              >
+                <SelectTrigger variant="outlined" className="w-[124px]">
+                  <SelectValue placeholder="全部类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全部类型</SelectItem>
+                  <SelectItem value="FOLDER">文件夹</SelectItem>
+                  <SelectItem value="FILE">所有文件</SelectItem>
+                  <SelectItem value="SQL">SQL</SelectItem>
+                  <SelectItem value="JAR">JAR</SelectItem>
+                  <SelectItem value="PYTHON">Python</SelectItem>
+                  <SelectItem value="SHELL">Shell</SelectItem>
+                  <SelectItem value="IMAGE">图片</SelectItem>
+                  <SelectItem value="DOCUMENT">文档与配置</SelectItem>
+                  <SelectItem value="OTHER">其他</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <label className="flex h-8 items-center gap-1.5 rounded-md border border-[#e6e9ee] bg-white px-2.5 text-[11px] text-[#687386]">
-                <ArrowDownWideNarrow size={13} className="text-[#9aa2ad]" />
-                <select
-                  aria-label="资源排序"
-                  value={sortBy}
-                  onChange={(event) => setSortBy(event.target.value as ResourceSort)}
-                  className="cursor-pointer border-0 bg-transparent outline-none"
-                >
-                  <option value="name">名称排序</option>
-                  <option value="updated">最近修改</option>
-                  <option value="size">文件大小</option>
-                </select>
-              </label>
+              <Select
+                size="small"
+                value={sortBy}
+                onValueChange={(value) => setSortBy(value as ResourceSort)}
+              >
+                <SelectTrigger variant="outlined" className="w-[124px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">按名称排序</SelectItem>
+                  <SelectItem value="updated">最近修改</SelectItem>
+                  <SelectItem value="size">文件大小</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <div className="flex h-8 items-center rounded-md border border-[#e6e9ee] bg-white p-0.5">
-                <button
+              <div className="flex h-8 items-center rounded-md border border-[var(--yak-components-panel-border)] bg-white p-0.5">
+                <Button
                   type="button"
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  isIconOnly
                   aria-label="列表视图"
                   aria-pressed={viewMode === "list"}
                   title="列表视图"
                   onClick={() => setViewMode("list")}
-                  className={[
-                    "flex size-7 cursor-pointer items-center justify-center rounded",
-                    viewMode === "list" ? "bg-[#eef2f7] text-[#303846]" : "text-[#9aa2ad] hover:bg-[#f6f7f9]",
-                  ].join(" ")}
+                  className="size-7"
                 >
                   <List size={15} />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  isIconOnly
                   aria-label="网格视图"
                   aria-pressed={viewMode === "grid"}
                   title="网格视图"
                   onClick={() => setViewMode("grid")}
-                  className={[
-                    "flex size-7 cursor-pointer items-center justify-center rounded",
-                    viewMode === "grid" ? "bg-[#eef2f7] text-[#303846]" : "text-[#9aa2ad] hover:bg-[#f6f7f9]",
-                  ].join(" ")}
+                  className="size-7"
                 >
                   <Grid2X2 size={14} />
-                </button>
+                </Button>
               </div>
 
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
+                isIconOnly
                 aria-label="刷新资源"
                 title="刷新"
                 onClick={() => void refresh()}
-                disabled={isLoading}
-                className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-[#e6e9ee] text-[#87909d] transition-colors hover:bg-[#f7f8fa] hover:text-[#303846] disabled:cursor-not-allowed disabled:opacity-50"
+                isDisabled={isLoading}
+                className="size-8"
               >
                 <RefreshCw size={14} className={itemsQuery.isFetching ? "animate-spin" : ""} />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -779,7 +861,7 @@ export function ResourceManagementPage() {
             </button>
             {directoryPath.map((node, index) => (
               <span key={node.fullName || node.name} className="flex min-w-0 items-center gap-1">
-                <ChevronRight size={12} className="shrink-0 text-[#c0c6cf]" />
+                <span aria-hidden="true" className="text-[#c0c6cf]">/</span>
                 <button
                   type="button"
                   onClick={() => openBreadcrumb(node)}
@@ -797,193 +879,106 @@ export function ResourceManagementPage() {
             </span>
           </nav>
 
-          <section className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#e9edf1] bg-white">
+          <section className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--yak-components-panel-border)] bg-white">
             {treeQuery.isError || baseDirQuery.isError ? (
-              <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[#87909d]">
+              <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
                 资源目录加载失败
                 <Button size="sm" variant="secondary" onClick={() => void refresh()}>
                   重试
                 </Button>
               </div>
             ) : itemsQuery.isError ? (
-              <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[#87909d]">
+              <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
                 文件列表加载失败
                 <Button size="sm" variant="secondary" onClick={() => void itemsQuery.refetch()}>
                   重试
                 </Button>
               </div>
             ) : isLoading && resourceItems.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[#9aa2ad]">
+              <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
                 <LoaderCircle size={16} className="animate-spin" />
                 正在加载资源
               </div>
-            ) : visibleItems.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[13px] text-[#9aa2ad]">
-                <FolderOpen size={34} strokeWidth={1.3} className="text-[#c4cbd4]" />
-                <span>{deferredKeyword ? "没有找到匹配的资源" : typeFilter !== "ALL" ? "当前目录没有符合类型的资源" : "当前目录暂无资源"}</span>
-                <span className="text-[11px] text-[#b0b7c1]">
-                  上传文件或新建文件夹，开始管理资源
-                </span>
-              </div>
             ) : viewMode === "grid" ? (
-              <div className="min-h-0 flex-1 overflow-auto p-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {visibleItems.map(renderResourceCard)}
+              visibleItems.length === 0 ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
+                  <FolderOpen size={34} strokeWidth={1.3} className="text-[#c4cbd4]" />
+                  <span>{deferredKeyword ? "没有找到匹配的资源" : typeFilter !== "ALL" ? "当前目录没有符合类型的资源" : "当前目录暂无资源"}</span>
+                  <span className="text-[11px] text-[#b0b7c1]">
+                    上传文件或新建文件夹，开始管理资源
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="min-h-0 flex-1 overflow-auto p-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {visibleItems.map(renderResourceCard)}
+                  </div>
+                </div>
+              )
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[760px] border-collapse text-left text-[12px]">
-                  <thead className="sticky top-0 z-10 bg-[#f6f7f9] text-[#7f8997]">
-                    <tr className="h-10 border-b border-[#e9edf1]">
-                      <th className="w-11 px-4">
-                        <input
-                          type="checkbox"
-                          aria-label="选择当前页全部资源"
-                          checked={allVisibleSelected}
-                          ref={(node) => {
-                            if (node) node.indeterminate = someVisibleSelected && !allVisibleSelected;
-                          }}
-                          onChange={toggleVisibleSelection}
-                          className="size-3.5 cursor-pointer accent-[var(--yak-color-primary)]"
-                        />
-                      </th>
-                      <th className="px-2 font-medium">名称</th>
-                      <th className="w-28 px-3 font-medium">大小</th>
-                      <th className="w-28 px-3 font-medium">类型</th>
-                      <th className="w-44 px-3 font-medium">修改时间</th>
-                      <th className="w-14 px-3 text-center font-medium">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleItems.map((item) => {
-                      const directory = isDirectoryItem(item);
-                      const name = getName(item);
-                      const date = getDateParts(item.updateTime);
-                      const selected = selectedFullNames.has(item.fullName);
-
-                      return (
-                        <tr
-                          key={item.fullName}
-                          onDoubleClick={() => {
-                            if (directory) openDirectory(item);
-                          }}
-                          className={[
-                            "group h-[58px] border-b border-[#f0f2f5] last:border-b-0 transition-colors hover:bg-[#fafbfc]",
-                            selected ? "bg-[#fffafa]" : "",
-                            directory ? "cursor-pointer" : "",
-                          ].join(" ")}
-                        >
-                          <td className="px-4">
-                            <input
-                              type="checkbox"
-                              aria-label={"选择" + name}
-                              checked={selected}
-                              onChange={() => toggleItemSelection(item)}
-                              onClick={(event) => event.stopPropagation()}
-                              className="size-3.5 cursor-pointer accent-[var(--yak-color-primary)]"
-                            />
-                          </td>
-                          <td className="max-w-0 px-2">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <ResourceFileIcon item={item} />
-                              <button
-                                type="button"
-                                title={name}
-                                disabled={!directory}
-                                onClick={() => {
-                                  if (directory) openDirectory(item);
-                                }}
-                                className={[
-                                  "min-w-0 truncate text-left text-[12px] font-medium",
-                                  directory ? "cursor-pointer text-[#303846] hover:text-[var(--yak-color-primary)]" : "cursor-default text-[#394150]",
-                                ].join(" ")}
-                              >
-                                {name}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-3 text-[11px] tabular-nums text-[#7f8997]">
-                            {directory ? "—" : formatSize(item.size)}
-                          </td>
-                          <td className="px-3 text-[11px] text-[#7f8997]">
-                            {directory ? "文件夹" : getExtension(name).toUpperCase() || "文件"}
-                          </td>
-                          <td className="px-3">
-                            <div className="flex flex-col gap-0.5 text-[11px] text-[#687386]">
-                              <span>{date.date}</span>
-                              <span className="text-[10px] text-[#a0a7b2]">{date.time}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 text-center">
-                            <ResourceActions
-                              item={item}
-                              onOpen={openDirectory}
-                              onDownload={handleDownload}
-                              onRename={openRenameDialog}
-                              onDelete={(resource) => setDialog({ kind: "delete", item: resource })}
-                            />
-                          </td>
-                        </tr>
+                <Table<ResourceItemRecord>
+                  className="min-h-full"
+                  columns={tableColumns}
+                  dataSource={visibleItems}
+                  rowKey="fullName"
+                  loading={itemsQuery.isFetching}
+                  rowHeight={58}
+                  size="medium"
+                  bordered={false}
+                  pagination={false}
+                  scroll={{ x: 860 }}
+                  rowSelection={{
+                    selectedRowKeys: Array.from(selectedFullNames),
+                    columnWidth: 48,
+                    onChange: (keys) => {
+                      setSelectedFullNames(
+                        new Set(keys.filter((key): key is string => typeof key === "string")),
                       );
-                    })}
-                  </tbody>
-                </table>
+                    },
+                  }}
+                  onRow={(item) => ({
+                    onDoubleClick: () => {
+                      if (isDirectoryItem(item)) openDirectory(item);
+                    },
+                  })}
+                  emptyText={
+                    <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
+                      <FolderOpen size={34} strokeWidth={1.3} className="text-[#c4cbd4]" />
+                      <span>{deferredKeyword ? "没有找到匹配的资源" : typeFilter !== "ALL" ? "当前目录没有符合类型的资源" : "当前目录暂无资源"}</span>
+                      <span className="text-[11px] text-[#a0a7b2]">
+                        上传文件或新建文件夹，开始管理资源
+                      </span>
+                    </div>
+                  }
+                  emptyClassName="min-h-[220px]"
+                />
               </div>
             )}
 
-            <footer className="flex min-h-[48px] shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#edf0f3] px-4 py-2 text-[11px] text-[#8b94a2]">
-              <div className="flex items-center gap-2">
-                <span>每页</span>
-                <select
-                  aria-label="每页显示数量"
-                  value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number(event.target.value));
-                    setPageNo(1);
+            {total > 0 ? (
+              <footer className="flex min-h-[56px] shrink-0 items-center justify-end border-t border-[var(--yak-components-panel-border)] px-4 py-2">
+                <Pagination
+                  page={pageNo}
+                  pageSize={pageSize}
+                  total={total}
+                  pageSizeOptions={[10, 20, 50]}
+                  pageSizeLabel="每页"
+                  showSizeChanger
+                  disabled={itemsQuery.isFetching}
+                  renderTotal={(count, [start, end]) => (
+                    <span className="tabular-nums">
+                      显示 {start}-{end} 条，共 {count} 条
+                    </span>
+                  )}
+                  onChange={(nextPage, nextPageSize) => {
+                    setPageNo(nextPage);
+                    setPageSize(nextPageSize);
                     setSelectedFullNames(new Set());
                   }}
-                  className="h-7 cursor-pointer rounded border border-[#e6e9ee] bg-white px-2 text-[11px] text-[#687386] outline-none hover:border-[#cbd2dc]"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>条</span>
-                <span className="ml-2 tabular-nums">
-                  显示 {rangeStart}-{rangeEnd} 条，共 {total} 条
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="mr-1 tabular-nums">{pageNo} / {totalPage}</span>
-                <button
-                  type="button"
-                  aria-label="上一页"
-                  title="上一页"
-                  disabled={pageNo <= 1 || itemsQuery.isFetching}
-                  onClick={() => {
-                    setPageNo((page) => Math.max(1, page - 1));
-                    setSelectedFullNames(new Set());
-                  }}
-                  className="flex size-7 cursor-pointer items-center justify-center rounded border border-[#e6e9ee] text-[#687386] transition-colors hover:bg-[#f6f7f9] disabled:cursor-not-allowed disabled:opacity-35"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="下一页"
-                  title="下一页"
-                  disabled={pageNo >= totalPage || itemsQuery.isFetching}
-                  onClick={() => {
-                    setPageNo((page) => Math.min(totalPage, page + 1));
-                    setSelectedFullNames(new Set());
-                  }}
-                  className="flex size-7 cursor-pointer items-center justify-center rounded border border-[#e6e9ee] text-[#687386] transition-colors hover:bg-[#f6f7f9] disabled:cursor-not-allowed disabled:opacity-35"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </footer>
+                />
+              </footer>
+            ) : null}
           </section>
         </main>
       </div>
