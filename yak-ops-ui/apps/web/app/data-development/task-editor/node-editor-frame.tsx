@@ -278,14 +278,14 @@ export function NodeEditorFrame({
         <ToolbarButton
           label="运行"
           icon={<PlayCircle size={14} />}
-          disabled={!task || running}
+          disabled={!task || running || saving}
           title={task ? "仅运行当前 Java 节点" : "草稿节点暂不可运行"}
           onClick={onRun}
         />
         <ToolbarButton
           label="停止"
           icon={<Square size={13} />}
-          disabled={!lastWorkflowInstanceId || stopping}
+          disabled={!lastWorkflowInstanceId || stopping || running}
           title={
             lastWorkflowInstanceId
               ? "停止本编辑器发起的最近一次单节点运行"
