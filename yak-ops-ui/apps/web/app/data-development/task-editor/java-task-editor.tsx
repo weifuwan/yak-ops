@@ -368,11 +368,11 @@ export function JavaTaskEditor({
                             type="button"
                             aria-label="查看运行方式说明"
                             className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
-                          />
+                          >
+                            <Info size={13} aria-hidden="true" />
+                          </button>
                         }
-                      >
-                        <Info size={13} aria-hidden="true" />
-                      </TooltipTrigger>
+                      />
                       <TooltipContent side="top" align="start">
                         <div className="space-y-2">
                           <div>
