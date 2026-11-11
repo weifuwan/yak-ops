@@ -313,10 +313,7 @@ export function CanvasSidePanel({
                   </button>
                 ) : null}
               </div>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs text-[#687282]">
-                  {content?.description}
-                </span>
+              <div className="mt-2 flex items-center justify-end">
                 <span className="text-[11px] tabular-nums text-[#98a1ad]">
                   {filteredNodes.length} / {nodes.length}
                 </span>
