@@ -387,7 +387,15 @@ export function WorkflowCanvas({
     }
   };
 
-  const closeNodeRename = () => {
+  const cancelNodeRename = () => {
+    if (pendingNodeRename) {
+      removeNodes([pendingNodeRename.id]);
+    }
+    setPendingNodeRename(null);
+    setNodeNameError(null);
+  };
+
+  const finishNodeRename = () => {
     setPendingNodeRename(null);
     setNodeNameError(null);
   };
@@ -409,11 +417,11 @@ export function WorkflowCanvas({
       toast.warning("节点名称修改失败", {
         description: "该节点可能已被移除，请重新添加。",
       });
-      closeNodeRename();
+      finishNodeRename();
       return;
     }
 
-    closeNodeRename();
+    finishNodeRename();
   };
 
   const handleDragOver = (
@@ -743,7 +751,7 @@ export function WorkflowCanvas({
       <Dialog
         open={Boolean(pendingNodeRename)}
         onOpenChange={(open) => {
-          if (!open) closeNodeRename();
+          if (!open) cancelNodeRename();
         }}
       >
         {pendingNodeRename ? (
@@ -785,7 +793,7 @@ export function WorkflowCanvas({
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={closeNodeRename}
+                onClick={cancelNodeRename}
               >
                 取消
               </Button>
