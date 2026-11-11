@@ -210,6 +210,31 @@ export const renameWorkflowTask = async (
   await updateWorkflowDefinitionGraph(dag, { name: dag.workflowDefinition.name }, taskDefinitionList);
 };
 
+export const updateWorkflowTaskDefinition = async (
+  workflowCode: number,
+  taskCode: number,
+  taskParams: unknown,
+): Promise<void> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  const taskExists = dag.taskDefinitionList.some(
+    (item) => item.code === taskCode,
+  );
+
+  if (!taskExists) {
+    throw new Error("工作流节点不存在或已被删除");
+  }
+
+  const taskDefinitionList = dag.taskDefinitionList.map((item) =>
+    item.code === taskCode ? { ...item, taskParams } : item,
+  );
+
+  await updateWorkflowDefinitionGraph(
+    dag,
+    { name: dag.workflowDefinition.name },
+    taskDefinitionList,
+  );
+};
+
 export const removeWorkflowTask = async (
   workflowCode: number,
   taskCode: number,
