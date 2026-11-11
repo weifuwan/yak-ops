@@ -657,7 +657,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
         </div>
       </div>
 
-      <div className="mx-3 mb-2 grid h-7 grid-cols-2 bg-[var(--yak-color-hover)] text-xs">
+      <div className="mx-3 mb-2 grid h-5 grid-cols-2 bg-[var(--yak-color-hover)] text-xs">
         {([
           ["ALL", "全部"],
           ["MINE", "我负责的"],
