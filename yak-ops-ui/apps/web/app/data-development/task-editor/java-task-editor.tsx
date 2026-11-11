@@ -486,7 +486,7 @@ export function JavaTaskEditor({
                               ),
                             )
                           }
-                          className="shrink-0 text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-danger)]"
+                          className="shrink-0 text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-field-error)]"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -630,7 +630,7 @@ export function JavaTaskEditor({
                                 ),
                               )
                             }
-                            className="text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-danger)]"
+                            className="text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-field-error)]"
                           >
                             <Trash2 size={14} />
                           </Button>
