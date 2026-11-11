@@ -388,9 +388,8 @@ export function ResourceManagementPage() {
   };
 
   const refresh = async () => {
-    const requests = [baseDirQuery.refetch(), treeQuery.refetch()];
-    if (currentDir) requests.push(itemsQuery.refetch());
-    await Promise.all(requests);
+    await Promise.all([baseDirQuery.refetch(), treeQuery.refetch()]);
+    if (currentDir) await itemsQuery.refetch();
     toast.success("资源列表已刷新");
   };
 
