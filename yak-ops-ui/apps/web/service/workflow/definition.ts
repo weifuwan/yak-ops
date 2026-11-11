@@ -34,6 +34,22 @@ export interface WorkflowTaskRecord {
   createTime?: string | null;
   updateTime?: string | null;
   modifyBy?: string | null;
+  taskParams?: unknown;
+  flag?: string | null;
+  taskPriority?: string | null;
+  workerGroup?: string | null;
+  environmentCode?: number;
+  failRetryTimes?: number;
+  failRetryInterval?: number;
+  timeoutFlag?: string | null;
+  timeoutNotifyStrategy?: string | null;
+  timeout?: number;
+  delayTime?: number;
+  taskGroupId?: number;
+  taskGroupPriority?: number;
+  cpuQuota?: number | null;
+  memoryMax?: number | null;
+  taskExecuteType?: string | null;
 }
 
 export interface WorkflowTaskRelationRecord {
