@@ -643,9 +643,6 @@ export function JavaTaskEditor({
                     placeholder="例如：-Xms512m -Xmx1024m"
                     className={textareaClassName}
                   />
-                  <p className="text-[11px] leading-4 text-[var(--yak-components-muted-text)]">
-                    选择模板后仍可修改，也可以直接输入自定义参数。
-                  </p>
                 </div>
               </JavaField>
             </CollapseSection>
