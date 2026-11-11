@@ -143,6 +143,7 @@ export function NodeEditorFrame({
   running,
   stopping,
   refreshing,
+  lastWorkflowInstanceId,
   onRun,
   onStop,
   onSave,
@@ -161,6 +162,7 @@ export function NodeEditorFrame({
   running: boolean;
   stopping: boolean;
   refreshing: boolean;
+  lastWorkflowInstanceId: number | null;
   onRun: () => void;
   onStop: () => void;
   onSave: () => void;
@@ -260,7 +262,6 @@ export function NodeEditorFrame({
                 </header>
                 <div className="min-h-0 flex-1 overflow-y-auto bg-white">
                   <NodePanelContent
-                    panel={activePanel}
                     task={task}
                     taskName={taskName}
                     taskType={taskType}
