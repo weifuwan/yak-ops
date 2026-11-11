@@ -1045,18 +1045,6 @@ export function WorkflowCanvas({
         </div>
       </div>
 
-      {nodes.length === 0 ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="rounded-lg border border-dashed border-[var(--yak-components-border)] bg-white/85 px-5 py-4 text-center shadow-sm">
-            <div className="text-sm font-medium">
-              暂无工作流节点
-            </div>
-            <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-              点击“添加节点”，选择或拖入一个节点类型。
-            </div>
-          </div>
-        </div>
-      ) : null}
       </div>
       <CanvasSidePanel
         activePanel={activeCanvasPanel}
