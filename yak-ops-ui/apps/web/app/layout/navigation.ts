@@ -4,6 +4,7 @@ import {
   Bell,
   Database,
   GitBranch,
+  FolderOpen,
   LayoutDashboard,
   LayoutGrid,
   Settings,
@@ -36,6 +37,7 @@ export const DATA_INTEGRATION_PRODUCT_LABEL = "数据集成";
 export const DATA_DEVELOPMENT_PRODUCT_LABEL = "数据开发";
 export const OPERATIONS_PRODUCT_LABEL = "运维中心";
 export const MANAGEMENT_PRODUCT_LABEL = "管理中心";
+export const RESOURCE_MANAGEMENT_PRODUCT_LABEL = "资源管理";
 
 export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
   {
@@ -52,6 +54,14 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
     label: "数据同步",
     path: "/data-sync",
     icon: ArrowRightLeft,
+  },
+];
+
+export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
+  {
+    label: "资源文件",
+    path: "/resources",
+    icon: FolderOpen,
   },
 ];
 
@@ -102,6 +112,13 @@ const DATA_DEVELOPMENT_PRODUCT: GlobalProductMenuItem = {
   path: "/data-development",
 };
 
+const RESOURCE_MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
+  id: "resource-management",
+  label: RESOURCE_MANAGEMENT_PRODUCT_LABEL,
+  icon: FolderOpen,
+  path: "/resources",
+};
+
 const OPERATIONS_PRODUCT: GlobalProductMenuItem = {
   id: "operations",
   label: OPERATIONS_PRODUCT_LABEL,
@@ -119,6 +136,7 @@ const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
 export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
   DATA_INTEGRATION_PRODUCT,
   DATA_DEVELOPMENT_PRODUCT,
+  RESOURCE_MANAGEMENT_PRODUCT,
   OPERATIONS_PRODUCT,
   MANAGEMENT_PRODUCT,
 ];
@@ -133,6 +151,11 @@ export const ALL_PRODUCT_GROUPS: AllProductGroup[] = [
     id: "data-development",
     label: DATA_DEVELOPMENT_PRODUCT_LABEL,
     products: [DATA_DEVELOPMENT_PRODUCT],
+  },
+  {
+    id: "resource-management",
+    label: RESOURCE_MANAGEMENT_PRODUCT_LABEL,
+    products: [RESOURCE_MANAGEMENT_PRODUCT],
   },
   {
     id: "operations",
