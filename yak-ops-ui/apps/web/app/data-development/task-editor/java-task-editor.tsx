@@ -2,7 +2,6 @@ import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
-  Checkbox,
   CollapseSection,
   Field,
   FieldLabel,
@@ -508,18 +507,21 @@ export function JavaTaskEditor({
               </datalist>
 
               <div className="flex items-center justify-between border-t border-[var(--yak-components-panel-border)] pt-3">
-                <div className="flex items-center gap-2 text-xs text-[var(--yak-components-field-label)]">
-                  <Checkbox
+                <label
+                  htmlFor={modulePathId}
+                  className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]"
+                >
+                  <input
                     id={modulePathId}
+                    type="checkbox"
                     checked={form.isModulePath}
-                    onCheckedChange={(checked) =>
-                      updateField("isModulePath", checked === true)
+                    onChange={(event) =>
+                      updateField("isModulePath", event.target.checked)
                     }
+                    className="size-3.5 cursor-pointer accent-[var(--yak-color-primary)]"
                   />
-                  <label htmlFor={modulePathId} className="cursor-pointer">
-                    使用 Java Module Path
-                  </label>
-                </div>
+                  使用 Java Module Path
+                </label>
                 <Button
                   type="button"
                   size="sm"
