@@ -57,3 +57,17 @@ export async function startWorkflowInstance(
   if (!ids?.length) throw new Error("工作流启动未返回实例编号");
   return { workflowInstanceId: ids[0] };
 }
+
+export async function stopWorkflowInstance(workflowInstanceId: number): Promise<void> {
+  await HttpUtils.postData<void>(
+    YAK_OPS_API_PREFIX +
+      "/projects/" +
+      encodeURIComponent(requireActiveProjectCode()) +
+      "/executors/execute?" +
+      queryString({
+        workflowInstanceId,
+        executeType: "STOP",
+      }),
+    undefined,
+  );
+}
