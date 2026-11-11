@@ -14,13 +14,20 @@ import {
   TooltipTrigger,
   toast,
 } from "@yak-ops/yak-ui";
-import { Info, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Info, Plus, Trash2 } from "lucide-react";
 
 import {
+  getWorkflowDefinition,
   updateWorkflowTaskDefinition,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 import { listWorkflowResources } from "@/service/resources";
+import {
+  startWorkflowInstance,
+  stopWorkflowInstance,
+} from "@/service/workflow/execution";
+
+import { NodeEditorFrame } from "./node-editor-frame";
 
 type JavaRunType = "FAT_JAR" | "NORMAL_JAR";
 
@@ -204,9 +211,13 @@ const textareaClassName = "w-full max-w-[760px]";
 export function JavaTaskEditor({
   workflowCode,
   task,
+  taskName,
+  onBackToWorkflow,
 }: {
   workflowCode: number;
   task?: WorkflowTaskRecord;
+  taskName: string;
+  onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
   const resourceId = useId().replace(/:/g, "");
@@ -221,6 +232,10 @@ export function JavaTaskEditor({
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastWorkflowInstanceId, setLastWorkflowInstanceId] = useState<number | null>(null);
 
   useEffect(() => {
     setForm(initialForm);
@@ -276,11 +291,11 @@ export function JavaTaskEditor({
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(baselineForm);
 
-  const handleSave = async () => {
-    if (!task) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!task) return false;
     if (!form.mainJar.trim()) {
       toast.warning("请选择主程序 JAR");
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -295,53 +310,116 @@ export function JavaTaskEditor({
       });
       setBaselineForm(form);
       toast.success("Java 节点配置已保存");
+      return true;
     } catch {
       toast.error("保存 Java 节点配置失败，请稍后重试");
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
+  const handleRun = async () => {
+    if (!task) return;
+    if (!form.mainJar.trim()) {
+      toast.warning("请先选择主程序 JAR");
+      return;
+    }
+
+    if (isDirty && !(await handleSave())) return;
+
+    setRunning(true);
+    try {
+      const result = await startWorkflowInstance(String(workflowCode), {
+        startNodeList: task.code,
+        taskDependType: "TASK_ONLY",
+      });
+      setLastWorkflowInstanceId(result.workflowInstanceId);
+      toast.success("单节点运行已提交", {
+        description: "工作流实例 ID：" + result.workflowInstanceId,
+      });
+    } catch (error) {
+      toast.error("Java 节点运行失败", {
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleStop = async () => {
+    if (!lastWorkflowInstanceId) return;
+
+    setStopping(true);
+    try {
+      await stopWorkflowInstance(lastWorkflowInstanceId);
+      toast.success("节点停止请求已提交");
+      setLastWorkflowInstanceId(null);
+    } catch (error) {
+      toast.error("停止节点失败", {
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
+    } finally {
+      setStopping(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (isDirty) {
+      toast.warning("当前配置有未保存修改，请先保存后再刷新");
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const refreshTasks: Array<Promise<unknown>> = [resourceQuery.refetch()];
+      if (task) {
+        refreshTasks.push(
+          getWorkflowDefinition(workflowCode).then((dag) => {
+            const latestTask = dag.taskDefinitionList.find(
+              (item) => item.code === task.code,
+            );
+            if (!latestTask) throw new Error("节点不存在或已被删除");
+            const nextForm = parseJavaTaskForm(latestTask.taskParams);
+            setForm(nextForm);
+            setBaselineForm(nextForm);
+          }),
+        );
+      }
+      await Promise.all(refreshTasks);
+      await queryClient.invalidateQueries({
+        queryKey: ["data-development", "workflow-definition"],
+      });
+      toast.success(task ? "节点配置已刷新" : "资源列表已刷新");
+    } catch (error) {
+      toast.error("刷新失败", {
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4">
-        <div className="flex items-center gap-1 rounded-md bg-[var(--yak-color-hover)] p-0.5">
-          <button
-            type="button"
-            aria-pressed={activeView === "form"}
-            onClick={() => setActiveView("form")}
-            className={[
-              "flex h-7 cursor-pointer items-center gap-1.5 rounded px-3 text-xs transition-colors",
-              activeView === "form"
-                ? "bg-[var(--yak-components-panel-bg)] font-medium text-[var(--yak-color-primary)] shadow-sm"
-                : "text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
-            ].join(" ")}
-          >
-            配置
-          </button>
-          <button
-            type="button"
-            aria-pressed={activeView === "json"}
-            onClick={() => setActiveView("json")}
-            className={[
-              "flex h-7 cursor-pointer items-center gap-1.5 rounded px-3 text-xs transition-colors",
-              activeView === "json"
-                ? "bg-[var(--yak-components-panel-bg)] font-medium text-[var(--yak-color-primary)] shadow-sm"
-                : "text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
-            ].join(" ")}
-          >
-            JSON
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
-          {resourceQuery.isFetching ? (
-            <RefreshCw size={12} className="animate-spin" />
-          ) : null}
-          {task ? (isDirty ? "未保存" : "已保存") : "草稿节点"}
-        </div>
-      </div>
-
+    <NodeEditorFrame
+      task={task}
+      taskName={taskName}
+      taskType="JAVA"
+      workflowCode={workflowCode}
+      activeView={activeView}
+      onActiveViewChange={setActiveView}
+      isDirty={isDirty}
+      saving={saving}
+      running={running}
+      stopping={stopping}
+      refreshing={refreshing || resourceQuery.isFetching}
+      lastWorkflowInstanceId={lastWorkflowInstanceId}
+      onRun={() => void handleRun()}
+      onStop={() => void handleStop()}
+      onSave={() => void handleSave()}
+      onRefresh={() => void handleRefresh()}
+      onBack={onBackToWorkflow}
+    >
       {activeView === "json" ? (
         <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-components-panel-bg)] p-4">
           <pre className="w-full overflow-auto rounded-sm border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
@@ -708,21 +786,6 @@ export function JavaTaskEditor({
         </div>
       )}
 
-      {task ? (
-        <footer className="flex min-h-12 shrink-0 items-center justify-end border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4 py-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="primary"
-            onClick={() => void handleSave()}
-            isDisabled={!isDirty || saving}
-            isPending={saving}
-          >
-            <Save size={13} />
-            保存配置
-          </Button>
-        </footer>
-      ) : null}
-    </div>
+    </NodeEditorFrame>
   );
 }
