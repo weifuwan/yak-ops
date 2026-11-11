@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Braces,
   Cpu,
@@ -175,7 +175,7 @@ function Field({
 }: {
   label: string;
   description?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="min-w-0">
@@ -205,11 +205,13 @@ export function JavaTaskEditor({
     [task?.taskParams],
   );
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
+  const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setForm(initialForm);
+    setBaselineForm(initialForm);
   }, [initialForm]);
 
   const resourceQuery = useQuery({
@@ -227,7 +229,7 @@ export function JavaTaskEditor({
     [resourceFiles],
   );
 
-  const updateField = <K extends keyof JavaTaskForm>(
+  const updateField = <K extends keyof JavaTaskForm,>(
     field: K,
     value: JavaTaskForm[K],
   ) => {
@@ -259,7 +261,7 @@ export function JavaTaskEditor({
     [form],
   );
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const isDirty = JSON.stringify(form) !== JSON.stringify(baselineForm);
 
   const handleSave = async () => {
     if (!task) return;
@@ -280,6 +282,7 @@ export function JavaTaskEditor({
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
       });
+      setBaselineForm(form);
       toast.success("Java 节点配置已保存");
     } catch {
       toast.error("保存 Java 节点配置失败，请稍后重试");
@@ -730,7 +733,7 @@ export function JavaTaskEditor({
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => setForm(initialForm)}
+            onClick={() => setForm(baselineForm)}
             disabled={!isDirty || saving}
             className="h-8 cursor-pointer rounded-md border border-[#e1e5eb] px-3 text-xs text-[#667085] transition-colors hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-40"
           >
