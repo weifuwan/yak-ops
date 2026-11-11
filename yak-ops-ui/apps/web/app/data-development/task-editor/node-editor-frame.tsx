@@ -1,17 +1,14 @@
 import { useState, type ReactNode } from "react";
 import {
+  Activity,
   ArrowLeft,
   CalendarClock,
   Code2,
-  GitBranch,
-  Info,
   PlayCircle,
   RefreshCw,
   Save,
-  Settings2,
   Square,
   X,
-  Activity,
 } from "lucide-react";
 
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
@@ -191,7 +188,7 @@ function NodePanelContent({
           className="flex h-8 w-full cursor-pointer items-center justify-center rounded-md border border-[#dfe3e8] text-xs text-[#475467] transition-colors hover:border-[#315efb] hover:text-[#315efb]"
         >
           <ArrowLeft size={13} className="mr-1.5" />
-          返回工作流配置调度
+          回到工作流
         </button>
       </div>
     );
@@ -225,7 +222,7 @@ function NodePanelContent({
       <div className="flex items-start gap-2 px-1">
         <Activity size={14} className="mt-0.5 shrink-0 text-[#8b93a1]" />
         <p className="text-xs leading-5 text-[#8b93a1]">
-          完整运行历史、节点日志和实例状态后续在运维面板中接入。
+          本阶段记录当前编辑器发起的实例编号；运行状态和日志查询尚未接入。
         </p>
       </div>
     </div>
@@ -317,7 +314,10 @@ export function NodeEditorFrame({
           onClick={() => onActiveViewChange(activeView === "json" ? "form" : "json")}
         />
 
-        <div className="ml-auto flex min-w-0 items-center gap-1 pl-2">
+        <div className="ml-auto flex min-w-0 items-center gap-2 pl-2">
+          <span className="whitespace-nowrap text-[11px] text-[#8b93a1]">
+            {task ? (isDirty ? "未保存" : "已保存") : "草稿节点"}
+          </span>
           <ToolbarButton
             label="回到工作流"
             icon={<ArrowLeft size={14} />}
