@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   Braces,
   Cpu,
@@ -200,6 +200,10 @@ export function JavaTaskEditor({
   task?: WorkflowTaskRecord;
 }) {
   const queryClient = useQueryClient();
+  const resourceId = useId().replace(/:/g, "");
+  const jarDatalistId = resourceId + "-jars";
+  const resourceDatalistId = resourceId + "-resources";
+  const modulePathId = resourceId + "-module-path";
   const initialForm = useMemo(
     () => parseJavaTaskForm(task?.taskParams),
     [task?.taskParams],
@@ -443,7 +447,7 @@ export function JavaTaskEditor({
                   description="必填。优先从资源中心选择已上传的 JAR 文件，也可以输入资源完整路径。"
                 >
                   <input
-                    list="java-task-jar-options"
+                    list={jarDatalistId}
                     value={form.mainJar}
                     onChange={(event) =>
                       updateField("mainJar", event.target.value)
@@ -451,7 +455,7 @@ export function JavaTaskEditor({
                     placeholder="选择或输入 JAR 资源路径"
                     className={inputClassName}
                   />
-                  <datalist id="java-task-jar-options">
+                  <datalist id={jarDatalistId}>
                     {jarFiles.map((path) => (
                       <option key={path} value={path} />
                     ))}
@@ -551,7 +555,7 @@ export function JavaTaskEditor({
                 {form.resourceList.map((resource, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <input
-                      list="java-task-resource-options"
+                      list={resourceDatalistId}
                       value={resource}
                       onChange={(event) =>
                         updateField(
@@ -584,7 +588,7 @@ export function JavaTaskEditor({
                     </button>
                   </div>
                 ))}
-                <datalist id="java-task-resource-options">
+                <datalist id={resourceDatalistId}>
                   {resourceFiles.map((path) => (
                     <option key={path} value={path} />
                   ))}
@@ -602,7 +606,7 @@ export function JavaTaskEditor({
               </div>
               <div className="mt-3 flex items-center gap-2 border-t border-[#eef0f3] pt-3">
                 <input
-                  id="java-module-path"
+                  id={modulePathId}
                   type="checkbox"
                   checked={form.isModulePath}
                   onChange={(event) =>
@@ -611,7 +615,7 @@ export function JavaTaskEditor({
                   className="size-3.5 cursor-pointer accent-[#315efb]"
                 />
                 <label
-                  htmlFor="java-module-path"
+                  htmlFor={modulePathId}
                   className="cursor-pointer text-xs text-[#475467]"
                 >
                   使用 Java Module Path
