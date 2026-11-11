@@ -96,6 +96,7 @@ type PendingNodeRun = {
 type PendingNodeRename = {
   id: string;
   name: string;
+  taskType: string;
 };
 
 export function WorkflowCanvas({
@@ -453,7 +454,10 @@ export function WorkflowCanvas({
       }),
     );
 
-    setPendingNodeRename(createdNode);
+    setPendingNodeRename({
+      ...createdNode,
+      taskType,
+    });
     setNodeNameValue(createdNode.name);
     setNodeNameError(null);
   };
@@ -748,7 +752,7 @@ export function WorkflowCanvas({
               设置节点名称
             </DialogTitle>
             <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
-              为新建的 {pendingNodeRename.name.replace(/ 节点 \d+$/, "")} 节点设置名称。
+              为新建的 {pendingNodeRename.taskType} 节点设置名称。
             </DialogDescription>
             <div className="mt-5">
               <Input
