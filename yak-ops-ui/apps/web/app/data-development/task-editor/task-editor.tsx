@@ -1,8 +1,5 @@
-import { Braces, Settings2 } from "lucide-react";
-
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
-import { TaskTypeBadgeIcon } from "../workflow-editor/components/task-type-badge-icon";
 import { JavaTaskEditor } from "./java-task-editor";
 
 type DraftTaskRecord = {
@@ -41,30 +38,6 @@ export function TaskEditor({
       aria-label={taskName + " 节点内容"}
       className="flex min-h-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-border)] px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <TaskTypeBadgeIcon taskType={taskType} size={18} />
-          <span className="truncate text-sm font-medium">
-            {taskName}
-          </span>
-          <span className="shrink-0 rounded bg-[var(--yak-color-hover)] px-1.5 py-0.5 text-[10px] text-[var(--yak-components-muted-text)]">
-            {taskType}
-          </span>
-        </div>
-
-        {isJavaTask ? (
-          <div className="flex items-center gap-1 text-[11px] text-[var(--yak-components-muted-text)]">
-            <Settings2 size={13} aria-hidden="true" />
-            Java 配置
-          </div>
-        ) : (
-          <div className="flex items-center gap-1 text-[11px] text-[var(--yak-components-muted-text)]">
-            <Braces size={13} aria-hidden="true" />
-            JSON
-          </div>
-        )}
-      </div>
-
       {isJavaTask ? (
         <JavaTaskEditor workflowCode={workflowCode} task={task} />
       ) : (
