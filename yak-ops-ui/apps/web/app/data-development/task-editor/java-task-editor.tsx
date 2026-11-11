@@ -373,7 +373,7 @@ export function JavaTaskEditor({
                           </button>
                         }
                       />
-                      <TooltipContent side="top" align="start">
+                      <TooltipContent side="top" align="start" className="border-white/10 shadow-xl">
                         <div className="space-y-2">
                           <div>
                             <div className="font-medium">依赖内置 JAR</div>
