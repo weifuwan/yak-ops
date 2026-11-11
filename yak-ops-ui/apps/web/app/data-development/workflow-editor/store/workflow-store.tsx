@@ -58,7 +58,8 @@ export type WorkflowEditorState = {
   addDroppedNode: (
     taskType: string,
     position: XYPosition,
-  ) => string;
+  ) => { id: string; name: string };
+  renameDraftNode: (nodeId: string, name: string) => boolean;
   insertNodeFromSelector: (
     taskType: string,
   ) => string;
@@ -107,11 +108,29 @@ function createDraftEdge(
   };
 }
 
+function getNextDraftNodeName(
+  taskType: string,
+  nodes: WorkflowCanvasNode[],
+): string {
+  const existingNames = new Set(
+    nodes.map((node) => node.data.name.trim()),
+  );
+  const baseName = taskType + " 节点";
+  let sequence = 1;
+
+  while (existingNames.has(baseName + " " + sequence)) {
+    sequence += 1;
+  }
+
+  return baseName + " " + sequence;
+}
+
 function createDraftNode(
   sequence: number,
   taskType: string,
   position: XYPosition,
   workflowCode: number,
+  name = taskType + " 节点",
 ): WorkflowCanvasNode {
   return {
     id: "draft:" + sequence,
@@ -123,7 +142,7 @@ function createDraftNode(
       workflowCode,
       taskCode: null,
       taskType,
-      name: taskType + " 节点",
+      name,
       draft: true,
     },
   };
@@ -234,30 +253,61 @@ export function createWorkflowStore(
           set({ selectorRequest: null }),
 
         addDroppedNode: (taskType, position) => {
-          const sequence = get().draftNodeSequence + 1;
+          const state = get();
+          const sequence = state.draftNodeSequence + 1;
           const node = createDraftNode(
             sequence,
             taskType,
             position,
             workflowCode,
+            getNextDraftNodeName(taskType, state.nodes),
           );
 
-          set((state) => ({
+          set((current) => ({
             nodes: [
-              ...state.nodes.map((item) => ({
+              ...current.nodes.map((item) => ({
                 ...item,
                 selected: false,
               })),
               { ...node, selected: true },
             ],
-            edges: state.edges.map((edge) => ({
+            edges: current.edges.map((edge) => ({
               ...edge,
               selected: false,
             })),
             draftNodeSequence: sequence,
           }));
 
-          return node.id;
+          return {
+            id: node.id,
+            name: node.data.name,
+          };
+        },
+
+        renameDraftNode: (nodeId, name) => {
+          const normalizedName = name.trim();
+          if (!normalizedName) return false;
+
+          const target = get().nodes.find(
+            (node) => node.id === nodeId && node.data.draft,
+          );
+          if (!target) return false;
+
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      name: normalizedName,
+                    },
+                  }
+                : node,
+            ),
+          }));
+
+          return true;
         },
 
         insertNodeFromSelector: (taskType) => {
