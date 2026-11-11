@@ -63,12 +63,6 @@ export function GlobalParametersSection({
               )}
               {!scheduleCollapsed.params ? (
                 <div className="pb-2 pt-3">
-                  {workflowIsOnline ? (
-                    <div className="mb-2 text-[11px] text-[#8b93a1]">
-                      工作流上线期间不能修改全局参数。
-                    </div>
-                  ) : null}
-
                   <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_24px] gap-2 px-0.5 pb-1.5 text-[11px] text-[#8b93a1]">
                     <span>参数名</span>
                     <span>参数值</span>
