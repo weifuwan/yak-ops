@@ -42,7 +42,7 @@ export function WorkflowSidePanel({
   dag,
   onVersionSwitched,
 }: WorkflowSidePanelProps) {
-  const [activePanel, setActivePanel] = useState<PanelKey | null>("properties");
+  const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
   const [panelWidth, setPanelWidth] = useState(readStoredPanelWidth);
   const controller = useWorkflowSidePanelController({
     workflowCode,
