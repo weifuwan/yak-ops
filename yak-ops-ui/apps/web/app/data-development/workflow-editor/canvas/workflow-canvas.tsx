@@ -34,6 +34,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
+  Input,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -92,6 +93,11 @@ type PendingNodeRun = {
   scopeDescription: string;
 };
 
+type PendingNodeRename = {
+  id: string;
+  name: string;
+};
+
 export function WorkflowCanvas({
   workflowCode,
   selectedTaskCode,
@@ -144,6 +150,9 @@ export function WorkflowCanvas({
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
   );
+  const renameDraftNode = useWorkflowStore(
+    (state) => state.renameDraftNode,
+  );
   const selectTaskCode = useWorkflowStore(
     (state) => state.selectTaskCode,
   );
@@ -175,6 +184,10 @@ export function WorkflowCanvas({
   const [pendingRun, setPendingRun] =
     useState<PendingNodeRun | null>(null);
   const [runPending, setRunPending] = useState(false);
+  const [pendingNodeRename, setPendingNodeRename] =
+    useState<PendingNodeRename | null>(null);
+  const [nodeNameValue, setNodeNameValue] = useState("");
+  const [nodeNameError, setNodeNameError] = useState<string | null>(null);
 
   const {
     handleConnect,
@@ -373,6 +386,35 @@ export function WorkflowCanvas({
     }
   };
 
+  const closeNodeRename = () => {
+    setPendingNodeRename(null);
+    setNodeNameError(null);
+  };
+
+  const confirmNodeRename = () => {
+    if (!pendingNodeRename) return;
+
+    const normalizedName = nodeNameValue.trim();
+    if (!normalizedName) {
+      setNodeNameError("请输入节点名称");
+      return;
+    }
+
+    const renamed = renameDraftNode(
+      pendingNodeRename.id,
+      normalizedName,
+    );
+    if (!renamed) {
+      toast.warning("节点名称修改失败", {
+        description: "该节点可能已被移除，请重新添加。",
+      });
+      closeNodeRename();
+      return;
+    }
+
+    closeNodeRename();
+  };
+
   const handleDragOver = (
     event: DragEvent<HTMLDivElement>,
   ) => {
@@ -403,13 +445,17 @@ export function WorkflowCanvas({
 
     if (!taskType) return;
 
-    addDroppedNode(
+    const createdNode = addDroppedNode(
       taskType,
       instance.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       }),
     );
+
+    setPendingNodeRename(createdNode);
+    setNodeNameValue(createdNode.name);
+    setNodeNameError(null);
   };
 
   return (
@@ -684,6 +730,67 @@ export function WorkflowCanvas({
                 onClick={() => void confirmNodeRemoval()}
               >
                 移除
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingNodeRename)}
+        onOpenChange={(open) => {
+          if (!open) closeNodeRename();
+        }}
+      >
+        {pendingNodeRename ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">
+              设置节点名称
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm text-[var(--yak-components-muted-text)]">
+              为新建的 {pendingNodeRename.name.replace(/ 节点 \d+$/, "")} 节点设置名称。
+            </DialogDescription>
+            <div className="mt-5">
+              <Input
+                autoFocus
+                aria-label="节点名称"
+                aria-invalid={Boolean(nodeNameError)}
+                maxLength={128}
+                value={nodeNameValue}
+                placeholder="请输入节点名称"
+                onChange={(event) => {
+                  setNodeNameValue(event.target.value);
+                  if (nodeNameError) setNodeNameError(null);
+                }}
+                onFocus={(event) => event.currentTarget.select()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                    event.preventDefault();
+                    confirmNodeRename();
+                  }
+                }}
+              />
+              {nodeNameError ? (
+                <p className="mt-1.5 text-xs text-[var(--yak-color-danger)]">
+                  {nodeNameError}
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={closeNodeRename}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                isDisabled={!nodeNameValue.trim()}
+                onClick={confirmNodeRename}
+              >
+                确定
               </Button>
             </div>
           </DialogContent>
