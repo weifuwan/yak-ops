@@ -34,12 +34,16 @@ function WorkflowEditorShell({
   workflowReleaseState,
   dag,
   onVersionSwitched,
+  onRefreshSpec,
+  isRefreshingSpec,
 }: {
   workflowCode: number;
   selectedTaskCode?: number;
   workflowReleaseState: string;
   dag: WorkflowDagRecord;
   onVersionSwitched: () => void;
+  onRefreshSpec: () => Promise<void>;
+  isRefreshingSpec: boolean;
 }) {
   const selectorOpen = useWorkflowStore(
     (state) => Boolean(state.selectorRequest),
@@ -80,6 +84,9 @@ function WorkflowEditorShell({
           workflowReleaseState={workflowReleaseState}
           activeCanvasPanel={activeCanvasPanel}
           onCloseCanvasPanel={() => setActiveCanvasPanel(null)}
+          dag={dag}
+          onRefreshSpec={onRefreshSpec}
+          isRefreshingSpec={isRefreshingSpec}
         />
         <WorkflowSidePanel
           workflowCode={workflowCode}
@@ -181,6 +188,11 @@ export function WorkflowEditor({
           onVersionSwitched={() =>
             setGraphReloadToken((current) => current + 1)
           }
+          onRefreshSpec={async () => {
+            const result = await query.refetch();
+            if (result.isError) throw result.error;
+          }}
+          isRefreshingSpec={query.isFetching}
         />
       </ReactFlowProvider>
     </WorkflowStoreProvider>
