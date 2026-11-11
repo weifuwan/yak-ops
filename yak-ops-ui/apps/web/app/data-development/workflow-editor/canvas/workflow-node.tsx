@@ -156,10 +156,12 @@ export function WorkflowTaskNode({
           openCurrentTask();
         }}
         className={[
-          "relative flex rounded-2xl border transition-colors",
-          selected
-            ? "border-[var(--yak-color-primary)]"
-            : "border-transparent",
+          "relative flex rounded-2xl border transition-[border-color,box-shadow] duration-200",
+          data.focused
+            ? "border-[var(--yak-color-primary)] shadow-[0_0_0_3px_rgba(49,94,251,0.14)]"
+            : selected
+              ? "border-[var(--yak-color-primary)]"
+              : "border-transparent",
         ].join(" ")}
       >
         <div
