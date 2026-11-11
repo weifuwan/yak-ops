@@ -668,17 +668,8 @@ export function JavaTaskEditor({
         </div>
       )}
 
-      <footer className="flex min-h-12 shrink-0 items-center justify-end gap-2 border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4 py-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={() => setForm(baselineForm)}
-          isDisabled={!isDirty || saving}
-        >
-          重置
-        </Button>
-        {task ? (
+      {task ? (
+        <footer className="flex min-h-12 shrink-0 items-center justify-end border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4 py-2">
           <Button
             type="button"
             size="sm"
@@ -690,8 +681,8 @@ export function JavaTaskEditor({
             <Save size={13} />
             保存配置
           </Button>
-        ) : null}
-      </footer>
+        </footer>
+      ) : null}
     </div>
   );
 }
