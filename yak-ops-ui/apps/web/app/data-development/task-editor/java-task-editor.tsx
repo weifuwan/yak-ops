@@ -1,15 +1,16 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import {
-  Braces,
-  Cpu,
-  FileCode2,
-  Layers3,
-  Plus,
-  RefreshCw,
-  Save,
-  Trash2,
-} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Button,
+  Checkbox,
+  CollapseSection,
+  Field,
+  FieldLabel,
+  Input,
+  Segmented,
+  Textarea,
+} from "@yak-ops/yak-ui";
+import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { toast } from "@yak-ops/yak-ui";
 
 import {
@@ -44,7 +45,6 @@ type ResourceInfo = {
 };
 
 type ResourceNode = {
-  name?: string;
   fullName?: string;
   isDirctory?: boolean;
   dirctory?: boolean;
@@ -52,14 +52,10 @@ type ResourceNode = {
   children?: ResourceNode[];
 };
 
-const inputClassName =
-  "h-9 w-full rounded-md border border-[#dce1e8] bg-white px-3 text-xs text-[#303846] outline-none transition-colors placeholder:text-[#a0a8b4] focus:border-[#9bb5ff] focus:ring-2 focus:ring-[#315efb]/10";
-
-const textareaClassName =
-  "min-h-[76px] w-full resize-y rounded-md border border-[#dce1e8] bg-white px-3 py-2 text-xs leading-5 text-[#303846] outline-none transition-colors placeholder:text-[#a0a8b4] focus:border-[#9bb5ff] focus:ring-2 focus:ring-[#315efb]/10";
-
-const sectionClassName =
-  "rounded-lg border border-[#e5e8ed] bg-white p-4";
+const runTypeOptions = [
+  { value: "FAT_JAR", label: "FAT_JAR" },
+  { value: "NORMAL_JAR", label: "NORMAL_JAR" },
+] as const;
 
 function readObject(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
@@ -168,29 +164,34 @@ function flattenResourceFiles(nodes: ResourceNode[]): string[] {
   return Array.from(new Set(paths)).sort((a, b) => a.localeCompare(b));
 }
 
-function Field({
+function JavaField({
   label,
-  description,
   children,
+  required = false,
+  align = "center",
 }: {
   label: string;
-  description?: string;
   children: ReactNode;
+  required?: boolean;
+  align?: "center" | "start";
 }) {
   return (
-    <div className="min-w-0">
-      <label className="mb-1.5 block text-xs font-medium text-[#475467]">
+    <Field
+      className={[
+        "grid grid-cols-[148px_minmax(0,1fr)] !gap-3 max-md:grid-cols-1",
+        align === "center" ? "items-center" : "items-start",
+      ].join(" ")}
+    >
+      <FieldLabel required={required} className={align === "start" ? "pt-1.5" : ""}>
         {label}
-      </label>
-      {children}
-      {description ? (
-        <p className="mt-1.5 text-[11px] leading-4 text-[#98a1ad]">
-          {description}
-        </p>
-      ) : null}
-    </div>
+      </FieldLabel>
+      <div className="min-w-0 max-w-[760px]">{children}</div>
+    </Field>
   );
 }
+
+const inputClassName = "w-full max-w-[760px]";
+const textareaClassName = "w-full max-w-[760px]";
 
 export function JavaTaskEditor({
   workflowCode,
@@ -270,9 +271,7 @@ export function JavaTaskEditor({
   const handleSave = async () => {
     if (!task) return;
     if (!form.mainJar.trim()) {
-      toast.warning("请选择主程序 JAR", {
-        description: "Java 节点必须配置 mainJar 才能通过后端参数校验。",
-      });
+      toast.warning("请选择主程序 JAR");
       return;
     }
 
@@ -297,8 +296,8 @@ export function JavaTaskEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[#e8ebef] bg-white px-4">
-        <div className="flex items-center gap-1 rounded-md bg-[#f3f5f8] p-0.5">
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4">
+        <div className="flex items-center gap-1 rounded-md bg-[var(--yak-color-hover)] p-0.5">
           <button
             type="button"
             aria-pressed={activeView === "form"}
@@ -306,11 +305,10 @@ export function JavaTaskEditor({
             className={[
               "flex h-7 cursor-pointer items-center gap-1.5 rounded px-3 text-xs transition-colors",
               activeView === "form"
-                ? "bg-white font-medium text-[#315efb] shadow-sm"
-                : "text-[#7b8492] hover:text-[#303846]",
+                ? "bg-[var(--yak-components-panel-bg)] font-medium text-[var(--yak-color-primary)] shadow-sm"
+                : "text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
             ].join(" ")}
           >
-            <FileCode2 size={13} />
             配置
           </button>
           <button
@@ -320,139 +318,64 @@ export function JavaTaskEditor({
             className={[
               "flex h-7 cursor-pointer items-center gap-1.5 rounded px-3 text-xs transition-colors",
               activeView === "json"
-                ? "bg-white font-medium text-[#315efb] shadow-sm"
-                : "text-[#7b8492] hover:text-[#303846]",
+                ? "bg-[var(--yak-components-panel-bg)] font-medium text-[var(--yak-color-primary)] shadow-sm"
+                : "text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
             ].join(" ")}
           >
-            <Braces size={13} />
             JSON
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] text-[#98a1ad]">
+        <div className="flex items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
           {resourceQuery.isFetching ? (
             <RefreshCw size={12} className="animate-spin" />
           ) : null}
-          {task ? (
-            <span>{isDirty ? "有未保存的修改" : "配置已加载"}</span>
-          ) : (
-            <span className="rounded bg-[#fff7ed] px-2 py-1 text-[#c2410c]">
-              草稿节点 · 仅预览
-            </span>
-          )}
+          {task ? (isDirty ? "未保存" : "已保存") : "草稿节点"}
         </div>
       </div>
 
       {activeView === "json" ? (
-        <div className="min-h-0 flex-1 overflow-auto bg-[#f7f8fa] p-4">
-          <pre className="mx-auto min-w-max max-w-[1160px] rounded-md border border-[#e5e8ed] bg-white p-4 font-mono text-xs leading-5 text-[#303846]">
+        <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-color-hover)] p-4">
+          <pre className="w-full overflow-auto rounded-sm border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
             {jsonText}
           </pre>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f8fa] p-4">
-          <div className="mx-auto max-w-[1160px] space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-2 px-1 pb-1">
-              <div>
-                <h3 className="text-sm font-semibold text-[#303846]">
-                  Java 运行配置
-                </h3>
-                <p className="mt-1 text-xs text-[#8b95a3]">
-                  配置 JAR 入口、JVM 启动参数以及程序运行时依赖。
-                </p>
-              </div>
-              <span className="rounded bg-[#eef3ff] px-2 py-1 text-[11px] text-[#315efb]">
-                JAVA TASK
-              </span>
-            </div>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
+          <div className="mx-auto max-w-[1120px] space-y-3">
+            <CollapseSection
+              id="java-run-type"
+              title="运行方式"
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="space-y-3 pt-3"
+            >
+              <JavaField label="运行类型">
+                <Segmented
+                  aria-label="运行类型"
+                  value={form.runType}
+                  options={runTypeOptions}
+                  onValueChange={(value) => updateField("runType", value)}
+                />
+              </JavaField>
+            </CollapseSection>
 
-            <section className={sectionClassName}>
-              <div className="mb-3 flex items-center gap-2">
-                <Cpu size={15} className="text-[#64748b]" />
-                <h4 className="text-xs font-semibold text-[#303846]">
-                  运行方式
-                </h4>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  aria-pressed={form.runType === "FAT_JAR"}
-                  onClick={() => updateField("runType", "FAT_JAR")}
-                  className={[
-                    "rounded-md border p-3 text-left transition-colors",
-                    form.runType === "FAT_JAR"
-                      ? "border-[#9bb5ff] bg-[#f5f8ff]"
-                      : "border-[#e5e8ed] bg-white hover:border-[#cbd5e1]",
-                  ].join(" ")}
-                >
-                  <span className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#303846]">
-                      FAT_JAR
-                    </span>
-                    <span
-                      className={[
-                        "size-3 rounded-full border",
-                        form.runType === "FAT_JAR"
-                          ? "border-[4px] border-[#315efb]"
-                          : "border-[#cbd2dc]",
-                      ].join(" ")}
-                    />
-                  </span>
-                  <span className="mt-1 block text-[11px] leading-4 text-[#8b95a3]">
-                    可执行 JAR，通常已包含程序运行所需依赖。
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  aria-pressed={form.runType === "NORMAL_JAR"}
-                  onClick={() => updateField("runType", "NORMAL_JAR")}
-                  className={[
-                    "rounded-md border p-3 text-left transition-colors",
-                    form.runType === "NORMAL_JAR"
-                      ? "border-[#9bb5ff] bg-[#f5f8ff]"
-                      : "border-[#e5e8ed] bg-white hover:border-[#cbd5e1]",
-                  ].join(" ")}
-                >
-                  <span className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#303846]">
-                      NORMAL_JAR
-                    </span>
-                    <span
-                      className={[
-                        "size-3 rounded-full border",
-                        form.runType === "NORMAL_JAR"
-                          ? "border-[4px] border-[#315efb]"
-                          : "border-[#cbd2dc]",
-                      ].join(" ")}
-                    />
-                  </span>
-                  <span className="mt-1 block text-[11px] leading-4 text-[#8b95a3]">
-                    普通 JAR，通过主类和外部依赖构建运行入口。
-                  </span>
-                </button>
-              </div>
-            </section>
-
-            <section className={sectionClassName}>
-              <div className="mb-3 flex items-center gap-2">
-                <FileCode2 size={15} className="text-[#64748b]" />
-                <h4 className="text-xs font-semibold text-[#303846]">
-                  程序入口
-                </h4>
-              </div>
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Field
-                  label="主程序 JAR"
-                  description="必填。优先从资源中心选择已上传的 JAR 文件，也可以输入资源完整路径。"
-                >
-                  <input
+            <CollapseSection
+              id="java-entry"
+              title="程序入口"
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="space-y-3 pt-3"
+            >
+              <JavaField label="主程序 JAR" required>
+                <>
+                  <Input
+                    size="small"
+                    variant="outlined"
                     list={jarDatalistId}
                     value={form.mainJar}
                     onChange={(event) =>
                       updateField("mainJar", event.target.value)
                     }
-                    placeholder="选择或输入 JAR 资源路径"
+                    placeholder="请选择主程序 JAR"
                     className={inputClassName}
                   />
                   <datalist id={jarDatalistId}>
@@ -460,184 +383,268 @@ export function JavaTaskEditor({
                       <option key={path} value={path} />
                     ))}
                   </datalist>
-                  {resourceQuery.isError ? (
-                    <p className="mt-1 text-[11px] text-[#c2410c]">
-                      资源目录加载失败，可以先手动填写资源路径。
-                    </p>
-                  ) : resourceQuery.isSuccess && jarFiles.length === 0 ? (
-                    <p className="mt-1 text-[11px] text-[#98a1ad]">
-                      资源中心暂无 JAR 文件，请先上传程序包。
-                    </p>
-                  ) : null}
-                </Field>
+                </>
+              </JavaField>
 
-                {form.runType === "NORMAL_JAR" ? (
-                  <Field
-                    label="主类名称"
-                    description="填写包含 package 的完整类名；留空时尝试从 JAR 中提取主类。"
-                  >
-                    <input
-                      value={form.mainClass}
-                      onChange={(event) =>
-                        updateField("mainClass", event.target.value)
-                      }
-                      placeholder="例如：com.example.DemoApplication"
-                      className={inputClassName}
-                    />
-                  </Field>
-                ) : (
-                  <div className="flex min-h-[72px] items-center rounded-md bg-[#f8fafc] px-3 text-[11px] leading-5 text-[#8792a2]">
-                    FAT_JAR 模式通过 java -jar 启动，不需要单独指定主类。
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              <section className={sectionClassName}>
-                <div className="mb-3 flex items-center gap-2">
-                  <Braces size={15} className="text-[#64748b]" />
-                  <h4 className="text-xs font-semibold text-[#303846]">
-                    主程序参数
-                  </h4>
-                </div>
-                <Field
-                  label="Main 参数"
-                  description="传递给 Java main(String[] args) 的参数。"
-                >
-                  <textarea
-                    rows={3}
-                    value={form.mainArgs}
+              {form.runType === "NORMAL_JAR" ? (
+                <JavaField label="主类名称">
+                  <Input
+                    size="small"
+                    variant="outlined"
+                    value={form.mainClass}
                     onChange={(event) =>
-                      updateField("mainArgs", event.target.value)
+                      updateField("mainClass", event.target.value)
                     }
-                    placeholder="例如：--date 2026-11-11 --mode batch"
-                    className={textareaClassName}
+                    placeholder="请输入完整类名"
+                    className={inputClassName}
                   />
-                </Field>
-              </section>
+                </JavaField>
+              ) : null}
+            </CollapseSection>
 
-              <section className={sectionClassName}>
-                <div className="mb-3 flex items-center gap-2">
-                  <Cpu size={15} className="text-[#64748b]" />
-                  <h4 className="text-xs font-semibold text-[#303846]">
-                    JVM 参数
-                  </h4>
-                </div>
-                <Field
-                  label="JVM 启动参数"
-                  description="设置堆内存、系统属性等 JVM 参数。"
-                >
-                  <textarea
-                    rows={3}
-                    value={form.jvmArgs}
-                    onChange={(event) =>
-                      updateField("jvmArgs", event.target.value)
-                    }
-                    placeholder="-Xms256m -Xmx512m -Dfile.encoding=UTF-8"
-                    className={textareaClassName}
-                  />
-                </Field>
-              </section>
-            </div>
+            <CollapseSection
+              id="java-runtime-args"
+              title="运行参数"
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="space-y-3 pt-3"
+            >
+              <JavaField label="Main 参数" align="start">
+                <Textarea
+                  size="small"
+                  variant="outlined"
+                  rows={2}
+                  value={form.mainArgs}
+                  onValueChange={(value) =>
+                    updateField("mainArgs", String(value ?? ""))
+                  }
+                  placeholder="请输入 Main 参数"
+                  className={textareaClassName}
+                />
+              </JavaField>
+              <JavaField label="JVM 参数" align="start">
+                <Textarea
+                  size="small"
+                  variant="outlined"
+                  rows={2}
+                  value={form.jvmArgs}
+                  onValueChange={(value) =>
+                    updateField("jvmArgs", String(value ?? ""))
+                  }
+                  placeholder="请输入 JVM 参数"
+                  className={textareaClassName}
+                />
+              </JavaField>
+            </CollapseSection>
 
-            <section className={sectionClassName}>
-              <div className="mb-3 flex items-center gap-2">
-                <Layers3 size={15} className="text-[#64748b]" />
-                <h4 className="text-xs font-semibold text-[#303846]">
-                  依赖资源
-                </h4>
-                <span className="text-[11px] text-[#98a1ad]">
+            <CollapseSection
+              id="java-resources"
+              title="依赖资源"
+              extra={
+                <span className="text-xs font-normal text-[var(--yak-components-muted-text)]">
                   {form.resourceList.filter((item) => item.trim()).length} 项
                 </span>
-              </div>
-              <div className="space-y-2">
-                {form.resourceList.map((resource, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      list={resourceDatalistId}
-                      value={resource}
-                      onChange={(event) =>
-                        updateField(
-                          "resourceList",
-                          form.resourceList.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? event.target.value
-                              : item,
-                          ),
-                        )
-                      }
-                      placeholder="依赖资源完整路径"
-                      className={inputClassName}
-                    />
-                    <button
-                      type="button"
-                      title="移除依赖资源"
-                      aria-label="移除依赖资源"
-                      onClick={() =>
-                        updateField(
-                          "resourceList",
-                          form.resourceList.filter(
-                            (_item, itemIndex) => itemIndex !== index,
-                          ),
-                        )
-                      }
-                      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-[#e5e8ed] text-[#98a1ad] transition-colors hover:border-[#f2c5c5] hover:bg-[#fff7f7] hover:text-[#d14343]"
+              }
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="space-y-3 pt-3"
+            >
+              {form.resourceList.length > 0 ? (
+                <div className="space-y-2">
+                  {form.resourceList.map((resource, index) => (
+                    <JavaField
+                      key={index}
+                      label={"依赖资源 " + (index + 1)}
                     >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-                <datalist id={resourceDatalistId}>
-                  {resourceFiles.map((path) => (
-                    <option key={path} value={path} />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          size="small"
+                          variant="outlined"
+                          list={resourceDatalistId}
+                          value={resource}
+                          onChange={(event) =>
+                            updateField(
+                              "resourceList",
+                              form.resourceList.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? event.target.value
+                                  : item,
+                              ),
+                            )
+                          }
+                          placeholder="请选择依赖资源"
+                          className="min-w-0 flex-1"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          isIconOnly
+                          aria-label="移除依赖资源"
+                          onClick={() =>
+                            updateField(
+                              "resourceList",
+                              form.resourceList.filter(
+                                (_item, itemIndex) => itemIndex !== index,
+                              ),
+                            )
+                          }
+                          className="shrink-0 text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-danger)]"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </JavaField>
                   ))}
-                </datalist>
-                <button
+                </div>
+              ) : (
+                <div className="py-2 text-center text-xs text-[var(--yak-components-muted-text)]">
+                  暂无依赖资源
+                </div>
+              )}
+
+              <datalist id={resourceDatalistId}>
+                {resourceFiles.map((path) => (
+                  <option key={path} value={path} />
+                ))}
+              </datalist>
+
+              <div className="flex items-center justify-between border-t border-[var(--yak-components-panel-border)] pt-3">
+                <label
+                  htmlFor={modulePathId}
+                  className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]"
+                >
+                  <Checkbox
+                    id={modulePathId}
+                    checked={form.isModulePath}
+                    onCheckedChange={(checked) =>
+                      updateField("isModulePath", checked === true)
+                    }
+                  />
+                  使用 Java Module Path
+                </label>
+                <Button
                   type="button"
+                  size="sm"
+                  variant="secondary"
                   onClick={() =>
                     updateField("resourceList", [...form.resourceList, ""])
                   }
-                  className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-[#cfd6e0] px-3 text-xs text-[#64748b] transition-colors hover:border-[#9bb5ff] hover:bg-[#f7f9ff] hover:text-[#315efb]"
                 >
                   <Plus size={13} />
                   添加依赖资源
-                </button>
+                </Button>
               </div>
-              <div className="mt-3 flex items-center gap-2 border-t border-[#eef0f3] pt-3">
-                <input
-                  id={modulePathId}
-                  type="checkbox"
-                  checked={form.isModulePath}
-                  onChange={(event) =>
-                    updateField("isModulePath", event.target.checked)
-                  }
-                  className="size-3.5 cursor-pointer accent-[#315efb]"
-                />
-                <label
-                  htmlFor={modulePathId}
-                  className="cursor-pointer text-xs text-[#475467]"
-                >
-                  使用 Java Module Path
-                </label>
-                <span className="text-[11px] text-[#98a1ad]">
-                  默认使用 Classpath
-                </span>
-              </div>
-            </section>
+            </CollapseSection>
 
-            <section className={sectionClassName}>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div>
-                  <h4 className="text-xs font-semibold text-[#303846]">
-                    本地参数
-                  </h4>
-                  <p className="mt-1 text-[11px] text-[#98a1ad]">
-                    定义当前节点可使用的输入、输出变量。
-                  </p>
+            <CollapseSection
+              id="java-local-params"
+              title="本地参数"
+              extra={
+                <span className="text-xs font-normal text-[var(--yak-components-muted-text)]">
+                  {form.localParams.length} 项
+                </span>
+              }
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="space-y-3 pt-3"
+            >
+              {form.localParams.length === 0 ? (
+                <div className="py-2 text-center text-xs text-[var(--yak-components-muted-text)]">
+                  暂无本地参数
                 </div>
-                <button
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[760px]">
+                    <div className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_40px] items-center gap-2 border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-2 py-2 text-xs text-[var(--yak-components-muted-text)]">
+                      <span>参数名称</span>
+                      <span>方向</span>
+                      <span>类型</span>
+                      <span>参数值</span>
+                      <span />
+                    </div>
+                    <div className="space-y-2 pt-2">
+                      {form.localParams.map((item, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_40px] items-center gap-2"
+                        >
+                          <Input
+                            size="small"
+                            variant="outlined"
+                            value={item.prop}
+                            onChange={(event) =>
+                              updateLocalParam(index, {
+                                prop: event.target.value,
+                              })
+                            }
+                            placeholder="参数名称"
+                            aria-label="参数名称"
+                          />
+                          <select
+                            value={item.direct}
+                            onChange={(event) =>
+                              updateLocalParam(index, {
+                                direct: event.target.value as "IN" | "OUT",
+                              })
+                            }
+                            aria-label="参数方向"
+                            className="h-7 w-full rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] px-2 text-xs text-[var(--yak-components-input-text)] outline-none focus:border-[var(--yak-components-input-border-focus)]"
+                          >
+                            <option value="IN">输入 IN</option>
+                            <option value="OUT">输出 OUT</option>
+                          </select>
+                          <Input
+                            size="small"
+                            variant="outlined"
+                            value={item.type}
+                            onChange={(event) =>
+                              updateLocalParam(index, {
+                                type: event.target.value,
+                              })
+                            }
+                            placeholder="VARCHAR"
+                            aria-label="参数类型"
+                          />
+                          <Input
+                            size="small"
+                            variant="outlined"
+                            value={item.value}
+                            onChange={(event) =>
+                              updateLocalParam(index, {
+                                value: event.target.value,
+                              })
+                            }
+                            placeholder="参数值"
+                            aria-label="参数值"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            isIconOnly
+                            aria-label="移除本地参数"
+                            onClick={() =>
+                              updateField(
+                                "localParams",
+                                form.localParams.filter(
+                                  (_param, itemIndex) => itemIndex !== index,
+                                ),
+                              )
+                            }
+                            className="text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-danger)]"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end border-t border-[var(--yak-components-panel-border)] pt-3">
+                <Button
                   type="button"
+                  size="sm"
+                  variant="secondary"
                   onClick={() =>
                     updateField("localParams", [
                       ...form.localParams,
@@ -650,111 +657,39 @@ export function JavaTaskEditor({
                       },
                     ])
                   }
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[#e5e8ed] px-2 text-[11px] text-[#64748b] transition-colors hover:border-[#9bb5ff] hover:text-[#315efb]"
                 >
-                  <Plus size={12} />
+                  <Plus size={13} />
                   添加参数
-                </button>
+                </Button>
               </div>
-
-              {form.localParams.length === 0 ? (
-                <div className="rounded-md border border-dashed border-[#e2e7ee] bg-[#fafbfc] px-3 py-5 text-center text-xs text-[#98a1ad]">
-                  暂无本地参数
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {form.localParams.map((item, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)_36px]"
-                    >
-                      <input
-                        value={item.prop}
-                        onChange={(event) =>
-                          updateLocalParam(index, {
-                            prop: event.target.value,
-                          })
-                        }
-                        placeholder="参数名称"
-                        aria-label="参数名称"
-                        className={inputClassName}
-                      />
-                      <select
-                        value={item.direct}
-                        onChange={(event) =>
-                          updateLocalParam(index, {
-                            direct: event.target.value as "IN" | "OUT",
-                          })
-                        }
-                        aria-label="参数方向"
-                        className={inputClassName}
-                      >
-                        <option value="IN">输入 IN</option>
-                        <option value="OUT">输出 OUT</option>
-                      </select>
-                      <input
-                        value={item.value}
-                        onChange={(event) =>
-                          updateLocalParam(index, {
-                            value: event.target.value,
-                          })
-                        }
-                        placeholder="参数值"
-                        aria-label="参数值"
-                        className={inputClassName}
-                      />
-                      <button
-                        type="button"
-                        title="移除本地参数"
-                        aria-label="移除本地参数"
-                        onClick={() =>
-                          updateField(
-                            "localParams",
-                            form.localParams.filter(
-                              (_param, itemIndex) => itemIndex !== index,
-                            ),
-                          )
-                        }
-                        className="flex size-9 cursor-pointer items-center justify-center rounded-md border border-[#e5e8ed] text-[#98a1ad] transition-colors hover:border-[#f2c5c5] hover:bg-[#fff7f7] hover:text-[#d14343]"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            </CollapseSection>
           </div>
         </div>
       )}
 
-      <footer className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-t border-[#e5e8ed] bg-white px-4 py-2">
-        <div className="min-w-0 text-[11px] text-[#98a1ad]">
-          {task
-            ? "保存后将更新当前节点的 taskParams。"
-            : "草稿节点尚未创建任务定义，当前配置仅用于界面预览。"}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
+      <footer className="flex min-h-12 shrink-0 items-center justify-end gap-2 border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4 py-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => setForm(baselineForm)}
+          isDisabled={!isDirty || saving}
+        >
+          重置
+        </Button>
+        {task ? (
+          <Button
             type="button"
-            onClick={() => setForm(baselineForm)}
-            disabled={!isDirty || saving}
-            className="h-8 cursor-pointer rounded-md border border-[#e1e5eb] px-3 text-xs text-[#667085] transition-colors hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-40"
+            size="sm"
+            variant="primary"
+            onClick={() => void handleSave()}
+            isDisabled={!isDirty || saving}
+            isPending={saving}
           >
-            重置
-          </button>
-          {task ? (
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={!isDirty || saving}
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-[#315efb] px-3 text-xs font-medium text-white transition-colors hover:bg-[#244fe0] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Save size={13} />
-              {saving ? "保存中…" : "保存配置"}
-            </button>
-          ) : null}
-        </div>
+            <Save size={13} />
+            保存配置
+          </Button>
+        ) : null}
       </footer>
     </div>
   );
