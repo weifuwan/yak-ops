@@ -190,8 +190,21 @@ export function WorkflowCanvas({
     > | null
   >(null);
   const [zoomPercent, setZoomPercent] = useState(100);
+  const [focusedNodeId, setFocusedNodeId] =
+    useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] =
     useState<string | null>(null);
+  const renderNodes = useMemo(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          focused: node.id === focusedNodeId,
+        },
+      })),
+    [nodes, focusedNodeId],
+  );
   const renderEdges = useMemo(
     () =>
       edges.map((edge) => ({
@@ -209,6 +222,15 @@ export function WorkflowCanvas({
   }, []);
 
   useEffect(() => {
+    if (
+      focusedNodeId &&
+      !nodes.some((node) => node.id === focusedNodeId)
+    ) {
+      setFocusedNodeId(null);
+    }
+  }, [focusedNodeId, nodes]);
+
+  useEffect(() => {
     if (!instance || !selectedTaskCode) return;
 
     const nodeId = selectTaskCode(selectedTaskCode);
@@ -223,6 +245,26 @@ export function WorkflowCanvas({
       maxZoom: 1.15,
     });
   }, [instance, selectTaskCode, selectedTaskCode]);
+
+  const handleLocateNode = (nodeId: string) => {
+    if (!instance) return;
+
+    const node = instance.getNode(nodeId);
+    if (!node) {
+      toast.warning("无法定位节点", {
+        description: "该节点可能已被移除，请刷新列表后重试。",
+      });
+      return;
+    }
+
+    setFocusedNodeId(nodeId);
+    void instance.fitView({
+      nodes: [node],
+      padding: 0.7,
+      maxZoom: 1.15,
+      duration: 360,
+    });
+  };
 
   const handleNodeContextMenu = (
     event: ReactMouseEvent,
@@ -375,7 +417,7 @@ export function WorkflowCanvas({
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <ReactFlow
         id={`workflow-${workflowCode}`}
-        nodes={nodes}
+        nodes={renderNodes}
         edges={renderEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -416,8 +458,10 @@ export function WorkflowCanvas({
         isValidConnection={isValidConnection}
         onPaneClick={() => {
           setContextMenu(null);
+          setFocusedNodeId(null);
           clearSelection();
         }}
+        onNodeClick={(_event, node) => setFocusedNodeId(node.id)}
         onNodeContextMenu={handleNodeContextMenu}
         onEdgeMouseEnter={(_event, edge) =>
           setHoveredEdgeId(edge.id)
@@ -892,6 +936,9 @@ export function WorkflowCanvas({
         activePanel={activeCanvasPanel}
         onClose={onCloseCanvasPanel}
         dag={dag}
+        nodes={nodes}
+        focusedNodeId={focusedNodeId}
+        onLocateNode={handleLocateNode}
         onRefresh={onRefreshSpec}
         isRefreshing={isRefreshingSpec}
       />
