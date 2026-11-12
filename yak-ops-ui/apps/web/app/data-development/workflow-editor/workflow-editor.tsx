@@ -23,9 +23,9 @@ import {
   WorkflowStoreProvider,
   useWorkflowStore,
   useWorkflowStoreApi,
+  type WorkflowEditorState,
 } from "./store/workflow-store";
 import type { WorkflowCanvasEdge, WorkflowCanvasNode } from "./types";
-import type { WorkflowEditorState } from "./store/workflow-store";
 import { WorkflowToolbar } from "./toolbar/workflow-toolbar";
 import { WorkflowSidePanel } from "./panels/workflow-side-panel";
 
