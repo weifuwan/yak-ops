@@ -141,6 +141,7 @@ export function NodeEditorFrame({
   refreshing,
   lastWorkflowInstanceId,
   canRun = true,
+  readOnly = false,
   onRun,
   onStop,
   onSave,
@@ -162,6 +163,7 @@ export function NodeEditorFrame({
   refreshing: boolean;
   lastWorkflowInstanceId: number | null;
   canRun?: boolean;
+  readOnly?: boolean;
   onRun: () => void;
   onStop: () => void;
   onSave: () => void;
@@ -205,8 +207,8 @@ export function NodeEditorFrame({
         <ToolbarButton
           label="保存"
           icon={<Save size={14} />}
-          disabled={!task || !isDirty || saving}
-          title={!task ? "当前节点暂不可保存" : isDirty ? "保存节点配置" : "配置没有变更"}
+          disabled={readOnly || !task || !isDirty || saving}
+          title={readOnly ? "工作流已上线，请先下线再编辑" : isDirty ? "将节点配置应用到工作流草稿" : "配置没有变更"}
           onClick={onSave}
         />
         <ToolbarButton
@@ -233,7 +235,9 @@ export function NodeEditorFrame({
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
-          {children}
+          <fieldset disabled={readOnly} className="contents">
+            {children}
+          </fieldset>
         </main>
 
         <aside className="flex h-full min-h-0 shrink-0 bg-white">
