@@ -7,6 +7,8 @@ import {
   FolderOpen,
   LayoutDashboard,
   LayoutGrid,
+  Layers,
+  ListOrdered,
   Settings,
   Users,
   Wrench,
@@ -62,6 +64,16 @@ export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     label: "资源文件",
     path: "/resources",
     icon: FolderOpen,
+  },
+  {
+    label: "任务组配置",
+    path: "/resources/task-groups",
+    icon: Layers,
+  },
+  {
+    label: "任务组队列",
+    path: "/resources/task-group-queue",
+    icon: ListOrdered,
   },
 ];
 
