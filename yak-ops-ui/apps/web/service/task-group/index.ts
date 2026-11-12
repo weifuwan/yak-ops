@@ -75,7 +75,7 @@ export const listTaskGroups = (
   signal?: AbortSignal,
 ): Promise<PageInfo<TaskGroupRecord>> =>
   HttpUtils.getData<PageInfo<TaskGroupRecord>>(
-    TASK_GROUP_API + "/list-paging?" + toQuery(params),
+    TASK_GROUP_API + "/list-paging?" + toQuery({ ...params }),
     { signal },
   );
 
