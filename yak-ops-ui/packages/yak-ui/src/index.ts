@@ -1,4 +1,5 @@
 export * from "./alert";
+export * from "./autocomplete";
 export * from "./badge";
 export * from "./button";
 export * from "./card";
