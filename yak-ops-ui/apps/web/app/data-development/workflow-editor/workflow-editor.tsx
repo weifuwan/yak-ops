@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReactFlowProvider } from "reactflow";
 import { Button, toast } from "@yak-ops/yak-ui";
@@ -25,6 +25,7 @@ import {
   useWorkflowStoreApi,
 } from "./store/workflow-store";
 import type { WorkflowCanvasEdge, WorkflowCanvasNode } from "./types";
+import type { WorkflowEditorState } from "./store/workflow-store";
 import { WorkflowToolbar } from "./toolbar/workflow-toolbar";
 import { WorkflowSidePanel } from "./panels/workflow-side-panel";
 
@@ -32,6 +33,33 @@ type WorkflowEditorProps = {
   workflowCode: number;
   selectedTaskCode?: number;
 };
+
+function getWorkflowGraphSignature(
+  state: Pick<WorkflowEditorState, "nodes" | "edges">,
+): string {
+  return JSON.stringify({
+    nodes: state.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: node.data,
+      sourcePosition: node.sourcePosition,
+      targetPosition: node.targetPosition,
+    })),
+    edges: state.edges.map((edge) => ({
+      id: edge.id,
+      type: edge.type,
+      source: edge.source,
+      sourceHandle: edge.sourceHandle,
+      target: edge.target,
+      targetHandle: edge.targetHandle,
+      data: {
+        backend: edge.data?.backend ?? false,
+        relation: edge.data?.relation,
+      },
+    })),
+  });
+}
 
 function buildWorkflowRelations(
   dag: WorkflowDagRecord,
@@ -106,7 +134,9 @@ function WorkflowEditorShell({
     syncWorkflowTaskRecords,
     updateWorkflowDefinition,
     updateWorkflowReleaseState,
+    setTabDirty,
   } = useDataDevelopmentWorkbench();
+  const savedGraphSignatureRef = useRef("");
   const [activeCanvasPanel, setActiveCanvasPanel] = useState<CanvasPanelKey | null>(null);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -116,6 +146,27 @@ function WorkflowEditorShell({
     () => registerWorkflowStore(workflowCode, storeApi),
     [registerWorkflowStore, storeApi, workflowCode],
   );
+
+  useEffect(() => {
+    const getCurrentSignature = () =>
+      getWorkflowGraphSignature(storeApi.getState());
+    savedGraphSignatureRef.current = getCurrentSignature();
+
+    const syncDirtyState = () => {
+      setTabDirty(
+        "workflow:" + workflowCode,
+        getCurrentSignature() !== savedGraphSignatureRef.current,
+      );
+    };
+
+    const unsubscribe = storeApi.subscribe(syncDirtyState);
+    syncDirtyState();
+
+    return () => {
+      unsubscribe();
+      setTabDirty("workflow:" + workflowCode, false);
+    };
+  }, [setTabDirty, storeApi, workflowCode]);
 
   useEffect(() => {
     if (!activeCanvasPanel) return;
@@ -181,6 +232,8 @@ function WorkflowEditorShell({
       });
 
       storeApi.getState().replaceGraph(workflowDagToGraph(savedDag));
+      savedGraphSignatureRef.current = getWorkflowGraphSignature(storeApi.getState());
+      setTabDirty("workflow:" + workflowCode, false);
       syncWorkflowTaskRecords(workflowCode, savedDag.taskDefinitionList);
       updateWorkflowDefinition(savedDag.workflowDefinition);
       await invalidateWorkflowQueries();
