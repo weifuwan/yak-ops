@@ -219,7 +219,7 @@ export function WorkflowCanvas({
           readOnly: isWorkflowOnline,
         },
       })),
-    [nodes, focusedNodeId],
+    [nodes, focusedNodeId, isWorkflowOnline],
   );
   const renderEdges = useMemo(
     () =>
@@ -475,6 +475,8 @@ export function WorkflowCanvas({
         id={`workflow-${workflowCode}`}
         nodes={renderNodes}
         edges={renderEdges}
+        nodesDraggable={!isWorkflowOnline}
+        nodesConnectable={!isWorkflowOnline}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onInit={(flow) => {
