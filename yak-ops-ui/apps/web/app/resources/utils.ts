@@ -78,7 +78,7 @@ export const canEditResource = (item: ResourceItemRecord) => {
   const name = getName(item);
   const dot = name.lastIndexOf(".");
   const suffix = dot > 0 && dot < name.length - 1 ? name.slice(dot + 1) : "";
-  return RESOURCE_VIEW_SUFFIXES.has(suffix);
+  return RESOURCE_EDIT_SUFFIXES.has(suffix);
 };
 
 export const getResourceCategory = (name: string): ResourceTypeFilter => {
