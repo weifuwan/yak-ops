@@ -13,10 +13,9 @@ import type { ResourceItemRecord } from "@/service/resources";
 
 import { ResourceBreadcrumb } from "./components/resource-breadcrumb";
 import { ResourceContextMenu } from "./components/resource-context-menu";
-import { ResourceCreateFileModal } from "./components/resource-create-file-modal";
+import { ResourceFileEditorModal } from "./components/resource-file-editor-modal";
 import { ResourceDetailsPanel } from "./components/resource-details-panel";
 import { ResourceDialog } from "./components/resource-dialog";
-import { ResourceEditorPanel } from "./components/resource-editor-panel";
 import { ResourceGrid } from "./components/resource-grid";
 import { ResourceHeader } from "./components/resource-header";
 import { ResourceTable } from "./components/resource-table";
@@ -109,8 +108,7 @@ export function ResourceManagementPage() {
           busy={
             resource.actionPending ||
             resource.editorSaving ||
-            resource.createFileSaving ||
-            Boolean(resource.editorItem)
+            resource.createFileSaving
           }
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
@@ -119,8 +117,7 @@ export function ResourceManagementPage() {
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-7 pb-5 pt-5 max-md:px-4">
-          {!resource.editorItem ? (
-            <>
+          <>
               <ResourceToolbar
                 keyword={resource.keyword}
                 onKeywordChange={resource.handleKeywordChange}
@@ -146,29 +143,10 @@ export function ResourceManagementPage() {
                 onRootClick={resource.openRootDirectory}
                 onOpen={resource.openBreadcrumb}
               />
-            </>
-          ) : null}
+          </>
 
           <div className="flex min-h-0 flex-1 gap-3">
-            {resource.editorItem ? (
-              <ResourceEditorPanel
-                item={resource.editorItem}
-                content={resource.editorContent}
-                loading={resource.editorLoading}
-                saving={resource.editorSaving}
-                dirty={resource.isEditorDirty}
-                error={resource.editorError}
-                onContentChange={resource.setEditorContent}
-                onSave={() => void resource.saveResourceEditor()}
-                onClose={handleCloseEditor}
-                onRetry={() => {
-                  if (resource.editorItem) {
-                    void resource.openResourceFile(resource.editorItem);
-                  }
-                }}
-              />
-            ) : (
-              <>
+            <>
                 <section className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--yak-components-panel-border)] bg-white">
                   {resource.isTreeError || resource.isBaseDirError ? (
                     <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
@@ -267,8 +245,7 @@ export function ResourceManagementPage() {
                     onCopyPath={resource.copyResourcePath}
                   />
                 ) : null}
-              </>
-            )}
+            </>
           </div>
         </main>
       </div>
@@ -327,7 +304,8 @@ export function ResourceManagementPage() {
         onClose={resource.closeDialog}
       />
 
-      <ResourceCreateFileModal
+      <ResourceFileEditorModal
+        mode="create"
         open={resource.createFileOpen}
         currentDirectory={resource.currentDir}
         fileName={resource.createFileName}
@@ -339,6 +317,28 @@ export function ResourceManagementPage() {
         onContentChange={resource.setCreateFileContent}
         onSubmit={() => void resource.saveNewResourceFile()}
         onClose={resource.closeCreateFileDialog}
+      />
+
+      <ResourceFileEditorModal
+        mode="edit"
+        open={Boolean(resource.editorItem)}
+        currentDirectory={resource.currentDir}
+        item={resource.editorItem}
+        fileName=""
+        suffix=""
+        content={resource.editorContent}
+        loading={resource.editorLoading}
+        saving={resource.editorSaving}
+        dirty={resource.isEditorDirty}
+        error={resource.editorError}
+        onContentChange={resource.setEditorContent}
+        onSubmit={() => void resource.saveResourceEditor()}
+        onClose={handleCloseEditor}
+        onRetry={() => {
+          if (resource.editorItem) {
+            void resource.openResourceFile(resource.editorItem);
+          }
+        }}
       />
 
       <Dialog
