@@ -24,6 +24,7 @@ import type {
 } from "../types";
 import {
   findDirectoryPath,
+  resolveCurrentResourceDirectory,
   getExtension,
   getName,
   isDirectoryItem,
@@ -58,24 +59,11 @@ export function useResourceManagement() {
 
   useEffect(() => {
     const baseDir = baseDirQuery.data;
-
     if (!baseDir) return;
 
-    const normalizePath = (path: string) =>
-      path.replace(/[\\/]+/g, "\\").replace(/\\+$/, "").toLowerCase();
-
-    const normalizedBase = normalizePath(baseDir);
-
-    setCurrentDir((current) => {
-      if (!current) return baseDir;
-
-      const normalizedCurrent = normalizePath(current);
-      const isWithinBase =
-        normalizedCurrent === normalizedBase ||
-        normalizedCurrent.startsWith(`${normalizedBase}\\`);
-
-      return isWithinBase ? current : baseDir;
-    });
+    setCurrentDir((current) =>
+      resolveCurrentResourceDirectory(current, baseDir),
+    );
   }, [baseDirQuery.data]);
 
   const itemsQuery = useQuery({

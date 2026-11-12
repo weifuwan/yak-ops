@@ -5,6 +5,29 @@ import type {
 
 import type { ResourceTypeFilter } from "./types";
 
+const normalizeResourcePath = (path: string) =>
+  path.replace(/[\\/]+/g, "\\").replace(/\\+$/, "").toLowerCase();
+
+/**
+ * Keep the current resource directory when it still belongs to the latest
+ * backend-provided storage base directory; otherwise reset to the new base.
+ */
+export const resolveCurrentResourceDirectory = (
+  currentDir: string,
+  baseDir: string,
+) => {
+  if (!baseDir) return currentDir;
+  if (!currentDir) return baseDir;
+
+  const normalizedBase = normalizeResourcePath(baseDir);
+  const normalizedCurrent = normalizeResourcePath(currentDir);
+  const isWithinBase =
+    normalizedCurrent === normalizedBase ||
+    normalizedCurrent.startsWith(normalizedBase + "\\");
+
+  return isWithinBase ? currentDir : baseDir;
+};
+
 export const isDirectoryNode = (node: WorkflowResourceNode) =>
   Boolean(
     node.isDirctory ??
