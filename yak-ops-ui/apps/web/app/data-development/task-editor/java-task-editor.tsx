@@ -250,6 +250,7 @@ export function JavaTaskEditor({
   readOnly,
   canRun,
   onApplyTask,
+  onDirtyChange,
   onBackToWorkflow,
 }: {
   workflowCode: number;
@@ -259,6 +260,7 @@ export function JavaTaskEditor({
   readOnly: boolean;
   canRun: boolean;
   onApplyTask: (task: WorkflowTaskRecord) => boolean;
+  onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -338,6 +340,11 @@ export function JavaTaskEditor({
   const isDirty =
     JSON.stringify(form) !== JSON.stringify(baselineForm) ||
     JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings);
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+    return () => onDirtyChange(false);
+  }, [isDirty, onDirtyChange]);
 
   const handleSave = async (): Promise<boolean> => {
     if (!currentTask || readOnly) return false;
