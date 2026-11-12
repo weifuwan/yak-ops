@@ -331,17 +331,6 @@ export function VirtualTree<T extends VirtualTreeNode>({
                 height: rowHeight,
               }}
             >
-              {Array.from({ length: Math.max(0, item.level - 1) }).map(
-                (_, guideIndex) => (
-                  <span
-                    key={guideIndex}
-                    aria-hidden="true"
-                    className="pointer-events-none absolute bottom-0 top-0 border-l border-transparent group-hover:border-[var(--yak-components-border)]"
-                    style={{ left: 11 + guideIndex * INDENT_SIZE }}
-                  />
-                ),
-              )}
-
               {drop === "before" ? (
                 <span className="pointer-events-none absolute left-0 right-0 top-0 h-px bg-[var(--yak-color-primary)]" />
               ) : null}
