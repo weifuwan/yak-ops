@@ -32,7 +32,7 @@ export function ResourceManagementPage() {
     <>
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
         <ResourceHeader
-          canManage={Boolean(resource.currentDir)}
+          canManage={Boolean(resource.currentDir) && !resource.isCurrentDirectoryMissing && !resource.isBaseDirError && !resource.isItemsError}
           busy={resource.actionPending}
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
