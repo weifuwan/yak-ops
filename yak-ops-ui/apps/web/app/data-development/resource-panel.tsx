@@ -617,7 +617,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
       />
 
       <div className="px-3 pb-2 pt-1.5">
-        <div className="flex h-[30px] min-w-0 items-center rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] transition-colors hover:border-[var(--yak-components-input-border-hover)] focus-within:border-[var(--yak-components-input-border-focus)]">
+        <div className="flex h-[26px] min-w-0 items-center rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] transition-colors hover:border-[var(--yak-components-input-border-hover)] focus-within:border-[var(--yak-components-input-border-focus)]">
           <Input
             size="small"
             variant="filled"
