@@ -292,6 +292,14 @@ export function useResourceManagement() {
       } else {
         toast.error("文件列表刷新失败，请稍后重试");
       }
+    } else if (
+      treeResult.isSuccess &&
+      baseResult.data &&
+      currentDir &&
+      currentDir !== baseResult.data &&
+      !findDirectoryPath(treeResult.data ?? [], currentDir)
+    ) {
+      toast.warning("当前文件夹已不存在，请返回资源根目录");
     } else if (treeResult.isError) {
       toast.warning("文件列表已刷新，但目录结构暂时无法读取");
     } else {
