@@ -23,7 +23,6 @@ import { DEFAULT_PAGE_SIZE, RESOURCE_QUERY_KEY } from "../constants";
 import type {
   ResourceDialog,
   ResourceSort,
-  ResourceEditorMode,
   ResourceTypeFilter,
   ViewMode,
 } from "../types";
@@ -55,7 +54,6 @@ export function useResourceManagement() {
   const [createFileSuffix, setCreateFileSuffix] = useState("sql");
   const [createFileContent, setCreateFileContent] = useState("");
   const [createFileSaving, setCreateFileSaving] = useState(false);
-  const [editorMode, setEditorMode] = useState<ResourceEditorMode | null>(null);
   const [editorItem, setEditorItem] = useState<ResourceItemRecord | null>(null);
   const [editorContent, setEditorContent] = useState("");
   const [editorInitialContent, setEditorInitialContent] = useState("");
@@ -272,15 +270,11 @@ export function useResourceManagement() {
     }
   };
 
-  const openResourceFile = async (
-    item: ResourceItemRecord,
-    mode: "preview" | "edit",
-  ) => {
+  const openResourceFile = async (item: ResourceItemRecord) => {
     if (isDirectoryItem(item)) return;
 
     const requestId = ++editorRequestId.current;
-    const name = getName(item);
-    setEditorMode(mode);
+    setEditorItem(item);
     setEditorItem(item);
     setEditorContent("");
     setEditorInitialContent("");
@@ -366,13 +360,8 @@ export function useResourceManagement() {
     }
   };
 
-  const editCurrentResourceFile = () => {
-    if (editorItem) setEditorMode("edit");
-  };
-
   const closeResourceEditor = () => {
     editorRequestId.current += 1;
-    setEditorMode(null);
     setEditorItem(null);
     setEditorContent("");
     setEditorInitialContent("");
@@ -381,9 +370,7 @@ export function useResourceManagement() {
   };
 
   const saveResourceEditor = async () => {
-    if (!editorMode || editorMode === "preview" || editorLoading || editorSaving) {
-      return;
-    }
+    if (!editorItem || editorLoading || editorSaving) return;
 
     if (!editorItem) return;
     if (!editorContent.length) {
@@ -556,7 +543,6 @@ export function useResourceManagement() {
     createFileSuffix,
     createFileContent,
     createFileSaving,
-    editorMode,
     editorItem,
     editorContent,
     editorInitialContent,
@@ -594,7 +580,6 @@ export function useResourceManagement() {
     setCreateFileName,
     setCreateFileSuffix,
     setCreateFileContent,
-    editCurrentResourceFile,
     closeResourceEditor,
     saveResourceEditor,
     setEditorContent,
