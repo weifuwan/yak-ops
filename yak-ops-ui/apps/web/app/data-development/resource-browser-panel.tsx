@@ -1,6 +1,5 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import {
   ExternalLink,
   File,
@@ -204,7 +203,6 @@ function ResourceBrowserIcon({
 }
 
 export function ResourceBrowserPanel({ width }: { width: number }) {
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -299,7 +297,9 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
               aria-label="打开完整资源管理"
               title="打开完整资源管理"
               className="size-[22px]"
-              onClick={() => navigate("/resources")}
+              onClick={() =>
+                window.open("/resources", "_blank", "noopener,noreferrer")
+              }
             >
               <ExternalLink size={14} />
             </Button>
