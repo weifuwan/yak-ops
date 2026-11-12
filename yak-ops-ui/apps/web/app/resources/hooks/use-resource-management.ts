@@ -50,10 +50,13 @@ export function useResourceManagement() {
   const [dialogValue, setDialogValue] = useState("");
   const [actionPending, setActionPending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [createFileOpen, setCreateFileOpen] = useState(false);
+  const [createFileName, setCreateFileName] = useState("");
+  const [createFileSuffix, setCreateFileSuffix] = useState("sql");
+  const [createFileContent, setCreateFileContent] = useState("");
+  const [createFileSaving, setCreateFileSaving] = useState(false);
   const [editorMode, setEditorMode] = useState<ResourceEditorMode | null>(null);
   const [editorItem, setEditorItem] = useState<ResourceItemRecord | null>(null);
-  const [editorFileName, setEditorFileName] = useState("");
-  const [editorSuffix, setEditorSuffix] = useState("sql");
   const [editorContent, setEditorContent] = useState("");
   const [editorInitialContent, setEditorInitialContent] = useState("");
   const [editorLoading, setEditorLoading] = useState(false);
@@ -279,8 +282,6 @@ export function useResourceManagement() {
     const name = getName(item);
     setEditorMode(mode);
     setEditorItem(item);
-    setEditorFileName(name);
-    setEditorSuffix(getExtension(name) || "txt");
     setEditorContent("");
     setEditorInitialContent("");
     setEditorError("");
@@ -303,15 +304,66 @@ export function useResourceManagement() {
   };
 
   const openCreateFile = () => {
-    editorRequestId.current += 1;
-    setEditorMode("create");
-    setEditorItem(null);
-    setEditorFileName("");
-    setEditorSuffix("sql");
-    setEditorContent("");
-    setEditorInitialContent("");
-    setEditorError("");
-    setEditorLoading(false);
+    setCreateFileName("");
+    setCreateFileSuffix("sql");
+    setCreateFileContent("");
+    setCreateFileOpen(true);
+  };
+
+  const closeCreateFileDialog = () => {
+    if (createFileSaving) return;
+    setCreateFileOpen(false);
+    setCreateFileName("");
+    setCreateFileSuffix("sql");
+    setCreateFileContent("");
+  };
+
+  const saveNewResourceFile = async () => {
+    if (createFileSaving) return;
+
+    const typedName = createFileName.trim();
+    const baseName =
+      getExtension(typedName) === createFileSuffix
+        ? typedName.slice(0, -(createFileSuffix.length + 1)).trim()
+        : typedName;
+
+    if (!baseName) {
+      toast.warning("请输入文件名称");
+      return;
+    }
+    if (/[\\/]/.test(baseName)) {
+      toast.warning("文件名称不能包含路径分隔符");
+      return;
+    }
+    if (!createFileContent.length) {
+      toast.warning("文件内容不能为空");
+      return;
+    }
+    if (!currentDir) {
+      toast.warning("资源目录尚未加载，请稍后重试");
+      return;
+    }
+
+    setCreateFileSaving(true);
+    try {
+      await createResourceFile(
+        baseName,
+        createFileSuffix,
+        createFileContent,
+        currentDir,
+      );
+      toast.success("文件创建成功");
+      setCreateFileOpen(false);
+      setCreateFileName("");
+      setCreateFileSuffix("sql");
+      setCreateFileContent("");
+      setPageNo(1);
+      await invalidateResources();
+    } catch {
+      // The shared HTTP layer displays request and business errors.
+    } finally {
+      setCreateFileSaving(false);
+    }
   };
 
   const editCurrentResourceFile = () => {
@@ -322,8 +374,6 @@ export function useResourceManagement() {
     editorRequestId.current += 1;
     setEditorMode(null);
     setEditorItem(null);
-    setEditorFileName("");
-    setEditorSuffix("sql");
     setEditorContent("");
     setEditorInitialContent("");
     setEditorError("");
@@ -331,59 +381,18 @@ export function useResourceManagement() {
   };
 
   const saveResourceEditor = async () => {
-    if (
-      !editorMode ||
-      editorMode === "preview" ||
-      editorLoading ||
-      editorSaving
-    ) {
+    if (!editorMode || editorMode === "preview" || editorLoading || editorSaving) {
       return;
     }
 
+    if (!editorItem) return;
     if (!editorContent.length) {
       toast.warning("文件内容不能为空");
       return;
     }
 
-    if (editorMode === "create") {
-      const name = editorFileName.trim();
-      const suffixInName = getExtension(name);
-      const baseName =
-        suffixInName === editorSuffix
-          ? name.slice(0, -(editorSuffix.length + 1))
-          : name;
-      if (!baseName.trim()) {
-        toast.warning("请输入文件名称");
-        return;
-      }
-      if (/[\\/]/.test(baseName)) {
-        toast.warning("文件名称不能包含路径分隔符");
-        return;
-      }
-    }
-
     setEditorSaving(true);
     try {
-      if (editorMode === "create") {
-        const typedName = editorFileName.trim();
-        const baseName =
-          getExtension(typedName) === editorSuffix
-            ? typedName.slice(0, -(editorSuffix.length + 1))
-            : typedName;
-        await createResourceFile(
-          baseName,
-          editorSuffix,
-          editorContent,
-          currentDir,
-        );
-        toast.success("文件创建成功");
-        closeResourceEditor();
-        setPageNo(1);
-        await invalidateResources();
-        return;
-      }
-
-      if (!editorItem) return;
       await updateResourceFileContent(editorItem.fullName, editorContent);
       setEditorInitialContent(editorContent);
       toast.success("文件保存成功");
@@ -542,10 +551,13 @@ export function useResourceManagement() {
     dialogValue,
     actionPending,
     uploading,
+    createFileOpen,
+    createFileName,
+    createFileSuffix,
+    createFileContent,
+    createFileSaving,
     editorMode,
     editorItem,
-    editorFileName,
-    editorSuffix,
     editorContent,
     editorInitialContent,
     editorLoading,
@@ -577,11 +589,14 @@ export function useResourceManagement() {
     downloadFile: handleDownload,
     openResourceFile,
     openCreateFile,
+    closeCreateFileDialog,
+    saveNewResourceFile,
+    setCreateFileName,
+    setCreateFileSuffix,
+    setCreateFileContent,
     editCurrentResourceFile,
     closeResourceEditor,
     saveResourceEditor,
-    setEditorFileName,
-    setEditorSuffix,
     setEditorContent,
     replaceFile,
     refresh,
