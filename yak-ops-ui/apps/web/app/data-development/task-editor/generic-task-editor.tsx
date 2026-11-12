@@ -75,8 +75,9 @@ export function GenericTaskEditor({
 
   useEffect(() => {
     onDirtyChange(isDirty);
-    return () => onDirtyChange(false);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
   const jsonText = useMemo(() => {
     let commonFields: Record<string, unknown>;
