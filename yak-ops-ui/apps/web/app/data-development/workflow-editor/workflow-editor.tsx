@@ -152,12 +152,14 @@ function WorkflowEditorShell({
         if (!task || node.data.taskCode === null) {
           throw new Error("节点“" + node.data.name + "”尚未完成初始化");
         }
+        const taskPayload: Partial<WorkflowTaskRecord> = { ...task };
+        delete taskPayload.id;
         return {
-          ...task,
+          ...taskPayload,
           code: node.data.taskCode,
           name: node.data.name,
           taskType: node.data.taskType,
-        };
+        } as WorkflowTaskRecord;
       });
 
       const workflowTaskRelationList = buildWorkflowRelations(dag, state.nodes, state.edges);
@@ -196,7 +198,8 @@ function WorkflowEditorShell({
     setPublishing(true);
     try {
       if (workflowIsOnline) {
-        await releaseWorkflowDefinition(workflowCode, "OFFLINE");
+        const released = await releaseWorkflowDefinition(workflowCode, "OFFLINE");
+        if (!released) throw new Error("服务端未确认工作流下线");
         updateWorkflowReleaseState(workflowCode, "OFFLINE");
         await invalidateWorkflowQueries();
         toast.success("工作流已下线，可以继续编辑");
@@ -205,7 +208,8 @@ function WorkflowEditorShell({
 
       const saved = await saveWorkflow();
       if (!saved) return;
-      await releaseWorkflowDefinition(workflowCode, "ONLINE");
+      const released = await releaseWorkflowDefinition(workflowCode, "ONLINE");
+      if (!released) throw new Error("服务端未确认工作流发布");
       updateWorkflowReleaseState(workflowCode, "ONLINE");
       await invalidateWorkflowQueries();
       toast.success("工作流发布成功");
@@ -315,8 +319,8 @@ export function WorkflowEditor({ workflowCode, selectedTaskCode }: WorkflowEdito
         <WorkflowEditorShell
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}
-          workflowReleaseState={query.data.workflowDefinition.releaseState ?? "OFFLINE"}
-          dag={query.data}
+          workflowReleaseState={query.data!.workflowDefinition.releaseState ?? "OFFLINE"}
+          dag={query.data!}
           onVersionSwitched={() => setGraphReloadToken((current) => current + 1)}
           onRefreshSpec={async () => {
             const result = await query.refetch();
