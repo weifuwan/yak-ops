@@ -57,10 +57,26 @@ export function useResourceManagement() {
   });
 
   useEffect(() => {
-    if (baseDirQuery.data && !currentDir) {
-      setCurrentDir(baseDirQuery.data);
-    }
-  }, [baseDirQuery.data, currentDir]);
+    const baseDir = baseDirQuery.data;
+
+    if (!baseDir) return;
+
+    const normalizePath = (path: string) =>
+      path.replace(/[\\/]+/g, "\\").replace(/\\+$/, "").toLowerCase();
+
+    const normalizedBase = normalizePath(baseDir);
+
+    setCurrentDir((current) => {
+      if (!current) return baseDir;
+
+      const normalizedCurrent = normalizePath(current);
+      const isWithinBase =
+        normalizedCurrent === normalizedBase ||
+        normalizedCurrent.startsWith(`${normalizedBase}\\`);
+
+      return isWithinBase ? current : baseDir;
+    });
+  }, [baseDirQuery.data]);
 
   const itemsQuery = useQuery({
     queryKey: [
