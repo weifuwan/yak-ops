@@ -10,7 +10,6 @@ import {
 import type { ExecutionType } from "../shared/types";
 import type { WorkflowSidePanelController } from "../hooks/useWorkflowSidePanelController";
 import { GlobalParametersSection } from "./GlobalParametersSection";
-import { WorkflowNodeDefaultsSection } from "./WorkflowNodeDefaultsSection";
 
 export function PropertiesPanel({
   controller,
@@ -111,7 +110,6 @@ export function PropertiesPanel({
       </section>
 
       <GlobalParametersSection controller={controller} />
-      <WorkflowNodeDefaultsSection controller={controller} />
     </div>
   );
 }

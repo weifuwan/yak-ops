@@ -248,23 +248,6 @@ export const updateWorkflowTaskDefinition = async (
   );
 };
 
-export const updateWorkflowTaskCommonSettings = async (
-  workflowCode: number,
-  patch: WorkflowTaskCommonSettingsPatch,
-): Promise<void> => {
-  const dag = await getWorkflowDefinition(workflowCode);
-  const taskDefinitionList = (dag.taskDefinitionList ?? []).map(task => ({
-    ...task,
-    ...patch,
-  }));
-
-  await updateWorkflowDefinitionGraph(
-    dag,
-    { name: dag.workflowDefinition.name },
-    taskDefinitionList,
-  );
-};
-
 export const removeWorkflowTask = async (
   workflowCode: number,
   taskCode: number,
