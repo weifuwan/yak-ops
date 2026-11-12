@@ -29,6 +29,7 @@ export * from "./spinner";
 export * from "./switch";
 export * from "./table";
 export * from "./tabs";
+export * from "./tree-select";
 export * from "./textarea";
 export * from "./toast";
 export * from "./tooltip";
