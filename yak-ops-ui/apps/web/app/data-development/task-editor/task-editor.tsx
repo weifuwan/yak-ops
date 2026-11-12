@@ -48,20 +48,15 @@ export function TaskEditor({
           taskName={taskName}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
         />
-      ) : task ? (
+      ) : (
         <GenericTaskEditor
           workflowCode={workflowCode}
           task={task}
+          draftTask={draftTask}
           taskName={taskName}
           taskType={taskType}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
         />
-      ) : (
-        <div className="min-h-0 flex-1 overflow-auto bg-[#f7f8fa] p-4">
-          <pre className="min-w-max rounded-md border border-[var(--yak-components-border)] bg-white p-4 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
-            {JSON.stringify(payload, null, 2)}
-          </pre>
-        </div>
       )}
     </section>
   );
