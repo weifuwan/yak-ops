@@ -263,6 +263,7 @@ function graphHistorySnapshot(
       data: {
         backend: edge.data?.backend ?? false,
         hovered: false,
+        relation: edge.data?.relation,
       },
     })),
   };
