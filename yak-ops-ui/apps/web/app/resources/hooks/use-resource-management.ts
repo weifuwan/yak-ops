@@ -28,6 +28,7 @@ import {
   getName,
   isDirectoryItem,
   isResourceNotFoundError,
+  isResourcePathInvalidError,
   matchesTypeFilter,
 } from "../utils";
 
@@ -97,6 +98,7 @@ export function useResourceManagement() {
     currentDir !== baseDirQuery.data &&
     directoryPath.length === 0;
   const isItemsNotFoundError = itemsQuery.isError && isResourceNotFoundError(itemsQuery.error);
+  const isItemsPathInvalidError = itemsQuery.isError && isResourcePathInvalidError(itemsQuery.error);
 
   const resourceItems = useMemo(
     () => itemsQuery.data?.totalList ?? [],
@@ -285,6 +287,8 @@ export function useResourceManagement() {
     } else if (itemsResult?.isError) {
       if (isResourceNotFoundError(itemsResult.error)) {
         toast.warning("当前资源路径已不存在，请返回资源根目录");
+      } else if (isResourcePathInvalidError(itemsResult.error)) {
+        toast.warning("资源路径无法识别，请返回资源根目录或稍后重试");
       } else {
         toast.error("文件列表刷新失败，请稍后重试");
       }
@@ -389,6 +393,7 @@ export function useResourceManagement() {
     isCurrentDirectoryMissing,
     isItemsError: itemsQuery.isError,
     isItemsNotFoundError,
+    isItemsPathInvalidError,
     openDirectory,
     openBreadcrumb,
     openRootDirectory,
