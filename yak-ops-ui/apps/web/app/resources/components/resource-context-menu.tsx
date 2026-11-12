@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import {
   Copy,
   Download,
-  Eye,
   FilePenLine,
   FolderOpen,
   Pencil,
@@ -20,14 +19,13 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { ResourceItemRecord } from "@/service/resources";
-import { canPreviewResource, isDirectoryItem } from "../utils";
+import { canEditResource, isDirectoryItem } from "../utils";
 
 interface ResourceContextMenuProps {
   item: ResourceItemRecord | null;
   position: { x: number; y: number } | null;
   onClose: () => void;
   onOpen: (item: ResourceItemRecord) => void;
-  onPreview: (item: ResourceItemRecord) => void;
   onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
   onReplace: (item: ResourceItemRecord) => void;
@@ -42,7 +40,6 @@ export function ResourceContextMenu({
   position,
   onClose,
   onOpen,
-  onPreview,
   onEdit,
   onDownload,
   onReplace,
@@ -60,7 +57,7 @@ export function ResourceContextMenu({
   if (!item || !position || !portalRoot) return null;
 
   const directory = isDirectoryItem(item);
-  const previewable = canPreviewResource(item);
+  const editable = canEditResource(item);
 
   return createPortal(
     <DropdownMenu
@@ -90,18 +87,11 @@ export function ResourceContextMenu({
           </DropdownMenuItem>
         ) : (
           <>
-            {previewable ? (
-              <>
-                <DropdownMenuItem onClick={() => onPreview(item)}>
-                  <Eye size={14} />
-                  预览
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(item)}>
-                  <FilePenLine size={14} />
-                  在线编辑
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
+            {editable ? (
+              <DropdownMenuItem onClick={() => onEdit(item)}>
+                <FilePenLine size={14} />
+                编辑文件
+              </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem onClick={() => onDownload(item)}>
               <Download size={14} />
