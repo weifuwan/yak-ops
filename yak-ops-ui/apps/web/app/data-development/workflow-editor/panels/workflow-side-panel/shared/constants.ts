@@ -99,6 +99,7 @@ export const PANEL_ITEMS: Array<{
   label: string;
 }> = [
   { key: "properties", label: "属性" },
+  { key: "globalParameters", label: "全局参数" },
   { key: "schedule", label: "调度配置" },
   { key: "history", label: "运行历史" },
   { key: "versions", label: "版本" },

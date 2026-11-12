@@ -65,7 +65,7 @@ export function useWorkflowSidePanelController({
   });
 
   const refreshActivePanel = async () => {
-    if (activePanel === "properties") {
+    if (activePanel === "properties" || activePanel === "globalParameters") {
       properties.resetProperties();
       await invalidateDefinition();
       return;

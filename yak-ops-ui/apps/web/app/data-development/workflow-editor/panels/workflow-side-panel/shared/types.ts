@@ -6,7 +6,7 @@ import type {
   WorkflowWarningType,
 } from "@/service/workflow/management";
 
-export type PanelKey = "properties" | "schedule" | "history" | "versions" | "ops";
+export type PanelKey = "properties" | "globalParameters" | "schedule" | "history" | "versions" | "ops";
 export type ScheduleSection = "strategy" | "time";
 export type ExecutionType = "PARALLEL" | "SERIAL_WAIT" | "SERIAL_DISCARD" | "SERIAL_PRIORITY";
 export type GlobalParameterType =

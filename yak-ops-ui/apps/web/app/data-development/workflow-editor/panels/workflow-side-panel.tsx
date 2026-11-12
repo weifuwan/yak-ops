@@ -9,6 +9,7 @@ import type {
 } from "./workflow-side-panel/shared/types";
 import { useWorkflowSidePanelController } from "./workflow-side-panel/hooks/useWorkflowSidePanelController";
 import { PropertiesPanel } from "./workflow-side-panel/properties/PropertiesPanel";
+import { GlobalParametersPanel } from "./workflow-side-panel/properties/GlobalParametersPanel";
 import { SchedulePanel } from "./workflow-side-panel/schedule/SchedulePanel";
 import { WorkflowRunsPanel } from "./workflow-side-panel/instances/WorkflowRunsPanel";
 import { VersionsPanel } from "./workflow-side-panel/versions/VersionsPanel";
@@ -112,6 +113,9 @@ export function WorkflowSidePanel({
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <PropertiesPanel controller={controller} />
               </div>
+            ) : null}
+            {activePanel === "globalParameters" ? (
+              <GlobalParametersPanel controller={controller} />
             ) : null}
             {activePanel === "schedule" ? (
               <SchedulePanel controller={controller} />
