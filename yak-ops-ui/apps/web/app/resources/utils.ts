@@ -49,6 +49,33 @@ export const getExtension = (name: string) => {
   return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : "";
 };
 
+const RESOURCE_VIEW_SUFFIXES = new Set([
+  "txt",
+  "log",
+  "sh",
+  "bat",
+  "conf",
+  "cfg",
+  "py",
+  "java",
+  "sql",
+  "xml",
+  "hql",
+  "properties",
+  "json",
+  "yml",
+  "yaml",
+  "ini",
+  "js",
+]);
+
+/**
+ * Mirrors the backend's default resource.view.suffixs configuration.
+ * The backend remains the source of truth when this setting is customized.
+ */
+export const canPreviewResource = (item: ResourceItemRecord) =>
+  !isDirectoryItem(item) && RESOURCE_VIEW_SUFFIXES.has(getExtension(getName(item)));
+
 export const getResourceCategory = (name: string): ResourceTypeFilter => {
   const extension = getExtension(name);
   if (extension === "sql") return "SQL";
