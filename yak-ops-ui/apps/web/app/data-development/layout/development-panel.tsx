@@ -24,18 +24,28 @@ const PANEL_COPY: Record<
 type DevelopmentPanelProps = {
   activeSection: DataDevelopmentSection;
   width: number;
+  resourceDirectoryPaths: string[];
+  onResourceDirectoryPathsChange: (paths: string[]) => void;
 };
 
 export function DevelopmentPanel({
   activeSection,
   width,
+  resourceDirectoryPaths,
+  onResourceDirectoryPathsChange,
 }: DevelopmentPanelProps) {
   if (activeSection === "development") {
     return <DataDevelopmentResourcePanel width={width} />;
   }
 
   if (activeSection === "resource") {
-    return <ResourceBrowserPanel width={width} />;
+    return (
+      <ResourceBrowserPanel
+        width={width}
+        directoryPaths={resourceDirectoryPaths}
+        onDirectoryPathsChange={onResourceDirectoryPathsChange}
+      />
+    );
   }
 
   const panel = PANEL_COPY[activeSection];

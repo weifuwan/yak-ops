@@ -281,10 +281,10 @@ export function VirtualTree<T extends VirtualTreeNode>({
                 onContextMenu(item, event);
               }}
               onDoubleClick={() => {
-                if (item.expandable) {
+                if (onItemDoubleClick) {
+                  onItemDoubleClick(item);
+                } else if (item.expandable) {
                   onToggle?.(item);
-                } else {
-                  onItemDoubleClick?.(item);
                 }
               }}
               onDragStart={(event) => {

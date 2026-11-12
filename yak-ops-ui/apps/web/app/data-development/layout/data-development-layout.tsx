@@ -15,6 +15,7 @@ export function DataDevelopmentLayout() {
     useState<DataDevelopmentSection>("development");
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [resourceDirectoryPaths, setResourceDirectoryPaths] = useState<string[]>([]);
 
   const handleSectionChange = (section: DataDevelopmentSection) => {
     setActiveSection(section);
@@ -47,6 +48,8 @@ export function DataDevelopmentLayout() {
           <DevelopmentPanel
             activeSection={activeSection}
             width={panelWidth}
+            resourceDirectoryPaths={resourceDirectoryPaths}
+            onResourceDirectoryPathsChange={setResourceDirectoryPaths}
           />
         </div>
       </div>

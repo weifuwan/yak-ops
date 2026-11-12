@@ -1,6 +1,7 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ChevronRight,
   ExternalLink,
   File,
   FolderClosed,
@@ -202,7 +203,17 @@ function ResourceBrowserIcon({
   );
 }
 
-export function ResourceBrowserPanel({ width }: { width: number }) {
+type ResourceBrowserPanelProps = {
+  width: number;
+  directoryPaths: string[];
+  onDirectoryPathsChange: (paths: string[]) => void;
+};
+
+export function ResourceBrowserPanel({
+  width,
+  directoryPaths,
+  onDirectoryPathsChange,
+}: ResourceBrowserPanelProps) {
   const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -215,6 +226,52 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
     queryFn: ({ signal }) => listWorkflowResources(signal),
     staleTime: 30_000,
   });
+
+  const directoryStack = useMemo(() => {
+    const stack: WorkflowResourceNode[] = [];
+    let currentItems = resourcesQuery.data ?? [];
+
+    for (const directoryPath of directoryPaths) {
+      const directory = currentItems.find(
+        (item) =>
+          item.fullName === directoryPath ||
+          item.currentDir === directoryPath,
+      );
+
+      if (!directory || !isDirectoryResource(directory)) break;
+
+      stack.push(directory);
+      currentItems = directory.children ?? [];
+    }
+
+    return stack;
+  }, [directoryPaths, resourcesQuery.data]);
+
+  const currentDirectory =
+    directoryStack[directoryStack.length - 1] ?? null;
+  const currentResources = currentDirectory
+    ? currentDirectory.children ?? []
+    : resourcesQuery.data ?? [];
+
+  useEffect(() => {
+    if (
+      !resourcesQuery.isSuccess ||
+      directoryStack.length === directoryPaths.length
+    ) {
+      return;
+    }
+
+    onDirectoryPathsChange(
+      directoryStack
+        .map((directory) => directory.fullName || directory.currentDir || "")
+        .filter(Boolean),
+    );
+  }, [
+    directoryPaths.length,
+    directoryStack,
+    onDirectoryPathsChange,
+    resourcesQuery.isSuccess,
+  ]);
 
   const previewFullName = previewResource?.fullName ?? "";
   const previewable = Boolean(
@@ -233,12 +290,12 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
   const treeItems = useMemo(
     () =>
       buildResourceTreeItems(
-        resourcesQuery.data ?? [],
+        currentResources,
         expandedIds,
         selectedId,
         deferredSearch,
       ),
-    [deferredSearch, expandedIds, resourcesQuery.data, selectedId],
+    [currentResources, deferredSearch, expandedIds, selectedId],
   );
 
   const closePreview = () => setPreviewResource(null);
@@ -255,11 +312,19 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
     });
   };
 
-  const handleOpenPreview = (item: ResourceBrowserTreeItem) => {
-    if (item.kind === "file") {
-      setSelectedId(item.id);
-      setPreviewResource(item.resource);
+  const handleItemDoubleClick = (item: ResourceBrowserTreeItem) => {
+    if (item.kind === "directory") {
+      const directoryPath =
+        item.resource.fullName || item.resource.currentDir;
+      if (!directoryPath) return;
+
+      onDirectoryPathsChange([...directoryPaths, directoryPath]);
+      setSelectedId(null);
+      return;
     }
+
+    setSelectedId(item.id);
+    setPreviewResource(item.resource);
   };
 
   return (
@@ -318,7 +383,7 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
             size="small"
             variant="outlined"
             aria-label="搜索资源"
-            placeholder="搜索资源名称"
+            placeholder={currentDirectory ? "搜索当前目录下的资源" : "搜索资源名称"}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="h-[27px] pl-8 pr-8 text-[11px]"
@@ -336,6 +401,58 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
           ) : null}
         </div>
       </div>
+
+      {directoryStack.length > 0 ? (
+        <div className="shrink-0 overflow-hidden px-3 pb-2">
+          <nav
+            aria-label="资源目录路径"
+            className="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap text-[11px]"
+          >
+            <button
+              type="button"
+              onClick={() => onDirectoryPathsChange([])}
+              className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
+            >
+              全部资源
+            </button>
+            {directoryStack.map((directory, index) => (
+              <span
+                key={directory.fullName || directory.currentDir || index}
+                className="flex min-w-0 shrink-0 items-center gap-1"
+              >
+                <ChevronRight
+                  size={12}
+                  className="shrink-0 text-[var(--yak-components-muted-text)]"
+                  aria-hidden="true"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    onDirectoryPathsChange(
+                      directoryStack
+                        .slice(0, index + 1)
+                        .map((item) => item.fullName || item.currentDir || "")
+                        .filter(Boolean),
+                    )
+                  }
+                  className={[
+                    "max-w-[110px] truncate rounded px-1 py-0.5 transition-colors hover:bg-[var(--yak-color-hover)]",
+                    index === directoryStack.length - 1
+                      ? "cursor-default font-medium text-[var(--yak-components-panel-text)]"
+                      : "cursor-pointer text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-panel-text)]",
+                  ].join(" ")}
+                  aria-current={
+                    index === directoryStack.length - 1 ? "location" : undefined
+                  }
+                  title={getResourceName(directory)}
+                >
+                  {getResourceName(directory)}
+                </button>
+              </span>
+            ))}
+          </nav>
+        </div>
+      ) : null}
 
       {resourcesQuery.isPending ? (
         <div className="flex min-h-0 flex-1 items-center justify-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
@@ -364,7 +481,11 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
             className="text-[#c4cbd4]"
           />
           <span className="text-xs text-[var(--yak-components-muted-text)]">
-            {deferredSearch ? "没有找到匹配的资源" : "暂无资源"}
+            {deferredSearch
+              ? "当前目录下没有匹配的资源"
+              : currentDirectory
+                ? "此目录为空"
+                : "暂无资源"}
           </span>
         </div>
       ) : (
@@ -376,7 +497,7 @@ export function ResourceBrowserPanel({ width }: { width: number }) {
           isItemInteractive={() => true}
           onToggle={handleToggle}
           onActivate={(item) => setSelectedId(item.id)}
-          onItemDoubleClick={handleOpenPreview}
+          onItemDoubleClick={handleItemDoubleClick}
           renderItem={(item) => (
             <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2 leading-none">
               <ResourceBrowserIcon item={item} />
