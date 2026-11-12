@@ -12,7 +12,7 @@ const elk = new ELK();
 export async function layoutWorkflowGraph(
   graph: WorkflowGraph,
 ): Promise<WorkflowGraph> {
-  if (graph.nodes.length === 0) return graph;
+  if (graph.nodes.length === 0 || graph.preservePositions) return graph;
 
   const layoutInput: ElkNode = {
     id: "workflow-root",
