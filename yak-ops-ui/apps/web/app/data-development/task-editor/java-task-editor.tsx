@@ -587,7 +587,9 @@ export function JavaTaskEditor({
                     className={inputClassName}
                   />
                   <AutocompleteContent
-                    emptyContent={resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的 JAR"}
+                    emptyContent={
+                      resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的 JAR"
+                    }
                   >
                     {(path: string) => (
                       <AutocompleteItem key={path} value={path}>
@@ -762,7 +764,9 @@ export function JavaTaskEditor({
                             className="min-w-0 flex-1"
                           />
                           <AutocompleteContent
-                            emptyContent={resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的资源"}
+                            emptyContent={
+                              resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的资源"
+                            }
                           >
                             {(path: string) => (
                               <AutocompleteItem key={path} value={path}>
@@ -877,7 +881,11 @@ export function JavaTaskEditor({
                               }
                             }}
                           >
-                            <SelectTrigger variant="outlined" className="w-full">
+                            <SelectTrigger
+                              variant="outlined"
+                              className="w-full"
+                              aria-label="参数方向"
+                            >
                               <SelectValue placeholder="选择方向" />
                             </SelectTrigger>
                             <SelectContent>
