@@ -4,7 +4,7 @@ import type { PageInfo } from "@/service/http/page-info";
 
 const TASK_GROUP_API = YAK_OPS_API_PREFIX + "/task-group";
 
-export type TaskGroupStatus = "YES" | "NO" | number;
+export type TaskGroupStatus = "YES" | "NO" | "1" | "0" | number;
 
 export interface TaskGroupRecord {
   id: number;
