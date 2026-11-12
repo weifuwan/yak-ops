@@ -186,7 +186,7 @@ export function ResourceEditorPanel({
             onValueChange={(value) => onContentChange(String(value ?? ""))}
             onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
             className={[
-              "h-full min-h-0 min-w-0 flex-1 resize-none rounded-none border-0 bg-[#fcfcfd] px-5 pb-6 pt-4 font-mono text-[12px] leading-6 text-[#303846] shadow-none outline-none",
+              "h-full min-h-0 w-0 min-w-0 flex-1 resize-none rounded-none border-0 bg-[#fcfcfd] px-5 pb-6 pt-4 font-mono text-[12px] leading-6 text-[#303846] shadow-none outline-none",
               "whitespace-pre focus:border-transparent focus:bg-[#fcfcfd] focus:ring-0 hover:border-transparent hover:bg-[#fcfcfd]",
               preview ? "cursor-default" : "cursor-text",
             ].join(" ")}
