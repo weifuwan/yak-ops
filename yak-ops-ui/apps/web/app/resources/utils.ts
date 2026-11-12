@@ -20,7 +20,22 @@ export const isResourceNotFoundError = (error: unknown) => {
     .filter((message): message is string => typeof message === "string");
 
   return messages.some((message) =>
-    /(?:no such file|file\\s+not\\s+found|resource\\s+not\\s+found|directory\\s+not\\s+found|not[\\s_-]*exist|not[\\s_-]*found|不存在|未找到)/i.test(message),
+    /(?:no such file|file\s+not\s+found|resource\s+not\s+found|directory\s+not\s+found|not[\s_-]*exist|not[\s_-]*found|不存在|未找到)/i.test(message),
+  );
+};
+
+export const isResourcePathInvalidError = (error: unknown) => {
+  if (!error || typeof error !== "object") return false;
+
+  const candidate = error as {
+    message?: unknown;
+    response?: { msg?: unknown; message?: unknown };
+  };
+  const messages = [candidate.message, candidate.response?.msg, candidate.response?.message]
+    .filter((message): message is string => typeof message === "string");
+
+  return messages.some((message) =>
+    /invalid resource path|resource path.{0,24}(?:invalid|illegal)/i.test(message),
   );
 };
 
