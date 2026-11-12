@@ -225,7 +225,7 @@ export function TaskCommonSettingsSection({
       triggerClassName="!h-8 rounded-sm px-3"
       contentClassName="space-y-4 pt-3"
     >
-      {description ? <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">{description}</p> : null}
+      {!compact && description ? <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">{description}</p> : null}
 
       <section className="space-y-3">
         <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">执行资源</h4>
@@ -260,12 +260,14 @@ export function TaskCommonSettingsSection({
               onChange={event => update("taskGroupPriority", event.target.value)} placeholder="0" className="w-full min-w-0" />
           </SettingField>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--yak-components-muted-text)]">
-          <span>
-            {selectedTaskGroup
-              ? "当前并发容量：" + (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize
-              : "可在任务组管理中创建和维护并发资源组"}
-          </span>
+        <div className={"flex flex-wrap items-center gap-2 text-[11px] text-[var(--yak-components-muted-text)] " + (compact ? "justify-end" : "justify-between")}>
+          {!compact ? (
+            <span>
+              {selectedTaskGroup
+                ? "当前并发容量：" + (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize
+                : "可在任务组管理中创建和维护并发资源组"}
+            </span>
+          ) : null}
           <div className="flex items-center gap-1">
             <Button type="button" size="sm" variant="ghost" onClick={() => navigate("/resources/task-groups")}>管理任务组</Button>
             {settings.taskGroupId > 0 ? (
@@ -332,17 +334,23 @@ export function TaskCommonSettingsSection({
               disabled={disabled} onChange={event => update("memoryMax", event.target.value)} className="w-full min-w-0" />
           </SettingField>
         </div>
-        <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-          CPU 配额和最大内存填写 -1 表示不限制；Environment Code 填 -1 表示使用默认环境。
-        </p>
+        {!compact ? (
+          <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
+            CPU 配额和最大内存填写 -1 表示不限制；Environment Code 填 -1 表示使用默认环境。
+          </p>
+        ) : null}
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] pt-3">
-        <span className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-          TaskGroup 控制同组任务并发；不选择任务组时不受任务组容量限制。
-        </span>
-        {footer}
-      </div>
+      {!compact || footer ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] pt-3">
+          {!compact ? (
+            <span className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
+              TaskGroup 控制同组任务并发；不选择任务组时不受任务组容量限制。
+            </span>
+          ) : null}
+          {footer}
+        </div>
+      ) : null}
     </CollapseSection>
   );
 }
