@@ -1,13 +1,25 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
   Button,
+  Checkbox,
   CollapseSection,
   Field,
   FieldLabel,
   Input,
   Segmented,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   Tooltip,
   TooltipContent,
@@ -251,10 +263,6 @@ export function JavaTaskEditor({
 }) {
   const queryClient = useQueryClient();
   const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
-  const resourceId = useId().replace(/:/g, "");
-  const jarDatalistId = resourceId + "-jars";
-  const resourceDatalistId = resourceId + "-resources";
-  const modulePathId = resourceId + "-module-path";
   const initialForm = useMemo(
     () => parseJavaTaskForm(task?.taskParams),
     [task?.taskParams],
@@ -521,13 +529,16 @@ export function JavaTaskEditor({
                     <Tooltip>
                       <TooltipTrigger
                         render={
-                          <button
+                          <Button
                             type="button"
+                            size="sm"
+                            variant="ghost"
+                            isIconOnly
                             aria-label="查看运行方式说明"
-                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
+                            className="!size-4 !min-h-4 !p-0 text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
                           >
                             <Info size={13} aria-hidden="true" />
-                          </button>
+                          </Button>
                         }
                       />
                       <TooltipContent side="top" align="start" className="border-white/10 shadow-xl">
@@ -562,24 +573,29 @@ export function JavaTaskEditor({
               contentClassName="space-y-3 pt-3"
             >
               <JavaField label="主程序 JAR" required>
-                <>
-                  <Input
+                <Autocomplete<string>
+                  items={jarFiles}
+                  value={form.mainJar}
+                  onValueChange={(value) => updateField("mainJar", value)}
+                  openOnInputClick
+                >
+                  <AutocompleteInput
                     size="small"
                     variant="outlined"
-                    list={jarDatalistId}
-                    value={form.mainJar}
-                    onChange={(event) =>
-                      updateField("mainJar", event.target.value)
-                    }
+                    aria-label="主程序 JAR"
                     placeholder="请选择主程序 JAR"
                     className={inputClassName}
                   />
-                  <datalist id={jarDatalistId}>
-                    {jarFiles.map((path) => (
-                      <option key={path} value={path} />
-                    ))}
-                  </datalist>
-                </>
+                  <AutocompleteContent
+                    emptyContent={resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的 JAR"}
+                  >
+                    {(path: string) => (
+                      <AutocompleteItem key={path} value={path}>
+                        <span className="min-w-0 truncate">{path}</span>
+                      </AutocompleteItem>
+                    )}
+                  </AutocompleteContent>
+                </Autocomplete>
               </JavaField>
 
               {form.runType === "NORMAL_JAR" ? (
@@ -625,13 +641,16 @@ export function JavaTaskEditor({
                     <Tooltip>
                       <TooltipTrigger
                         render={
-                          <button
+                          <Button
                             type="button"
+                            size="sm"
+                            variant="ghost"
+                            isIconOnly
                             aria-label="查看 JVM 参数说明"
-                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
+                            className="!size-4 !min-h-4 !p-0 text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
                           >
                             <Info size={13} aria-hidden="true" />
-                          </button>
+                          </Button>
                         }
                       />
                       <TooltipContent
@@ -669,20 +688,22 @@ export function JavaTaskEditor({
                     {jvmArgTemplates.map((template) => {
                       const active = form.jvmArgs.trim() === template.value;
                       return (
-                        <button
+                        <Button
                           key={template.key}
                           type="button"
+                          size="sm"
+                          variant={active ? "outline" : "ghost"}
                           onClick={() => updateField("jvmArgs", template.value)}
                           aria-pressed={active}
                           className={[
-                            "inline-flex h-6 cursor-pointer items-center rounded-md border px-2 text-[11px] transition-colors",
+                            "!h-6 !px-2 !text-[11px]",
                             active
-                              ? "border-[#cbd7ff] bg-[#eef3ff] text-[#315efb]"
-                              : "border-[var(--yak-components-panel-border)] bg-white text-[var(--yak-components-field-label)] hover:border-[#cbd7ff] hover:bg-[#f8faff]",
+                              ? "border-[var(--yak-components-input-border-focus)] bg-[var(--yak-components-input-bg-focus)] text-[var(--yak-color-primary)]"
+                              : "text-[var(--yak-components-field-label)]",
                           ].join(" ")}
                         >
                           {template.label}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -720,24 +741,36 @@ export function JavaTaskEditor({
                       label={"依赖资源 " + (index + 1)}
                     >
                       <div className="flex items-center gap-2">
-                        <Input
-                          size="small"
-                          variant="outlined"
-                          list={resourceDatalistId}
+                        <Autocomplete<string>
+                          items={resourceFiles}
                           value={resource}
-                          onChange={(event) =>
+                          onValueChange={(value) =>
                             updateField(
                               "resourceList",
                               form.resourceList.map((item, itemIndex) =>
-                                itemIndex === index
-                                  ? event.target.value
-                                  : item,
+                                itemIndex === index ? value : item,
                               ),
                             )
                           }
-                          placeholder="请选择依赖资源"
-                          className="min-w-0 flex-1"
-                        />
+                          openOnInputClick
+                        >
+                          <AutocompleteInput
+                            size="small"
+                            variant="outlined"
+                            aria-label={"依赖资源 " + (index + 1)}
+                            placeholder="请选择依赖资源"
+                            className="min-w-0 flex-1"
+                          />
+                          <AutocompleteContent
+                            emptyContent={resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的资源"}
+                          >
+                            {(path: string) => (
+                              <AutocompleteItem key={path} value={path}>
+                                <span className="min-w-0 truncate">{path}</span>
+                              </AutocompleteItem>
+                            )}
+                          </AutocompleteContent>
+                        </Autocomplete>
                         <Button
                           type="button"
                           size="sm"
@@ -766,27 +799,16 @@ export function JavaTaskEditor({
                 </div>
               )}
 
-              <datalist id={resourceDatalistId}>
-                {resourceFiles.map((path) => (
-                  <option key={path} value={path} />
-                ))}
-              </datalist>
-
               <div className="flex items-center justify-between border-t border-[var(--yak-components-panel-border)] pt-3">
-                <label
-                  htmlFor={modulePathId}
-                  className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]"
-                >
-                  <input
-                    id={modulePathId}
-                    type="checkbox"
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]">
+                  <Checkbox
                     checked={form.isModulePath}
-                    onChange={(event) =>
-                      updateField("isModulePath", event.target.checked)
+                    onCheckedChange={(checked) =>
+                      updateField("isModulePath", checked === true)
                     }
-                    className="size-3.5 cursor-pointer accent-[var(--yak-color-primary)]"
+                    aria-label="使用 Java Module Path"
                   />
-                  使用 Java Module Path
+                  <span>使用 Java Module Path</span>
                 </label>
                 <Button
                   type="button"
@@ -845,19 +867,30 @@ export function JavaTaskEditor({
                             placeholder="参数名称"
                             aria-label="参数名称"
                           />
-                          <select
+                          <Select<string>
+                            size="small"
+                            items={{ IN: "输入 IN", OUT: "输出 OUT" }}
                             value={item.direct}
-                            onChange={(event) =>
-                              updateLocalParam(index, {
-                                direct: event.target.value as "IN" | "OUT",
-                              })
-                            }
-                            aria-label="参数方向"
-                            className="h-7 w-full rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] px-2 text-xs text-[var(--yak-components-input-text)] outline-none focus:border-[var(--yak-components-input-border-focus)]"
+                            onValueChange={(value) => {
+                              if (value === "IN" || value === "OUT") {
+                                updateLocalParam(index, { direct: value });
+                              }
+                            }}
                           >
-                            <option value="IN">输入 IN</option>
-                            <option value="OUT">输出 OUT</option>
-                          </select>
+                            <SelectTrigger variant="outlined" className="w-full">
+                              <SelectValue placeholder="选择方向" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="IN">
+                                <SelectItemText>输入 IN</SelectItemText>
+                                <SelectItemIndicator />
+                              </SelectItem>
+                              <SelectItem value="OUT">
+                                <SelectItemText>输出 OUT</SelectItemText>
+                                <SelectItemIndicator />
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                           <Input
                             size="small"
                             variant="outlined"
