@@ -3,14 +3,17 @@ export type ResourceFileIconName =
   | "python"
   | "shell"
   | "batch"
-  | "config"
+  | "cfg"
+  | "properties"
+  | "conf"
+  | "ini"
   | "hql"
   | "javascript"
   | "java"
   | "json"
   | "yaml"
   | "xml"
-  | "text"
+  | "txt"
   | "log";
 
 export interface ResourceFileTypeConfig {
@@ -29,7 +32,7 @@ export const RESOURCE_FILE_TYPE_CONFIG: Record<string, ResourceFileTypeConfig> =
   py: { label: "Python", icon: "python", color: "#3776AB", background: "#EEF5FF" },
   sh: { label: "Shell", icon: "shell", color: "#15803D", background: "#ECFDF3" },
   bat: { label: "Batch", icon: "batch", color: "#475569", background: "#F1F5F9" },
-  cfg: { label: "CFG", icon: "config", color: "#7C3AED", background: "#F5F3FF" },
+  cfg: { label: "CFG", icon: "cfg", color: "#7C3AED", background: "#F5F3FF" },
   hql: { label: "HQL", icon: "hql", color: "#0F766E", background: "#ECFDF8" },
   js: { label: "JavaScript", icon: "javascript", color: "#A16207", background: "#FEFCE8" },
   java: { label: "Java", icon: "java", color: "#C2410C", background: "#FFF7ED" },
@@ -37,11 +40,11 @@ export const RESOURCE_FILE_TYPE_CONFIG: Record<string, ResourceFileTypeConfig> =
   yaml: { label: "YAML", icon: "yaml", color: "#7C3AED", background: "#F5F3FF" },
   yml: { label: "YML", icon: "yaml", color: "#7C3AED", background: "#F5F3FF" },
   xml: { label: "XML", icon: "xml", color: "#0369A1", background: "#F0F9FF" },
-  properties: { label: "Properties", icon: "config", color: "#7C3AED", background: "#F5F3FF" },
-  txt: { label: "TXT", icon: "text", color: "#475569", background: "#F1F5F9" },
+  properties: { label: "Properties", icon: "properties", color: "#7C3AED", background: "#F5F3FF" },
+  txt: { label: "TXT", icon: "txt", color: "#475569", background: "#F1F5F9" },
   log: { label: "Log", icon: "log", color: "#475569", background: "#F1F5F9" },
-  conf: { label: "CONF", icon: "config", color: "#7C3AED", background: "#F5F3FF" },
-  ini: { label: "INI", icon: "config", color: "#7C3AED", background: "#F5F3FF" },
+  conf: { label: "CONF", icon: "conf", color: "#7C3AED", background: "#F5F3FF" },
+  ini: { label: "INI", icon: "ini", color: "#7C3AED", background: "#F5F3FF" },
 };
 
 const RESOURCE_FILE_TYPE_ALIASES: Record<string, string> = {
