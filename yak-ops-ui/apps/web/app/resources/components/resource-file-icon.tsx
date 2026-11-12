@@ -36,6 +36,64 @@ const getFileVisual = (name: string) => {
   return { Icon: File, color: "text-[#64748b]", background: "bg-[#f1f5f9]" };
 };
 
+
+function ResourceFolderGlyph({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 1024 1024"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M96 160h252q20 0 36 16l64 64h480q48 0 48 48v528q0 48-48 48H96q-48 0-48-48V208q0-48 48-48z"
+        fill="#E9A52B"
+      />
+      <path
+        d="M96 304h832q48 0 48 48v464q0 48-48 48H96q-48 0-48-48V352q0-48 48-48z"
+        fill="#FFD16B"
+      />
+    </svg>
+  );
+}
+
+/** Compact version of the Resource Management page icon for tree views and selectors. */
+export function ResourceTreeIcon({
+  name,
+  directory,
+  size = 16,
+}: {
+  name: string;
+  directory: boolean;
+  size?: number;
+}) {
+  if (directory) {
+    return (
+      <span className="inline-flex shrink-0 items-center justify-center">
+        <ResourceFolderGlyph size={size} />
+      </span>
+    );
+  }
+
+  const extension = getExtension(name);
+  if (getResourceFileTypeConfig(extension)) {
+    return <FileTypeIcon extension={extension} size={size} />;
+  }
+
+  const visual = getFileVisual(name);
+  const Icon = visual.Icon;
+  return (
+    <span
+      className={["inline-flex shrink-0 items-center justify-center rounded-[3px]", visual.background, visual.color].join(" ")}
+      style={{ width: size, height: size }}
+    >
+      <Icon size={Math.max(10, Math.round(size * 0.72))} strokeWidth={1.65} />
+    </span>
+  );
+}
+
 export function ResourceFileIcon({
   item,
   large = false,
@@ -51,23 +109,7 @@ export function ResourceFileIcon({
           large ? "size-10" : "size-8",
         ].join(" ")}
       >
-        <svg
-          width={large ? 32 : 24}
-          height={large ? 32 : 24}
-          viewBox="0 0 1024 1024"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path
-            d="M96 160h252q20 0 36 16l64 64h480q48 0 48 48v528q0 48-48 48H96q-48 0-48-48V208q0-48 48-48z"
-            fill="#E9A52B"
-          />
-          <path
-            d="M96 304h832q48 0 48 48v464q0 48-48 48H96q-48 0-48-48V352q0-48 48-48z"
-            fill="#FFD16B"
-          />
-        </svg>
+<ResourceFolderGlyph size={large ? 32 : 24} />
       </span>
     );
   }
