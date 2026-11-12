@@ -12,6 +12,7 @@ import {
   Field,
   FieldLabel,
   Input,
+  PasswordInput,
   Segmented,
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
+  Switch,
   Textarea,
   TreeSelect,
   type TreeSelectOption,
@@ -78,6 +80,20 @@ type ResourceInfo = {
 const runTypeOptions = [
   { value: "FAT_JAR", label: "依赖内置 JAR" },
   { value: "NORMAL_JAR", label: "普通 JAR" },
+] as const;
+
+const javaLocalParamTypeOptions = [
+  { value: "VARCHAR", label: "VARCHAR" },
+  { value: "INTEGER", label: "INTEGER" },
+  { value: "LONG", label: "LONG" },
+  { value: "FLOAT", label: "FLOAT" },
+  { value: "DOUBLE", label: "DOUBLE" },
+  { value: "DATE", label: "DATE" },
+  { value: "TIME", label: "TIME" },
+  { value: "TIMESTAMP", label: "TIMESTAMP" },
+  { value: "BOOLEAN", label: "BOOLEAN" },
+  { value: "LIST", label: "LIST" },
+  { value: "FILE", label: "FILE" },
 ] as const;
 
 const jvmArgTemplates = [
@@ -887,18 +903,19 @@ export function JavaTaskEditor({
               ) : (
                 <div className="overflow-x-auto">
                   <div className="min-w-[760px]">
-                    <div className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_40px] items-center gap-2 border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-2 py-2 text-xs text-[var(--yak-components-muted-text)]">
+                    <div className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_64px_40px] items-center gap-2 border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-2 py-2 text-xs text-[var(--yak-components-muted-text)]">
                       <span>参数名称</span>
                       <span>方向</span>
                       <span>类型</span>
                       <span>参数值</span>
+                      <span>敏感</span>
                       <span />
                     </div>
                     <div className="space-y-2 pt-2">
                       {form.localParams.map((item, index) => (
                         <div
                           key={index}
-                          className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_40px] items-center gap-2"
+                          className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_64px_40px] items-center gap-2"
                         >
                           <Input
                             size="small"
@@ -940,30 +957,131 @@ export function JavaTaskEditor({
                               </SelectItem>
                             </SelectContent>
                           </Select>
-                          <Input
+                          <Select<string>
                             size="small"
-                            variant="outlined"
+                            items={Object.fromEntries(
+                              javaLocalParamTypeOptions.map((option) => [
+                                option.value,
+                                option.label,
+                              ]),
+                            )}
                             value={item.type}
-                            onChange={(event) =>
-                              updateLocalParam(index, {
-                                type: event.target.value,
-                              })
-                            }
-                            placeholder="VARCHAR"
-                            aria-label="参数类型"
-                          />
-                          <Input
-                            size="small"
-                            variant="outlined"
-                            value={item.value}
-                            onChange={(event) =>
-                              updateLocalParam(index, {
-                                value: event.target.value,
-                              })
-                            }
-                            placeholder="参数值"
-                            aria-label="参数值"
-                          />
+                            onValueChange={(value) => {
+                              if (value) updateLocalParam(index, { type: value });
+                            }}
+                          >
+                            <SelectTrigger
+                              variant="outlined"
+                              className="w-full"
+                              aria-label="参数类型"
+                            >
+                              <SelectValue placeholder="选择类型" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {javaLocalParamTypeOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  <SelectItemText>{option.label}</SelectItemText>
+                                  <SelectItemIndicator />
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {item.type === "BOOLEAN" ? (
+                            <Select<string>
+                              size="small"
+                              items={{ true: "true", false: "false" }}
+                              value={
+                                item.value === "true" || item.value === "false"
+                                  ? item.value
+                                  : null
+                              }
+                              onValueChange={(value) => {
+                                if (value === "true" || value === "false") {
+                                  updateLocalParam(index, { value });
+                                }
+                              }}
+                            >
+                              <SelectTrigger
+                                variant="outlined"
+                                className="w-full"
+                                aria-label="布尔参数值"
+                              >
+                                <SelectValue placeholder="请选择 true / false" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">
+                                  <SelectItemText>true</SelectItemText>
+                                  <SelectItemIndicator />
+                                </SelectItem>
+                                <SelectItem value="false">
+                                  <SelectItemText>false</SelectItemText>
+                                  <SelectItemIndicator />
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : item.sensitive ? (
+                            <PasswordInput
+                              size="small"
+                              variant="outlined"
+                              value={item.value}
+                              onChange={(event) =>
+                                updateLocalParam(index, { value: event.target.value })
+                              }
+                              placeholder={
+                                item.type === "DATE" ? "YYYY-MM-DD"
+                                  : item.type === "TIME" ? "HH:mm:ss"
+                                  : item.type === "TIMESTAMP" ? "YYYY-MM-DD HH:mm:ss"
+                                  : item.type === "LIST" ? 'JSON 数组，例如 ["a","b"]'
+                                  : "参数值"
+                              }
+                              aria-label="参数值"
+                            />
+                          ) : (
+                            <Input
+                              size="small"
+                              variant="outlined"
+                              type={
+                                ["INTEGER", "LONG", "FLOAT", "DOUBLE"].includes(item.type)
+                                  ? "number"
+                                  : item.type === "DATE"
+                                    ? "date"
+                                    : item.type === "TIME"
+                                      ? "time"
+                                      : "text"
+                              }
+                              step={
+                                item.type === "INTEGER" || item.type === "LONG" || item.type === "TIME"
+                                  ? 1
+                                  : "any"
+                              }
+                              value={item.value}
+                              onChange={(event) =>
+                                updateLocalParam(index, { value: event.target.value })
+                              }
+                              placeholder={
+                                item.type === "INTEGER" ? "请输入整数"
+                                  : item.type === "LONG" ? "请输入长整数"
+                                  : item.type === "FLOAT" || item.type === "DOUBLE" ? "请输入数字"
+                                  : item.type === "DATE" ? "YYYY-MM-DD"
+                                  : item.type === "TIME" ? "HH:mm:ss"
+                                  : item.type === "TIMESTAMP" ? "YYYY-MM-DD HH:mm:ss"
+                                  : item.type === "LIST" ? 'JSON 数组，例如 ["a","b"]'
+                                  : item.type === "FILE" ? "请输入文件路径"
+                                  : "参数值"
+                              }
+                              aria-label="参数值"
+                            />
+                          )}
+                          <div className="flex items-center justify-center">
+                            <Switch
+                              size="small"
+                              checked={item.sensitive}
+                              aria-label={"敏感参数 " + (item.prop || index + 1)}
+                              onCheckedChange={(checked) =>
+                                updateLocalParam(index, { sensitive: checked })
+                              }
+                            />
+                          </div>
                           <Button
                             type="button"
                             size="sm"
