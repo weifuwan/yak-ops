@@ -6,7 +6,6 @@ import {
   Button,
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogTitle,
   Field,
   FieldError,
@@ -16,10 +15,14 @@ import {
   Switch,
   Table,
   Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
   toast,
   type TableColumns,
 } from "@yak-ops/yak-ui";
-import { Plus } from "lucide-react";
+import { CircleHelp, Plus } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -371,9 +374,6 @@ export function TaskGroupConfigurationPage() {
           <DialogTitle className="text-base font-semibold">
             {editing ? "编辑任务组" : "新建任务组"}
           </DialogTitle>
-          <DialogDescription className="mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-            配置任务组的并发资源容量，任务运行时会按任务组规则申请资源。
-          </DialogDescription>
 
           <div className="mt-5 space-y-4">
             {!editing ? (
@@ -427,7 +427,27 @@ export function TaskGroupConfigurationPage() {
                 htmlFor="task-group-size"
                 className="pt-1.5 text-xs"
               >
-                资源容量
+                <span className="inline-flex items-center gap-1">
+                  资源容量
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label="查看资源容量说明"
+                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
+                          >
+                            <CircleHelp size={13} aria-hidden="true" />
+                          </button>
+                        }
+                      />
+                      <TooltipContent side="top" align="start" className="max-w-[280px]">
+                        表示该任务组允许同时运行的任务数量。达到容量上限后，后续任务会进入队列等待。
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </span>
               </FieldLabel>
               <div className="min-w-0">
                 <Input
@@ -448,9 +468,6 @@ export function TaskGroupConfigurationPage() {
                 <FieldError match={Boolean(groupSizeError)} className="mt-1">
                   {groupSizeError}
                 </FieldError>
-                <div className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">
-                  表示该任务组允许同时占用的资源槽位数量。
-                </div>
               </div>
             </Field>
 
