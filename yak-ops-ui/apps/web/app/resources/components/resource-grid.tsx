@@ -103,8 +103,7 @@ export function ResourceGrid({
               <ResourceActions
                 item={item}
                 onOpen={onOpen}
-                onOpenFile={onOpenFile}
-                onPreview={onPreview}
+                      onPreview={onPreview}
                 onEdit={onEdit}
                 onDownload={onDownload}
                 onReplace={onReplace}
