@@ -24,9 +24,9 @@ export default function AllProductMenu({
       aria-label="全部产品二级菜单"
       aria-hidden={!open}
       className={[
-        "fixed bottom-0 left-[220px] top-10 z-30 w-[765px] max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
-        "transform-gpu transition-transform duration-[240ms] ease-in-out motion-reduce:transition-none",
-        open ? "translate-x-0" : "-translate-x-full pointer-events-none",
+        "absolute inset-y-0 left-full max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
+        "transition-[width] ease-in-out motion-reduce:transition-none",
+        open ? "w-[765px] duration-[240ms]" : "w-0 duration-[170ms] pointer-events-none",
       ].join(" ")}
     >
       <div className="h-full w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto">
@@ -65,7 +65,7 @@ export default function AllProductMenu({
 
                       <button
                         type="button"
-                        aria-label={favorite ? "取消收藏" + product.label : "收藏" + product.label}
+                        aria-label={favorite ? `取消收藏${product.label}` : `收藏${product.label}`}
                         aria-pressed={favorite}
                         disabled={mutating}
                         tabIndex={open ? 0 : -1}
