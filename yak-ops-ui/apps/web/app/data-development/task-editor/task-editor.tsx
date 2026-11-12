@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { toast } from "@yak-ops/yak-ui";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -13,7 +14,12 @@ type TaskEditorProps = {
 };
 
 export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorProps) {
-  const { activateTab, getWorkflowStore, updateTaskTab } = useDataDevelopmentWorkbench();
+  const { activateTab, getWorkflowStore, setTabDirty, updateTaskTab } = useDataDevelopmentWorkbench();
+  const tabId = "task:" + workflowCode + ":" + task.code;
+  const handleDirtyChange = useCallback(
+    (dirty: boolean) => setTabDirty(tabId, dirty),
+    [setTabDirty, tabId],
+  );
   const taskName = task.name || "未命名节点";
   const taskType = task.taskType || "UNKNOWN";
   const isJavaTask = taskType.toUpperCase() === "JAVA";
@@ -47,6 +53,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
           readOnly={readOnly}
           canRun={readOnly && !isDraft}
           onApplyTask={applyTask}
+          onDirtyChange={handleDirtyChange}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
         />
       ) : (
@@ -57,6 +64,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
           taskType={taskType}
           readOnly={readOnly}
           onApplyTask={applyTask}
+          onDirtyChange={handleDirtyChange}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
         />
       )}
