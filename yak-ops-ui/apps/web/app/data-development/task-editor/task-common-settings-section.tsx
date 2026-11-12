@@ -165,7 +165,7 @@ function SettingsSelect({
       <SelectTrigger variant="outlined" className="w-full">
         <SelectValue placeholder={placeholder ?? "请选择"} />
       </SelectTrigger>
-      <SelectContent emptyContent="暂无可选项">
+      <SelectContent emptyContent={options.length === 0 ? "暂无可选项" : undefined}>
         {options.map(option => (
           <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
             <SelectItemText>{option.label}</SelectItemText>
