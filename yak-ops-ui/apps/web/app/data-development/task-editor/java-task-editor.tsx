@@ -249,7 +249,7 @@ function flattenResourceFiles(nodes: WorkflowResourceNode[]): string[] {
 
   const visit = (node: WorkflowResourceNode) => {
     const children = node.children ?? [];
-    if (isResourceDirectory(node)) {
+    if (children.length > 0 || isResourceDirectory(node)) {
       children.forEach(visit);
       return;
     }
