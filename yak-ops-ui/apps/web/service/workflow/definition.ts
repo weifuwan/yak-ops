@@ -70,11 +70,17 @@ export interface WorkflowDagRecord {
   taskDefinitionList: WorkflowTaskRecord[];
 }
 
+export type WorkflowTaskCommonSettingsPatch = Pick<
+  WorkflowTaskRecord,
+  | "workerGroup" | "environmentCode" | "taskPriority"
+  | "failRetryTimes" | "failRetryInterval"
+  | "timeoutFlag" | "timeoutNotifyStrategy" | "timeout"
+  | "delayTime" | "taskGroupId" | "taskGroupPriority"
+  | "cpuQuota" | "memoryMax" | "taskExecuteType"
+>;
+
 export type WorkflowTaskDefinitionPatch = Partial<
-  Pick<
-    WorkflowTaskRecord,
-    "taskParams" | "taskGroupId" | "taskGroupPriority"
-  >
+  Pick<WorkflowTaskRecord, "taskParams"> & WorkflowTaskCommonSettingsPatch
 >;
 
 export interface WorkflowDefinitionPageParams {
@@ -242,16 +248,14 @@ export const updateWorkflowTaskDefinition = async (
   );
 };
 
-export const updateWorkflowTaskGroupSettings = async (
+export const updateWorkflowTaskCommonSettings = async (
   workflowCode: number,
-  taskGroupId: number,
-  taskGroupPriority: number,
+  patch: WorkflowTaskCommonSettingsPatch,
 ): Promise<void> => {
   const dag = await getWorkflowDefinition(workflowCode);
-  const taskDefinitionList = (dag.taskDefinitionList ?? []).map((task) => ({
+  const taskDefinitionList = (dag.taskDefinitionList ?? []).map(task => ({
     ...task,
-    taskGroupId,
-    taskGroupPriority,
+    ...patch,
   }));
 
   await updateWorkflowDefinitionGraph(

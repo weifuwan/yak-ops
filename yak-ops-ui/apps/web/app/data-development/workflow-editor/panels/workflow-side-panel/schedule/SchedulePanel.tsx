@@ -2,10 +2,8 @@ import type { ReactNode } from "react";
 import { ChevronDown, Clock3, RefreshCw, Save } from "lucide-react";
 
 import { PanelButton, PanelNotice } from "../components/PanelPrimitives";
-import { MUTED_CLASS } from "../shared/constants";
 import type { ScheduleSection } from "../shared/types";
 import type { WorkflowSidePanelController } from "../hooks/useWorkflowSidePanelController";
-import { GlobalParametersSection } from "./GlobalParametersSection";
 import { ScheduleStrategySection } from "./ScheduleStrategySection";
 import { ScheduleTimeSection } from "./ScheduleTimeSection";
 
@@ -102,7 +100,6 @@ export function SchedulePanel({
       <div className="schedule-right-container flex min-h-0 flex-1 flex-col">
         <div className="flex h-9 shrink-0 items-stretch gap-1 border-b border-[#e5e7eb] bg-white px-3">
           {[
-            { key: "params" as const, label: "全局参数" },
             { key: "strategy" as const, label: "调度策略" },
             { key: "time" as const, label: "调度时间" },
           ].map((item) => (
@@ -144,7 +141,6 @@ export function SchedulePanel({
               </PanelNotice>
             ) : null}
 
-            <GlobalParametersSection controller={controller} renderSectionHeader={renderSectionHeader} />
             <ScheduleStrategySection controller={controller} renderSectionHeader={renderSectionHeader} />
             <ScheduleTimeSection controller={controller} renderSectionHeader={renderSectionHeader} />
           </div>

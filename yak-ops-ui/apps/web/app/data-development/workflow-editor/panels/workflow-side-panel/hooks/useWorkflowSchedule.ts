@@ -36,9 +36,8 @@ export function useWorkflowSchedule({
   activePanel,
   workflowIsOnline,
 }: UseWorkflowScheduleOptions) {
-  const [scheduleSection, setScheduleSection] = useState<ScheduleSection>("params");
+  const [scheduleSection, setScheduleSection] = useState<ScheduleSection>("strategy");
   const [scheduleCollapsed, setScheduleCollapsed] = useState<Record<ScheduleSection, boolean>>({
-    params: false,
     strategy: false,
     time: false,
   });

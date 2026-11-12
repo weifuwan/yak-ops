@@ -159,6 +159,9 @@ export function useWorkflowProperties({
       timeout: String(definition.timeout ?? 0),
       executionType: (definition.executionType ?? "PARALLEL") as ExecutionType,
     });
+    const nextParameters = parseGlobalParameters(definition.globalParams);
+    setGlobalParameters(nextParameters);
+    setSavedGlobalParameterCount(nextParameters.length);
   };
 
   return {

@@ -29,6 +29,10 @@ import {
 } from "@/service/workflow/execution";
 
 import { NodeEditorFrame } from "./node-editor-frame";
+import {
+  getTaskGroupValidationError, normalizeTaskCommonSettings, parseTaskCommonSettings,
+  TaskCommonSettingsSection, useTaskGroups, type TaskCommonSettings,
+} from "./task-common-settings-section";
 
 type JavaRunType = "FAT_JAR" | "NORMAL_JAR";
 
@@ -239,6 +243,7 @@ export function JavaTaskEditor({
   onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
+  const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
   const resourceId = useId().replace(/:/g, "");
   const jarDatalistId = resourceId + "-jars";
   const resourceDatalistId = resourceId + "-resources";
@@ -247,8 +252,11 @@ export function JavaTaskEditor({
     () => parseJavaTaskForm(task?.taskParams),
     [task?.taskParams],
   );
+  const initialCommonSettings = useMemo(() => parseTaskCommonSettings(task), [task]);
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
+  const [commonSettings, setCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
+  const [baselineCommonSettings, setBaselineCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
@@ -260,8 +268,10 @@ export function JavaTaskEditor({
   useEffect(() => {
     setForm(initialForm);
     setBaselineForm(initialForm);
+    setCommonSettings(initialCommonSettings);
+    setBaselineCommonSettings(initialCommonSettings);
     setCurrentTask(task);
-  }, [initialForm, task]);
+  }, [initialForm, initialCommonSettings, task]);
 
   const resourceQuery = useQuery({
     queryKey: ["data-development", "java-task-resources"],
@@ -284,6 +294,11 @@ export function JavaTaskEditor({
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const updateCommonSettings = <K extends keyof TaskCommonSettings,>(
+    field: K,
+    value: TaskCommonSettings[K],
+  ) => setCommonSettings(current => ({ ...current, [field]: value }));
+
   const updateLocalParam = (
     index: number,
     patch: Partial<JavaLocalParam>,
@@ -296,20 +311,23 @@ export function JavaTaskEditor({
     }));
   };
 
-  const jsonText = useMemo(
-    () =>
-      JSON.stringify(
-        {
-          taskType: "JAVA",
-          taskParams: buildJavaTaskParams(form),
-        },
-        null,
-        2,
-      ),
-    [form],
-  );
+  const jsonText = useMemo(() => {
+    let commonFields: Record<string, unknown>;
+    try {
+      commonFields = normalizeTaskCommonSettings(commonSettings);
+    } catch {
+      commonFields = commonSettings;
+    }
+    return JSON.stringify({
+      taskType: "JAVA",
+      taskParams: buildJavaTaskParams(form),
+      ...commonFields,
+    }, null, 2);
+  }, [form, commonSettings]);
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(baselineForm);
+  const isDirty =
+    JSON.stringify(form) !== JSON.stringify(baselineForm) ||
+    JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings);
 
   const handleSave = async (): Promise<boolean> => {
     if (!currentTask) return false;
@@ -318,15 +336,34 @@ export function JavaTaskEditor({
       return false;
     }
 
+    let commonPatch;
+    try {
+      commonPatch = normalizeTaskCommonSettings(commonSettings);
+    } catch (error) {
+      toast.warning(error instanceof Error ? error.message : "请检查节点通用配置");
+      return false;
+    }
+    const taskGroupError = getTaskGroupValidationError(commonSettings, {
+      projectCode, taskGroups, isPending: taskGroupsQuery.isPending, isError: taskGroupsQuery.isError,
+    });
+    if (taskGroupError) {
+      toast.warning(taskGroupError);
+      return false;
+    }
+
     setSaving(true);
     try {
       const taskParams = buildJavaTaskParams(form);
-      await updateWorkflowTaskDefinition(workflowCode, currentTask.code, { taskParams });
+      await updateWorkflowTaskDefinition(workflowCode, currentTask.code, {
+        taskParams,
+        ...commonPatch,
+      });
       setCurrentTask((current) =>
         current
           ? {
               ...current,
               taskParams,
+              ...commonPatch,
             }
           : current,
       );
@@ -334,6 +371,7 @@ export function JavaTaskEditor({
         queryKey: ["data-development", "workflow-definition"],
       });
       setBaselineForm(form);
+      setBaselineCommonSettings(commonSettings);
       toast.success("Java 节点配置已保存");
       return true;
     } catch {
@@ -408,9 +446,12 @@ export function JavaTaskEditor({
             );
             if (!latestTask) throw new Error("节点不存在或已被删除");
             const nextForm = parseJavaTaskForm(latestTask.taskParams);
+            const nextCommonSettings = parseTaskCommonSettings(latestTask);
             setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
+            setCommonSettings(nextCommonSettings);
+            setBaselineCommonSettings(nextCommonSettings);
           }),
         );
       }
@@ -879,6 +920,15 @@ export function JavaTaskEditor({
                 </Button>
               </div>
             </CollapseSection>
+
+            <TaskCommonSettingsSection
+              id="java-common-settings"
+              title="节点通用配置"
+              settings={commonSettings}
+              onChange={setCommonSettings}
+              disabled={!currentTask}
+              description="这里配置 Java 节点的公共执行属性；与 JAR、JVM 参数等 Java 专属配置分开管理。"
+            />
           </div>
         </div>
       )}

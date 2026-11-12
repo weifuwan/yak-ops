@@ -7,7 +7,7 @@ import type {
 } from "@/service/workflow/management";
 
 export type PanelKey = "properties" | "schedule" | "history" | "versions" | "ops";
-export type ScheduleSection = "params" | "strategy" | "time";
+export type ScheduleSection = "strategy" | "time";
 export type ExecutionType = "PARALLEL" | "SERIAL_WAIT" | "SERIAL_DISCARD" | "SERIAL_PRIORITY";
 export type GlobalParameterType =
   | "VARCHAR"
