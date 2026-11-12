@@ -118,6 +118,8 @@ function FileTypeGlyph({ type }: { type: ResourceFileIconName }) {
           <path d="M14 2.8v4.4h4.2M8 11h8M8 14.5h8M8 18h5" />
         </>
       );
+    default:
+      return null;
   }
 }
 

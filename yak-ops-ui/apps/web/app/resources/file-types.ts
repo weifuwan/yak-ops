@@ -72,7 +72,7 @@ export const RESOURCE_FILE_TYPE_OPTIONS = [
   { value: "log", label: "Log" },
   { value: "conf", label: "CONF" },
   { value: "ini", label: "INI" },
-] as const;
+];
 
 export const RESOURCE_EDIT_SUFFIXES: ReadonlySet<string> = new Set(
   RESOURCE_FILE_TYPE_OPTIONS.map((option) => option.value),
