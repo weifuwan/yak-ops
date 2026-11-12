@@ -29,7 +29,9 @@ export function ResourceManagementPage() {
     event: MouseEvent<HTMLElement>,
   ) => {
     event.preventDefault();
-    resource.selectItem(item);
+    if (!resource.selectedFullNames.has(item.fullName)) {
+      resource.selectItem(item);
+    }
     setContextMenu({
       item,
       x: Math.min(event.clientX, Math.max(8, window.innerWidth - 190)),
