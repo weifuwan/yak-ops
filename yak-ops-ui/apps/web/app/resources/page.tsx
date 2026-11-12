@@ -114,6 +114,20 @@ export function ResourceManagementPage() {
                   </Button>
                 </div>
               </div>
+            ) : resource.isItemsPathInvalidError ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center text-[13px] text-[var(--yak-components-muted-text)]">
+                <AlertCircle size={30} strokeWidth={1.4} className="text-[#a0a7b2]" />
+                <strong className="font-medium text-[var(--yak-components-panel-text)]">资源路径无法识别</strong>
+                <span className="max-w-md">该资源可能已被删除或移动，也可能是当前存储路径异常。可以刷新列表，或返回资源根目录继续使用。</span>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <Button size="sm" variant="secondary" onClick={() => void resource.refresh()}>
+                    刷新资源列表
+                  </Button>
+                  <Button size="sm" onClick={resource.openRootDirectory}>
+                    返回资源根目录
+                  </Button>
+                </div>
+              </div>
             ) : resource.isItemsError ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center text-[13px] text-[var(--yak-components-muted-text)]">
                 <AlertCircle size={30} strokeWidth={1.4} className="text-[#a0a7b2]" />
