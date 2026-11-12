@@ -27,6 +27,7 @@ export default function ProductSidebar({ productLabel, navigation }: ProductSide
               ) : null}
               <NavLink
                 to={item.path}
+                end={item.end}
                 className={({ isActive }) =>
                   [
                     "flex h-8 items-center gap-3.5 border-r-2 px-[14px] text-[13px] text-[#26282c] transition-colors",
