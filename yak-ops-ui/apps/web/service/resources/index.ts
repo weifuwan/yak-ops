@@ -104,6 +104,62 @@ export const uploadResourceFile = async (
   HttpUtils.unwrap(response);
 };
 
+export interface ResourceFileContent {
+  content: string;
+}
+
+export const fetchResourceFileContent = (
+  fullName: string,
+  skipLineNum = 0,
+  limit = -1,
+): Promise<ResourceFileContent> =>
+  HttpUtils.getData<ResourceFileContent>(
+    `${RESOURCE_API}/view?${toQuery({ fullName, skipLineNum, limit })}`,
+  );
+
+export const createResourceFile = async (
+  fileName: string,
+  suffix: string,
+  content: string,
+  currentDir: string,
+): Promise<void> => {
+  const formData = new FormData();
+  formData.append("type", "FILE");
+  formData.append("fileName", fileName);
+  formData.append("suffix", suffix);
+  formData.append("content", content);
+  formData.append("currentDir", currentDir);
+
+  const response = await HttpUtils.postForm<void>(
+    `${RESOURCE_API}/online-create`,
+    formData,
+  );
+  HttpUtils.unwrap(response);
+};
+
+export const updateResourceFileContent = (
+  fullName: string,
+  content: string,
+): Promise<void> => {
+  const formData = new FormData();
+  formData.append("fullName", fullName);
+  formData.append("content", content);
+  return HttpUtils.putData<void>(`${RESOURCE_API}/update-content`, formData);
+};
+
+export const replaceResourceFile = (
+  fullName: string,
+  name: string,
+  file: File,
+): Promise<void> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return HttpUtils.putData<void>(
+    `${RESOURCE_API}?${toQuery({ fullName, name })}`,
+    formData,
+  );
+};
+
 export const renameResource = (
   fullName: string,
   name: string,
