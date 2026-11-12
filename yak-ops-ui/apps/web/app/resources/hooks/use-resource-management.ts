@@ -371,7 +371,6 @@ export function useResourceManagement() {
   const saveResourceEditor = async () => {
     if (!editorItem || editorLoading || editorSaving) return;
 
-    if (!editorItem) return;
     if (!editorContent.length) {
       toast.warning("文件内容不能为空");
       return;
