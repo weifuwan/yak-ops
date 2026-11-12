@@ -1,8 +1,11 @@
 import {
   Download,
+  Eye,
+  FilePenLine,
   FolderOpen,
   MoreHorizontal,
   Pencil,
+  Replace,
   Trash2,
 } from "lucide-react";
 import {
@@ -15,12 +18,16 @@ import {
 
 import type { ResourceItemRecord } from "@/service/resources";
 
-import { getName, isDirectoryItem } from "../utils";
+import { getName, isDirectoryItem, canPreviewResource } from "../utils";
 
 interface ResourceActionsProps {
   item: ResourceItemRecord;
   onOpen: (item: ResourceItemRecord) => void;
+  onOpenFile: (item: ResourceItemRecord) => void;
+  onPreview: (item: ResourceItemRecord) => void;
+  onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
+  onReplace: (item: ResourceItemRecord) => void;
   onRename: (item: ResourceItemRecord) => void;
   onDelete: (item: ResourceItemRecord) => void;
 }
@@ -28,11 +35,16 @@ interface ResourceActionsProps {
 export function ResourceActions({
   item,
   onOpen,
+  onOpenFile,
+  onPreview,
+  onEdit,
   onDownload,
+  onReplace,
   onRename,
   onDelete,
 }: ResourceActionsProps) {
   const directory = isDirectoryItem(item);
+  const previewable = canPreviewResource(item);
   const name = getName(item);
 
   return (
@@ -45,23 +57,42 @@ export function ResourceActions({
       >
         <MoreHorizontal size={17} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side="bottom" className="w-36">
+      <DropdownMenuContent align="end" side="bottom" className="w-40">
         {directory ? (
           <DropdownMenuItem onClick={() => onOpen(item)}>
             <FolderOpen size={14} />
             打开文件夹
           </DropdownMenuItem>
         ) : (
-          <DropdownMenuItem onClick={() => onDownload(item)}>
-            <Download size={14} />
-            下载
-          </DropdownMenuItem>
+          <>
+            {previewable ? (
+              <>
+                <DropdownMenuItem onClick={() => onPreview(item)}>
+                  <Eye size={14} />
+                  预览
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(item)}>
+                  <FilePenLine size={14} />
+                  在线编辑
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            <DropdownMenuItem onClick={() => onDownload(item)}>
+              <Download size={14} />
+              下载
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onReplace(item)}>
+              <Replace size={14} />
+              替换文件
+            </DropdownMenuItem>
+          </>
         )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onRename(item)}>
           <Pencil size={14} />
           重命名
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem tone="danger" onClick={() => onDelete(item)}>
           <Trash2 size={14} />
           删除
