@@ -33,8 +33,7 @@ export function DataDevelopmentWorkbench() {
   const protectedTabIds = new Set<string>();
   if (activeTab) {
     protectedTabIds.add(activeTab.id);
-    if (activeTab.kind === "draft-task") {
-      // Keep the parent workflow open while its draft task remains active.
+    if (activeTab.kind === "task") {
       protectedTabIds.add(`workflow:${activeTab.workflowCode}`);
     }
   }
@@ -87,9 +86,7 @@ export function DataDevelopmentWorkbench() {
                     ) : (
                       <TaskTypeBadgeIcon
                         taskType={
-                          tab.kind === "task"
-                            ? tab.task.taskType
-                            : tab.taskType
+                          tab.task.taskType
                         }
                         size={16}
                       />
@@ -207,25 +204,8 @@ export function DataDevelopmentWorkbench() {
                 <TaskEditor
                   workflowCode={tab.workflowCode}
                   task={tab.task}
-                />
-              </div>
-            );
-          }
-
-          if (tab.kind === "draft-task") {
-            return (
-              <div
-                key={tab.id}
-                aria-hidden={!isActive}
-                className={tabClassName}
-              >
-                <TaskEditor
-                  workflowCode={tab.workflowCode}
-                  draftTask={{
-                    nodeId: tab.nodeId,
-                    name: tab.title,
-                    taskType: tab.taskType,
-                  }}
+                  nodeId={tab.nodeId}
+                  readOnly={tab.releaseState.toUpperCase() === "ONLINE"}
                 />
               </div>
             );
