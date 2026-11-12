@@ -27,8 +27,6 @@ import {
   getExtension,
   getName,
   isDirectoryItem,
-  isResourceNotFoundError,
-  isResourcePathInvalidError,
   matchesTypeFilter,
 } from "../utils";
 
@@ -91,22 +89,6 @@ export function useResourceManagement() {
     () => findDirectoryPath(treeNodes, currentDir) ?? [],
     [treeNodes, currentDir],
   );
-  const isCurrentDirectoryMissing =
-    treeQuery.isSuccess &&
-    itemsQuery.isSuccess &&
-    Boolean(baseDirQuery.data) &&
-    Boolean(currentDir) &&
-    currentDir !== baseDirQuery.data &&
-    directoryPath.length === 0;
-  const isItemsNotFoundError = itemsQuery.isError && isResourceNotFoundError(itemsQuery.error);
-  const isItemsPathInvalidError = itemsQuery.isError && isResourcePathInvalidError(itemsQuery.error);
-
-  useEffect(() => {
-    if (isCurrentDirectoryMissing || itemsQuery.isError) {
-      setSelectedFullNames(new Set());
-    }
-  }, [isCurrentDirectoryMissing, itemsQuery.isError]);
-
   const resourceItems = useMemo(
     () => itemsQuery.data?.totalList ?? [],
     [itemsQuery.data?.totalList],
@@ -229,18 +211,15 @@ export function useResourceManagement() {
       } else {
         let deleted = 0;
         let failed = 0;
-        let missing = 0;
         for (const item of dialog.items) {
           try {
             await deleteResource(item.fullName);
             deleted += 1;
-          } catch (error) {
-            if (isResourceNotFoundError(error)) missing += 1;
-            else failed += 1;
+          } catch {
+            failed += 1;
           }
         }
         if (deleted > 0) toast.success("成功删除 " + deleted + " 项资源");
-        if (missing > 0) toast.warning(missing + " 项资源已不存在，列表将重新加载");
         if (failed > 0) toast.error(failed + " 项资源删除失败");
       }
 
@@ -248,15 +227,8 @@ export function useResourceManagement() {
       setDialogValue("");
       setPageNo(1);
       await invalidateResources();
-    } catch (error) {
-      if (isResourceNotFoundError(error)) {
-        toast.warning("该资源已不存在，正在刷新资源列表");
-        setDialog(null);
-        setDialogValue("");
-        setPageNo(1);
-        await invalidateResources();
-      }
-      // Keep other failed operations open so the user can review and retry.
+    } catch {
+      // The shared HTTP layer displays request and business errors.
     } finally {
       setActionPending(false);
     }
@@ -273,47 +245,16 @@ export function useResourceManagement() {
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
-      if (isResourceNotFoundError(error)) {
-        toast.warning("文件已不存在，正在刷新资源列表");
-        await invalidateResources();
-      }
-      // Other transport errors are reported by the shared HTTP layer.
+    } catch {
+      // The shared HTTP layer displays request and business errors.
     }
   };
 
   const refresh = async () => {
-    const [baseResult, treeResult, itemsResult] = await Promise.all([
-      baseDirQuery.refetch(),
-      treeQuery.refetch(),
-      currentDir ? itemsQuery.refetch() : Promise.resolve(undefined),
-    ]);
-
-    if (baseResult.isError) {
-      toast.error("资源根目录刷新失败，请稍后重试");
-    } else if (itemsResult?.isError) {
-      if (isResourceNotFoundError(itemsResult.error)) {
-        toast.warning("当前资源路径已不存在，请返回资源根目录");
-      } else if (isResourcePathInvalidError(itemsResult.error)) {
-        toast.warning("资源路径无法识别，请返回资源根目录或稍后重试");
-      } else {
-        toast.error("文件列表刷新失败，请稍后重试");
-      }
-    } else if (
-      treeResult.isSuccess &&
-      baseResult.data &&
-      currentDir &&
-      currentDir !== baseResult.data &&
-      !findDirectoryPath(treeResult.data ?? [], currentDir)
-    ) {
-      toast.warning("当前文件夹已不存在，请返回资源根目录");
-    } else if (treeResult.isError) {
-      toast.warning("文件列表已刷新，但目录结构暂时无法读取");
-    } else {
-      toast.success("资源列表已刷新");
-    }
+    await Promise.all([baseDirQuery.refetch(), treeQuery.refetch()]);
+    if (currentDir) await itemsQuery.refetch();
+    toast.success("资源列表已刷新");
   };
-
   const toggleItemSelection = (item: ResourceItemRecord) => {
     setSelectedFullNames((current) => {
       const next = new Set(current);
@@ -405,10 +346,7 @@ export function useResourceManagement() {
     isFetching: itemsQuery.isFetching,
     isTreeError: treeQuery.isError,
     isBaseDirError: baseDirQuery.isError,
-    isCurrentDirectoryMissing,
     isItemsError: itemsQuery.isError,
-    isItemsNotFoundError,
-    isItemsPathInvalidError,
     openDirectory,
     openBreadcrumb,
     openRootDirectory,
