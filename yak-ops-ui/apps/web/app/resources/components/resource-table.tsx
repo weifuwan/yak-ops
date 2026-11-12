@@ -20,7 +20,6 @@ interface ResourceTableProps {
   onContextMenu: (item: ResourceItemRecord, event: MouseEvent<HTMLTableRowElement>) => void;
   onOpen: (item: ResourceItemRecord) => void;
   onOpenFile: (item: ResourceItemRecord) => void;
-  onPreview: (item: ResourceItemRecord) => void;
   onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
   onReplace: (item: ResourceItemRecord) => void;
@@ -38,7 +37,6 @@ export function ResourceTable({
   onContextMenu,
   onOpen,
   onOpenFile,
-  onPreview,
   onEdit,
   onDownload,
   onReplace,
@@ -123,7 +121,6 @@ export function ResourceTable({
         <ResourceActions
           item={item}
           onOpen={onOpen}
-          onPreview={onPreview}
           onEdit={onEdit}
           onDownload={onDownload}
           onReplace={onReplace}
