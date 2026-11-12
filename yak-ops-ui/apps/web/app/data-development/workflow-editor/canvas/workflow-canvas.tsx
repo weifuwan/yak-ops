@@ -6,7 +6,6 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -44,9 +43,10 @@ import {
 } from "@yak-ops/yak-ui";
 
 import {
-  removeWorkflowTask,
+  generateWorkflowTaskCode,
   type WorkflowDagRecord,
 } from "@/service/workflow/definition";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   startWorkflowInstance,
   type WorkflowTaskDependType,
@@ -164,8 +164,9 @@ export function WorkflowCanvas({
     (state) => state.removeNodes,
   );
 
-  const queryClient = useQueryClient();
-  const { openDraftTask, openTask } = useDataDevelopmentWorkbench();
+  const { openTask } = useDataDevelopmentWorkbench();
+  const { currentWorkspace } = useWorkspace();
+  const projectCode = currentWorkspace?.id ?? "";
   const isWorkflowOnline =
     workflowReleaseState.toUpperCase() === "ONLINE";
   const edgeStyleLabel =
@@ -215,6 +216,7 @@ export function WorkflowCanvas({
         data: {
           ...node.data,
           focused: node.id === focusedNodeId,
+          readOnly: isWorkflowOnline,
         },
       })),
     [nodes, focusedNodeId],
@@ -304,49 +306,30 @@ export function WorkflowCanvas({
           ) ?? node.data.task;
 
     if (latestTask) {
-      openTask(nodeWorkflowCode, latestTask);
+      openTask(nodeWorkflowCode, latestTask, node.id, workflowReleaseState);
       return;
     }
 
-    openDraftTask(
-      nodeWorkflowCode,
-      node.id,
-      node.data.taskType,
-      node.data.name,
-    );
+    toast.warning("节点配置尚未初始化，请重新添加节点");
   };
 
   const requestNodeRemoval = (node: WorkflowCanvasNode) => {
     setContextMenu(null);
+    if (isWorkflowOnline) return;
     setPendingRemoval(node);
   };
 
   const confirmNodeRemoval = async () => {
     if (!pendingRemoval) return;
-
+    if (isWorkflowOnline) {
+      setPendingRemoval(null);
+      return;
+    }
     setRemovalPending(true);
     try {
-      if (
-        !pendingRemoval.data.draft &&
-        pendingRemoval.data.taskCode !== null
-      ) {
-        await removeWorkflowTask(
-          workflowCode,
-          pendingRemoval.data.taskCode,
-        );
-        void queryClient.invalidateQueries({
-          queryKey: ["data-development", "workflow-explorer"],
-        });
-      }
-
       removeNodes([pendingRemoval.id]);
       setPendingRemoval(null);
-      toast.success("节点已从工作流移除");
-    } catch (error) {
-      toast.error("移除节点失败", {
-        description:
-          error instanceof Error ? error.message : "请稍后重试。",
-      });
+      toast.success("节点已从工作流草稿移除，保存工作流后生效");
     } finally {
       setRemovalPending(false);
     }
@@ -437,11 +420,11 @@ export function WorkflowCanvas({
     event.dataTransfer.dropEffect = "copy";
   };
 
-  const handleDrop = (
+  const handleDrop = async (
     event: DragEvent<HTMLDivElement>,
   ) => {
     event.preventDefault();
-    if (!instance) return;
+    if (!instance || isWorkflowOnline) return;
 
     const raw = event.dataTransfer.getData(
       WORKFLOW_TASK_DRAG_TYPE,
@@ -460,20 +443,29 @@ export function WorkflowCanvas({
 
     if (!taskType) return;
 
-    const createdNode = addDroppedNode(
-      taskType,
-      instance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      }),
-    );
-
-    setPendingNodeRename({
-      ...createdNode,
-      taskType,
-    });
-    setNodeNameValue(createdNode.name);
-    setNodeNameError(null);
+    if (!projectCode) {
+      toast.warning("请先选择工作空间");
+      return;
+    }
+    try {
+      const taskCode = await generateWorkflowTaskCode();
+      const createdNode = addDroppedNode(
+        taskType,
+        instance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        }),
+        taskCode,
+        Number(projectCode),
+      );
+      setPendingNodeRename({ ...createdNode, taskType });
+      setNodeNameValue(createdNode.name);
+      setNodeNameError(null);
+    } catch (error) {
+      toast.error("创建节点失败", {
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
+    }
   };
 
   return (
