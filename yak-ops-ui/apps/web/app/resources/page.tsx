@@ -1,6 +1,13 @@
-import { useState, type MouseEvent } from "react";
+import { useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import { FolderOpen, LoaderCircle } from "lucide-react";
-import { Button, Pagination } from "@yak-ops/yak-ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  Pagination,
+} from "@yak-ops/yak-ui";
 
 import type { ResourceItemRecord } from "@/service/resources";
 
@@ -8,20 +15,25 @@ import { ResourceBreadcrumb } from "./components/resource-breadcrumb";
 import { ResourceContextMenu } from "./components/resource-context-menu";
 import { ResourceDetailsPanel } from "./components/resource-details-panel";
 import { ResourceDialog } from "./components/resource-dialog";
+import { ResourceEditorPanel } from "./components/resource-editor-panel";
 import { ResourceGrid } from "./components/resource-grid";
 import { ResourceHeader } from "./components/resource-header";
 import { ResourceTable } from "./components/resource-table";
 import { ResourceToolbar } from "./components/resource-toolbar";
 import { useResourceManagement } from "./hooks/use-resource-management";
+import { canPreviewResource } from "./utils";
 
 export function ResourceManagementPage() {
   const resource = useResourceManagement();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [discardEditorOpen, setDiscardEditorOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     item: ResourceItemRecord;
     x: number;
     y: number;
   } | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceTargetRef = useRef<ResourceItemRecord | null>(null);
 
   const handleContextMenu = (
     item: ResourceItemRecord,
@@ -34,8 +46,42 @@ export function ResourceManagementPage() {
     setContextMenu({
       item,
       x: Math.min(event.clientX, Math.max(8, window.innerWidth - 190)),
-      y: Math.min(event.clientY, Math.max(8, window.innerHeight - 260)),
+      y: Math.min(event.clientY, Math.max(8, window.innerHeight - 310)),
     });
+  };
+
+  const handleOpenFile = (item: ResourceItemRecord) => {
+    if (canPreviewResource(item)) {
+      void resource.openResourceFile(item, "preview");
+    } else {
+      void resource.downloadFile(item);
+    }
+  };
+
+  const handleReplaceRequest = (item: ResourceItemRecord) => {
+    replaceTargetRef.current = item;
+    replaceInputRef.current?.click();
+  };
+
+  const handleReplaceChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    const target = replaceTargetRef.current;
+    replaceTargetRef.current = null;
+    event.currentTarget.value = "";
+    if (file && target) void resource.replaceFile(target, file);
+  };
+
+  const handleCloseEditor = () => {
+    if (resource.isEditorDirty) {
+      setDiscardEditorOpen(true);
+      return;
+    }
+    resource.closeResourceEditor();
+  };
+
+  const confirmCloseEditor = () => {
+    setDiscardEditorOpen(false);
+    resource.closeResourceEditor();
   };
 
   const emptyState = (
@@ -59,9 +105,10 @@ export function ResourceManagementPage() {
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
         <ResourceHeader
           canManage={Boolean(resource.currentDir)}
-          busy={resource.actionPending}
+          busy={resource.actionPending || resource.editorSaving}
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
+          onCreateFile={resource.openCreateFile}
           onUpload={resource.uploadFiles}
         />
 
@@ -93,101 +140,146 @@ export function ResourceManagementPage() {
           />
 
           <div className="flex min-h-0 flex-1 gap-3">
-            <section className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--yak-components-panel-border)] bg-white">
-              {resource.isTreeError || resource.isBaseDirError ? (
-                <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
-                  资源目录加载失败
-                  <Button size="sm" variant="secondary" onClick={() => void resource.refresh()}>
-                    重试
-                  </Button>
-                </div>
-              ) : resource.isItemsError ? (
-                <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
-                  文件列表加载失败
-                  <Button size="sm" variant="secondary" onClick={() => void resource.retryItems()}>
-                    重试
-                  </Button>
-                </div>
-              ) : resource.isLoading && resource.visibleItems.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
-                  <LoaderCircle size={16} className="animate-spin" />
-                  正在加载资源
-                </div>
-              ) : resource.viewMode === "grid" ? (
-                resource.visibleItems.length === 0 ? (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
-                    <FolderOpen size={34} strokeWidth={1.3} className="text-[#c4cbd4]" />
-                    <span>
-                      {resource.deferredKeyword
-                        ? "没有找到匹配的资源"
-                        : resource.typeFilter !== "ALL"
-                          ? "当前目录没有符合类型的资源"
-                          : "当前目录暂无资源"}
-                    </span>
-                    <span className="text-[11px] text-[#b0b7c1]">
-                      上传文件或新建文件夹，开始管理资源
-                    </span>
-                  </div>
-                ) : (
-                  <ResourceGrid
-                    items={resource.visibleItems}
-                    selectedKeys={resource.selectedFullNames}
-                    onToggleSelection={resource.toggleItemSelection}
-                    onSelect={resource.selectItem}
-                    onContextMenu={handleContextMenu}
-                    onOpen={resource.openDirectory}
-                    onDownload={resource.downloadFile}
-                    onRename={resource.openRenameDialog}
-                    onDelete={resource.openDeleteDialog}
-                  />
-                )
-              ) : (
-                <ResourceTable
-                  items={resource.visibleItems}
-                  selectedKeys={resource.selectedFullNames}
-                  loading={resource.isFetching}
-                  emptyText={emptyState}
-                  onSelectionChange={resource.handleSelectionChange}
-                  onSelect={resource.selectItem}
-                  onContextMenu={handleContextMenu}
-                  onOpen={resource.openDirectory}
-                  onDownload={resource.downloadFile}
-                  onRename={resource.openRenameDialog}
-                  onDelete={resource.openDeleteDialog}
-                />
-              )}
-
-              {resource.total > 0 ? (
-                <footer className="flex min-h-[56px] shrink-0 items-center justify-end border-t border-[var(--yak-components-panel-border)] px-4 py-2">
-                  <Pagination
-                    page={resource.pageNo}
-                    pageSize={resource.pageSize}
-                    total={resource.total}
-                    pageSizeOptions={[10, 20, 50]}
-                    pageSizeLabel="每页"
-                    showSizeChanger
-                    disabled={resource.isFetching}
-                    renderTotal={(count, [start, end]) => (
-                      <span className="tabular-nums">
-                        显示 {start}-{end} 条，共 {count} 条
-                      </span>
-                    )}
-                    onChange={resource.handlePageChange}
-                  />
-                </footer>
-              ) : null}
-            </section>
-
-            {detailsOpen ? (
-              <ResourceDetailsPanel
-                items={resource.selectedItems}
-                onClose={() => setDetailsOpen(false)}
-                onCopyPath={resource.copyResourcePath}
+            {resource.editorMode ? (
+              <ResourceEditorPanel
+                mode={resource.editorMode}
+                item={resource.editorItem}
+                fileName={resource.editorFileName}
+                suffix={resource.editorSuffix}
+                content={resource.editorContent}
+                loading={resource.editorLoading}
+                saving={resource.editorSaving}
+                dirty={resource.isEditorDirty}
+                error={resource.editorError}
+                onFileNameChange={resource.setEditorFileName}
+                onSuffixChange={resource.setEditorSuffix}
+                onContentChange={resource.setEditorContent}
+                onSave={() => void resource.saveResourceEditor()}
+                onClose={handleCloseEditor}
+                onRetry={() => {
+                  if (resource.editorItem && resource.editorMode !== "create") {
+                    void resource.openResourceFile(
+                      resource.editorItem,
+                      resource.editorMode,
+                    );
+                  }
+                }}
+                onSwitchToEdit={resource.editCurrentResourceFile}
               />
-            ) : null}
+            ) : (
+              <>
+                <section className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--yak-components-panel-border)] bg-white">
+                  {resource.isTreeError || resource.isBaseDirError ? (
+                    <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
+                      资源目录加载失败
+                      <Button size="sm" variant="secondary" onClick={() => void resource.refresh()}>
+                        重试
+                      </Button>
+                    </div>
+                  ) : resource.isItemsError ? (
+                    <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
+                      文件列表加载失败
+                      <Button size="sm" variant="secondary" onClick={() => void resource.retryItems()}>
+                        重试
+                      </Button>
+                    </div>
+                  ) : resource.isLoading && resource.visibleItems.length === 0 ? (
+                    <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
+                      <LoaderCircle size={16} className="animate-spin" />
+                      正在加载资源
+                    </div>
+                  ) : resource.viewMode === "grid" ? (
+                    resource.visibleItems.length === 0 ? (
+                      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[13px] text-[var(--yak-components-muted-text)]">
+                        <FolderOpen size={34} strokeWidth={1.3} className="text-[#c4cbd4]" />
+                        <span>
+                          {resource.deferredKeyword
+                            ? "没有找到匹配的资源"
+                            : resource.typeFilter !== "ALL"
+                              ? "当前目录没有符合类型的资源"
+                              : "当前目录暂无资源"}
+                        </span>
+                        <span className="text-[11px] text-[#b0b7c1]">
+                          上传文件或新建文件夹，开始管理资源
+                        </span>
+                      </div>
+                    ) : (
+                      <ResourceGrid
+                        items={resource.visibleItems}
+                        selectedKeys={resource.selectedFullNames}
+                        onToggleSelection={resource.toggleItemSelection}
+                        onSelect={resource.selectItem}
+                        onContextMenu={handleContextMenu}
+                        onOpen={resource.openDirectory}
+                        onOpenFile={handleOpenFile}
+                        onPreview={(item) => void resource.openResourceFile(item, "preview")}
+                        onEdit={(item) => void resource.openResourceFile(item, "edit")}
+                        onDownload={resource.downloadFile}
+                        onReplace={handleReplaceRequest}
+                        onRename={resource.openRenameDialog}
+                        onDelete={resource.openDeleteDialog}
+                      />
+                    )
+                  ) : (
+                    <ResourceTable
+                      items={resource.visibleItems}
+                      selectedKeys={resource.selectedFullNames}
+                      loading={resource.isFetching}
+                      emptyText={emptyState}
+                      onSelectionChange={resource.handleSelectionChange}
+                      onSelect={resource.selectItem}
+                      onContextMenu={handleContextMenu}
+                      onOpen={resource.openDirectory}
+                      onOpenFile={handleOpenFile}
+                      onPreview={(item) => void resource.openResourceFile(item, "preview")}
+                      onEdit={(item) => void resource.openResourceFile(item, "edit")}
+                      onDownload={resource.downloadFile}
+                      onReplace={handleReplaceRequest}
+                      onRename={resource.openRenameDialog}
+                      onDelete={resource.openDeleteDialog}
+                    />
+                  )}
+
+                  {resource.total > 0 ? (
+                    <footer className="flex min-h-[56px] shrink-0 items-center justify-end border-t border-[var(--yak-components-panel-border)] px-4 py-2">
+                      <Pagination
+                        page={resource.pageNo}
+                        pageSize={resource.pageSize}
+                        total={resource.total}
+                        pageSizeOptions={[10, 20, 50]}
+                        pageSizeLabel="每页"
+                        showSizeChanger
+                        disabled={resource.isFetching}
+                        renderTotal={(count, [start, end]) => (
+                          <span className="tabular-nums">
+                            显示 {start}-{end} 条，共 {count} 条
+                          </span>
+                        )}
+                        onChange={resource.handlePageChange}
+                      />
+                    </footer>
+                  ) : null}
+                </section>
+
+                {detailsOpen ? (
+                  <ResourceDetailsPanel
+                    items={resource.selectedItems}
+                    onClose={() => setDetailsOpen(false)}
+                    onCopyPath={resource.copyResourcePath}
+                  />
+                ) : null}
+              </>
+            )}
           </div>
         </main>
       </div>
+
+      <input
+        ref={replaceInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleReplaceChange}
+      />
 
       <ResourceContextMenu
         item={contextMenu?.item ?? null}
@@ -197,9 +289,21 @@ export function ResourceManagementPage() {
           setContextMenu(null);
           resource.openDirectory(item);
         }}
+        onPreview={(item) => {
+          setContextMenu(null);
+          void resource.openResourceFile(item, "preview");
+        }}
+        onEdit={(item) => {
+          setContextMenu(null);
+          void resource.openResourceFile(item, "edit");
+        }}
         onDownload={(item) => {
           setContextMenu(null);
           void resource.downloadFile(item);
+        }}
+        onReplace={(item) => {
+          setContextMenu(null);
+          handleReplaceRequest(item);
         }}
         onRename={(item) => {
           setContextMenu(null);
@@ -227,6 +331,32 @@ export function ResourceManagementPage() {
         onConfirm={resource.confirmDialog}
         onClose={resource.closeDialog}
       />
+
+      <Dialog
+        open={discardEditorOpen}
+        onOpenChange={setDiscardEditorOpen}
+      >
+        <DialogContent className="w-[420px]">
+          <DialogTitle className="text-base font-semibold">
+            放弃未保存的修改？
+          </DialogTitle>
+          <DialogDescription className="mt-3 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+            当前文件还有未保存的内容，确定离开并丢弃这些修改吗？
+          </DialogDescription>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setDiscardEditorOpen(false)}
+            >
+              继续编辑
+            </Button>
+            <Button size="sm" variant="danger" onClick={confirmCloseEditor}>
+              放弃修改
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
