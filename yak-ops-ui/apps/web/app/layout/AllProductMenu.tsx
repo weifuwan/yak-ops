@@ -5,6 +5,7 @@ import { ALL_PRODUCT_GROUPS } from "./navigation";
 
 type AllProductMenuProps = {
   open: boolean;
+  interactive: boolean;
   favoriteProductIds: ReadonlySet<string>;
   favoriteMutatingIds: ReadonlySet<string>;
   onNavigate: () => void;
@@ -13,6 +14,7 @@ type AllProductMenuProps = {
 
 export default function AllProductMenu({
   open,
+  interactive,
   favoriteProductIds,
   favoriteMutatingIds,
   onNavigate,
@@ -22,12 +24,19 @@ export default function AllProductMenu({
     <section
       id="all-product-menu"
       aria-label="全部产品二级菜单"
-      aria-hidden={!open}
+      aria-hidden={!open || !interactive}
       className={[
-        "absolute inset-y-0 left-full max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
-        "transition-[width] ease-in-out motion-reduce:transition-none",
-        open ? "w-[765px] duration-[240ms]" : "w-0 duration-[170ms] pointer-events-none",
+        "absolute inset-y-0 left-[220px] w-[765px] max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
+        "transform-gpu transition-[transform,opacity] motion-reduce:transition-none",
+        open ? "translate-x-0 opacity-100" : "translate-x-3 opacity-0",
+        open && interactive ? "pointer-events-auto" : "pointer-events-none",
       ].join(" ")}
+      style={{
+        transitionDuration: open ? "220ms" : "160ms",
+        transitionTimingFunction: open
+          ? "cubic-bezier(0.22, 1, 0.36, 1)"
+          : "cubic-bezier(0.4, 0, 1, 1)",
+      }}
     >
       <div className="h-full w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto">
         <div className="min-h-full px-12 pt-4">
@@ -52,7 +61,7 @@ export default function AllProductMenu({
                         to={product.path}
                         target="_blank"
                         rel="noopener noreferrer"
-                        tabIndex={open ? 0 : -1}
+                        tabIndex={open && interactive ? 0 : -1}
                         className="flex h-full min-w-0 flex-1 cursor-pointer items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                         onClick={onNavigate}
                       >
@@ -65,10 +74,10 @@ export default function AllProductMenu({
 
                       <button
                         type="button"
-                        aria-label={favorite ? `取消收藏${product.label}` : `收藏${product.label}`}
+                        aria-label={favorite ? \`取消收藏\${product.label}\` : \`收藏\${product.label}\`}
                         aria-pressed={favorite}
                         disabled={mutating}
-                        tabIndex={open ? 0 : -1}
+                        tabIndex={open && interactive ? 0 : -1}
                         className={[
                           "ml-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded transition-[background-color,color,opacity]",
                           "hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:cursor-default disabled:opacity-45",
