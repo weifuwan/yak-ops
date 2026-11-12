@@ -26,17 +26,12 @@ export default function AllProductMenu({
       aria-label="全部产品二级菜单"
       aria-hidden={!open || !interactive}
       className={[
-        "absolute inset-y-0 left-[220px] w-[765px] max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
-        "transform-gpu transition-[transform,opacity] motion-reduce:transition-none",
-        open ? "translate-x-0 opacity-100" : "translate-x-3 opacity-0",
+        "absolute inset-y-0 left-full max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
+        "transition-[width] ease-in-out motion-reduce:transition-none",
+        open ? "w-[765px] duration-[260ms]" : "w-0 duration-[240ms]",
+        interactive ? "delay-0" : "delay-[60ms]",
         open && interactive ? "pointer-events-auto" : "pointer-events-none",
       ].join(" ")}
-      style={{
-        transitionDuration: open ? "220ms" : "160ms",
-        transitionTimingFunction: open
-          ? "cubic-bezier(0.22, 1, 0.36, 1)"
-          : "cubic-bezier(0.4, 0, 1, 1)",
-      }}
     >
       <div className="h-full w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto">
         <div className="min-h-full px-12 pt-4">

@@ -4,30 +4,15 @@ import { Link } from "react-router-dom";
 import AllProductMenu from "./AllProductMenu";
 import { useProductFavorites } from "./use-product-favorites";
 
-const LAUNCHER_CLOSE_RESET_DELAY_MS = 220;
-
 type ProductLauncherProps = { open: boolean; onClose: () => void };
 
 export default function ProductLauncher({ open, onClose }: ProductLauncherProps) {
   const [allProductsOpen, setAllProductsOpen] = useState(false);
-  const [firstLevelVisible, setFirstLevelVisible] = useState(open);
   const { favorites, favoriteProductIds, mutatingIds, loading, error, retry, toggleFavorite } =
     useProductFavorites(open);
 
   useEffect(() => {
-    if (open) {
-      setFirstLevelVisible(true);
-      return;
-    }
-
-    // Keep the second level visually open while the complete launcher slides away.
-    // Reset it only after the parent transform has finished.
-    const timer = window.setTimeout(() => {
-      setFirstLevelVisible(false);
-      setAllProductsOpen(false);
-    }, LAUNCHER_CLOSE_RESET_DELAY_MS);
-
-    return () => window.clearTimeout(timer);
+    if (!open) setAllProductsOpen(false);
   }, [open]);
 
   const secondLevelOpen = open && allProductsOpen;
@@ -47,24 +32,18 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
 
       <div
         className={[
-          "pointer-events-none fixed bottom-0 left-0 top-10 z-40 w-[985px] max-w-full transform-gpu transition-transform motion-reduce:transition-none",
-          open ? "translate-x-0 duration-[260ms]" : "-translate-x-full duration-[200ms]",
+          "pointer-events-none fixed bottom-0 left-0 top-10 z-40 w-[220px] transform-gpu transition-transform ease-in-out motion-reduce:transition-none",
+          open ? "translate-x-0 duration-300" : "-translate-x-[220px] duration-[220ms]",
         ].join(" ")}
-        style={{
-          transitionTimingFunction: open
-            ? "cubic-bezier(0.22, 1, 0.36, 1)"
-            : "cubic-bezier(0.4, 0, 1, 1)",
-        }}
       >
         <aside
           id="global-product-launcher"
           aria-label="全局产品一级菜单"
           aria-hidden={!open}
           className={[
-            "user-menu pointer-events-auto flex h-full w-[220px] flex-col bg-[#15181c] text-xs text-white",
+            "user-menu flex h-full w-[220px] flex-col bg-[#15181c] text-xs text-white",
             "box-border",
-            firstLevelVisible ? "user-menu-active" : "",
-            open ? "" : "pointer-events-none",
+            open ? "user-menu-active pointer-events-auto" : "pointer-events-none",
           ].join(" ")}
         >
           <button
@@ -155,7 +134,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
         </aside>
 
         <AllProductMenu
-          open={allProductsOpen}
+          open={secondLevelOpen}
           interactive={open}
           favoriteProductIds={favoriteProductIds}
           favoriteMutatingIds={mutatingIds}
