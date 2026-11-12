@@ -36,6 +36,7 @@ export function GenericTaskEditor({
   taskType,
   readOnly,
   onApplyTask,
+  onDirtyChange,
   onBackToWorkflow,
 }: {
   workflowCode: number;
@@ -44,6 +45,7 @@ export function GenericTaskEditor({
   taskType: string;
   readOnly: boolean;
   onApplyTask: (task: WorkflowTaskRecord) => boolean;
+  onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -70,6 +72,11 @@ export function GenericTaskEditor({
   const isDirty =
     JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings) ||
     taskParamsText !== baselineTaskParamsText;
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+    return () => onDirtyChange(false);
+  }, [isDirty, onDirtyChange]);
 
   const jsonText = useMemo(() => {
     let commonFields: Record<string, unknown>;
