@@ -14,15 +14,23 @@ import {
   useTaskScheduling,
 } from "./task-scheduling-section";
 
+type DraftTaskRecord = {
+  nodeId: string;
+  name: string;
+  taskType: string;
+};
+
 export function GenericTaskEditor({
   workflowCode,
   task,
+  draftTask,
   taskName,
   taskType,
   onBackToWorkflow,
 }: {
   workflowCode: number;
-  task: WorkflowTaskRecord;
+  task?: WorkflowTaskRecord;
+  draftTask?: DraftTaskRecord;
   taskName: string;
   taskType: string;
   onBackToWorkflow: () => void;
@@ -43,20 +51,29 @@ export function GenericTaskEditor({
   const jsonText = useMemo(
     () =>
       JSON.stringify(
-        {
-          workflowCode,
-          task: {
-            ...currentTask,
-            taskType: currentTask.taskType || taskType,
-            taskGroupId: normalizedSettings.taskGroupId,
-            taskGroupPriority: normalizedSettings.taskGroupPriority,
-          },
-        },
+        currentTask
+          ? {
+              workflowCode,
+              task: {
+                ...currentTask,
+                taskType: currentTask.taskType || taskType,
+                taskGroupId: normalizedSettings.taskGroupId,
+                taskGroupPriority: normalizedSettings.taskGroupPriority,
+              },
+            }
+          : {
+              workflowCode,
+              draft: true,
+              node: draftTask,
+              taskGroupId: normalizedSettings.taskGroupId,
+              taskGroupPriority: normalizedSettings.taskGroupPriority,
+            },
         null,
         2,
       ),
     [
       currentTask,
+      draftTask,
       normalizedSettings.taskGroupId,
       normalizedSettings.taskGroupPriority,
       taskType,
@@ -107,10 +124,15 @@ export function GenericTaskEditor({
 
     setRefreshing(true);
     try {
-      const [, dag] = await Promise.all([
-        scheduling.taskGroupQuery.refetch(),
-        getWorkflowDefinition(workflowCode),
-      ]);
+      if (scheduling.projectCode) {
+        await scheduling.taskGroupQuery.refetch();
+      }
+      if (!currentTask) {
+        toast.success("任务组列表已刷新");
+        return;
+      }
+
+      const dag = await getWorkflowDefinition(workflowCode);
       const latestTask = dag.taskDefinitionList.find(
         (item) => item.code === currentTask.code,
       );
@@ -176,7 +198,7 @@ export function GenericTaskEditor({
                 当前节点类型暂未提供可视化参数编辑器，原有节点参数保持不变。
               </p>
               <pre className="max-h-64 overflow-auto rounded-sm bg-[var(--yak-color-hover)] p-3 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
-                {JSON.stringify(currentTask.taskParams ?? {}, null, 2)}
+                {JSON.stringify(currentTask?.taskParams ?? {}, null, 2)}
               </pre>
             </section>
           </div>
