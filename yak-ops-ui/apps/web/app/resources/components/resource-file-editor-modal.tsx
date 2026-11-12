@@ -57,8 +57,8 @@ interface ResourceFileEditorModalProps {
   saving: boolean;
   dirty?: boolean;
   error?: string;
-  onFileNameChange: (value: string) => void;
-  onSuffixChange: (value: string) => void;
+  onFileNameChange?: (value: string) => void;
+  onSuffixChange?: (value: string) => void;
   onContentChange: (value: string) => void;
   onSubmit: () => void;
   onClose: () => void;
@@ -179,7 +179,7 @@ export function ResourceFileEditorModal({
                 value={fileName}
                 disabled={saving}
                 placeholder="例如：daily_sync"
-                onChange={(event) => onFileNameChange(event.target.value)}
+                onChange={(event) => onFileNameChange?.(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
@@ -198,7 +198,7 @@ export function ResourceFileEditorModal({
                 items={FILE_SUFFIX_OPTIONS}
                 value={suffix}
                 disabled={saving}
-                onValueChange={(value) => onSuffixChange(String(value ?? "sql"))}
+                onValueChange={(value) => onSuffixChange?.(String(value ?? "sql"))}
               >
                 <SelectTrigger
                   id="resource-file-suffix"
