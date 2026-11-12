@@ -413,20 +413,20 @@ export function TreeSelect({
           disabled={disabled}
           aria-label={ariaLabel ?? placeholder}
           data-placeholder={hasValue ? undefined : ""}
-          className={cn(
-            selectTriggerVariants({ size, variant }),
-            clearable && hasValue && !disabled && "pr-14",
-          )}
+          className={selectTriggerVariants({ size, variant })}
         >
           <span
-            className="min-w-0 flex-1 truncate"
+            className={cn(
+              "min-w-0 flex-1 truncate",
+              clearable && hasValue && !disabled && "pr-6",
+            )}
             title={selectedOption?.label ?? selectedValue ?? undefined}
           >
             {selectedOption?.label ?? selectedValue ?? placeholder}
           </span>
           <span
             aria-hidden="true"
-            className="shrink-0 text-[var(--yak-components-input-icon)] transition-transform duration-150 data-[popup-open=true]:rotate-180 motion-reduce:transition-none"
+            className="shrink-0 text-[var(--yak-components-input-icon)] transition-[rotate] duration-150 ease group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none"
           >
             <ChevronDownIcon />
           </span>
