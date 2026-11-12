@@ -17,7 +17,11 @@ import {
 } from "@yak-ops/yak-ui";
 import { Info, Plus, Trash2 } from "lucide-react";
 
-import { getWorkflowDefinition, type WorkflowTaskRecord } from "@/service/workflow/definition";
+import {
+  getWorkflowDefinition,
+  updateWorkflowTaskDefinition,
+  type WorkflowTaskRecord,
+} from "@/service/workflow/definition";
 import { listWorkflowResources } from "@/service/resources";
 import {
   startWorkflowInstance,
