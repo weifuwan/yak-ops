@@ -22,7 +22,7 @@ import { ResourceHeader } from "./components/resource-header";
 import { ResourceTable } from "./components/resource-table";
 import { ResourceToolbar } from "./components/resource-toolbar";
 import { useResourceManagement } from "./hooks/use-resource-management";
-import { canPreviewResource } from "./utils";
+import { canEditResource } from "./utils";
 
 export function ResourceManagementPage() {
   const resource = useResourceManagement();
@@ -52,8 +52,8 @@ export function ResourceManagementPage() {
   };
 
   const handleOpenFile = (item: ResourceItemRecord) => {
-    if (canPreviewResource(item)) {
-      void resource.openResourceFile(item, "preview");
+    if (canEditResource(item)) {
+      void resource.openResourceFile(item);
     } else {
       void resource.downloadFile(item);
     }
@@ -110,7 +110,7 @@ export function ResourceManagementPage() {
             resource.actionPending ||
             resource.editorSaving ||
             resource.createFileSaving ||
-            Boolean(resource.editorMode)
+            Boolean(resource.editorItem)
           }
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
@@ -119,7 +119,7 @@ export function ResourceManagementPage() {
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-7 pb-5 pt-5 max-md:px-4">
-          {!resource.editorMode ? (
+          {!resource.editorItem ? (
             <>
               <ResourceToolbar
                 keyword={resource.keyword}
@@ -150,9 +150,8 @@ export function ResourceManagementPage() {
           ) : null}
 
           <div className="flex min-h-0 flex-1 gap-3">
-            {resource.editorMode ? (
+            {resource.editorItem ? (
               <ResourceEditorPanel
-                mode={resource.editorMode}
                 item={resource.editorItem}
                 content={resource.editorContent}
                 loading={resource.editorLoading}
@@ -163,14 +162,10 @@ export function ResourceManagementPage() {
                 onSave={() => void resource.saveResourceEditor()}
                 onClose={handleCloseEditor}
                 onRetry={() => {
-                  if (resource.editorItem && resource.editorMode) {
-                    void resource.openResourceFile(
-                      resource.editorItem,
-                      resource.editorMode,
-                    );
+                  if (resource.editorItem) {
+                    void resource.openResourceFile(resource.editorItem);
                   }
                 }}
-                onSwitchToEdit={resource.editCurrentResourceFile}
               />
             ) : (
               <>
@@ -218,8 +213,7 @@ export function ResourceManagementPage() {
                         onContextMenu={handleContextMenu}
                         onOpen={resource.openDirectory}
                         onOpenFile={handleOpenFile}
-                        onPreview={(item) => void resource.openResourceFile(item, "preview")}
-                        onEdit={(item) => void resource.openResourceFile(item, "edit")}
+                        onEdit={(item) => void resource.openResourceFile(item)}
                         onDownload={resource.downloadFile}
                         onReplace={handleReplaceRequest}
                         onRename={resource.openRenameDialog}
@@ -237,8 +231,7 @@ export function ResourceManagementPage() {
                       onContextMenu={handleContextMenu}
                       onOpen={resource.openDirectory}
                       onOpenFile={handleOpenFile}
-                      onPreview={(item) => void resource.openResourceFile(item, "preview")}
-                      onEdit={(item) => void resource.openResourceFile(item, "edit")}
+                      onEdit={(item) => void resource.openResourceFile(item)}
                       onDownload={resource.downloadFile}
                       onReplace={handleReplaceRequest}
                       onRename={resource.openRenameDialog}
@@ -295,13 +288,9 @@ export function ResourceManagementPage() {
           setContextMenu(null);
           resource.openDirectory(item);
         }}
-        onPreview={(item) => {
-          setContextMenu(null);
-          void resource.openResourceFile(item, "preview");
-        }}
         onEdit={(item) => {
           setContextMenu(null);
-          void resource.openResourceFile(item, "edit");
+          void resource.openResourceFile(item);
         }}
         onDownload={(item) => {
           setContextMenu(null);
