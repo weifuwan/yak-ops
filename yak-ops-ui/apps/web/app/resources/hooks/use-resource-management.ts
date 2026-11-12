@@ -347,16 +347,17 @@ export function useResourceManagement() {
 
     if (editorMode === "create") {
       const name = editorFileName.trim();
-      if (!name) {
+      const suffixInName = getExtension(name);
+      const baseName =
+        suffixInName === editorSuffix
+          ? name.slice(0, -(editorSuffix.length + 1))
+          : name;
+      if (!baseName.trim()) {
         toast.warning("请输入文件名称");
         return;
       }
-      if (/[\\/]/.test(name)) {
+      if (/[\\/]/.test(baseName)) {
         toast.warning("文件名称不能包含路径分隔符");
-        return;
-      }
-      if (getExtension(name)) {
-        toast.warning("文件名称无需填写扩展名，请在右侧选择文件类型");
         return;
       }
     }
@@ -364,8 +365,13 @@ export function useResourceManagement() {
     setEditorSaving(true);
     try {
       if (editorMode === "create") {
+        const typedName = editorFileName.trim();
+        const baseName =
+          getExtension(typedName) === editorSuffix
+            ? typedName.slice(0, -(editorSuffix.length + 1))
+            : typedName;
         await createResourceFile(
-          editorFileName.trim(),
+          baseName,
           editorSuffix,
           editorContent,
           currentDir,
