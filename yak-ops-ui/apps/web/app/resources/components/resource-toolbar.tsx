@@ -204,12 +204,12 @@ export function ResourceToolbar({
           aria-pressed={detailsOpen}
           title={detailsOpen ? "隐藏详情面板" : "显示详情面板"}
           onClick={onToggleDetails}
-          className="size-8 rounded-md transition-colors"
+          className="size-7 shrink-0"
         >
           {detailsOpen ? (
-            <PanelRightClose size={15} strokeWidth={1.8} />
+            <PanelRightClose size={14} strokeWidth={1.8} />
           ) : (
-            <PanelRightOpen size={15} strokeWidth={1.8} />
+            <PanelRightOpen size={14} strokeWidth={1.8} />
           )}
         </Button>
 
@@ -222,7 +222,7 @@ export function ResourceToolbar({
           title="刷新"
           onClick={onRefresh}
           isDisabled={isLoading}
-          className="size-8"
+          className="size-7 shrink-0"
         >
           <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
         </Button>
