@@ -70,6 +70,13 @@ export interface WorkflowDagRecord {
   taskDefinitionList: WorkflowTaskRecord[];
 }
 
+export type WorkflowTaskDefinitionPatch = Partial<
+  Pick<
+    WorkflowTaskRecord,
+    "taskParams" | "taskGroupId" | "taskGroupPriority"
+  >
+>;
+
 export interface WorkflowDefinitionPageParams {
   pageNo: number;
   pageSize: number;
@@ -213,7 +220,7 @@ export const renameWorkflowTask = async (
 export const updateWorkflowTaskDefinition = async (
   workflowCode: number,
   taskCode: number,
-  taskParams: unknown,
+  patch: WorkflowTaskDefinitionPatch,
 ): Promise<void> => {
   const dag = await getWorkflowDefinition(workflowCode);
   const taskExists = dag.taskDefinitionList.some(
@@ -225,7 +232,7 @@ export const updateWorkflowTaskDefinition = async (
   }
 
   const taskDefinitionList = dag.taskDefinitionList.map((item) =>
-    item.code === taskCode ? { ...item, taskParams } : item,
+    item.code === taskCode ? { ...item, ...patch } : item,
   );
 
   await updateWorkflowDefinitionGraph(
