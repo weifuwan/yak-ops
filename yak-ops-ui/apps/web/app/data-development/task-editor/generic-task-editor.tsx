@@ -96,11 +96,15 @@ export function GenericTaskEditor({
         taskGroupId: nextSettings.taskGroupId,
         taskGroupPriority: nextSettings.taskGroupPriority,
       });
-      setCurrentTask((current) => ({
-        ...current,
-        taskGroupId: nextSettings.taskGroupId,
-        taskGroupPriority: nextSettings.taskGroupPriority,
-      }));
+      setCurrentTask((current) =>
+        current
+          ? {
+              ...current,
+              taskGroupId: nextSettings.taskGroupId,
+              taskGroupPriority: nextSettings.taskGroupPriority,
+            }
+          : current,
+      );
       scheduling.markSaved(nextSettings);
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
