@@ -104,7 +104,7 @@ export function ResourceManagementPage() {
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center text-[13px] text-[var(--yak-components-muted-text)]">
                 <FileX size={34} strokeWidth={1.3} className="text-[#a0a7b2]" />
                 <strong className="font-medium text-[var(--yak-components-panel-text)]">当前资源路径已不存在</strong>
-                <span className="max-w-md">该资源可能已被本地删除或移动。刷新列表后，失效的页面数据会被清理。</span>
+                <span className="max-w-md">该资源可能已被本地删除或移动。刷新列表后，将重新检查当前资源是否仍然存在。</span>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                   <Button size="sm" variant="secondary" onClick={() => void resource.refresh()}>
                     刷新资源列表
