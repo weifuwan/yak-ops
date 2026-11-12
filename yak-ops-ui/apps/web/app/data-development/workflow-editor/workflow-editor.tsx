@@ -153,7 +153,9 @@ function WorkflowEditorShell({
           throw new Error("节点“" + node.data.name + "”尚未完成初始化");
         }
         const taskPayload: Partial<WorkflowTaskRecord> = { ...task };
-        delete taskPayload.id;
+        if (task.id <= 0) {
+          delete taskPayload.id;
+        }
         return {
           ...taskPayload,
           code: node.data.taskCode,
