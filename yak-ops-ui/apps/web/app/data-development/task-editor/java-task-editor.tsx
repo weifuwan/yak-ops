@@ -343,8 +343,9 @@ export function JavaTaskEditor({
 
   useEffect(() => {
     onDirtyChange(isDirty);
-    return () => onDirtyChange(false);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
   const handleSave = async (): Promise<boolean> => {
     if (!currentTask || readOnly) return false;
