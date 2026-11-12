@@ -42,8 +42,8 @@ export function ResourceBreadcrumb({
           path.length === 0 ? "font-medium text-[#394150]" : "text-[#8b94a2]",
         ].join(" ")}
       >
-        <House size={13} />
-        资源文件
+        <House size={14} className="block shrink-0" />
+        <span className="inline-flex h-[14px] items-center leading-[14px]">资源文件</span>
       </button>
       {path.map((node, index) => (
         <span
