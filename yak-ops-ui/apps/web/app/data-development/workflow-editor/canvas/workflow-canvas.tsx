@@ -228,6 +228,7 @@ export function WorkflowCanvas({
         data: {
           backend: edge.data?.backend ?? false,
           hovered: edge.id === hoveredEdgeId,
+          relation: edge.data?.relation,
         },
       })),
     [edges, hoveredEdgeId],
@@ -475,8 +476,6 @@ export function WorkflowCanvas({
         id={`workflow-${workflowCode}`}
         nodes={renderNodes}
         edges={renderEdges}
-        nodesDraggable={!isWorkflowOnline}
-        nodesConnectable={!isWorkflowOnline}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onInit={(flow) => {
@@ -508,11 +507,23 @@ export function WorkflowCanvas({
         onMove={(_event, viewport) => {
           setZoomPercent(Math.round(viewport.zoom * 100));
         }}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodesDelete={handleNodesDelete}
-        onEdgesDelete={handleEdgesDelete}
-        onConnect={handleConnect}
+        onNodesChange={(changes) =>
+          onNodesChange(
+            isWorkflowOnline
+              ? changes.filter((change) => change.type !== "remove" && change.type !== "position")
+              : changes,
+          )
+        }
+        onEdgesChange={(changes) =>
+          onEdgesChange(
+            isWorkflowOnline
+              ? changes.filter((change) => change.type !== "remove")
+              : changes,
+          )
+        }
+        onNodesDelete={isWorkflowOnline ? undefined : handleNodesDelete}
+        onEdgesDelete={isWorkflowOnline ? undefined : handleEdgesDelete}
+        onConnect={isWorkflowOnline ? undefined : handleConnect}
         isValidConnection={isValidConnection}
         onPaneClick={() => {
           setContextMenu(null);
@@ -530,10 +541,10 @@ export function WorkflowCanvas({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         nodesDraggable={
-          interactionMode === "pointer"
+          !isWorkflowOnline && interactionMode === "pointer"
         }
         nodesConnectable={
-          interactionMode === "pointer"
+          !isWorkflowOnline && interactionMode === "pointer"
         }
         elementsSelectable={
           interactionMode === "pointer"
