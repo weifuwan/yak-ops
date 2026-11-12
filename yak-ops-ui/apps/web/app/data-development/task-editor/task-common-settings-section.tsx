@@ -179,7 +179,7 @@ function SettingsSelect({
 
 export function TaskCommonSettingsSection({
   id, title = "节点通用配置", settings, onChange, disabled = false,
-  description, footer,
+  description, footer, compact = false,
 }: {
   id: string;
   title?: string;
@@ -188,6 +188,7 @@ export function TaskCommonSettingsSection({
   disabled?: boolean;
   description?: string;
   footer?: ReactNode;
+  compact?: boolean;
 }) {
   const navigate = useNavigate();
   const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
@@ -206,6 +207,9 @@ export function TaskCommonSettingsSection({
   ];
   const update = <K extends keyof TaskCommonSettings>(key: K, value: TaskCommonSettings[K]) =>
     onChange({ ...settings, [key]: value });
+  const fieldGridClass = compact
+    ? "grid grid-cols-1 gap-y-3"
+    : "grid grid-cols-2 gap-x-8 gap-y-3 max-xl:grid-cols-1";
 
   return (
     <CollapseSection
@@ -225,7 +229,7 @@ export function TaskCommonSettingsSection({
 
       <section className="space-y-3">
         <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">执行资源</h4>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 max-xl:grid-cols-1">
+        <div className={fieldGridClass}>
           <SettingField label="Worker Group">
             <Input size="small" variant="outlined" value={settings.workerGroup} disabled={disabled}
               onChange={event => update("workerGroup", event.target.value)} placeholder="default" className="w-full min-w-0" />
@@ -269,7 +273,7 @@ export function TaskCommonSettingsSection({
 
       <section className="space-y-3">
         <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">执行策略</h4>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 max-xl:grid-cols-1">
+        <div className={fieldGridClass}>
           <SettingField label="任务优先级">
             <SettingsSelect value={settings.taskPriority} options={TASK_PRIORITIES} disabled={disabled}
               onChange={value => update("taskPriority", value as TaskPriority)} />
@@ -291,7 +295,7 @@ export function TaskCommonSettingsSection({
 
       <section className="space-y-3">
         <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">超时设置</h4>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 max-xl:grid-cols-1">
+        <div className={fieldGridClass}>
           <SettingField label="超时控制">
             <SettingsSelect value={settings.timeoutFlag} options={[{ value: "CLOSE", label: "关闭" }, { value: "OPEN", label: "开启" }]}
               disabled={disabled} onChange={value => update("timeoutFlag", value as TaskTimeoutFlag)} />
@@ -314,7 +318,7 @@ export function TaskCommonSettingsSection({
 
       <section className="space-y-3">
         <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">资源限制</h4>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 max-xl:grid-cols-1">
+        <div className={fieldGridClass}>
           <SettingField label="CPU 配额">
             <Input size="small" variant="outlined" type="number" min={-1} step={1} value={settings.cpuQuota}
               disabled={disabled} onChange={event => update("cpuQuota", event.target.value)} className="w-full min-w-0" />
