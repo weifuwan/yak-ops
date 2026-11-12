@@ -379,8 +379,8 @@ export function useResourceManagement() {
     setEditorSaving(true);
     try {
       await updateResourceFileContent(editorItem.fullName, editorContent);
-      setEditorInitialContent(editorContent);
       toast.success("文件保存成功");
+      closeResourceEditor();
       await queryClient.invalidateQueries({ queryKey: RESOURCE_QUERY_KEY });
     } catch {
       // The shared HTTP layer displays request and business errors.
