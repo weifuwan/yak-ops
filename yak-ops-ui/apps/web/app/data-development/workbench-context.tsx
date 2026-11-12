@@ -36,6 +36,8 @@ export type WorkflowWorkbenchTab =
 
 type DataDevelopmentWorkbenchContextValue = {
   tabs: WorkflowWorkbenchTab[];
+  dirtyTabIds: ReadonlySet<string>;
+  setTabDirty: (id: string, dirty: boolean) => void;
   activeTabId: string | null;
   activeTab: WorkflowWorkbenchTab | null;
   openWorkflow: (workflow: WorkflowDefinitionRecord) => void;
@@ -82,9 +84,20 @@ const toTaskTab = (
 
 export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren) {
   const [tabs, setTabs] = useState<WorkflowWorkbenchTab[]>([]);
+  const [dirtyTabIds, setDirtyTabIds] = useState<Set<string>>(() => new Set());
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const workflowStoresRef = useRef(new Map<number, WorkflowStoreApi>());
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+
+  const setTabDirty = useCallback((id: string, dirty: boolean) => {
+    setDirtyTabIds((current) => {
+      if (current.has(id) === dirty) return current;
+      const next = new Set(current);
+      if (dirty) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
 
   const openTab = (nextTab: WorkflowWorkbenchTab) => {
     setTabs((current) => {
@@ -190,6 +203,11 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     const closingIndex = tabs.findIndex((tab) => closingIds.has(tab.id));
     if (closingIndex < 0) return;
     const nextTabs = tabs.filter((tab) => !closingIds.has(tab.id));
+    setDirtyTabIds((current) => {
+      const next = new Set(current);
+      closingIds.forEach((id) => next.delete(id));
+      return next;
+    });
     setTabs(nextTabs);
     if (activeTabId && closingIds.has(activeTabId)) {
       setActiveTabId(nextTabs[Math.min(closingIndex, nextTabs.length - 1)]?.id ?? null);
@@ -200,6 +218,8 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
 
   const value = useMemo(() => ({
     tabs,
+    dirtyTabIds,
+    setTabDirty,
     activeTabId,
     activeTab,
     openWorkflow,
@@ -214,7 +234,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     updateTabTitle,
     closeTab,
     closeTabs,
-  }), [tabs, activeTabId, activeTab, registerWorkflowStore, getWorkflowStore]);
+  }), [tabs, dirtyTabIds, setTabDirty, activeTabId, activeTab, registerWorkflowStore, getWorkflowStore]);
 
   return (
     <DataDevelopmentWorkbenchContext.Provider value={value}>
