@@ -275,7 +275,6 @@ export function useResourceManagement() {
 
     const requestId = ++editorRequestId.current;
     setEditorItem(item);
-    setEditorItem(item);
     setEditorContent("");
     setEditorInitialContent("");
     setEditorError("");
