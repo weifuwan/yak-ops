@@ -18,6 +18,10 @@ const FILE_SUFFIX_OPTIONS = [
   { value: "sql", label: "SQL" },
   { value: "py", label: "Python" },
   { value: "sh", label: "Shell" },
+  { value: "bat", label: "Batch" },
+  { value: "cfg", label: "CFG" },
+  { value: "hql", label: "HQL" },
+  { value: "ini", label: "INI" },
   { value: "js", label: "JavaScript" },
   { value: "java", label: "Java" },
   { value: "json", label: "JSON" },
@@ -34,6 +38,7 @@ const FILE_SUFFIX_OPTIONS = [
 interface ResourceEditorPanelProps {
   mode: ResourceEditorMode;
   item: ResourceItemRecord | null;
+  currentDirectory: string;
   fileName: string;
   suffix: string;
   content: string;
@@ -53,6 +58,7 @@ interface ResourceEditorPanelProps {
 export function ResourceEditorPanel({
   mode,
   item,
+  currentDirectory,
   fileName,
   suffix,
   content,
@@ -99,7 +105,7 @@ export function ResourceEditorPanel({
               {title}
             </div>
             <div className="text-[10px] text-[#9aa2ad]">
-              {creating ? "新建资源文件" : item?.fullName}
+              {creating ? "保存位置：" + currentDirectory : item?.fullName}
             </div>
           </div>
         </div>
