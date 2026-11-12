@@ -5,7 +5,6 @@ import {
   FileImage,
   FileSpreadsheet,
   FileText,
-  Folder,
 } from "lucide-react";
 
 import type { ResourceItemRecord } from "@/service/resources";
@@ -46,11 +45,27 @@ export function ResourceFileIcon({
     return (
       <span
         className={[
-          "flex shrink-0 items-center justify-center rounded-md bg-[#fff7e6] text-[#e5ad35]",
+          "flex shrink-0 items-center justify-center",
           large ? "size-10" : "size-8",
         ].join(" ")}
       >
-        <Folder size={large ? 23 : 19} strokeWidth={1.65} />
+        <svg
+          width={large ? 32 : 24}
+          height={large ? 32 : 24}
+          viewBox="0 0 1024 1024"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M96 160h252q20 0 36 16l64 64h480q48 0 48 48v528q0 48-48 48H96q-48 0-48-48V208q0-48 48-48z"
+            fill="#E9A52B"
+          />
+          <path
+            d="M96 304h832q48 0 48 48v464q0 48-48 48H96q-48 0-48-48V352q0-48 48-48z"
+            fill="#FFD16B"
+          />
+        </svg>
       </span>
     );
   }
