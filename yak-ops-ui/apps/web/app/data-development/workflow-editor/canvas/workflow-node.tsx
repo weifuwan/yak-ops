@@ -21,17 +21,20 @@ function ActionButton({
   danger = false,
   icon,
   onClick,
+  disabled = false,
 }: {
   label: string;
   danger?: boolean;
   icon: ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => {
@@ -67,7 +70,7 @@ export function WorkflowTaskNode({
   const hasOutgoingEdge = useWorkflowStore(
     (state) => state.edges.some((edge) => edge.source === id),
   );
-  const { openDraftTask, openTask } = useDataDevelopmentWorkbench();
+  const { openTask } = useDataDevelopmentWorkbench();
 
   const openCurrentTask = () => {
     if (!data.workflowCode) {
@@ -78,16 +81,11 @@ export function WorkflowTaskNode({
     }
 
     if (data.task) {
-      openTask(data.workflowCode, data.task);
+      openTask(data.workflowCode, data.task, id);
       return;
     }
 
-    openDraftTask(
-      data.workflowCode,
-      id,
-      data.taskType,
-      data.name,
-    );
+    toast.warning("节点配置尚未初始化，请重新添加节点");
   };
 
   const controlsVisibility = selected
@@ -115,6 +113,7 @@ export function WorkflowTaskNode({
           <ActionButton
             label="新建上游"
             icon={<Plus size={13} />}
+            disabled={data.readOnly}
             onClick={() =>
               openSelector({
                 kind: "upstream",
@@ -131,6 +130,7 @@ export function WorkflowTaskNode({
             danger
             label="删除"
             icon={<Trash2 size={13} />}
+            disabled={data.readOnly}
             onClick={() => removeNodes([id])}
           />
         </div>
@@ -140,7 +140,7 @@ export function WorkflowTaskNode({
         id="target"
         type="target"
         position={Position.Left}
-        isConnectable
+        isConnectable={!data.readOnly}
         className={[
           "!z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
           "!top-4 !-left-[9px] !translate-y-0",
@@ -199,9 +199,10 @@ export function WorkflowTaskNode({
         id="source"
         type="source"
         position={Position.Right}
-        isConnectable
+        isConnectable={!data.readOnly}
         onClick={(event) => {
           event.stopPropagation();
+          if (data.readOnly) return;
           openSelector({
             kind: "downstream",
             nodeId: id,
