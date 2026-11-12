@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { DataDevelopmentWorkbench } from "../workbench";
 import {
@@ -12,18 +11,14 @@ import { PanelResizer } from "./panel-resizer";
 const DEFAULT_PANEL_WIDTH = 280;
 
 export function DataDevelopmentLayout() {
-  const navigate = useNavigate();
   const [activeSection, setActiveSection] =
     useState<DataDevelopmentSection>("development");
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
 
   const handleSectionChange = (section: DataDevelopmentSection) => {
-    if (section === "resource") {
-      navigate("/resources");
-      return;
-    }
     setActiveSection(section);
+    setPanelCollapsed(false);
   };
 
   return (

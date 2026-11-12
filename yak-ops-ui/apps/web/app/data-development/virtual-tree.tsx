@@ -35,6 +35,7 @@ interface VirtualTreeProps<T extends VirtualTreeNode> {
   className?: string;
   onToggle?: (item: T) => void;
   onActivate?: (item: T) => void;
+  onItemDoubleClick?: (item: T) => void;
   isItemInteractive?: (item: T) => boolean;
   onContextMenu?: (item: T, event: MouseEvent<HTMLDivElement>) => void;
   onMove?: (
@@ -57,6 +58,7 @@ export function VirtualTree<T extends VirtualTreeNode>({
   className,
   onToggle,
   onActivate,
+  onItemDoubleClick,
   isItemInteractive,
   onContextMenu,
   onMove,
@@ -279,7 +281,11 @@ export function VirtualTree<T extends VirtualTreeNode>({
                 onContextMenu(item, event);
               }}
               onDoubleClick={() => {
-                if (item.expandable) onToggle?.(item);
+                if (item.expandable) {
+                  onToggle?.(item);
+                } else {
+                  onItemDoubleClick?.(item);
+                }
               }}
               onDragStart={(event) => {
                 if (!onMove || !item.draggable) return;
