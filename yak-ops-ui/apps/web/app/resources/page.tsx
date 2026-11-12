@@ -117,8 +117,7 @@ export function ResourceManagementPage() {
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-7 pb-5 pt-5 max-md:px-4">
-          <>
-              <ResourceToolbar
+          <ResourceToolbar
                 keyword={resource.keyword}
                 onKeywordChange={resource.handleKeywordChange}
                 onClearKeyword={resource.clearKeyword}
@@ -143,10 +142,8 @@ export function ResourceManagementPage() {
                 onRootClick={resource.openRootDirectory}
                 onOpen={resource.openBreadcrumb}
               />
-          </>
 
           <div className="flex min-h-0 flex-1 gap-3">
-            <>
                 <section className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--yak-components-panel-border)] bg-white">
                   {resource.isTreeError || resource.isBaseDirError ? (
                     <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-[var(--yak-components-muted-text)]">
@@ -238,14 +235,13 @@ export function ResourceManagementPage() {
                   ) : null}
                 </section>
 
-                {detailsOpen ? (
-                  <ResourceDetailsPanel
-                    items={resource.selectedItems}
-                    onClose={() => setDetailsOpen(false)}
-                    onCopyPath={resource.copyResourcePath}
-                  />
-                ) : null}
-            </>
+            {detailsOpen ? (
+              <ResourceDetailsPanel
+                items={resource.selectedItems}
+                onClose={() => setDetailsOpen(false)}
+                onCopyPath={resource.copyResourcePath}
+              />
+            ) : null}
           </div>
         </main>
       </div>
