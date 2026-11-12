@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Info } from "lucide-react";
@@ -141,8 +141,8 @@ function SchedulingField({
   children,
 }: {
   label: string;
-  labelAddon?: React.ReactNode;
-  children: React.ReactNode;
+  labelAddon?: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Field className="grid grid-cols-[148px_minmax(0,1fr)] !gap-3 items-center max-md:grid-cols-1">
