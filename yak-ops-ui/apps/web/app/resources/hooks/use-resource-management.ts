@@ -390,8 +390,17 @@ export function useResourceManagement() {
   };
 
   const replaceFile = async (item: ResourceItemRecord, file: File) => {
-    const currentExtension = getExtension(getName(item));
-    const replacementExtension = getExtension(file.name);
+    const currentName = getName(item);
+    const currentDot = currentName.lastIndexOf(".");
+    const replacementDot = file.name.lastIndexOf(".");
+    const currentExtension =
+      currentDot > 0 && currentDot < currentName.length - 1
+        ? currentName.slice(currentDot + 1)
+        : "";
+    const replacementExtension =
+      replacementDot > 0 && replacementDot < file.name.length - 1
+        ? file.name.slice(replacementDot + 1)
+        : "";
     if (!currentExtension || currentExtension !== replacementExtension) {
       toast.warning("替换文件的扩展名必须与原文件一致");
       return;
