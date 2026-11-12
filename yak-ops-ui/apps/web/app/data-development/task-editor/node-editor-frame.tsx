@@ -234,7 +234,7 @@ export function NodeEditorFrame({
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <main className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
           <fieldset disabled={readOnly} className="contents">
             {children}
           </fieldset>
