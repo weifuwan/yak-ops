@@ -4,6 +4,7 @@ import type {
 } from "@/service/resources";
 
 import type { ResourceTypeFilter } from "./types";
+import { RESOURCE_EDIT_SUFFIXES } from "./file-types";
 
 const normalizeResourcePath = (path: string) =>
   path.replace(/[\\/]+/g, "\\").replace(/\\+$/, "").toLowerCase();
@@ -49,26 +50,6 @@ export const getExtension = (name: string) => {
   return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : "";
 };
 
-const RESOURCE_EDIT_SUFFIXES = new Set([
-  "txt",
-  "log",
-  "sh",
-  "bat",
-  "conf",
-  "cfg",
-  "py",
-  "java",
-  "sql",
-  "xml",
-  "hql",
-  "properties",
-  "json",
-  "yml",
-  "yaml",
-  "ini",
-  "js",
-]);
-
 /**
  * Uses the file suffixes supported by the resource content editor.
  * Files outside this list remain downloadable, but are not opened in the text editor.
@@ -78,7 +59,7 @@ export const canEditResource = (item: ResourceItemRecord) => {
   const name = getName(item);
   const dot = name.lastIndexOf(".");
   const suffix = dot > 0 && dot < name.length - 1 ? name.slice(dot + 1) : "";
-  return RESOURCE_EDIT_SUFFIXES.has(suffix);
+  return RESOURCE_EDIT_SUFFIXES.has(suffix.toLowerCase());
 };
 
 export const getResourceCategory = (name: string): ResourceTypeFilter => {

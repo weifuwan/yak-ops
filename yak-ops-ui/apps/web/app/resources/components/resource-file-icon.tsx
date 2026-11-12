@@ -9,14 +9,16 @@ import {
 
 import type { ResourceItemRecord } from "@/service/resources";
 
+import { getResourceFileTypeConfig } from "../file-types";
 import { getExtension, getName, isDirectoryItem } from "../utils";
+import { FileTypeIcon } from "./file-type-icon";
 
 const getFileVisual = (name: string) => {
   const extension = getExtension(name);
   if (["jar", "zip", "gz", "tar", "war", "7z"].includes(extension)) {
     return { Icon: Archive, color: "text-[#2563eb]", background: "bg-[#eff6ff]" };
   }
-  if (["sql", "py", "java", "js", "ts", "sh", "json", "xml", "yml", "yaml"].includes(extension)) {
+  if (["ts", "tsx", "jsx", "c", "cpp", "go", "rs"].includes(extension)) {
     return { Icon: FileCode2, color: "text-[#2563eb]", background: "bg-[#eff6ff]" };
   }
   if (["xlsx", "xls", "csv"].includes(extension)) {
@@ -28,7 +30,7 @@ const getFileVisual = (name: string) => {
   if (["pdf"].includes(extension)) {
     return { Icon: FileText, color: "text-[#e05252]", background: "bg-[#fff0f0]" };
   }
-  if (["md", "txt", "log", "properties", "conf", "doc", "docx"].includes(extension)) {
+  if (["md", "doc", "docx"].includes(extension)) {
     return { Icon: FileText, color: "text-[#15966b]", background: "bg-[#eaf8f1]" };
   }
   return { Icon: File, color: "text-[#64748b]", background: "bg-[#f1f5f9]" };
@@ -68,6 +70,11 @@ export function ResourceFileIcon({
         </svg>
       </span>
     );
+  }
+
+  const extension = getExtension(getName(item));
+  if (getResourceFileTypeConfig(extension)) {
+    return <FileTypeIcon extension={extension} size={large ? 40 : 32} />;
   }
 
   const visual = getFileVisual(getName(item));

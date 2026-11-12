@@ -23,27 +23,9 @@ import {
 
 import type { ResourceItemRecord } from "@/service/resources";
 
+import { RESOURCE_FILE_TYPE_OPTIONS } from "../file-types";
 import { getExtension, getName } from "../utils";
-
-const FILE_SUFFIX_OPTIONS = [
-  { value: "sql", label: "SQL" },
-  { value: "py", label: "Python" },
-  { value: "sh", label: "Shell" },
-  { value: "bat", label: "Batch" },
-  { value: "cfg", label: "CFG" },
-  { value: "hql", label: "HQL" },
-  { value: "js", label: "JavaScript" },
-  { value: "java", label: "Java" },
-  { value: "json", label: "JSON" },
-  { value: "yaml", label: "YAML" },
-  { value: "yml", label: "YML" },
-  { value: "xml", label: "XML" },
-  { value: "properties", label: "Properties" },
-  { value: "txt", label: "TXT" },
-  { value: "log", label: "Log" },
-  { value: "conf", label: "CONF" },
-  { value: "ini", label: "INI" },
-];
+import { FileTypeIcon } from "./file-type-icon";
 
 interface ResourceFileEditorModalProps {
   mode: "create" | "edit";
@@ -108,7 +90,11 @@ export function ResourceFileEditorModal({
       title={
         <span className="flex min-w-0 items-center gap-2">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]">
-            {creating ? <FilePlus2 size={15} /> : <FileCode2 size={15} />}
+            {creating ? (
+              <FilePlus2 size={15} />
+            ) : (
+              <FileTypeIcon extension={getExtension(itemName)} size={20} />
+            )}
           </span>
           <span>{creating ? "新建文件" : "编辑文件"}</span>
           {!creating && item ? (
@@ -195,7 +181,7 @@ export function ResourceFileEditorModal({
               </FieldLabel>
               <Select
                 size="small"
-                items={FILE_SUFFIX_OPTIONS}
+                items={RESOURCE_FILE_TYPE_OPTIONS}
                 value={suffix}
                 disabled={saving}
                 onValueChange={(value) => onSuffixChange?.(String(value ?? "sql"))}
@@ -205,12 +191,18 @@ export function ResourceFileEditorModal({
                   variant="outlined"
                   className="w-full"
                 >
-                  <SelectValue placeholder="选择类型" />
+                  <span className="flex min-w-0 items-center gap-2">
+                    <FileTypeIcon extension={suffix} size={18} />
+                    <SelectValue placeholder="选择类型" />
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
-                  {FILE_SUFFIX_OPTIONS.map((option) => (
+                  {RESOURCE_FILE_TYPE_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <SelectItemText>{option.label}</SelectItemText>
+                      <span className="flex items-center gap-2">
+                        <FileTypeIcon extension={option.value} size={18} />
+                        <SelectItemText>{option.label}</SelectItemText>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -222,7 +214,7 @@ export function ResourceFileEditorModal({
         <>
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-[#edf0f3] bg-[#fafbfc] px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
-              <FileCode2 size={15} className="shrink-0 text-[#778294]" />
+              <FileTypeIcon extension={getExtension(itemName)} size={20} />
               <div className="min-w-0">
                 <div className="truncate text-xs font-medium text-[#394150]" title={item?.fullName}>
                   {item?.fullName}
