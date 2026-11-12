@@ -13,7 +13,6 @@ interface ResourceGridProps {
   onContextMenu: (item: ResourceItemRecord, event: MouseEvent<HTMLElement>) => void;
   onOpen: (item: ResourceItemRecord) => void;
   onOpenFile: (item: ResourceItemRecord) => void;
-  onPreview: (item: ResourceItemRecord) => void;
   onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
   onReplace: (item: ResourceItemRecord) => void;
@@ -29,7 +28,6 @@ export function ResourceGrid({
   onContextMenu,
   onOpen,
   onOpenFile,
-  onPreview,
   onEdit,
   onDownload,
   onReplace,
@@ -103,8 +101,7 @@ export function ResourceGrid({
               <ResourceActions
                 item={item}
                 onOpen={onOpen}
-                      onPreview={onPreview}
-                onEdit={onEdit}
+                            onEdit={onEdit}
                 onDownload={onDownload}
                 onReplace={onReplace}
                 onRename={onRename}
