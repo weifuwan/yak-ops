@@ -1,6 +1,5 @@
 import {
   Download,
-  Eye,
   FilePenLine,
   FolderOpen,
   MoreHorizontal,
@@ -18,12 +17,11 @@ import {
 
 import type { ResourceItemRecord } from "@/service/resources";
 
-import { getName, isDirectoryItem, canPreviewResource } from "../utils";
+import { getName, isDirectoryItem, canEditResource } from "../utils";
 
 interface ResourceActionsProps {
   item: ResourceItemRecord;
   onOpen: (item: ResourceItemRecord) => void;
-  onPreview: (item: ResourceItemRecord) => void;
   onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
   onReplace: (item: ResourceItemRecord) => void;
@@ -34,7 +32,6 @@ interface ResourceActionsProps {
 export function ResourceActions({
   item,
   onOpen,
-  onPreview,
   onEdit,
   onDownload,
   onReplace,
@@ -42,7 +39,7 @@ export function ResourceActions({
   onDelete,
 }: ResourceActionsProps) {
   const directory = isDirectoryItem(item);
-  const previewable = canPreviewResource(item);
+  const editable = canEditResource(item);
   const name = getName(item);
 
   return (
@@ -63,18 +60,11 @@ export function ResourceActions({
           </DropdownMenuItem>
         ) : (
           <>
-            {previewable ? (
-              <>
-                <DropdownMenuItem onClick={() => onPreview(item)}>
-                  <Eye size={14} />
-                  预览
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(item)}>
-                  <FilePenLine size={14} />
-                  在线编辑
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
+            {editable ? (
+              <DropdownMenuItem onClick={() => onEdit(item)}>
+                <FilePenLine size={14} />
+                编辑文件
+              </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem onClick={() => onDownload(item)}>
               <Download size={14} />
