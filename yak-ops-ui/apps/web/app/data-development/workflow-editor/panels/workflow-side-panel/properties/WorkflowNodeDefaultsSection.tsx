@@ -69,11 +69,12 @@ export function WorkflowNodeDefaultsSection({
     ? "当前工作流还没有节点，添加节点后即可批量应用通用配置。"
     : hasMixedSettings
       ? "当前节点的通用配置不一致。应用后会统一覆盖当前工作流的全部已有节点，单个节点之后仍可单独调整。"
-      : "将这组通用配置批量应用到当前工作流的全部已有节点；单个节点之后仍可单独调整。";
+      : "将这组通用配置批量应用到当前工作流的全部已有节点；单个节点之后仍可单独调整。新建节点自动继承默认值需要后端增加工作流级字段，当前暂未实现。";
 
   return (
     <TaskCommonSettingsSection
       id="workflow-node-default-settings"
+      compact
       title="节点默认配置"
       settings={settings}
       onChange={setSettings}
