@@ -33,15 +33,28 @@ import lombok.extern.slf4j.Slf4j;
 public class LocalStorageOperator extends AbstractStorageOperator implements Closeable, StorageOperator {
 
     public LocalStorageOperator(String resourceBaseAbsolutePath) throws IOException {
-        super(resourceBaseAbsolutePath);
-        final Path path = Paths.get(resourceBaseAbsolutePath);
+        super(normalizeBasePath(resourceBaseAbsolutePath));
+
+        final Path path = Paths.get(this.resourceBaseAbsolutePath);
         if (Files.exists(path)) {
             if (!Files.isDirectory(path)) {
-                throw new IllegalArgumentException("The base path must be a directory: " + resourceBaseAbsolutePath);
+                throw new IllegalArgumentException(
+                        "The base path must be a directory: " + this.resourceBaseAbsolutePath);
             }
         } else {
             Files.createDirectories(path);
         }
+    }
+
+    /**
+     * Resolve the configured storage directory using the current operating system's
+     * path rules so every later storage operation uses the same absolute path format.
+     */
+    private static String normalizeBasePath(String resourceBaseAbsolutePath) {
+        if (resourceBaseAbsolutePath == null) {
+            throw new NullPointerException("Resource upload path should not be null");
+        }
+        return Paths.get(resourceBaseAbsolutePath).toAbsolutePath().normalize().toString();
     }
 
     @SneakyThrows
