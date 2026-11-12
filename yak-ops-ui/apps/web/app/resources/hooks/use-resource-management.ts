@@ -388,7 +388,7 @@ export function useResourceManagement() {
     openBreadcrumb,
     openRootDirectory,
     openParentDirectory,
-    canGoParent: directoryPath.length > 1,
+    canGoParent: Boolean(currentDir && baseDirQuery.data && currentDir !== baseDirQuery.data),
     openCreateDialog,
     openRenameDialog,
     openDeleteDialog,
