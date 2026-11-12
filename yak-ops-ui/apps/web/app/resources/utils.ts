@@ -49,7 +49,7 @@ export const getExtension = (name: string) => {
   return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : "";
 };
 
-const RESOURCE_VIEW_SUFFIXES = new Set([
+const RESOURCE_EDIT_SUFFIXES = new Set([
   "txt",
   "log",
   "sh",
@@ -70,10 +70,10 @@ const RESOURCE_VIEW_SUFFIXES = new Set([
 ]);
 
 /**
- * Mirrors the backend's default resource.view.suffixs configuration.
- * The backend remains the source of truth when this setting is customized.
+ * Uses the file suffixes supported by the resource content editor.
+ * Files outside this list remain downloadable, but are not opened in the text editor.
  */
-export const canPreviewResource = (item: ResourceItemRecord) => {
+export const canEditResource = (item: ResourceItemRecord) => {
   if (isDirectoryItem(item)) return false;
   const name = getName(item);
   const dot = name.lastIndexOf(".");
