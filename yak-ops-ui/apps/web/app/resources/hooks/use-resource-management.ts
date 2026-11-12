@@ -1,15 +1,19 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@yak-ops/yak-ui";
 
 import {
   createResourceDirectory,
+  createResourceFile,
   deleteResource,
   downloadResource,
+  fetchResourceFileContent,
   getResourceBaseDir,
   listResourceItems,
   listWorkflowResources,
   renameResource,
+  replaceResourceFile,
+  updateResourceFileContent,
   uploadResourceFile,
   type ResourceItemRecord,
   type WorkflowResourceNode,
@@ -19,6 +23,7 @@ import { DEFAULT_PAGE_SIZE, RESOURCE_QUERY_KEY } from "../constants";
 import type {
   ResourceDialog,
   ResourceSort,
+  ResourceEditorMode,
   ResourceTypeFilter,
   ViewMode,
 } from "../types";
@@ -45,6 +50,16 @@ export function useResourceManagement() {
   const [dialogValue, setDialogValue] = useState("");
   const [actionPending, setActionPending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editorMode, setEditorMode] = useState<ResourceEditorMode | null>(null);
+  const [editorItem, setEditorItem] = useState<ResourceItemRecord | null>(null);
+  const [editorFileName, setEditorFileName] = useState("");
+  const [editorSuffix, setEditorSuffix] = useState("sql");
+  const [editorContent, setEditorContent] = useState("");
+  const [editorInitialContent, setEditorInitialContent] = useState("");
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [editorError, setEditorError] = useState("");
+  const editorRequestId = useRef(0);
   const deferredKeyword = useDeferredValue(keyword.trim());
 
   const baseDirQuery = useQuery({
@@ -254,6 +269,143 @@ export function useResourceManagement() {
     }
   };
 
+  const openResourceFile = async (
+    item: ResourceItemRecord,
+    mode: "preview" | "edit",
+  ) => {
+    if (isDirectoryItem(item)) return;
+
+    const requestId = ++editorRequestId.current;
+    const name = getName(item);
+    setEditorMode(mode);
+    setEditorItem(item);
+    setEditorFileName(name);
+    setEditorSuffix(getExtension(name) || "txt");
+    setEditorContent("");
+    setEditorInitialContent("");
+    setEditorError("");
+    setEditorLoading(true);
+
+    try {
+      const response = await fetchResourceFileContent(item.fullName, 0, -1);
+      if (editorRequestId.current !== requestId) return;
+      const nextContent = response?.content ?? "";
+      setEditorContent(nextContent);
+      setEditorInitialContent(nextContent);
+    } catch (error) {
+      if (editorRequestId.current !== requestId) return;
+      setEditorError(
+        error instanceof Error ? error.message : "文件内容加载失败",
+      );
+    } finally {
+      if (editorRequestId.current === requestId) setEditorLoading(false);
+    }
+  };
+
+  const openCreateFile = () => {
+    editorRequestId.current += 1;
+    setEditorMode("create");
+    setEditorItem(null);
+    setEditorFileName("");
+    setEditorSuffix("sql");
+    setEditorContent("");
+    setEditorInitialContent("");
+    setEditorError("");
+    setEditorLoading(false);
+  };
+
+  const editCurrentResourceFile = () => {
+    if (editorItem) setEditorMode("edit");
+  };
+
+  const closeResourceEditor = () => {
+    editorRequestId.current += 1;
+    setEditorMode(null);
+    setEditorItem(null);
+    setEditorFileName("");
+    setEditorSuffix("sql");
+    setEditorContent("");
+    setEditorInitialContent("");
+    setEditorError("");
+    setEditorLoading(false);
+  };
+
+  const saveResourceEditor = async () => {
+    if (
+      !editorMode ||
+      editorMode === "preview" ||
+      editorLoading ||
+      editorSaving
+    ) {
+      return;
+    }
+
+    if (!editorContent.length) {
+      toast.warning("文件内容不能为空");
+      return;
+    }
+
+    if (editorMode === "create") {
+      const name = editorFileName.trim();
+      if (!name) {
+        toast.warning("请输入文件名称");
+        return;
+      }
+      if (/[\\/]/.test(name)) {
+        toast.warning("文件名称不能包含路径分隔符");
+        return;
+      }
+      if (getExtension(name)) {
+        toast.warning("文件名称无需填写扩展名，请在右侧选择文件类型");
+        return;
+      }
+    }
+
+    setEditorSaving(true);
+    try {
+      if (editorMode === "create") {
+        await createResourceFile(
+          editorFileName.trim(),
+          editorSuffix,
+          editorContent,
+          currentDir,
+        );
+        toast.success("文件创建成功");
+        closeResourceEditor();
+        setPageNo(1);
+        await invalidateResources();
+        return;
+      }
+
+      if (!editorItem) return;
+      await updateResourceFileContent(editorItem.fullName, editorContent);
+      setEditorInitialContent(editorContent);
+      toast.success("文件保存成功");
+      await queryClient.invalidateQueries({ queryKey: RESOURCE_QUERY_KEY });
+    } catch {
+      // The shared HTTP layer displays request and business errors.
+    } finally {
+      setEditorSaving(false);
+    }
+  };
+
+  const replaceFile = async (item: ResourceItemRecord, file: File) => {
+    const currentExtension = getExtension(getName(item));
+    const replacementExtension = getExtension(file.name);
+    if (!currentExtension || currentExtension !== replacementExtension) {
+      toast.warning("替换文件的扩展名必须与原文件一致");
+      return;
+    }
+
+    try {
+      await replaceResourceFile(item.fullName, getName(item), file);
+      toast.success("文件替换成功");
+      await invalidateResources();
+    } catch {
+      // The shared HTTP layer displays request and business errors.
+    }
+  };
+
   const refresh = async () => {
     await Promise.all([baseDirQuery.refetch(), treeQuery.refetch()]);
     if (currentDir) await itemsQuery.refetch();
@@ -375,6 +527,16 @@ export function useResourceManagement() {
     dialogValue,
     actionPending,
     uploading,
+    editorMode,
+    editorItem,
+    editorFileName,
+    editorSuffix,
+    editorContent,
+    editorInitialContent,
+    editorLoading,
+    editorSaving,
+    editorError,
+    isEditorDirty: editorContent !== editorInitialContent,
     directoryPath,
     visibleItems,
     total,
@@ -398,6 +560,15 @@ export function useResourceManagement() {
     confirmDialog,
     uploadFiles: handleUpload,
     downloadFile: handleDownload,
+    openResourceFile,
+    openCreateFile,
+    editCurrentResourceFile,
+    closeResourceEditor,
+    saveResourceEditor,
+    setEditorFileName,
+    setEditorSuffix,
+    setEditorContent,
+    replaceFile,
     refresh,
     retryItems: () => itemsQuery.refetch(),
     toggleItemSelection,
