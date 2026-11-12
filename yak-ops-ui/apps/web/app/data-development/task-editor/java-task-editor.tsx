@@ -31,7 +31,7 @@ import {
   TooltipTrigger,
   toast,
 } from "@yak-ops/yak-ui";
-import { File as FileIcon, Folder as FolderIcon, Info, Plus, Trash2 } from "lucide-react";
+import { Info, Plus, Trash2 } from "lucide-react";
 
 import {
   getWorkflowDefinition,
@@ -46,6 +46,7 @@ import {
   stopWorkflowInstance,
 } from "@/service/workflow/execution";
 
+import { ResourceTreeIcon } from "../../resources/components/resource-file-icon";
 import { NodeEditorFrame } from "./node-editor-frame";
 import {
   getTaskGroupValidationError, normalizeTaskCommonSettings, parseTaskCommonSettings,
@@ -234,11 +235,7 @@ function buildResourceTreeOptions(
       value,
       selectable: !directory,
       searchText: [node.fullName, node.currentDir].filter(Boolean).join(" "),
-      icon: directory ? (
-        <FolderIcon size={14} aria-hidden="true" />
-      ) : (
-        <FileIcon size={14} aria-hidden="true" />
-      ),
+      icon: <ResourceTreeIcon name={label} directory={directory} size={16} />,
       children: buildResourceTreeOptions(children, value),
     };
   });
