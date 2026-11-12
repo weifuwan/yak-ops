@@ -215,13 +215,13 @@ export function TaskCommonSettingsSection({
     <CollapseSection
       id={id}
       title={title}
-      extra={
+      extra={compact ? undefined : (
         <span className="text-[11px] font-normal text-[var(--yak-components-muted-text)]">
           {selectedTaskGroup
             ? (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize + " 已使用"
             : "执行资源 · 策略 · 超时 · 配额"}
         </span>
-      }
+      )}
       triggerClassName="!h-8 rounded-sm px-3"
       contentClassName="space-y-4 pt-3"
     >

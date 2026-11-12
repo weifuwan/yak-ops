@@ -483,6 +483,17 @@ export function JavaTaskEditor({
       onSave={() => void handleSave()}
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
+      runConfig={
+        <TaskCommonSettingsSection
+          id="java-run-config"
+          title="执行参数"
+          settings={commonSettings}
+          onChange={setCommonSettings}
+          disabled={!currentTask}
+          compact
+          description="配置当前节点的执行资源、执行策略、超时与资源限制。"
+        />
+      }
     >
       {activeView === "json" ? (
         <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-components-panel-bg)] p-4">
@@ -493,14 +504,6 @@ export function JavaTaskEditor({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
           <div className="mx-auto max-w-[1120px] space-y-3">
-            <TaskCommonSettingsSection
-              id="java-common-settings"
-              title="节点通用配置"
-              settings={commonSettings}
-              onChange={setCommonSettings}
-              disabled={!currentTask}
-              description="这里配置 Java 节点的公共执行属性；与 JAR、JVM 参数等 Java 专属配置分开管理。"
-            />
             <CollapseSection
               id="java-run-type"
               title="运行方式"

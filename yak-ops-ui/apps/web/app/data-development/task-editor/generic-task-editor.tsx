@@ -142,6 +142,19 @@ export function GenericTaskEditor({
       onSave={() => void handleSave()}
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
+      runConfig={
+        <TaskCommonSettingsSection
+          id="generic-run-config"
+          title="执行参数"
+          settings={commonSettings}
+          onChange={setCommonSettings}
+          disabled={!currentTask}
+          compact
+          description={currentTask
+            ? "配置当前节点的执行资源、执行策略、超时与资源限制。"
+            : "节点创建流程尚未完成，保存为正式节点后即可配置运行参数。"}
+        />
+      }
     >
       {activeView === "json" ? (
         <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-components-panel-bg)] p-4">
@@ -152,16 +165,6 @@ export function GenericTaskEditor({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
           <div className="mx-auto max-w-[1120px] space-y-3">
-            <TaskCommonSettingsSection
-              id="generic-common-settings"
-              title="节点通用配置"
-              settings={commonSettings}
-              onChange={setCommonSettings}
-              disabled={!currentTask}
-              description={currentTask
-                ? "此区域适用于所有节点类型；节点专属参数仍由对应类型的编辑器负责。"
-                : "节点创建流程尚未完成，保存为正式节点后即可配置公共执行属性。"}
-            />
             <section className="rounded-md border border-[var(--yak-components-panel-border)] bg-white p-3">
               <h3 className="mb-2 text-xs font-semibold text-[var(--yak-components-panel-text)]">节点专属参数</h3>
               <p className="mb-2 text-xs leading-5 text-[var(--yak-components-muted-text)]">

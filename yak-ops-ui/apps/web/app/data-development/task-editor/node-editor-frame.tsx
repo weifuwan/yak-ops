@@ -13,10 +13,11 @@ import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 import { PanelResizer } from "../layout/panel-resizer";
 
 type NodeEditorView = "form" | "json";
-type NodePanelKey = "properties";
+type NodePanelKey = "properties" | "runConfig";
 
 const PANEL_ITEMS: Array<{ key: NodePanelKey; label: string }> = [
   { key: "properties", label: "属性" },
+  { key: "runConfig", label: "运行配置" },
 ];
 
 const PANEL_WIDTH = 340;
@@ -145,6 +146,7 @@ export function NodeEditorFrame({
   onSave,
   onRefresh,
   onBack,
+  runConfig,
   children,
 }: {
   task?: WorkflowTaskRecord;
@@ -165,6 +167,7 @@ export function NodeEditorFrame({
   onSave: () => void;
   onRefresh: () => void;
   onBack: () => void;
+  runConfig: ReactNode;
   children: ReactNode;
 }) {
   const [activePanel, setActivePanel] = useState<NodePanelKey | null>(null);
@@ -241,7 +244,7 @@ export function NodeEditorFrame({
                 minWidth={MIN_PANEL_WIDTH}
                 maxWidth={MAX_PANEL_WIDTH}
                 resizeDirection="left"
-                ariaLabel="调整节点高级配置面板宽度"
+                ariaLabel="调整节点配置面板宽度"
                 onResize={setPanelWidth}
               />
               <section
@@ -261,19 +264,23 @@ export function NodeEditorFrame({
                   </button>
                 </header>
                 <div className="min-h-0 flex-1 overflow-y-auto bg-white">
-                  <NodePanelContent
-                    task={task}
-                    taskName={taskName}
-                    taskType={taskType}
-                    workflowCode={workflowCode}
-                  />
+                  {activePanel === "properties" ? (
+                    <NodePanelContent
+                      task={task}
+                      taskName={taskName}
+                      taskType={taskType}
+                      workflowCode={workflowCode}
+                    />
+                  ) : (
+                    <div className="p-3">{runConfig}</div>
+                  )}
                 </div>
               </section>
             </>
           ) : null}
 
           <nav
-            aria-label="节点高级配置"
+            aria-label="节点配置"
             className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
           >
             {PANEL_ITEMS.map((item) => {
