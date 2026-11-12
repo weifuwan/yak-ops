@@ -175,23 +175,23 @@ export function ResourceToolbar({
             {
               value: "list",
               label: (
-                <>
+                <span className="flex items-center justify-center">
                   <span className="sr-only">列表视图</span>
-                  <List size={14} aria-hidden="true" />
-                </>
+                  <List size={14} className="block shrink-0" aria-hidden="true" />
+                </span>
               ),
             },
             {
               value: "grid",
               label: (
-                <>
+                <span className="flex items-center justify-center">
                   <span className="sr-only">网格视图</span>
-                  <Grid2X2 size={14} aria-hidden="true" />
-                </>
+                  <Grid2X2 size={14} className="block shrink-0" aria-hidden="true" />
+                </span>
               ),
             },
           ]}
-          className="h-8 rounded-md p-0.5 [&>button]:inline-flex [&>button]:size-7 [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-center [&>button]:px-0 [&>button]:py-0"
+          className="h-8 items-center rounded-md p-0.5 [&>button]:inline-flex [&>button]:size-7 [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-center [&>button]:px-0 [&>button]:py-0"
         />
 
         <Button
