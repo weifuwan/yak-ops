@@ -152,15 +152,6 @@ export function GenericTaskEditor({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
           <div className="mx-auto max-w-[1120px] space-y-3">
-            <section className="rounded-md border border-[var(--yak-components-panel-border)] bg-white p-3">
-              <h3 className="mb-2 text-xs font-semibold text-[var(--yak-components-panel-text)]">节点专属参数</h3>
-              <p className="mb-2 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                当前节点类型暂未提供可视化参数编辑器，原有节点参数保持不变。
-              </p>
-              <pre className="max-h-64 overflow-auto rounded-sm bg-[var(--yak-color-hover)] p-3 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
-                {JSON.stringify(currentTask?.taskParams ?? {}, null, 2)}
-              </pre>
-            </section>
             <TaskCommonSettingsSection
               id="generic-common-settings"
               title="节点通用配置"
@@ -171,6 +162,15 @@ export function GenericTaskEditor({
                 ? "此区域适用于所有节点类型；节点专属参数仍由对应类型的编辑器负责。"
                 : "节点创建流程尚未完成，保存为正式节点后即可配置公共执行属性。"}
             />
+            <section className="rounded-md border border-[var(--yak-components-panel-border)] bg-white p-3">
+              <h3 className="mb-2 text-xs font-semibold text-[var(--yak-components-panel-text)]">节点专属参数</h3>
+              <p className="mb-2 text-xs leading-5 text-[var(--yak-components-muted-text)]">
+                当前节点类型暂未提供可视化参数编辑器，原有节点参数保持不变。
+              </p>
+              <pre className="max-h-64 overflow-auto rounded-sm bg-[var(--yak-color-hover)] p-3 font-mono text-xs leading-5 text-[var(--yak-components-panel-text)]">
+                {JSON.stringify(currentTask?.taskParams ?? {}, null, 2)}
+              </pre>
+            </section>
           </div>
         </div>
       )}
