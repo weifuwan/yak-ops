@@ -1,6 +1,7 @@
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 import { useDataDevelopmentWorkbench } from "../workbench-context";
+import { GenericTaskEditor } from "./generic-task-editor";
 import { JavaTaskEditor } from "./java-task-editor";
 
 type DraftTaskRecord = {
@@ -45,6 +46,14 @@ export function TaskEditor({
           workflowCode={workflowCode}
           task={task}
           taskName={taskName}
+          onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+        />
+      ) : task ? (
+        <GenericTaskEditor
+          workflowCode={workflowCode}
+          task={task}
+          taskName={taskName}
+          taskType={taskType}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
         />
       ) : (
