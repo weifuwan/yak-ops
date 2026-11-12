@@ -10,7 +10,6 @@ import { ResourceDetailsPanel } from "./components/resource-details-panel";
 import { ResourceDialog } from "./components/resource-dialog";
 import { ResourceGrid } from "./components/resource-grid";
 import { ResourceHeader } from "./components/resource-header";
-import { ResourceSelectionToolbar } from "./components/resource-selection-toolbar";
 import { ResourceTable } from "./components/resource-table";
 import { ResourceToolbar } from "./components/resource-toolbar";
 import { useResourceManagement } from "./hooks/use-resource-management";
@@ -55,14 +54,6 @@ export function ResourceManagementPage() {
     </div>
   );
 
-  const handleDeleteSelection = () => {
-    if (resource.selectedItems.length === 1) {
-      resource.openDeleteDialog(resource.selectedItems[0]);
-    } else {
-      resource.openDeleteSelectedDialog();
-    }
-  };
-
   return (
     <>
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
@@ -91,18 +82,6 @@ export function ResourceManagementPage() {
             isLoading={resource.isLoading}
             isFetching={resource.isFetching}
           />
-
-          {resource.selectedItems.length > 0 ? (
-            <ResourceSelectionToolbar
-              items={resource.selectedItems}
-              onOpen={resource.openDirectory}
-              onDownload={resource.downloadFile}
-              onRename={resource.openRenameDialog}
-              onCopyPath={resource.copyResourcePath}
-              onDelete={handleDeleteSelection}
-              onClear={resource.clearSelection}
-            />
-          ) : null}
 
           <ResourceBreadcrumb
             path={resource.directoryPath}
