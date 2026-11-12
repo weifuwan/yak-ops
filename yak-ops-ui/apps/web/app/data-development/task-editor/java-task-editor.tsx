@@ -294,11 +294,6 @@ export function JavaTaskEditor({
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const updateCommonSettings = <K extends keyof TaskCommonSettings,>(
-    field: K,
-    value: TaskCommonSettings[K],
-  ) => setCommonSettings(current => ({ ...current, [field]: value }));
-
   const updateLocalParam = (
     index: number,
     patch: Partial<JavaLocalParam>,
