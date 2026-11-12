@@ -436,11 +436,7 @@ export function JavaTaskEditor({
       saving={saving}
       running={running}
       stopping={stopping}
-      refreshing={
-        refreshing ||
-        resourceQuery.isFetching ||
-        false
-      }
+      refreshing={refreshing || resourceQuery.isFetching}
       lastWorkflowInstanceId={lastWorkflowInstanceId}
       onRun={() => void handleRun()}
       onStop={() => void handleStop()}
