@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   Button,
   CollapseSection,
@@ -263,6 +265,8 @@ export function JavaTaskEditor({
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { currentWorkspace } = useWorkspace();
+  const projectCode = currentWorkspace?.id ?? "";
   const resourceId = useId().replace(/:/g, "");
   const jarDatalistId = resourceId + "-jars";
   const resourceDatalistId = resourceId + "-resources";
@@ -307,15 +311,15 @@ export function JavaTaskEditor({
     queryKey: [
       "data-development",
       "task-groups",
-      currentTask?.projectCode ?? 0,
+      projectCode,
     ],
     queryFn: ({ signal }) =>
       listTaskGroupsByProjectCode(
-        currentTask!.projectCode,
+        projectCode,
         { pageNo: 1, pageSize: 1000 },
         signal,
       ),
-    enabled: Boolean(currentTask?.projectCode),
+    enabled: Boolean(projectCode),
     staleTime: 30_000,
   });
 
@@ -832,11 +836,13 @@ export function JavaTaskEditor({
                   </SelectTrigger>
                   <SelectContent
                     emptyContent={
-                      taskGroupQuery.isPending
-                        ? "任务组加载中..."
-                        : taskGroupQuery.isError
-                          ? "任务组加载失败"
-                          : undefined
+                      !projectCode
+                        ? "请先选择工作空间"
+                        : taskGroupQuery.isFetching
+                          ? "任务组加载中..."
+                          : taskGroupQuery.isError
+                            ? "任务组加载失败，请刷新重试"
+                            : "当前工作空间暂无任务组"
                     }
                   >
                     <SelectItem value="0">
