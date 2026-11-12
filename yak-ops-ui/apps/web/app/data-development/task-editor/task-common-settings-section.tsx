@@ -260,15 +260,19 @@ export function TaskCommonSettingsSection({
               onChange={event => update("taskGroupPriority", event.target.value)} placeholder="0" className="w-full min-w-0" />
           </SettingField>
         </div>
-        {settings.taskGroupId > 0 && selectedTaskGroup ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--yak-components-muted-text)]">
-            <span>当前并发容量：{selectedTaskGroup.useSize ?? 0}/{selectedTaskGroup.groupSize}</span>
-            <div className="flex items-center gap-1">
-              <Button type="button" size="sm" variant="ghost" onClick={() => navigate("/resources/task-groups")}>管理任务组</Button>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--yak-components-muted-text)]">
+          <span>
+            {selectedTaskGroup
+              ? "当前并发容量：" + (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize
+              : "可在任务组管理中创建和维护并发资源组"}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button type="button" size="sm" variant="ghost" onClick={() => navigate("/resources/task-groups")}>管理任务组</Button>
+            {settings.taskGroupId > 0 ? (
               <Button type="button" size="sm" variant="ghost" onClick={() => navigate("/resources/task-group-queue?groupId=" + settings.taskGroupId)}>查看队列</Button>
-            </div>
+            ) : null}
           </div>
-        ) : null}
+        </div>
       </section>
 
       <section className="space-y-3">
