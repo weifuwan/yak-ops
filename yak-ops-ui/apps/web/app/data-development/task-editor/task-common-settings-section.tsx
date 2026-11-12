@@ -162,7 +162,7 @@ function SettingsSelect({
   const items = useMemo(() => Object.fromEntries(options.map(item => [item.value, item.label])), [options]);
   return (
     <Select<string> size="small" items={items} value={value} onValueChange={next => onChange(next ?? "")}>
-      <SelectTrigger size="small" variant="outlined" disabled={disabled} className="w-full">
+      <SelectTrigger variant="outlined" disabled={disabled} className="w-full">
         <SelectValue placeholder={placeholder ?? "请选择"} />
       </SelectTrigger>
       <SelectContent emptyContent="暂无可选项">
