@@ -32,8 +32,8 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
 
       <div
         className={[
-          "pointer-events-none fixed bottom-0 left-0 top-10 z-40 w-[220px] transform-gpu transition-transform ease-in-out motion-reduce:transition-none",
-          open ? "translate-x-0 duration-300" : "-translate-x-[220px] duration-[220ms]",
+          "pointer-events-none fixed bottom-0 left-0 top-10 z-40 isolate w-[220px] transform-gpu transition-transform duration-300 ease-in-out motion-reduce:transition-none",
+          open ? "translate-x-0" : "-translate-x-[220px]",
         ].join(" ")}
       >
         <aside
@@ -41,7 +41,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
           aria-label="全局产品一级菜单"
           aria-hidden={!open}
           className={[
-            "user-menu flex h-full w-[220px] flex-col bg-[#15181c] text-xs text-white",
+            "user-menu relative z-10 flex h-full w-[220px] flex-col bg-[#15181c] text-xs text-white",
             "box-border",
             open ? "user-menu-active pointer-events-auto" : "pointer-events-none",
           ].join(" ")}

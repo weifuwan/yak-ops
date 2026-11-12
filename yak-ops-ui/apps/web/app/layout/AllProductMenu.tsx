@@ -26,10 +26,9 @@ export default function AllProductMenu({
       aria-label="全部产品二级菜单"
       aria-hidden={!open || !interactive}
       className={[
-        "absolute inset-y-0 left-full max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
-        "transition-[width] ease-in-out motion-reduce:transition-none",
-        open ? "w-[765px] duration-[260ms]" : "w-0 duration-[240ms]",
-        interactive ? "delay-0" : "delay-[60ms]",
+        "absolute inset-y-0 left-full z-0 w-[765px] max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
+        "transform-gpu transition-transform duration-[240ms] motion-reduce:transition-none",
+        open ? "translate-x-0 ease-out" : "-translate-x-full ease-in-out",
         open && interactive ? "pointer-events-auto" : "pointer-events-none",
       ].join(" ")}
     >
