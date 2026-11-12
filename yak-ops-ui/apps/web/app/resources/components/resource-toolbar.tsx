@@ -68,7 +68,7 @@ export function ResourceToolbar({
           placeholder="搜索文件或文件夹"
           value={keyword}
           onChange={(event) => onKeywordChange(event.target.value)}
-          className="h-9 pl-9 pr-9 text-xs"
+          className="h-7 pl-9 pr-9 text-xs"
         />
         {keyword ? (
           <Button
