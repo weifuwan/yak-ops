@@ -39,18 +39,24 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
         onClick={onClose}
       />
 
-      <aside
-        id="global-product-launcher"
-        aria-label="全局产品一级菜单"
-        aria-hidden={!open}
+      <div
         className={[
-          "user-menu fixed bottom-0 left-0 top-10 z-40 flex w-[220px] flex-col bg-[#15181c] text-xs text-white",
-          "box-border transform-gpu transition-transform ease-in-out motion-reduce:transition-none",
+          "fixed bottom-0 left-0 top-10 z-40 w-[220px] transform-gpu transition-transform ease-in-out motion-reduce:transition-none",
           open ? "duration-300" : "duration-[220ms]",
-          firstLevelVisible ? "user-menu-active translate-x-0" : "-translate-x-full",
+          firstLevelVisible ? "translate-x-0" : "-translate-x-[220px]",
           open ? "" : "pointer-events-none",
         ].join(" ")}
       >
+        <aside
+          id="global-product-launcher"
+          aria-label="全局产品一级菜单"
+          aria-hidden={!open}
+          className={[
+            "user-menu flex h-full w-[220px] flex-col bg-[#15181c] text-xs text-white",
+            "box-border",
+            firstLevelVisible ? "user-menu-active" : "",
+          ].join(" ")}
+        >
         <button
           type="button"
           aria-expanded={secondLevelOpen}
@@ -136,15 +142,16 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
             </div>
           )}
         </div>
-      </aside>
+        </aside>
 
-      <AllProductMenu
-        open={secondLevelOpen}
-        favoriteProductIds={favoriteProductIds}
-        favoriteMutatingIds={mutatingIds}
-        onNavigate={onClose}
-        onToggleFavorite={toggleFavorite}
-      />
+        <AllProductMenu
+          open={secondLevelOpen}
+          favoriteProductIds={favoriteProductIds}
+          favoriteMutatingIds={mutatingIds}
+          onNavigate={onClose}
+          onToggleFavorite={toggleFavorite}
+        />
+      </div>
     </>
   );
 }
