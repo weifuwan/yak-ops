@@ -293,6 +293,14 @@ export function TreeSelect({
     );
   }, [open, selectedValue, visibleRows]);
 
+  useEffect(() => {
+    if (!open || !activeValue) return;
+    const activeNode = treeRef.current?.querySelector<HTMLElement>(
+      `[data-tree-select-value="${encodeURIComponent(activeValue)}"]`,
+    );
+    activeNode?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeValue, open]);
+
   const setExpanded = (next: Set<string>) => {
     const values = Array.from(next);
     if (!controlledExpanded) setInnerExpandedValues(values);
@@ -518,6 +526,7 @@ export function TreeSelect({
                 <div
                   key={option.value}
                   id={rowId}
+                  data-tree-select-value={encodeURIComponent(option.value)}
                   role="treeitem"
                   aria-level={row.level}
                   aria-expanded={row.expandable ? row.expanded : undefined}
