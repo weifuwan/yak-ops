@@ -36,7 +36,6 @@ const getFileVisual = (name: string) => {
   return { Icon: File, color: "text-[#64748b]", background: "bg-[#f1f5f9]" };
 };
 
-
 function ResourceFolderGlyph({ size }: { size: number }) {
   return (
     <svg
@@ -109,7 +108,7 @@ export function ResourceFileIcon({
           large ? "size-10" : "size-8",
         ].join(" ")}
       >
-<ResourceFolderGlyph size={large ? 32 : 24} />
+        <ResourceFolderGlyph size={large ? 32 : 24} />
       </span>
     );
   }
