@@ -231,8 +231,9 @@ function WorkflowEditorShell({
         locations,
       });
 
-      storeApi.getState().replaceGraph(workflowDagToGraph(savedDag));
-      savedGraphSignatureRef.current = getWorkflowGraphSignature(storeApi.getState());
+      const savedGraph = workflowDagToGraph(savedDag);
+      savedGraphSignatureRef.current = getWorkflowGraphSignature(savedGraph);
+      storeApi.getState().replaceGraph(savedGraph);
       setTabDirty("workflow:" + workflowCode, false);
       syncWorkflowTaskRecords(workflowCode, savedDag.taskDefinitionList);
       updateWorkflowDefinition(savedDag.workflowDefinition);
