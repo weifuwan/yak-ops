@@ -19,7 +19,11 @@ interface ResourceTableProps {
   onSelect: (item: ResourceItemRecord) => void;
   onContextMenu: (item: ResourceItemRecord, event: MouseEvent<HTMLTableRowElement>) => void;
   onOpen: (item: ResourceItemRecord) => void;
+  onOpenFile: (item: ResourceItemRecord) => void;
+  onPreview: (item: ResourceItemRecord) => void;
+  onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
+  onReplace: (item: ResourceItemRecord) => void;
   onRename: (item: ResourceItemRecord) => void;
   onDelete: (item: ResourceItemRecord) => void;
 }
@@ -33,7 +37,11 @@ export function ResourceTable({
   onSelect,
   onContextMenu,
   onOpen,
+  onOpenFile,
+  onPreview,
+  onEdit,
   onDownload,
+  onReplace,
   onRename,
   onDelete,
 }: ResourceTableProps) {
@@ -55,7 +63,7 @@ export function ResourceTable({
               onDoubleClick={(event) => {
                 event.stopPropagation();
                 if (isDirectoryItem(item)) onOpen(item);
-                else onDownload(item);
+                else onOpenFile(item);
               }}
               className="min-w-0 cursor-pointer truncate text-left text-[13px] font-medium text-[var(--yak-components-panel-text)] hover:text-[var(--yak-color-primary)]"
             >
@@ -115,7 +123,11 @@ export function ResourceTable({
         <ResourceActions
           item={item}
           onOpen={onOpen}
+          onOpenFile={onOpenFile}
+          onPreview={onPreview}
+          onEdit={onEdit}
           onDownload={onDownload}
+          onReplace={onReplace}
           onRename={onRename}
           onDelete={onDelete}
         />
@@ -155,7 +167,7 @@ export function ResourceTable({
             const target = event.target as HTMLElement;
             if (target.closest("[data-resource-action], input")) return;
             if (isDirectoryItem(item)) onOpen(item);
-            else onDownload(item);
+            else onOpenFile(item);
           },
           onContextMenu: (event) => onContextMenu(item, event),
         })}
