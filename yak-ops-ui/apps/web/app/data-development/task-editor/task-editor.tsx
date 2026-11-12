@@ -24,16 +24,6 @@ export function TaskEditor({
   const { activateTab } = useDataDevelopmentWorkbench();
   const taskName = task?.name ?? draftTask?.name ?? "未命名节点";
   const taskType = task?.taskType ?? draftTask?.taskType ?? "UNKNOWN";
-  const payload = task
-    ? {
-        workflowCode,
-        task,
-      }
-    : {
-        workflowCode,
-        draft: true,
-        node: draftTask,
-      };
   const isJavaTask = taskType.toUpperCase() === "JAVA";
 
   return (
