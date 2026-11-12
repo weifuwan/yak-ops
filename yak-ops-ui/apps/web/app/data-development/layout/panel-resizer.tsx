@@ -61,31 +61,33 @@ export function PanelResizer({
   };
 
   return (
-    <div
-      role="separator"
-      aria-label={ariaLabel}
-      aria-orientation="vertical"
-      aria-valuemin={minWidth}
-      aria-valuemax={maxWidth}
-      aria-valuenow={Math.round(width)}
-      tabIndex={0}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onKeyDown={(event) => {
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          onResize(clampWidth(width - KEYBOARD_STEP * direction, minWidth, maxWidth));
-        }
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          onResize(clampWidth(width + KEYBOARD_STEP * direction, minWidth, maxWidth));
-        }
-      }}
-      className="group relative z-10 -ml-px w-2 shrink-0 cursor-col-resize touch-none outline-none"
-    >
-      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[#d9d9d9] transition-colors group-hover:bg-[var(--yak-color-primary)] group-focus-visible:bg-[var(--yak-color-primary)] group-active:bg-[var(--yak-color-primary)]" />
+    <div className="relative z-20 w-0 shrink-0 self-stretch">
+      <div
+        role="separator"
+        aria-label={ariaLabel}
+        aria-orientation="vertical"
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        aria-valuenow={Math.round(width)}
+        tabIndex={0}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            onResize(clampWidth(width - KEYBOARD_STEP * direction, minWidth, maxWidth));
+          }
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            onResize(clampWidth(width + KEYBOARD_STEP * direction, minWidth, maxWidth));
+          }
+        }}
+        className="group absolute inset-y-0 left-1/2 z-10 w-2 -translate-x-1/2 cursor-col-resize touch-none outline-none"
+      >
+        <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[#d9d9d9] transition-colors group-hover:bg-[var(--yak-color-primary)] group-focus-visible:bg-[var(--yak-color-primary)] group-active:bg-[var(--yak-color-primary)]" />
+      </div>
     </div>
   );
 }
