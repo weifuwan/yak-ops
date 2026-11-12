@@ -20,6 +20,7 @@ export type ProductNavigationItem = {
   path: string;
   icon: LucideIcon;
   groupLabel?: string;
+  end?: boolean;
 };
 
 type GlobalProductMenuItem = {
@@ -64,6 +65,7 @@ export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     label: "资源文件",
     path: "/resources",
     icon: FolderOpen,
+    end: true,
   },
   {
     label: "任务组配置",
