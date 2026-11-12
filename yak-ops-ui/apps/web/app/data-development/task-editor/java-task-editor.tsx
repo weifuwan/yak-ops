@@ -21,19 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
   Textarea,
+  TreeSelect,
+  type TreeSelectOption,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
   toast,
 } from "@yak-ops/yak-ui";
-import { Info, Plus, Trash2 } from "lucide-react";
+import { File as FileIcon, Folder as FolderIcon, Info, Plus, Trash2 } from "lucide-react";
 
 import {
   getWorkflowDefinition,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
-import { listWorkflowResources } from "@/service/resources";
+import {
+  listWorkflowResources,
+  type WorkflowResourceNode,
+} from "@/service/resources";
 import {
   startWorkflowInstance,
   stopWorkflowInstance,
@@ -68,14 +73,6 @@ type JavaTaskForm = {
 
 type ResourceInfo = {
   resourceName: string;
-};
-
-type ResourceNode = {
-  fullName?: string;
-  isDirctory?: boolean;
-  dirctory?: boolean;
-  isDirectory?: boolean;
-  children?: ResourceNode[];
 };
 
 const runTypeOptions = [
@@ -184,24 +181,64 @@ function buildJavaTaskParams(form: JavaTaskForm) {
   };
 }
 
-function flattenResourceFiles(nodes: ResourceNode[]): string[] {
+function getResourceNodeName(node: WorkflowResourceNode) {
+  if (node.name) return node.name;
+
+  const pathParts = (node.fullName || node.currentDir || "")
+    .split(/[\\/]/)
+    .filter(Boolean);
+
+  return pathParts[pathParts.length - 1] || "未命名资源";
+}
+
+function isResourceDirectory(node: WorkflowResourceNode) {
+  return Boolean(
+    node.isDirctory ??
+      node.dirctory ??
+      node.isDirectory ??
+      (node.children && node.children.length > 0),
+  );
+}
+
+function buildResourceTreeOptions(
+  nodes: WorkflowResourceNode[],
+  parentPath = "",
+): TreeSelectOption[] {
+  return nodes.map((node, index) => {
+    const label = getResourceNodeName(node);
+    const value =
+      node.fullName ||
+      node.currentDir ||
+      [parentPath, label, index].filter(Boolean).join("/");
+    const directory = isResourceDirectory(node);
+    const children = node.children ?? [];
+
+    return {
+      label,
+      value,
+      selectable: !directory,
+      searchText: [node.fullName, node.currentDir].filter(Boolean).join(" "),
+      icon: directory ? (
+        <FolderIcon size={14} aria-hidden="true" />
+      ) : (
+        <FileIcon size={14} aria-hidden="true" />
+      ),
+      children: buildResourceTreeOptions(children, value),
+    };
+  });
+}
+
+function flattenResourceFiles(nodes: WorkflowResourceNode[]): string[] {
   const paths: string[] = [];
 
-  const visit = (node: ResourceNode) => {
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length > 0) {
+  const visit = (node: WorkflowResourceNode) => {
+    const children = node.children ?? [];
+    if (isResourceDirectory(node)) {
       children.forEach(visit);
       return;
     }
 
-    if (
-      node.fullName &&
-      !node.isDirctory &&
-      !node.dirctory &&
-      !node.isDirectory
-    ) {
-      paths.push(node.fullName);
-    }
+    if (node.fullName) paths.push(node.fullName);
   };
 
   nodes.forEach(visit);
@@ -296,6 +333,10 @@ export function JavaTaskEditor({
     staleTime: 60_000,
   });
 
+  const resourceTree = useMemo(
+    () => buildResourceTreeOptions(resourceQuery.data ?? []),
+    [resourceQuery.data],
+  );
   const resourceFiles = useMemo(
     () => flattenResourceFiles(resourceQuery.data ?? []),
     [resourceQuery.data],
@@ -751,38 +792,30 @@ export function JavaTaskEditor({
                       label={"依赖资源 " + (index + 1)}
                     >
                       <div className="flex items-center gap-2">
-                        <Autocomplete<string>
-                          items={resourceFiles}
-                          value={resource}
+                        <TreeSelect
+                          items={resourceTree}
+                          value={resource || null}
                           onValueChange={(value) =>
                             updateField(
                               "resourceList",
                               form.resourceList.map((item, itemIndex) =>
-                                itemIndex === index ? value : item,
+                                itemIndex === index ? value ?? "" : item,
                               ),
                             )
                           }
-                          openOnInputClick
-                        >
-                          <AutocompleteInput
-                            size="small"
-                            variant="outlined"
-                            aria-label={"依赖资源 " + (index + 1)}
-                            placeholder="请选择依赖资源"
-                            className="min-w-0 flex-1"
-                          />
-                          <AutocompleteContent
-                            emptyContent={
-                              resourceQuery.isPending ? "正在加载资源..." : "暂无匹配的资源"
-                            }
-                          >
-                            {(path: string) => (
-                              <AutocompleteItem key={path} value={path}>
-                                <span className="min-w-0 truncate">{path}</span>
-                              </AutocompleteItem>
-                            )}
-                          </AutocompleteContent>
-                        </Autocomplete>
+                          size="small"
+                          variant="outlined"
+                          placeholder="请选择依赖资源"
+                          searchPlaceholder="搜索文件名称或路径"
+                          emptyText={
+                            resourceQuery.isPending
+                              ? "正在加载资源..."
+                              : "暂无匹配的资源"
+                          }
+                          ariaLabel={"依赖资源 " + (index + 1)}
+                          clearable
+                          className="min-w-0 flex-1"
+                        />
                         <Button
                           type="button"
                           size="sm"
