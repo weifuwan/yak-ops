@@ -430,8 +430,10 @@ export function JavaTaskEditor({
     try {
       const refreshTasks: Array<Promise<unknown>> = [
         resourceQuery.refetch(),
-        scheduling.taskGroupQuery.refetch(),
       ];
+      if (scheduling.projectCode) {
+        refreshTasks.push(scheduling.taskGroupQuery.refetch());
+      }
       if (currentTask) {
         refreshTasks.push(
           getWorkflowDefinition(workflowCode).then((dag) => {
