@@ -27,6 +27,7 @@ import {
   getExtension,
   getName,
   isDirectoryItem,
+  isResourceNotFoundError,
   matchesTypeFilter,
 } from "../utils";
 
@@ -89,6 +90,13 @@ export function useResourceManagement() {
     () => findDirectoryPath(treeNodes, currentDir) ?? [],
     [treeNodes, currentDir],
   );
+  const isCurrentDirectoryMissing =
+    treeQuery.isSuccess &&
+    Boolean(baseDirQuery.data) &&
+    Boolean(currentDir) &&
+    currentDir !== baseDirQuery.data &&
+    directoryPath.length === 0;
+  const isItemsNotFoundError = itemsQuery.isError && isResourceNotFoundError(itemsQuery.error);
 
   const resourceItems = useMemo(
     () => itemsQuery.data?.totalList ?? [],
@@ -212,15 +220,18 @@ export function useResourceManagement() {
       } else {
         let deleted = 0;
         let failed = 0;
+        let missing = 0;
         for (const item of dialog.items) {
           try {
             await deleteResource(item.fullName);
             deleted += 1;
-          } catch {
-            failed += 1;
+          } catch (error) {
+            if (isResourceNotFoundError(error)) missing += 1;
+            else failed += 1;
           }
         }
         if (deleted > 0) toast.success("成功删除 " + deleted + " 项资源");
+        if (missing > 0) toast.warning(missing + " 项资源已不存在，已刷新列表");
         if (failed > 0) toast.error(failed + " 项资源删除失败");
       }
 
@@ -228,8 +239,15 @@ export function useResourceManagement() {
       setDialogValue("");
       setPageNo(1);
       await invalidateResources();
-    } catch {
-      // Keep the dialog open so the user can review and retry.
+    } catch (error) {
+      if (isResourceNotFoundError(error)) {
+        toast.warning("该资源已不存在，已刷新资源列表");
+        setDialog(null);
+        setDialogValue("");
+        setPageNo(1);
+        await invalidateResources();
+      }
+      // Keep other failed operations open so the user can review and retry.
     } finally {
       setActionPending(false);
     }
@@ -246,15 +264,35 @@ export function useResourceManagement() {
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      // The HTTP layer displays request and business errors.
+    } catch (error) {
+      if (isResourceNotFoundError(error)) {
+        toast.warning("文件已不存在，正在刷新资源列表");
+        await invalidateResources();
+      }
+      // Other transport errors are reported by the shared HTTP layer.
     }
   };
 
   const refresh = async () => {
-    await Promise.all([baseDirQuery.refetch(), treeQuery.refetch()]);
-    if (currentDir) await itemsQuery.refetch();
-    toast.success("资源列表已刷新");
+    const [baseResult, treeResult, itemsResult] = await Promise.all([
+      baseDirQuery.refetch(),
+      treeQuery.refetch(),
+      currentDir ? itemsQuery.refetch() : Promise.resolve(undefined),
+    ]);
+
+    if (baseResult.isError) {
+      toast.error("资源根目录刷新失败，请稍后重试");
+    } else if (itemsResult?.isError) {
+      if (isResourceNotFoundError(itemsResult.error)) {
+        toast.warning("当前资源路径已不存在，请返回资源根目录");
+      } else {
+        toast.error("文件列表刷新失败，请稍后重试");
+      }
+    } else if (treeResult.isError) {
+      toast.warning("文件列表已刷新，但目录结构暂时无法读取");
+    } else {
+      toast.success("资源列表已刷新");
+    }
   };
 
   const toggleItemSelection = (item: ResourceItemRecord) => {
@@ -348,7 +386,9 @@ export function useResourceManagement() {
     isFetching: itemsQuery.isFetching,
     isTreeError: treeQuery.isError,
     isBaseDirError: baseDirQuery.isError,
+    isCurrentDirectoryMissing,
     isItemsError: itemsQuery.isError,
+    isItemsNotFoundError,
     openDirectory,
     openBreadcrumb,
     openRootDirectory,
