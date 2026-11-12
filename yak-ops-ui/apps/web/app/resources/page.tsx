@@ -13,6 +13,7 @@ import type { ResourceItemRecord } from "@/service/resources";
 
 import { ResourceBreadcrumb } from "./components/resource-breadcrumb";
 import { ResourceContextMenu } from "./components/resource-context-menu";
+import { ResourceCreateFileModal } from "./components/resource-create-file-modal";
 import { ResourceDetailsPanel } from "./components/resource-details-panel";
 import { ResourceDialog } from "./components/resource-dialog";
 import { ResourceEditorPanel } from "./components/resource-editor-panel";
@@ -105,7 +106,7 @@ export function ResourceManagementPage() {
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
         <ResourceHeader
           canManage={Boolean(resource.currentDir)}
-          busy={resource.actionPending || resource.editorSaving || Boolean(resource.editorMode)}
+          busy={resource.actionPending || resource.editorSaving || resource.createFileSaving || Boolean(resource.editorMode)}
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
           onCreateFile={resource.openCreateFile}
@@ -148,16 +149,11 @@ export function ResourceManagementPage() {
               <ResourceEditorPanel
                 mode={resource.editorMode}
                 item={resource.editorItem}
-                currentDirectory={resource.currentDir}
-                fileName={resource.editorFileName}
-                suffix={resource.editorSuffix}
                 content={resource.editorContent}
                 loading={resource.editorLoading}
                 saving={resource.editorSaving}
                 dirty={resource.isEditorDirty}
                 error={resource.editorError}
-                onFileNameChange={resource.setEditorFileName}
-                onSuffixChange={resource.setEditorSuffix}
                 onContentChange={resource.setEditorContent}
                 onSave={() => void resource.saveResourceEditor()}
                 onClose={handleCloseEditor}
@@ -335,6 +331,20 @@ export function ResourceManagementPage() {
         onValueChange={resource.setDialogValue}
         onConfirm={resource.confirmDialog}
         onClose={resource.closeDialog}
+      />
+
+      <ResourceCreateFileModal
+        open={resource.createFileOpen}
+        currentDirectory={resource.currentDir}
+        fileName={resource.createFileName}
+        suffix={resource.createFileSuffix}
+        content={resource.createFileContent}
+        saving={resource.createFileSaving}
+        onFileNameChange={resource.setCreateFileName}
+        onSuffixChange={resource.setCreateFileSuffix}
+        onContentChange={resource.setCreateFileContent}
+        onSubmit={() => void resource.saveNewResourceFile()}
+        onClose={resource.closeCreateFileDialog}
       />
 
       <Dialog
