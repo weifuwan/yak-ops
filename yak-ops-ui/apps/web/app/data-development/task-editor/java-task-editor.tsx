@@ -19,7 +19,6 @@ import { Info, Plus, Trash2 } from "lucide-react";
 
 import {
   getWorkflowDefinition,
-  updateWorkflowTaskDefinition,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 import { listWorkflowResources } from "@/service/resources";
@@ -235,11 +234,19 @@ export function JavaTaskEditor({
   workflowCode,
   task,
   taskName,
+  isDraft,
+  readOnly,
+  canRun,
+  onApplyTask,
   onBackToWorkflow,
 }: {
   workflowCode: number;
-  task?: WorkflowTaskRecord;
+  task: WorkflowTaskRecord;
   taskName: string;
+  isDraft: boolean;
+  readOnly: boolean;
+  canRun: boolean;
+  onApplyTask: (task: WorkflowTaskRecord) => boolean;
   onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -325,11 +332,7 @@ export function JavaTaskEditor({
     JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings);
 
   const handleSave = async (): Promise<boolean> => {
-    if (!currentTask) return false;
-    if (!form.mainJar.trim()) {
-      toast.warning("请选择主程序 JAR");
-      return false;
-    }
+    if (!currentTask || readOnly) return false;
 
     let commonPatch;
     try {
@@ -349,25 +352,12 @@ export function JavaTaskEditor({
     setSaving(true);
     try {
       const taskParams = buildJavaTaskParams(form);
-      await updateWorkflowTaskDefinition(workflowCode, currentTask.code, {
-        taskParams,
-        ...commonPatch,
-      });
-      setCurrentTask((current) =>
-        current
-          ? {
-              ...current,
-              taskParams,
-              ...commonPatch,
-            }
-          : current,
-      );
-      await queryClient.invalidateQueries({
-        queryKey: ["data-development", "workflow-definition"],
-      });
+      const nextTask = { ...currentTask, taskParams, ...commonPatch };
+      if (!onApplyTask(nextTask)) return false;
+      setCurrentTask(nextTask);
       setBaselineForm(form);
       setBaselineCommonSettings(commonSettings);
-      toast.success("Java 节点配置已保存");
+      toast.success("Java 节点配置已应用，请保存工作流");
       return true;
     } catch {
       toast.error("保存 Java 节点配置失败，请稍后重试");
@@ -379,6 +369,14 @@ export function JavaTaskEditor({
 
   const handleRun = async () => {
     if (!currentTask) return;
+    if (isDraft || !canRun) {
+      toast.warning("请先保存并发布工作流，再运行节点");
+      return;
+    }
+    if (isDirty) {
+      toast.warning("当前节点有未保存修改，请先保存工作流");
+      return;
+    }
     if (!form.mainJar.trim()) {
       toast.warning("请先选择主程序 JAR");
       return;
@@ -428,6 +426,11 @@ export function JavaTaskEditor({
       return;
     }
 
+    if (isDraft) {
+      toast.info("新建节点尚未保存到后端，暂无可刷新的服务端配置");
+      return;
+    }
+
     setRefreshing(true);
     try {
       const refreshTasks: Array<Promise<unknown>> = [
@@ -442,6 +445,7 @@ export function JavaTaskEditor({
             if (!latestTask) throw new Error("节点不存在或已被删除");
             const nextForm = parseJavaTaskForm(latestTask.taskParams);
             const nextCommonSettings = parseTaskCommonSettings(latestTask);
+            if (!onApplyTask(latestTask)) return;
             setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
@@ -478,6 +482,8 @@ export function JavaTaskEditor({
       stopping={stopping}
       refreshing={refreshing || resourceQuery.isFetching}
       lastWorkflowInstanceId={lastWorkflowInstanceId}
+      canRun={canRun}
+      readOnly={readOnly}
       onRun={() => void handleRun()}
       onStop={() => void handleStop()}
       onSave={() => void handleSave()}
@@ -488,7 +494,7 @@ export function JavaTaskEditor({
           id="java-run-config"
           settings={commonSettings}
           onChange={setCommonSettings}
-          disabled={!currentTask}
+          disabled={readOnly}
           compact
         />
       }
