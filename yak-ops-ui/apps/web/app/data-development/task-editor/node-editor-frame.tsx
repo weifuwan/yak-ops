@@ -139,6 +139,7 @@ export function NodeEditorFrame({
   stopping,
   refreshing,
   lastWorkflowInstanceId,
+  canRun = true,
   onRun,
   onStop,
   onSave,
@@ -158,6 +159,7 @@ export function NodeEditorFrame({
   stopping: boolean;
   refreshing: boolean;
   lastWorkflowInstanceId: number | null;
+  canRun?: boolean;
   onRun: () => void;
   onStop: () => void;
   onSave: () => void;
@@ -175,8 +177,14 @@ export function NodeEditorFrame({
         <ToolbarButton
           label="运行"
           icon={<PlayCircle size={14} />}
-          disabled={!task || running || saving}
-          title={task ? "仅运行当前 Java 节点" : "当前节点暂不可运行"}
+          disabled={!canRun || !task || running || saving}
+          title={
+            !canRun
+              ? "当前节点类型暂不支持单节点运行"
+              : task
+                ? "仅运行当前 " + taskType + " 节点"
+                : "当前节点暂不可运行"
+          }
           onClick={onRun}
         />
         <ToolbarButton
