@@ -86,6 +86,7 @@ export function useWorkflowSidePanelController({
   return {
     workflowCode,
     definition,
+    dag,
     workflowIsOnline,
     ...properties,
     ...schedule,

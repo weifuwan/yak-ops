@@ -10,6 +10,7 @@ import {
 import type { ScheduleSection } from "../shared/types";
 import type { WorkflowSidePanelController } from "../hooks/useWorkflowSidePanelController";
 import { ScheduleSelect } from "./ScheduleSelect";
+import { WorkflowTaskGroupSection } from "./WorkflowTaskGroupSection";
 
 type RenderSectionHeader = (
   section: ScheduleSection,
@@ -33,6 +34,7 @@ export function ScheduleStrategySection({
     alertGroups,
     notificationGroupId,
     notificationGroupMissing,
+    dag,
   } = controller;
 
   return (
@@ -128,6 +130,8 @@ export function ScheduleStrategySection({
                     </label>
                   ) : null}
 
+                  <WorkflowTaskGroupSection controller={controller} />
+                  
                   <label className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
                     <span className="text-xs text-[#687385]">Worker Group</span>
                     <input

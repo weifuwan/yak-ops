@@ -4,15 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@yak-ops/yak-ui";
 import {
   getWorkflowDefinition,
-  updateWorkflowTaskDefinition,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 
 import { NodeEditorFrame } from "./node-editor-frame";
-import {
-  TaskSchedulingSection,
-  useTaskScheduling,
-} from "./task-scheduling-section";
 
 type DraftTaskRecord = {
   nodeId: string;
@@ -38,16 +33,12 @@ export function GenericTaskEditor({
   const queryClient = useQueryClient();
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
-  const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const scheduling = useTaskScheduling(currentTask);
 
   useEffect(() => {
     setCurrentTask(task);
   }, [task]);
 
-  const isDirty = scheduling.isDirty;
-  const normalizedSettings = scheduling.getNormalizedSettings();
   const jsonText = useMemo(
     () =>
       JSON.stringify(
@@ -57,85 +48,26 @@ export function GenericTaskEditor({
               task: {
                 ...currentTask,
                 taskType: currentTask.taskType || taskType,
-                taskGroupId: normalizedSettings.taskGroupId,
-                taskGroupPriority: normalizedSettings.taskGroupPriority,
               },
             }
           : {
               workflowCode,
               draft: true,
               node: draftTask,
-              taskGroupId: normalizedSettings.taskGroupId,
-              taskGroupPriority: normalizedSettings.taskGroupPriority,
             },
         null,
         2,
       ),
-    [
-      currentTask,
-      draftTask,
-      normalizedSettings.taskGroupId,
-      normalizedSettings.taskGroupPriority,
-      taskType,
-      workflowCode,
-    ],
+    [currentTask, draftTask, taskType, workflowCode],
   );
 
-  const handleSave = async () => {
-    if (!currentTask) return;
-    const validationError = scheduling.getValidationError();
-    if (validationError) {
-      toast.warning(validationError);
-      return;
-    }
-
-    const nextSettings = scheduling.getNormalizedSettings();
-    setSaving(true);
-    try {
-      await updateWorkflowTaskDefinition(workflowCode, currentTask.code, {
-        taskGroupId: nextSettings.taskGroupId,
-        taskGroupPriority: nextSettings.taskGroupPriority,
-      });
-      setCurrentTask((current) =>
-        current
-          ? {
-              ...current,
-              taskGroupId: nextSettings.taskGroupId,
-              taskGroupPriority: nextSettings.taskGroupPriority,
-            }
-          : current,
-      );
-      scheduling.markSaved(nextSettings);
-      await queryClient.invalidateQueries({
-        queryKey: ["data-development", "workflow-definition"],
-      });
-      toast.success("节点调度配置已保存");
-    } catch (error) {
-      toast.error("保存节点调度配置失败", {
-        description:
-          error instanceof Error ? error.message : "请稍后重试。",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleRefresh = async () => {
-    if (isDirty) {
-      toast.warning("当前配置有未保存修改，请先保存后再刷新");
-      return;
-    }
-
     setRefreshing(true);
     try {
-      if (scheduling.projectCode) {
-        await scheduling.taskGroupQuery.refetch();
-      }
       if (!currentTask) {
-        toast.success("任务组列表已刷新");
+        toast.success("节点信息已刷新");
         return;
       }
-
       const dag = await getWorkflowDefinition(workflowCode);
       const latestTask = dag.taskDefinitionList.find(
         (item) => item.code === currentTask.code,
@@ -145,11 +77,10 @@ export function GenericTaskEditor({
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
       });
-      toast.success("节点配置已刷新");
+      toast.success("节点信息已刷新");
     } catch (error) {
       toast.error("刷新失败", {
-        description:
-          error instanceof Error ? error.message : "请稍后重试。",
+        description: error instanceof Error ? error.message : "请稍后重试。",
       });
     } finally {
       setRefreshing(false);
@@ -164,16 +95,16 @@ export function GenericTaskEditor({
       workflowCode={workflowCode}
       activeView={activeView}
       onActiveViewChange={setActiveView}
-      isDirty={isDirty}
-      saving={saving}
+      isDirty={false}
+      saving={false}
       running={false}
       stopping={false}
-      refreshing={refreshing || scheduling.taskGroupQuery.isFetching}
+      refreshing={refreshing}
       lastWorkflowInstanceId={null}
       canRun={false}
       onRun={() => undefined}
       onStop={() => undefined}
-      onSave={() => void handleSave()}
+      onSave={() => undefined}
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
     >
@@ -185,15 +116,7 @@ export function GenericTaskEditor({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
-          <div className="mx-auto max-w-[1120px] space-y-3">
-            <TaskSchedulingSection
-              settings={scheduling.settings}
-              onChange={scheduling.setSettings}
-              projectCode={scheduling.projectCode}
-              taskGroups={scheduling.taskGroups}
-              isFetching={scheduling.taskGroupQuery.isFetching}
-              isError={scheduling.taskGroupQuery.isError}
-            />
+          <div className="mx-auto max-w-[1120px]">
             <section className="rounded-md border border-[var(--yak-components-panel-border)] bg-white p-3">
               <h3 className="mb-2 text-xs font-semibold text-[var(--yak-components-panel-text)]">
                 节点参数

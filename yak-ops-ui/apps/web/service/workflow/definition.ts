@@ -242,6 +242,25 @@ export const updateWorkflowTaskDefinition = async (
   );
 };
 
+export const updateWorkflowTaskGroupSettings = async (
+  workflowCode: number,
+  taskGroupId: number,
+  taskGroupPriority: number,
+): Promise<void> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  const taskDefinitionList = (dag.taskDefinitionList ?? []).map((task) => ({
+    ...task,
+    taskGroupId,
+    taskGroupPriority,
+  }));
+
+  await updateWorkflowDefinitionGraph(
+    dag,
+    { name: dag.workflowDefinition.name },
+    taskDefinitionList,
+  );
+};
+
 export const removeWorkflowTask = async (
   workflowCode: number,
   taskCode: number,

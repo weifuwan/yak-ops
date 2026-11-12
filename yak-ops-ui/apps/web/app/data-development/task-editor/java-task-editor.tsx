@@ -17,11 +17,7 @@ import {
 } from "@yak-ops/yak-ui";
 import { Info, Plus, Trash2 } from "lucide-react";
 
-import {
-  getWorkflowDefinition,
-  updateWorkflowTaskDefinition,
-  type WorkflowTaskRecord,
-} from "@/service/workflow/definition";
+import { getWorkflowDefinition, type WorkflowTaskRecord } from "@/service/workflow/definition";
 import { listWorkflowResources } from "@/service/resources";
 import {
   startWorkflowInstance,
@@ -29,10 +25,6 @@ import {
 } from "@/service/workflow/execution";
 
 import { NodeEditorFrame } from "./node-editor-frame";
-import {
-  TaskSchedulingSection,
-  useTaskScheduling,
-} from "./task-scheduling-section";
 
 type JavaRunType = "FAT_JAR" | "NORMAL_JAR";
 
@@ -254,7 +246,6 @@ export function JavaTaskEditor({
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
   const [currentTask, setCurrentTask] = useState(task);
-  const scheduling = useTaskScheduling(currentTask);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
@@ -301,29 +292,20 @@ export function JavaTaskEditor({
     }));
   };
 
-  const normalizedTaskGroupSettings = scheduling.getNormalizedSettings();
   const jsonText = useMemo(
     () =>
       JSON.stringify(
         {
           taskType: "JAVA",
-          taskGroupId: normalizedTaskGroupSettings.taskGroupId,
-          taskGroupPriority: normalizedTaskGroupSettings.taskGroupPriority,
           taskParams: buildJavaTaskParams(form),
         },
         null,
         2,
       ),
-    [
-      form,
-      normalizedTaskGroupSettings.taskGroupId,
-      normalizedTaskGroupSettings.taskGroupPriority,
-    ],
+    [form],
   );
 
-  const isDirty =
-    JSON.stringify(form) !== JSON.stringify(baselineForm) ||
-    scheduling.isDirty;
+  const isDirty = JSON.stringify(form) !== JSON.stringify(baselineForm);
 
   const handleSave = async (): Promise<boolean> => {
     if (!currentTask) return false;
@@ -332,38 +314,21 @@ export function JavaTaskEditor({
       return false;
     }
 
-    const validationError = scheduling.getValidationError();
-    if (validationError) {
-      toast.warning(validationError);
-      return false;
-    }
-
     setSaving(true);
     try {
       const taskParams = buildJavaTaskParams(form);
-      await updateWorkflowTaskDefinition(
-        workflowCode,
-        currentTask.code,
-        {
-          taskParams,
-          taskGroupId: normalizedTaskGroupSettings.taskGroupId,
-          taskGroupPriority: normalizedTaskGroupSettings.taskGroupPriority,
-        },
-      );
+      await updateWorkflowTaskDefinition(workflowCode, currentTask.code, { taskParams });
       setCurrentTask((current) =>
         current
           ? {
               ...current,
               taskParams,
-              taskGroupId: normalizedTaskGroupSettings.taskGroupId,
-              taskGroupPriority: normalizedTaskGroupSettings.taskGroupPriority,
             }
           : current,
       );
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
       });
-      scheduling.markSaved(normalizedTaskGroupSettings);
       setBaselineForm(form);
       toast.success("Java 节点配置已保存");
       return true;
@@ -431,9 +396,6 @@ export function JavaTaskEditor({
       const refreshTasks: Array<Promise<unknown>> = [
         resourceQuery.refetch(),
       ];
-      if (scheduling.projectCode) {
-        refreshTasks.push(scheduling.taskGroupQuery.refetch());
-      }
       if (currentTask) {
         refreshTasks.push(
           getWorkflowDefinition(workflowCode).then((dag) => {
@@ -477,7 +439,7 @@ export function JavaTaskEditor({
       refreshing={
         refreshing ||
         resourceQuery.isFetching ||
-        scheduling.taskGroupQuery.isFetching
+        false
       }
       lastWorkflowInstanceId={lastWorkflowInstanceId}
       onRun={() => void handleRun()}
@@ -495,15 +457,6 @@ export function JavaTaskEditor({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
           <div className="mx-auto max-w-[1120px] space-y-3">
-            <TaskSchedulingSection
-              settings={scheduling.settings}
-              onChange={scheduling.setSettings}
-              projectCode={scheduling.projectCode}
-              taskGroups={scheduling.taskGroups}
-              isFetching={scheduling.taskGroupQuery.isFetching}
-              isError={scheduling.taskGroupQuery.isError}
-            />
-
             <CollapseSection
               id="java-run-type"
               title="运行方式"
