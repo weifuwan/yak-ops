@@ -79,7 +79,12 @@ export function TaskGroupConfigurationPage() {
   );
 
   const refreshGroups = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["resource", "task-groups"] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["resource", "task-groups"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["data-development", "task-groups"],
+      }),
+    ]);
   };
 
   const openCreate = () => {
