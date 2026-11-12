@@ -93,12 +93,19 @@ export function useResourceManagement() {
   );
   const isCurrentDirectoryMissing =
     treeQuery.isSuccess &&
+    itemsQuery.isSuccess &&
     Boolean(baseDirQuery.data) &&
     Boolean(currentDir) &&
     currentDir !== baseDirQuery.data &&
     directoryPath.length === 0;
   const isItemsNotFoundError = itemsQuery.isError && isResourceNotFoundError(itemsQuery.error);
   const isItemsPathInvalidError = itemsQuery.isError && isResourcePathInvalidError(itemsQuery.error);
+
+  useEffect(() => {
+    if (isCurrentDirectoryMissing || itemsQuery.isError) {
+      setSelectedFullNames(new Set());
+    }
+  }, [isCurrentDirectoryMissing, itemsQuery.isError]);
 
   const resourceItems = useMemo(
     () => itemsQuery.data?.totalList ?? [],
@@ -233,7 +240,7 @@ export function useResourceManagement() {
           }
         }
         if (deleted > 0) toast.success("成功删除 " + deleted + " 项资源");
-        if (missing > 0) toast.warning(missing + " 项资源已不存在，已刷新列表");
+        if (missing > 0) toast.warning(missing + " 项资源已不存在，列表将重新加载");
         if (failed > 0) toast.error(failed + " 项资源删除失败");
       }
 
@@ -243,7 +250,7 @@ export function useResourceManagement() {
       await invalidateResources();
     } catch (error) {
       if (isResourceNotFoundError(error)) {
-        toast.warning("该资源已不存在，已刷新资源列表");
+        toast.warning("该资源已不存在，正在刷新资源列表");
         setDialog(null);
         setDialogValue("");
         setPageNo(1);
