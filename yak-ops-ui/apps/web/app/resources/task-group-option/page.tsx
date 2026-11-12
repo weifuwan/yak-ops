@@ -422,33 +422,33 @@ export function TaskGroupConfigurationPage() {
               className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3"
               invalid={Boolean(groupSizeError)}
             >
-              <FieldLabel
-                required
-                htmlFor="task-group-size"
-                className="pt-1.5 text-xs"
-              >
-                <span className="inline-flex items-center gap-1">
+              <div className="flex items-center gap-1 pt-1.5">
+                <FieldLabel
+                  required
+                  htmlFor="task-group-size"
+                  className="text-xs"
+                >
                   资源容量
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            type="button"
-                            aria-label="查看资源容量说明"
-                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
-                          >
-                            <CircleHelp size={13} aria-hidden="true" />
-                          </button>
-                        }
-                      />
-                      <TooltipContent side="top" align="start" className="max-w-[280px]">
-                        表示该任务组允许同时运行的任务数量。达到容量上限后，后续任务会进入队列等待。
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </span>
-              </FieldLabel>
+                </FieldLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          type="button"
+                          aria-label="查看资源容量说明"
+                          className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-components-button-focus-ring)]"
+                        >
+                          <CircleHelp size={13} aria-hidden="true" />
+                        </button>
+                      }
+                    />
+                    <TooltipContent side="top" align="start" className="max-w-[280px]">
+                      表示该任务组允许同时运行的任务数量。达到容量上限后，后续任务会进入队列等待。
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <div className="min-w-0">
                 <Input
                   id="task-group-size"
