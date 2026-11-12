@@ -74,7 +74,7 @@ export default function AllProductMenu({
 
                       <button
                         type="button"
-                        aria-label={favorite ? \`取消收藏\${product.label}\` : \`收藏\${product.label}\`}
+                        aria-label={favorite ? "取消收藏" + product.label : "收藏" + product.label}
                         aria-pressed={favorite}
                         disabled={mutating}
                         tabIndex={open && interactive ? 0 : -1}

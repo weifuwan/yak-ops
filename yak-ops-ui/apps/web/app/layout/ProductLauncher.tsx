@@ -118,7 +118,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
 
                     <button
                       type="button"
-                      aria-label={\`取消收藏\${item.label}\`}
+                      aria-label={"取消收藏" + item.label}
                       disabled={mutating}
                       tabIndex={open ? 0 : -1}
                       className={[
