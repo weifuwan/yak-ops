@@ -94,11 +94,6 @@ export function ResourceDetailsPanel({
           <span className="text-xs font-medium text-[#687386]">
             {items.length > 1 ? "已选择 " + items.length + " 项资源" : "选择资源查看详情"}
           </span>
-          <span className="text-[11px] leading-5 text-[#a0a7b2]">
-            {items.length > 1
-              ? "同时选择多个资源时，详细属性暂不展示"
-              : "选中文件或文件夹后，这里会显示类型、大小和存储位置"}
-          </span>
         </div>
       )}
     </aside>
