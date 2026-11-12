@@ -44,20 +44,23 @@ export function GenericTaskEditor({
     () =>
       JSON.stringify(
         {
-          taskType: currentTask.taskType || taskType,
-          taskGroupId: normalizedSettings.taskGroupId,
-          taskGroupPriority: normalizedSettings.taskGroupPriority,
-          taskParams: currentTask.taskParams ?? {},
+          workflowCode,
+          task: {
+            ...currentTask,
+            taskType: currentTask.taskType || taskType,
+            taskGroupId: normalizedSettings.taskGroupId,
+            taskGroupPriority: normalizedSettings.taskGroupPriority,
+          },
         },
         null,
         2,
       ),
     [
-      currentTask.taskParams,
-      currentTask.taskType,
+      currentTask,
       normalizedSettings.taskGroupId,
       normalizedSettings.taskGroupPriority,
       taskType,
+      workflowCode,
     ],
   );
 
