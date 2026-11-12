@@ -478,7 +478,7 @@ export function TreeSelect({
                 value={query}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="!pl-8"
+                className="!pl-8 !text-xs"
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "ArrowDown" && visibleRows.length > 0) {
@@ -533,7 +533,7 @@ export function TreeSelect({
                   aria-selected={selectable ? selected : undefined}
                   aria-disabled={disabledOption || undefined}
                   className={cn(
-                    "flex min-h-8 items-center rounded-[var(--yak-radius-control-small)] pr-1 text-[var(--yak-components-select-item-text)]",
+                    "flex min-h-7 items-center rounded-[var(--yak-radius-control-small)] pr-1 text-xs leading-5 text-[var(--yak-components-select-item-text)] transition-colors duration-100",
                     active && !selected && "bg-[var(--yak-components-select-item-bg-hover)]",
                     selected &&
                       "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]",
@@ -554,7 +554,7 @@ export function TreeSelect({
                     }
                     disabled={!row.expandable}
                     className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded outline-none",
+                      "flex size-5 shrink-0 items-center justify-center rounded outline-none",
                       row.expandable
                         ? "cursor-pointer text-[var(--yak-components-input-icon)] hover:bg-[var(--yak-components-input-bg-hover)]"
                         : "cursor-default text-transparent",
@@ -585,7 +585,7 @@ export function TreeSelect({
                     tabIndex={-1}
                     disabled={disabledOption}
                     className={cn(
-                      "flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-1 text-left outline-none",
+                      "flex min-w-0 flex-1 items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-xs leading-5 outline-none",
                       selectable && !disabledOption
                         ? "cursor-pointer"
                         : row.expandable && !disabledOption
@@ -606,7 +606,13 @@ export function TreeSelect({
                         {option.icon}
                       </span>
                     ) : null}
-                    <span className="min-w-0 flex-1 truncate" title={option.label}>
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate text-xs leading-5",
+                        !selectable && "font-medium",
+                      )}
+                      title={option.label}
+                    >
                       {option.label}
                     </span>
                     {selected ? (
