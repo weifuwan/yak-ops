@@ -23,7 +23,6 @@ import { getName, isDirectoryItem, canPreviewResource } from "../utils";
 interface ResourceActionsProps {
   item: ResourceItemRecord;
   onOpen: (item: ResourceItemRecord) => void;
-  onOpenFile: (item: ResourceItemRecord) => void;
   onPreview: (item: ResourceItemRecord) => void;
   onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
@@ -35,7 +34,6 @@ interface ResourceActionsProps {
 export function ResourceActions({
   item,
   onOpen,
-  onOpenFile,
   onPreview,
   onEdit,
   onDownload,
