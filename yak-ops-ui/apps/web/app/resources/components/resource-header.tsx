@@ -1,5 +1,5 @@
 import { useRef, type ChangeEvent } from "react";
-import { FolderPlus, Upload } from "lucide-react";
+import { FilePlus2, FolderPlus, Upload } from "lucide-react";
 import { Button } from "@yak-ops/yak-ui";
 
 interface ResourceHeaderProps {
@@ -7,6 +7,7 @@ interface ResourceHeaderProps {
   busy: boolean;
   uploading: boolean;
   onCreateFolder: () => void;
+  onCreateFile: () => void;
   onUpload: (files: File[]) => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ export function ResourceHeader({
   busy,
   uploading,
   onCreateFolder,
+  onCreateFile,
   onUpload,
 }: ResourceHeaderProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -42,6 +44,15 @@ export function ResourceHeader({
         >
           <FolderPlus size={14} />
           新建文件夹
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={!canManage || busy || uploading}
+          onClick={onCreateFile}
+        >
+          <FilePlus2 size={14} />
+          新建文件
         </Button>
         <Button
           size="sm"
