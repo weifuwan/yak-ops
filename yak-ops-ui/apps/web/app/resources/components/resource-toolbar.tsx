@@ -12,6 +12,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectItemText,
   SelectTrigger,
   SelectValue,
 } from "@yak-ops/yak-ui";
@@ -93,16 +94,36 @@ export function ResourceToolbar({
             <SelectValue placeholder="全部类型" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">全部类型</SelectItem>
-            <SelectItem value="FOLDER">文件夹</SelectItem>
-            <SelectItem value="FILE">所有文件</SelectItem>
-            <SelectItem value="SQL">SQL</SelectItem>
-            <SelectItem value="JAR">JAR</SelectItem>
-            <SelectItem value="PYTHON">Python</SelectItem>
-            <SelectItem value="SHELL">Shell</SelectItem>
-            <SelectItem value="IMAGE">图片</SelectItem>
-            <SelectItem value="DOCUMENT">文档与配置</SelectItem>
-            <SelectItem value="OTHER">其他</SelectItem>
+            <SelectItem value="ALL">
+              <SelectItemText>全部类型</SelectItemText>
+            </SelectItem>
+            <SelectItem value="FOLDER">
+              <SelectItemText>文件夹</SelectItemText>
+            </SelectItem>
+            <SelectItem value="FILE">
+              <SelectItemText>所有文件</SelectItemText>
+            </SelectItem>
+            <SelectItem value="SQL">
+              <SelectItemText>SQL</SelectItemText>
+            </SelectItem>
+            <SelectItem value="JAR">
+              <SelectItemText>JAR</SelectItemText>
+            </SelectItem>
+            <SelectItem value="PYTHON">
+              <SelectItemText>Python</SelectItemText>
+            </SelectItem>
+            <SelectItem value="SHELL">
+              <SelectItemText>Shell</SelectItemText>
+            </SelectItem>
+            <SelectItem value="IMAGE">
+              <SelectItemText>图片</SelectItemText>
+            </SelectItem>
+            <SelectItem value="DOCUMENT">
+              <SelectItemText>文档与配置</SelectItemText>
+            </SelectItem>
+            <SelectItem value="OTHER">
+              <SelectItemText>其他</SelectItemText>
+            </SelectItem>
           </SelectContent>
         </Select>
 
@@ -115,9 +136,15 @@ export function ResourceToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name">按名称排序</SelectItem>
-            <SelectItem value="updated">最近修改</SelectItem>
-            <SelectItem value="size">文件大小</SelectItem>
+            <SelectItem value="name">
+              <SelectItemText>按名称排序</SelectItemText>
+            </SelectItem>
+            <SelectItem value="updated">
+              <SelectItemText>最近修改</SelectItemText>
+            </SelectItem>
+            <SelectItem value="size">
+              <SelectItemText>文件大小</SelectItemText>
+            </SelectItem>
           </SelectContent>
         </Select>
 
