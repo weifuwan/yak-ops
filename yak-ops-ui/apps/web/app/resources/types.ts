@@ -21,4 +21,4 @@ export type ResourceDialog =
   | { kind: "delete"; item: ResourceItemRecord }
   | { kind: "delete-selected"; items: ResourceItemRecord[] };
 
-export type ResourceEditorMode = "preview" | "edit" | "create";
+export type ResourceEditorMode = "preview" | "edit";
