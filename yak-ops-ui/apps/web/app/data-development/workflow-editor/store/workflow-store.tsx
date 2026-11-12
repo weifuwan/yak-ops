@@ -26,6 +26,7 @@ import type {
   WorkflowEdgeStyle,
   WorkflowSelectorRequest,
 } from "../types";
+import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 type WorkflowHistoryState = Pick<
   WorkflowEditorState,
@@ -58,10 +59,15 @@ export type WorkflowEditorState = {
   addDroppedNode: (
     taskType: string,
     position: XYPosition,
+    taskCode: number,
+    projectCode: number,
   ) => { id: string; name: string };
   renameDraftNode: (nodeId: string, name: string) => boolean;
+  updateTaskDefinition: (nodeId: string, task: WorkflowTaskRecord) => boolean;
   insertNodeFromSelector: (
     taskType: string,
+    taskCode: number,
+    projectCode: number,
   ) => string;
   addConnection: (connection: Connection) => string | null;
   removeNodes: (ids: string[]) => void;
@@ -125,25 +131,102 @@ function getNextDraftNodeName(
   return baseName + " " + sequence;
 }
 
+function defaultTaskParams(taskType: string): Record<string, unknown> {
+  switch (taskType.toUpperCase()) {
+    case "JAVA":
+      return {
+        runType: "FAT_JAR",
+        mainJar: null,
+        mainClass: "",
+        mainArgs: "",
+        jvmArgs: "",
+        isModulePath: false,
+        resourceList: [],
+        localParams: [],
+      };
+    case "SHELL":
+      return {
+        rawScript: "",
+        resourceList: [],
+        localParams: [],
+        dependence: {},
+        conditionResult: { successNode: [], failedNode: [] },
+        waitStartTimeout: {},
+        switchResult: {},
+      };
+    case "PYTHON":
+      return { rawScript: "", resourceList: [], localParams: [] };
+    case "SQL":
+      return {
+        type: "",
+        datasource: 0,
+        sql: "",
+        sqlSource: "CUSTOM",
+        sqlType: 0,
+        sendEmail: false,
+        displayRows: 10,
+        showType: "TABLE",
+        connParams: "",
+        preStatements: [],
+        postStatements: [],
+        groupId: 0,
+        title: "",
+        limit: 0,
+        localParams: [],
+      };
+    default:
+      return { resourceList: [], localParams: [] };
+  }
+}
+
 function createDraftNode(
-  sequence: number,
   taskType: string,
   position: XYPosition,
   workflowCode: number,
-  name = taskType + " 节点",
+  projectCode: number,
+  taskCode: number,
+  name: string,
 ): WorkflowCanvasNode {
+  const task: WorkflowTaskRecord = {
+    id: 0,
+    code: taskCode,
+    name,
+    version: 0,
+    description: "",
+    projectCode,
+    userId: 0,
+    taskType,
+    taskParams: defaultTaskParams(taskType),
+    flag: "YES",
+    taskPriority: "MEDIUM",
+    workerGroup: "default",
+    environmentCode: -1,
+    failRetryTimes: 0,
+    failRetryInterval: 1,
+    timeoutFlag: "CLOSE",
+    timeoutNotifyStrategy: "WARNFAILED",
+    timeout: 0,
+    delayTime: 0,
+    taskGroupId: 0,
+    taskGroupPriority: 0,
+    cpuQuota: -1,
+    memoryMax: -1,
+    taskExecuteType: "BATCH",
+  };
+
   return {
-    id: "draft:" + sequence,
+    id: String(taskCode),
     type: "workflowTask",
     position,
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     data: {
       workflowCode,
-      taskCode: null,
+      taskCode,
       taskType,
       name,
       draft: true,
+      task,
     },
   };
 }
@@ -252,15 +335,17 @@ export function createWorkflowStore(
         closeSelector: () =>
           set({ selectorRequest: null }),
 
-        addDroppedNode: (taskType, position) => {
+        addDroppedNode: (taskType, position, taskCode, projectCode) => {
           const state = get();
           const sequence = state.draftNodeSequence + 1;
+          const name = getNextDraftNodeName(taskType, state.nodes);
           const node = createDraftNode(
-            sequence,
             taskType,
             position,
             workflowCode,
-            getNextDraftNodeName(taskType, state.nodes),
+            projectCode,
+            taskCode,
+            name,
           );
 
           set((current) => ({
@@ -301,6 +386,9 @@ export function createWorkflowStore(
                     data: {
                       ...node.data,
                       name: normalizedName,
+                      task: node.data.task
+                        ? { ...node.data.task, name: normalizedName }
+                        : node.data.task,
                     },
                   }
                 : node,
@@ -310,7 +398,28 @@ export function createWorkflowStore(
           return true;
         },
 
-        insertNodeFromSelector: (taskType) => {
+        updateTaskDefinition: (nodeId, task) => {
+          if (!get().nodes.some((node) => node.id === nodeId)) return false;
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      taskCode: task.code,
+                      taskType: task.taskType,
+                      name: task.name,
+                      task,
+                    },
+                  }
+                : node,
+            ),
+          }));
+          return true;
+        },
+
+        insertNodeFromSelector: (taskType, taskCode, projectCode) => {
           const state = get();
           const request =
             state.selectorRequest ?? ({ kind: "add" } as const);
@@ -370,10 +479,12 @@ export function createWorkflowStore(
           }
 
           const node = createDraftNode(
-            sequence,
             taskType,
             position,
             workflowCode,
+            projectCode,
+            taskCode,
+            getNextDraftNodeName(taskType, state.nodes),
           );
 
           if (
