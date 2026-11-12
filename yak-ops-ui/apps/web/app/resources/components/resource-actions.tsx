@@ -40,6 +40,7 @@ export function ResourceActions({
       <DropdownMenuTrigger
         aria-label={"更多操作：" + name}
         title="更多操作"
+        data-resource-action
         className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[#89919d] outline-none transition-colors hover:bg-[#f1f3f6] hover:text-[#303846] focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)]"
       >
         <MoreHorizontal size={17} />

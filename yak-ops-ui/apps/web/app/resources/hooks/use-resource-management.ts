@@ -268,6 +268,22 @@ export function useResourceManagement() {
     });
   };
 
+  const selectItem = (item: ResourceItemRecord) => {
+    setSelectedFullNames(new Set([item.fullName]));
+  };
+
+  const copyResourcePath = async (item: ResourceItemRecord) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(item.fullName);
+      toast.success("资源路径已复制");
+    } catch {
+      toast.error("复制失败，请检查浏览器剪贴板权限");
+    }
+  };
+
   const openCreateDialog = () => {
     setDialogValue("");
     setDialog({ kind: "create" });
@@ -286,6 +302,23 @@ export function useResourceManagement() {
   const openRootDirectory = () => {
     if (!baseDirQuery.data) return;
     setCurrentDir(baseDirQuery.data);
+    setPageNo(1);
+    setSelectedFullNames(new Set());
+  };
+
+  const openParentDirectory = () => {
+    if (directoryPath.length <= 1) {
+      openRootDirectory();
+      return;
+    }
+
+    const parent = directoryPath[directoryPath.length - 2];
+    if (!parent?.fullName) {
+      openRootDirectory();
+      return;
+    }
+
+    setCurrentDir(parent.fullName);
     setPageNo(1);
     setSelectedFullNames(new Set());
   };
@@ -354,6 +387,8 @@ export function useResourceManagement() {
     openDirectory,
     openBreadcrumb,
     openRootDirectory,
+    openParentDirectory,
+    canGoParent: directoryPath.length > 1,
     openCreateDialog,
     openRenameDialog,
     openDeleteDialog,
@@ -366,6 +401,8 @@ export function useResourceManagement() {
     refresh,
     retryItems: () => itemsQuery.refetch(),
     toggleItemSelection,
+    selectItem,
+    copyResourcePath,
     handleSelectionChange,
     handleKeywordChange,
     clearKeyword,

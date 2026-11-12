@@ -1,9 +1,9 @@
 import {
   Grid2X2,
   List,
+  PanelRight,
   RefreshCw,
   Search,
-  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -22,16 +22,14 @@ interface ResourceToolbarProps {
   keyword: string;
   onKeywordChange: (value: string) => void;
   onClearKeyword: () => void;
-  selectedCount: number;
-  canDeleteSelected: boolean;
-  onClearSelection: () => void;
-  onDeleteSelected: () => void;
   typeFilter: ResourceTypeFilter;
   onTypeFilterChange: (value: ResourceTypeFilter) => void;
   sortBy: ResourceSort;
   onSortChange: (value: ResourceSort) => void;
   viewMode: ViewMode;
   onViewModeChange: (value: ViewMode) => void;
+  detailsOpen: boolean;
+  onToggleDetails: () => void;
   onRefresh: () => void;
   isLoading: boolean;
   isFetching: boolean;
@@ -41,75 +39,47 @@ export function ResourceToolbar({
   keyword,
   onKeywordChange,
   onClearKeyword,
-  selectedCount,
-  canDeleteSelected,
-  onClearSelection,
-  onDeleteSelected,
   typeFilter,
   onTypeFilterChange,
   sortBy,
   onSortChange,
   viewMode,
   onViewModeChange,
+  detailsOpen,
+  onToggleDetails,
   onRefresh,
   isLoading,
   isFetching,
 }: ResourceToolbarProps) {
   return (
-    <div className="mb-4 flex min-h-9 flex-wrap items-center justify-between gap-3">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="relative w-[280px] max-w-full min-w-[180px]">
-          <Search
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
-          />
-          <Input
-            size="small"
-            variant="outlined"
-            aria-label="搜索资源"
-            placeholder="搜索文件或文件夹"
-            value={keyword}
-            onChange={(event) => onKeywordChange(event.target.value)}
-            className="h-9 pl-9 pr-9 text-xs"
-          />
-          {keyword ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              isIconOnly
-              aria-label="清除搜索"
-              title="清除搜索"
-              onClick={onClearKeyword}
-              className="absolute right-1 top-1/2 size-7 -translate-y-1/2"
-            >
-              <X size={13} />
-            </Button>
-          ) : null}
-        </div>
-
-        {selectedCount > 0 ? (
-          <div className="flex items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
-            <span>已选择 {selectedCount} 项</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-1.5 text-xs"
-              onClick={onClearSelection}
-            >
-              取消选择
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              isDisabled={!canDeleteSelected}
-              onClick={onDeleteSelected}
-              className="h-7 px-1.5 text-xs text-[var(--yak-color-danger)] hover:text-[var(--yak-color-danger)]"
-            >
-              <Trash2 size={13} />
-              批量删除
-            </Button>
-          </div>
+    <div className="mb-3 flex min-h-9 flex-wrap items-center justify-between gap-3">
+      <div className="relative w-[280px] max-w-full min-w-[180px]">
+        <Search
+          size={15}
+          className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
+        />
+        <Input
+          size="small"
+          variant="outlined"
+          aria-label="搜索资源"
+          placeholder="搜索文件或文件夹"
+          value={keyword}
+          onChange={(event) => onKeywordChange(event.target.value)}
+          className="h-9 pl-9 pr-9 text-xs"
+        />
+        {keyword ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            isIconOnly
+            aria-label="清除搜索"
+            title="清除搜索"
+            onClick={onClearKeyword}
+            className="absolute right-1 top-1/2 size-7 -translate-y-1/2"
+          >
+            <X size={13} />
+          </Button>
         ) : null}
       </div>
 
@@ -179,6 +149,20 @@ export function ResourceToolbar({
             <Grid2X2 size={14} />
           </Button>
         </div>
+
+        <Button
+          type="button"
+          variant={detailsOpen ? "secondary" : "ghost"}
+          size="sm"
+          isIconOnly
+          aria-label={detailsOpen ? "关闭详情面板" : "打开详情面板"}
+          aria-pressed={detailsOpen}
+          title={detailsOpen ? "关闭详情" : "显示详情"}
+          onClick={onToggleDetails}
+          className="size-8"
+        >
+          <PanelRight size={14} />
+        </Button>
 
         <Button
           type="button"

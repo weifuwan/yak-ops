@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import type { ResourceItemRecord } from "@/service/resources";
 
 import { ResourceActions } from "./resource-actions";
@@ -8,6 +9,8 @@ interface ResourceGridProps {
   items: ResourceItemRecord[];
   selectedKeys: Set<string>;
   onToggleSelection: (item: ResourceItemRecord) => void;
+  onSelect: (item: ResourceItemRecord) => void;
+  onContextMenu: (item: ResourceItemRecord, event: MouseEvent<HTMLElement>) => void;
   onOpen: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
   onRename: (item: ResourceItemRecord) => void;
@@ -18,6 +21,8 @@ export function ResourceGrid({
   items,
   selectedKeys,
   onToggleSelection,
+  onSelect,
+  onContextMenu,
   onOpen,
   onDownload,
   onRename,
@@ -41,29 +46,40 @@ export function ResourceGrid({
                   ? "border-[var(--yak-color-primary)] bg-[#fffafa]"
                   : "border-[#edf0f3] hover:border-[#dfe4ea] hover:bg-[#fcfcfd]",
               ].join(" ")}
-              onDoubleClick={() => {
-                if (directory) onOpen(item);
+              onClick={(event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest("button, input")) return;
+                onSelect(item);
               }}
+              onDoubleClick={(event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest("[data-resource-action], input")) return;
+                if (directory) onOpen(item);
+                else onDownload(item);
+              }}
+              onContextMenu={(event) => onContextMenu(item, event)}
             >
               <input
                 type="checkbox"
                 aria-label={"选择" + name}
                 checked={selected}
+                onClick={(event) => event.stopPropagation()}
+                onDoubleClick={(event) => event.stopPropagation()}
                 onChange={() => onToggleSelection(item)}
                 className="size-4 shrink-0 cursor-pointer accent-[var(--yak-color-primary)]"
               />
               <ResourceFileIcon item={item} large />
               <button
                 type="button"
-                onClick={() => {
+                data-resource-name
+                onClick={() => onSelect(item)}
+                onDoubleClick={(event) => {
+                  event.stopPropagation();
                   if (directory) onOpen(item);
+                  else onDownload(item);
                 }}
-                disabled={!directory}
                 title={name}
-                className={[
-                  "min-w-0 flex-1 text-left",
-                  directory ? "cursor-pointer" : "cursor-default",
-                ].join(" ")}
+                className="min-w-0 flex-1 cursor-pointer text-left"
               >
                 <span className="block truncate text-[13px] font-medium text-[#303846]">
                   {name}

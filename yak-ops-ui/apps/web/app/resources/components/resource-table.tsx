@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import {
   Table,
   type TableColumns,
@@ -16,6 +16,8 @@ interface ResourceTableProps {
   loading: boolean;
   emptyText: ReactNode;
   onSelectionChange: (keys: Set<string>) => void;
+  onSelect: (item: ResourceItemRecord) => void;
+  onContextMenu: (item: ResourceItemRecord, event: MouseEvent<HTMLTableRowElement>) => void;
   onOpen: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
   onRename: (item: ResourceItemRecord) => void;
@@ -28,6 +30,8 @@ export function ResourceTable({
   loading,
   emptyText,
   onSelectionChange,
+  onSelect,
+  onContextMenu,
   onOpen,
   onDownload,
   onRename,
@@ -39,24 +43,21 @@ export function ResourceTable({
       title: "名称",
       minWidth: 320,
       render: (_value, item) => {
-        const directory = isDirectoryItem(item);
         const name = getName(item);
         return (
           <div className="flex min-w-0 items-center gap-3">
             <ResourceFileIcon item={item} />
             <button
               type="button"
+              data-resource-name
               title={name}
-              disabled={!directory}
-              onClick={() => {
-                if (directory) onOpen(item);
+              onClick={() => onSelect(item)}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+                if (isDirectoryItem(item)) onOpen(item);
+                else onDownload(item);
               }}
-              className={[
-                "min-w-0 truncate text-left text-[13px] font-medium",
-                directory
-                  ? "cursor-pointer text-[var(--yak-components-panel-text)] hover:text-[var(--yak-color-primary)]"
-                  : "cursor-default text-[var(--yak-components-panel-text)]",
-              ].join(" ")}
+              className="min-w-0 cursor-pointer truncate text-left text-[13px] font-medium text-[var(--yak-components-panel-text)] hover:text-[var(--yak-color-primary)]"
             >
               {name}
             </button>
@@ -145,9 +146,18 @@ export function ResourceTable({
           },
         }}
         onRow={(item) => ({
-          onDoubleClick: () => {
-            if (isDirectoryItem(item)) onOpen(item);
+          onClick: (event) => {
+            const target = event.target as HTMLElement;
+            if (target.closest("input, button, [role='checkbox']")) return;
+            onSelect(item);
           },
+          onDoubleClick: (event) => {
+            const target = event.target as HTMLElement;
+            if (target.closest("[data-resource-action], input")) return;
+            if (isDirectoryItem(item)) onOpen(item);
+            else onDownload(item);
+          },
+          onContextMenu: (event) => onContextMenu(item, event),
         })}
         emptyText={emptyText}
         emptyClassName="min-h-[220px]"
