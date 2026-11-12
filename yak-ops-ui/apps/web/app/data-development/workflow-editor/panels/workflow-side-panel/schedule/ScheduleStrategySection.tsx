@@ -34,7 +34,6 @@ export function ScheduleStrategySection({
     alertGroups,
     notificationGroupId,
     notificationGroupMissing,
-    dag,
   } = controller;
 
   return (
