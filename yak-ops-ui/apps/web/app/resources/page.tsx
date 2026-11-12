@@ -106,7 +106,12 @@ export function ResourceManagementPage() {
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
         <ResourceHeader
           canManage={Boolean(resource.currentDir)}
-          busy={resource.actionPending || resource.editorSaving || resource.createFileSaving || Boolean(resource.editorMode)}
+          busy={
+            resource.actionPending ||
+            resource.editorSaving ||
+            resource.createFileSaving ||
+            Boolean(resource.editorMode)
+          }
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
           onCreateFile={resource.openCreateFile}
@@ -158,7 +163,7 @@ export function ResourceManagementPage() {
                 onSave={() => void resource.saveResourceEditor()}
                 onClose={handleCloseEditor}
                 onRetry={() => {
-                  if (resource.editorItem && (resource.editorMode === "preview" || resource.editorMode === "edit")) {
+                  if (resource.editorItem && resource.editorMode) {
                     void resource.openResourceFile(
                       resource.editorItem,
                       resource.editorMode,
