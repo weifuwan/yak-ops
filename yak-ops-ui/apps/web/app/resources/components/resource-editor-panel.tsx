@@ -77,7 +77,7 @@ export function ResourceEditorPanel({
   const lineCount = Math.max(1, content.split("\n").length);
   const preview = mode === "preview";
   const creating = mode === "create";
-  const title = creating ? "新建文件" : getName(item!);
+  const title = creating ? "新建文件" : item ? getName(item) : "资源文件";
   const language = creating ? suffix.toUpperCase() : getExtension(title).toUpperCase();
 
   return (
