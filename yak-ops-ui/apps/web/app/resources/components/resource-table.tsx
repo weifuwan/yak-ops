@@ -123,7 +123,6 @@ export function ResourceTable({
         <ResourceActions
           item={item}
           onOpen={onOpen}
-          onOpenFile={onOpenFile}
           onPreview={onPreview}
           onEdit={onEdit}
           onDownload={onDownload}
