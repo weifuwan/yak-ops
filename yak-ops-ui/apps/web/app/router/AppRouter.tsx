@@ -2,6 +2,8 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
 import { ResourceManagementPage } from "@/app/resources/page";
+import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
+import { TaskGroupQueuePage } from "@/app/resources/task-group-queue/page";
 import { DataSourcePage } from "@/app/datasource/list/page";
 import { DataIntegrationOverviewPage } from "@/app/data-integration/overview/page";
 import LoginPage from "@/app/login";
@@ -43,6 +45,8 @@ const AUTHENTICATED_PATHS = new Set([
   "/overview",
   "/data-development",
   "/resources",
+  "/resources/task-groups",
+  "/resources/task-group-queue",
   "/data-source",
   "/data-sync",
   "/data-sync/new",
@@ -57,7 +61,8 @@ const AUTHENTICATED_PATHS = new Set([
 const isAuthenticatedPath = (pathname: string) =>
   AUTHENTICATED_PATHS.has(pathname) ||
   pathname.startsWith("/data-sync/") ||
-  pathname.startsWith("/operations/");
+  pathname.startsWith("/operations/") ||
+  pathname.startsWith("/resources/");
 
 const resolveReturnTo = (requested: string | null) => {
   if (!requested) return DEFAULT_AUTHENTICATED_PATH;
@@ -203,6 +208,8 @@ export default function AppRouter() {
           }
         >
           <Route path="/resources" element={<ResourceManagementPage />} />
+          <Route path="/resources/task-groups" element={<TaskGroupConfigurationPage />} />
+          <Route path="/resources/task-group-queue" element={<TaskGroupQueuePage />} />
         </Route>
       </Route>
     </Routes>
