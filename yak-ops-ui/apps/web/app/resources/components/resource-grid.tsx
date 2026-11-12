@@ -12,7 +12,11 @@ interface ResourceGridProps {
   onSelect: (item: ResourceItemRecord) => void;
   onContextMenu: (item: ResourceItemRecord, event: MouseEvent<HTMLElement>) => void;
   onOpen: (item: ResourceItemRecord) => void;
+  onOpenFile: (item: ResourceItemRecord) => void;
+  onPreview: (item: ResourceItemRecord) => void;
+  onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
+  onReplace: (item: ResourceItemRecord) => void;
   onRename: (item: ResourceItemRecord) => void;
   onDelete: (item: ResourceItemRecord) => void;
 }
@@ -24,7 +28,11 @@ export function ResourceGrid({
   onSelect,
   onContextMenu,
   onOpen,
+  onOpenFile,
+  onPreview,
+  onEdit,
   onDownload,
+  onReplace,
   onRename,
   onDelete,
 }: ResourceGridProps) {
@@ -55,7 +63,7 @@ export function ResourceGrid({
                 const target = event.target as HTMLElement;
                 if (target.closest("[data-resource-action], input")) return;
                 if (directory) onOpen(item);
-                else onDownload(item);
+                else onOpenFile(item);
               }}
               onContextMenu={(event) => onContextMenu(item, event)}
             >
@@ -76,7 +84,7 @@ export function ResourceGrid({
                 onDoubleClick={(event) => {
                   event.stopPropagation();
                   if (directory) onOpen(item);
-                  else onDownload(item);
+                  else onOpenFile(item);
                 }}
                 title={name}
                 className="min-w-0 flex-1 cursor-pointer text-left"
@@ -95,7 +103,11 @@ export function ResourceGrid({
               <ResourceActions
                 item={item}
                 onOpen={onOpen}
+                onOpenFile={onOpenFile}
+                onPreview={onPreview}
+                onEdit={onEdit}
                 onDownload={onDownload}
+                onReplace={onReplace}
                 onRename={onRename}
                 onDelete={onDelete}
               />
