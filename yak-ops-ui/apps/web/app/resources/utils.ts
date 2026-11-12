@@ -73,8 +73,13 @@ const RESOURCE_VIEW_SUFFIXES = new Set([
  * Mirrors the backend's default resource.view.suffixs configuration.
  * The backend remains the source of truth when this setting is customized.
  */
-export const canPreviewResource = (item: ResourceItemRecord) =>
-  !isDirectoryItem(item) && RESOURCE_VIEW_SUFFIXES.has(getExtension(getName(item)));
+export const canPreviewResource = (item: ResourceItemRecord) => {
+  if (isDirectoryItem(item)) return false;
+  const name = getName(item);
+  const dot = name.lastIndexOf(".");
+  const suffix = dot > 0 && dot < name.length - 1 ? name.slice(dot + 1) : "";
+  return RESOURCE_VIEW_SUFFIXES.has(suffix);
+};
 
 export const getResourceCategory = (name: string): ResourceTypeFilter => {
   const extension = getExtension(name);
