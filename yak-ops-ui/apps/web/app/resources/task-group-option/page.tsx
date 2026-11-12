@@ -294,7 +294,7 @@ export function TaskGroupConfigurationPage() {
           <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-[var(--yak-components-muted-text)]">
-                当前工作空间：{currentWorkspace?.name || "未选择"}
+                新建任务组归属：{currentWorkspace?.name || "未选择工作空间"}
                 {!currentWorkspace ? "，请先创建或选择工作空间后再创建任务组。" : ""}
               </div>
               <div className="flex items-center gap-2">
