@@ -100,7 +100,7 @@ export function ResourceCreateFileModal({
             size="sm"
             variant="primary"
             isPending={saving}
-            isDisabled={!normalizedName || !content.length}
+            isDisabled={saving || !normalizedName || !content.length}
             onClick={onSubmit}
           >
             创建文件
@@ -166,6 +166,7 @@ export function ResourceCreateFileModal({
             size="small"
             items={FILE_SUFFIX_OPTIONS}
             value={suffix}
+            disabled={saving}
             onValueChange={(value) => onSuffixChange(String(value ?? "sql"))}
           >
             <SelectTrigger
@@ -204,6 +205,7 @@ export function ResourceCreateFileModal({
           size="small"
           variant="outlined"
           rows={10}
+          required
           value={content}
           disabled={saving}
           spellCheck={false}
