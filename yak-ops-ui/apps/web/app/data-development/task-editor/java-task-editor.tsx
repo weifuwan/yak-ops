@@ -486,12 +486,10 @@ export function JavaTaskEditor({
       runConfig={
         <TaskCommonSettingsSection
           id="java-run-config"
-          title="执行参数"
           settings={commonSettings}
           onChange={setCommonSettings}
           disabled={!currentTask}
           compact
-          description="配置当前节点的执行资源、执行策略、超时与资源限制。"
         />
       }
     >

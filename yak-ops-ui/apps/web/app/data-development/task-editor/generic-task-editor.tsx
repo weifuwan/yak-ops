@@ -145,14 +145,10 @@ export function GenericTaskEditor({
       runConfig={
         <TaskCommonSettingsSection
           id="generic-run-config"
-          title="执行参数"
           settings={commonSettings}
           onChange={setCommonSettings}
           disabled={!currentTask}
           compact
-          description={currentTask
-            ? "配置当前节点的执行资源、执行策略、超时与资源限制。"
-            : "节点创建流程尚未完成，保存为正式节点后即可配置运行参数。"}
         />
       }
     >

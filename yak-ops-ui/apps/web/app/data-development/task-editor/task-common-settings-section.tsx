@@ -178,11 +178,10 @@ function SettingsSelect({
 }
 
 export function TaskCommonSettingsSection({
-  id, title = "节点通用配置", settings, onChange, disabled = false,
+  id, settings, onChange, disabled = false,
   description, footer, compact = false,
 }: {
   id: string;
-  title?: string;
   settings: TaskCommonSettings;
   onChange: (settings: TaskCommonSettings) => void;
   disabled?: boolean;
@@ -212,23 +211,15 @@ export function TaskCommonSettingsSection({
     : "grid grid-cols-2 gap-x-8 gap-y-3 max-xl:grid-cols-1";
 
   return (
-    <CollapseSection
-      id={id}
-      title={title}
-      extra={compact ? undefined : (
-        <span className="text-[11px] font-normal text-[var(--yak-components-muted-text)]">
-          {selectedTaskGroup
-            ? (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize + " 已使用"
-            : "执行资源 · 策略 · 超时 · 配额"}
-        </span>
-      )}
-      triggerClassName="!h-8 rounded-sm px-3"
-      contentClassName="space-y-4 pt-3"
-    >
+    <div className="space-y-2">
       {!compact && description ? <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">{description}</p> : null}
 
-      <section className="space-y-3">
-        <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">执行资源</h4>
+      <CollapseSection
+        id={id + "-resources"}
+        title="执行资源"
+        triggerClassName="!h-8 rounded-sm px-3"
+        contentClassName="space-y-3 pt-3"
+      >
         <div className={fieldGridClass}>
           <SettingField label="Worker Group">
             <Input size="small" variant="outlined" value={settings.workerGroup} disabled={disabled}
@@ -275,10 +266,14 @@ export function TaskCommonSettingsSection({
             ) : null}
           </div>
         </div>
-      </section>
+      </CollapseSection>
 
-      <section className="space-y-3">
-        <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">执行策略</h4>
+      <CollapseSection
+        id={id + "-strategy"}
+        title="执行策略"
+        triggerClassName="!h-8 rounded-sm px-3"
+        contentClassName="space-y-3 pt-3"
+      >
         <div className={fieldGridClass}>
           <SettingField label="任务优先级">
             <SettingsSelect value={settings.taskPriority} options={TASK_PRIORITIES} disabled={disabled}
@@ -297,10 +292,14 @@ export function TaskCommonSettingsSection({
               disabled={disabled} onChange={event => update("delayTime", event.target.value)} className="w-full min-w-0" />
           </SettingField>
         </div>
-      </section>
+      </CollapseSection>
 
-      <section className="space-y-3">
-        <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">超时设置</h4>
+      <CollapseSection
+        id={id + "-timeout"}
+        title="超时设置"
+        triggerClassName="!h-8 rounded-sm px-3"
+        contentClassName="space-y-3 pt-3"
+      >
         <div className={fieldGridClass}>
           <SettingField label="超时控制">
             <SettingsSelect value={settings.timeoutFlag} options={[{ value: "CLOSE", label: "关闭" }, { value: "OPEN", label: "开启" }]}
@@ -320,10 +319,14 @@ export function TaskCommonSettingsSection({
               onChange={value => update("taskExecuteType", value as TaskExecuteType)} />
           </SettingField>
         </div>
-      </section>
+      </CollapseSection>
 
-      <section className="space-y-3">
-        <h4 className="border-b border-[var(--yak-components-panel-border)] pb-1.5 text-xs font-semibold text-[var(--yak-components-panel-text)]">资源限制</h4>
+      <CollapseSection
+        id={id + "-limits"}
+        title="资源限制"
+        triggerClassName="!h-8 rounded-sm px-3"
+        contentClassName="space-y-3 pt-3"
+      >
         <div className={fieldGridClass}>
           <SettingField label="CPU 配额">
             <Input size="small" variant="outlined" type="number" min={-1} step={1} value={settings.cpuQuota}
@@ -339,7 +342,7 @@ export function TaskCommonSettingsSection({
             CPU 配额和最大内存填写 -1 表示不限制；Environment Code 填 -1 表示使用默认环境。
           </p>
         ) : null}
-      </section>
+      </CollapseSection>
 
       {!compact || footer ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] pt-3">
@@ -351,6 +354,6 @@ export function TaskCommonSettingsSection({
           {footer}
         </div>
       ) : null}
-    </CollapseSection>
+    </div>
   );
 }
