@@ -32,7 +32,6 @@ const FILE_SUFFIX_OPTIONS = [
   { value: "txt", label: "TXT" },
   { value: "log", label: "Log" },
   { value: "conf", label: "CONF" },
-  { value: "ini", label: "INI" },
 ];
 
 interface ResourceEditorPanelProps {
@@ -124,7 +123,7 @@ export function ResourceEditorPanel({
               <Button
                 size="sm"
                 isPending={saving}
-                isDisabled={loading || saving || (creating ? !fileName.trim() || !content.length : !dirty)}
+                isDisabled={loading || saving || !content.length || (creating ? !fileName.trim() : !dirty)}
                 onClick={onSave}
               >
                 <Save size={13} />
