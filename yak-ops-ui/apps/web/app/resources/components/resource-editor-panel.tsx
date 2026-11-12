@@ -4,18 +4,15 @@ import {
   Check,
   FileCode2,
   LoaderCircle,
-  Pencil,
   Save,
 } from "lucide-react";
 import { Button, Textarea } from "@yak-ops/yak-ui";
 
 import type { ResourceItemRecord } from "@/service/resources";
 
-import type { ResourceEditorMode } from "../types";
 import { getExtension, getName } from "../utils";
 
 interface ResourceEditorPanelProps {
-  mode: ResourceEditorMode;
   item: ResourceItemRecord | null;
   content: string;
   loading: boolean;
@@ -26,11 +23,9 @@ interface ResourceEditorPanelProps {
   onSave: () => void;
   onClose: () => void;
   onRetry: () => void;
-  onSwitchToEdit: () => void;
 }
 
 export function ResourceEditorPanel({
-  mode,
   item,
   content,
   loading,
@@ -41,10 +36,8 @@ export function ResourceEditorPanel({
   onSave,
   onClose,
   onRetry,
-  onSwitchToEdit,
 }: ResourceEditorPanelProps) {
   const [scrollTop, setScrollTop] = useState(0);
-  const preview = mode === "preview";
   const title = item ? getName(item) : "资源文件";
   const extension = getExtension(title).toUpperCase() || "TEXT";
   const lineCount = Math.max(1, content.split("\n").length);
@@ -78,7 +71,7 @@ export function ResourceEditorPanel({
               <span className="shrink-0 rounded bg-[#f3f5f8] px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-[#778294]">
                 {extension}
               </span>
-              {!preview && dirty ? (
+              {dirty ? (
                 <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-[#c17b25]">
                   <span className="size-1.5 rounded-full bg-[#d99a45]" />
                   未保存
@@ -95,36 +88,22 @@ export function ResourceEditorPanel({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {preview ? (
-            <>
-              <span className="hidden text-[11px] text-[#929baa] sm:inline">
-                只读预览
-              </span>
-              <Button size="sm" variant="primary" onClick={onSwitchToEdit}>
-                <Pencil size={13} />
-                在线编辑
-              </Button>
-            </>
-          ) : (
-            <>
-              {!dirty ? (
-                <span className="hidden items-center gap-1 text-[11px] text-[#8a96a5] sm:inline-flex">
-                  <Check size={13} />
-                  已保存
-                </span>
-              ) : null}
-              <Button
-                size="sm"
-                variant="primary"
-                isPending={saving}
-                isDisabled={loading || saving || !dirty || !content.length}
-                onClick={onSave}
-              >
-                <Save size={13} />
-                保存
-              </Button>
-            </>
-          )}
+          {!dirty && !loading && !error ? (
+            <span className="hidden items-center gap-1 text-[11px] text-[#8a96a5] sm:inline-flex">
+              <Check size={13} />
+              已保存
+            </span>
+          ) : null}
+          <Button
+            size="sm"
+            variant="primary"
+            isPending={saving}
+            isDisabled={loading || saving || !dirty || !content.length}
+            onClick={onSave}
+          >
+            <Save size={13} />
+            保存
+          </Button>
         </div>
       </header>
 
@@ -135,7 +114,7 @@ export function ResourceEditorPanel({
           </span>
           <span>UTF-8</span>
           <span className="text-[#c4cad2]">·</span>
-          <span>纯文本</span>
+          <span>编辑</span>
         </div>
         <div className="text-[11px] tabular-nums text-[#9aa2ad]">
           {lineCount.toLocaleString("zh-CN")} 行
@@ -177,9 +156,9 @@ export function ResourceEditorPanel({
           </div>
 
           <Textarea
-            aria-label={preview ? "文件内容预览" : "文件内容编辑器"}
+            aria-label="文件内容编辑器"
             value={content}
-            readOnly={preview || saving}
+            readOnly={saving}
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
@@ -188,14 +167,14 @@ export function ResourceEditorPanel({
             className={[
               "h-full min-h-0 w-0 min-w-0 flex-1 resize-none rounded-none border-0 bg-[#fcfcfd] px-5 pb-6 pt-4 font-mono text-[12px] leading-6 text-[#303846] shadow-none outline-none",
               "whitespace-pre focus:border-transparent focus:bg-[#fcfcfd] focus:ring-0 hover:border-transparent hover:bg-[#fcfcfd]",
-              preview ? "cursor-default" : "cursor-text",
+              "cursor-text",
             ].join(" ")}
           />
         </div>
       )}
 
       <footer className="flex h-8 shrink-0 items-center justify-between border-t border-[#edf0f3] bg-[#fafbfc] px-4 text-[10px] text-[#9aa2ad]">
-        <span>{preview ? "预览模式 · 只读" : "编辑模式"}</span>
+        <span>在线编辑</span>
         <span>资源文件</span>
       </footer>
     </section>
