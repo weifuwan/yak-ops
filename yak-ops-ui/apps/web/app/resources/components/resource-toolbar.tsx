@@ -87,6 +87,18 @@ export function ResourceToolbar({
       <div className="flex shrink-0 items-center gap-2">
         <Select
           size="small"
+          items={[
+            { value: "ALL", label: "全部类型" },
+            { value: "FOLDER", label: "文件夹" },
+            { value: "FILE", label: "所有文件" },
+            { value: "SQL", label: "SQL" },
+            { value: "JAR", label: "JAR" },
+            { value: "PYTHON", label: "Python" },
+            { value: "SHELL", label: "Shell" },
+            { value: "IMAGE", label: "图片" },
+            { value: "DOCUMENT", label: "文档与配置" },
+            { value: "OTHER", label: "其他" },
+          ]}
           value={typeFilter}
           onValueChange={(value) => onTypeFilterChange(value as ResourceTypeFilter)}
         >
@@ -129,6 +141,11 @@ export function ResourceToolbar({
 
         <Select
           size="small"
+          items={[
+            { value: "name", label: "按名称排序" },
+            { value: "updated", label: "最近修改" },
+            { value: "size", label: "文件大小" },
+          ]}
           value={sortBy}
           onValueChange={(value) => onSortChange(value as ResourceSort)}
         >
