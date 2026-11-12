@@ -428,7 +428,7 @@ export function TreeSelect({
               "min-w-0 flex-1 truncate",
               clearable && hasValue && !disabled && "pr-6",
             )}
-            title={selectedOption?.label ?? selectedValue ?? undefined}
+            title={selectedValue ?? selectedOption?.label ?? undefined}
           >
             {selectedOption?.label ?? selectedValue ?? placeholder}
           </span>
