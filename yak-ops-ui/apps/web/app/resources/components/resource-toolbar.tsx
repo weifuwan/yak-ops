@@ -16,6 +16,7 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
+  Segmented,
 } from "@yak-ops/yak-ui";
 
 import type { ResourceSort, ResourceTypeFilter, ViewMode } from "../types";
@@ -166,34 +167,32 @@ export function ResourceToolbar({
           </SelectContent>
         </Select>
 
-        <div className="flex h-8 items-center rounded-md border border-[var(--yak-components-panel-border)] bg-white p-0.5">
-          <Button
-            type="button"
-            variant={viewMode === "list" ? "secondary" : "ghost"}
-            size="sm"
-            isIconOnly
-            aria-label="列表视图"
-            aria-pressed={viewMode === "list"}
-            title="列表视图"
-            onClick={() => onViewModeChange("list")}
-            className="size-7"
-          >
-            <List size={15} />
-          </Button>
-          <Button
-            type="button"
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-            size="sm"
-            isIconOnly
-            aria-label="网格视图"
-            aria-pressed={viewMode === "grid"}
-            title="网格视图"
-            onClick={() => onViewModeChange("grid")}
-            className="size-7"
-          >
-            <Grid2X2 size={14} />
-          </Button>
-        </div>
+        <Segmented
+          aria-label="资源视图"
+          value={viewMode}
+          onValueChange={onViewModeChange}
+          options={[
+            {
+              value: "list",
+              label: (
+                <>
+                  <span className="sr-only">列表视图</span>
+                  <List size={14} aria-hidden="true" />
+                </>
+              ),
+            },
+            {
+              value: "grid",
+              label: (
+                <>
+                  <span className="sr-only">网格视图</span>
+                  <Grid2X2 size={14} aria-hidden="true" />
+                </>
+              ),
+            },
+          ]}
+          className="h-8 rounded-md p-0.5 [&>button]:inline-flex [&>button]:size-7 [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-center [&>button]:px-0 [&>button]:py-0"
+        />
 
         <Button
           type="button"
