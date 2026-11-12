@@ -17,7 +17,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { ResourceItemRecord } from "@/service/resources";
-import { getName, isDirectoryItem } from "../utils";
+import { isDirectoryItem } from "../utils";
 
 interface ResourceContextMenuProps {
   item: ResourceItemRecord | null;
