@@ -16,7 +16,7 @@ export function WorkflowTaskGroupSection({
 }: {
   controller: WorkflowSidePanelController;
 }) {
-  const { workflowCode, dag } = controller;
+  const { workflowCode, dag, scheduleIsOnline } = controller;
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const projectCode = currentWorkspace?.id ?? "";
@@ -56,6 +56,10 @@ export function WorkflowTaskGroupSection({
   const selectedGroup = groups.find((group) => group.id === taskGroupId);
 
   const handleSave = async () => {
+    if (scheduleIsOnline) {
+      toast.warning("请先下线调度，再修改工作流任务组配置");
+      return;
+    }
     const numericPriority = Number(priority || 0);
     if (!Number.isSafeInteger(numericPriority) || numericPriority < 0) {
       toast.warning("组内优先级必须为大于等于 0 的整数");
@@ -153,11 +157,11 @@ export function WorkflowTaskGroupSection({
         </span>
         <button
           type="button"
-          disabled={saving || groupsQuery.isFetching || tasks.length === 0}
+          disabled={saving || scheduleIsOnline || groupsQuery.isFetching || tasks.length === 0}
           onClick={() => void handleSave()}
           className="h-7 shrink-0 rounded-md bg-[#315efb] px-3 text-xs font-medium text-white transition-colors hover:bg-[#244fe0] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "保存中..." : "应用到全部节点"}
+          {saving ? "保存中..." : scheduleIsOnline ? "请先下线调度" : "应用到全部节点"}
         </button>
       </div>
       {groupsQuery.isError ? (
