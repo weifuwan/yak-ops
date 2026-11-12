@@ -105,7 +105,7 @@ export function ResourceManagementPage() {
       <div className="flex min-h-full flex-col bg-white text-[#252b35]">
         <ResourceHeader
           canManage={Boolean(resource.currentDir)}
-          busy={resource.actionPending || resource.editorSaving}
+          busy={resource.actionPending || resource.editorSaving || Boolean(resource.editorMode)}
           uploading={resource.uploading}
           onCreateFolder={resource.openCreateDialog}
           onCreateFile={resource.openCreateFile}
@@ -113,37 +113,42 @@ export function ResourceManagementPage() {
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-7 pb-5 pt-5 max-md:px-4">
-          <ResourceToolbar
-            keyword={resource.keyword}
-            onKeywordChange={resource.handleKeywordChange}
-            onClearKeyword={resource.clearKeyword}
-            typeFilter={resource.typeFilter}
-            onTypeFilterChange={resource.handleTypeFilterChange}
-            sortBy={resource.sortBy}
-            onSortChange={resource.setSortBy}
-            viewMode={resource.viewMode}
-            onViewModeChange={resource.setViewMode}
-            detailsOpen={detailsOpen}
-            onToggleDetails={() => setDetailsOpen((open) => !open)}
-            onRefresh={() => void resource.refresh()}
-            isLoading={resource.isLoading}
-            isFetching={resource.isFetching}
-          />
+          {!resource.editorMode ? (
+            <>
+              <ResourceToolbar
+                keyword={resource.keyword}
+                onKeywordChange={resource.handleKeywordChange}
+                onClearKeyword={resource.clearKeyword}
+                typeFilter={resource.typeFilter}
+                onTypeFilterChange={resource.handleTypeFilterChange}
+                sortBy={resource.sortBy}
+                onSortChange={resource.setSortBy}
+                viewMode={resource.viewMode}
+                onViewModeChange={resource.setViewMode}
+                detailsOpen={detailsOpen}
+                onToggleDetails={() => setDetailsOpen((open) => !open)}
+                onRefresh={() => void resource.refresh()}
+                isLoading={resource.isLoading}
+                isFetching={resource.isFetching}
+              />
 
-          <ResourceBreadcrumb
-            path={resource.directoryPath}
-            total={resource.total}
-            canGoParent={resource.canGoParent}
-            onParentClick={resource.openParentDirectory}
-            onRootClick={resource.openRootDirectory}
-            onOpen={resource.openBreadcrumb}
-          />
+              <ResourceBreadcrumb
+                path={resource.directoryPath}
+                total={resource.total}
+                canGoParent={resource.canGoParent}
+                onParentClick={resource.openParentDirectory}
+                onRootClick={resource.openRootDirectory}
+                onOpen={resource.openBreadcrumb}
+              />
+            </>
+          ) : null}
 
           <div className="flex min-h-0 flex-1 gap-3">
             {resource.editorMode ? (
               <ResourceEditorPanel
                 mode={resource.editorMode}
                 item={resource.editorItem}
+                currentDirectory={resource.currentDir}
                 fileName={resource.editorFileName}
                 suffix={resource.editorSuffix}
                 content={resource.editorContent}
