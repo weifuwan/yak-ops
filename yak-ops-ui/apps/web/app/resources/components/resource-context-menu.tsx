@@ -3,8 +3,11 @@ import { createPortal } from "react-dom";
 import {
   Copy,
   Download,
+  Eye,
+  FilePenLine,
   FolderOpen,
   Pencil,
+  Replace,
   Trash2,
   Info,
 } from "lucide-react";
@@ -17,14 +20,17 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { ResourceItemRecord } from "@/service/resources";
-import { isDirectoryItem } from "../utils";
+import { canPreviewResource, isDirectoryItem } from "../utils";
 
 interface ResourceContextMenuProps {
   item: ResourceItemRecord | null;
   position: { x: number; y: number } | null;
   onClose: () => void;
   onOpen: (item: ResourceItemRecord) => void;
+  onPreview: (item: ResourceItemRecord) => void;
+  onEdit: (item: ResourceItemRecord) => void;
   onDownload: (item: ResourceItemRecord) => void;
+  onReplace: (item: ResourceItemRecord) => void;
   onRename: (item: ResourceItemRecord) => void;
   onDelete: (item: ResourceItemRecord) => void;
   onCopyPath: (item: ResourceItemRecord) => void;
@@ -36,7 +42,10 @@ export function ResourceContextMenu({
   position,
   onClose,
   onOpen,
+  onPreview,
+  onEdit,
   onDownload,
+  onReplace,
   onRename,
   onDelete,
   onCopyPath,
@@ -51,6 +60,7 @@ export function ResourceContextMenu({
   if (!item || !position || !portalRoot) return null;
 
   const directory = isDirectoryItem(item);
+  const previewable = canPreviewResource(item);
 
   return createPortal(
     <DropdownMenu
@@ -73,10 +83,36 @@ export function ResourceContextMenu({
         sideOffset={0}
         className="w-44 rounded-md p-1"
       >
-        <DropdownMenuItem onClick={() => directory ? onOpen(item) : onDownload(item)}>
-          {directory ? <FolderOpen size={14} /> : <Download size={14} />}
-          {directory ? "打开文件夹" : "下载文件"}
-        </DropdownMenuItem>
+        {directory ? (
+          <DropdownMenuItem onClick={() => onOpen(item)}>
+            <FolderOpen size={14} />
+            打开文件夹
+          </DropdownMenuItem>
+        ) : (
+          <>
+            {previewable ? (
+              <>
+                <DropdownMenuItem onClick={() => onPreview(item)}>
+                  <Eye size={14} />
+                  预览
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(item)}>
+                  <FilePenLine size={14} />
+                  在线编辑
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            <DropdownMenuItem onClick={() => onDownload(item)}>
+              <Download size={14} />
+              下载文件
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onReplace(item)}>
+              <Replace size={14} />
+              替换文件
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuItem onClick={onShowDetails}>
           <Info size={14} />
           查看详情
