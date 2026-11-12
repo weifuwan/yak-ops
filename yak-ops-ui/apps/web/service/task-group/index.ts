@@ -79,6 +79,25 @@ export const listTaskGroups = (
     { signal },
   );
 
+export const listTaskGroupsByProjectCode = (
+  projectCode: number | string,
+  params: Pick<TaskGroupPageParams, "pageNo" | "pageSize"> = {
+    pageNo: 1,
+    pageSize: 1000,
+  },
+  signal?: AbortSignal,
+): Promise<PageInfo<TaskGroupRecord>> =>
+  HttpUtils.getData<PageInfo<TaskGroupRecord>>(
+    TASK_GROUP_API +
+      "/query-list-by-projectCode?" +
+      toQuery({
+        projectCode,
+        pageNo: params.pageNo,
+        pageSize: params.pageSize,
+      }),
+    { signal },
+  );
+
 export const listTaskGroupQueue = (
   params: TaskGroupQueuePageParams,
   signal?: AbortSignal,
