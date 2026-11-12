@@ -103,7 +103,10 @@ export function ResourceEditorPanel({
             <div className="truncate text-[13px] font-medium text-[#303846]" title={title}>
               {title}
             </div>
-            <div className="text-[10px] text-[#9aa2ad]">
+            <div
+              className="max-w-[50vw] truncate text-[10px] text-[#9aa2ad]"
+              title={creating ? currentDirectory : item?.fullName}
+            >
               {creating ? "保存位置：" + currentDirectory : item?.fullName}
             </div>
           </div>
