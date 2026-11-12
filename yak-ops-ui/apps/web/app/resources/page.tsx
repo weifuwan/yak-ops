@@ -162,7 +162,7 @@ export function ResourceManagementPage() {
                 onSave={() => void resource.saveResourceEditor()}
                 onClose={handleCloseEditor}
                 onRetry={() => {
-                  if (resource.editorItem && resource.editorMode !== "create") {
+                  if (resource.editorItem && (resource.editorMode === "preview" || resource.editorMode === "edit")) {
                     void resource.openResourceFile(
                       resource.editorItem,
                       resource.editorMode,
