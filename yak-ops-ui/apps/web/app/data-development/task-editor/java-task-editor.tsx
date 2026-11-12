@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import {
   Button,
   CollapseSection,
@@ -7,6 +8,13 @@ import {
   FieldLabel,
   Input,
   Segmented,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   Tooltip,
   TooltipContent,
@@ -22,6 +30,10 @@ import {
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 import { listWorkflowResources } from "@/service/resources";
+import {
+  isTaskGroupEnabled,
+  listTaskGroupsByProjectCode,
+} from "@/service/task-group";
 import {
   startWorkflowInstance,
   stopWorkflowInstance,
@@ -48,6 +60,11 @@ type JavaTaskForm = {
   isModulePath: boolean;
   resourceList: string[];
   localParams: JavaLocalParam[];
+};
+
+type TaskGroupSettingsForm = {
+  taskGroupId: number;
+  taskGroupPriority: string;
 };
 
 type ResourceInfo = {
@@ -168,6 +185,13 @@ function buildJavaTaskParams(form: JavaTaskForm) {
   };
 }
 
+function parseTaskGroupSettings(task?: WorkflowTaskRecord): TaskGroupSettingsForm {
+  return {
+    taskGroupId: task?.taskGroupId && task.taskGroupId > 0 ? task.taskGroupId : 0,
+    taskGroupPriority: String(task?.taskGroupPriority ?? 0),
+  };
+}
+
 function flattenResourceFiles(nodes: ResourceNode[]): string[] {
   const paths: string[] = [];
 
@@ -238,6 +262,7 @@ export function JavaTaskEditor({
   onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const resourceId = useId().replace(/:/g, "");
   const jarDatalistId = resourceId + "-jars";
   const resourceDatalistId = resourceId + "-resources";
@@ -246,8 +271,16 @@ export function JavaTaskEditor({
     () => parseJavaTaskForm(task?.taskParams),
     [task?.taskParams],
   );
+  const initialTaskGroupSettings = useMemo(
+    () => parseTaskGroupSettings(task),
+    [task?.taskGroupId, task?.taskGroupPriority],
+  );
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
+  const [taskGroupSettings, setTaskGroupSettings] =
+    useState<TaskGroupSettingsForm>(initialTaskGroupSettings);
+  const [baselineTaskGroupSettings, setBaselineTaskGroupSettings] =
+    useState<TaskGroupSettingsForm>(initialTaskGroupSettings);
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
@@ -259,13 +292,31 @@ export function JavaTaskEditor({
   useEffect(() => {
     setForm(initialForm);
     setBaselineForm(initialForm);
+    setTaskGroupSettings(initialTaskGroupSettings);
+    setBaselineTaskGroupSettings(initialTaskGroupSettings);
     setCurrentTask(task);
-  }, [initialForm, task]);
+  }, [initialForm, initialTaskGroupSettings, task]);
 
   const resourceQuery = useQuery({
     queryKey: ["data-development", "java-task-resources"],
     queryFn: ({ signal }) => listWorkflowResources(signal),
     staleTime: 60_000,
+  });
+
+  const taskGroupQuery = useQuery({
+    queryKey: [
+      "data-development",
+      "task-groups",
+      currentTask?.projectCode ?? 0,
+    ],
+    queryFn: ({ signal }) =>
+      listTaskGroupsByProjectCode(
+        currentTask!.projectCode,
+        { pageNo: 1, pageSize: 1000 },
+        signal,
+      ),
+    enabled: Boolean(currentTask?.projectCode),
+    staleTime: 30_000,
   });
 
   const resourceFiles = useMemo(
@@ -275,6 +326,27 @@ export function JavaTaskEditor({
   const jarFiles = useMemo(
     () => resourceFiles.filter((path) => /\.jar$/i.test(path)),
     [resourceFiles],
+  );
+  const taskGroups = taskGroupQuery.data?.totalList ?? [];
+  const selectedTaskGroup = taskGroups.find(
+    (group) => group.id === taskGroupSettings.taskGroupId,
+  );
+  const taskGroupOptions = useMemo(
+    () => ({
+      "0": "不使用任务组",
+      ...Object.fromEntries(
+        taskGroups.map((group) => [
+          String(group.id),
+          group.name +
+            " · " +
+            (group.useSize ?? 0) +
+            "/" +
+            group.groupSize +
+            (isTaskGroupEnabled(group.status) ? "" : " · 已停用"),
+        ]),
+      ),
+    }),
+    [taskGroups],
   );
 
   const updateField = <K extends keyof JavaTaskForm,>(
@@ -296,20 +368,28 @@ export function JavaTaskEditor({
     }));
   };
 
+  const normalizedTaskGroupPriority = Number(taskGroupSettings.taskGroupPriority || 0);
   const jsonText = useMemo(
     () =>
       JSON.stringify(
         {
           taskType: "JAVA",
+          taskGroupId: taskGroupSettings.taskGroupId,
+          taskGroupPriority:
+            taskGroupSettings.taskGroupId > 0 && Number.isFinite(normalizedTaskGroupPriority)
+              ? normalizedTaskGroupPriority
+              : 0,
           taskParams: buildJavaTaskParams(form),
         },
         null,
         2,
       ),
-    [form],
+    [form, normalizedTaskGroupPriority, taskGroupSettings.taskGroupId],
   );
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(baselineForm);
+  const isDirty =
+    JSON.stringify(form) !== JSON.stringify(baselineForm) ||
+    JSON.stringify(taskGroupSettings) !== JSON.stringify(baselineTaskGroupSettings);
 
   const handleSave = async (): Promise<boolean> => {
     if (!currentTask) return false;
@@ -318,20 +398,61 @@ export function JavaTaskEditor({
       return false;
     }
 
+    const taskGroupPriority =
+      taskGroupSettings.taskGroupId > 0
+        ? Number(taskGroupSettings.taskGroupPriority)
+        : 0;
+
+    if (
+      taskGroupSettings.taskGroupId > 0 &&
+      (!Number.isSafeInteger(taskGroupPriority) || taskGroupPriority < 0)
+    ) {
+      toast.warning("组内优先级必须为大于等于 0 的整数");
+      return false;
+    }
+
+    if (
+      taskGroupSettings.taskGroupId > 0 &&
+      taskGroupQuery.isSuccess &&
+      !selectedTaskGroup
+    ) {
+      toast.warning("所选任务组已不存在，请重新选择");
+      return false;
+    }
+
+    if (selectedTaskGroup && !isTaskGroupEnabled(selectedTaskGroup.status)) {
+      toast.warning("所选任务组已停用，请启用任务组或重新选择");
+      return false;
+    }
+
+    const normalizedTaskGroupSettings: TaskGroupSettingsForm = {
+      taskGroupId: taskGroupSettings.taskGroupId,
+      taskGroupPriority: String(taskGroupPriority),
+    };
+
     setSaving(true);
     try {
       const taskParams = buildJavaTaskParams(form);
-      await updateWorkflowTaskDefinition(
-        workflowCode,
-        currentTask.code,
+      await updateWorkflowTaskDefinition(workflowCode, currentTask.code, {
         taskParams,
-      );
+        taskGroupId: normalizedTaskGroupSettings.taskGroupId,
+        taskGroupPriority,
+      });
       setCurrentTask((current) =>
-        current ? { ...current, taskParams } : current,
+        current
+          ? {
+              ...current,
+              taskParams,
+              taskGroupId: normalizedTaskGroupSettings.taskGroupId,
+              taskGroupPriority,
+            }
+          : current,
       );
       await queryClient.invalidateQueries({
         queryKey: ["data-development", "workflow-definition"],
       });
+      setTaskGroupSettings(normalizedTaskGroupSettings);
+      setBaselineTaskGroupSettings(normalizedTaskGroupSettings);
       setBaselineForm(form);
       toast.success("Java 节点配置已保存");
       return true;
@@ -396,7 +517,10 @@ export function JavaTaskEditor({
 
     setRefreshing(true);
     try {
-      const refreshTasks: Array<Promise<unknown>> = [resourceQuery.refetch()];
+      const refreshTasks: Array<Promise<unknown>> = [
+        resourceQuery.refetch(),
+        taskGroupQuery.refetch(),
+      ];
       if (currentTask) {
         refreshTasks.push(
           getWorkflowDefinition(workflowCode).then((dag) => {
@@ -405,9 +529,12 @@ export function JavaTaskEditor({
             );
             if (!latestTask) throw new Error("节点不存在或已被删除");
             const nextForm = parseJavaTaskForm(latestTask.taskParams);
+            const nextTaskGroupSettings = parseTaskGroupSettings(latestTask);
             setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
+            setTaskGroupSettings(nextTaskGroupSettings);
+            setBaselineTaskGroupSettings(nextTaskGroupSettings);
           }),
         );
       }
@@ -437,7 +564,9 @@ export function JavaTaskEditor({
       saving={saving}
       running={running}
       stopping={stopping}
-      refreshing={refreshing || resourceQuery.isFetching}
+      refreshing={
+        refreshing || resourceQuery.isFetching || taskGroupQuery.isFetching
+      }
       lastWorkflowInstanceId={lastWorkflowInstanceId}
       onRun={() => void handleRun()}
       onStop={() => void handleStop()}
@@ -645,6 +774,167 @@ export function JavaTaskEditor({
                   />
                 </div>
               </JavaField>
+            </CollapseSection>
+
+            <CollapseSection
+              id="java-task-group"
+              title="任务组"
+              extra={
+                taskGroupSettings.taskGroupId > 0 ? (
+                  <span className="text-xs font-normal text-[var(--yak-components-muted-text)]">
+                    {selectedTaskGroup
+                      ? (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize + " 已使用"
+                      : "已配置"}
+                  </span>
+                ) : undefined
+              }
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="space-y-3 pt-3"
+            >
+              <JavaField
+                label="任务组"
+                labelAddon={
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label="查看任务组说明"
+                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)]"
+                          >
+                            <Info size={13} aria-hidden="true" />
+                          </button>
+                        }
+                      />
+                      <TooltipContent side="top" align="start" className="max-w-[300px] shadow-xl">
+                        任务组用于限制同组任务的并发数量。容量占满后，任务会进入任务组队列等待资源。
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                }
+              >
+                <Select<string>
+                  size="small"
+                  items={taskGroupOptions}
+                  value={String(taskGroupSettings.taskGroupId)}
+                  onValueChange={(value) => {
+                    const taskGroupId = Number(value ?? 0);
+                    setTaskGroupSettings((current) => ({
+                      taskGroupId,
+                      taskGroupPriority:
+                        taskGroupId > 0 ? current.taskGroupPriority || "0" : "0",
+                    }));
+                  }}
+                >
+                  <SelectTrigger variant="outlined" className={inputClassName}>
+                    <SelectValue placeholder="请选择任务组" />
+                  </SelectTrigger>
+                  <SelectContent
+                    emptyContent={
+                      taskGroupQuery.isPending
+                        ? "任务组加载中..."
+                        : taskGroupQuery.isError
+                          ? "任务组加载失败"
+                          : undefined
+                    }
+                  >
+                    <SelectItem value="0">
+                      <SelectItemText>不使用任务组</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                    {taskGroups.map((group) => (
+                      <SelectItem
+                        key={group.id}
+                        value={String(group.id)}
+                        disabled={
+                          !isTaskGroupEnabled(group.status) &&
+                          group.id !== taskGroupSettings.taskGroupId
+                        }
+                      >
+                        <SelectItemText>
+                          {group.name} · {group.useSize ?? 0}/{group.groupSize}
+                          {!isTaskGroupEnabled(group.status) ? " · 已停用" : ""}
+                        </SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </JavaField>
+
+              <JavaField
+                label="组内优先级"
+                labelAddon={
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label="查看组内优先级说明"
+                            className="inline-flex size-4 cursor-help items-center justify-center rounded-full text-[var(--yak-components-muted-text)] transition-colors hover:text-[var(--yak-color-primary)]"
+                          >
+                            <Info size={13} aria-hidden="true" />
+                          </button>
+                        }
+                      />
+                      <TooltipContent side="top" align="start" className="max-w-[260px] shadow-xl">
+                        同一任务组中，数值越大的任务越优先获得可用资源槽位。
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                }
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  size="small"
+                  variant="outlined"
+                  value={taskGroupSettings.taskGroupPriority}
+                  disabled={taskGroupSettings.taskGroupId <= 0}
+                  onChange={(event) =>
+                    setTaskGroupSettings((current) => ({
+                      ...current,
+                      taskGroupPriority: event.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                  className={inputClassName}
+                />
+              </JavaField>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] pt-3">
+                <span className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
+                  未选择任务组时，当前节点不受任务组并发容量限制。
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => navigate("/resources/task-groups")}
+                  >
+                    管理任务组
+                  </Button>
+                  {taskGroupSettings.taskGroupId > 0 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        navigate(
+                          "/resources/task-group-queue?groupId=" +
+                            taskGroupSettings.taskGroupId,
+                        )
+                      }
+                    >
+                      查看队列
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
             </CollapseSection>
 
             <CollapseSection
