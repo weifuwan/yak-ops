@@ -62,6 +62,8 @@ export interface WorkflowTaskRelationRecord {
   preTaskVersion: number;
   postTaskCode: number;
   postTaskVersion: number;
+  conditionType?: number;
+  conditionParams?: string;
 }
 
 export interface WorkflowDagRecord {
@@ -95,10 +97,16 @@ export interface WorkflowDefinitionCreatePayload {
   description?: string;
 }
 
+export interface WorkflowDefinitionGraphPayload {
+  taskDefinitionList: WorkflowTaskRecord[];
+  workflowTaskRelationList: WorkflowTaskRelationRecord[];
+  locations: string;
+}
+
 export type WorkflowDefinitionSettingsPatch = Partial<
   Pick<
     WorkflowDefinitionRecord,
-    "name" | "description" | "globalParams" | "timeout" | "executionType"
+    "name" | "description" | "globalParams" | "locations" | "timeout" | "executionType"
   >
 >;
 
@@ -167,10 +175,38 @@ export const getWorkflowDefinition = (
     { signal },
   );
 
+export const generateWorkflowTaskCode = async (): Promise<number> => {
+  const projectCode = requireActiveProjectCode();
+  const codes = await HttpUtils.getData<number[]>(
+    YAK_OPS_API_PREFIX +
+      "/projects/" +
+      encodeURIComponent(projectCode) +
+      "/task-definition/gen-task-codes?genNum=1",
+  );
+  const code = codes?.[0];
+  if (!Number.isSafeInteger(code) || Number(code) <= 0) {
+    throw new Error("未能生成有效的节点编码");
+  }
+  return Number(code);
+};
+
+export const releaseWorkflowDefinition = (
+  workflowCode: number,
+  releaseState: "ONLINE" | "OFFLINE",
+): Promise<boolean> =>
+  HttpUtils.postData<boolean>(
+    baseUrl() +
+      "/" +
+      encodeURIComponent(String(workflowCode)) +
+      "/release?" +
+      qp({ releaseState }),
+  );
+
 const updateWorkflowDefinitionGraph = (
   dag: WorkflowDagRecord,
   patch: WorkflowDefinitionSettingsPatch,
   taskDefinitionList: WorkflowTaskRecord[] = dag.taskDefinitionList,
+  workflowTaskRelationList: WorkflowTaskRelationRecord[] = dag.workflowTaskRelationList,
 ): Promise<unknown> => {
   const workflow = dag.workflowDefinition;
   const body = new URLSearchParams({
@@ -178,9 +214,9 @@ const updateWorkflowDefinitionGraph = (
     code: String(workflow.code),
     description: patch.description ?? workflow.description ?? "",
     globalParams: patch.globalParams ?? workflow.globalParams ?? "[]",
-    locations: workflow.locations ?? "",
+    locations: patch.locations ?? workflow.locations ?? "",
     timeout: String(patch.timeout ?? workflow.timeout ?? 0),
-    taskRelationJson: JSON.stringify(dag.workflowTaskRelationList ?? []),
+    taskRelationJson: JSON.stringify(workflowTaskRelationList ?? []),
     taskDefinitionJson: JSON.stringify(taskDefinitionList ?? []),
     executionType: patch.executionType ?? workflow.executionType ?? "PARALLEL",
   });
@@ -190,6 +226,20 @@ const updateWorkflowDefinitionGraph = (
     undefined,
     { body },
   );
+};
+
+export const saveWorkflowDefinitionGraph = async (
+  workflowCode: number,
+  payload: WorkflowDefinitionGraphPayload,
+): Promise<WorkflowDagRecord> => {
+  const dag = await getWorkflowDefinition(workflowCode);
+  await updateWorkflowDefinitionGraph(
+    dag,
+    { locations: payload.locations },
+    payload.taskDefinitionList,
+    payload.workflowTaskRelationList,
+  );
+  return getWorkflowDefinition(workflowCode);
 };
 
 export const updateWorkflowDefinitionSettings = async (

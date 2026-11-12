@@ -10,7 +10,9 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { Input } from "@yak-ops/yak-ui";
+import { Input, toast } from "@yak-ops/yak-ui";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { generateWorkflowTaskCode } from "@/service/workflow/definition";
 
 import {
   listWorkflowTaskTypes,
@@ -99,6 +101,8 @@ export function WorkflowNodeSelector() {
   const insertNode = useWorkflowStore(
     (state) => state.insertNodeFromSelector,
   );
+  const { currentWorkspace } = useWorkspace();
+  const projectCode = currentWorkspace?.id ?? "";
 
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(
@@ -141,9 +145,20 @@ export function WorkflowNodeSelector() {
     return Array.from(groups.entries());
   }, [deferredSearch, query.data]);
 
-  const handleSelectTaskType = (task: WorkflowTaskTypeRecord) => {
-    insertNode(task.taskType);
-    closeSelector();
+  const handleSelectTaskType = async (task: WorkflowTaskTypeRecord) => {
+    if (!projectCode) {
+      toast.warning("请先选择工作空间");
+      return;
+    }
+    try {
+      const taskCode = await generateWorkflowTaskCode();
+      insertNode(task.taskType, taskCode, Number(projectCode));
+      closeSelector();
+    } catch (error) {
+      toast.error("创建节点失败", {
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
+    }
   };
 
   if (!request) return null;
