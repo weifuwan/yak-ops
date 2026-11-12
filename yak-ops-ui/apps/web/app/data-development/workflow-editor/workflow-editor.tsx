@@ -276,7 +276,14 @@ export function WorkflowEditor({ workflowCode, selectedTaskCode }: WorkflowEdito
     [query.data],
   );
   const layoutQuery = useQuery({
-    queryKey: ["data-development", "workflow-definition-layout", workspaceId, workflowCode, graphReloadToken],
+    queryKey: [
+      "data-development",
+      "workflow-definition-layout",
+      workspaceId,
+      workflowCode,
+      query.data?.workflowDefinition.version ?? 0,
+      graphReloadToken,
+    ],
     queryFn: () => layoutWorkflowGraph(sourceGraph!),
     enabled: Boolean(sourceGraph),
     staleTime: Infinity,
