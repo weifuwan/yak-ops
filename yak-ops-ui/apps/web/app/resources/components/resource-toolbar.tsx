@@ -1,7 +1,8 @@
 import {
   Grid2X2,
   List,
-  PanelRight,
+  PanelRightClose,
+  PanelRightOpen,
   RefreshCw,
   Search,
   X,
@@ -201,11 +202,15 @@ export function ResourceToolbar({
           isIconOnly
           aria-label={detailsOpen ? "关闭详情面板" : "打开详情面板"}
           aria-pressed={detailsOpen}
-          title={detailsOpen ? "关闭详情" : "显示详情"}
+          title={detailsOpen ? "隐藏详情面板" : "显示详情面板"}
           onClick={onToggleDetails}
-          className="size-8"
+          className="size-8 rounded-md transition-colors"
         >
-          <PanelRight size={14} />
+          {detailsOpen ? (
+            <PanelRightClose size={15} strokeWidth={1.8} />
+          ) : (
+            <PanelRightOpen size={15} strokeWidth={1.8} />
+          )}
         </Button>
 
         <Button
