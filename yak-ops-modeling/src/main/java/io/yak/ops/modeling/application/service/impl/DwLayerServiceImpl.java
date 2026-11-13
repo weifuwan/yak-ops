@@ -5,10 +5,18 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.service.BaseServiceImpl;
+import io.yak.ops.dao.entity.ComposeIndicatorPO;
+import io.yak.ops.dao.entity.DerivativeIndicatorPO;
+import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.DwLayerPO;
+import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
+import io.yak.ops.dao.repository.modeling.ComposeIndicatorDao;
+import io.yak.ops.dao.repository.modeling.DerivativeIndicatorDao;
+import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DwLayerDao;
+import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
@@ -29,6 +37,18 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
 
     @Resource
     private DwLayerDao dwLayerDao;
+
+    @Resource
+    private DimensionTableDao dimensionTableDao;
+
+    @Resource
+    private DerivativeIndicatorDao derivativeIndicatorDao;
+
+    @Resource
+    private ComposeIndicatorDao composeIndicatorDao;
+
+    @Resource
+    private ModifierDao modifierDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -82,8 +102,28 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
-        if (StringUtils.isBlank(id) || dwLayerDao.queryById(id) == null) {
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("数仓分层ID不能为空");
+        }
+        if (dwLayerDao.queryById(id) == null) {
             throw new IllegalArgumentException("数仓分层不存在或不属于当前项目");
+        }
+
+        long dimensionTableCount = dimensionTableDao.queryCount(
+                new LambdaQueryWrapper<DimensionTablePO>().eq(DimensionTablePO::getDwhId, id));
+        long derivativeIndicatorCount = derivativeIndicatorDao.queryCount(
+                new LambdaQueryWrapper<DerivativeIndicatorPO>().eq(DerivativeIndicatorPO::getDwhId, id));
+        long composeIndicatorCount = composeIndicatorDao.queryCount(
+                new LambdaQueryWrapper<ComposeIndicatorPO>().eq(ComposeIndicatorPO::getDwhId, id));
+        long modifierCount = modifierDao.queryCount(
+                new LambdaQueryWrapper<ModifierPO>().eq(ModifierPO::getDwhId, id));
+
+        if (dimensionTableCount + derivativeIndicatorCount + composeIndicatorCount + modifierCount > 0) {
+            throw new IllegalArgumentException(
+                    "该数仓分层已被引用，不能删除（维度模型 " + dimensionTableCount
+                            + " 条、派生指标 " + derivativeIndicatorCount
+                            + " 条、复合指标 " + composeIndicatorCount
+                            + " 条、指标修饰词 " + modifierCount + " 条）");
         }
         if (!dwLayerDao.deleteById(id)) {
             throw new IllegalArgumentException("数仓分层删除失败");

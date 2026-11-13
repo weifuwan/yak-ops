@@ -11,6 +11,7 @@ import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.subjectdomain.SubjectDomainVO;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.modeling.domain.enums.DimensionTreeGroupingEnum;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
@@ -53,8 +54,11 @@ public class DimensionTreeBuilder {
             buildApplicationNodes(nodes, tables);
         } else if (isPublicLayer(dto)) {
             buildPublicNodes(nodes, tables, dto);
+        } else if (dto.getDwhType() == DwTypeEnum.SOURCE_LAYER
+                || dto.getDwhType() == DwTypeEnum.NONE_LAYER) {
+            buildBusinessGroupedNodes(nodes, tables, dto);
         } else {
-            buildSourceNodes(nodes, tables, dto);
+            throw new IllegalArgumentException("不支持的数仓分层类型: " + dto.getDwhType());
         }
 
         List<DimensionTreeNodeVO> roots = assemble(nodes);
@@ -94,7 +98,7 @@ public class DimensionTreeBuilder {
         return dimensionTableDao.queryList(wrapper.orderByAsc("cn_name"));
     }
 
-    private void buildSourceNodes(List<DimensionTreeNodeVO> nodes,
+    private void buildBusinessGroupedNodes(List<DimensionTreeNodeVO> nodes,
                                   List<DimensionTablePO> tables,
                                   DimensionTableDTO dto) {
         DimensionTreeGroupingEnum grouping = grouping(dto);

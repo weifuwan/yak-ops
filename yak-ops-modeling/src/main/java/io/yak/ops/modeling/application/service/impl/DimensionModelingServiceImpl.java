@@ -27,6 +27,8 @@ import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
+import io.yak.ops.dao.entity.enums.DwModelEnum;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +56,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     public DimensionTableVO create(DimensionTableDTO dto) {
         if (dto == null) throw new IllegalArgumentException("维度建模参数不能为空");
         normalizeRelations(dto);
-        validateWarehouseLayer(dto.getDwhId());
+        validateWarehouseLayer(dto.getDwhId(), dto.getTableType());
         validateUniqueFields(dto.getTableName(), dto.getCnName(), null);
 
         DimensionTablePO po = new DimensionTablePO();
@@ -77,7 +79,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (existing == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
 
         normalizeRelations(dto);
-        validateWarehouseLayer(dto.getDwhId());
+        validateWarehouseLayer(dto.getDwhId(), dto.getTableType());
         validateUniqueFields(dto.getTableName(), dto.getCnName(), dto.getId());
 
         DimensionTablePO po = new DimensionTablePO();
@@ -394,10 +396,26 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         }
     }
 
-    private void validateWarehouseLayer(String dwhId) {
-        if (!notBlank(dwhId)) throw new IllegalArgumentException("数仓分层不能为空");
+    private void validateWarehouseLayer(String dwhId, DimensionTableTypeEnum tableType) {
+        if (!notBlank(dwhId)) {
+            throw new IllegalArgumentException("数仓分层不能为空");
+        }
+
         DwLayerVO layer = dwLayerService.selectById(dwhId);
-        if (layer == null) throw new IllegalArgumentException("数仓分层不存在或不属于当前项目");
+        if (layer.getDwType() == DwTypeEnum.NONE_LAYER) {
+            if (layer.getDwModelType() != null) {
+                throw new IllegalArgumentException("未分层不能指定模型类型");
+            }
+            return;
+        }
+        if (layer.getDwType() == null
+                || layer.getDwModelType() == null
+                || !DwModelEnum.canCreate(layer.getDwType(), layer.getDwModelType())) {
+            throw new IllegalArgumentException("数仓分层与模型类型配置不合法");
+        }
+        if (tableType == null || !DwModelEnum.canCreate(layer.getDwModelType(), tableType.getCode())) {
+            throw new IllegalArgumentException("当前数仓分层不支持所选维度模型类型");
+        }
     }
 
     private void validateUniqueFields(String tableName, String cnName, String excludeId) {
