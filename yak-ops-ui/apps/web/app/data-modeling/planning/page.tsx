@@ -137,12 +137,16 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
 
   return (
     <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      <PageHeader
-        title={definitionKey === "businessType" ? "业务分类" : activeDefinition.title}
-        bordered
-        className="bg-white px-6 max-md:px-4"
-      />
-      <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4">
+      {definitionKey !== "businessType" ? (
+        <PageHeader
+          title={activeDefinition.title}
+          bordered
+          className="bg-white px-6 max-md:px-4"
+        />
+      ) : null}
+      <div className={definitionKey === "businessType"
+        ? "flex min-h-0 flex-1 flex-col"
+        : "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4"}>
         {currentWorkspace ? (
           definitionKey === "dwLayer" ? (
             <DataModelingDwLayerPage projectCode={currentWorkspace.id} />
