@@ -21,6 +21,8 @@ import io.yak.ops.modeling.infrastructure.persistence.entity.dwlayer.DwLayerPO;
 import io.yak.ops.modeling.infrastructure.persistence.mapper.asset.VersionManagementMapper;
 import io.yak.ops.modeling.infrastructure.persistence.mapper.dimension.DimensionTableFieldMapper;
 import io.yak.ops.modeling.infrastructure.persistence.mapper.dimension.DimensionTableMapper;
+import io.yak.ops.modeling.infrastructure.persistence.mapper.asset.ModifierMapper;
+import io.yak.ops.modeling.infrastructure.persistence.entity.asset.ModelingAssetPOs.ModifierPO;
 import io.yak.ops.modeling.application.service.DwLayerService;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.domain.enums.DimensionTableTypeEnum;
@@ -40,6 +42,7 @@ public class DimensionModelingService {
 
     @Resource private ObjectMapper objectMapper;
     @Resource private DimensionTableMapper dimensionTableMapper;
+    @Resource private ModifierMapper modifierMapper;
     @Resource private DimensionTableFieldMapper dimensionTableFieldMapper;
     @Resource private VersionManagementMapper versionManagementMapper;
     @Resource private DwLayerService dwLayerService;
@@ -114,6 +117,9 @@ public class DimensionModelingService {
     @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         requireTable(id);
+        if (modifierMapper.selectCount(new QueryWrapper<ModifierPO>().eq("dimension_tb_id", id)) > 0) {
+            throw new IllegalArgumentException("该维度表已被指标修饰词引用，不能删除");
+        }
         dimensionTableFieldMapper.delete(new QueryWrapper<DimensionTableFieldPO>().eq("table_id", id));
         versionManagementMapper.delete(new QueryWrapper<VersionManagementPO>()
                 .eq("source_table_id", id).eq("version_type", VERSION_TYPE));
@@ -135,6 +141,7 @@ public class DimensionModelingService {
 
     public PaginationResult<DimensionTableVO> page(DimensionTableDTO dto) {
         DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
+        normalizeRelations(query);
         int pageNo = positive(query.getPageNo(), 1);
         int pageSize = Math.min(positive(query.getPageSize(), 10), 100);
         QueryWrapper<DimensionTablePO> wrapper = buildWrapper(query).orderByDesc("update_time");
@@ -144,11 +151,14 @@ public class DimensionModelingService {
     }
 
     public List<DimensionTreeNodeVO> tree(DimensionTableDTO dto) {
-        return dimensionTreeBuilder.buildTree(dto);
+        DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
+        normalizeRelations(query);
+        return dimensionTreeBuilder.buildTree(query);
     }
 
     public List<DimensionTableVO> all(DimensionTableDTO dto) {
         DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
+        normalizeRelations(query);
         return dimensionTableMapper.selectList(buildWrapper(query).orderByDesc("update_time"))
                 .stream().map(this::toVO).collect(Collectors.toList());
     }
@@ -294,6 +304,9 @@ public class DimensionModelingService {
 
         for (DimensionTableFieldPO old : existing) {
             if (!retainedIds.contains(old.getId())) {
+                if (modifierMapper.selectCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", old.getId())) > 0) {
+                    throw new IllegalArgumentException("字段已被指标修饰词引用，不能删除: " + old.getFieldName());
+                }
                 dimensionTableFieldMapper.deleteById(old.getId());
             }
         }
@@ -306,6 +319,9 @@ public class DimensionModelingService {
         DimensionTableFieldPO field = dimensionTableFieldMapper.selectOne(new QueryWrapper<DimensionTableFieldPO>()
                 .eq("id", fieldId).eq("table_id", tableId));
         if (field == null) throw new IllegalArgumentException("维度字段不存在或不属于当前维度表");
+        if (modifierMapper.selectCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", fieldId)) > 0) {
+            throw new IllegalArgumentException("该维度字段已被指标修饰词引用，不能删除");
+        }
         dimensionTableFieldMapper.deleteById(fieldId);
         return fieldId;
     }

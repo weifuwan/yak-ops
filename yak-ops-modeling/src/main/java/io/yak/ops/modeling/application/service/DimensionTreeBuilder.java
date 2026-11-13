@@ -84,6 +84,9 @@ public class DimensionTreeBuilder {
         if (notBlank(dto.getSubjectId())) wrapper.eq("subject_id", dto.getSubjectId());
         if (notBlank(dto.getDimId())) wrapper.eq("dim_id", dto.getDimId());
         if (notBlank(dto.getBusTypeId())) wrapper.eq("bus_type_id", dto.getBusTypeId());
+        if (notBlank(dto.getBusProcessId())) wrapper.eq("bus_process_id", dto.getBusProcessId());
+        if (notBlank(dto.getUpdateBy())) wrapper.eq("update_by", dto.getUpdateBy());
+        if (notBlank(dto.getDirector())) wrapper.eq("director", dto.getDirector());
         if (dto.getSubmit() != null) wrapper.eq("submit", dto.getSubmit());
         if (notBlank(dto.getKeyword())) {
             wrapper.and(q -> q.like("cn_name", dto.getKeyword()).or().like("table_name", dto.getKeyword()));
@@ -214,7 +217,8 @@ public class DimensionTreeBuilder {
         for (SubjectDomainVO subject : subjectDomainService.all()) subjects.put(subject.getId(), subject);
 
         boolean hasUnclassified = tables.stream()
-                .anyMatch(item -> !notBlank(item.getMartId()) && !notBlank(item.getSubjectId()));
+                .anyMatch(item -> !notBlank(item.getMartId()) && !notBlank(item.getSubjectId()))
+                || marts.values().stream().anyMatch(item -> !notBlank(item.getBusinessTypeId()) && !notBlank(item.getParentId()));
         if (hasUnclassified) addNode(nodes, node(VIRTUAL_KEY, "未分类", null, "BUSINESS_TYPE", false, null, null));
 
         for (DataMartVO mart : marts.values()) {
