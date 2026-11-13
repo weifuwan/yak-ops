@@ -1,28 +1,24 @@
 package io.yak.ops.api.controller.modeling;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 
-import io.swagger.v3.oas.annotations.Operation;
-
-import io.yak.ops.dao.entity.User;
-
-import io.yak.ops.common.constants.Constants;
-
-import io.yak.ops.api.audit.enums.AuditType;
-
 import io.yak.ops.api.audit.OperatorLog;
-
-import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
+import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.common.constants.Constants;
+import io.yak.ops.dao.entity.User;
+import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.application.service.DataDomainService;
-import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import java.util.List;
 
+import javax.annotation.Resource;
+
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/data-domain")
@@ -76,6 +72,5 @@ public class DataDomainController extends BaseController {
     public Result<List<DataDomainVO>> all() {
         return Result.success(dataDomainService.all());
     }
-
 
 }
