@@ -2,9 +2,9 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class BusinessTypeServiceImpl implements BusinessTypeService {
+public class BusinessTypeServiceImpl extends BaseServiceImpl implements BusinessTypeService {
 
     @Resource
     private DataDomainService dataDomainService;
@@ -44,6 +44,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(BusinessTypeDTO businessType) {
         BusinessTypePO businessTypePO = ConvertUtil.sourceToTarget(businessType, BusinessTypePO.class);
         businessTypePO.initInsert();
@@ -52,6 +53,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public BusinessTypeVO updateById(BusinessTypeDTO businessType) {
         BusinessTypePO businessTypePO = ConvertUtil.sourceToTarget(businessType, BusinessTypePO.class);
         businessTypePO.initUpdate();
@@ -60,6 +62,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         businessTypeDao.deleteById(id);
         return id;
@@ -72,7 +75,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     }
 
     @Override
-    public PaginationResult<BusinessTypeVO> paging(BusinessTypeDTO dto) {
+    public IPage<BusinessTypeVO> paging(BusinessTypeDTO dto) {
         IPage<BusinessTypePO> iPage = new Page<>(dto.getPageNo(), dto.getPageSize());
         LambdaQueryWrapper<BusinessTypePO> wrapper = new LambdaQueryWrapper<>();
         if (dto.getId() != null) {
@@ -81,10 +84,9 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
         wrapper.orderByDesc(BusinessTypePO::getUpdateTime);
         IPage<BusinessTypePO> result = businessTypeDao.queryPage(iPage, wrapper);
         List<BusinessTypeVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), BusinessTypeVO.class);
-        return PaginationResult.buildSuc(
-                records,
-                iPage
-        );
+        Page<BusinessTypeVO> page = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        page.setRecords(records);
+        return page;
     }
 
     @Override
@@ -160,6 +162,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean updateTypeData(String id, List<String> dataDomainIds) {
         List<BusinessTypeRelatedDataDomainPO> insertList = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(dataDomainIds)) {
@@ -173,6 +176,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean deleteTypeData(String id, String dataDomainId) {
         LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO> wrapper = new LambdaQueryWrapper<>();
         if (id != null && dataDomainId != null) {
@@ -202,7 +206,7 @@ public class BusinessTypeServiceImpl implements BusinessTypeService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Boolean onLoadAllDomains(String id) {
         LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO> wrapper = new LambdaQueryWrapper<>();
 

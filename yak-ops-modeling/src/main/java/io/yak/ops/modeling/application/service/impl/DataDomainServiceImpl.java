@@ -2,10 +2,10 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.support.ConvertUtil;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class DataDomainServiceImpl implements DataDomainService {
+public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomainService {
 
     @Resource
     private BusinessProcessService businessProcessService;
@@ -29,6 +29,7 @@ public class DataDomainServiceImpl implements DataDomainService {
     private DataDomainDao dataDomainDao;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(DataDomainDTO dto) {
         DataDomainPO po = ConvertUtil.sourceToTarget(dto, DataDomainPO.class);
         po.initInsert();
@@ -48,6 +49,7 @@ public class DataDomainServiceImpl implements DataDomainService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DataDomainVO updateById(DataDomainDTO dto) {
         DataDomainPO po = ConvertUtil.sourceToTarget(dto, DataDomainPO.class);
         po.initUpdate();
@@ -56,7 +58,7 @@ public class DataDomainServiceImpl implements DataDomainService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         dataDomainDao.deleteById(id);
         // 同时删除业务过程
@@ -71,17 +73,16 @@ public class DataDomainServiceImpl implements DataDomainService {
     }
 
     @Override
-    public PaginationResult<DataDomainVO> paging(DataDomainDTO dto) {
+    public IPage<DataDomainVO> paging(DataDomainDTO dto) {
         IPage<DataDomainPO> iPage = new Page<>(dto.getPageNo(), dto.getPageSize());
         LambdaQueryWrapper<DataDomainPO> wrapper = new LambdaQueryWrapper<>();
 
         wrapper.orderByDesc(DataDomainPO::getUpdateTime);
         IPage<DataDomainPO> result = dataDomainDao.queryPage(iPage, wrapper);
         List<DataDomainVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), DataDomainVO.class);
-        return PaginationResult.buildSuc(
-                records,
-                iPage
-        );
+        Page<DataDomainVO> page = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        page.setRecords(records);
+        return page;
     }
 
     @Override

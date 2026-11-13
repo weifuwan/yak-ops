@@ -2,9 +2,9 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
@@ -19,6 +19,7 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class BusinessProcessServiceImpl implements BusinessProcessService {
+public class BusinessProcessServiceImpl extends BaseServiceImpl implements BusinessProcessService {
 
     @Resource
     private BusinessProcessDao businessProcessDao;
@@ -41,6 +42,7 @@ public class BusinessProcessServiceImpl implements BusinessProcessService {
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(BusinessProcessDTO dto) {
         BusinessProcessPO po = ConvertUtil.sourceToTarget(dto, BusinessProcessPO.class);
         po.initInsert();
@@ -49,17 +51,19 @@ public class BusinessProcessServiceImpl implements BusinessProcessService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public BusinessProcessVO updateById(BusinessProcessDTO dto) {
         BusinessProcessPO po = ConvertUtil.sourceToTarget(dto, BusinessProcessPO.class);
         po.initUpdate();
         if (dto.getId() == null) {
-            throw new RuntimeException("主键ID不能为空");
+            throw new IllegalArgumentException("主键ID不能为空");
         }
         businessProcessDao.updateById(po);
         return ConvertUtil.sourceToTarget(po, BusinessProcessVO.class);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         businessProcessDao.deleteById(id);
         return id;
@@ -69,11 +73,11 @@ public class BusinessProcessServiceImpl implements BusinessProcessService {
     public BusinessProcessVO selectById(String id) {
         BusinessProcessPO po = businessProcessDao.queryById(id);
         if (po.getDataDomainId() == null) {
-            throw new RuntimeException("数据域ID不能为空");
+            throw new IllegalArgumentException("数据域ID不能为空");
         }
         DataDomainPO dataDomainPO = dataDomainDao.queryById(po.getDataDomainId());
         if (dataDomainPO == null) {
-            throw new RuntimeException("未找到数据域");
+            throw new IllegalArgumentException("未找到数据域");
         }
         BusinessProcessVO vo = ConvertUtil.sourceToTarget(po, BusinessProcessVO.class);
         vo.setDataDomainCnName(dataDomainPO.getCnName());
@@ -81,7 +85,7 @@ public class BusinessProcessServiceImpl implements BusinessProcessService {
     }
 
     @Override
-    public PaginationResult<BusinessProcessVO> paging(BusinessProcessDTO dto) {
+    public IPage<BusinessProcessVO> paging(BusinessProcessDTO dto) {
         IPage<BusinessProcessPO> result = businessProcessDao.paging(
                 new Page<BusinessProcessPO>(dto.getPageNo(), dto.getPageSize()),
                 dto.getEnShortName(),
@@ -95,7 +99,9 @@ public class BusinessProcessServiceImpl implements BusinessProcessService {
             vo.setDataDomainCnName(item.getDataDomainCnName());
             return vo;
         }).collect(Collectors.toList());
-        return PaginationResult.buildSuc(records, result);
+        Page<BusinessProcessVO> page = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        page.setRecords(records);
+        return page;
     }
 
     @Override
@@ -106,6 +112,7 @@ public class BusinessProcessServiceImpl implements BusinessProcessService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteByDomainId(String dataDomainId) {
         LambdaQueryWrapper<BusinessProcessPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BusinessProcessPO::getDataDomainId, dataDomainId);
