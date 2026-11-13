@@ -14,6 +14,12 @@ import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionVersionHistoryVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.dao.entity.VersionManagementPO;
+import io.yak.ops.dao.entity.BusinessProcessPO;
+import io.yak.ops.dao.entity.BusinessTypePO;
+import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
+import io.yak.ops.dao.entity.DataDomainPO;
+import io.yak.ops.dao.entity.DataMartPO;
+import io.yak.ops.dao.entity.SubjectDomainPO;
 import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.ModifierPO;
@@ -23,6 +29,12 @@ import io.yak.ops.modeling.application.service.DimensionModelingService;
 import io.yak.ops.common.service.BaseServiceImpl;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
+import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
+import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
+import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
+import io.yak.ops.dao.repository.modeling.DataDomainDao;
+import io.yak.ops.dao.repository.modeling.DataMartDao;
+import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.dao.repository.modeling.VersionManagementDao;
@@ -45,6 +57,12 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
 
     @Resource private ObjectMapper objectMapper;
     @Resource private DimensionTableDao dimensionTableDao;
+    @Resource private BusinessProcessDao businessProcessDao;
+    @Resource private BusinessTypeDao businessTypeDao;
+    @Resource private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
+    @Resource private DataDomainDao dataDomainDao;
+    @Resource private DataMartDao dataMartDao;
+    @Resource private SubjectDomainDao subjectDomainDao;
     @Resource private ModifierDao modifierDao;
     @Resource private DimensionTableFieldDao dimensionTableFieldDao;
     @Resource private VersionManagementDao versionManagementDao;
@@ -56,6 +74,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     public DimensionTableVO create(DimensionTableDTO dto) {
         if (dto == null) throw new IllegalArgumentException("维度建模参数不能为空");
         normalizeRelations(dto);
+        validateBusinessRelations(dto);
         validateWarehouseLayer(dto.getDwhId(), dto.getTableType());
         validateUniqueFields(dto.getTableName(), dto.getCnName(), null);
 
@@ -79,6 +98,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (existing == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
 
         normalizeRelations(dto);
+        validateBusinessRelations(dto);
         validateWarehouseLayer(dto.getDwhId(), dto.getTableType());
         validateUniqueFields(dto.getTableName(), dto.getCnName(), dto.getId());
 
@@ -375,9 +395,12 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     }
 
     private void normalizeRelations(DimensionTableDTO dto) {
-        if (dto.getBusProcessIds() != null && dto.getBusProcessIds().size() >= 2) {
+        if (dto.getBusProcessIds() != null && !dto.getBusProcessIds().isEmpty()) {
+            if (dto.getBusProcessIds().size() > 2) {
+                throw new IllegalArgumentException("数据域/业务过程选择值格式不正确");
+            }
             dto.setDomainId(dto.getBusProcessIds().get(0));
-            dto.setBusProcessId(dto.getBusProcessIds().get(1));
+            dto.setBusProcessId(dto.getBusProcessIds().size() == 2 ? dto.getBusProcessIds().get(1) : null);
         }
         if (notBlank(dto.getMartOrSubject())) {
             int separator = dto.getMartOrSubject().lastIndexOf('-');
@@ -389,9 +412,67 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             if ("SUBJECT".equalsIgnoreCase(type)) {
                 dto.setSubjectId(id);
                 dto.setMartId(null);
-            } else {
+            } else if ("MART".equalsIgnoreCase(type)) {
                 dto.setMartId(id);
                 dto.setSubjectId(null);
+            } else {
+                throw new IllegalArgumentException("数据集市/主题域类型不正确");
+            }
+        }
+        if (notBlank(dto.getMartId()) && notBlank(dto.getSubjectId())) {
+            throw new IllegalArgumentException("数据集市和主题域只能选择其中一项");
+        }
+    }
+
+    private void validateBusinessRelations(DimensionTableDTO dto) {
+        if (notBlank(dto.getDomainId())
+                && dataDomainDao.queryById(dto.getDomainId()) == null) {
+            throw new IllegalArgumentException("所选数据域不存在或不属于当前项目");
+        }
+
+        if (notBlank(dto.getBusProcessId())) {
+            BusinessProcessPO process = businessProcessDao.queryById(dto.getBusProcessId());
+            if (process == null) {
+                throw new IllegalArgumentException("所选业务过程不存在或不属于当前项目");
+            }
+            if (!notBlank(dto.getDomainId())) {
+                dto.setDomainId(process.getDataDomainId());
+            } else if (!dto.getDomainId().equals(process.getDataDomainId())) {
+                throw new IllegalArgumentException("业务过程不属于所选数据域");
+            }
+        }
+
+        if (notBlank(dto.getBusTypeId())) {
+            BusinessTypePO businessType = businessTypeDao.queryById(dto.getBusTypeId());
+            if (businessType == null) {
+                throw new IllegalArgumentException("所选业务分类不存在或不属于当前项目");
+            }
+            if (notBlank(dto.getDomainId())) {
+                long relationCount = businessTypeRelatedDataDomainDao.queryCount(
+                        new QueryWrapper<BusinessTypeRelatedDataDomainPO>()
+                                .eq("bus_type_id", dto.getBusTypeId())
+                                .eq("data_id", dto.getDomainId()));
+                if (relationCount == 0) {
+                    throw new IllegalArgumentException("所选数据域未关联到当前业务分类");
+                }
+            }
+        }
+
+        if (notBlank(dto.getMartId())) {
+            DataMartPO mart = dataMartDao.queryById(dto.getMartId());
+            if (mart == null) {
+                throw new IllegalArgumentException("所选数据集市不存在或不属于当前项目");
+            }
+        }
+
+        if (notBlank(dto.getSubjectId())) {
+            SubjectDomainPO subject = subjectDomainDao.queryById(dto.getSubjectId());
+            if (subject == null) {
+                throw new IllegalArgumentException("所选主题域不存在或不属于当前项目");
+            }
+            if (notBlank(subject.getDataMartId())
+                    && dataMartDao.queryById(subject.getDataMartId()) == null) {
+                throw new IllegalArgumentException("主题域所属数据集市不存在或不属于当前项目");
             }
         }
     }
