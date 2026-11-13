@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { PageHeader, Button } from "@yak-ops/yak-ui";
+import { PageHeader } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
 
@@ -146,37 +145,35 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
   },
 ];
 
-export function DataModelingPlanningPage() {
+type DataModelingPlanningPageProps = {
+  definitionKey: ModelingEntityDefinition["key"];
+};
+
+export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanningPageProps) {
   const { currentWorkspace } = useWorkspace();
-  const [activeKey, setActiveKey] = useState<ModelingEntityDefinition["key"]>("businessType");
-  const activeDefinition = DEFINITIONS.find((item) => item.key === activeKey) ?? DEFINITIONS[0];
+  const activeDefinition = DEFINITIONS.find((item) => item.key === definitionKey) ?? DEFINITIONS[0];
 
   return (
     <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      <PageHeader title="数仓规划" bordered className="bg-white px-6 max-md:px-4" />
+      <PageHeader
+        title={activeDefinition.title}
+        bordered
+        className="bg-white px-6 max-md:px-4"
+      />
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-[var(--yak-components-muted-text)]">
-              统一管理业务分类、数仓分层、数据域、业务过程、数据集市和主题域。
-            </p>
-          </div>
-          {currentWorkspace ? (
+        {currentWorkspace ? (
+          <div className="flex justify-end">
             <div className="rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-1.5 text-xs text-[var(--yak-components-muted-text)]">
               当前工作空间：{currentWorkspace.name}
             </div>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-1 rounded-md border border-[var(--yak-components-panel-border)] bg-white p-1">
-          {DEFINITIONS.map((item) => (
-            <Button key={item.key} size="sm" variant={activeKey === item.key ? "primary" : "ghost"}
-              onClick={() => setActiveKey(item.key)}>
-              {item.title}
-            </Button>
-          ))}
-        </div>
+          </div>
+        ) : null}
         {currentWorkspace ? (
-          <ModelingEntityPage key={activeDefinition.key} projectCode={currentWorkspace.id} definition={activeDefinition} />
+          <ModelingEntityPage
+            key={activeDefinition.key}
+            projectCode={currentWorkspace.id}
+            definition={activeDefinition}
+          />
         ) : (
           <div className="flex min-h-[240px] flex-1 items-center justify-center rounded-md border border-dashed border-[var(--yak-components-panel-border)] bg-white text-sm text-[var(--yak-components-muted-text)]">
             请先选择工作空间

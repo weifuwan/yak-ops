@@ -11,8 +11,9 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Layers,
-  Network,
+  Layers3,
   ListOrdered,
+  Network,
   Settings,
   Table2,
   Users,
@@ -21,11 +22,13 @@ import {
 } from "lucide-react";
 
 export type ProductNavigationItem = {
+  id?: string;
   label: string;
-  path: string;
-  icon: LucideIcon;
+  path?: string;
+  icon?: LucideIcon;
   groupLabel?: string;
   end?: boolean;
+  children?: ProductNavigationItem[];
 };
 
 type GlobalProductMenuItem = {
@@ -68,30 +71,153 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
 
 export const DATA_MODELING_NAVIGATION: ProductNavigationItem[] = [
   {
+    id: "modeling-overview",
     label: "建模总览",
     path: "/data-modeling",
     icon: LayoutDashboard,
     end: true,
   },
   {
+    id: "dw-planning",
     label: "数仓规划",
-    path: "/data-modeling/planning",
     icon: Network,
+    children: [
+      {
+        id: "business-type",
+        label: "业务分类",
+        path: "/data-modeling/planning/business-type",
+        end: true,
+      },
+      {
+        id: "dw-layer",
+        label: "数仓分层",
+        path: "/data-modeling/planning/dw-layer",
+        end: true,
+      },
+      {
+        id: "common-layer",
+        label: "公共层",
+        children: [
+          {
+            id: "data-domain",
+            label: "数据域",
+            path: "/data-modeling/planning/common-layer/data-domain",
+            end: true,
+          },
+          {
+            id: "business-process",
+            label: "业务过程",
+            path: "/data-modeling/planning/common-layer/business-process",
+            end: true,
+          },
+        ],
+      },
+      {
+        id: "application-layer",
+        label: "应用层",
+        children: [
+          {
+            id: "data-mart",
+            label: "数据集市",
+            path: "/data-modeling/planning/application-layer/data-market",
+            end: true,
+          },
+          {
+            id: "subject-domain",
+            label: "主题域",
+            path: "/data-modeling/planning/application-layer/subject-domain",
+            end: true,
+          },
+        ],
+      },
+    ],
   },
   {
-    label: "模型设计",
-    path: "/data-modeling/models",
+    id: "dimension-modeling",
+    label: "维度建模",
     icon: Table2,
+    children: [
+      {
+        id: "dimension-modeling-positive",
+        label: "维度建模",
+        path: "/data-modeling/models/positive",
+        end: true,
+      },
+      {
+        id: "dimension-modeling-reverse",
+        label: "逆向建模",
+        path: "/data-modeling/models/reverse",
+        end: true,
+      },
+    ],
   },
   {
+    id: "data-standards",
     label: "数据标准",
-    path: "/data-modeling/standards",
     icon: BookOpen,
+    children: [
+      {
+        id: "field-standard",
+        label: "字段标准",
+        path: "/data-modeling/standards/fields",
+        end: true,
+      },
+      {
+        id: "code-standard",
+        label: "标准代码",
+        path: "/data-modeling/standards/codes",
+        end: true,
+      },
+      {
+        id: "unit-standard",
+        label: "度量单位",
+        path: "/data-modeling/standards/units",
+        end: true,
+      },
+      {
+        id: "naming-dictionary",
+        label: "命名词典",
+        path: "/data-modeling/standards/dictionary",
+        end: true,
+      },
+    ],
   },
   {
+    id: "data-indicators",
     label: "数据指标",
-    path: "/data-modeling/indicators",
     icon: ChartNoAxesCombined,
+    children: [
+      {
+        id: "composite-indicator",
+        label: "复合指标",
+        path: "/data-modeling/indicators/compose",
+        end: true,
+      },
+      {
+        id: "derivative-indicator",
+        label: "派生指标",
+        path: "/data-modeling/indicators/derivative",
+        end: true,
+      },
+      {
+        id: "atomic-indicator",
+        label: "原子指标",
+        path: "/data-modeling/indicators/atom",
+        end: true,
+      },
+      {
+        id: "indicator-modifier",
+        label: "修饰词",
+        path: "/data-modeling/indicators/modifier",
+        end: true,
+      },
+      {
+        id: "time-period",
+        label: "时间周期",
+        path: "/data-modeling/indicators/time-period",
+        end: true,
+      },
+    ],
   },
 ];
 

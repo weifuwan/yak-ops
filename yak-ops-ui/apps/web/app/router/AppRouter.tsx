@@ -173,22 +173,160 @@ export default function AppRouter() {
             }
           >
             <Route path="/data-modeling" element={<DataModelingOverviewPage />} />
+
             <Route
               path="/data-modeling/planning"
-              element={<DataModelingPlanningPage />}
+              element={<Navigate replace to="/data-modeling/planning/business-type" />}
             />
             <Route
+              path="/data-modeling/planning/business-type"
+              element={<DataModelingPlanningPage definitionKey="businessType" />}
+            />
+            <Route
+              path="/data-modeling/planning/dw-layer"
+              element={<DataModelingPlanningPage definitionKey="dwLayer" />}
+            />
+            <Route
+              path="/data-modeling/planning/common-layer/data-domain"
+              element={<DataModelingPlanningPage definitionKey="dataDomain" />}
+            />
+            <Route
+              path="/data-modeling/planning/common-layer/business-process"
+              element={<DataModelingPlanningPage definitionKey="businessProcess" />}
+            />
+            <Route
+              path="/data-modeling/planning/application-layer/data-market"
+              element={<DataModelingPlanningPage definitionKey="dataMart" />}
+            />
+            <Route
+              path="/data-modeling/planning/application-layer/subject-domain"
+              element={<DataModelingPlanningPage definitionKey="subjectDomain" />}
+            />
+
+            <Route
               path="/data-modeling/models"
+              element={<Navigate replace to="/data-modeling/models/positive" />}
+            />
+            <Route
+              path="/data-modeling/models/positive"
               element={
                 <DataModelingSectionPage
-                  title="模型设计"
-                  description="集中管理贴源、维度、明细、汇总和应用模型，并支持模型版本管理。"
-                  capabilities={["正向建模", "逆向建模", "字段设计", "分区配置", "版本管理"]}
+                  title="维度建模"
+                  description="围绕维度、维度表和数仓模型，逐步迁移原 data_modal 的维度建模能力。"
+                  capabilities={["维度管理", "维度表设计", "模型字段", "版本管理"]}
                 />
               }
             />
-            <Route path="/data-modeling/standards" element={<DataModelingStandardsPage />} />
-            <Route path="/data-modeling/indicators" element={<DataModelingIndicatorsPage />} />
+            <Route
+              path="/data-modeling/models/reverse"
+              element={
+                <DataModelingSectionPage
+                  title="逆向建模"
+                  description="预留数据库逆向解析、表结构导入和模型生成入口，后续逐步迁移原有功能。"
+                  capabilities={["数据源选择", "表结构读取", "模型反向生成", "模型校验"]}
+                />
+              }
+            />
+
+            <Route
+              path="/data-modeling/standards"
+              element={<Navigate replace to="/data-modeling/standards/fields" />}
+            />
+            <Route
+              path="/data-modeling/standards/fields"
+              element={
+                <DataModelingSectionPage
+                  title="字段标准"
+                  description="统一管理字段标准定义、适用范围和标准引用关系。"
+                  capabilities={["标准目录", "字段定义", "标准映射", "引用关系"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/standards/codes"
+              element={
+                <DataModelingSectionPage
+                  title="标准代码"
+                  description="预留标准代码集及代码明细管理入口。"
+                  capabilities={["代码集", "代码明细", "代码映射", "版本维护"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/standards/units"
+              element={
+                <DataModelingSectionPage
+                  title="度量单位"
+                  description="预留统一度量单位、单位换算和单位引用管理入口。"
+                  capabilities={["单位分类", "单位定义", "换算关系", "引用检查"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/standards/dictionary"
+              element={
+                <DataModelingSectionPage
+                  title="命名词典"
+                  description="预留业务术语、命名词条和标准命名规则管理入口。"
+                  capabilities={["词条管理", "命名规则", "同义词", "标准检索"]}
+                />
+              }
+            />
+
+            <Route
+              path="/data-modeling/indicators"
+              element={<Navigate replace to="/data-modeling/indicators/compose" />}
+            />
+            <Route
+              path="/data-modeling/indicators/compose"
+              element={
+                <DataModelingSectionPage
+                  title="复合指标"
+                  description="预留由多个基础指标组合形成的复合指标管理入口。"
+                  capabilities={["指标组合", "计算表达式", "业务口径", "版本管理"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/indicators/derivative"
+              element={
+                <DataModelingSectionPage
+                  title="派生指标"
+                  description="预留基于原子指标、业务限定和时间周期派生指标的管理入口。"
+                  capabilities={["原子指标引用", "业务限定", "时间周期", "派生规则"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/indicators/atom"
+              element={
+                <DataModelingSectionPage
+                  title="原子指标"
+                  description="预留原子指标定义、业务过程绑定和统计口径管理入口。"
+                  capabilities={["业务过程", "统计对象", "度量定义", "指标口径"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/indicators/modifier"
+              element={
+                <DataModelingSectionPage
+                  title="修饰词"
+                  description="预留指标修饰词及其业务限定条件管理入口。"
+                  capabilities={["修饰词分类", "限定条件", "适用范围", "指标关联"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/indicators/time-period"
+              element={
+                <DataModelingSectionPage
+                  title="时间周期"
+                  description="预留指标时间周期定义和周期分类管理入口。"
+                  capabilities={["周期分类", "周期定义", "时间粒度", "指标关联"]}
+                />
+              }
+            />
           </Route>
 
           <Route
