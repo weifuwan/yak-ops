@@ -8,7 +8,7 @@ import {
   Button, Input, Modal, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingDataMartApi, type ModelingRecord } from "../../service";
+import { modelingEntityApi, modelingDataMartApi, modelingQueryKeys, type ModelingRecord } from "../../service";
 import {
   getMartTypeLabel, type DataMartRecord, type DataMartTreeNode,
   type DataMartFormValues,
@@ -253,12 +253,12 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
     enabled: Boolean(projectCode && selectedId),
   });
   const businessTypesQuery = useQuery({
-    queryKey: ["modeling", "data-mart", "business-types", projectCode],
+    queryKey: modelingQueryKeys.dataMartBusinessTypes(projectCode),
     queryFn: () => modelingEntityApi.all<BusinessTypeOption>(projectCode, "businessType"),
     enabled: Boolean(projectCode),
   });
   const dataMartsQuery = useQuery({
-    queryKey: ["modeling", "data-mart", "all", projectCode],
+    queryKey: modelingQueryKeys.dataMartAll(projectCode),
     queryFn: () => modelingEntityApi.all<DataMartOption>(projectCode, "dataMart"),
     enabled: Boolean(projectCode),
   });
@@ -544,7 +544,11 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
 
       <DataMartFormDialog
         open={formOpen} editing={editing} parentId={formParentId}
-        businessTypes={businessTypesQuery.data || []} saving={saving}
+        businessTypes={businessTypesQuery.data || []}
+        businessTypesLoading={businessTypesQuery.isPending}
+        businessTypesError={businessTypesQuery.isError}
+        onRetryBusinessTypes={() => void businessTypesQuery.refetch()}
+        saving={saving}
         onClose={() => { if (!saving) { setFormOpen(false); setEditing(undefined); } }}
         onSubmit={(values) => void save(values)}
       />
@@ -554,6 +558,9 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
         parentId={editingSubject?.parentId || undefined}
         inheritedDataMartId={editingSubject?.dataMartId}
         dataMarts={dataMartsQuery.data || []}
+        dataMartsLoading={dataMartsQuery.isPending}
+        dataMartsError={dataMartsQuery.isError}
+        onRetryDataMarts={() => void dataMartsQuery.refetch()}
         saving={savingSubject}
         onClose={() => { if (!savingSubject) { setSubjectFormOpen(false); setEditingSubject(undefined); } }}
         onSubmit={(values) => void saveSubjectDomain(values)}

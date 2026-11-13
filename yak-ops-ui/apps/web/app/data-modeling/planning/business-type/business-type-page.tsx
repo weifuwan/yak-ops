@@ -11,7 +11,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import {
-  modelingBusinessTypeApi, modelingEntityApi, type BusinessTypeTreeNode, type ModelingRecord,
+  modelingBusinessTypeApi, modelingEntityApi, modelingQueryKeys, type BusinessTypeTreeNode, type ModelingRecord,
 } from "../../service";
 
 interface Props { projectCode: string; }
@@ -245,7 +245,7 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const domainsQuery = useQuery({
-    queryKey: ["modeling", "business-type", "all-domains", projectCode],
+    queryKey: modelingQueryKeys.dataDomainAll(projectCode),
     queryFn: () => modelingEntityApi.all<DomainRecord>(projectCode, "dataDomain"),
     enabled: Boolean(projectCode),
   });
@@ -517,10 +517,14 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   }, [resizing]);
 
   const refresh = async () => {
-    const queryKeys = ["tree", "detail", "children", "all-domains", "related-domains", "data-marts"] as const;
-    await Promise.all(queryKeys.map((key) => queryClient.invalidateQueries({
-      queryKey: ["modeling", "business-type", key, projectCode],
-    })));
+    const queryKeys = ["tree", "detail", "children", "related-domains", "data-marts"] as const;
+    await Promise.all([
+      ...queryKeys.map((key) => queryClient.invalidateQueries({
+        queryKey: ["modeling", "business-type", key, projectCode],
+      })),
+      queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainAll(projectCode) }),
+      queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataMartBusinessTypes(projectCode) }),
+    ]);
   };
   const toggleExpanded = (key: string) => setExpandedKeys((current) => {
     const next = new Set(current);

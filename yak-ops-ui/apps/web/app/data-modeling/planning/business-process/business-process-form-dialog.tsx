@@ -13,6 +13,9 @@ interface Props {
   open: boolean;
   editing?: BusinessProcessRecord;
   domains: DataDomainRecord[];
+  domainsLoading?: boolean;
+  domainsError?: boolean;
+  onRetryDomains?: () => void;
   saving: boolean;
   onClose: () => void;
   onSubmit: (values: BusinessProcessFormValues) => void;
@@ -22,7 +25,7 @@ const FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3";
 const LABEL_CLASS = "pt-1.5 text-right text-xs text-[var(--yak-components-muted-text)]";
 
 export function BusinessProcessFormDialog({
-  open, editing, domains, saving, onClose, onSubmit,
+  open, editing, domains, domainsLoading = false, domainsError = false, onRetryDomains, saving, onClose, onSubmit,
 }: Props) {
   const [values, setValues] = useState<BusinessProcessFormValues>(EMPTY_FORM);
   const [error, setError] = useState("");
@@ -115,13 +118,13 @@ export function BusinessProcessFormDialog({
           <span className={LABEL_CLASS}><span className="mr-1 text-[#d92d20]">*</span>数据域</span>
           <Select
             value={values.dataDomainId || undefined}
-            disabled={system}
+            disabled={system || (domainsLoading && domains.length === 0) || (domainsError && domains.length === 0)}
             onValueChange={(value) => update("dataDomainId", String(value || ""))}
           >
             <SelectTrigger size="small" variant="outlined" className="w-full">
               <SelectValue placeholder="请选择数据域" />
             </SelectTrigger>
-            <SelectContent emptyContent="暂无可选数据域">
+            <SelectContent emptyContent={domainsError ? "数据域加载失败，请重试" : domainsLoading ? "正在加载数据域..." : "暂无数据域，请先创建"}>
               {domains.map((domain) => (
                 <SelectItem key={domain.id} value={domain.id || ""}>
                   <SelectItemText>{(domain.cnName || "-") + "（" + (domain.enShortName || "-") + "）"}</SelectItemText>
@@ -129,6 +132,12 @@ export function BusinessProcessFormDialog({
               ))}
             </SelectContent>
           </Select>
+          {domainsError ? (
+            <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#d92d20]">
+              <span>{domains.length ? "数据域刷新失败，当前显示已加载的数据" : "数据域加载失败，暂时无法选择"}</span>
+              {onRetryDomains ? <Button size="sm" variant="ghost" onClick={onRetryDomains}>重试</Button> : null}
+            </div>
+          ) : null}
         </div>
         <label className={FIELD_CLASS}>
           <span className={LABEL_CLASS}><span className="mr-1 text-[#d92d20]">*</span>负责人</span>

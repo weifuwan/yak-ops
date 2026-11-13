@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Plus } from "lucide-react";
 import { Button, Modal, toast } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "../../service";
+import { modelingEntityApi, modelingQueryKeys } from "../../service";
 import DataDomainCard from "./data-domain-card";
 import DataDomainDetail from "./data-domain-detail";
 import DataDomainFormDialog from "./data-domain-form-dialog";
@@ -36,7 +36,7 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
   const [pendingDelete, setPendingDelete] = useState<DataDomainRecord>();
   const [deleting, setDeleting] = useState(false);
 
-  const listQueryKey = ["modeling", "data-domain", "list", projectCode];
+  const listQueryKey = modelingQueryKeys.dataDomainAll(projectCode);
   const listQuery = useQuery({
     queryKey: listQueryKey,
     queryFn: () => modelingEntityApi.all<DataDomainRecord>(projectCode, "dataDomain"),
@@ -87,7 +87,13 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
       }
       setFormOpen(false);
       setEditing(undefined);
-      await queryClient.invalidateQueries({ queryKey: listQueryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listQueryKey }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+      ]);
       if (selectedId) {
         await queryClient.invalidateQueries({ queryKey: ["modeling", "data-domain", "detail", projectCode, selectedId] });
       }
@@ -106,7 +112,13 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
       toast.success("数据域已删除");
       setPendingDelete(undefined);
       if (selectedId === pendingDelete.id) setSelectedId("");
-      await queryClient.invalidateQueries({ queryKey: listQueryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listQueryKey }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+      ]);
     } catch {
       toast.warning("删除数据域失败，请检查该数据域下的业务过程及关联对象");
     } finally {

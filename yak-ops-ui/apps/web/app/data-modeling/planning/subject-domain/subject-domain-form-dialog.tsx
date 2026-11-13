@@ -15,6 +15,9 @@ interface Props {
   parentId?: string;
   inheritedDataMartId?: string;
   dataMarts: DataMartOption[];
+  dataMartsLoading?: boolean;
+  dataMartsError?: boolean;
+  onRetryDataMarts?: () => void;
   saving: boolean;
   onClose: () => void;
   onSubmit: (values: SubjectDomainFormValues) => void;
@@ -23,7 +26,7 @@ interface Props {
 const FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
 
 export function SubjectDomainFormDialog({
-  open, editing, parentId, inheritedDataMartId, dataMarts, saving, onClose, onSubmit,
+  open, editing, parentId, inheritedDataMartId, dataMarts, dataMartsLoading = false, dataMartsError = false, onRetryDataMarts, saving, onClose, onSubmit,
 }: Props) {
   const [values, setValues] = useState<SubjectDomainFormValues>(EMPTY_SUBJECT_DOMAIN_FORM);
   const [error, setError] = useState("");
@@ -104,13 +107,13 @@ export function SubjectDomainFormDialog({
           <FieldLabel required className="pt-1.5 text-xs">所属数据集市</FieldLabel>
           <Select
             value={(isChild ? lockedDataMartId : values.dataMartId) || undefined}
-            disabled={isChild}
+            disabled={isChild || (dataMartsLoading && dataMarts.length === 0) || (dataMartsError && dataMarts.length === 0)}
             onValueChange={(value) => update("dataMartId", String(value || ""))}
           >
             <SelectTrigger size="small" variant="outlined" className="w-full">
               <SelectValue placeholder="请选择数据集市" />
             </SelectTrigger>
-            <SelectContent emptyContent="暂无数据集市">
+            <SelectContent emptyContent={dataMartsError ? "数据集市加载失败，请重试" : dataMartsLoading ? "正在加载数据集市..." : "暂无数据集市"}>
               {dataMarts.filter((item) => item.id).map((item) => (
                 <SelectItem key={item.id} value={item.id || ""}>
                   <SelectItemText>{item.martName || "-"}</SelectItemText>
@@ -118,6 +121,12 @@ export function SubjectDomainFormDialog({
               ))}
             </SelectContent>
           </Select>
+          {!isChild && dataMartsError ? (
+            <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#d92d20]">
+              <span>{dataMarts.length ? "数据集市刷新失败，当前显示已加载的数据" : "数据集市加载失败，暂时无法选择"}</span>
+              {onRetryDataMarts ? <Button size="sm" variant="ghost" onClick={onRetryDataMarts}>重试</Button> : null}
+            </div>
+          ) : null}
         </Field>
         <Field className={FIELD_CLASS}>
           <FieldLabel className="pt-1.5 text-xs">备注</FieldLabel>

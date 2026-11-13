@@ -6,7 +6,7 @@ import {
   SelectTrigger, SelectValue, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "../../service";
+import { modelingEntityApi, modelingQueryKeys } from "../../service";
 import type { DataDomainRecord } from "../data-domain/types";
 import { isSystemBusinessProcess } from "../data-domain/types";
 import BusinessProcessDetail from "./business-process-detail";
@@ -67,7 +67,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
   const [deleting, setDeleting] = useState(false);
 
   const listQuery = useQuery({
-    queryKey: ["modeling", "business-process", "page", projectCode, appliedFilters, pageNo, PAGE_SIZE],
+    queryKey: [...modelingQueryKeys.businessProcessPage(projectCode), appliedFilters, pageNo, PAGE_SIZE],
     queryFn: () => modelingEntityApi.page<BusinessProcessRecord>(projectCode, "businessProcess", {
       ...appliedFilters,
       pageNo,
@@ -77,13 +77,13 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
   });
 
   const domainQuery = useQuery({
-    queryKey: ["modeling", "business-process", "domain-options", projectCode],
+    queryKey: modelingQueryKeys.dataDomainAll(projectCode),
     queryFn: () => modelingEntityApi.all<DataDomainRecord>(projectCode, "dataDomain"),
     enabled: Boolean(projectCode),
   });
 
   const processOptionsQuery = useQuery({
-    queryKey: ["modeling", "business-process", "filter-options", projectCode],
+    queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode),
     queryFn: () => modelingEntityApi.all<BusinessProcessRecord>(projectCode, "businessProcess"),
     enabled: Boolean(projectCode),
   });
@@ -172,9 +172,12 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
       }
       setFormOpen(false);
       setEditing(undefined);
-      await queryClient.invalidateQueries({
-        queryKey: ["modeling", "business-process", "page", projectCode],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+      ]);
       if (selectedId) {
         await queryClient.invalidateQueries({
           queryKey: ["modeling", "business-process", "detail", projectCode, selectedId],
@@ -194,9 +197,12 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
       await modelingEntityApi.remove(projectCode, "businessProcess", pendingDelete.id);
       toast.success("业务过程已删除");
       setPendingDelete(undefined);
-      await queryClient.invalidateQueries({
-        queryKey: ["modeling", "business-process", "page", projectCode],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+      ]);
     } catch {
       toast.warning("删除业务过程失败，请确认该业务过程没有被其他建模对象引用");
     } finally {
@@ -306,7 +312,8 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
                   <label className={FIELD_CLASS}>
                     <span className="text-right text-xs text-[var(--yak-components-muted-text)]">数据域：</span>
                     <FilterSelect value={filters.dataDomainId} placeholder="请选择"
-                      options={domainOptions} onChange={(value) => updateFilter("dataDomainId", value)} />
+                      options={domainOptions} disabled={domainQuery.isPending || domainQuery.isError}
+                      onChange={(value) => updateFilter("dataDomainId", value)} />
                   </label>
                   <label className={FIELD_CLASS}>
                     <span className="text-right text-xs text-[var(--yak-components-muted-text)]">创建人：</span>
@@ -370,6 +377,9 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
         open={formOpen}
         editing={editing}
         domains={domains}
+        domainsLoading={domainQuery.isPending}
+        domainsError={domainQuery.isError}
+        onRetryDomains={() => void domainQuery.refetch()}
         saving={saving}
         onClose={closeForm}
         onSubmit={(values) => void save(values)}

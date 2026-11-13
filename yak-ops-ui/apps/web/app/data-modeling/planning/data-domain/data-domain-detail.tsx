@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Eye, Plus, SquarePen, Trash2 } from "lucide-react";
 import { Button, Modal, Table, toast, type TableColumns } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "../../service";
+import { modelingEntityApi, modelingQueryKeys } from "../../service";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
 import BusinessProcessViewDialog from "./business-process-view-dialog";
 import type { BusinessProcessFormValues, BusinessProcessRecord, DataDomainRecord } from "./types";
@@ -131,7 +131,12 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
       }
       setFormOpen(false);
       setEditing(undefined);
-      await queryClient.invalidateQueries({ queryKey: ["modeling", "data-domain", "business-processes", projectCode, domain.id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...modelingQueryKeys.dataDomainBusinessProcesses(projectCode), domain.id] }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
+      ]);
     } catch {
       toast.warning("保存业务过程失败，请检查填写内容后重试");
     } finally {
@@ -146,7 +151,12 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
       await modelingEntityApi.remove(projectCode, "businessProcess", pendingDelete.id);
       toast.success("业务过程已删除");
       setPendingDelete(undefined);
-      await queryClient.invalidateQueries({ queryKey: ["modeling", "data-domain", "business-processes", projectCode, domain.id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...modelingQueryKeys.dataDomainBusinessProcesses(projectCode), domain.id] }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
+      ]);
     } catch {
       toast.warning("删除业务过程失败，请确认该业务过程没有被指标等对象引用");
     } finally {

@@ -8,7 +8,7 @@ import {
   Button, Input, Modal, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingSubjectDomainApi } from "../../service";
+import { modelingEntityApi, modelingSubjectDomainApi, modelingQueryKeys } from "../../service";
 import {
   getSubjectDomainId, type DataMartOption, type SubjectDomainRecord,
   type SubjectDomainTreeNode, type SubjectDomainFormValues,
@@ -210,12 +210,12 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   const [deleting, setDeleting] = useState(false);
 
   const treeQuery = useQuery({
-    queryKey: ["modeling", "subject-domain", "tree", projectCode],
+    queryKey: modelingQueryKeys.subjectDomainTree(projectCode),
     queryFn: () => modelingSubjectDomainApi.tree(projectCode),
     enabled: Boolean(projectCode),
   });
   const dataMartsQuery = useQuery({
-    queryKey: ["modeling", "subject-domain", "data-marts", projectCode],
+    queryKey: modelingQueryKeys.dataMartAll(projectCode),
     queryFn: () => modelingEntityApi.all<DataMartOption>(projectCode, "dataMart"),
     enabled: Boolean(projectCode),
   });
@@ -496,6 +496,9 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
         parentId={formParentId}
         inheritedDataMartId={inheritedDataMartId}
         dataMarts={dataMartsQuery.data || []}
+        dataMartsLoading={dataMartsQuery.isPending}
+        dataMartsError={dataMartsQuery.isError}
+        onRetryDataMarts={() => void dataMartsQuery.refetch()}
         saving={saving}
         onClose={() => {
           if (!saving) {
