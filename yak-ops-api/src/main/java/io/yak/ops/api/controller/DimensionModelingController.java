@@ -1,31 +1,28 @@
 package io.yak.ops.api.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 
-import io.swagger.v3.oas.annotations.Operation;
-
-import io.yak.ops.dao.entity.User;
-
-import io.yak.ops.common.constants.Constants;
-
-import io.yak.ops.api.audit.enums.AuditType;
-
 import io.yak.ops.api.audit.OperatorLog;
-
+import io.yak.ops.api.audit.enums.AuditType;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.common.constants.Constants;
+import io.yak.ops.dao.entity.User;
 import io.yak.ops.modeling.api.dto.dimension.DimensionTableDTO;
 import io.yak.ops.modeling.api.dto.dimension.DimensionTableFieldDTO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableFieldVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionVersionHistoryVO;
-import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.modeling.application.service.DimensionModelingService;
-import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 import javax.annotation.Resource;
-import java.util.List;
+
+import org.springframework.web.bind.annotation.*;
 
 /** HTTP boundary for project-scoped dimension table and field modeling. */
 @RestController
