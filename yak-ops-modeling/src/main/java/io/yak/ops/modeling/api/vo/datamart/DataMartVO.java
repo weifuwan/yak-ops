@@ -2,7 +2,7 @@ package io.yak.ops.modeling.api.vo.datamart;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
-import io.yak.ops.modeling.domain.enums.MartTypeEnum;
+import io.yak.ops.dao.entity.enums.MartTypeEnum;
 
 import java.util.Date;
 
