@@ -2,9 +2,10 @@ package io.yak.ops.modeling.application.service;
 
 
 import io.yak.ops.modeling.api.dto.subjectdomain.SubjectDomainDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.subjectdomain.SubjectDomainVO;
 import io.yak.ops.modeling.api.vo.tree.TreeTypeValueVO;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ public interface SubjectDomainService {
 
     SubjectDomainVO selectById(String id);
 
-    PaginationResult<SubjectDomainVO> paging(SubjectDomainDTO dto);
+    IPage<SubjectDomainVO> paging(SubjectDomainDTO dto);
 
     List<TreeTypeValueVO> tree();
 

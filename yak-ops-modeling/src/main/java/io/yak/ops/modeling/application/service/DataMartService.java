@@ -2,9 +2,10 @@ package io.yak.ops.modeling.application.service;
 
 
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ public interface DataMartService {
 
     DataMartVO selectById(String id);
 
-    PaginationResult<DataMartVO> paging(DataMartDTO dto);
+    IPage<DataMartVO> paging(DataMartDTO dto);
 
     List<TreeVO> tree(String keyword);
 

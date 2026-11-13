@@ -2,10 +2,11 @@ package io.yak.ops.modeling.application.service;
 
 
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ public interface DwLayerService {
 
     DwLayerVO selectByDwType(String dwType);
 
-    PaginationResult<DwLayerVO> paging(DwLayerDTO DwLayerTypeDTO);
+    IPage<DwLayerVO> paging(DwLayerDTO DwLayerTypeDTO);
 
     List<DwLayerVO> all(DwLayerDTO dto);
 
