@@ -60,7 +60,7 @@ public class DataMartController extends BaseController {
                                      @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                      @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                      @RequestBody DataMartDTO dto) {
-        return Result.success(DataMartService.updateById(dto));
+        return Result.success(dataMartService.updateById(dto));
     }
 
     /**
@@ -73,7 +73,7 @@ public class DataMartController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @PathVariable String id) {
-        return Result.success(DataMartService.delete(id));
+        return Result.success(dataMartService.delete(id));
     }
 
     /**
@@ -81,7 +81,7 @@ public class DataMartController extends BaseController {
      */
     @GetMapping("/{id}")
     public Result<DataMartVO> selectById(@PathVariable String id) {
-        return Result.success(DataMartService.selectById(id));
+        return Result.success(dataMartService.selectById(id));
     }
 
     /**
@@ -90,7 +90,7 @@ public class DataMartController extends BaseController {
     @PostMapping(value = "page")
     public Result<PageInfo<DataMartVO>> paging(@RequestBody DataMartDTO dto) {
         checkPageParams(dto.getPageNo(), dto.getPageSize());
-        return Result.success(PageInfo.of(DataMartService.paging(dto)));
+        return Result.success(PageInfo.of(dataMartService.paging(dto)));
     }
 
     /**
@@ -98,7 +98,7 @@ public class DataMartController extends BaseController {
      */
     @GetMapping(value = "tree")
     public Result<List<TreeVO>> tree(@RequestParam("keyword") String keyword) {
-        return Result.success(DataMartService.tree(keyword));
+        return Result.success(dataMartService.tree(keyword));
     }
 
     /**
@@ -106,6 +106,6 @@ public class DataMartController extends BaseController {
      */
     @GetMapping(value = "all")
     public Result<List<DataMartVO>> all() {
-        return Result.success(DataMartService.all());
+        return Result.success(dataMartService.all());
     }
 }

@@ -59,7 +59,7 @@ public class SubjectDomainController extends BaseController {
                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                           @RequestBody SubjectDomainDTO dto) {
-        return Result.success(SubjectDomainService.updateById(dto));
+        return Result.success(subjectDomainService.updateById(dto));
     }
 
     /**
@@ -72,7 +72,7 @@ public class SubjectDomainController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @PathVariable String id) {
-        return Result.success(SubjectDomainService.delete(id));
+        return Result.success(subjectDomainService.delete(id));
     }
 
     /**
@@ -80,7 +80,7 @@ public class SubjectDomainController extends BaseController {
      */
     @GetMapping("/{id}")
     public Result<SubjectDomainVO> selectById(@PathVariable String id) {
-        return Result.success(SubjectDomainService.selectById(id));
+        return Result.success(subjectDomainService.selectById(id));
     }
 
     /**
@@ -89,7 +89,7 @@ public class SubjectDomainController extends BaseController {
     @PostMapping(value = "page")
     public Result<PageInfo<SubjectDomainVO>> paging(@RequestBody SubjectDomainDTO dto) {
         checkPageParams(dto.getPageNo(), dto.getPageSize());
-        return Result.success(PageInfo.of(SubjectDomainService.paging(dto)));
+        return Result.success(PageInfo.of(subjectDomainService.paging(dto)));
     }
 
     /**
@@ -97,7 +97,7 @@ public class SubjectDomainController extends BaseController {
      */
     @GetMapping(value = "tree")
     public Result<List<TreeTypeValueVO>> tree() {
-        return Result.success(SubjectDomainService.tree());
+        return Result.success(subjectDomainService.tree());
     }
 
     /**
@@ -105,6 +105,6 @@ public class SubjectDomainController extends BaseController {
      */
     @PostMapping(value = "all")
     public Result<List<SubjectDomainVO>> all() {
-        return Result.success(SubjectDomainService.all());
+        return Result.success(subjectDomainService.all());
     }
 }
