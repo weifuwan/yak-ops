@@ -73,7 +73,7 @@ springdoc:
 
 # Mybatis-plus configuration, you don't need to change it
 mybatis-plus:
-  mapper-locations: classpath*:io/yak/ops/dao/mapper/*Mapper.xml,classpath*:mapper/modeling/*Mapper.xml
+  mapper-locations: classpath*:io/yak/ops/dao/mapper/*Mapper.xml
   type-aliases-package: io.yak.ops.dao.entity
   configuration:
     cache-enabled: false
