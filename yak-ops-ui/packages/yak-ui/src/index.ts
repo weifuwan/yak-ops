@@ -16,6 +16,7 @@ export * from "./form";
 export * from "./input";
 export * from "./icons";
 export * from "./modal";
+export * from "./navigation-menu";
 export * from "./number-field";
 export * from "./page-header";
 export * from "./panel-header";
