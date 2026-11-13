@@ -162,7 +162,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
           onRetry={() => void detailQuery.refetch()}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col bg-white px-6 py-4">
+        <div className="flex min-h-0 flex-1 flex-col bg-[#f2f3f5] px-6 py-4">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Button size="sm" variant="primary" onClick={openCreate}>
