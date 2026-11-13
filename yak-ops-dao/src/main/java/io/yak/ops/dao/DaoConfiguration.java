@@ -42,6 +42,8 @@ public class DaoConfiguration {
             "t_cockpit_business_process",
             "t_cockpit_data_mart",
             "t_cockpit_subject_domain",
+            "t_cockpit_dimension_table",
+            "t_cockpit_dimension_table_fields",
             "t_cockpit_standard_directory",
             "t_cockpit_field_standard",
             "t_cockpit_code_standard",

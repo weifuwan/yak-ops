@@ -279,3 +279,68 @@ CREATE TABLE IF NOT EXISTS t_cockpit_version_management (
 CREATE INDEX IF NOT EXISTS idx_version_management_1 ON t_cockpit_version_management (project_code, source_table_id);
 CREATE INDEX IF NOT EXISTS idx_version_management_2 ON t_cockpit_version_management (version_type);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_version_management_1 ON t_cockpit_version_management (project_code, source_table_id, version_type, version_number);
+
+
+-- Dimension modeling: dimension tables and their field definitions.
+-- Both tables are isolated by the active Yak Ops project.
+CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  dwh_id varchar(32) NULL,
+  bus_type_id varchar(32) NULL,
+  bus_process_id varchar(32) NULL,
+  domain_id varchar(32) NULL,
+  mart_id varchar(32) NULL,
+  subject_id varchar(32) NULL,
+  time_period_id varchar(1000) NULL,
+  dim_id varchar(1000) NULL,
+  modifier varchar(1000) NULL,
+  name_rule_id varchar(32) NULL,
+  table_name varchar(500) NULL,
+  cn_name varchar(500) NULL,
+  table_type varchar(50) NULL,
+  storage_policy varchar(50) NULL,
+  life_cycle integer NULL,
+  director varchar(32) NULL,
+  remark varchar(2048) NULL,
+  submit boolean NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS idx_dimension_table_1 ON t_cockpit_dimension_table (project_code, dwh_id);
+CREATE INDEX IF NOT EXISTS idx_dimension_table_2 ON t_cockpit_dimension_table (bus_type_id, domain_id, bus_process_id);
+CREATE INDEX IF NOT EXISTS idx_dimension_table_3 ON t_cockpit_dimension_table (mart_id, subject_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_dimension_table_1 ON t_cockpit_dimension_table (project_code, table_name);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_dimension_table_2 ON t_cockpit_dimension_table (project_code, cn_name);
+
+CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table_fields (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  table_id varchar(32) NULL,
+  field_name varchar(50) NULL,
+  cn_name varchar(255) NULL,
+  data_type varchar(50) NULL,
+  length integer NULL,
+  precision integer NULL,
+  remark varchar(2048) NULL,
+  primary_flag boolean NULL,
+  can_null boolean NULL,
+  source_tb varchar(100) NULL,
+  source_field varchar(100) NULL,
+  field_type varchar(50) NULL,
+  unit_id varchar(32) NULL,
+  field_std_id varchar(32) NULL,
+  code_std_id varchar(32) NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS idx_dimension_fields_1 ON t_cockpit_dimension_table_fields (project_code, table_id);
+CREATE INDEX IF NOT EXISTS idx_dimension_fields_2 ON t_cockpit_dimension_table_fields (unit_id);
+CREATE INDEX IF NOT EXISTS idx_dimension_fields_3 ON t_cockpit_dimension_table_fields (field_std_id);
+CREATE INDEX IF NOT EXISTS idx_dimension_fields_4 ON t_cockpit_dimension_table_fields (code_std_id);

@@ -279,3 +279,68 @@ CREATE TABLE IF NOT EXISTS t_cockpit_version_management (
   KEY idx_version_management_2 (version_type),
   UNIQUE KEY uk_version_management_1 (project_code, source_table_id, version_type, version_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- Dimension modeling: dimension tables and their field definitions.
+-- Both tables are isolated by the active Yak Ops project.
+CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  dwh_id varchar(32) NULL,
+  bus_type_id varchar(32) NULL,
+  bus_process_id varchar(32) NULL,
+  domain_id varchar(32) NULL,
+  mart_id varchar(32) NULL,
+  subject_id varchar(32) NULL,
+  time_period_id varchar(1000) NULL,
+  dim_id varchar(1000) NULL,
+  modifier varchar(1000) NULL,
+  name_rule_id varchar(32) NULL,
+  table_name varchar(500) NULL,
+  cn_name varchar(500) NULL,
+  table_type varchar(50) NULL,
+  storage_policy varchar(50) NULL,
+  life_cycle integer NULL,
+  director varchar(32) NULL,
+  remark varchar(2048) NULL,
+  submit boolean NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id),
+  KEY idx_dimension_table_1 (project_code, dwh_id),
+  KEY idx_dimension_table_2 (bus_type_id, domain_id, bus_process_id),
+  KEY idx_dimension_table_3 (mart_id, subject_id),
+  UNIQUE KEY uk_dimension_table_1 (project_code, table_name),
+  UNIQUE KEY uk_dimension_table_2 (project_code, cn_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table_fields (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  table_id varchar(32) NULL,
+  field_name varchar(50) NULL,
+  cn_name varchar(255) NULL,
+  data_type varchar(50) NULL,
+  length integer NULL,
+  precision integer NULL,
+  remark varchar(2048) NULL,
+  primary_flag boolean NULL,
+  can_null boolean NULL,
+  source_tb varchar(100) NULL,
+  source_field varchar(100) NULL,
+  field_type varchar(50) NULL,
+  unit_id varchar(32) NULL,
+  field_std_id varchar(32) NULL,
+  code_std_id varchar(32) NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id),
+  KEY idx_dimension_fields_1 (project_code, table_id),
+  KEY idx_dimension_fields_2 (unit_id),
+  KEY idx_dimension_fields_3 (field_std_id),
+  KEY idx_dimension_fields_4 (code_std_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

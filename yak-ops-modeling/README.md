@@ -25,12 +25,15 @@ HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API bou
 - Business processes
 - Data marts
 - Subject domains
+- Dimension tables and their field definitions
+- Dimension tree grouping by business type, data domain, mart and subject domain
+- Dimension table submission, version history and rollback
 
 The corresponding original POs, DTOs, VOs, Mapper interfaces, Service interfaces/implementations, controllers and table definitions have been moved into the new package structure. The original business fields and endpoint behavior are retained where possible.
 
-### Subsequent migration batches
+### Migrated modeling assets
 
-- Dimension modeling: dimension tables, fields, version history and reverse modeling.
+- Dimension modeling: dimension tables, table fields, tree grouping, submission, version history and rollback.
 - Data standards: standard directories, field standards, code standards, units and naming dictionaries.
 - Data indicators: atomic, derivative and composite indicators, modifiers and time periods.
 
@@ -67,7 +70,7 @@ The product is routed under `/data-modeling`. The warehouse planning screens use
 ## Migration sequence
 
 1. Warehouse planning (business type, layer, domain, process, mart, subject domain).
-2. Dimension modeling and version history.
+2. Dimension modeling (dimension tables, fields, tree, submit and version history).
 3. Data standards.
 4. Data indicators.
 5. Replace remaining legacy interactions with Yak-ui components and remove obsolete compatibility code after verification.
