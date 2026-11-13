@@ -51,7 +51,7 @@ public class DataDomainController extends BaseController {
     public Result<DataDomainVO> update(
                                        @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                        @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-                                       @RequestBody DataDomainDTO DataDomain) {
+                                       @RequestBody DataDomainDTO dto) {
         return Result.success(dataDomainService.updateById(dto));
     }
 
@@ -72,7 +72,7 @@ public class DataDomainController extends BaseController {
 
     @PostMapping(value = "page")
     public Result<PageInfo<DataDomainVO>> paging(@RequestBody DataDomainDTO dto) {
-        checkPageParams(DataDomainDTO.getPageNo(), DataDomainDTO.getPageSize());
+        checkPageParams(dto.getPageNo(), dto.getPageSize());
         return Result.success(PageInfo.of(dataDomainService.paging(dto)));
     }
 

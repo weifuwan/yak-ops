@@ -90,7 +90,7 @@ public class DwLayerController extends BaseController {
      */
     @PostMapping(value = "page")
     public Result<PageInfo<DwLayerVO>> paging(@RequestBody DwLayerDTO dto) {
-        checkPageParams(DwLayerDTO.getPageNo(), DwLayerDTO.getPageSize());
+        checkPageParams(dto.getPageNo(), dto.getPageSize());
         return Result.success(PageInfo.of(dwLayerService.paging(dto)));
     }
 
