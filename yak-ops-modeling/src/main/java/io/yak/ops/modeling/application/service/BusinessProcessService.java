@@ -1,10 +1,8 @@
 package io.yak.ops.modeling.application.service;
 
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.businessprocess.BusinessProcessPO;
 import io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
 
@@ -15,7 +13,7 @@ import java.util.List;
  *
  * @author bruce
  */
-public interface BusinessProcessService extends IService<BusinessProcessPO> {
+public interface BusinessProcessService {
 
     String create(BusinessProcessDTO dto);
 
