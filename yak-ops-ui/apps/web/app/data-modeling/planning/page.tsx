@@ -3,6 +3,7 @@ import { PageHeader } from "@yak-ops/yak-ui";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { ModelingEntityPage, type ModelingEntityDefinition } from "../components/modeling-entity-page";
+import { DataModelingDwLayerPage } from "./dw-layer/dw-layer-page";
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
   {
@@ -162,11 +163,15 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
       />
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4">
         {currentWorkspace ? (
-          <ModelingEntityPage
-            key={activeDefinition.key}
-            projectCode={currentWorkspace.id}
-            definition={activeDefinition}
-          />
+          {definitionKey === "dwLayer" ? (
+            <DataModelingDwLayerPage projectCode={currentWorkspace.id} />
+          ) : (
+            <ModelingEntityPage
+              key={activeDefinition.key}
+              projectCode={currentWorkspace.id}
+              definition={activeDefinition}
+            />
+          )}
         ) : (
           <div className="flex min-h-[240px] flex-1 items-center justify-center rounded-md border border-dashed border-[var(--yak-components-panel-border)] bg-white text-sm text-[var(--yak-components-muted-text)]">
             请先选择工作空间
