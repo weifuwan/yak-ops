@@ -1,6 +1,7 @@
 package io.yak.ops.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 /**
@@ -46,4 +47,7 @@ public class BusinessProcessPO extends ModelingBasePO {
      * 是否默认
      */
     private int flag;
+
+    @TableField(exist = false)
+    private String dataDomainCnName;
 }
