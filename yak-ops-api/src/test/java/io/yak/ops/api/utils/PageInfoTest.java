@@ -1,31 +1,26 @@
 package io.yak.ops.api.utils;
 
-import org.junit.jupiter.api.Assertions;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
-public class PageInfoTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class PageInfoTest {
 
     @Test
-    public void testGetTotalPageWhenTotalAndPageSizeArePositive() {
-        PageInfo<Object> pageInfo = new PageInfo<>();
-        pageInfo.setTotal(100);
-        pageInfo.setPageSize(20);
-        Assertions.assertEquals(5, pageInfo.getTotalPage());
-    }
+    void shouldMapMybatisPageToApiPageInfo() {
+        Page<String> page = new Page<>(2, 10, 21);
+        page.setRecords(Arrays.asList("first", "second"));
 
-    @Test
-    public void testGetTotalPageWhenTotalIsZero() {
-        PageInfo<Object> pageInfo = new PageInfo<>();
-        pageInfo.setTotal(0);
-        pageInfo.setPageSize(20);
-        Assertions.assertEquals(1, pageInfo.getTotalPage());
-    }
+        PageInfo<String> result = PageInfo.of(page);
 
-    @Test
-    public void testGetTotalPageWhenPageSizeIsZero() {
-        PageInfo<Object> pageInfo = new PageInfo<>();
-        pageInfo.setTotal(101);
-        pageInfo.setPageSize(0);
-        Assertions.assertEquals(11, pageInfo.getTotalPage());
+        assertEquals(Arrays.asList("first", "second"), result.getTotalList());
+        assertEquals(21, result.getTotal());
+        assertEquals(2, result.getCurrentPage());
+        assertEquals(10, result.getPageNo());
+        assertEquals(3, result.getTotalPage());
     }
 }

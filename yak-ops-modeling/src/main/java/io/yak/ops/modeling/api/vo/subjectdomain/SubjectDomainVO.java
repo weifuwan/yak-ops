@@ -2,8 +2,6 @@ package io.yak.ops.modeling.api.vo.subjectdomain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import io.yak.ops.modeling.api.dto.pagination.PaginationBaseDTO;
 
 import java.util.Date;
 
@@ -11,8 +9,7 @@ import java.util.Date;
  * 智能建模 - 主题域
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class SubjectDomainVO extends PaginationBaseDTO {
+public class SubjectDomainVO {
 
     private String id;
     /**
