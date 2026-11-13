@@ -5,7 +5,7 @@ import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
-import io.yak.ops.modeling.domain.enums.DwModelEnum;
+import io.yak.ops.dao.entity.enums.DwModelEnum;
 
 import java.util.List;
 
