@@ -101,7 +101,7 @@ export function DwLayerCard({
         className="flex shrink-0 flex-row"
         style={{ width: "100%", height: 49, boxSizing: "border-box", padding: "0 16px", borderTop: "1px solid #f4f6f9" }}
       >
-        <div className="flex-1" style={{ lineHeight: "49px", textAlign: "center" }}>
+        <div className="flex flex-1 items-center justify-center" style={{ lineHeight: "49px", textAlign: "center" }}>
           <Button
             size="sm"
             variant="ghost"
@@ -114,7 +114,7 @@ export function DwLayerCard({
             <span style={{ fontSize: 12 }}>修改</span>
           </Button>
         </div>
-        <div className="flex-1" style={{ lineHeight: "49px", textAlign: "center" }}>
+        <div className="flex flex-1 items-center justify-center" style={{ lineHeight: "49px", textAlign: "center" }}>
           <Button
             size="sm"
             variant="ghost"
