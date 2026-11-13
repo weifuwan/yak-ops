@@ -1,5 +1,7 @@
 package io.yak.ops.api.configuration;
 
+import io.yak.ops.api.controller.modeling.ModelingProjectAccessInterceptor;
+import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.interceptor.LocaleChangeInterceptor;
 import io.yak.ops.api.interceptor.LoginHandlerInterceptor;
 import io.yak.ops.api.interceptor.RateLimitInterceptor;
@@ -34,6 +36,14 @@ public class AppConfiguration implements WebMvcConfigurer {
 
     @Autowired
     private ApiConfig apiConfig;
+
+    @Autowired
+    private ModelingProjectAccessInterceptor modelingProjectAccessInterceptor;
+
+    @Bean
+    public ModelingProjectAccessInterceptor modelingProjectAccessInterceptor(ProjectService projectService) {
+        return new ModelingProjectAccessInterceptor(projectService);
+    }
 
     @Bean
     public CorsFilter corsFilter() {
@@ -91,6 +101,8 @@ public class AppConfiguration implements WebMvcConfigurer {
                         "/doc.html", "/swagger-ui/**", "*.html", "/ui/**", "/error", "/oauth2-provider",
                         "/redirect/login/oauth2", "/cookies", "/oidc-providers", "/oauth2/authorization/**",
                         "/login/oauth2/code/**");
+        registry.addInterceptor(modelingProjectAccessInterceptor)
+                .addPathPatterns("/projects/*/modeling/**");
     }
 
     @Override

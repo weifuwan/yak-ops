@@ -24,7 +24,37 @@ export type ModelingResourceKey =
   | "dataDomain"
   | "businessProcess"
   | "dataMart"
-  | "subjectDomain";
+  | "subjectDomain"
+  | "standardDirectory"
+  | "fieldStandard"
+  | "codeStandard"
+  | "codeDetail"
+  | "unitStandard"
+  | "dictionaryStandard"
+  | "atomIndicator"
+  | "derivativeIndicator"
+  | "composeIndicator"
+  | "modifier"
+  | "timePeriodCategory"
+  | "timePeriod";
+
+export interface ModelingVersionRecord {
+  id: string;
+  versionNumber: number;
+  versionType: string;
+  updateTime?: string;
+  updateBy?: string;
+}
+
+export interface ModelingAssetTreeNode {
+  id: string;
+  key: string;
+  value: string;
+  title: string;
+  parentId?: string;
+  type: string;
+  children: ModelingAssetTreeNode[];
+}
 
 export interface ModelingRecord {
   id?: string;
@@ -40,6 +70,18 @@ const RESOURCE_PATH: Record<ModelingResourceKey, string> = {
   businessProcess: "business-process",
   dataMart: "data-mart",
   subjectDomain: "subject-domain",
+  standardDirectory: "assets/standard-directory",
+  fieldStandard: "assets/field-standard",
+  codeStandard: "assets/code-standard",
+  codeDetail: "assets/code-detail",
+  unitStandard: "assets/unit-standard",
+  dictionaryStandard: "assets/dictionary-standard",
+  atomIndicator: "assets/atom-indicator",
+  derivativeIndicator: "assets/derivative-indicator",
+  composeIndicator: "assets/compose-indicator",
+  modifier: "assets/modifier",
+  timePeriodCategory: "assets/time-period-category",
+  timePeriod: "assets/time-period",
 };
 
 function modelingPath(projectCode: string, resource?: ModelingResourceKey): string {
@@ -66,11 +108,19 @@ export const modelingEntityApi = {
   all<T extends ModelingRecord>(
     projectCode: string,
     resource: ModelingResourceKey,
+    params: Record<string, string> = {},
   ): Promise<T[]> {
-    const url = `${modelingPath(projectCode, resource)}/all`;
+    const query = new URLSearchParams(params).toString();
+    const url = `${modelingPath(projectCode, resource)}/all${query ? `?${query}` : ""}`;
     return resource === "subjectDomain"
       ? HttpUtils.postData<T[]>(url, {})
       : HttpUtils.getData<T[]>(url);
+  },
+
+  directoryTree(projectCode: string, module: "FIELD" | "CODE" | "UNIT"): Promise<ModelingAssetTreeNode[]> {
+    return HttpUtils.getData<ModelingAssetTreeNode[]>(
+      `${modelingPath(projectCode, "standardDirectory")}/tree?module=${module}`,
+    );
   },
 
   getById<T extends ModelingRecord>(
@@ -102,6 +152,31 @@ export const modelingEntityApi = {
   remove(projectCode: string, resource: ModelingResourceKey, id: string): Promise<string> {
     return HttpUtils.deleteData<string>(
       `${modelingPath(projectCode, resource)}/${encodeURIComponent(id)}`,
+    );
+  },
+
+  submit(projectCode: string, resource: ModelingResourceKey, id: string): Promise<ModelingRecord> {
+    return HttpUtils.postData<ModelingRecord>(
+      `${modelingPath(projectCode, resource)}/${encodeURIComponent(id)}/submit`,
+      {},
+    );
+  },
+
+  versions(projectCode: string, resource: ModelingResourceKey, id: string): Promise<ModelingVersionRecord[]> {
+    return HttpUtils.getData<ModelingVersionRecord[]>(
+      `${modelingPath(projectCode, resource)}/${encodeURIComponent(id)}/versions`,
+    );
+  },
+
+  rollback(
+    projectCode: string,
+    resource: ModelingResourceKey,
+    id: string,
+    versionNumber: number,
+  ): Promise<ModelingRecord> {
+    return HttpUtils.postData<ModelingRecord>(
+      `${modelingPath(projectCode, resource)}/${encodeURIComponent(id)}/rollback/${versionNumber}`,
+      {},
     );
   },
 };

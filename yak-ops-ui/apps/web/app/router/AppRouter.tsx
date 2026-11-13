@@ -2,6 +2,8 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
 import { DataModelingOverviewPage } from "@/app/data-modeling/overview/page";
+import { DataModelingStandardsPage } from "@/app/data-modeling/standards/page";
+import { DataModelingIndicatorsPage } from "@/app/data-modeling/indicators/page";
 import { DataModelingPlanningPage } from "@/app/data-modeling/planning/page";
 import { DataModelingSectionPage } from "@/app/data-modeling/section/page";
 import { ResourceManagementPage } from "@/app/resources/page";
@@ -185,26 +187,8 @@ export default function AppRouter() {
                 />
               }
             />
-            <Route
-              path="/data-modeling/standards"
-              element={
-                <DataModelingSectionPage
-                  title="数据标准"
-                  description="建立统一的字段标准、标准代码、度量单位和命名词典。"
-                  capabilities={["字段标准", "标准代码", "度量单位", "命名词典"]}
-                />
-              }
-            />
-            <Route
-              path="/data-modeling/indicators"
-              element={
-                <DataModelingSectionPage
-                  title="数据指标"
-                  description="统一管理原子指标、派生指标、复合指标、修饰词和时间周期。"
-                  capabilities={["原子指标", "派生指标", "复合指标", "修饰词", "时间周期"]}
-                />
-              }
-            />
+            <Route path="/data-modeling/standards" element={<DataModelingStandardsPage />} />
+            <Route path="/data-modeling/indicators" element={<DataModelingIndicatorsPage />} />
           </Route>
 
           <Route

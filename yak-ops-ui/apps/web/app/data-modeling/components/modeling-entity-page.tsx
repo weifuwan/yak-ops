@@ -5,9 +5,9 @@ import {
   SelectItemIndicator, SelectItemText, SelectTrigger, SelectValue, Table, Textarea,
   toast, type TableColumns,
 } from "@yak-ops/yak-ui";
-import { Plus, RefreshCw, Search } from "lucide-react";
+import { History, Plus, RefreshCw, Search, Send } from "lucide-react";
 
-import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../service";
+import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey, type ModelingVersionRecord } from "../service";
 
 export interface ModelingFieldOption { value: string; label: string; }
 
@@ -21,6 +21,8 @@ export interface ModelingFieldDefinition {
   optionsSource?: ModelingResourceKey;
   optionLabelField?: string;
   optionValueField?: string;
+  optionsParams?: Record<string, string>;
+  readOnly?: boolean;
 }
 
 export interface ModelingColumnDefinition {
@@ -38,6 +40,9 @@ export interface ModelingEntityDefinition {
   searchPlaceholder: string;
   fields: ModelingFieldDefinition[];
   columns: ModelingColumnDefinition[];
+  versioned?: boolean;
+  filters?: Record<string, string>;
+  defaults?: Record<string, string>;
 }
 
 type Props = { projectCode: string; definition: ModelingEntityDefinition };
@@ -61,19 +66,27 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
   const [pendingDelete, setPendingDelete] = useState<ModelingRecord>();
   const [deleting, setDeleting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [versionTarget, setVersionTarget] = useState<ModelingRecord>();
+  const [submittingId, setSubmittingId] = useState("");
 
   const pageQueryKey = useMemo(
-    () => ["modeling", "planning-page", projectCode, definition.key, pageNo, pageSize, keyword],
-    [projectCode, definition.key, pageNo, pageSize, keyword],
+    () => ["modeling", "asset-page", projectCode, definition.key, JSON.stringify(definition.filters || {}), pageNo, pageSize, keyword],
+    [projectCode, definition.key, definition.filters, pageNo, pageSize, keyword],
   );
-  const optionSources = useMemo(
-    () => [...new Set(definition.fields.flatMap((field) => field.optionsSource ? [field.optionsSource] : []))],
-    [definition.fields],
-  );
+  const optionSourceConfigs = useMemo(() => {
+    const configs = new Map<string, { resource: ModelingResourceKey; params: Record<string, string> }>();
+    definition.fields.forEach((field) => {
+      if (!field.optionsSource) return;
+      const params = field.optionsParams || {};
+      const key = `${field.optionsSource}:${JSON.stringify(params)}`;
+      configs.set(key, { resource: field.optionsSource, params });
+    });
+    return Array.from(configs.entries()).map(([key, value]) => ({ key, ...value }));
+  }, [definition.fields]);
   const optionQueries = useQueries({
-    queries: optionSources.map((resource) => ({
-      queryKey: ["modeling", "options", projectCode, resource],
-      queryFn: () => modelingEntityApi.all<ModelingRecord>(projectCode, resource),
+    queries: optionSourceConfigs.map(({ key, resource, params }) => ({
+      queryKey: ["modeling", "options", projectCode, key],
+      queryFn: () => modelingEntityApi.all<ModelingRecord>(projectCode, resource, params),
       enabled: Boolean(projectCode && formOpen),
     })),
   });
@@ -81,6 +94,7 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
   const pageQuery = useQuery({
     queryKey: pageQueryKey,
     queryFn: () => modelingEntityApi.page<ModelingRecord>(projectCode, definition.key, {
+      ...definition.filters,
       pageNo,
       pageSize,
       [definition.searchField]: keyword.trim() || undefined,
@@ -92,11 +106,17 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
 
   const records = pageQuery.data?.bizData ?? [];
   const total = pageQuery.data?.pagination?.total ?? 0;
+  const versionQuery = useQuery({
+    queryKey: ["modeling", "versions", projectCode, definition.key, versionTarget?.id],
+    queryFn: () => modelingEntityApi.versions(projectCode, definition.key, versionTarget!.id!),
+    enabled: Boolean(projectCode && definition.versioned && versionTarget?.id),
+  });
 
   const getFieldOptions = (field: ModelingFieldDefinition): ModelingFieldOption[] => {
     if (field.options) return field.options;
     if (!field.optionsSource) return [];
-    const sourceIndex = optionSources.indexOf(field.optionsSource);
+    const sourceKey = `${field.optionsSource}:${JSON.stringify(field.optionsParams || {})}`;
+    const sourceIndex = optionSourceConfigs.findIndex((source) => source.key === sourceKey);
     const sourceRecords = optionQueries[sourceIndex]?.data ?? [];
     return sourceRecords.map((record) => ({
       value: String(record[field.optionValueField || "id"] ?? ""),
@@ -107,7 +127,7 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
 
   const openCreate = () => {
     setEditing(undefined);
-    setFormValues({});
+    setFormValues(definition.defaults || {});
     setFormError("");
     setFormOpen(true);
   };
@@ -148,8 +168,7 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
     }
     const payload: Record<string, unknown> = {};
     definition.fields.forEach((field) => {
-      const value = String(formValues[field.key] || "").trim();
-      if (value) payload[field.key] = value;
+      payload[field.key] = String(formValues[field.key] ?? "").trim();
     });
     if (editing?.id) payload.id = editing.id;
 
@@ -165,7 +184,7 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
       setFormOpen(false);
       setEditing(undefined);
       await queryClient.invalidateQueries({
-        queryKey: ["modeling", "planning-page", projectCode, definition.key],
+        queryKey: ["modeling", "asset-page", projectCode, definition.key],
       });
     } catch {
       toast.warning("保存失败，请检查填写内容后重试");
@@ -182,12 +201,47 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
       toast.success(`${definition.title}已删除`);
       setPendingDelete(undefined);
       await queryClient.invalidateQueries({
-        queryKey: ["modeling", "planning-page", projectCode, definition.key],
+        queryKey: ["modeling", "asset-page", projectCode, definition.key],
       });
     } catch {
       toast.warning("删除失败，请确认该记录没有被其他建模对象引用");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const submitVersion = async (record: ModelingRecord) => {
+    if (!record.id || submittingId) return;
+    setSubmittingId(record.id);
+    try {
+      await modelingEntityApi.submit(projectCode, definition.key, record.id);
+      toast.success("已提交，版本快照已保存");
+      await queryClient.invalidateQueries({
+        queryKey: ["modeling", "asset-page", projectCode, definition.key],
+      });
+      if (versionTarget?.id === record.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ["modeling", "versions", projectCode, definition.key, record.id],
+        });
+      }
+    } catch {
+      toast.warning("提交失败，请检查指标信息是否完整");
+    } finally {
+      setSubmittingId("");
+    }
+  };
+
+  const rollbackVersion = async (version: ModelingVersionRecord) => {
+    if (!versionTarget?.id) return;
+    try {
+      await modelingEntityApi.rollback(projectCode, definition.key, versionTarget.id, version.versionNumber);
+      toast.success(`已回滚到 V${version.versionNumber}`);
+      setVersionTarget(undefined);
+      await queryClient.invalidateQueries({
+        queryKey: ["modeling", "asset-page", projectCode, definition.key],
+      });
+    } catch {
+      toast.warning("版本回滚失败，请刷新后重试");
     }
   };
 
@@ -206,7 +260,7 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
       render: (_value, record) => record.updateTime ? String(record.updateTime) : "-",
     },
     {
-      key: "actions", title: "操作", width: 120, align: "center",
+      key: "actions", title: "操作", width: definition.versioned ? 240 : 120, align: "center",
       render: (_value, record) => (
         <div className="flex items-center justify-center gap-1">
           <Button size="sm" variant="ghost"
@@ -216,6 +270,23 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
             {openingId === record.id ? "加载中" : "编辑"}
           </Button>
           <span aria-hidden="true" className="h-3 w-px bg-[#e4e7ec]" />
+          {definition.versioned && record.id ? (
+            <>
+              <Button size="sm" variant="ghost"
+                className="px-1 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
+                isDisabled={saving || deleting || Boolean(submittingId) || Boolean(record.submit)}
+                onClick={() => void submitVersion(record)}>
+                <Send size={12} />提交
+              </Button>
+              <Button size="sm" variant="ghost"
+                className="px-1 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
+                isDisabled={saving || deleting}
+                onClick={() => setVersionTarget(record)}>
+                <History size={12} />版本
+              </Button>
+              <span aria-hidden="true" className="h-3 w-px bg-[#e4e7ec]" />
+            </>
+          ) : null}
           <Button size="sm" variant="ghost"
             className="px-1 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[#d92d20]"
             isDisabled={saving || deleting} onClick={() => setPendingDelete(record)}>
@@ -281,14 +352,15 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
           {definition.fields.map((field) => {
             const options = getFieldOptions(field);
             const isSelect = Boolean(field.options || field.optionsSource);
-            const sourceIndex = field.optionsSource ? optionSources.indexOf(field.optionsSource) : -1;
+            const sourceKey = field.optionsSource ? `${field.optionsSource}:${JSON.stringify(field.optionsParams || {})}` : "";
+            const sourceIndex = field.optionsSource ? optionSourceConfigs.findIndex((source) => source.key === sourceKey) : -1;
             const optionsLoading = sourceIndex >= 0 && optionQueries[sourceIndex]?.isFetching;
             return (
               <Field key={field.key} className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
                 <FieldLabel required={field.required} className="pt-1.5 text-xs leading-4">{field.label}</FieldLabel>
                 <div className="min-w-0">
                   {isSelect ? (
-                    <Select size="small" items={options} value={formValues[field.key] || undefined}
+                    <Select size="small" items={options} value={formValues[field.key] || undefined} disabled={Boolean(field.readOnly && editing?.id)}
                       onValueChange={(value) => {
                         setFormValues((values) => ({ ...values, [field.key]: String(value || "") }));
                         setFormError("");
@@ -312,7 +384,7 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
                         setFormError("");
                       }} />
                   ) : (
-                    <Input size="small" variant="outlined" value={formValues[field.key] || ""}
+                    <Input size="small" variant="outlined" value={formValues[field.key] || ""} disabled={Boolean(field.readOnly && editing?.id)}
                       placeholder={field.placeholder || `请输入${field.label}`}
                       onChange={(event) => {
                         setFormValues((values) => ({ ...values, [field.key]: event.target.value }));
@@ -325,6 +397,30 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
           })}
           {formError ? <p role="alert" className="pl-[116px] text-xs text-[#d92d20]">{formError}</p> : null}
         </div>
+      </Modal>
+
+      <Modal open={Boolean(versionTarget)} centered width={680}
+        title={`版本管理 · ${String(versionTarget?.[definition.columns[0]?.key] || versionTarget?.id || "")}`}
+        onClose={() => setVersionTarget(undefined)}
+        footer={<Button size="sm" variant="secondary" onClick={() => setVersionTarget(undefined)}>关闭</Button>}>
+        <Table<ModelingVersionRecord>
+          columns={[
+            { key: "versionNumber", title: "版本", width: 90, render: (_value, record) => `V${record.versionNumber}` },
+            { key: "updateTime", title: "提交时间", width: 190, render: (_value, record) => record.updateTime || "-" },
+            { key: "updateBy", title: "提交人", render: (_value, record) => record.updateBy || "-" },
+            { key: "actions", title: "操作", width: 100, align: "center",
+              render: (_value, record) => (
+                <Button size="sm" variant="ghost" className="text-xs"
+                  onClick={() => void rollbackVersion(record)}>回滚</Button>
+              ) },
+          ]}
+          dataSource={versionQuery.data || []}
+          rowKey={(record) => record.id}
+          loading={versionQuery.isFetching}
+          emptyText="暂无已提交版本"
+          pagination={false}
+          size="medium"
+        />
       </Modal>
 
       <Modal open={Boolean(pendingDelete)} centered width={420} title={`删除${definition.title}`}

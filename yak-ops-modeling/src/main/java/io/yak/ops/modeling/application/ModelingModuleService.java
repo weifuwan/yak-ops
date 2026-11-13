@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 /**
  * Application entry point for the modeling module.
  *
- * <p>Business capabilities are added here in subsequent migration phases.
+ * <p>Workspace-scoped business capabilities are registered here as each migration phase is completed.
  */
 @Service
 public class ModelingModuleService {

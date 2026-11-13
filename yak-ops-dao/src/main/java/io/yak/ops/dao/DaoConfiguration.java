@@ -41,7 +41,20 @@ public class DaoConfiguration {
             "t_cockpit_data_domain",
             "t_cockpit_business_process",
             "t_cockpit_data_mart",
-            "t_cockpit_subject_domain"
+            "t_cockpit_subject_domain",
+            "t_cockpit_standard_directory",
+            "t_cockpit_field_standard",
+            "t_cockpit_code_standard",
+            "t_cockpit_code_detail",
+            "t_cockpit_unit_standard",
+            "t_cockpit_dictionary_standard",
+            "t_cockpit_indicator_atom",
+            "t_cockpit_indicator_derivative",
+            "t_cockpit_indicator_compose",
+            "t_cockpit_indicator_modifier",
+            "t_cockpit_time_period_category",
+            "t_cockpit_time_period",
+            "t_cockpit_version_management"
     ));
 
     /**
