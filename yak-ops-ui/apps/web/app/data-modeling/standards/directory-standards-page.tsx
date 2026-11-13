@@ -569,8 +569,11 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
 
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {!selectedNode ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">
-              请选择左侧目录或标准查看详情
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-white">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Layers size={32} strokeWidth={1.3} className="text-[#c5cbd3]" />
+                <span className="text-sm text-[var(--yak-components-muted-text)]">请选择左侧目录或标准查看详情</span>
+              </div>
             </div>
           ) : detailQuery.isPending ? (
             <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">
