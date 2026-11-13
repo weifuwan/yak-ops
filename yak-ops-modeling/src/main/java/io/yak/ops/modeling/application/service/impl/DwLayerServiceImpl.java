@@ -57,8 +57,11 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
 
     @Override
     public DwLayerVO selectById(String id) {
-        DwLayerPO DwLayerPO = dwLayerDao.queryById(id);
-        return ConvertUtil.sourceToTarget(DwLayerPO, DwLayerVO.class);
+        DwLayerPO po = dwLayerDao.queryById(id);
+        if (po == null) {
+            throw new IllegalArgumentException("数仓分层不存在");
+        }
+        return ConvertUtil.sourceToTarget(po, DwLayerVO.class);
     }
 
     @Override

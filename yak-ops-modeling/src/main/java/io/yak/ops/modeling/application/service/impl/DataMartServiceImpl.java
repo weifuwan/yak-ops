@@ -33,20 +33,20 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String create(DataMartDTO DataMart) {
-        DataMartPO DataMartPO = ConvertUtil.sourceToTarget(DataMart, DataMartPO.class);
-        DataMartPO.initInsert();
-        dataMartDao.insert(DataMartPO);
-        return DataMartPO.getId();
+    public String create(DataMartDTO dto) {
+        DataMartPO po = ConvertUtil.sourceToTarget(dto, DataMartPO.class);
+        po.initInsert();
+        dataMartDao.insert(po);
+        return po.getId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DataMartVO updateById(DataMartDTO DataMart) {
-        DataMartPO DataMartPO = ConvertUtil.sourceToTarget(DataMart, DataMartPO.class);
-        DataMartPO.initUpdate();
-        dataMartDao.updateById(DataMartPO);
-        return ConvertUtil.sourceToTarget(DataMartPO, DataMartVO.class);
+    public DataMartVO updateById(DataMartDTO dto) {
+        DataMartPO po = ConvertUtil.sourceToTarget(dto, DataMartPO.class);
+        po.initUpdate();
+        dataMartDao.updateById(po);
+        return ConvertUtil.sourceToTarget(po, DataMartVO.class);
     }
 
     @Override
@@ -58,16 +58,18 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
 
     @Override
     public DataMartVO selectById(String id) {
-        DataMartPO DataMartPO = dataMartDao.queryById(id);
-        DataMartVO dataMartVO = ConvertUtil.sourceToTarget(DataMartPO, DataMartVO.class);
-        dataMartVO.setMartTypeName(dataMartVO.getMartType().getName());
-
-        // 获取业务分类中文名称
-        if (dataMartVO.getBusinessTypeId() != null) {
-            BusinessTypeVO businessTypeVO = businessTypeService.selectById(dataMartVO.getBusinessTypeId());
-            dataMartVO.setBusinessTypeName(businessTypeVO.getBusinessName());
+        DataMartPO po = dataMartDao.queryById(id);
+        if (po == null) {
+            throw new IllegalArgumentException("数据集市不存在");
         }
-        return dataMartVO;
+        DataMartVO vo = ConvertUtil.sourceToTarget(po, DataMartVO.class);
+        vo.setMartTypeName(vo.getMartType().getName());
+
+        if (vo.getBusinessTypeId() != null) {
+            BusinessTypeVO businessTypeVO = businessTypeService.selectById(vo.getBusinessTypeId());
+            vo.setBusinessTypeName(businessTypeVO.getBusinessName());
+        }
+        return vo;
     }
 
     @Override

@@ -37,20 +37,20 @@ public class SubjectDomainServiceImpl extends BaseServiceImpl implements Subject
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String create(SubjectDomainDTO SubjectDomain) {
-        SubjectDomainPO SubjectDomainPO = ConvertUtil.sourceToTarget(SubjectDomain, SubjectDomainPO.class);
-        SubjectDomainPO.initInsert();
-        subjectDomainDao.insert(SubjectDomainPO);
-        return SubjectDomainPO.getId();
+    public String create(SubjectDomainDTO dto) {
+        SubjectDomainPO po = ConvertUtil.sourceToTarget(dto, SubjectDomainPO.class);
+        po.initInsert();
+        subjectDomainDao.insert(po);
+        return po.getId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SubjectDomainVO updateById(SubjectDomainDTO SubjectDomain) {
-        SubjectDomainPO SubjectDomainPO = ConvertUtil.sourceToTarget(SubjectDomain, SubjectDomainPO.class);
-        SubjectDomainPO.initUpdate();
-        subjectDomainDao.updateById(SubjectDomainPO);
-        return ConvertUtil.sourceToTarget(SubjectDomainPO, SubjectDomainVO.class);
+    public SubjectDomainVO updateById(SubjectDomainDTO dto) {
+        SubjectDomainPO po = ConvertUtil.sourceToTarget(dto, SubjectDomainPO.class);
+        po.initUpdate();
+        subjectDomainDao.updateById(po);
+        return ConvertUtil.sourceToTarget(po, SubjectDomainVO.class);
     }
 
     @Override
@@ -62,8 +62,11 @@ public class SubjectDomainServiceImpl extends BaseServiceImpl implements Subject
 
     @Override
     public SubjectDomainVO selectById(String id) {
-        SubjectDomainPO SubjectDomainPO = subjectDomainDao.queryById(id);
-        SubjectDomainVO vo = ConvertUtil.sourceToTarget(SubjectDomainPO, SubjectDomainVO.class);
+        SubjectDomainPO po = subjectDomainDao.queryById(id);
+        if (po == null) {
+            throw new IllegalArgumentException("主题域不存在");
+        }
+        SubjectDomainVO vo = ConvertUtil.sourceToTarget(po, SubjectDomainVO.class);
         DataMartVO dataMartVO = dataMartService.selectById(vo.getDataMartId());
         vo.setDataMartName(dataMartVO.getMartName());
         return vo;
