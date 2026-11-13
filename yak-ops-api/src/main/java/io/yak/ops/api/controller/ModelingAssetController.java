@@ -1,8 +1,5 @@
 package io.yak.ops.api.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-
 import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.utils.PageInfo;
@@ -19,6 +16,9 @@ import javax.annotation.Resource;
 
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+
 /** HTTP boundary for project-scoped data standards and indicator assets. */
 @RestController
 @RequestMapping("projects/{projectCode}/modeling")
@@ -29,23 +29,23 @@ public class ModelingAssetController extends BaseController {
 
     @PostMapping("/assets/{resource}/page")
     public Result<PageInfo<Map<String, Object>>> page(
-            @PathVariable("resource") String resource,
-            @RequestBody Map<String, Object> params) {
+                                                      @PathVariable("resource") String resource,
+                                                      @RequestBody Map<String, Object> params) {
         checkPageParams(parsePageParam(params, "pageNo", 1), parsePageParam(params, "pageSize", 10));
         return Result.success(PageInfo.of(modelingAssetService.page(resource, params)));
     }
 
     @GetMapping("/assets/{resource}/all")
     public Result<List<Map<String, Object>>> all(
-            @PathVariable("resource") String resource,
-            @RequestParam Map<String, Object> params) {
+                                                 @PathVariable("resource") String resource,
+                                                 @RequestParam Map<String, Object> params) {
         return Result.success(modelingAssetService.all(resource, params));
     }
 
     @GetMapping("/assets/{resource}/{id}")
     public Result<Map<String, Object>> get(
-            @PathVariable("resource") String resource,
-            @PathVariable("id") String id) {
+                                           @PathVariable("resource") String resource,
+                                           @PathVariable("id") String id) {
         return Result.success(modelingAssetService.get(resource, id));
     }
 
@@ -53,10 +53,10 @@ public class ModelingAssetController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping("/assets/{resource}")
     public Result<String> create(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("resource") String resource,
-            @RequestBody Map<String, Object> payload) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @PathVariable("resource") String resource,
+                                 @RequestBody Map<String, Object> payload) {
         return Result.success(modelingAssetService.create(resource, payload));
     }
 
@@ -64,10 +64,10 @@ public class ModelingAssetController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping("/assets/{resource}")
     public Result<Map<String, Object>> update(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("resource") String resource,
-            @RequestBody Map<String, Object> payload) {
+                                              @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                              @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                              @PathVariable("resource") String resource,
+                                              @RequestBody Map<String, Object> payload) {
         return Result.success(modelingAssetService.update(resource, payload));
     }
 
@@ -75,10 +75,10 @@ public class ModelingAssetController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/assets/{resource}/{id}")
     public Result<String> delete(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("resource") String resource,
-            @PathVariable("id") String id) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @PathVariable("resource") String resource,
+                                 @PathVariable("id") String id) {
         return Result.success(modelingAssetService.delete(resource, id));
     }
 
@@ -91,17 +91,17 @@ public class ModelingAssetController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PostMapping("/assets/{resource}/{id}/submit")
     public Result<Map<String, Object>> submit(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("resource") String resource,
-            @PathVariable("id") String id) {
+                                              @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                              @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                              @PathVariable("resource") String resource,
+                                              @PathVariable("id") String id) {
         return Result.success(modelingAssetService.submit(resource, id));
     }
 
     @GetMapping("/assets/{resource}/{id}/versions")
     public Result<List<Map<String, Object>>> versions(
-            @PathVariable("resource") String resource,
-            @PathVariable("id") String id) {
+                                                      @PathVariable("resource") String resource,
+                                                      @PathVariable("id") String id) {
         return Result.success(modelingAssetService.versions(resource, id));
     }
 
@@ -109,11 +109,11 @@ public class ModelingAssetController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PostMapping("/assets/{resource}/{id}/rollback/{versionNumber}")
     public Result<Map<String, Object>> rollback(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("resource") String resource,
-            @PathVariable("id") String id,
-            @PathVariable("versionNumber") Integer versionNumber) {
+                                                @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                                @PathVariable("resource") String resource,
+                                                @PathVariable("id") String id,
+                                                @PathVariable("versionNumber") Integer versionNumber) {
         return Result.success(modelingAssetService.rollback(resource, id, versionNumber));
     }
     private int parsePageParam(Map<String, Object> params, String name, int defaultValue) {

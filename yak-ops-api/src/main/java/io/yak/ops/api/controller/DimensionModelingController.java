@@ -1,8 +1,5 @@
 package io.yak.ops.api.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-
 import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.utils.PageInfo;
@@ -24,6 +21,9 @@ import javax.annotation.Resource;
 
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+
 /** HTTP boundary for project-scoped dimension table and field modeling. */
 @RestController
 @RequestMapping("projects/{projectCode}/modeling/dimensions")
@@ -36,9 +36,9 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
     public Result<DimensionTableVO> create(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody DimensionTableDTO dto) {
+                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                           @RequestBody DimensionTableDTO dto) {
         return Result.success(dimensionModelingService.create(dto));
     }
 
@@ -46,9 +46,9 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
     public Result<DimensionTableVO> update(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody DimensionTableDTO dto) {
+                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                           @RequestBody DimensionTableDTO dto) {
         return Result.success(dimensionModelingService.updateById(dto));
     }
 
@@ -56,9 +56,9 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping("/{id}/submit")
     public Result<DimensionTableVO> submit(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id) {
+                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                           @PathVariable("id") String id) {
         return Result.success(dimensionModelingService.submit(id));
     }
 
@@ -66,9 +66,9 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
     public Result<String> delete(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @PathVariable("id") String id) {
         return Result.success(dimensionModelingService.delete(id));
     }
 
@@ -76,9 +76,9 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/batch")
     public Result<Boolean> deleteBatch(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody List<String> ids) {
+                                       @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                       @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                       @RequestBody List<String> ids) {
         return Result.success(dimensionModelingService.deleteBatch(ids));
     }
 
@@ -112,10 +112,10 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PostMapping("/rollback/{id}")
     public Result<DimensionTableVO> rollback(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @RequestParam("targetVersion") Integer targetVersion) {
+                                             @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                             @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                             @PathVariable("id") String id,
+                                             @RequestParam("targetVersion") Integer targetVersion) {
         return Result.success(dimensionModelingService.rollbackToVersion(id, targetVersion));
     }
 
@@ -138,10 +138,10 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping("/{id}/fields")
     public Result<DimensionTableFieldVO> createField(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @RequestBody DimensionTableFieldDTO dto) {
+                                                     @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                     @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                                     @PathVariable("id") String id,
+                                                     @RequestBody DimensionTableFieldDTO dto) {
         return Result.success(dimensionModelingService.createField(id, dto));
     }
 
@@ -149,10 +149,10 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping("/{id}/fields")
     public Result<List<DimensionTableFieldVO>> replaceFields(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @RequestBody List<DimensionTableFieldDTO> fields) {
+                                                             @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                             @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                                             @PathVariable("id") String id,
+                                                             @RequestBody List<DimensionTableFieldDTO> fields) {
         return Result.success(dimensionModelingService.replaceFields(id, fields));
     }
 
@@ -160,11 +160,11 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping("/{id}/fields/{fieldId}")
     public Result<DimensionTableFieldVO> updateField(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @PathVariable("fieldId") String fieldId,
-            @RequestBody DimensionTableFieldDTO dto) {
+                                                     @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                     @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                                     @PathVariable("id") String id,
+                                                     @PathVariable("fieldId") String fieldId,
+                                                     @RequestBody DimensionTableFieldDTO dto) {
         return Result.success(dimensionModelingService.updateField(id, fieldId, dto));
     }
 
@@ -172,10 +172,10 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}/fields/{fieldId}")
     public Result<String> deleteField(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @PathVariable("fieldId") String fieldId) {
+                                      @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                      @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                      @PathVariable("id") String id,
+                                      @PathVariable("fieldId") String fieldId) {
         return Result.success(dimensionModelingService.deleteField(id, fieldId));
     }
 }
