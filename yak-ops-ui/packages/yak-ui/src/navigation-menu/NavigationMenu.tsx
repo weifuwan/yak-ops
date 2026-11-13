@@ -116,7 +116,7 @@ export function NavigationMenu({
     const active = item.key === activeKey;
     const itemPadding = 14 + depth * 16;
     const baseClassName =
-      "flex min-h-8 w-full items-center gap-2.5 border-r-2 py-1.5 pr-3 text-left text-[13px] transition-colors duration-150";
+      "flex min-h-8 w-full cursor-pointer items-center gap-2.5 border-r-2 py-1.5 pr-3 text-left text-[13px] transition-colors duration-150";
 
     return (
       <div key={item.key}>
