@@ -259,7 +259,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 <span>{keyword ? "没有找到匹配的分层" : "暂无数仓分层，点击“新建分层”开始配置"}</span>
               </div>
             ) : viewMode === "flat" ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 236px), 236px))" }}>
                 {filteredRecords.map((record) => (
                   <DwLayerCard
                     key={record.id}
@@ -284,7 +284,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                         {group.records.length} 项
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 236px), 236px))" }}>
                       {group.records.map((record) => (
                         <DwLayerCard
                           key={record.id}

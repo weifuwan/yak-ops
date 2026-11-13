@@ -1,11 +1,7 @@
-import { Clock3, Database, Pencil, Trash2, UserRound } from "lucide-react";
+import { Box, Pencil, Trash2 } from "lucide-react";
 import { Button, Card, CardContent } from "@yak-ops/yak-ui";
 
-import {
-  getDwModelTypeLabel,
-  getDwTypeLabel,
-  type DwLayerRecord,
-} from "./constants";
+import type { DwLayerRecord } from "./constants";
 
 interface DwLayerCardProps {
   record: DwLayerRecord;
@@ -23,74 +19,57 @@ export function DwLayerCard({
   onDelete,
 }: DwLayerCardProps) {
   return (
-    <Card className="h-full min-h-[194px] transition-[border-color] duration-150 hover:border-[var(--yak-color-primary)]">
-      <CardContent className="flex h-full flex-col p-0">
+    <Card className="h-full min-h-[200px] rounded-[6px] border-[rgba(0,0,0,0.1)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-shadow duration-150 hover:shadow-[0_5px_12px_rgba(0,0,0,0.1)]">
+      <CardContent className="flex h-full min-h-[198px] flex-col p-0">
         <button
           type="button"
+          aria-label={\`查看 \${record.cnName || "数仓分层"} 详情\`}
           onClick={() => onOpen(record)}
-          className="flex min-h-[148px] flex-1 cursor-pointer items-start gap-3 p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--yak-color-primary)]"
+          className="flex min-h-[149px] flex-1 cursor-pointer items-start p-4 pb-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--yak-color-primary)]"
         >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]">
-            <Database size={19} strokeWidth={1.8} />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-[4px] bg-[#f6f6f6] text-[#999]">
+            <Box size={19} strokeWidth={1.7} />
           </span>
 
-          <span className="min-w-0 flex-1">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm font-semibold text-[var(--yak-components-panel-text)]">
-                {record.cnName || "未命名分层"}
-              </span>
-              <span className="shrink-0 rounded bg-[var(--yak-color-hover)] px-1.5 py-0.5 text-[10px] text-[var(--yak-components-muted-text)]">
-                {getDwTypeLabel(record.dwType, record.dwTypeName)}
-              </span>
+          <span className="min-w-0 flex-1 pl-4">
+            <span className="block truncate text-[15px] font-bold leading-6 text-[#26282c]">
+              {record.cnName || "未命名分层"}
             </span>
-
-            <span className="mt-1 block truncate text-xs text-[var(--yak-components-muted-text)]">
+            <span className="block truncate text-[14px] font-bold leading-5 text-[#26282c]">
               {record.enShortName || "-"}
-              {record.enName ? " · " + record.enName : ""}
             </span>
 
-            <span className="mt-3 line-clamp-2 block min-h-9 text-xs leading-[18px] text-[var(--yak-components-panel-text)]/75">
-              {record.remark || "暂无备注"}
+            <span className="mt-0.5 line-clamp-2 block min-h-9 text-xs leading-[18px] text-[#4e535a]">
+              {record.remark || ""}
             </span>
 
-            <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--yak-components-muted-text)]">
-              <span className="inline-flex min-w-0 items-center gap-1">
-                <Clock3 size={12} className="shrink-0" />
-                <span className="truncate">{record.updateTime || "暂无更新"}</span>
-              </span>
-              <span className="inline-flex min-w-0 items-center gap-1">
-                <UserRound size={12} className="shrink-0" />
-                <span className="truncate">{record.director || "未指定负责人"}</span>
-              </span>
+            <span className="mt-1 block truncate text-xs leading-[18px] text-[#9ca1ba]">
+              最后更新：{record.updateTime || "暂无记录"}
             </span>
-          </span>
-
-          <span className="sr-only">
-            {getDwModelTypeLabel(record.dwModelType)}
+            <span className="block truncate text-xs leading-[18px] text-[#9ca1ba]">
+              负责人：{record.director || "-"}
+            </span>
           </span>
         </button>
 
-        <div className="flex h-10 shrink-0 items-center justify-end gap-1 border-t border-[var(--yak-components-panel-border)] px-3">
-          <span className="mr-auto truncate text-[11px] text-[var(--yak-components-muted-text)]">
-            {getDwModelTypeLabel(record.dwModelType)}
-          </span>
+        <div className="flex h-[49px] shrink-0 items-center border-t border-[#f4f6f9] px-4">
           <Button
             size="sm"
             variant="ghost"
             isDisabled={opening}
-            className="h-7 px-2 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[var(--yak-color-primary)]"
+            className="h-8 min-w-0 flex-1 justify-center gap-1.5 rounded-sm px-2 text-xs font-medium text-[var(--yak-color-primary)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
             onClick={() => onEdit(record)}
           >
-            <Pencil size={12} />
+            <Pencil size={13} strokeWidth={1.8} />
             修改
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-2 text-xs font-normal text-[var(--yak-components-muted-text)] hover:text-[#d92d20]"
+            className="h-8 min-w-0 flex-1 justify-center gap-1.5 rounded-sm px-2 text-xs font-medium text-[var(--yak-color-primary)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
             onClick={() => onDelete(record)}
           >
-            <Trash2 size={12} />
+            <Trash2 size={13} strokeWidth={1.8} />
             删除
           </Button>
         </div>
