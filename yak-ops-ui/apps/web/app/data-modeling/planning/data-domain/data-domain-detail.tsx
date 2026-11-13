@@ -118,7 +118,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
     };
     if (editing?.id) {
       payload.id = editing.id;
-      payload.flag = editing.flag;
+      payload.flag = isSystemBusinessProcess(editing) ? 1 : Number(editing.flag ?? 0);
     }
     try {
       if (editing?.id) {
@@ -126,6 +126,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
         toast.success("业务过程已更新");
       } else {
         await modelingEntityApi.create(projectCode, "businessProcess", payload);
+        setPageNo(1);
         toast.success("业务过程已创建");
       }
       setFormOpen(false);
