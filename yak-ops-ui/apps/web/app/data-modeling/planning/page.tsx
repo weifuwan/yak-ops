@@ -162,13 +162,6 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
       />
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4">
         {currentWorkspace ? (
-          <div className="flex justify-end">
-            <div className="rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-1.5 text-xs text-[var(--yak-components-muted-text)]">
-              当前工作空间：{currentWorkspace.name}
-            </div>
-          </div>
-        ) : null}
-        {currentWorkspace ? (
           <ModelingEntityPage
             key={activeDefinition.key}
             projectCode={currentWorkspace.id}
