@@ -137,13 +137,14 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
 
   const save = async (values: FormValues) => {
     if (saving) return;
+    const payload: Record<string, unknown> = { ...values };
     setSaving(true);
     try {
       if (editing?.id) {
-        await modelingEntityApi.update(projectCode, "dictionaryStandard", { ...values, id: editing.id });
+        await modelingEntityApi.update(projectCode, "dictionaryStandard", { ...payload, id: editing.id });
         toast.success("命名词典已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "dictionaryStandard", values);
+        await modelingEntityApi.create(projectCode, "dictionaryStandard", payload);
         toast.success("命名词典已创建");
       }
       setFormOpen(false);
