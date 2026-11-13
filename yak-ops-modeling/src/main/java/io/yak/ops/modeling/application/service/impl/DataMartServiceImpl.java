@@ -6,6 +6,7 @@ import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
 import io.yak.ops.dao.entity.DataMartPO;
+import io.yak.ops.dao.entity.SubjectDomainPO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
@@ -14,6 +15,7 @@ import io.yak.ops.modeling.support.TreeUtil;
 import io.yak.ops.modeling.application.service.BusinessTypeService;
 import io.yak.ops.modeling.application.service.DataMartService;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
+import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,9 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
 
     @Resource
     private DataMartDao dataMartDao;
+
+    @Resource
+    private SubjectDomainDao subjectDomainDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -52,6 +57,22 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
+        if (dataMartDao.queryById(id) == null) {
+            throw new IllegalArgumentException("数据集市不存在");
+        }
+
+        LambdaQueryWrapper<DataMartPO> childWrapper = new LambdaQueryWrapper<>();
+        childWrapper.eq(DataMartPO::getParentId, id);
+        if (dataMartDao.queryCount(childWrapper) > 0) {
+            throw new IllegalArgumentException("该数据集市下存在下级数据集市，不能删除");
+        }
+
+        LambdaQueryWrapper<SubjectDomainPO> subjectDomainWrapper = new LambdaQueryWrapper<>();
+        subjectDomainWrapper.eq(SubjectDomainPO::getDataMartId, id);
+        if (subjectDomainDao.queryCount(subjectDomainWrapper) > 0) {
+            throw new IllegalArgumentException("该数据集市下存在关联主题域，不能删除");
+        }
+
         dataMartDao.deleteById(id);
         return id;
     }
