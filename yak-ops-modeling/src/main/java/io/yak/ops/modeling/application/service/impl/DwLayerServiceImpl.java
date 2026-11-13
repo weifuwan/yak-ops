@@ -51,6 +51,7 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     private ModifierDao modifierDao;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(DwLayerDTO dto) {
         return create(dto, "sys");
     }
@@ -71,6 +72,7 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DwLayerVO updateById(DwLayerDTO dto) {
         return updateById(dto, "sys");
     }
