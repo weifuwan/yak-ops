@@ -28,6 +28,17 @@ public class ApiExceptionHandler {
                 .body(new Result<>(e.getCode(), e.getMessage()));
     }
 
+    /**
+     * Converts argument validation failures from independent business modules
+     * into the platform's standard request-parameter response.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Result<Object>> argumentExceptionHandler(IllegalArgumentException e, HandlerMethod hm) {
+        log.warn("{} Invalid request: {}", hm.getShortLogMessage(), e.getMessage());
+        return ResponseEntity.status(resolveResponseStatus(hm))
+                .body(Result.errorWithArgs(Status.REQUEST_PARAMS_NOT_VALID_ERROR, e.getMessage()));
+    }
+
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<Result<Object>> exceptionHandler(Throwable e, HandlerMethod hm) {
         ApiException ce = hm.getMethodAnnotation(ApiException.class);
@@ -54,5 +65,4 @@ public class ApiExceptionHandler {
         }
         return status == null ? HttpStatus.OK : status.value();
     }
-
 }

@@ -8,6 +8,7 @@ import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.AuthorizationType;
 import io.yak.ops.common.enums.UserType;
+import io.yak.ops.common.service.BaseServiceImpl as SharedBaseServiceImpl;
 import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.dao.entity.User;
 
@@ -22,41 +23,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BaseServiceImpl implements BaseService {
+public class BaseServiceImpl extends SharedBaseServiceImpl implements BaseService {
 
     @Autowired
     protected ResourcePermissionCheckService resourcePermissionCheckService;
 
-    /**
-     * check admin
-     *
-     * @param user input user
-     * @return ture if administrator, otherwise return false
-     */
     @Override
     public boolean isAdmin(User user) {
         return user.getUserType() == UserType.ADMIN_USER;
     }
 
-    /**
-     * isNotAdmin
-     *
-     * @param loginUser login user
-     * @return true if not administrator, otherwise false
-     */
     @Override
     public boolean isNotAdmin(User loginUser) {
-        // only admin can operate
         return !isAdmin(loginUser);
     }
 
-    /**
-     * put message to result object
-     *
-     * @param result result code
-     * @param status status
-     * @param statusParams status message
-     */
     @Override
     public void putMsg(Result result, Status status, Object... statusParams) {
         result.setCode(status.getCode());
@@ -67,24 +48,11 @@ public class BaseServiceImpl implements BaseService {
         }
     }
 
-    /**
-     * Verify that the operator has permissions
-     *
-     * @param operateUser operate user
-     * @param createUserId create user id
-     */
     @Override
     public boolean canOperator(User operateUser, int createUserId) {
         return operateUser.getId() == createUserId || isAdmin(operateUser);
     }
 
-    /**
-     * Verify that the operator has permissions
-     * @param user operate user
-     * @param ids Object[]
-     * @param type AuthorizationType
-     * @return boolean
-     */
     @Override
     public boolean canOperatorPermissions(User user, Object[] ids, AuthorizationType type, String permissionKey) {
         boolean operationPermissionCheck =
@@ -94,9 +62,6 @@ public class BaseServiceImpl implements BaseService {
         return operationPermissionCheck && resourcePermissionCheck;
     }
 
-    /**
-     * check and parse date parameters
-     */
     @Override
     public Date checkAndParseDateParameters(String startDateStr) throws ServiceException {
         Date start = null;
@@ -108,18 +73,5 @@ public class BaseServiceImpl implements BaseService {
             }
         }
         return start;
-    }
-
-    @Override
-    public boolean checkDescriptionLength(String description) {
-        return description != null && description.codePointCount(0, description.length()) > 255;
-    }
-
-    protected Date transformDate(String dateStr) {
-        Date date = DateUtils.stringToDate(dateStr);
-        if (date == null) {
-            throw new IllegalArgumentException("dateStr: [" + dateStr + "] is invalid");
-        }
-        return date;
     }
 }

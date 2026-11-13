@@ -15,10 +15,10 @@
 13. 分页返回值统一使用 `PageInfo<T>`，禁止新增分页 VO 或自定义分页结构。
 14. 分页查询统一使用 MyBatis-Plus 的 `Page` 和 `IPage`，禁止先查询全部数据再在内存中分页。
 15. 分页参数统一使用 `BaseController.checkPageParams()` 校验。
-16. Service 必须定义接口及对应的 Impl，业务 ServiceImpl 统一继承 `BaseServiceImpl`。
+16. 业务 Service 必须定义接口及对应的 Impl。跨模块业务 ServiceImpl 统一继承 `io.yak.ops.common.service.BaseServiceImpl`；`yak-ops-api` 保留的 API 专属 `BaseServiceImpl` 继承公共基类，禁止业务模块反向依赖 API 模块。
 17. 业务逻辑、业务校验和事务管理统一放在 Service 层。
-18. 涉及多次关联写入的业务操作必须在 Service 层合理使用 `@Transactional`。
-19. 业务异常优先使用现有的 `ServiceException` 和 `Status`，禁止随意定义新的异常体系。
+18. 涉及多次关联写入的业务操作必须在 Service 层合理使用 `@Transactional(rollbackFor = Exception.class)`。
+19. `yak-ops-api` 内的业务异常优先使用现有 `ServiceException` 和 `Status`。独立业务模块不得为复用它们而反向依赖 API；模块内的参数/业务校验异常由 API 边界统一转换为现有响应码，禁止另建异常体系。
 20. DAO 必须定义接口及对应的 Impl，DAO 实现优先继承现有 `BaseDao`。
 21. Mapper 统一继承 MyBatis-Plus 的 `BaseMapper`，复杂 SQL 优先放在对应 Mapper XML 中。
 22. 数据库查询必须在 DAO 层实现，禁止在 Service 中直接编写 SQL。
