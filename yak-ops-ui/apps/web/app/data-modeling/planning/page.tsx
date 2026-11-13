@@ -5,6 +5,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { ModelingEntityPage, type ModelingEntityDefinition } from "../components/modeling-entity-page";
 import { DataModelingDwLayerPage } from "./dw-layer/dw-layer-page";
 import { DataModelingBusinessTypePage } from "./business-type/business-type-page";
+import { DataModelingDataDomainPage } from "./data-domain/data-domain-page";
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
   {
@@ -39,26 +40,6 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
       { key: "dwType", title: "分层类型", width: 160 },
       { key: "dwModelType", title: "模型类型", width: 160 },
       { key: "director", title: "负责人", width: 140 },
-    ],
-  },
-  {
-    key: "dataDomain", title: "数据域",
-    description: "公共层的数据域定义，沉淀可复用的业务分类和数据组织边界。",
-    searchField: "cnName", searchPlaceholder: "搜索数据域名称",
-    fields: [
-      { key: "cnName", label: "中文名称", required: true },
-      { key: "enShortName", label: "英文缩写" },
-      { key: "enName", label: "英文名称" },
-      { key: "reviewer", label: "模型评审人", placeholder: "多个评审人使用逗号分隔" },
-      { key: "director", label: "负责人" },
-      { key: "remark", label: "备注", multiline: true },
-    ],
-    columns: [
-      { key: "cnName", title: "数据域名称", width: 220 },
-      { key: "enShortName", title: "英文缩写", width: 150 },
-      { key: "enName", title: "英文名称", width: 220 },
-      { key: "director", title: "负责人", width: 140 },
-      { key: "flag", title: "默认域", width: 100, render: (value) => Number(value) === 1 ? "是" : "否" },
     ],
   },
   {
@@ -137,14 +118,14 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
 
   return (
     <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      {definitionKey !== "businessType" ? (
+      {definitionKey !== "businessType" && definitionKey !== "dataDomain" ? (
         <PageHeader
           title={activeDefinition.title}
           bordered
           className="bg-white px-6 max-md:px-4"
         />
       ) : null}
-      <div className={definitionKey === "businessType"
+      <div className={definitionKey === "businessType" || definitionKey === "dataDomain"
         ? "flex min-h-0 flex-1 flex-col"
         : "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4"}>
         {currentWorkspace ? (
@@ -152,6 +133,8 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
             <DataModelingDwLayerPage projectCode={currentWorkspace.id} />
           ) : definitionKey === "businessType" ? (
             <DataModelingBusinessTypePage projectCode={currentWorkspace.id} />
+          ) : definitionKey === "dataDomain" ? (
+            <DataModelingDataDomainPage projectCode={currentWorkspace.id} />
           ) : (
             <ModelingEntityPage
               key={activeDefinition.key}
