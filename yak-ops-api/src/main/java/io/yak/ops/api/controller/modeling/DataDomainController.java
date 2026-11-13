@@ -1,8 +1,8 @@
 package io.yak.ops.api.controller.modeling;
 
-import lombok.extern.slf4j.Slf4j;
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
+import io.yak.ops.api.controller.BaseController;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.application.service.DataDomainService;
@@ -12,10 +12,9 @@ import javax.annotation.Resource;
 import java.util.List;
 
 
-@Slf4j
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/data-domain")
-public class DataDomainController {
+public class DataDomainController extends BaseController {
 
     @Resource
     private DataDomainService dataDomainService;
@@ -41,8 +40,9 @@ public class DataDomainController {
     }
 
     @PostMapping(value = "page")
-    public PaginationResult<DataDomainVO> paging(@RequestBody DataDomainDTO DataDomainDTO) {
-        return dataDomainService.paging(DataDomainDTO);
+    public Result<PageInfo<DataDomainVO>> paging(@RequestBody DataDomainDTO DataDomainDTO) {
+        checkPageParams(DataDomainDTO.getPageNo(), DataDomainDTO.getPageSize());
+        return Result.success(PageInfo.of(dataDomainService.paging(DataDomainDTO)));
     }
 
     @GetMapping(value = "all")

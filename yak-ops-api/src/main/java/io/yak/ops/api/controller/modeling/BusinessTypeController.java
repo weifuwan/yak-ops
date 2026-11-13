@@ -1,8 +1,8 @@
 package io.yak.ops.api.controller.modeling;
 
-import lombok.extern.slf4j.Slf4j;
 import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
+import io.yak.ops.api.controller.BaseController;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
@@ -15,10 +15,9 @@ import javax.annotation.Resource;
 import java.util.List;
 
 
-@Slf4j
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/business-type")
-public class BusinessTypeController {
+public class BusinessTypeController extends BaseController {
 
     @Resource
     private BusinessTypeService businessTypeService;
@@ -59,8 +58,9 @@ public class BusinessTypeController {
      * 分页查询业务分类
      */
     @PostMapping(value = "page")
-    public PaginationResult<BusinessTypeVO> paging(@RequestBody BusinessTypeDTO businessTypeDTO) {
-        return businessTypeService.paging(businessTypeDTO);
+    public Result<PageInfo<BusinessTypeVO>> paging(@RequestBody BusinessTypeDTO businessTypeDTO) {
+        checkPageParams(businessTypeDTO.getPageNo(), businessTypeDTO.getPageSize());
+        return Result.success(PageInfo.of(businessTypeService.paging(businessTypeDTO)));
     }
 
     /**

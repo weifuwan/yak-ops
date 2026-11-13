@@ -1,8 +1,8 @@
 package io.yak.ops.api.controller.modeling;
 
-import lombok.extern.slf4j.Slf4j;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
+import io.yak.ops.api.controller.BaseController;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
@@ -13,10 +13,9 @@ import javax.annotation.Resource;
 import java.util.List;
 
 
-@Slf4j
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/business-process")
-public class BusinessProcessController {
+public class BusinessProcessController extends BaseController {
 
     @Resource
     private BusinessProcessService businessProcessService;
@@ -57,8 +56,9 @@ public class BusinessProcessController {
      * 分页查询业务过程
      */
     @PostMapping(value = "page")
-    public PaginationResult<BusinessProcessVO> paging(@RequestBody BusinessProcessDTO dto) {
-        return businessProcessService.paging(dto);
+    public Result<PageInfo<BusinessProcessVO>> paging(@RequestBody BusinessProcessDTO dto) {
+        checkPageParams(dto.getPageNo(), dto.getPageSize());
+        return Result.success(PageInfo.of(businessProcessService.paging(dto)));
     }
 
     /**
