@@ -8,6 +8,7 @@ import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
+import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
@@ -18,6 +19,7 @@ import io.yak.ops.modeling.application.service.BusinessTypeService;
 import io.yak.ops.modeling.application.service.DataDomainService;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
+import io.yak.ops.dao.repository.modeling.DataMartDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +41,9 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
 
     @Resource
     private DataDomainDao dataDomainDao;
+
+    @Resource
+    private DataMartDao dataMartDao;
 
     @Resource
     private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
@@ -64,6 +69,28 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
+        if (businessTypeDao.queryById(id) == null) {
+            throw new IllegalArgumentException("业务分类不存在");
+        }
+
+        LambdaQueryWrapper<BusinessTypePO> childWrapper = new LambdaQueryWrapper<>();
+        childWrapper.eq(BusinessTypePO::getParentId, id);
+        if (businessTypeDao.queryCount(childWrapper) > 0) {
+            throw new IllegalArgumentException("该业务分类下存在子业务分类，不能删除");
+        }
+
+        LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO> relationWrapper = new LambdaQueryWrapper<>();
+        relationWrapper.eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, id);
+        if (businessTypeRelatedDataDomainDao.queryCount(relationWrapper) > 0) {
+            throw new IllegalArgumentException("该业务分类已关联数据域，不能删除");
+        }
+
+        LambdaQueryWrapper<DataMartPO> dataMartWrapper = new LambdaQueryWrapper<>();
+        dataMartWrapper.eq(DataMartPO::getBusinessTypeId, id);
+        if (dataMartDao.queryCount(dataMartWrapper) > 0) {
+            throw new IllegalArgumentException("该业务分类下存在数据集市，不能删除");
+        }
+
         businessTypeDao.deleteById(id);
         return id;
     }
