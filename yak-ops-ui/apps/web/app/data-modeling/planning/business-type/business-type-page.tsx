@@ -245,7 +245,7 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
   useEffect(() => setSelectedIds(Array.from(relatedIds)), [relatedIds]);
 
   const addSelected = async () => {
-    const newIds = selectedIds.filter((id) => !relatedIds.has(id));
+    const newIds = selectedIds;
     if (!newIds.length) { setPickerOpen(false); return; }
     setSaving(true);
     try {
@@ -290,7 +290,7 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Popover open={pickerOpen} onOpenChange={(open) => {
           setPickerOpen(open);
-          if (open) setSelectedIds(Array.from(relatedIds));
+          if (open) setSelectedIds([]);
         }}>
           <PopoverTrigger className="inline-flex h-7 min-w-[260px] cursor-pointer items-center justify-between rounded-md border border-[var(--yak-components-input-border)] bg-white px-2.5 text-xs text-[var(--yak-components-muted-text)] hover:border-[var(--yak-color-primary)]">
             请选择数据域<ChevronDown size={13} />
@@ -299,11 +299,11 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
             <div className="max-h-64 overflow-y-auto p-3">
               {domainsQuery.isPending ? (
                 <div className="py-4 text-center text-xs text-[var(--yak-components-muted-text)]">正在加载数据域...</div>
-              ) : (domainsQuery.data || []).length === 0 ? (
-                <div className="py-4 text-center text-xs text-[var(--yak-components-muted-text)]">暂无可选数据域</div>
+              ) : (domainsQuery.data || []).filter((domain) => domain.id && !relatedIds.has(domain.id)).length === 0 ? (
+                <div className="py-4 text-center text-xs text-[var(--yak-components-muted-text)]">暂无可关联的数据域</div>
               ) : (
                 <div className="space-y-2">
-                  {(domainsQuery.data || []).map((domain) => {
+                  {(domainsQuery.data || []).filter((domain) => domain.id && !relatedIds.has(domain.id)).map((domain) => {
                     const id = domain.id || "";
                     return (
                       <label key={id} className="flex cursor-pointer items-center gap-2 text-xs">
