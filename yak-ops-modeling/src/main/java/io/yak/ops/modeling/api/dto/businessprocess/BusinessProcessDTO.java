@@ -1,8 +1,10 @@
 package io.yak.ops.modeling.api.dto.businessprocess;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import io.yak.ops.modeling.api.dto.pagination.PaginationBaseDTO;
 
 import java.util.Date;
@@ -11,6 +13,8 @@ import java.util.Date;
  * 智能建模 - 业务过程
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Builder
 public class BusinessProcessDTO extends PaginationBaseDTO {
@@ -74,5 +78,6 @@ public class BusinessProcessDTO extends PaginationBaseDTO {
     /**
      * 是否默认
      */
-    private int flag;
+    @Builder.Default
+    private Integer flag = 0;
 }
