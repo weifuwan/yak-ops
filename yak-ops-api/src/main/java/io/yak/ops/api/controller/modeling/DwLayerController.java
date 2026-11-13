@@ -6,7 +6,7 @@ import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
-import io.yak.ops.modeling.domain.enums.DwModelEnum;
+import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.modeling.application.service.DwLayerService;
 import org.springframework.web.bind.annotation.*;
 
