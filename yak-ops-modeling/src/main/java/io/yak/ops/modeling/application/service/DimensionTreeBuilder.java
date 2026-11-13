@@ -101,7 +101,7 @@ public class DimensionTreeBuilder {
         if (grouping == DimensionTreeGroupingEnum.DATA_DOMAIN) {
             addDataDomains(nodes, dto.getDomainId());
             for (DimensionTablePO table : tables) {
-                addTableNode(nodes, table, table.getDomainId());
+                addDimensionLeaf(nodes, table, table.getDomainId());
             }
             return;
         }
@@ -111,7 +111,7 @@ public class DimensionTreeBuilder {
         if (hasUnclassified) addNode(nodes, node(VIRTUAL_KEY, "未分类", null, "BUSINESS_TYPE", false, null, null));
         for (DimensionTablePO table : tables) {
             String parentId = notBlank(table.getBusTypeId()) ? table.getBusTypeId() : VIRTUAL_KEY;
-            addTableNode(nodes, table, parentId);
+            addDimensionLeaf(nodes, table, parentId);
         }
     }
 
@@ -205,7 +205,7 @@ public class DimensionTreeBuilder {
             } else if (table.getTableType() == DimensionTableTypeEnum.SUMMARY) {
                 parentId = domainId + "_summary";
             }
-            addTableNode(nodes, table, parentId);
+            addDimensionLeaf(nodes, table, parentId);
         }
     }
 
@@ -233,7 +233,7 @@ public class DimensionTreeBuilder {
         for (DimensionTablePO table : tables) {
             String parentId = notBlank(table.getSubjectId()) ? table.getSubjectId()
                     : (notBlank(table.getMartId()) ? table.getMartId() : VIRTUAL_KEY);
-            addTableNode(nodes, table, parentId);
+            addDimensionLeaf(nodes, table, parentId);
         }
     }
 
@@ -251,8 +251,16 @@ public class DimensionTreeBuilder {
         }
     }
 
+    private void addDimensionLeaf(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId) {
+        addTableNode(nodes, table, parentId, "DIM");
+    }
+
     private void addTableNode(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId) {
         String type = table.getTableType() == null ? "DIM" : table.getTableType().name();
+        addTableNode(nodes, table, parentId, type);
+    }
+
+    private void addTableNode(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId, String type) {
         addNode(nodes, node(table.getId() + "-DIM", table.getCnName(), parentId,
                 type, true, table.getUpdateTime(), null));
     }

@@ -73,7 +73,7 @@ public class DimensionModelingController {
         return Result.success(dimensionModelingService.getVersionHistory(id));
     }
 
-    @GetMapping("/rollback/{id}")
+    @PostMapping("/rollback/{id}")
     public Result<DimensionTableVO> rollback(
             @PathVariable("id") String id,
             @RequestParam("targetVersion") Integer targetVersion) {
