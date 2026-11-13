@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.NonNull;
 
 public interface IDao<Entity> {
@@ -23,6 +25,36 @@ public interface IDao<Entity> {
      * Query the entity by primary keys.
      */
     List<Entity> queryByIds(Collection<? extends Serializable> ids);
+
+    /**
+     * Query entities with a MyBatis-Plus wrapper.
+     */
+    List<Entity> queryList(Wrapper<Entity> wrapper);
+
+    /**
+     * Query a page of entities with a MyBatis-Plus wrapper.
+     */
+    IPage<Entity> queryPage(IPage<Entity> page, Wrapper<Entity> wrapper);
+
+    /**
+     * Query one entity with a MyBatis-Plus wrapper.
+     */
+    Entity queryOne(Wrapper<Entity> wrapper);
+
+    /**
+     * Count entities with a MyBatis-Plus wrapper.
+     */
+    long queryCount(Wrapper<Entity> wrapper);
+
+    /**
+     * Update an entity with a MyBatis-Plus wrapper.
+     */
+    int update(Entity entity, Wrapper<Entity> wrapper);
+
+    /**
+     * Delete entities with a MyBatis-Plus wrapper.
+     */
+    int deleteByWrapper(Wrapper<Entity> wrapper);
 
     /**
      * Query all entities.
