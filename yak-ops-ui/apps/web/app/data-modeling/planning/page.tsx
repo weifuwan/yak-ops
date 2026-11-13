@@ -4,6 +4,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 
 import { ModelingEntityPage, type ModelingEntityDefinition } from "../components/modeling-entity-page";
 import { DataModelingDwLayerPage } from "./dw-layer/dw-layer-page";
+import { DataModelingBusinessTypePage } from "./business-type/business-type-page";
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
   {
@@ -165,6 +166,8 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
         {currentWorkspace ? (
           definitionKey === "dwLayer" ? (
             <DataModelingDwLayerPage projectCode={currentWorkspace.id} />
+          ) : definitionKey === "businessType" ? (
+            <DataModelingBusinessTypePage projectCode={currentWorkspace.id} />
           ) : (
             <ModelingEntityPage
               key={activeDefinition.key}

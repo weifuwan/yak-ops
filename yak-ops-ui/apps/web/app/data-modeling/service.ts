@@ -180,3 +180,40 @@ export const modelingEntityApi = {
     );
   },
 };
+
+export interface BusinessTypeTreeNode {
+  key: string;
+  value: string;
+  title: string;
+  parentId?: string | null;
+  children?: BusinessTypeTreeNode[];
+}
+
+export const modelingBusinessTypeApi = {
+  tree(projectCode: string, keyword = ""): Promise<BusinessTypeTreeNode[]> {
+    return HttpUtils.getData<BusinessTypeTreeNode[]>(
+      `${modelingPath(projectCode, "businessType")}/tree?keyword=${encodeURIComponent(keyword)}`,
+    );
+  },
+  selectRelatedDomains<T extends ModelingRecord>(projectCode: string, id: string): Promise<T[]> {
+    return HttpUtils.getData<T[]>(
+      `${modelingPath(projectCode, "businessType")}/select/related-domain/${encodeURIComponent(id)}`,
+    );
+  },
+  updateRelatedDomains(projectCode: string, id: string, domainIds: string[]): Promise<boolean> {
+    return HttpUtils.putData<boolean>(
+      `${modelingPath(projectCode, "businessType")}/update/related-domain/${encodeURIComponent(id)}`,
+      domainIds,
+    );
+  },
+  deleteRelatedDomain(projectCode: string, id: string, domainId: string): Promise<boolean> {
+    return HttpUtils.deleteData<boolean>(
+      `${modelingPath(projectCode, "businessType")}/delete/related-domain/${encodeURIComponent(id)}?dataDomainId=${encodeURIComponent(domainId)}`,
+    );
+  },
+  loadAllDomains(projectCode: string, id: string): Promise<boolean> {
+    return HttpUtils.getData<boolean>(
+      `${modelingPath(projectCode, "businessType")}/loadall/related-domain/${encodeURIComponent(id)}`,
+    );
+  },
+};
