@@ -2,8 +2,9 @@ package io.yak.ops.modeling.application.service;
 
 
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -22,7 +23,7 @@ public interface DataDomainService {
 
     DataDomainVO selectById(String id);
 
-    PaginationResult<DataDomainVO> paging(DataDomainDTO DataDomainTypeDTO);
+    IPage<DataDomainVO> paging(DataDomainDTO DataDomainTypeDTO);
 
     List<DataDomainVO> all();
 }

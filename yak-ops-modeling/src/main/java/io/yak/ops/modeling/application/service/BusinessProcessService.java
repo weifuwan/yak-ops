@@ -2,9 +2,10 @@ package io.yak.ops.modeling.application.service;
 
 
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ public interface BusinessProcessService {
 
     BusinessProcessVO selectById(String id);
 
-    PaginationResult<BusinessProcessVO> paging(BusinessProcessDTO dto);
+    IPage<BusinessProcessVO> paging(BusinessProcessDTO dto);
 
     List<BusinessProcessVO> all(BusinessProcessDTO dto);
 

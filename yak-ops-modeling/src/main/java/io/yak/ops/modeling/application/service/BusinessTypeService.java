@@ -2,11 +2,12 @@ package io.yak.ops.modeling.application.service;
 
 
 import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -25,7 +26,7 @@ public interface BusinessTypeService {
 
     BusinessTypeVO selectById(String id);
 
-    PaginationResult<BusinessTypeVO> paging(BusinessTypeDTO businessTypeDTO);
+    IPage<BusinessTypeVO> paging(BusinessTypeDTO businessTypeDTO);
 
     List<TreeVO> tree(String keyword, String id);
 
