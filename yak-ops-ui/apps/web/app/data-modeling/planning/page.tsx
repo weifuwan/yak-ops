@@ -6,6 +6,7 @@ import { ModelingEntityPage, type ModelingEntityDefinition } from "../components
 import { DataModelingDwLayerPage } from "./dw-layer/dw-layer-page";
 import { DataModelingBusinessTypePage } from "./business-type/business-type-page";
 import { DataModelingDataDomainPage } from "./data-domain/data-domain-page";
+import { DataModelingBusinessProcessPage } from "./business-process/business-process-page";
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
   {
@@ -39,25 +40,6 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
       { key: "enShortName", title: "英文缩写", width: 140 },
       { key: "dwType", title: "分层类型", width: 160 },
       { key: "dwModelType", title: "模型类型", width: 160 },
-      { key: "director", title: "负责人", width: 140 },
-    ],
-  },
-  {
-    key: "businessProcess", title: "业务过程",
-    description: "维护数据域下的业务过程，支撑原子指标及后续维度模型的业务定义。",
-    searchField: "cnName", searchPlaceholder: "搜索业务过程",
-    fields: [
-      { key: "cnName", label: "中文名称", required: true },
-      { key: "enShortName", label: "英文缩写" },
-      { key: "enName", label: "英文名称" },
-      { key: "dataDomainId", label: "所属数据域", optionsSource: "dataDomain", optionLabelField: "cnName", placeholder: "请选择数据域" },
-      { key: "director", label: "负责人" },
-      { key: "remark", label: "备注", multiline: true },
-    ],
-    columns: [
-      { key: "cnName", title: "业务过程", width: 220 },
-      { key: "enShortName", title: "英文缩写", width: 150 },
-      { key: "dataDomainCnName", title: "所属数据域", width: 200 },
       { key: "director", title: "负责人", width: 140 },
     ],
   },
@@ -118,14 +100,14 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
 
   return (
     <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      {definitionKey !== "businessType" && definitionKey !== "dataDomain" ? (
+      {definitionKey !== "businessType" && definitionKey !== "dataDomain" && definitionKey !== "businessProcess" ? (
         <PageHeader
           title={activeDefinition.title}
           bordered
           className="bg-white px-6 max-md:px-4"
         />
       ) : null}
-      <div className={definitionKey === "businessType" || definitionKey === "dataDomain"
+      <div className={definitionKey === "businessType" || definitionKey === "dataDomain" || definitionKey === "businessProcess"
         ? "flex min-h-0 flex-1 flex-col"
         : "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4"}>
         {currentWorkspace ? (
@@ -135,6 +117,8 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
             <DataModelingBusinessTypePage projectCode={currentWorkspace.id} />
           ) : definitionKey === "dataDomain" ? (
             <DataModelingDataDomainPage projectCode={currentWorkspace.id} />
+          ) : definitionKey === "businessProcess" ? (
+            <DataModelingBusinessProcessPage projectCode={currentWorkspace.id} />
           ) : (
             <ModelingEntityPage
               key={activeDefinition.key}
