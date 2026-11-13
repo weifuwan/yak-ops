@@ -38,6 +38,21 @@ const CARD = "mb-4 rounded-md bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)]";
 const TITLE = "mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--yak-components-panel-text)]";
 const display = (value?: string) => value && value.trim() ? value : "-";
 
+function collectExpandedBusinessTypeKeys(nodes: BusinessTypeTreeNode[]): Set<string> {
+  const keys = new Set<string>();
+  const visit = (items: BusinessTypeTreeNode[]) => {
+    items.forEach((node) => {
+      const key = node.key || node.value;
+      if (node.children?.length) {
+        keys.add(key);
+        visit(node.children);
+      }
+    });
+  };
+  visit(nodes);
+  return keys;
+}
+
 function TreeNodeRow({
   node, depth, selectedId, expandedKeys, onToggle, onSelect, onContextMenu,
 }: {
@@ -376,7 +391,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
       toast.success("数据集市已删除");
       setPendingDelete(undefined);
       await queryClient.invalidateQueries({ queryKey });
-    } catch { toast.warning("数据集市删除失败，请确认没有关联主题域或模型"); }
+    } catch { toast.warning("数据集市删除失败，请先删除下级数据集市或关联主题域"); }
   };
   const columns: TableColumns<DataMartRecord> = [
     { key: "martName", title: "集市名称", dataIndex: "martName", width: 220 },
@@ -449,6 +464,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
 export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const queryClient = useQueryClient();
   const splitRef = useRef<HTMLDivElement | null>(null);
+  const previousKeywordRef = useRef("");
   const [leftWidth, setLeftWidth] = useState(280);
   const [resizing, setResizing] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -473,24 +489,17 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const treeData = treeQuery.data || [];
 
   useEffect(() => {
-    if (treeData.length) {
-      setExpandedKeys((current) => {
-        if (current.size) return current;
-        const keys = new Set<string>();
-        const visit = (nodes: BusinessTypeTreeNode[]) => {
-          nodes.forEach((node) => {
-            const key = node.key || node.value;
-            if (node.children?.length) {
-              keys.add(key);
-              visit(node.children);
-            }
-          });
-        };
-        visit(treeData);
-        return keys;
-      });
+    if (treeQuery.isPending || treeQuery.isFetching) return;
+
+    const previousKeyword = previousKeywordRef.current.trim();
+    const currentKeyword = keyword.trim();
+    if (currentKeyword || previousKeyword) {
+      setExpandedKeys(collectExpandedBusinessTypeKeys(treeData));
+    } else {
+      setExpandedKeys((current) => current.size ? current : collectExpandedBusinessTypeKeys(treeData));
     }
-  }, [treeData]);
+    previousKeywordRef.current = keyword;
+  }, [treeData, keyword, treeQuery.isFetching, treeQuery.isPending]);
 
   useEffect(() => {
     if (!resizing) return;
@@ -508,8 +517,10 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   }, [resizing]);
 
   const refresh = async () => {
-    await treeQuery.refetch();
-    if (selectedId) await detailQuery.refetch();
+    const queryKeys = ["tree", "detail", "children", "all-domains", "related-domains", "data-marts"] as const;
+    await Promise.all(queryKeys.map((key) => queryClient.invalidateQueries({
+      queryKey: ["modeling", "business-type", key, projectCode],
+    })));
   };
   const toggleExpanded = (key: string) => setExpandedKeys((current) => {
     const next = new Set(current);
@@ -563,7 +574,7 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
       setPendingDelete(undefined);
       await queryClient.invalidateQueries({ queryKey: ["modeling", "business-type", "tree", projectCode] });
       await queryClient.invalidateQueries({ queryKey: ["modeling", "business-type", "children", projectCode] });
-    } catch { toast.warning("删除业务分类失败，请先检查其子级分类和关联数据"); }
+    } catch { toast.warning("删除业务分类失败，请先检查子级分类、关联数据域和数据集市"); }
   };
   const contextAction = (action: "add" | "edit" | "delete") => {
     const node = contextMenu?.node;
