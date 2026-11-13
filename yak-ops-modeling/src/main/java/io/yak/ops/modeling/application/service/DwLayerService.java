@@ -13,7 +13,11 @@ public interface DwLayerService {
 
     String create(DwLayerDTO dto);
 
+    String create(DwLayerDTO dto, String operator);
+
     DwLayerVO updateById(DwLayerDTO dto);
+
+    DwLayerVO updateById(DwLayerDTO dto, String operator);
 
     String delete(String id);
 

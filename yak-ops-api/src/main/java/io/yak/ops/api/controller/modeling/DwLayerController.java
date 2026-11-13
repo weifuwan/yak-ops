@@ -48,7 +48,7 @@ public class DwLayerController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @RequestBody DwLayerDTO dto) {
-        return Result.success(dwLayerService.create(dto));
+        return Result.success(dwLayerService.create(dto, loginUser.getUserName()));
     }
 
     /**
@@ -61,7 +61,7 @@ public class DwLayerController extends BaseController {
                                     @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                     @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                     @RequestBody DwLayerDTO dto) {
-        return Result.success(dwLayerService.updateById(dto));
+        return Result.success(dwLayerService.updateById(dto, loginUser.getUserName()));
     }
 
     /**

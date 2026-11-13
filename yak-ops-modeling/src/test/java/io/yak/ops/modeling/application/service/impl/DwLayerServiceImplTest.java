@@ -54,13 +54,15 @@ class DwLayerServiceImplTest {
         when(dwLayerDao.queryCount(any())).thenReturn(0L);
         when(dwLayerDao.insert(any())).thenReturn(1);
 
-        String id = service.create(layerDto(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL));
+        String id = service.create(layerDto(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL), "alice");
 
         ArgumentCaptor<DwLayerPO> captor = ArgumentCaptor.forClass(DwLayerPO.class);
         verify(dwLayerDao).insert(captor.capture());
         assertNotNull(id);
         assertEquals("DWD_ORDER", captor.getValue().getEnShortName());
         assertEquals(DwModelEnum.DETAIL, captor.getValue().getDwModelType());
+        assertEquals("alice", captor.getValue().getCreateBy());
+        assertEquals("alice", captor.getValue().getUpdateBy());
     }
 
     @Test

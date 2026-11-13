@@ -51,21 +51,33 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     private ModifierDao modifierDao;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public String create(DwLayerDTO dto) {
+        return create(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String create(DwLayerDTO dto, String operator) {
         normalizeAndValidate(dto);
         validateUniqueShortName(dto.getEnShortName(), null);
 
         DwLayerPO po = ConvertUtil.sourceToTarget(dto, DwLayerPO.class);
         po.setProjectCode(null);
         po.initInsert();
+        po.setCreateBy(resolveOperator(operator));
+        po.setUpdateBy(resolveOperator(operator));
         dwLayerDao.insert(po);
         return po.getId();
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public DwLayerVO updateById(DwLayerDTO dto) {
+        return updateById(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DwLayerVO updateById(DwLayerDTO dto, String operator) {
         if (dto == null || StringUtils.isBlank(dto.getId())) {
             throw new IllegalArgumentException("数仓分层ID不能为空");
         }
@@ -92,7 +104,7 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
         po.setCreateTime(existing.getCreateTime());
         po.setCreateBy(existing.getCreateBy());
         po.initUpdate();
-        po.setUpdateBy("sys");
+        po.setUpdateBy(resolveOperator(operator));
         if (!dwLayerDao.updateById(po)) {
             throw new IllegalArgumentException("数仓分层更新失败");
         }
@@ -213,6 +225,10 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
         }
         queryWrapper.orderByAsc(DwLayerPO::getEnShortName);
         return convert(queryWrapper);
+    }
+
+    private String resolveOperator(String operator) {
+        return StringUtils.isBlank(operator) ? "sys" : operator.trim();
     }
 
     private void normalizeAndValidate(DwLayerDTO dto) {
