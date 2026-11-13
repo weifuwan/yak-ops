@@ -23,7 +23,7 @@ export function DwLayerCard({
       <CardContent className="flex h-full min-h-[198px] flex-col p-0">
         <button
           type="button"
-          aria-label={\`查看 \${record.cnName || "数仓分层"} 详情\`}
+          aria-label={"查看 " + (record.cnName || "数仓分层") + " 详情"}
           onClick={() => onOpen(record)}
           className="flex min-h-[149px] flex-1 cursor-pointer items-start p-4 pb-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--yak-color-primary)]"
         >
