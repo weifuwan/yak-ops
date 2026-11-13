@@ -208,7 +208,7 @@ export const modelingBusinessTypeApi = {
     );
   },
   loadAllDomains(projectCode: string, id: string): Promise<boolean> {
-    return HttpUtils.getData<boolean>(
+    return HttpUtils.putData<boolean>(
       `${modelingPath(projectCode, "businessType")}/loadall/related-domain/${encodeURIComponent(id)}`,
     );
   },
