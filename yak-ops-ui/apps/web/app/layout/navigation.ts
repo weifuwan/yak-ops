@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Layers,
-  Layers3,
   ListOrdered,
   Network,
   Settings,
