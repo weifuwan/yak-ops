@@ -162,7 +162,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
           onRetry={() => void detailQuery.refetch()}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
+        <div className="flex min-h-0 flex-1 flex-col bg-white px-6 py-4">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Button size="sm" variant="primary" onClick={openCreate}>
@@ -230,7 +230,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 <span>{keyword ? "没有找到匹配的分层" : "暂无数仓分层，点击“新建分层”开始配置"}</span>
               </div>
             ) : viewMode === "flat" ? (
-              <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 min-[992px]:grid-cols-3 min-[1200px]:grid-cols-4 min-[1600px]:grid-cols-6">
+              <div className="mt-4 grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 min-[992px]:grid-cols-3 min-[1200px]:grid-cols-4 min-[1600px]:grid-cols-6">
                 {filteredRecords.map((record) => (
                   <DwLayerCard
                     key={record.id}
@@ -243,17 +243,14 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 ))}
               </div>
             ) : (
-              <div className="space-y-5 pb-2">
+              <div className="space-y-0 pb-2">
                 {groups.map((group) => (
                   <section key={group.value}>
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className="h-5 w-1 rounded-full bg-[var(--yak-color-primary)]" />
-                      <h3 className="text-sm font-semibold text-[var(--yak-components-panel-text)]">
+                    <div className="my-4 flex h-6 items-center">
+                      <span className="h-5 w-1 shrink-0 bg-[#5664ff]" />
+                      <h3 className="min-w-0 px-2 text-sm font-normal leading-6 text-black">
                         {group.label}
                       </h3>
-                      <span className="text-[11px] text-[var(--yak-components-muted-text)]">
-                        {group.records.length} 项
-                      </span>
                     </div>
                     <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 min-[992px]:grid-cols-3 min-[1200px]:grid-cols-4 min-[1600px]:grid-cols-6">
                       {group.records.map((record) => (
