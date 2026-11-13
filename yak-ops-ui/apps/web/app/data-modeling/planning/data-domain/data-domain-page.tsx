@@ -118,6 +118,7 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
         queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
         queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
         queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: ["modeling", "business-type", "related-domains", projectCode] }),
       ]);
     } catch {
       toast.warning("删除数据域失败，请检查该数据域下的业务过程及关联对象");

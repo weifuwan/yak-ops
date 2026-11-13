@@ -27,6 +27,7 @@ import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.modeling.api.dto.dimension.DimensionTableDTO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableVO;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
+import io.yak.ops.modeling.application.service.DimensionTreeBuilder;
 import io.yak.ops.modeling.application.service.DwLayerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

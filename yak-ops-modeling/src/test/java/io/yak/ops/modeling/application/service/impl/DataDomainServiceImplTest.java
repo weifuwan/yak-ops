@@ -10,9 +10,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
-import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.BusinessProcessPO;
+import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
@@ -20,6 +19,9 @@ import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
 import io.yak.ops.modeling.application.service.BusinessProcessService;
+
+import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 
 @ExtendWith(MockitoExtension.class)
 class DataDomainServiceImplTest {
@@ -118,7 +119,7 @@ class DataDomainServiceImplTest {
         assertEquals(DOMAIN_ID, service.delete(DOMAIN_ID));
 
         verify(businessProcessService).deleteByDomainId(DOMAIN_ID);
-        verify(businessTypeRelatedDataDomainDao).deleteByWrapper(any(Wrapper.class));
+        verify(businessTypeRelatedDataDomainDao).deleteByWrapper(any());
         verify(dataDomainDao).deleteById(DOMAIN_ID);
     }
 }

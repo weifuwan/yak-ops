@@ -13,6 +13,7 @@ import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import io.yak.ops.modeling.api.dto.subjectdomain.SubjectDomainDTO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.application.service.DataMartService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
