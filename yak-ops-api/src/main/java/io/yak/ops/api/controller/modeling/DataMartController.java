@@ -1,8 +1,5 @@
 package io.yak.ops.api.controller.modeling;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-
 import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.controller.BaseController;
@@ -21,6 +18,9 @@ import javax.annotation.Resource;
 
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/data-mart")
 public class DataMartController extends BaseController {
@@ -35,9 +35,9 @@ public class DataMartController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
     public Result<String> create(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody DataMartDTO dto) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @RequestBody DataMartDTO dto) {
         return Result.success(dataMartService.create(dto));
     }
 
@@ -48,9 +48,9 @@ public class DataMartController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
     public Result<DataMartVO> update(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody DataMartDTO dto) {
+                                     @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                     @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                     @RequestBody DataMartDTO dto) {
         return Result.success(DataMartService.updateById(dto));
     }
 
@@ -61,9 +61,9 @@ public class DataMartController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
     public Result<String> delete(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable String id) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @PathVariable String id) {
         return Result.success(DataMartService.delete(id));
     }
 
