@@ -10,10 +10,10 @@ import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.subjectdomain.SubjectDomainVO;
-import io.yak.ops.modeling.domain.enums.DimensionTableTypeEnum;
+import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import io.yak.ops.modeling.domain.enums.DimensionTreeGroupingEnum;
-import io.yak.ops.modeling.infrastructure.persistence.entity.dimension.DimensionTablePO;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.dimension.DimensionTableMapper;
+import io.yak.ops.dao.entity.DimensionTablePO;
+import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.modeling.application.service.*;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +26,7 @@ import java.util.*;
  * <p>The original data_modal tree grouped source/public models by business type or
  * data domain, and application models by mart/subject domain. This implementation
  * keeps that payload and grouping while querying through Yak Ops project-scoped
- * services and mappers.
+ * services and DAO.
  */
 @Component
 public class DimensionTreeBuilder {
@@ -34,7 +34,7 @@ public class DimensionTreeBuilder {
     private static final String ROOT_KEY = "DimensionTable_ROOT";
     private static final String VIRTUAL_KEY = "virtualId";
 
-    @Resource private DimensionTableMapper dimensionTableMapper;
+    @Resource private DimensionTableDao dimensionTableDao;
     @Resource private DwLayerService dwLayerService;
     @Resource private BusinessTypeService businessTypeService;
     @Resource private DataDomainService dataDomainService;
@@ -91,7 +91,7 @@ public class DimensionTreeBuilder {
         if (notBlank(dto.getKeyword())) {
             wrapper.and(q -> q.like("cn_name", dto.getKeyword()).or().like("table_name", dto.getKeyword()));
         }
-        return dimensionTableMapper.selectList(wrapper.orderByAsc("cn_name"));
+        return dimensionTableDao.queryList(wrapper.orderByAsc("cn_name"));
     }
 
     private void buildSourceNodes(List<DimensionTreeNodeVO> nodes,
@@ -314,11 +314,11 @@ public class DimensionTreeBuilder {
     }
 
     private boolean isApplicationLayer(DimensionTableDTO dto) {
-        return dto.getDwhType() == io.yak.ops.modeling.domain.enums.DwTypeEnum.APPLICATION_LAYER;
+        return dto.getDwhType() == io.yak.ops.dao.entity.enums.DwTypeEnum.APPLICATION_LAYER;
     }
 
     private boolean isPublicLayer(DimensionTableDTO dto) {
-        return dto.getDwhType() == io.yak.ops.modeling.domain.enums.DwTypeEnum.PUBLIC_LAYER;
+        return dto.getDwhType() == io.yak.ops.dao.entity.enums.DwTypeEnum.PUBLIC_LAYER;
     }
 
     private boolean notBlank(String value) {
