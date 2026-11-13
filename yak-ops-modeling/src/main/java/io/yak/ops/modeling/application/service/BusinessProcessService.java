@@ -1,19 +1,13 @@
 package io.yak.ops.modeling.application.service;
 
-
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-
 import java.util.List;
 
-/**
- * 数仓分层服务接口
- *
- * @author bruce
- */
+/** Service contract for business processes. */
 public interface BusinessProcessService {
 
     String create(BusinessProcessDTO dto);

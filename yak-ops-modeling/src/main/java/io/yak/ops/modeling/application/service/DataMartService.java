@@ -1,19 +1,13 @@
 package io.yak.ops.modeling.application.service;
 
-
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-
 import java.util.List;
 
-/**
- * 业务分类服务接口
- *
- * @author bruce
- */
+/** Service contract for data marts. */
 public interface DataMartService {
 
     String create(DataMartDTO dto);
