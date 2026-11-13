@@ -3,6 +3,15 @@ package io.yak.ops.dao;
 import io.yak.ops.dao.plugin.api.DaoPluginConfiguration;
 import io.yak.ops.dao.plugin.api.dialect.DatabaseDialect;
 import io.yak.ops.dao.plugin.api.monitor.DatabaseMonitor;
+import io.yak.ops.common.context.ProjectCodeContext;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import net.sf.jsqlparser.expression.LongValue;
+import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 
 import org.apache.ibatis.mapping.DatabaseIdProvider;
 import org.apache.ibatis.mapping.VendorDatabaseIdProvider;
@@ -25,6 +34,16 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 @MapperScan(basePackages = "io.yak.ops.dao.mapper", sqlSessionFactoryRef = "sqlSessionFactory")
 public class DaoConfiguration {
 
+    private static final Set<String> MODELING_TENANT_TABLES = new HashSet<>(Arrays.asList(
+            "t_cockpit_business_type",
+            "t_cockpit_business_type_related_data_domain",
+            "t_cockpit_dw_layer",
+            "t_cockpit_data_domain",
+            "t_cockpit_business_process",
+            "t_cockpit_data_mart",
+            "t_cockpit_subject_domain"
+    ));
+
     /**
      * Inject this field to make sure the database is initialized, this can solve the table not found issue #8432.
      */
@@ -40,6 +59,28 @@ public class DaoConfiguration {
     @Bean
     public MybatisPlusInterceptor paginationInterceptor(DbType dbType) {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantLineHandler() {
+            @Override
+            public net.sf.jsqlparser.expression.Expression getTenantId() {
+                Long projectCode = ProjectCodeContext.getProjectCode();
+                if (projectCode == null) {
+                    throw new IllegalStateException(
+                            "Project context is required when querying modeling tables");
+                }
+                return new LongValue(projectCode);
+            }
+
+            @Override
+            public String getTenantIdColumn() {
+                return "project_code";
+            }
+
+            @Override
+            public boolean ignoreTable(String tableName) {
+                return tableName == null
+                        || !MODELING_TENANT_TABLES.contains(tableName.toLowerCase(java.util.Locale.ROOT));
+            }
+        }));
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(dbType));
         return interceptor;
     }

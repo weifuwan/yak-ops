@@ -168,7 +168,7 @@ export function DataModelingOverviewPage() {
             <div className="min-w-0">
               <div className="text-sm font-semibold">基础框架已接入</div>
               <p className="mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                第一阶段完成了数据建模产品入口、工作空间隔离和独立后端模块。原智慧建模的数仓规划、模型设计、数据标准和数据指标业务将在后续阶段逐步迁移。
+                数仓规划首批业务已接入，包括业务分类、数仓分层、数据域、业务过程、数据集市和主题域。模型设计、数据标准和数据指标将在后续阶段逐步迁移。
               </p>
             </div>
           </CardContent>

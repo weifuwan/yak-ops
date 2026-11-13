@@ -1,7 +1,15 @@
 # Modeling schema scripts
 
-Add module-owned, additive SQL scripts here as modeling entities are migrated.
+These scripts are additive and repeatable. They create the warehouse-planning tables and project-code indexes only; they never drop or recreate tables.
 
-Use separate database-dialect folders (for example, `mysql` and `postgresql`). Every project-owned table must include `project_code`, and all workspace-local unique constraints must include it.
+Supported dialect scripts:
 
-Do not copy the original `data_modal` baseline SQL or execute destructive table drops against an existing Yak Ops database. When the first modeling tables are introduced, extend `yak-ops-tools` to execute these module-owned incremental scripts idempotently after the existing Yak Ops schema has been validated.
+- `modeling_mysql.sql`
+- `modeling_postgresql.sql`
+- `modeling_h2.sql`
+
+Every migrated project-owned modeling table includes a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies this value from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
+
+If a table already exists without `project_code`, the initializer refuses to reuse it. Do not add a default project code automatically: existing legacy rows need an explicit workspace assignment decision first.
+
+When another modeling table is migrated, update the SQL scripts, DAO tenant allowlist and schema preflight list together.

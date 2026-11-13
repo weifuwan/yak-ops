@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.yak.ops.modeling.infrastructure.persistence.mapper.BusinessProcessMapper">
+
+    <resultMap id="BusinessProcessVOResultMap"
+               type="io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO">
+        <!-- 映射BusinessProcessPO字段 -->
+        <id property="id" column="id"/>
+        <result property="enShortName" column="en_short_name"/>
+        <result property="cnName" column="cn_name"/>
+        <result property="enName" column="en_name"/>
+        <result property="dataDomainId" column="data_domain_id"/>
+        <result property="director" column="director"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateBy" column="update_by"/>
+        <!-- 关联表的字段 -->
+        <result property="dataDomainCnName" column="data_domain_cn_name"/>
+    </resultMap>
+
+    <select id="paging" resultMap="BusinessProcessVOResultMap">
+        SELECT
+        bp.*,
+        dd.cn_name as data_domain_cn_name
+        FROM t_cockpit_business_process bp
+        LEFT JOIN t_cockpit_data_domain dd ON bp.data_domain_id = dd.id
+        <where>
+            <if test="dto.enShortName != null and dto.enShortName != ''">
+                AND bp.en_short_name LIKE CONCAT('%', #{dto.enShortName}, '%')
+            </if>
+            <if test="dto.cnName != null and dto.cnName != ''">
+                AND bp.cn_name LIKE CONCAT('%', #{dto.cnName}, '%')
+            </if>
+            <if test="dto.enName != null and dto.enName != ''">
+                AND bp.en_name LIKE CONCAT('%', #{dto.enName}, '%')
+            </if>
+            <if test="dto.dataDomainId != null">
+                AND bp.data_domain_id = #{dto.dataDomainId}
+            </if>
+            <if test="dto.director != null and dto.director != ''">
+                AND bp.director = #{dto.director}
+            </if>
+            <if test="dto.createBy != null and dto.createBy != ''">
+                AND bp.create_by = #{dto.createBy}
+            </if>
+        </where>
+        ORDER BY  bp.flag desc
+    </select>
+
+</mapper>

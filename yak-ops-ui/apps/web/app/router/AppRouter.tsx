@@ -2,6 +2,7 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
 import { DataModelingOverviewPage } from "@/app/data-modeling/overview/page";
+import { DataModelingPlanningPage } from "@/app/data-modeling/planning/page";
 import { DataModelingSectionPage } from "@/app/data-modeling/section/page";
 import { ResourceManagementPage } from "@/app/resources/page";
 import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
@@ -172,13 +173,7 @@ export default function AppRouter() {
             <Route path="/data-modeling" element={<DataModelingOverviewPage />} />
             <Route
               path="/data-modeling/planning"
-              element={
-                <DataModelingSectionPage
-                  title="数仓规划"
-                  description="统一管理业务分类、数仓分层、数据域、业务过程、数据集市和主题域。"
-                  capabilities={["业务分类", "数仓分层", "数据域", "业务过程", "数据集市", "主题域"]}
-                />
-              }
+              element={<DataModelingPlanningPage />}
             />
             <Route
               path="/data-modeling/models"
