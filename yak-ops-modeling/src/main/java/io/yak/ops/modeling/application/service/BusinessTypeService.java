@@ -1,10 +1,8 @@
 package io.yak.ops.modeling.application.service;
 
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.businesstype.BusinessTypePO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
@@ -17,7 +15,7 @@ import java.util.List;
  *
  * @author bruce
  */
-public interface BusinessTypeService extends IService<BusinessTypePO> {
+public interface BusinessTypeService {
 
     String create(BusinessTypeDTO businessType);
 
