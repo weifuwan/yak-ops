@@ -47,7 +47,7 @@ public class DataMartController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @RequestBody DataMartDTO dto) {
-        return Result.success(dataMartService.create(dto));
+        return Result.success(dataMartService.create(dto, loginUser.getUserName()));
     }
 
     /**
@@ -60,7 +60,7 @@ public class DataMartController extends BaseController {
                                      @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                      @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                      @RequestBody DataMartDTO dto) {
-        return Result.success(dataMartService.updateById(dto));
+        return Result.success(dataMartService.updateById(dto, loginUser.getUserName()));
     }
 
     /**

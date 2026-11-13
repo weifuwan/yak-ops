@@ -47,6 +47,12 @@ public class SubjectDomainServiceImpl extends BaseServiceImpl implements Subject
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String create(SubjectDomainDTO dto) {
+        return create(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String create(SubjectDomainDTO dto, String operator) {
         normalizeAndValidate(dto);
         DataMartVO mart = requireDataMart(dto.getDataMartId());
         SubjectDomainPO parent = validateParent(dto.getParentId(), null, mart.getId());
@@ -57,6 +63,8 @@ public class SubjectDomainServiceImpl extends BaseServiceImpl implements Subject
 
         SubjectDomainPO po = ConvertUtil.sourceToTarget(dto, SubjectDomainPO.class);
         po.initInsert();
+        po.setCreateBy(StringUtils.defaultIfBlank(operator, "sys"));
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         subjectDomainDao.insert(po);
         return po.getId();
     }
@@ -64,6 +72,12 @@ public class SubjectDomainServiceImpl extends BaseServiceImpl implements Subject
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SubjectDomainVO updateById(SubjectDomainDTO dto) {
+        return updateById(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SubjectDomainVO updateById(SubjectDomainDTO dto, String operator) {
         if (dto == null || StringUtils.isBlank(dto.getId())) {
             throw new IllegalArgumentException("主题域ID不能为空");
         }
@@ -97,6 +111,7 @@ public class SubjectDomainServiceImpl extends BaseServiceImpl implements Subject
         po.setCreateTime(existing.getCreateTime());
         po.setCreateBy(existing.getCreateBy());
         po.initUpdate();
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         if (!subjectDomainDao.updateById(po)) {
             throw new IllegalArgumentException("主题域更新失败");
         }

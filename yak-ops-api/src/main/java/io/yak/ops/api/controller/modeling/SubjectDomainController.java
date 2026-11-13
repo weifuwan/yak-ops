@@ -46,7 +46,7 @@ public class SubjectDomainController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @RequestBody SubjectDomainDTO dto) {
-        return Result.success(subjectDomainService.create(dto));
+        return Result.success(subjectDomainService.create(dto, loginUser.getUserName()));
     }
 
     /**
@@ -59,7 +59,7 @@ public class SubjectDomainController extends BaseController {
                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                           @RequestBody SubjectDomainDTO dto) {
-        return Result.success(subjectDomainService.updateById(dto));
+        return Result.success(subjectDomainService.updateById(dto, loginUser.getUserName()));
     }
 
     /**

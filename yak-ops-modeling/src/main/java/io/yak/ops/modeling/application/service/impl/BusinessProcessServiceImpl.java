@@ -50,11 +50,19 @@ public class BusinessProcessServiceImpl extends BaseServiceImpl implements Busin
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String create(BusinessProcessDTO dto) {
+        return create(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String create(BusinessProcessDTO dto, String operator) {
         normalizeAndValidate(dto, null);
         validateUniqueShortName(dto.getDataDomainId(), dto.getEnShortName(), null);
 
         BusinessProcessPO po = ConvertUtil.sourceToTarget(dto, BusinessProcessPO.class);
         po.initInsert();
+        po.setCreateBy(StringUtils.defaultIfBlank(operator, "sys"));
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         po.setFlag(dto.getFlag() == null ? 0 : dto.getFlag());
         businessProcessDao.insert(po);
         return po.getId();
@@ -63,6 +71,12 @@ public class BusinessProcessServiceImpl extends BaseServiceImpl implements Busin
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BusinessProcessVO updateById(BusinessProcessDTO dto) {
+        return updateById(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public BusinessProcessVO updateById(BusinessProcessDTO dto, String operator) {
         if (dto == null || StringUtils.isBlank(dto.getId())) {
             throw new IllegalArgumentException("业务过程ID不能为空");
         }
@@ -88,6 +102,7 @@ public class BusinessProcessServiceImpl extends BaseServiceImpl implements Busin
         po.setCreateTime(existing.getCreateTime());
         po.setCreateBy(existing.getCreateBy());
         po.initUpdate();
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         if (!businessProcessDao.updateById(po)) {
             throw new IllegalArgumentException("业务过程更新失败");
         }

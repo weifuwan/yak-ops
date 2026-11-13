@@ -18,7 +18,11 @@ public interface SubjectDomainService {
 
     String create(SubjectDomainDTO dto);
 
+    String create(SubjectDomainDTO dto, String operator);
+
     SubjectDomainVO updateById(SubjectDomainDTO dto);
+
+    SubjectDomainVO updateById(SubjectDomainDTO dto, String operator);
 
     String delete(String id);
 

@@ -72,6 +72,12 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO create(DimensionTableDTO dto) {
+        return create(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DimensionTableVO create(DimensionTableDTO dto, String operator) {
         if (dto == null) throw new IllegalArgumentException("维度建模参数不能为空");
         normalizeRelations(dto);
         validateBusinessRelations(dto);
@@ -84,13 +90,23 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         po.setProjectCode(null);
         po.setSubmit(Boolean.FALSE);
         po.initInsert();
-        dimensionTableDao.insert(po);
+        po.setCreateBy(org.apache.commons.lang3.StringUtils.defaultIfBlank(operator, "sys"));
+        po.setUpdateBy(org.apache.commons.lang3.StringUtils.defaultIfBlank(operator, "sys"));
+        if (dimensionTableDao.insert(po) <= 0) {
+            throw new IllegalArgumentException("维度建模创建失败");
+        }
         return toVO(po);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO updateById(DimensionTableDTO dto) {
+        return updateById(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DimensionTableVO updateById(DimensionTableDTO dto, String operator) {
         if (dto == null || !notBlank(dto.getId())) {
             throw new IllegalArgumentException("主键不能为空");
         }
@@ -110,8 +126,10 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         po.setCreateBy(existing.getCreateBy());
         po.setSubmit(Boolean.FALSE);
         po.initUpdate();
-        po.setUpdateBy("sys");
-        dimensionTableDao.updateById(po);
+        po.setUpdateBy(org.apache.commons.lang3.StringUtils.defaultIfBlank(operator, "sys"));
+        if (!dimensionTableDao.updateById(po)) {
+            throw new IllegalArgumentException("维度建模更新失败");
+        }
 
         // These relation fields may intentionally be cleared when the selected
         // mart/subject or business process changes; update them explicitly.
@@ -124,18 +142,28 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .set("bus_process_id", po.getBusProcessId())
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
-        dimensionTableDao.update(null, relations);
+        if (dimensionTableDao.update(null, relations) <= 0) {
+            throw new IllegalArgumentException("维度建模关联信息更新失败");
+        }
         return toVO(dimensionTableDao.queryById(dto.getId()));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO submit(String id) {
+        return submit(id, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DimensionTableVO submit(String id, String operator) {
         DimensionTablePO po = requireTable(id);
         po.setSubmit(Boolean.TRUE);
         po.initUpdate();
-        po.setUpdateBy("sys");
-        dimensionTableDao.updateById(po);
+        po.setUpdateBy(org.apache.commons.lang3.StringUtils.defaultIfBlank(operator, "sys"));
+        if (!dimensionTableDao.updateById(po)) {
+            throw new IllegalArgumentException("维度建模提交失败");
+        }
         saveVersion(po);
         return toVO(dimensionTableDao.queryById(id));
     }

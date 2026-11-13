@@ -12,7 +12,11 @@ public interface BusinessProcessService {
 
     String create(BusinessProcessDTO dto);
 
+    String create(BusinessProcessDTO dto, String operator);
+
     BusinessProcessVO updateById(BusinessProcessDTO dto);
+
+    BusinessProcessVO updateById(BusinessProcessDTO dto, String operator);
 
     String delete(String id);
 

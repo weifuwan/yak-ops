@@ -42,7 +42,7 @@ public class DataDomainController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @RequestBody DataDomainDTO dto) {
-        return Result.success(dataDomainService.create(dto));
+        return Result.success(dataDomainService.create(dto, loginUser.getUserName()));
     }
 
     @Operation(description = "Update data domain")
@@ -52,7 +52,7 @@ public class DataDomainController extends BaseController {
                                        @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                        @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                        @RequestBody DataDomainDTO dto) {
-        return Result.success(dataDomainService.updateById(dto));
+        return Result.success(dataDomainService.updateById(dto, loginUser.getUserName()));
     }
 
     @Operation(description = "Delete data domain")

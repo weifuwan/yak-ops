@@ -12,7 +12,11 @@ public interface DataMartService {
 
     String create(DataMartDTO dto);
 
+    String create(DataMartDTO dto, String operator);
+
     DataMartVO updateById(DataMartDTO dto);
+
+    DataMartVO updateById(DataMartDTO dto, String operator);
 
     String delete(String id);
 

@@ -11,7 +11,11 @@ public interface DataDomainService {
 
     String create(DataDomainDTO dto);
 
+    String create(DataDomainDTO dto, String operator);
+
     DataDomainVO updateById(DataDomainDTO dto);
+
+    DataDomainVO updateById(DataDomainDTO dto, String operator);
 
     String delete(String id);
 

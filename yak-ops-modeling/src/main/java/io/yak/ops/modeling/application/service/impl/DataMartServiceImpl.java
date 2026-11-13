@@ -50,6 +50,12 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String create(DataMartDTO dto) {
+        return create(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String create(DataMartDTO dto, String operator) {
         normalizeAndValidate(dto, null);
         DataMartPO parent = validateParent(dto.getParentId(), null);
         if (parent != null) {
@@ -61,6 +67,8 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
 
         DataMartPO po = ConvertUtil.sourceToTarget(dto, DataMartPO.class);
         po.initInsert();
+        po.setCreateBy(StringUtils.defaultIfBlank(operator, "sys"));
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         dataMartDao.insert(po);
         return po.getId();
     }
@@ -68,6 +76,12 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DataMartVO updateById(DataMartDTO dto) {
+        return updateById(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DataMartVO updateById(DataMartDTO dto, String operator) {
         if (dto == null || StringUtils.isBlank(dto.getId())) {
             throw new IllegalArgumentException("数据集市ID不能为空");
         }
@@ -93,6 +107,7 @@ public class DataMartServiceImpl extends BaseServiceImpl implements DataMartServ
         po.setCreateTime(existing.getCreateTime());
         po.setCreateBy(existing.getCreateBy());
         po.initUpdate();
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         if (!dataMartDao.updateById(po)) {
             throw new IllegalArgumentException("数据集市更新失败");
         }

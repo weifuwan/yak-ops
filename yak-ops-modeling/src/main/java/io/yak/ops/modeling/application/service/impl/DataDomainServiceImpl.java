@@ -49,11 +49,19 @@ public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomain
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String create(DataDomainDTO dto) {
+        return create(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String create(DataDomainDTO dto, String operator) {
         normalizeAndValidate(dto);
         validateUniqueShortName(dto.getEnShortName(), null);
 
         DataDomainPO po = ConvertUtil.sourceToTarget(dto, DataDomainPO.class);
         po.initInsert();
+        po.setCreateBy(StringUtils.defaultIfBlank(operator, "sys"));
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         po.setFlag(0);
         dataDomainDao.insert(po);
 
@@ -66,13 +74,19 @@ public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomain
                 .flag(1)
                 .dataDomainId(po.getId())
                 .build();
-        businessProcessService.create(defaultProcess);
+        businessProcessService.create(defaultProcess, operator);
         return po.getId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DataDomainVO updateById(DataDomainDTO dto) {
+        return updateById(dto, "sys");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DataDomainVO updateById(DataDomainDTO dto, String operator) {
         if (dto == null || StringUtils.isBlank(dto.getId())) {
             throw new IllegalArgumentException("数据域ID不能为空");
         }
@@ -96,6 +110,7 @@ public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomain
         po.setCreateTime(existing.getCreateTime());
         po.setCreateBy(existing.getCreateBy());
         po.initUpdate();
+        po.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
         if (!dataDomainDao.updateById(po)) {
             throw new IllegalArgumentException("数据域更新失败");
         }

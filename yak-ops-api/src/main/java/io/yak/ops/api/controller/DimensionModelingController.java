@@ -48,7 +48,7 @@ public class DimensionModelingController extends BaseController {
                                            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                            @RequestBody DimensionTableDTO dto) {
-        return Result.success(dimensionModelingService.create(dto));
+        return Result.success(dimensionModelingService.create(dto, loginUser.getUserName()));
     }
 
     @Operation(description = "Update dimension table")
@@ -58,7 +58,7 @@ public class DimensionModelingController extends BaseController {
                                            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                            @RequestBody DimensionTableDTO dto) {
-        return Result.success(dimensionModelingService.updateById(dto));
+        return Result.success(dimensionModelingService.updateById(dto, loginUser.getUserName()));
     }
 
     @Operation(description = "Submit dimension table")
@@ -68,7 +68,7 @@ public class DimensionModelingController extends BaseController {
                                            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                            @PathVariable("id") String id) {
-        return Result.success(dimensionModelingService.submit(id));
+        return Result.success(dimensionModelingService.submit(id, loginUser.getUserName()));
     }
 
     @Operation(description = "Delete dimension table")

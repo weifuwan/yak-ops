@@ -47,7 +47,7 @@ public class BusinessProcessController extends BaseController {
                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                  @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                  @RequestBody BusinessProcessDTO dto) {
-        return Result.success(businessProcessService.create(dto));
+        return Result.success(businessProcessService.create(dto, loginUser.getUserName()));
     }
 
     /**
@@ -60,7 +60,7 @@ public class BusinessProcessController extends BaseController {
                                             @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                             @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                             @RequestBody BusinessProcessDTO dto) {
-        return Result.success(businessProcessService.updateById(dto));
+        return Result.success(businessProcessService.updateById(dto, loginUser.getUserName()));
     }
 
     /**

@@ -16,9 +16,15 @@ public interface DimensionModelingService {
 
     DimensionTableVO create(DimensionTableDTO dto);
 
+    DimensionTableVO create(DimensionTableDTO dto, String operator);
+
     DimensionTableVO updateById(DimensionTableDTO dto);
 
+    DimensionTableVO updateById(DimensionTableDTO dto, String operator);
+
     DimensionTableVO submit(String id);
+
+    DimensionTableVO submit(String id, String operator);
 
     String delete(String id);
 
