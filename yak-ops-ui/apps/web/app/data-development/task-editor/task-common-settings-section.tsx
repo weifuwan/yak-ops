@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Button, CollapseSection, Input, Select, SelectContent, SelectItem,
   SelectItemIndicator, SelectItemText, SelectTrigger, SelectValue,
+  Slider, SliderControl, SliderIndicator, SliderThumb, SliderTrack,
 } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -177,6 +178,63 @@ function SettingsSelect({
   );
 }
 
+
+function RetrySliderInput({
+  label,
+  value,
+  min,
+  max,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  max: number;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const parsedValue = Number(value);
+  const sliderValue = Number.isSafeInteger(parsedValue)
+    ? Math.min(max, Math.max(min, parsedValue))
+    : min;
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Slider
+        value={sliderValue}
+        min={min}
+        max={max}
+        step={1}
+        disabled={disabled}
+        onValueChange={(nextValue) => {
+          if (typeof nextValue === "number") onChange(String(nextValue));
+        }}
+        className="flex-1"
+      >
+        <SliderControl className="h-6">
+          <SliderTrack>
+            <SliderIndicator />
+            <SliderThumb aria-label={label} />
+          </SliderTrack>
+        </SliderControl>
+      </Slider>
+      <Input
+        size="small"
+        variant="outlined"
+        type="number"
+        min={min}
+        step={1}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={label + "数值"}
+        className="w-[72px] shrink-0 text-right tabular-nums"
+      />
+    </div>
+  );
+}
+
 export function TaskCommonSettingsSection({
   id, settings, onChange, disabled = false,
   description, footer, compact = false,
@@ -280,12 +338,24 @@ export function TaskCommonSettingsSection({
               onChange={value => update("taskPriority", value as TaskPriority)} />
           </SettingField>
           <SettingField label="失败重试次数">
-            <Input size="small" variant="outlined" type="number" min={0} step={1} value={settings.failRetryTimes}
-              disabled={disabled} onChange={event => update("failRetryTimes", event.target.value)} className="w-full min-w-0" />
+            <RetrySliderInput
+              label="失败重试次数"
+              value={settings.failRetryTimes}
+              min={0}
+              max={10}
+              disabled={disabled}
+              onChange={value => update("failRetryTimes", value)}
+            />
           </SettingField>
           <SettingField label="重试间隔（分钟）">
-            <Input size="small" variant="outlined" type="number" min={1} step={1} value={settings.failRetryInterval}
-              disabled={disabled} onChange={event => update("failRetryInterval", event.target.value)} className="w-full min-w-0" />
+            <RetrySliderInput
+              label="重试间隔（分钟）"
+              value={settings.failRetryInterval}
+              min={1}
+              max={60}
+              disabled={disabled}
+              onChange={value => update("failRetryInterval", value)}
+            />
           </SettingField>
           <SettingField label="延迟执行（分钟）">
             <Input size="small" variant="outlined" type="number" min={0} step={1} value={settings.delayTime}
