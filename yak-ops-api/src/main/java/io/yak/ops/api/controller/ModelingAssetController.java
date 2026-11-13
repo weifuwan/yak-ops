@@ -1,5 +1,17 @@
 package io.yak.ops.api.controller;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.yak.ops.dao.entity.User;
+
+import io.yak.ops.common.constants.Constants;
+
+import io.yak.ops.api.audit.enums.AuditType;
+
+import io.yak.ops.api.audit.OperatorLog;
+
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.tree.ModelingAssetTreeVO;
@@ -40,22 +52,34 @@ public class ModelingAssetController extends BaseController {
         return Result.success(modelingAssetService.get(resource, id));
     }
 
+    @Operation(description = "Create modeling asset")
+    @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping("/assets/{resource}")
     public Result<String> create(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
             @PathVariable("resource") String resource,
             @RequestBody Map<String, Object> payload) {
         return Result.success(modelingAssetService.create(resource, payload));
     }
 
+    @Operation(description = "Update modeling asset")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping("/assets/{resource}")
     public Result<Map<String, Object>> update(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
             @PathVariable("resource") String resource,
             @RequestBody Map<String, Object> payload) {
         return Result.success(modelingAssetService.update(resource, payload));
     }
 
+    @Operation(description = "Delete modeling asset")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/assets/{resource}/{id}")
     public Result<String> delete(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
             @PathVariable("resource") String resource,
             @PathVariable("id") String id) {
         return Result.success(modelingAssetService.delete(resource, id));
@@ -66,8 +90,12 @@ public class ModelingAssetController extends BaseController {
         return Result.success(modelingAssetService.directoryTree(module));
     }
 
+    @Operation(description = "Submit modeling asset")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PostMapping("/assets/{resource}/{id}/submit")
     public Result<Map<String, Object>> submit(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
             @PathVariable("resource") String resource,
             @PathVariable("id") String id) {
         return Result.success(modelingAssetService.submit(resource, id));
@@ -80,8 +108,12 @@ public class ModelingAssetController extends BaseController {
         return Result.success(modelingAssetService.versions(resource, id));
     }
 
+    @Operation(description = "Rollback modeling asset version")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PostMapping("/assets/{resource}/{id}/rollback/{versionNumber}")
     public Result<Map<String, Object>> rollback(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
             @PathVariable("resource") String resource,
             @PathVariable("id") String id,
             @PathVariable("versionNumber") Integer versionNumber) {
