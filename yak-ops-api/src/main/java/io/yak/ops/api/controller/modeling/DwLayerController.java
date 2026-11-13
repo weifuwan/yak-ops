@@ -1,8 +1,8 @@
 package io.yak.ops.api.controller.modeling;
 
-import lombok.extern.slf4j.Slf4j;
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
+import io.yak.ops.api.controller.BaseController;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
@@ -14,10 +14,9 @@ import javax.annotation.Resource;
 import java.util.List;
 
 
-@Slf4j
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/dw-layer")
-public class DwLayerController {
+public class DwLayerController extends BaseController {
 
     @Resource
     private DwLayerService dwLayerService;
@@ -58,8 +57,9 @@ public class DwLayerController {
      * 分页查询数仓分层
      */
     @PostMapping(value = "page")
-    public PaginationResult<DwLayerVO> paging(@RequestBody DwLayerDTO DwLayerDTO) {
-        return dwLayerService.paging(DwLayerDTO);
+    public Result<PageInfo<DwLayerVO>> paging(@RequestBody DwLayerDTO DwLayerDTO) {
+        checkPageParams(DwLayerDTO.getPageNo(), DwLayerDTO.getPageSize());
+        return Result.success(PageInfo.of(dwLayerService.paging(DwLayerDTO)));
     }
 
     /**

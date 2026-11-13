@@ -1,8 +1,8 @@
 package io.yak.ops.api.controller.modeling;
 
-import lombok.extern.slf4j.Slf4j;
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
+import io.yak.ops.api.controller.BaseController;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
@@ -13,10 +13,9 @@ import javax.annotation.Resource;
 import java.util.List;
 
 
-@Slf4j
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/data-mart")
-public class DataMartController {
+public class DataMartController extends BaseController {
 
     @Resource
     private DataMartService DataMartService;
@@ -57,8 +56,9 @@ public class DataMartController {
      * 分页查询数据集市
      */
     @PostMapping(value = "page")
-    public PaginationResult<DataMartVO> paging(@RequestBody DataMartDTO dto) {
-        return DataMartService.paging(dto);
+    public Result<PageInfo<DataMartVO>> paging(@RequestBody DataMartDTO dto) {
+        checkPageParams(dto.getPageNo(), dto.getPageSize());
+        return Result.success(PageInfo.of(DataMartService.paging(dto)));
     }
 
     /**
