@@ -401,7 +401,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_time_period (
   PRIMARY KEY (id),
   KEY idx_yak_time_period_1 (project_code),
   KEY idx_yak_time_period_2 (category_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-时间周期';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_version_management (
   id varchar(32) NOT NULL,
