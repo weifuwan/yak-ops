@@ -232,11 +232,6 @@ export function DataModelingIndicatorsPage({ initialTab = 0 }: { initialTab?: nu
               从原子指标到派生指标、复合指标，统一沉淀业务口径和可复用计算逻辑。
             </p>
           </div>
-          {currentWorkspace ? (
-            <div className="rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-1.5 text-xs text-[var(--yak-components-muted-text)]">
-              当前工作空间：{currentWorkspace.name}
-            </div>
-          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap gap-1 rounded-md border border-[var(--yak-components-panel-border)] bg-white p-1">
           {DEFINITIONS.map((item, index) => (
