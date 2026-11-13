@@ -40,7 +40,7 @@ public class DataDomainController extends BaseController {
     }
 
     @PostMapping(value = "page")
-    public Result<PageInfo<DataDomainVO>> paging(@RequestBody DataDomainDTO dto {
+    public Result<PageInfo<DataDomainVO>> paging(@RequestBody DataDomainDTO dto) {
         checkPageParams(DataDomainDTO.getPageNo(), DataDomainDTO.getPageSize());
         return Result.success(PageInfo.of(dataDomainService.paging(dto)));
     }

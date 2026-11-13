@@ -57,7 +57,7 @@ public class DwLayerController extends BaseController {
      * 分页查询数仓分层
      */
     @PostMapping(value = "page")
-    public Result<PageInfo<DwLayerVO>> paging(@RequestBody DwLayerDTO dto {
+    public Result<PageInfo<DwLayerVO>> paging(@RequestBody DwLayerDTO dto) {
         checkPageParams(DwLayerDTO.getPageNo(), DwLayerDTO.getPageSize());
         return Result.success(PageInfo.of(dwLayerService.paging(dto)));
     }

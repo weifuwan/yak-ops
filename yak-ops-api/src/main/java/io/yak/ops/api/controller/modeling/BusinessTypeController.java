@@ -114,7 +114,7 @@ public class BusinessTypeController extends BaseController {
     /**
      * 加载所有数据域
      */
-    @GetMapping(value = "/loadall/related-domain/{id}")
+    @PutMapping(value = "/loadall/related-domain/{id}")
     public Result<Boolean> onLoadAllDomains(@PathVariable("id") String id) {
         return Result.success(businessTypeService.onLoadAllDomains(id));
     }
