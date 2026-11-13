@@ -7,6 +7,7 @@ on:
       - 'pom.xml'
       - 'yak-ops-alert/**'
       - 'yak-ops-api/**'
+      - 'yak-ops-modeling/**'
       - 'yak-ops-authentication/**'
       - 'yak-ops-bom/**'
       - 'yak-ops-common/**'
@@ -33,6 +34,7 @@ on:
       - 'pom.xml'
       - 'yak-ops-alert/**'
       - 'yak-ops-api/**'
+      - 'yak-ops-modeling/**'
       - 'yak-ops-authentication/**'
       - 'yak-ops-bom/**'
       - 'yak-ops-common/**'
@@ -167,3 +169,45 @@ jobs:
           if total == 0:
               raise SystemExit('No Data Sync plugin unit tests executed')
           PY
+
+  modeling-unit:
+    name: Modeling Unit Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Compile modeling dependencies and execute modeling tests
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-modeling -am \
+            '-Dtest=%regex[io/yak/ops/modeling/.*Test.*]' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DexcludedGroups=slow \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
+            test
+      - name: Require executed modeling tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          reports = list(Path('yak-ops-modeling/target/surefire-reports').glob('TEST-*.xml'))
+          total = sum(int(ET.parse(report).getroot().attrib.get('tests', 0)) for report in reports)
+          print(f'Modeling test reports: {len(reports)}, tests: {total}')
+          if total == 0:
+              raise SystemExit('No yak-ops-modeling unit tests executed')
+          PY
+      - name: Upload modeling test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modeling-test-reports
+          path: yak-ops-modeling/target/surefire-reports/**
+          if-no-files-found: warn
+          retention-days: 7

@@ -8,6 +8,7 @@ on:
       - 'yak-ops-bom/**'
       - 'style/**'
       - 'yak-ops-api/**'
+      - 'yak-ops-modeling/**'
       - 'yak-ops-cdc/**'
       - '.github/workflows/backend-format.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'yak-ops-bom/**'
       - 'style/**'
       - 'yak-ops-api/**'
+      - 'yak-ops-modeling/**'
       - 'yak-ops-cdc/**'
       - '.github/workflows/backend-format.yml'
   workflow_dispatch:
@@ -39,12 +41,12 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Check formatting of API and all CDC submodules
+      - name: Check formatting of API, modeling and all CDC submodules
         shell: bash
         run: |
           mapfile -t modules < <(find yak-ops-cdc -type f -name pom.xml \
             | sed 's@/pom.xml$@@' | sort)
-          module_csv="yak-ops-api,yak-ops-task-plugin/yak-ops-task-data-sync,$(IFS=,; echo "${modules[*]}")"
-          # No -am: only format API and CDC; their Maven dependencies
+          module_csv="yak-ops-api,yak-ops-modeling,yak-ops-task-plugin/yak-ops-task-data-sync,$(IFS=,; echo "${modules[*]}")"
+          # No -am: only format API, modeling and CDC; their Maven dependencies
           # do not become additional formatting targets.
           mvn -B -ntp -T 2 -pl "$module_csv" spotless:check
