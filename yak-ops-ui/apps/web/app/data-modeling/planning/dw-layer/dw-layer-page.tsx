@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layers3, LoaderCircle, Plus, RefreshCw, Search } from "lucide-react";
-import { Button, Input, Modal, toast } from "@yak-ops/yak-ui";
+import { Button, Input, Modal, Segmented, toast } from "@yak-ops/yak-ui";
 
 import { modelingEntityApi } from "../../service";
 import DwLayerCard from "./dw-layer-card";
@@ -195,24 +195,15 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 <RefreshCw size={13} className={listQuery.isFetching ? "animate-spin" : ""} />
                 刷新
               </Button>
-              <div className="flex items-center rounded-md border border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] p-0.5">
-                <Button
-                  size="sm"
-                  variant={viewMode === "layer" ? "primary" : "ghost"}
-                  className="h-7 px-2.5 text-xs"
-                  onClick={() => setViewMode("layer")}
-                >
-                  层级结构展示
-                </Button>
-                <Button
-                  size="sm"
-                  variant={viewMode === "flat" ? "primary" : "ghost"}
-                  className="h-7 px-2.5 text-xs"
-                  onClick={() => setViewMode("flat")}
-                >
-                  平铺展示
-                </Button>
-              </div>
+              <Segmented
+                size="sm"
+                value={viewMode}
+                options={[
+                  { value: "layer", label: "层级结构展示" },
+                  { value: "flat", label: "平铺展示" },
+                ]}
+                onValueChange={setViewMode}
+              />
             </div>
           </div>
 
