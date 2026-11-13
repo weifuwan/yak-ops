@@ -1,5 +1,17 @@
 package io.yak.ops.api.controller.modeling;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.yak.ops.dao.entity.User;
+
+import io.yak.ops.common.constants.Constants;
+
+import io.yak.ops.api.audit.enums.AuditType;
+
+import io.yak.ops.api.audit.OperatorLog;
+
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
@@ -24,24 +36,39 @@ public class DwLayerController extends BaseController {
     /**
      * 新增数仓分层
      */
+    @Operation(description = "Create warehouse layer")
+    @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
-    public Result<String> create(@RequestBody DwLayerDTO dto) {
+    public Result<String> create(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody DwLayerDTO dto) {
         return Result.success(dwLayerService.create(dto));
     }
 
     /**
      * 修改数仓分层
      */
+    @Operation(description = "Update warehouse layer")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
-    public Result<DwLayerVO> update(@RequestBody DwLayerDTO dto) {
+    public Result<DwLayerVO> update(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody DwLayerDTO dto) {
         return Result.success(dwLayerService.updateById(dto));
     }
 
     /**
      * 删除数仓分层
      */
+    @Operation(description = "Delete warehouse layer")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
-    public Result<String> delete(@PathVariable String id) {
+    public Result<String> delete(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable String id) {
         return Result.success(dwLayerService.delete(id));
     }
 

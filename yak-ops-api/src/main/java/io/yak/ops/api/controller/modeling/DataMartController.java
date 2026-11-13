@@ -1,5 +1,17 @@
 package io.yak.ops.api.controller.modeling;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.yak.ops.dao.entity.User;
+
+import io.yak.ops.common.constants.Constants;
+
+import io.yak.ops.api.audit.enums.AuditType;
+
+import io.yak.ops.api.audit.OperatorLog;
+
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
@@ -23,24 +35,39 @@ public class DataMartController extends BaseController {
     /**
      * 新增数据集市
      */
+    @Operation(description = "Create data mart")
+    @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
-    public Result<String> create(@RequestBody DataMartDTO dto) {
+    public Result<String> create(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody DataMartDTO dto) {
         return Result.success(dataMartService.create(dto));
     }
 
     /**
      * 修改数据集市
      */
+    @Operation(description = "Update data mart")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
-    public Result<DataMartVO> update(@RequestBody DataMartDTO dto) {
+    public Result<DataMartVO> update(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody DataMartDTO dto) {
         return Result.success(DataMartService.updateById(dto));
     }
 
     /**
      * 删除数据集市
      */
+    @Operation(description = "Delete data mart")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
-    public Result<String> delete(@PathVariable String id) {
+    public Result<String> delete(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable String id) {
         return Result.success(DataMartService.delete(id));
     }
 
