@@ -585,17 +585,22 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
               </div>
             </div>
           ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <div className="mb-3 flex items-center justify-between rounded-md border border-[#e7e9ee] bg-white px-4 py-3">
-                <div className="min-w-0">
-                  <h2 className="m-0 truncate text-sm font-semibold text-[#26282c]">{selectedNode.title}</h2>
-                  <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-[var(--yak-components-muted-text)]">
-                    <span>{title}</span>
-                    {breadcrumb.map((part, index) => (
-                      <span key={part + index} className="flex items-center gap-1">
-                        <ChevronRight size={11} />{part}
-                      </span>
-                    ))}
+            <>
+              <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] bg-white px-5">
+                <div className="flex min-w-0 items-center gap-2">
+                  {selectedIsDirectory
+                    ? <FolderOpen size={20} className="shrink-0 text-[var(--yak-color-primary)]" />
+                    : <FileText size={20} className="shrink-0 text-[var(--yak-color-primary)]" />}
+                  <div className="min-w-0">
+                    <h1 className="truncate text-base font-semibold text-[var(--yak-components-panel-text)]">{selectedNode.title}</h1>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-[var(--yak-components-muted-text)]">
+                      <span>{title}</span>
+                      {breadcrumb.map((part, index) => (
+                        <span key={part + index} className="flex items-center gap-1">
+                          <ChevronRight size={11} />{part}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -621,8 +626,9 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
                     <Pencil size={13} />编辑
                   </Button>
                 </div>
-              </div>
+              </header>
 
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6f6f6] p-4">
               {selectedIsDirectory ? (
                 <>
                   <section className={CARD}>
@@ -693,7 +699,8 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
                   directoryName={breadcrumb.length > 1 ? breadcrumb[breadcrumb.length - 2] : undefined}
                 />
               )}
-            </div>
+              </div>
+            </>
           )}
         </section>
 
