@@ -448,7 +448,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             snapshot.setProjectCode(null);
             snapshot.initUpdate();
             snapshot.setUpdateBy("sys");
-            restoreSnapshot(mapper, snapshot, id);
+            restoreSnapshot(mapperKey, snapshot, id);
             saveVersion(snapshot, version.getVersionType());
             return toMap(modelingAssetDao.queryById(mapperKey, id));
         } catch (Exception ex) {
@@ -655,9 +655,9 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
 
     private <T extends ModelingBasePO> void validateUniqueFields(
             String mapperKey, Map<String, Object> values, String excludeId) {
-        validateUniqueField(mapper, "en_short_name", text(values.get("enShortName")), "英文缩写", excludeId);
-        validateUniqueField(mapper, "en_name", text(values.get("enName")), "英文名称", excludeId);
-        validateUniqueField(mapper, "cn_name", text(values.get("cnName")), "中文名称", excludeId);
+        validateUniqueField(mapperKey, "en_short_name", text(values.get("enShortName")), "英文缩写", excludeId);
+        validateUniqueField(mapperKey, "en_name", text(values.get("enName")), "英文名称", excludeId);
+        validateUniqueField(mapperKey, "cn_name", text(values.get("cnName")), "中文名称", excludeId);
     }
 
     private <T extends ModelingBasePO> void validateUniqueField(
