@@ -116,7 +116,7 @@ export function NavigationMenu({
     const active = item.key === activeKey;
     const itemPadding = 14 + depth * 16;
     const baseClassName =
-      "flex min-h-8 w-full items-center gap-2.5 rounded-md py-1.5 pr-3 text-left text-[13px] transition-colors duration-150";
+      "flex min-h-8 w-full items-center gap-2.5 border-r-2 py-1.5 pr-3 text-left text-[13px] transition-colors duration-150";
 
     return (
       <div key={item.key}>
@@ -131,8 +131,8 @@ export function NavigationMenu({
               baseClassName,
               "justify-between",
               branchActive
-                ? "font-medium text-[var(--yak-color-primary)]"
-                : "font-normal text-[#525b67] hover:bg-[#f2f2f2]",
+                ? "border-transparent font-medium text-[var(--yak-color-primary)]"
+                : "border-transparent font-normal text-[#525b67] hover:bg-[#f2f2f2]",
               item.disabled && "cursor-not-allowed opacity-50",
             )}
           >
@@ -158,8 +158,8 @@ export function NavigationMenu({
             className={cn(
               baseClassName,
               active
-                ? "bg-[var(--yak-color-primary-subtle)] font-semibold text-[var(--yak-color-primary)]"
-                : "font-normal text-[#525b67] hover:bg-[#f2f2f2]",
+                ? "border-[var(--yak-color-primary)] bg-[var(--yak-color-primary-subtle)] font-semibold text-[#26282c]"
+                : "border-transparent font-normal text-[#525b67] hover:bg-[#f2f2f2]",
               item.disabled && "cursor-not-allowed opacity-50",
             )}
           >
