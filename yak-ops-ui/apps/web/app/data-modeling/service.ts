@@ -217,3 +217,37 @@ export const modelingBusinessTypeApi = {
     );
   },
 };
+
+
+export interface DataMartDirectoryNode {
+  key: string;
+  value: string;
+  title: string;
+  parentId?: string | null;
+  children?: DataMartDirectoryNode[];
+}
+
+export interface SubjectDomainDirectoryNode {
+  key: string;
+  value: string;
+  title: string;
+  parentId?: string | null;
+  type: "MART" | "SUBJECT";
+  children?: SubjectDomainDirectoryNode[];
+}
+
+export const modelingDataMartApi = {
+  tree(projectCode: string, keyword = ""): Promise<DataMartDirectoryNode[]> {
+    return HttpUtils.getData<DataMartDirectoryNode[]>(
+      `${modelingPath(projectCode, "dataMart")}/tree?keyword=${encodeURIComponent(keyword)}`,
+    );
+  },
+};
+
+export const modelingSubjectDomainApi = {
+  tree(projectCode: string): Promise<SubjectDomainDirectoryNode[]> {
+    return HttpUtils.getData<SubjectDomainDirectoryNode[]>(
+      `${modelingPath(projectCode, "subjectDomain")}/tree`,
+    );
+  },
+};

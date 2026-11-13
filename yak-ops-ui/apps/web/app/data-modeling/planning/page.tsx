@@ -7,6 +7,8 @@ import { DataModelingDwLayerPage } from "./dw-layer/dw-layer-page";
 import { DataModelingBusinessTypePage } from "./business-type/business-type-page";
 import { DataModelingDataDomainPage } from "./data-domain/data-domain-page";
 import { DataModelingBusinessProcessPage } from "./business-process/business-process-page";
+import { DataModelingDataMartPage } from "./data-mart/data-mart-page";
+import { DataModelingSubjectDomainPage } from "./subject-domain/subject-domain-page";
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
   {
@@ -100,14 +102,14 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
 
   return (
     <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      {definitionKey !== "businessType" && definitionKey !== "dataDomain" && definitionKey !== "businessProcess" ? (
+      {definitionKey !== "businessType" && definitionKey !== "dataDomain" && definitionKey !== "businessProcess" && definitionKey !== "dataMart" && definitionKey !== "subjectDomain" ? (
         <PageHeader
           title={activeDefinition.title}
           bordered
           className="bg-white px-6 max-md:px-4"
         />
       ) : null}
-      <div className={definitionKey === "businessType" || definitionKey === "dataDomain" || definitionKey === "businessProcess"
+      <div className={definitionKey === "businessType" || definitionKey === "dataDomain" || definitionKey === "businessProcess" || definitionKey === "dataMart" || definitionKey === "subjectDomain"
         ? "flex min-h-0 flex-1 flex-col"
         : "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4"}>
         {currentWorkspace ? (
@@ -119,6 +121,10 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
             <DataModelingDataDomainPage projectCode={currentWorkspace.id} />
           ) : definitionKey === "businessProcess" ? (
             <DataModelingBusinessProcessPage projectCode={currentWorkspace.id} />
+          ) : definitionKey === "dataMart" ? (
+            <DataModelingDataMartPage projectCode={currentWorkspace.id} />
+          ) : definitionKey === "subjectDomain" ? (
+            <DataModelingSubjectDomainPage projectCode={currentWorkspace.id} />
           ) : (
             <ModelingEntityPage
               key={activeDefinition.key}
