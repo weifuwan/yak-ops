@@ -36,7 +36,7 @@ public class ApiExceptionHandler {
     public ResponseEntity<Result<Object>> argumentExceptionHandler(IllegalArgumentException e, HandlerMethod hm) {
         log.warn("{} Invalid request: {}", hm.getShortLogMessage(), e.getMessage());
         return ResponseEntity.status(resolveResponseStatus(hm))
-                .body(Result.errorWithArgs(Status.REQUEST_PARAMS_NOT_VALID_ERROR, e.getMessage()));
+                .body(Result.<Object>errorWithArgs(Status.REQUEST_PARAMS_NOT_VALID_ERROR, e.getMessage()));
     }
 
     @ExceptionHandler(Throwable.class)
