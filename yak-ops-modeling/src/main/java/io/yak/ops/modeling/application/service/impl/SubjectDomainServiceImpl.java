@@ -3,10 +3,9 @@ package io.yak.ops.modeling.application.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.yak.ops.modeling.api.dto.subjectdomain.SubjectDomainDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.subjectdomain.SubjectDomainPO;
+import io.yak.ops.dao.entity.SubjectDomainPO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.subjectdomain.SubjectDomainVO;
 import io.yak.ops.modeling.api.vo.tree.TreeTypeValueVO;
@@ -14,7 +13,7 @@ import io.yak.ops.modeling.support.ConvertUtil;
 import io.yak.ops.modeling.support.TreeUtil;
 import io.yak.ops.modeling.application.service.DataMartService;
 import io.yak.ops.modeling.application.service.SubjectDomainService;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.SubjectDomainMapper;
+import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class SubjectDomainServiceImpl extends ServiceImpl<SubjectDomainMapper, SubjectDomainPO> implements SubjectDomainService {
+public class SubjectDomainServiceImpl implements SubjectDomainService {
 
     private static final String MART = "MART";
     private static final String SUBJECT = "SUBJECT";
@@ -32,11 +31,14 @@ public class SubjectDomainServiceImpl extends ServiceImpl<SubjectDomainMapper, S
     @Resource
     private DataMartService dataMartService;
 
+    @Resource
+    private SubjectDomainDao subjectDomainDao;
+
     @Override
     public String create(SubjectDomainDTO SubjectDomain) {
         SubjectDomainPO SubjectDomainPO = ConvertUtil.sourceToTarget(SubjectDomain, SubjectDomainPO.class);
         SubjectDomainPO.initInsert();
-        save(SubjectDomainPO);
+        subjectDomainDao.insert(SubjectDomainPO);
         return SubjectDomainPO.getId();
     }
 
@@ -44,19 +46,19 @@ public class SubjectDomainServiceImpl extends ServiceImpl<SubjectDomainMapper, S
     public SubjectDomainVO updateById(SubjectDomainDTO SubjectDomain) {
         SubjectDomainPO SubjectDomainPO = ConvertUtil.sourceToTarget(SubjectDomain, SubjectDomainPO.class);
         SubjectDomainPO.initUpdate();
-        updateById(SubjectDomainPO);
+        subjectDomainDao.updateById(SubjectDomainPO);
         return ConvertUtil.sourceToTarget(SubjectDomainPO, SubjectDomainVO.class);
     }
 
     @Override
     public String delete(String id) {
-        removeById(id);
+        subjectDomainDao.deleteById(id);
         return id;
     }
 
     @Override
     public SubjectDomainVO selectById(String id) {
-        SubjectDomainPO SubjectDomainPO = getById(id);
+        SubjectDomainPO SubjectDomainPO = subjectDomainDao.queryById(id);
         SubjectDomainVO vo = ConvertUtil.sourceToTarget(SubjectDomainPO, SubjectDomainVO.class);
         DataMartVO dataMartVO = dataMartService.selectById(vo.getDataMartId());
         vo.setDataMartName(dataMartVO.getMartName());
@@ -70,7 +72,7 @@ public class SubjectDomainServiceImpl extends ServiceImpl<SubjectDomainMapper, S
         wrapper.eq(dto.getDataMartId() != null, SubjectDomainPO::getDataMartId, dto.getDataMartId())
                 .eq(dto.getId() != null, SubjectDomainPO::getParentId, dto.getId())
                 .orderByDesc(SubjectDomainPO::getUpdateTime);
-        IPage<SubjectDomainPO> result = page(iPage, wrapper);
+        IPage<SubjectDomainPO> result = subjectDomainDao.queryPage(iPage, wrapper);
         List<SubjectDomainVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), SubjectDomainVO.class);
         return PaginationResult.buildSuc(
                 records,
@@ -113,7 +115,7 @@ public class SubjectDomainServiceImpl extends ServiceImpl<SubjectDomainMapper, S
     public List<SubjectDomainVO> all() {
         LambdaQueryWrapper<SubjectDomainPO> queryWrapper = new LambdaQueryWrapper<>();
 
-        return baseMapper.selectList(queryWrapper).stream().map(item -> ConvertUtil.sourceToTarget(item, SubjectDomainVO.class)).collect(Collectors.toList());
+        return subjectDomainDao.queryList(queryWrapper).stream().map(item -> ConvertUtil.sourceToTarget(item, SubjectDomainVO.class)).collect(Collectors.toList());
     }
 
 }
