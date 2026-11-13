@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseServiceImpl implements ModelingModuleService {
 
+    @Override
     public ModelingBootstrapVO getBootstrap(long projectCode) {
         return new ModelingBootstrapVO(
                 projectCode,

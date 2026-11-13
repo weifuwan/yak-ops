@@ -18,6 +18,7 @@ import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.modeling.application.service.DwLayerService;
+import io.yak.ops.modeling.application.service.DimensionTreeBuilder;
 import io.yak.ops.modeling.application.service.DimensionModelingService;
 import io.yak.ops.common.service.BaseServiceImpl;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
@@ -48,6 +49,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     @Resource private DwLayerService dwLayerService;
     @Resource private DimensionTreeBuilder dimensionTreeBuilder;
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO create(DimensionTableDTO dto) {
         if (dto == null) throw new IllegalArgumentException("维度建模参数不能为空");
@@ -65,6 +67,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return toVO(po);
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO updateById(DimensionTableDTO dto) {
         if (dto == null || !notBlank(dto.getId())) {
@@ -103,6 +106,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return toVO(dimensionTableDao.queryById(dto.getId()));
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO submit(String id) {
         DimensionTablePO po = requireTable(id);
@@ -114,6 +118,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return toVO(dimensionTableDao.queryById(id));
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         requireTable(id);
@@ -128,6 +133,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return id;
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean deleteBatch(List<String> ids) {
         if (ids == null || ids.isEmpty()) return Boolean.TRUE;
@@ -135,10 +141,12 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return Boolean.TRUE;
     }
 
+    @Override
     public DimensionTableVO selectById(String id) {
         return toVO(requireTable(id));
     }
 
+    @Override
     public IPage<DimensionTableVO> page(DimensionTableDTO dto) {
         DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
         normalizeRelations(query);
@@ -152,12 +160,14 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return page;
     }
 
+    @Override
     public List<DimensionTreeNodeVO> tree(DimensionTableDTO dto) {
         DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
         normalizeRelations(query);
         return dimensionTreeBuilder.buildTree(query);
     }
 
+    @Override
     public List<DimensionTableVO> all(DimensionTableDTO dto) {
         DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
         normalizeRelations(query);
@@ -165,12 +175,14 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .stream().map(this::toVO).collect(Collectors.toList());
     }
 
+    @Override
     public List<DimensionTableVO> getNoneList(String keyword) {
         DimensionTableDTO dto = new DimensionTableDTO();
         dto.setKeyword(keyword);
         return all(dto);
     }
 
+    @Override
     public List<OptionVO> getSelectOption() {
         return all(new DimensionTableDTO()).stream().map(item -> {
             OptionVO option = new OptionVO();
@@ -180,6 +192,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         }).collect(Collectors.toList());
     }
 
+    @Override
     public List<OptionVO> getDimOption() {
         QueryWrapper<DimensionTablePO> wrapper = new QueryWrapper<>();
         wrapper.eq("table_type", DimensionTableTypeEnum.DIM.getCode()).orderByAsc("cn_name");
@@ -191,6 +204,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         }).collect(Collectors.toList());
     }
 
+    @Override
     public List<DimensionVersionHistoryVO> getVersionHistory(String id) {
         requireTable(id);
         return versionManagementDao.queryList(new QueryWrapper<VersionManagementPO>()
@@ -206,6 +220,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO rollbackToVersion(String id, Integer targetVersion) {
         if (!notBlank(id)) throw new IllegalArgumentException("主键不能为空");
@@ -231,6 +246,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         }
     }
 
+    @Override
     public List<DimensionTableFieldVO> listFields(String tableId) {
         requireTable(tableId);
         return dimensionTableFieldDao.queryList(new QueryWrapper<DimensionTableFieldPO>()
@@ -238,6 +254,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .stream().map(this::toFieldVO).collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableFieldVO createField(String tableId, DimensionTableFieldDTO dto) {
         requireTable(tableId);
@@ -250,6 +267,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return toFieldVO(po);
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableFieldVO updateField(String tableId, String fieldId, DimensionTableFieldDTO dto) {
         requireTable(tableId);
@@ -269,6 +287,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return toFieldVO(dimensionTableFieldDao.queryById(fieldId));
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public List<DimensionTableFieldVO> replaceFields(String tableId, List<DimensionTableFieldDTO> fields) {
         requireTable(tableId);
@@ -315,6 +334,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return listFields(tableId);
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String deleteField(String tableId, String fieldId) {
         requireTable(tableId);

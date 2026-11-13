@@ -26,6 +26,8 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
     @Resource private ObjectMapper objectMapper;
     @Resource private ModelingAssetDao modelingAssetDao;
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public IPage<Map<String, Object>> page(String resource, Map<String, Object> params) {
         String key = normalize(resource);
         if ("standard-directory".equals(key) && "UNIT".equalsIgnoreCase(text(params.get("dirModule")))) {
@@ -50,6 +52,8 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<Map<String, Object>> all(String resource, Map<String, Object> params) {
         String key = normalize(resource);
         if ("standard-directory".equals(key) && "UNIT".equalsIgnoreCase(text(params.get("dirModule")))) {
@@ -74,6 +78,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
     public Map<String, Object> get(String resource, String id) {
         String key = normalize(resource);
         switch (key) {
@@ -98,6 +103,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String create(String resource, Map<String, Object> payload) {
         String key = normalize(resource);
@@ -154,6 +160,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> update(String resource, Map<String, Object> payload) {
         String key = normalize(resource);
@@ -215,6 +222,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String delete(String resource, String id) {
         String key = normalize(resource);
@@ -258,6 +266,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         return id;
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> submit(String resource, String id) {
         String key = normalize(resource);
@@ -272,6 +281,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
     public List<Map<String, Object>> versions(String resource, String id) {
         String type = versionType(normalize(resource));
         List<VersionManagementPO> records = modelingAssetDao.queryList("version-management", 
@@ -286,6 +296,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         return result;
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> rollback(String resource, String id, Integer versionNumber) {
         String key = normalize(resource);
@@ -304,6 +315,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    @Override
     public List<ModelingAssetTreeVO> directoryTree(String module) {
         String type = module == null ? "" : module.trim().toUpperCase(Locale.ROOT);
         if (!Arrays.asList("FIELD", "CODE", "UNIT").contains(type)) {
