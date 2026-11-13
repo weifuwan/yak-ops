@@ -3,7 +3,7 @@ package io.yak.ops.modeling.api.dto.datamart;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import io.yak.ops.modeling.api.dto.pagination.PaginationBaseDTO;
-import io.yak.ops.modeling.domain.enums.MartTypeEnum;
+import io.yak.ops.dao.entity.enums.MartTypeEnum;
 
 import java.util.Date;
 
