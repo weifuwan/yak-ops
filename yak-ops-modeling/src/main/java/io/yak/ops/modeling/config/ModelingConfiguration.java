@@ -1,23 +1,15 @@
 package io.yak.ops.modeling.config;
 
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Spring integration for the data modeling business module.
+ * Spring integration for the data modeling application services.
  *
- * <p>The module owns its services and persistence mappers while reusing Yak Ops'
- * shared datasource and MyBatis session factory. Its HTTP boundary delegates
- * authentication and project authorization to the existing API services.
+ * <p>All Modeling persistence components are provided by yak-ops-dao. This
+ * module only registers application services and their orchestration helpers.
  */
 @Configuration
-@ComponentScan(basePackages = {
-        "io.yak.ops.modeling.application",
-        "io.yak.ops.modeling.infrastructure"
-})
-@MapperScan(
-        basePackages = "io.yak.ops.modeling.infrastructure.persistence.mapper",
-        sqlSessionFactoryRef = "sqlSessionFactory")
+@ComponentScan(basePackages = "io.yak.ops.modeling.application")
 public class ModelingConfiguration {
 }
