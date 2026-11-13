@@ -14,18 +14,17 @@ import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionVersionHistoryVO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.asset.ModelingAssetPOs.VersionManagementPO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.dimension.DimensionTableFieldPO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.dimension.DimensionTablePO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.dwlayer.DwLayerPO;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.asset.VersionManagementMapper;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.dimension.DimensionTableFieldMapper;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.dimension.DimensionTableMapper;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.asset.ModifierMapper;
-import io.yak.ops.modeling.infrastructure.persistence.entity.asset.ModelingAssetPOs.ModifierPO;
+import io.yak.ops.dao.entity.VersionManagementPO;
+import io.yak.ops.dao.entity.DimensionTableFieldPO;
+import io.yak.ops.dao.entity.DimensionTablePO;
+import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.modeling.application.service.DwLayerService;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
-import io.yak.ops.modeling.domain.enums.DimensionTableTypeEnum;
+import io.yak.ops.dao.repository.modeling.DimensionTableDao;
+import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
+import io.yak.ops.dao.repository.modeling.ModifierDao;
+import io.yak.ops.dao.repository.modeling.VersionManagementDao;
+import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,10 +40,10 @@ public class DimensionModelingService {
     private static final String VERSION_TYPE = "DIMENSION_TABLE";
 
     @Resource private ObjectMapper objectMapper;
-    @Resource private DimensionTableMapper dimensionTableMapper;
-    @Resource private ModifierMapper modifierMapper;
-    @Resource private DimensionTableFieldMapper dimensionTableFieldMapper;
-    @Resource private VersionManagementMapper versionManagementMapper;
+    @Resource private DimensionTableDao dimensionTableDao;
+    @Resource private ModifierDao modifierDao;
+    @Resource private DimensionTableFieldDao dimensionTableFieldDao;
+    @Resource private VersionManagementDao versionManagementDao;
     @Resource private DwLayerService dwLayerService;
     @Resource private DimensionTreeBuilder dimensionTreeBuilder;
 
@@ -61,7 +60,7 @@ public class DimensionModelingService {
         po.setProjectCode(null);
         po.setSubmit(Boolean.FALSE);
         po.initInsert();
-        dimensionTableMapper.insert(po);
+        dimensionTableDao.insert(po);
         return toVO(po);
     }
 
@@ -70,7 +69,7 @@ public class DimensionModelingService {
         if (dto == null || !notBlank(dto.getId())) {
             throw new IllegalArgumentException("主键不能为空");
         }
-        DimensionTablePO existing = dimensionTableMapper.selectById(dto.getId());
+        DimensionTablePO existing = dimensionTableDao.queryById(dto.getId());
         if (existing == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
 
         normalizeRelations(dto);
@@ -86,7 +85,7 @@ public class DimensionModelingService {
         po.setSubmit(Boolean.FALSE);
         po.initUpdate();
         po.setUpdateBy("sys");
-        dimensionTableMapper.updateById(po);
+        dimensionTableDao.updateById(po);
 
         // These relation fields may intentionally be cleared when the selected
         // mart/subject or business process changes; update them explicitly.
@@ -99,8 +98,8 @@ public class DimensionModelingService {
                 .set("bus_process_id", po.getBusProcessId())
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
-        dimensionTableMapper.update(null, relations);
-        return toVO(dimensionTableMapper.selectById(dto.getId()));
+        dimensionTableDao.update(null, relations);
+        return toVO(dimensionTableDao.queryById(dto.getId()));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -109,21 +108,21 @@ public class DimensionModelingService {
         po.setSubmit(Boolean.TRUE);
         po.initUpdate();
         po.setUpdateBy("sys");
-        dimensionTableMapper.updateById(po);
+        dimensionTableDao.updateById(po);
         saveVersion(po);
-        return toVO(dimensionTableMapper.selectById(id));
+        return toVO(dimensionTableDao.queryById(id));
     }
 
     @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         requireTable(id);
-        if (modifierMapper.selectCount(new QueryWrapper<ModifierPO>().eq("dimension_tb_id", id)) > 0) {
+        if (modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_tb_id", id)) > 0) {
             throw new IllegalArgumentException("该维度表已被指标修饰词引用，不能删除");
         }
-        dimensionTableFieldMapper.delete(new QueryWrapper<DimensionTableFieldPO>().eq("table_id", id));
-        versionManagementMapper.delete(new QueryWrapper<VersionManagementPO>()
+        dimensionTableFieldDao.deleteByWrapper(new QueryWrapper<DimensionTableFieldPO>().eq("table_id", id));
+        versionManagementDao.deleteByWrapper(new QueryWrapper<VersionManagementPO>()
                 .eq("source_table_id", id).eq("version_type", VERSION_TYPE));
-        int affected = dimensionTableMapper.deleteById(id);
+        int affected = dimensionTableDao.deleteById(id);
         if (affected <= 0) throw new IllegalArgumentException("删除维度建模失败");
         return id;
     }
@@ -145,7 +144,7 @@ public class DimensionModelingService {
         int pageNo = positive(query.getPageNo(), 1);
         int pageSize = Math.min(positive(query.getPageSize(), 10), 100);
         QueryWrapper<DimensionTablePO> wrapper = buildWrapper(query).orderByDesc("update_time");
-        IPage<DimensionTablePO> result = dimensionTableMapper.selectPage(new Page<DimensionTablePO>(pageNo, pageSize), wrapper);
+        IPage<DimensionTablePO> result = dimensionTableDao.queryPage(new Page<DimensionTablePO>(pageNo, pageSize), wrapper);
         List<DimensionTableVO> records = result.getRecords().stream().map(this::toVO).collect(Collectors.toList());
         return PaginationResult.buildSuc(records, result);
     }
@@ -159,7 +158,7 @@ public class DimensionModelingService {
     public List<DimensionTableVO> all(DimensionTableDTO dto) {
         DimensionTableDTO query = dto == null ? new DimensionTableDTO() : dto;
         normalizeRelations(query);
-        return dimensionTableMapper.selectList(buildWrapper(query).orderByDesc("update_time"))
+        return dimensionTableDao.queryList(buildWrapper(query).orderByDesc("update_time"))
                 .stream().map(this::toVO).collect(Collectors.toList());
     }
 
@@ -181,7 +180,7 @@ public class DimensionModelingService {
     public List<OptionVO> getDimOption() {
         QueryWrapper<DimensionTablePO> wrapper = new QueryWrapper<>();
         wrapper.eq("table_type", DimensionTableTypeEnum.DIM.getCode()).orderByAsc("cn_name");
-        return dimensionTableMapper.selectList(wrapper).stream().map(item -> {
+        return dimensionTableDao.queryList(wrapper).stream().map(item -> {
             OptionVO option = new OptionVO();
             option.setLabel(item.getCnName());
             option.setValue(item.getId());
@@ -191,7 +190,7 @@ public class DimensionModelingService {
 
     public List<DimensionVersionHistoryVO> getVersionHistory(String id) {
         requireTable(id);
-        return versionManagementMapper.selectList(new QueryWrapper<VersionManagementPO>()
+        return versionManagementDao.queryList(new QueryWrapper<VersionManagementPO>()
                         .eq("source_table_id", id).eq("version_type", VERSION_TYPE)
                         .orderByDesc("version_number"))
                 .stream()
@@ -209,7 +208,7 @@ public class DimensionModelingService {
         if (!notBlank(id)) throw new IllegalArgumentException("主键不能为空");
         if (targetVersion == null || targetVersion <= 0) throw new IllegalArgumentException("目标版本号必须大于0");
         requireTable(id);
-        VersionManagementPO version = versionManagementMapper.selectOne(new QueryWrapper<VersionManagementPO>()
+        VersionManagementPO version = versionManagementDao.queryOne(new QueryWrapper<VersionManagementPO>()
                 .eq("source_table_id", id)
                 .eq("version_type", VERSION_TYPE)
                 .eq("version_number", targetVersion));
@@ -222,8 +221,8 @@ public class DimensionModelingService {
             snapshot.initUpdate();
             snapshot.setUpdateBy("sys");
             restoreSnapshot(snapshot, id);
-            saveVersion(dimensionTableMapper.selectById(id));
-            return toVO(dimensionTableMapper.selectById(id));
+            saveVersion(dimensionTableDao.queryById(id));
+            return toVO(dimensionTableDao.queryById(id));
         } catch (Exception ex) {
             throw new IllegalStateException("维度建模版本回滚失败", ex);
         }
@@ -231,7 +230,7 @@ public class DimensionModelingService {
 
     public List<DimensionTableFieldVO> listFields(String tableId) {
         requireTable(tableId);
-        return dimensionTableFieldMapper.selectList(new QueryWrapper<DimensionTableFieldPO>()
+        return dimensionTableFieldDao.queryList(new QueryWrapper<DimensionTableFieldPO>()
                         .eq("table_id", tableId).orderByAsc("create_time"))
                 .stream().map(this::toFieldVO).collect(Collectors.toList());
     }
@@ -244,7 +243,7 @@ public class DimensionModelingService {
         po.setId(null);
         po.setProjectCode(null);
         po.initInsert();
-        dimensionTableFieldMapper.insert(po);
+        dimensionTableFieldDao.insert(po);
         return toFieldVO(po);
     }
 
@@ -252,7 +251,7 @@ public class DimensionModelingService {
     public DimensionTableFieldVO updateField(String tableId, String fieldId, DimensionTableFieldDTO dto) {
         requireTable(tableId);
         if (dto == null) throw new IllegalArgumentException("字段参数不能为空");
-        DimensionTableFieldPO existing = dimensionTableFieldMapper.selectOne(new QueryWrapper<DimensionTableFieldPO>()
+        DimensionTableFieldPO existing = dimensionTableFieldDao.queryOne(new QueryWrapper<DimensionTableFieldPO>()
                 .eq("id", fieldId).eq("table_id", tableId));
         if (existing == null) throw new IllegalArgumentException("维度字段不存在或不属于当前维度表");
 
@@ -264,13 +263,13 @@ public class DimensionModelingService {
         po.initUpdate();
         po.setUpdateBy("sys");
         updateFieldColumns(po, tableId, fieldId);
-        return toFieldVO(dimensionTableFieldMapper.selectById(fieldId));
+        return toFieldVO(dimensionTableFieldDao.queryById(fieldId));
     }
 
     @Transactional(rollbackFor = Exception.class)
     public List<DimensionTableFieldVO> replaceFields(String tableId, List<DimensionTableFieldDTO> fields) {
         requireTable(tableId);
-        List<DimensionTableFieldPO> existing = dimensionTableFieldMapper.selectList(
+        List<DimensionTableFieldPO> existing = dimensionTableFieldDao.queryList(
                 new QueryWrapper<DimensionTableFieldPO>().eq("table_id", tableId));
         Map<String, DimensionTableFieldPO> existingById = new HashMap<>();
         for (DimensionTableFieldPO item : existing) existingById.put(item.getId(), item);
@@ -296,7 +295,7 @@ public class DimensionModelingService {
                     po.setId(null);
                     po.setProjectCode(null);
                     po.initInsert();
-                    dimensionTableFieldMapper.insert(po);
+                    dimensionTableFieldDao.insert(po);
                     retainedIds.add(po.getId());
                 }
             }
@@ -304,10 +303,10 @@ public class DimensionModelingService {
 
         for (DimensionTableFieldPO old : existing) {
             if (!retainedIds.contains(old.getId())) {
-                if (modifierMapper.selectCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", old.getId())) > 0) {
+                if (modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", old.getId())) > 0) {
                     throw new IllegalArgumentException("字段已被指标修饰词引用，不能删除: " + old.getFieldName());
                 }
-                dimensionTableFieldMapper.deleteById(old.getId());
+                dimensionTableFieldDao.deleteById(old.getId());
             }
         }
         return listFields(tableId);
@@ -316,13 +315,13 @@ public class DimensionModelingService {
     @Transactional(rollbackFor = Exception.class)
     public String deleteField(String tableId, String fieldId) {
         requireTable(tableId);
-        DimensionTableFieldPO field = dimensionTableFieldMapper.selectOne(new QueryWrapper<DimensionTableFieldPO>()
+        DimensionTableFieldPO field = dimensionTableFieldDao.queryOne(new QueryWrapper<DimensionTableFieldPO>()
                 .eq("id", fieldId).eq("table_id", tableId));
         if (field == null) throw new IllegalArgumentException("维度字段不存在或不属于当前维度表");
-        if (modifierMapper.selectCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", fieldId)) > 0) {
+        if (modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", fieldId)) > 0) {
             throw new IllegalArgumentException("该维度字段已被指标修饰词引用，不能删除");
         }
-        dimensionTableFieldMapper.deleteById(fieldId);
+        dimensionTableFieldDao.deleteById(fieldId);
         return fieldId;
     }
 
@@ -382,14 +381,14 @@ public class DimensionModelingService {
         if (notBlank(tableName)) {
             QueryWrapper<DimensionTablePO> wrapper = new QueryWrapper<DimensionTablePO>().eq("table_name", tableName);
             if (notBlank(excludeId)) wrapper.ne("id", excludeId);
-            if (dimensionTableMapper.selectCount(wrapper) > 0) {
+            if (dimensionTableDao.queryCount(wrapper) > 0) {
                 throw new IllegalArgumentException("英文表名已存在：" + tableName);
             }
         }
         if (notBlank(cnName)) {
             QueryWrapper<DimensionTablePO> wrapper = new QueryWrapper<DimensionTablePO>().eq("cn_name", cnName);
             if (notBlank(excludeId)) wrapper.ne("id", excludeId);
-            if (dimensionTableMapper.selectCount(wrapper) > 0) {
+            if (dimensionTableDao.queryCount(wrapper) > 0) {
                 throw new IllegalArgumentException("中文名称已存在：" + cnName);
             }
         }
@@ -397,7 +396,7 @@ public class DimensionModelingService {
 
     private DimensionTablePO requireTable(String id) {
         if (!notBlank(id)) throw new IllegalArgumentException("维度表ID不能为空");
-        DimensionTablePO po = dimensionTableMapper.selectById(id);
+        DimensionTablePO po = dimensionTableDao.queryById(id);
         if (po == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
         return po;
     }
@@ -421,7 +420,7 @@ public class DimensionModelingService {
     }
 
     private int currentVersion(String id) {
-        VersionManagementPO latest = versionManagementMapper.selectOne(new QueryWrapper<VersionManagementPO>()
+        VersionManagementPO latest = versionManagementDao.queryOne(new QueryWrapper<VersionManagementPO>()
                 .eq("source_table_id", id).eq("version_type", VERSION_TYPE)
                 .orderByDesc("version_number").last("limit 1"));
         return latest == null || latest.getVersionNumber() == null ? 0 : latest.getVersionNumber();
@@ -436,7 +435,7 @@ public class DimensionModelingService {
             version.setVersionData(objectMapper.writeValueAsString(po));
             version.setProjectCode(null);
             version.initInsert();
-            versionManagementMapper.insert(version);
+            versionManagementDao.insert(version);
         } catch (Exception ex) {
             throw new IllegalStateException("保存维度建模版本失败", ex);
         }
@@ -465,7 +464,7 @@ public class DimensionModelingService {
                 .set("submit", po.getSubmit())
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
-        dimensionTableMapper.update(null, wrapper);
+        dimensionTableDao.update(null, wrapper);
     }
 
     private DimensionTableFieldPO toFieldPO(DimensionTableFieldDTO dto, String tableId) {
@@ -503,7 +502,7 @@ public class DimensionModelingService {
                 .set("code_std_id", po.getCodeStdId())
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
-        dimensionTableFieldMapper.update(null, wrapper);
+        dimensionTableFieldDao.update(null, wrapper);
     }
 
     private int positive(Integer value, int fallback) {
