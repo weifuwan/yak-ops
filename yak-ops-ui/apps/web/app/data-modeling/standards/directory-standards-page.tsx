@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Layers, LoaderCircle,
-  Pencil, Plus, PlusSquare, RefreshCw, Trash2,
+  Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
 } from "lucide-react";
 import {
   Button, Input, Modal, Table, toast, type TableColumns,
@@ -14,7 +14,7 @@ import type {
   StandardModule, StandardTreeNode, UnitStandardRecord,
 } from "./types";
 import {
-  getDirectoryTypeLabel, getStandardDescription, getStandardResource,
+  getDirectoryTypeLabel, getStandardResource,
   getStandardTitle, isDirectoryNode,
 } from "./types";
 import { StandardDirectoryFormDialog } from "./standard-directory-form-dialog";
@@ -217,8 +217,10 @@ function StandardRecordDetails({
 export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const queryClient = useQueryClient();
   const title = getStandardTitle(module);
-  const description = getStandardDescription(module);
   const resource = getStandardResource(module);
+  const splitRef = useRef<HTMLDivElement | null>(null);
+  const [leftWidth, setLeftWidth] = useState(280);
+  const [resizing, setResizing] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [selectedNode, setSelectedNode] = useState<StandardTreeNode>();
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -251,6 +253,21 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   useEffect(() => {
     setExpandedKeys(new Set(getExpandableKeys(treeRows)));
   }, [treeRows]);
+
+  useEffect(() => {
+    if (!resizing) return;
+    const onMove = (event: PointerEvent) => {
+      const rect = splitRef.current?.getBoundingClientRect();
+      if (rect) setLeftWidth(Math.min(480, Math.max(220, event.clientX - rect.left)));
+    };
+    const onUp = () => setResizing(false);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [resizing]);
 
   useEffect(() => {
     setRecordPageNo(1);
@@ -480,28 +497,38 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     : [];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f2f3f5]" onClick={() => setContextMenu(undefined)}>
-      <header className="shrink-0 bg-white px-5 py-4 shadow-[0_2px_8px_#0000000d]">
-        <h1 className="m-0 text-xl font-bold leading-7 text-[#26282c]">{title}</h1>
-        <p className="mb-0 mt-2 text-xs leading-5 text-[#626875]">{description}</p>
-      </header>
-
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="flex w-[280px] shrink-0 flex-col border-r border-[#e7e9ee] bg-white max-md:w-[220px]">
-          <div className="flex items-center justify-between px-3 pb-2 pt-3">
-            <span className="text-xs font-semibold text-[#3a3d51]">{title}目录</span>
+    <div ref={splitRef}
+      className="relative flex h-full min-h-[620px] min-w-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white"
+      onClick={() => setContextMenu(undefined)}>
+      <aside className="flex min-h-0 shrink-0 flex-col overflow-hidden bg-white" style={{ width: leftWidth }}>
+          <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3">
+            <span className="truncate text-sm font-semibold text-[var(--yak-components-panel-text)]">{title}</span>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" isIconOnly aria-label="新建根目录" onClick={() => openCreateDirectory()}>
-                <PlusSquare size={15} />
-              </Button>
-              <Button size="sm" variant="ghost" isIconOnly aria-label="刷新目录" onClick={() => void refresh()}>
-                <RefreshCw size={14} />
-              </Button>
+              <button type="button" title={"新建" + title + "目录"}
+                className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
+                onClick={() => openCreateDirectory()}>
+                <PlusSquare size={16} />
+              </button>
+              <button type="button" title="刷新"
+                className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
+                onClick={() => void refresh()}>
+                <RefreshCw size={15} className={treeQuery.isFetching ? "animate-spin" : ""} />
+              </button>
             </div>
           </div>
-          <div className="px-3 pb-2">
-            <Input size="small" variant="outlined" value={keyword} placeholder={"搜索" + title + "目录"}
-              onChange={(event) => setKeyword(event.target.value)} />
+          <div className="shrink-0 px-3 py-2">
+            <div className="relative">
+              <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
+              <Input size="small" variant="outlined" value={keyword} className="pl-8 pr-8" placeholder="搜索"
+                onValueChange={(value) => setKeyword(String(value))} />
+              {keyword ? (
+                <button type="button" aria-label="清空搜索"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-[var(--yak-components-muted-text)]"
+                  onClick={() => setKeyword("")}>
+                  <X size={13} />
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
             {treeQuery.isPending ? (
@@ -533,6 +560,12 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
             )}
           </div>
         </aside>
+
+        <div role="separator" aria-orientation="vertical" aria-label={"调整" + title + "目录宽度"}
+          className={["relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
+          onPointerDown={(event) => { event.preventDefault(); setResizing(true); }}>
+          <span className="absolute inset-y-0 -left-1 -right-1" />
+        </div>
 
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {!selectedNode ? (
@@ -663,7 +696,6 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
             </div>
           )}
         </section>
-      </main>
 
       {contextMenu ? (
         <div
