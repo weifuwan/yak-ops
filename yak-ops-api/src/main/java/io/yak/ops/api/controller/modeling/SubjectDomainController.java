@@ -18,14 +18,14 @@ import java.util.List;
 public class SubjectDomainController extends BaseController {
 
     @Resource
-    private SubjectDomainService SubjectDomainService;
+    private SubjectDomainService subjectDomainService;
 
     /**
      * 新增主题域
      */
     @PostMapping
     public Result<String> create(@RequestBody SubjectDomainDTO dto) {
-        return Result.success(SubjectDomainService.create(dto));
+        return Result.success(subjectDomainService.create(dto));
     }
 
     /**

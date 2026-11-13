@@ -20,13 +20,13 @@ public class DataDomainController extends BaseController {
     private DataDomainService dataDomainService;
 
     @PostMapping
-    public Result<String> create(@RequestBody DataDomainDTO DataDomain) {
-        return Result.success(dataDomainService.create(DataDomain));
+    public Result<String> create(@RequestBody DataDomainDTO dto) {
+        return Result.success(dataDomainService.create(dto));
     }
 
     @PutMapping
     public Result<DataDomainVO> update(@RequestBody DataDomainDTO DataDomain) {
-        return Result.success(dataDomainService.updateById(DataDomain));
+        return Result.success(dataDomainService.updateById(dto));
     }
 
     @DeleteMapping("/{id}")
@@ -40,9 +40,9 @@ public class DataDomainController extends BaseController {
     }
 
     @PostMapping(value = "page")
-    public Result<PageInfo<DataDomainVO>> paging(@RequestBody DataDomainDTO DataDomainDTO) {
+    public Result<PageInfo<DataDomainVO>> paging(@RequestBody DataDomainDTO dto {
         checkPageParams(DataDomainDTO.getPageNo(), DataDomainDTO.getPageSize());
-        return Result.success(PageInfo.of(dataDomainService.paging(DataDomainDTO)));
+        return Result.success(PageInfo.of(dataDomainService.paging(dto)));
     }
 
     @GetMapping(value = "all")

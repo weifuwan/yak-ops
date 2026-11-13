@@ -18,14 +18,14 @@ import java.util.List;
 public class DataMartController extends BaseController {
 
     @Resource
-    private DataMartService DataMartService;
+    private DataMartService dataMartService;
 
     /**
      * 新增数据集市
      */
     @PostMapping
     public Result<String> create(@RequestBody DataMartDTO dto) {
-        return Result.success(DataMartService.create(dto));
+        return Result.success(dataMartService.create(dto));
     }
 
     /**
