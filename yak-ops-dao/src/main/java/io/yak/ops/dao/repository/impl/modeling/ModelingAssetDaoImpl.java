@@ -61,51 +61,51 @@ public class ModelingAssetDaoImpl implements ModelingAssetDao {
 
     @Override
     public <T> IPage<T> queryPage(String resource, IPage<T> page, Wrapper<T> wrapper) {
-        return dao(resource).queryPage(page, wrapper);
+        return this.<T>dao(resource).queryPage(page, wrapper);
     }
 
     @Override
     public <T> List<T> queryList(String resource, Wrapper<T> wrapper) {
-        return dao(resource).queryList(wrapper);
+        return this.<T>dao(resource).queryList(wrapper);
     }
 
     @Override
     public <T> T queryById(String resource, Serializable id) {
-        return dao(resource).queryById(id);
+        return this.<T>dao(resource).queryById(id);
     }
 
     @Override
     public <T> T queryOne(String resource, Wrapper<T> wrapper) {
-        return dao(resource).queryOne(wrapper);
+        return this.<T>dao(resource).queryOne(wrapper);
     }
 
     @Override
     public <T> long queryCount(String resource, Wrapper<T> wrapper) {
-        return dao(resource).queryCount(wrapper);
+        return this.<T>dao(resource).queryCount(wrapper);
     }
 
     @Override
     public <T> int insert(String resource, T entity) {
-        return dao(resource).insert(entity);
+        return this.<T>dao(resource).insert(entity);
     }
 
     @Override
     public <T> int updateById(String resource, T entity) {
-        return dao(resource).updateById(entity) ? 1 : 0;
+        return this.<T>dao(resource).updateById(entity) ? 1 : 0;
     }
 
     @Override
     public <T> int update(String resource, T entity, Wrapper<T> wrapper) {
-        return dao(resource).update(entity, wrapper);
+        return this.<T>dao(resource).update(entity, wrapper);
     }
 
     @Override
     public <T> int deleteById(String resource, Serializable id) {
-        return dao(resource).deleteById(id) ? 1 : 0;
+        return this.<T>dao(resource).deleteById(id) ? 1 : 0;
     }
 
     @Override
     public <T> int deleteByWrapper(String resource, Wrapper<T> wrapper) {
-        return dao(resource).deleteByWrapper(wrapper);
+        return this.<T>dao(resource).deleteByWrapper(wrapper);
     }
 }
