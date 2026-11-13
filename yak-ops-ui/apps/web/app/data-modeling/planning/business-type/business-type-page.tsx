@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import {
   Button, Checkbox, Input, Modal, Popover, PopoverContent, PopoverTrigger,
+  Select, SelectContent, SelectItem, SelectItemIndicator, SelectItemText, SelectTrigger, SelectValue,
   Table, Textarea, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
@@ -410,8 +411,20 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
           ] as const).map(([label, key]) => (
             <label key={key} className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3">
               <span className="text-right text-xs text-[var(--yak-components-muted-text)]">{label}</span>
-              <Input size="small" variant="outlined" value={values[key]}
-                onValueChange={(value) => setValues((current) => ({ ...current, [key]: String(value) }))} />
+              {key === "martType" ? (
+                <Select size="small" value={values.martType || undefined}
+                  onValueChange={(value) => setValues((current) => ({ ...current, martType: String(value || "") }))}>
+                  <SelectTrigger variant="outlined"><SelectValue placeholder="请选择集市类型" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PUBLIC"><SelectItemText>公共集市</SelectItemText><SelectItemIndicator /></SelectItem>
+                    <SelectItem value="BUSINESS"><SelectItemText>业务集市</SelectItemText><SelectItemIndicator /></SelectItem>
+                    <SelectItem value="APPLICATION"><SelectItemText>数据应用集市</SelectItemText><SelectItemIndicator /></SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input size="small" variant="outlined" value={values[key]}
+                  onValueChange={(value) => setValues((current) => ({ ...current, [key]: String(value) }))} />
+              )}
             </label>
           ))}
           <label className="grid grid-cols-[100px_minmax(0,1fr)] items-start gap-3">
