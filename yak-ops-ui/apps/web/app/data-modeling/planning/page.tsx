@@ -138,7 +138,7 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
   return (
     <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
       <PageHeader
-        title={activeDefinition.title}
+        title={definitionKey === "businessType" ? "业务分类" : activeDefinition.title}
         bordered
         className="bg-white px-6 max-md:px-4"
       />
