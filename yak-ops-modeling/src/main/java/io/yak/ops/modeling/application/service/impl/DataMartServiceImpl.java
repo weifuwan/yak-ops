@@ -3,10 +3,9 @@ package io.yak.ops.modeling.application.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.datamart.DataMartPO;
+import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
@@ -14,7 +13,7 @@ import io.yak.ops.modeling.support.ConvertUtil;
 import io.yak.ops.modeling.support.TreeUtil;
 import io.yak.ops.modeling.application.service.BusinessTypeService;
 import io.yak.ops.modeling.application.service.DataMartService;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.DataMartMapper;
+import io.yak.ops.dao.repository.modeling.DataMartDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -23,16 +22,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO> implements DataMartService {
+public class DataMartServiceImpl implements DataMartService {
 
     @Resource
     private BusinessTypeService businessTypeService;
+
+    @Resource
+    private DataMartDao dataMartDao;
 
     @Override
     public String create(DataMartDTO DataMart) {
         DataMartPO DataMartPO = ConvertUtil.sourceToTarget(DataMart, DataMartPO.class);
         DataMartPO.initInsert();
-        save(DataMartPO);
+        dataMartDao.insert(DataMartPO);
         return DataMartPO.getId();
     }
 
@@ -40,19 +42,19 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
     public DataMartVO updateById(DataMartDTO DataMart) {
         DataMartPO DataMartPO = ConvertUtil.sourceToTarget(DataMart, DataMartPO.class);
         DataMartPO.initUpdate();
-        updateById(DataMartPO);
+        dataMartDao.updateById(DataMartPO);
         return ConvertUtil.sourceToTarget(DataMartPO, DataMartVO.class);
     }
 
     @Override
     public String delete(String id) {
-        removeById(id);
+        dataMartDao.deleteById(id);
         return id;
     }
 
     @Override
     public DataMartVO selectById(String id) {
-        DataMartPO DataMartPO = getById(id);
+        DataMartPO DataMartPO = dataMartDao.queryById(id);
         DataMartVO dataMartVO = ConvertUtil.sourceToTarget(DataMartPO, DataMartVO.class);
         dataMartVO.setMartTypeName(dataMartVO.getMartType().getName());
 
@@ -72,7 +74,7 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
             wrapper.eq(DataMartPO::getParentId, dto.getId());
         }
         wrapper.orderByDesc(DataMartPO::getUpdateTime);
-        IPage<DataMartPO> result = page(iPage, wrapper);
+        IPage<DataMartPO> result = dataMartDao.queryPage(iPage, wrapper);
         List<DataMartVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), DataMartVO.class);
         return PaginationResult.buildSuc(
                 records,
@@ -100,7 +102,7 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
                 .like(DataMartPO::getEnShortName, keyword)
         );
 
-        List<DataMartPO> matchedList = baseMapper.selectList(wrapper);
+        List<DataMartPO> matchedList = dataMartDao.queryList(wrapper);
 
         if (matchedList.isEmpty()) {
             return Collections.emptyList();
@@ -119,7 +121,7 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
         fullWrapper.in(DataMartPO::getId, includeIds);
         fullWrapper.orderByAsc(DataMartPO::getUpdateTime);
 
-        baseMapper.selectList(fullWrapper).forEach(item ->
+        dataMartDao.queryList(fullWrapper).forEach(item ->
                 dataList.add(new TreeVO(
                         item.getId() + "",
                         item.getId() + "",
@@ -137,7 +139,7 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
     public List<DataMartVO> all() {
         LambdaQueryWrapper<DataMartPO> queryWrapper = new LambdaQueryWrapper<>();
 
-        return baseMapper.selectList(queryWrapper).stream().map(item -> ConvertUtil.sourceToTarget(item, DataMartVO.class)).collect(Collectors.toList());
+        return dataMartDao.queryList(queryWrapper).stream().map(item -> ConvertUtil.sourceToTarget(item, DataMartVO.class)).collect(Collectors.toList());
     }
 
     // ==================================================== private ====================================================
@@ -148,7 +150,7 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
             return;
         }
 
-        DataMartPO parent = baseMapper.selectById(parentId);
+        DataMartPO parent = dataMartDao.queryById(parentId);
         if (parent != null) {
             includeIds.add(parent.getId());
             addAllParentIds(parent.getParentId() == null ? null : parent.getParentId(), includeIds);
@@ -158,7 +160,7 @@ public class DataMartServiceImpl extends ServiceImpl<DataMartMapper, DataMartPO>
     // 构建完整树的方法
     private List<TreeVO> buildFullTree(LambdaQueryWrapper<DataMartPO> wrapper) {
         List<TreeVO> dataList = new ArrayList<>();
-        baseMapper.selectList(wrapper).forEach(item ->
+        dataMartDao.queryList(wrapper).forEach(item ->
                 dataList.add(new TreeVO(
                         item.getId() + "",
                         item.getId() + "",
