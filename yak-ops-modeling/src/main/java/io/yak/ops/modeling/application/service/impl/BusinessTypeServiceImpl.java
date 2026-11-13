@@ -3,22 +3,22 @@ package io.yak.ops.modeling.application.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.businesstype.BusinessTypePO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.businesstype.related.BusinessTypeRelatedDataDomainPO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.datadomain.DataDomainPO;
+import io.yak.ops.dao.entity.BusinessTypePO;
+import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
+import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
 import io.yak.ops.modeling.support.ConvertUtil;
 import io.yak.ops.modeling.support.TreeUtil;
-import io.yak.ops.modeling.application.service.BusinessTypeRelatedDataDomainService;
 import io.yak.ops.modeling.application.service.BusinessTypeService;
 import io.yak.ops.modeling.application.service.DataDomainService;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.BusinessTypeMapper;
+import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
+import io.yak.ops.dao.repository.modeling.DataDomainDao;
+import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -29,19 +29,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, BusinessTypePO> implements BusinessTypeService {
+public class BusinessTypeServiceImpl implements BusinessTypeService {
 
     @Resource
     private DataDomainService dataDomainService;
 
     @Resource
-    private BusinessTypeRelatedDataDomainService businessTypeRelatedDataDomainService;
+    private BusinessTypeDao businessTypeDao;
+
+    @Resource
+    private DataDomainDao dataDomainDao;
+
+    @Resource
+    private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
 
     @Override
     public String create(BusinessTypeDTO businessType) {
         BusinessTypePO businessTypePO = ConvertUtil.sourceToTarget(businessType, BusinessTypePO.class);
         businessTypePO.initInsert();
-        save(businessTypePO);
+        businessTypeDao.insert(businessTypePO);
         return businessTypePO.getId();
     }
 
@@ -49,19 +55,19 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
     public BusinessTypeVO updateById(BusinessTypeDTO businessType) {
         BusinessTypePO businessTypePO = ConvertUtil.sourceToTarget(businessType, BusinessTypePO.class);
         businessTypePO.initUpdate();
-        int rows = getBaseMapper().updateById(businessTypePO);
+        businessTypeDao.updateById(businessTypePO);
         return ConvertUtil.sourceToTarget(businessTypePO, BusinessTypeVO.class);
     }
 
     @Override
     public String delete(String id) {
-        removeById(id);
+        businessTypeDao.deleteById(id);
         return id;
     }
 
     @Override
     public BusinessTypeVO selectById(String id) {
-        BusinessTypePO businessTypePO = getById(id);
+        BusinessTypePO businessTypePO = businessTypeDao.queryById(id);
         return ConvertUtil.sourceToTarget(businessTypePO, BusinessTypeVO.class);
     }
 
@@ -73,7 +79,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
             wrapper.eq(BusinessTypePO::getParentId, dto.getId());
         }
         wrapper.orderByDesc(BusinessTypePO::getUpdateTime);
-        IPage<BusinessTypePO> result = page(iPage, wrapper);
+        IPage<BusinessTypePO> result = businessTypeDao.queryPage(iPage, wrapper);
         List<BusinessTypeVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), BusinessTypeVO.class);
         return PaginationResult.buildSuc(
                 records,
@@ -101,7 +107,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
                 .like(BusinessTypePO::getEnShortName, keyword)
         );
 
-        List<BusinessTypePO> matchedList = baseMapper.selectList(wrapper);
+        List<BusinessTypePO> matchedList = businessTypeDao.queryList(wrapper);
 
         if (matchedList.isEmpty()) {
             return Collections.emptyList();
@@ -121,7 +127,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
         fullWrapper.orderByAsc(BusinessTypePO::getUpdateTime);
 
 
-        baseMapper.selectList(fullWrapper).forEach(item ->
+        businessTypeDao.queryList(fullWrapper).forEach(item ->
                 dataList.add(new TreeVO(
                         item.getId() + "",
                         item.getId() + "",
@@ -138,7 +144,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
     public List<BusinessTypeVO> all() {
         LambdaQueryWrapper<BusinessTypePO> queryWrapper = new LambdaQueryWrapper<>();
 
-        return baseMapper.selectList(queryWrapper).stream().map(item ->
+        return businessTypeDao.queryList(queryWrapper).stream().map(item ->
                 ConvertUtil.sourceToTarget(item, BusinessTypeVO.class)).collect(Collectors.toList());
     }
 
@@ -147,7 +153,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
         List<String> dataDomainIds = getRelatedDomainIdsByBusId(id);
         List<DataDomainPO> res = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(dataDomainIds)) {
-            res = dataDomainService.getBaseMapper().selectBatchIds(dataDomainIds);
+            res = dataDomainDao.queryByIds(dataDomainIds);
         }
 
         return ConvertUtil.sourceListToTarget(res, DataDomainVO.class);
@@ -162,7 +168,8 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
                     .dataId(item)
                     .build()));
         }
-        return businessTypeRelatedDataDomainService.saveBatch(insertList);
+        businessTypeRelatedDataDomainDao.insertBatch(insertList);
+        return true;
     }
 
     @Override
@@ -172,7 +179,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
             wrapper.eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, id)
                     .eq(BusinessTypeRelatedDataDomainPO::getDataId, dataDomainId);
         }
-        return businessTypeRelatedDataDomainService.remove(wrapper);
+        return businessTypeRelatedDataDomainDao.deleteByWrapper(wrapper) > 0;
     }
 
     @Override
@@ -186,7 +193,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
                 wrapper.notIn(DataDomainPO::getId, dataDomainIds);
             }
         }
-        return dataDomainService.getBaseMapper().selectList(wrapper).stream().map(item -> {
+        return dataDomainDao.queryList(wrapper).stream().map(item -> {
             OptionVO optionVO = new OptionVO();
             optionVO.setLabel(item.getCnName() + "(" + item.getEnShortName() + ")");
             optionVO.setValue(item.getId());
@@ -202,7 +209,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
         if (id != null) {
             wrapper.eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, id);
         }
-        businessTypeRelatedDataDomainService.getBaseMapper().delete(wrapper);
+        businessTypeRelatedDataDomainDao.deleteByWrapper(wrapper);
         List<BusinessTypeRelatedDataDomainPO> insertList = new ArrayList<>();
         dataDomainService.all().forEach(item -> {
             BusinessTypeRelatedDataDomainPO businessTypeRelatedDataDomainPO = new BusinessTypeRelatedDataDomainPO();
@@ -210,7 +217,8 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
             businessTypeRelatedDataDomainPO.setDataId(item.getId());
             insertList.add(businessTypeRelatedDataDomainPO);
         });
-        return businessTypeRelatedDataDomainService.saveBatch(insertList);
+        businessTypeRelatedDataDomainDao.insertBatch(insertList);
+        return true;
     }
 
 
@@ -223,7 +231,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
             wrapper.eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, id);
         }
 
-        return businessTypeRelatedDataDomainService.getBaseMapper().selectList(wrapper).stream().map(BusinessTypeRelatedDataDomainPO::getDataId).collect(Collectors.toList());
+        return businessTypeRelatedDataDomainDao.queryList(wrapper).stream().map(BusinessTypeRelatedDataDomainPO::getDataId).collect(Collectors.toList());
     }
 
 
@@ -233,7 +241,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
             return;
         }
 
-        BusinessTypePO parent = baseMapper.selectById(parentId);
+        BusinessTypePO parent = businessTypeDao.queryById(parentId);
         if (parent != null) {
             includeIds.add(parent.getId());
             addAllParentIds(parent.getParentId() == null ? null : parent.getParentId(), includeIds);
@@ -243,7 +251,7 @@ public class BusinessTypeServiceImpl extends ServiceImpl<BusinessTypeMapper, Bus
     // 构建完整树的方法
     private List<TreeVO> buildFullTree(LambdaQueryWrapper<BusinessTypePO> wrapper) {
         List<TreeVO> dataList = new ArrayList<>();
-        baseMapper.selectList(wrapper).forEach(item ->
+        businessTypeDao.queryList(wrapper).forEach(item ->
                 dataList.add(new TreeVO(
                         item.getId() + "",
                         item.getId() + "",
