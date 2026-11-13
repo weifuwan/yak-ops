@@ -104,8 +104,8 @@ export function ModelingEntityPage({ projectCode, definition }: Props) {
 
   useEffect(() => setPageNo(1), [keyword, definition.key]);
 
-  const records = pageQuery.data?.bizData ?? [];
-  const total = pageQuery.data?.pagination?.total ?? 0;
+  const records = pageQuery.data?.totalList ?? [];
+  const total = pageQuery.data?.total ?? 0;
   const versionQuery = useQuery({
     queryKey: ["modeling", "versions", projectCode, definition.key, versionTarget?.id],
     queryFn: () => modelingEntityApi.versions(projectCode, definition.key, versionTarget!.id!),

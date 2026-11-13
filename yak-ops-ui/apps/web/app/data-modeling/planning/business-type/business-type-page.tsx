@@ -213,11 +213,11 @@ function BusinessTypeChildren({
         <h3 className={TITLE.replace("mb-4 ", "")}><span className="h-4 w-1 rounded-full bg-[var(--yak-color-primary)]" />子业务分类</h3>
         <Button size="sm" variant="primary" onClick={onAdd}><Plus size={13} />新建子业务分类</Button>
       </div>
-      <Table<BusinessTypeRecord> columns={columns} dataSource={query.data?.bizData || []}
+      <Table<BusinessTypeRecord> columns={columns} dataSource={query.data?.totalList || []}
         rowKey={(record) => record.id || JSON.stringify(record)} loading={query.isPending || query.isFetching}
         bordered size="small" emptyText="暂无子业务分类"
-        pagination={(query.data?.pagination.total || 0) > 0 ? {
-          current: pageNo, pageSize, total: query.data?.pagination.total || 0,
+        pagination={(query.data?.total || 0) > 0 ? {
+          current: pageNo, pageSize, total: query.data?.total || 0,
           disabled: query.isFetching, onChange: (page) => setPageNo(page),
         } : false} />
     </section>

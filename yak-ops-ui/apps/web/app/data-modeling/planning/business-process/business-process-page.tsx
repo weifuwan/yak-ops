@@ -345,7 +345,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
                 <div className="px-4">
                   <Table<BusinessProcessRecord>
                     columns={columns}
-                    dataSource={listQuery.data?.bizData || []}
+                    dataSource={listQuery.data?.totalList || []}
                     rowKey={(record) => record.id || JSON.stringify(record)}
                     loading={listQuery.isPending || listQuery.isFetching}
                     bordered
@@ -354,7 +354,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
                     pagination={{
                       current: pageNo,
                       pageSize: PAGE_SIZE,
-                      total: listQuery.data?.pagination.total || 0,
+                      total: listQuery.data?.total || 0,
                       disabled: listQuery.isFetching,
                       onChange: (page) => setPageNo(page),
                     }}

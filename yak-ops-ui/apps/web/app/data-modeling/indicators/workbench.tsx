@@ -760,17 +760,17 @@ function IndicatorListTab({
       <div className="mt-3 min-h-0 flex-1">
         <Table<ModelingRecord>
           columns={columns}
-          dataSource={pageQuery.data?.bizData || []}
+          dataSource={pageQuery.data?.totalList || []}
           rowKey={(record) => record.id || JSON.stringify(record)}
           loading={pageQuery.isPending || pageQuery.isFetching}
           bordered
           size="small"
           scroll={{ x: 1100, y: "calc(100vh - 300px)" }}
           emptyText="暂无数据"
-          pagination={pageQuery.data?.pagination?.total ? {
+          pagination={pageQuery.data?.total ? {
             current: pageNo,
             pageSize,
-            total: pageQuery.data.pagination.total,
+            total: pageQuery.data.total,
             pageSizeOptions: PAGE_SIZE_OPTIONS,
             pageSizeLabel: "每页显示：",
             showSizeChanger: true,

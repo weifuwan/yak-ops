@@ -175,12 +175,12 @@ function SubjectDomainDetail({
           <Button size="sm" variant="primary" onClick={onAddChild}><Plus size={13} />新建子主题域</Button>
         </div>
         <Table<SubjectDomainRecord>
-          columns={columns} dataSource={childrenQuery.data?.bizData || []}
+          columns={columns} dataSource={childrenQuery.data?.totalList || []}
           rowKey={(item) => item.id || JSON.stringify(item)}
           loading={childrenQuery.isPending || childrenQuery.isFetching}
           bordered size="small" emptyText="暂无子主题域"
-          pagination={(childrenQuery.data?.pagination.total || 0) > 0 ? {
-            current: pageNo, pageSize, total: childrenQuery.data?.pagination.total || 0,
+          pagination={(childrenQuery.data?.total || 0) > 0 ? {
+            current: pageNo, pageSize, total: childrenQuery.data?.total || 0,
             disabled: childrenQuery.isFetching, onChange: setPageNo,
           } : false}
         />

@@ -192,12 +192,12 @@ function DataMartDetail({
           <Button size="sm" variant="primary" onClick={onAddChild}><Plus size={13} />新建子数据集市</Button>
         </div>
         <Table<DataMartRecord>
-          columns={childColumns} dataSource={childrenQuery.data?.bizData || []}
+          columns={childColumns} dataSource={childrenQuery.data?.totalList || []}
           rowKey={(item) => item.id || JSON.stringify(item)}
           loading={childrenQuery.isPending || childrenQuery.isFetching}
           bordered size="small" emptyText="暂无子数据集市"
-          pagination={(childrenQuery.data?.pagination.total || 0) > 0 ? {
-            current: childPage, pageSize, total: childrenQuery.data?.pagination.total || 0,
+          pagination={(childrenQuery.data?.total || 0) > 0 ? {
+            current: childPage, pageSize, total: childrenQuery.data?.total || 0,
             disabled: childrenQuery.isFetching, onChange: setChildPage,
           } : false}
         />
@@ -208,12 +208,12 @@ function DataMartDetail({
           <SectionTitle>主题域管理</SectionTitle>
         </div>
         <Table<SubjectDomainRecord>
-          columns={subjectColumns} dataSource={subjectQuery.data?.bizData || []}
+          columns={subjectColumns} dataSource={subjectQuery.data?.totalList || []}
           rowKey={(item) => item.id || JSON.stringify(item)}
           loading={subjectQuery.isPending || subjectQuery.isFetching}
           bordered size="small" emptyText="暂无关联主题域"
-          pagination={(subjectQuery.data?.pagination.total || 0) > 0 ? {
-            current: subjectPage, pageSize, total: subjectQuery.data?.pagination.total || 0,
+          pagination={(subjectQuery.data?.total || 0) > 0 ? {
+            current: subjectPage, pageSize, total: subjectQuery.data?.total || 0,
             disabled: subjectQuery.isFetching, onChange: setSubjectPage,
           } : false}
         />

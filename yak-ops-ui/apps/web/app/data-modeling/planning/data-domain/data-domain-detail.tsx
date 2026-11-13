@@ -209,7 +209,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
           ) : (
             <Table<BusinessProcessRecord>
               columns={columns}
-              dataSource={processQuery.data?.bizData || []}
+              dataSource={processQuery.data?.totalList || []}
               rowKey={(record) => record.id || JSON.stringify(record)}
               loading={processQuery.isPending || processQuery.isFetching}
               bordered
@@ -218,7 +218,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
               pagination={{
                 current: pageNo,
                 pageSize,
-                total: processQuery.data?.pagination.total || 0,
+                total: processQuery.data?.total || 0,
                 disabled: processQuery.isFetching,
                 onChange: (page) => setPageNo(page),
               }}
