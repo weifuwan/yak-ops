@@ -290,6 +290,21 @@ function readFormValue(record: ModelingRecord | undefined, key: string): string 
   return typeof value === "boolean" ? String(value) : String(value);
 }
 
+function initialFormValues(
+  kind: IndicatorKind,
+  record: ModelingRecord | undefined,
+  fields: IndicatorField[],
+): Record<string, string> {
+  const values = Object.fromEntries(fields.map((field) => [field.key, readFormValue(record, field.key)]));
+  if (!record && kind === "atomIndicator") {
+    values.removeDuplicates = "true";
+    values.decimalNumber = "0";
+  }
+  if (!record && kind === "composeIndicator") values.computeMode = "0";
+  if (!record && kind === "modifier") values.modifierType = "SIMPLE";
+  return values;
+}
+
 function fieldOptions(
   field: IndicatorField,
   optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>,
@@ -791,7 +806,7 @@ function IndicatorEditor({
 }: IndicatorEditorProps) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>(() =>
-    tab.draftValues || Object.fromEntries(definition.fields.map((field) => [field.key, readFormValue(tab.record, field.key)])),
+    tab.draftValues || initialFormValues(definition.key, tab.record, definition.fields),
   );
   const [dirty, setDirty] = useState(Boolean(tab.dirty));
   const [saving, setSaving] = useState(false);
@@ -801,7 +816,7 @@ function IndicatorEditor({
   const recordId = tab.recordId || (tab.record?.id ? String(tab.record.id) : "");
 
   useEffect(() => {
-    setValues(tab.draftValues || Object.fromEntries(definition.fields.map((field) => [field.key, readFormValue(tab.record, field.key)])));
+    setValues(tab.draftValues || initialFormValues(definition.key, tab.record, definition.fields));
     setDirty(Boolean(tab.dirty));
     setError("");
   }, [tab.key, tab.record, definition]);
@@ -1044,7 +1059,7 @@ type DataIndicatorsWorkbenchProps = { projectCode: string; initialTab?: number }
 
 export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataIndicatorsWorkbenchProps) {
   const queryClient = useQueryClient();
-  const [activeKind, setActiveKind] = useState<IndicatorKind>(INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator");
+  const [activeKind, setActiveKind] = useState<IndicatorKind>(initialTab >= 4 ? "timePeriod" : INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator");
   const [groupBy, setGroupBy] = useState<"BUSINESS_TYPE" | "DATA_DOMAIN">("BUSINESS_TYPE");
   const [treeKeyword, setTreeKeyword] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
