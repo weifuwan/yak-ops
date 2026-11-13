@@ -89,6 +89,13 @@
   --yak-components-switch-bg-checked: var(--yak-color-primary);
   --yak-components-switch-bg-checked-hover: var(--yak-color-primary-hover);
 
+  --yak-components-slider-track: #e5e7eb;
+  --yak-components-slider-range: var(--yak-color-primary);
+  --yak-components-slider-thumb-bg: #ffffff;
+  --yak-components-slider-thumb-border: #cfd4dc;
+  --yak-components-slider-thumb-hover: #f9fafb;
+  --yak-components-slider-focus-ring: var(--yak-color-primary-ring);
+
   --yak-components-tab-text: #8c919b;
   --yak-components-tab-text-hover: #555b66;
   --yak-components-tab-text-active: var(--yak-color-primary);

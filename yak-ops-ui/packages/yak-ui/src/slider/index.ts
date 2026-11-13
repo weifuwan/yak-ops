@@ -1,0 +1,16 @@
+export {
+  Slider,
+  SliderControl,
+  SliderIndicator,
+  SliderLabel,
+  SliderThumb,
+  SliderTrack,
+  SliderValue,
+  type SliderControlProps,
+  type SliderIndicatorProps,
+  type SliderLabelProps,
+  type SliderProps,
+  type SliderThumbProps,
+  type SliderTrackProps,
+  type SliderValueProps,
+} from "./Slider";
