@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.yak.ops.dao.mapper.BusinessProcessMapper">
+
+    <select id="paging" resultType="io.yak.ops.dao.entity.BusinessProcessPO">
+        SELECT
+            bp.*,
+            dd.cn_name AS data_domain_cn_name
+        FROM t_yak_ops_business_process bp
+        LEFT JOIN t_yak_ops_data_domain dd ON bp.data_domain_id = dd.id
+        <where>
+            <if test="enShortName != null and enShortName != ''">
+                AND bp.en_short_name LIKE CONCAT('%', #{enShortName}, '%')
+            </if>
+            <if test="cnName != null and cnName != ''">
+                AND bp.cn_name LIKE CONCAT('%', #{cnName}, '%')
+            </if>
+            <if test="enName != null and enName != ''">
+                AND bp.en_name LIKE CONCAT('%', #{enName}, '%')
+            </if>
+            <if test="dataDomainId != null and dataDomainId != ''">
+                AND bp.data_domain_id = #{dataDomainId}
+            </if>
+            <if test="director != null and director != ''">
+                AND bp.director = #{director}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND bp.create_by = #{createBy}
+            </if>
+        </where>
+        ORDER BY bp.flag DESC, bp.update_time DESC
+    </select>
+
+</mapper>
