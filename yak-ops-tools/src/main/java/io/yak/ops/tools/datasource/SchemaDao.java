@@ -207,34 +207,52 @@ public class SchemaDao {
     private void renameModelingIndexes(DatabaseMetaData metadata, Connection connection, String tableName)
             throws SQLException {
         Set<String> existingIndexes = new HashSet<>();
-        try (ResultSet indexes = metadata.getIndexInfo(
-                connection.getCatalog(), connection.getSchema(), tableName, false, false)) {
-            while (indexes.next()) {
-                String indexName = indexes.getString("INDEX_NAME");
-                if (indexName != null) {
-                    existingIndexes.add(indexName.toLowerCase(Locale.ROOT));
-                }
-            }
+        java.util.Map<String, String> actualIndexNames = new java.util.LinkedHashMap<>();
+        readIndexNames(metadata, connection, tableName, existingIndexes, actualIndexNames);
+        if (actualIndexNames.isEmpty()) {
+            readIndexNames(metadata, connection, tableName.toUpperCase(Locale.ROOT),
+                    existingIndexes, actualIndexNames);
         }
 
-        for (String indexName : new HashSet<>(existingIndexes)) {
-            String normalizedName = normalizeModelingIndexName(indexName);
-            if (normalizedName.equals(indexName) || existingIndexes.contains(normalizedName)) {
+        for (String normalizedSourceName : new HashSet<>(actualIndexNames.keySet())) {
+            String normalizedName = normalizeModelingIndexName(normalizedSourceName);
+            if (normalizedName.equals(normalizedSourceName) || existingIndexes.contains(normalizedName)) {
                 continue;
             }
 
+            String actualSourceName = actualIndexNames.get(normalizedSourceName);
             String sql;
             if ("mysql".equalsIgnoreCase(dbType.getDb())) {
                 sql = "ALTER TABLE " + quoteIdentifier(tableName) + " RENAME INDEX "
-                        + quoteIdentifier(indexName) + " TO " + quoteIdentifier(normalizedName);
+                        + quoteIdentifier(actualSourceName) + " TO " + quoteIdentifier(normalizedName);
             } else {
-                sql = "ALTER INDEX " + quoteIdentifier(indexName) + " RENAME TO "
+                sql = "ALTER INDEX " + quoteIdentifier(actualSourceName) + " RENAME TO "
                         + quoteIdentifier(normalizedName);
             }
             try (Statement statement = connection.createStatement()) {
                 statement.execute(sql);
             }
             existingIndexes.add(normalizedName);
+        }
+    }
+
+    private void readIndexNames(
+            DatabaseMetaData metadata,
+            Connection connection,
+            String tableName,
+            Set<String> existingIndexes,
+            java.util.Map<String, String> actualIndexNames) throws SQLException {
+        try (ResultSet indexes = metadata.getIndexInfo(
+                connection.getCatalog(), connection.getSchema(), tableName, false, false)) {
+            while (indexes.next()) {
+                String actualName = indexes.getString("INDEX_NAME");
+                if (actualName == null) {
+                    continue;
+                }
+                String normalizedName = actualName.toLowerCase(Locale.ROOT);
+                existingIndexes.add(normalizedName);
+                actualIndexNames.put(normalizedName, actualName);
+            }
         }
     }
 
@@ -254,7 +272,7 @@ public class SchemaDao {
     private String quoteIdentifier(String identifier) {
         return "mysql".equalsIgnoreCase(dbType.getDb())
                 ? "`" + identifier + "`"
-                : "\"" + identifier + "\"";
+                : identifier;
     }
 
     private boolean tableExists(DatabaseMetaData metadata, Connection connection, String tableName)
