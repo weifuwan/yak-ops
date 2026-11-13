@@ -8,7 +8,8 @@ import org.springframework.context.annotation.Configuration;
  * Spring integration for the data modeling business module.
  *
  * <p>The module owns its services and persistence mappers while reusing Yak Ops'
- * shared datasource, MyBatis session factory, authentication and project services.
+ * shared datasource and MyBatis session factory. Its HTTP boundary delegates
+ * authentication and project authorization to the existing API services.
  */
 @Configuration
 @ComponentScan(basePackages = {
