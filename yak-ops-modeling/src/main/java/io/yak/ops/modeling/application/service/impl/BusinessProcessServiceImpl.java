@@ -11,13 +11,12 @@ import io.yak.ops.modeling.infrastructure.persistence.entity.businesstype.relate
 import io.yak.ops.modeling.infrastructure.persistence.entity.datadomain.DataDomainPO;
 import io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
-import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.support.ConvertUtil;
 import io.yak.ops.modeling.support.TreeUtil;
 import io.yak.ops.modeling.application.service.BusinessProcessService;
 import io.yak.ops.modeling.application.service.BusinessTypeRelatedDataDomainService;
-import io.yak.ops.modeling.application.service.DataDomainService;
 import io.yak.ops.modeling.infrastructure.persistence.mapper.BusinessProcessMapper;
+import io.yak.ops.modeling.infrastructure.persistence.mapper.DataDomainMapper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,7 @@ import java.util.stream.Collectors;
 public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMapper, BusinessProcessPO> implements BusinessProcessService {
 
     @Resource
-    private DataDomainService dataDomainService;
+    private DataDomainMapper dataDomainMapper;
 
     @Resource
     private BusinessTypeRelatedDataDomainService businessTypeRelatedDataDomainService;
@@ -70,12 +69,12 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
         if (po.getDataDomainId() == null) {
             throw new RuntimeException("数据域ID不能为空");
         }
-        DataDomainVO dataDomainVO = dataDomainService.selectById(po.getDataDomainId());
-        if (dataDomainVO == null) {
+        DataDomainPO dataDomainPO = dataDomainMapper.selectById(po.getDataDomainId());
+        if (dataDomainPO == null) {
             throw new RuntimeException("未找到数据域");
         }
         BusinessProcessVO vo = ConvertUtil.sourceToTarget(po, BusinessProcessVO.class);
-        vo.setDataDomainCnName(dataDomainVO.getCnName());
+        vo.setDataDomainCnName(dataDomainPO.getCnName());
         return vo;
     }
 
@@ -200,7 +199,7 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
         LambdaQueryWrapper<DataDomainPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(DataDomainPO::getId, dataDomainIds);
 
-        return dataDomainService.list(wrapper);
+        return dataDomainMapper.selectList(wrapper);
     }
 
     /**
