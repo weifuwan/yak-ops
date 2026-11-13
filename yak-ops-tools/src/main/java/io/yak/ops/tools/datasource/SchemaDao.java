@@ -188,16 +188,19 @@ public class SchemaDao {
                             "Both legacy modeling table " + legacyTableName + " and normalized table "
                                     + tableName + " exist. Back up and reconcile the data before continuing.");
                 }
-                if (!legacyExists) {
-                    continue;
+                if (legacyExists) {
+                    try (Statement statement = connection.createStatement()) {
+                        statement.execute("ALTER TABLE " + quoteIdentifier(legacyTableName)
+                                + " RENAME TO " + quoteIdentifier(tableName));
+                    }
+                    log.info("Renamed modeling table {} to {}", legacyTableName, tableName);
+                    currentExists = true;
                 }
 
-                try (Statement statement = connection.createStatement()) {
-                    statement.execute("ALTER TABLE " + quoteIdentifier(legacyTableName)
-                            + " RENAME TO " + quoteIdentifier(tableName));
+                // Also retry index normalization for a table renamed by an earlier partial startup.
+                if (currentExists) {
+                    renameModelingIndexes(metadata, connection, tableName);
                 }
-                renameModelingIndexes(metadata, connection, tableName);
-                log.info("Renamed modeling table {} to {}", legacyTableName, tableName);
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to migrate legacy modeling table names", ex);
