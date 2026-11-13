@@ -260,6 +260,9 @@ public class SchemaDao {
     }
 
     private String normalizeModelingIndexName(String indexName) {
+        if (indexName.startsWith("idx_yak_") || indexName.startsWith("uk_yak_")) {
+            return indexName;
+        }
         if (indexName.startsWith("idx_t_cockpit_")) {
             return "idx_yak_" + indexName.substring("idx_t_cockpit_".length());
         }
