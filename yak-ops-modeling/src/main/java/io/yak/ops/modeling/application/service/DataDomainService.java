@@ -1,10 +1,8 @@
 package io.yak.ops.modeling.application.service;
 
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.datadomain.DataDomainPO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 
 import java.util.List;
@@ -14,7 +12,7 @@ import java.util.List;
  *
  * @author bruce
  */
-public interface DataDomainService extends IService<DataDomainPO> {
+public interface DataDomainService {
 
     String create(DataDomainDTO DataDomainType);
 
