@@ -139,9 +139,13 @@ public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomain
                 .collect(Collectors.toList());
 
         LambdaQueryWrapper<DimensionTablePO> referenceWrapper = new LambdaQueryWrapper<>();
-        referenceWrapper.eq(DimensionTablePO::getDomainId, id);
-        if (!processIds.isEmpty()) {
-            referenceWrapper.or().in(DimensionTablePO::getBusProcessId, processIds);
+        if (processIds.isEmpty()) {
+            referenceWrapper.eq(DimensionTablePO::getDomainId, id);
+        } else {
+            referenceWrapper.and(wrapper -> wrapper
+                    .eq(DimensionTablePO::getDomainId, id)
+                    .or()
+                    .in(DimensionTablePO::getBusProcessId, processIds));
         }
         long referenceCount = dimensionTableDao.queryCount(referenceWrapper);
         if (referenceCount > 0) {
