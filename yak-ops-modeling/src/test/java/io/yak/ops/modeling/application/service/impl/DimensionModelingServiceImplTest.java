@@ -7,10 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.yak.ops.dao.entity.DimensionTablePO;
-import io.yak.ops.dao.entity.VersionManagementPO;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
@@ -78,7 +75,7 @@ class DimensionModelingServiceImplTest {
         layer.setCnName("公共维度层");
         when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer);
         when(dimensionTableDao.insert(any())).thenReturn(1);
-        when(versionManagementDao.queryOne(any(Wrapper.class))).thenReturn(null);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
 
         DimensionTableVO result = service.create(dimensionDto(DimensionTableTypeEnum.DIM));
 

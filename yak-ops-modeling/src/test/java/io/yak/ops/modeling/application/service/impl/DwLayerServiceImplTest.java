@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.application.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -167,8 +168,8 @@ class DwLayerServiceImplTest {
         assertTrue(DwModelEnum.canCreate(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM));
         assertTrue(DwModelEnum.canCreate(DwModelEnum.DIMENSION_DIM, "DIMENSION"));
         assertTrue(DwModelEnum.canCreate(DwModelEnum.DIMENSION_DIM, "DIM"));
-        assertTrue(!DwModelEnum.canCreate(DwModelEnum.DIMENSION_DIM, "DIMENSION_DIM"));
-        assertTrue(!DwModelEnum.canCreate(DwTypeEnum.SOURCE_LAYER, DwModelEnum.DETAIL));
+        assertFalse(DwModelEnum.canCreate(DwModelEnum.DIMENSION_DIM, "IM"));
+        assertFalse(DwModelEnum.canCreate(DwTypeEnum.SOURCE_LAYER, DwModelEnum.DETAIL));
     }
 
     private DwLayerDTO layerDto(DwTypeEnum layerType, DwModelEnum modelType) {
