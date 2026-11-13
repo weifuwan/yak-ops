@@ -1,1 +1,281 @@
--- Additive schema for data standards and data indicators.\n-- Every row is scoped to a Yak Ops project through project_code.\n\nCREATE TABLE IF NOT EXISTS t_cockpit_standard_directory (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  dir_name varchar(255) NOT NULL,\n  dir_type varchar(50) NOT NULL,\n  dir_module varchar(50) NOT NULL,\n  parent_id varchar(32) NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_standard_directory_1 (project_code, dir_module),\n  KEY idx_standard_directory_2 (parent_id),\n  UNIQUE KEY uk_standard_directory_1 (project_code, dir_module, dir_name)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_field_standard (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  std_code varchar(50) NULL,\n  en_short_name varchar(128) NULL,\n  en_name varchar(2048) NULL,\n  cn_name varchar(2048) NULL,\n  field_data_type varchar(50) NULL,\n  field_length integer NULL,\n  field_precision integer NULL,\n  field_can_null boolean NULL,\n  field_default_value varchar(2048) NULL,\n  business_definition varchar(2048) NULL,\n  parent_id varchar(32) NULL,\n  parent_std varchar(255) NULL,\n  reference varchar(255) NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_field_standard_1 (project_code),\n  KEY idx_field_standard_2 (parent_id),\n  KEY idx_field_standard_3 (reference)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_code_standard (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  parent_id varchar(32) NULL,\n  en_short_name varchar(128) NULL,\n  en_name varchar(2048) NULL,\n  cn_name varchar(2048) NULL,\n  remark varchar(2048) NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_code_standard_1 (project_code),\n  KEY idx_code_standard_2 (parent_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_code_detail (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  code_id varchar(128) NULL,\n  en_short_name varchar(128) NULL,\n  en_name varchar(2048) NULL,\n  cn_name varchar(2048) NULL,\n  remark varchar(2048) NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_code_detail_1 (project_code),\n  KEY idx_code_detail_2 (code_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_unit_standard (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  en_short_name varchar(128) NOT NULL,\n  en_name varchar(2048) NOT NULL,\n  cn_name varchar(2048) NOT NULL,\n  parent_id varchar(32) NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_unit_standard_1 (project_code),\n  KEY idx_unit_standard_2 (parent_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_dictionary_standard (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  en_short_name varchar(128) NOT NULL,\n  en_name varchar(2048) NOT NULL,\n  cn_name varchar(2048) NOT NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_dictionary_standard_1 (project_code)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_indicator_atom (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  en_short_name varchar(500) NULL,\n  en_name varchar(128) NULL,\n  cn_name varchar(2048) NULL,\n  director varchar(32) NULL,\n  remark varchar(2048) NULL,\n  business_caliber varchar(500) NULL,\n  bus_type_id varchar(32) NULL,\n  domain_id varchar(32) NULL,\n  bus_process_id varchar(32) NULL,\n  calculate_function varchar(500) NULL,\n  decimal_number integer NULL,\n  unit_id varchar(32) NULL,\n  remove_duplicates boolean NULL,\n  submit boolean NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_indicator_atom_1 (project_code),\n  KEY idx_indicator_atom_2 (bus_type_id),\n  KEY idx_indicator_atom_3 (domain_id),\n  KEY idx_indicator_atom_4 (bus_process_id),\n  KEY idx_indicator_atom_5 (unit_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_indicator_derivative (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  time_period_id varchar(32) NULL,\n  modifier_id varchar(2000) NULL,\n  atomic_id varchar(32) NULL,\n  dwh_id varchar(32) NULL,\n  mart_id varchar(32) NULL,\n  subject_id varchar(32) NULL,\n  bus_type_id varchar(32) NULL,\n  domain_id varchar(32) NULL,\n  bus_process_id varchar(128) NULL,\n  en_short_name varchar(128) NULL,\n  en_name varchar(2048) NULL,\n  cn_name varchar(2048) NULL,\n  director varchar(32) NULL,\n  remark varchar(2048) NULL,\n  submit boolean NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_indicator_derivative_1 (project_code),\n  KEY idx_indicator_derivative_2 (atomic_id),\n  KEY idx_indicator_derivative_3 (time_period_id),\n  KEY idx_indicator_derivative_4 (bus_type_id),\n  KEY idx_indicator_derivative_5 (domain_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_indicator_compose (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  dwh_id varchar(32) NULL,\n  mart_id varchar(32) NULL,\n  subject_id varchar(32) NULL,\n  bus_type_id varchar(32) NULL,\n  domain_id varchar(32) NULL,\n  bus_process_id varchar(32) NULL,\n  en_short_name varchar(128) NULL,\n  en_name varchar(1024) NULL,\n  cn_name varchar(1024) NULL,\n  director varchar(32) NULL,\n  remark varchar(2048) NULL,\n  compute_mode varchar(32) NULL,\n  compute_expr varchar(2048) NULL,\n  derive_id varchar(32) NULL,\n  compare_type varchar(32) NULL,\n  submit boolean NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_indicator_compose_1 (project_code),\n  KEY idx_indicator_compose_2 (derive_id),\n  KEY idx_indicator_compose_3 (bus_type_id),\n  KEY idx_indicator_compose_4 (domain_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_indicator_modifier (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  modifier_type varchar(100) NULL,\n  en_short_name varchar(128) NULL,\n  en_name varchar(2048) NULL,\n  cn_name varchar(2048) NULL,\n  director varchar(32) NULL,\n  business_caliber varchar(500) NULL,\n  remark varchar(2048) NULL,\n  submit boolean NULL,\n  dwh_id varchar(32) NULL,\n  mart_id varchar(32) NULL,\n  subject_id varchar(32) NULL,\n  bus_type_id varchar(32) NULL,\n  domain_id varchar(32) NULL,\n  dimension_tb_id varchar(32) NULL,\n  dimension_fd_id varchar(32) NULL,\n  code_id varchar(32) NULL,\n  code_detail_id varchar(32) NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_indicator_modifier_1 (project_code),\n  KEY idx_indicator_modifier_2 (modifier_type),\n  KEY idx_indicator_modifier_3 (code_id),\n  KEY idx_indicator_modifier_4 (code_detail_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_time_period_category (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  cn_name varchar(255) NULL,\n  en_name varchar(255) NULL,\n  parent_id varchar(32) NULL,\n  leaf boolean NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_time_period_category_1 (project_code),\n  KEY idx_time_period_category_2 (parent_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_time_period (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  category_id varchar(32) NOT NULL,\n  en_short_name varchar(255) NULL,\n  cn_name varchar(255) NULL,\n  en_name varchar(255) NULL,\n  director varchar(100) NULL,\n  remark text NULL,\n  submit boolean NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_time_period_1 (project_code),\n  KEY idx_time_period_2 (category_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nCREATE TABLE IF NOT EXISTS t_cockpit_version_management (\n  id varchar(32) NOT NULL,\n  project_code bigint NOT NULL,\n  source_table_id varchar(32) NOT NULL,\n  version_data text NOT NULL,\n  version_type varchar(100) NOT NULL,\n  version_number integer NOT NULL,\n  create_time timestamp NULL,\n  create_by varchar(100) NULL,\n  update_time timestamp NULL,\n  update_by varchar(100) NULL,\n  PRIMARY KEY (id),\n  KEY idx_version_management_1 (project_code, source_table_id),\n  KEY idx_version_management_2 (version_type),\n  UNIQUE KEY uk_version_management_1 (project_code, source_table_id, version_type, version_number)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n
+-- Additive schema for data standards and data indicators.
+-- Every row is scoped to a Yak Ops project through project_code.
+
+CREATE TABLE IF NOT EXISTS t_cockpit_standard_directory (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  dir_name varchar(255) NOT NULL,
+  dir_type varchar(50) NOT NULL,
+  dir_module varchar(50) NOT NULL,
+  parent_id varchar(32) NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_standard_directory_1 (project_code, dir_module),
+  KEY idx_standard_directory_2 (parent_id),
+  UNIQUE KEY uk_standard_directory_1 (project_code, dir_module, dir_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_field_standard (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  std_code varchar(50) NULL,
+  en_short_name varchar(128) NULL,
+  en_name varchar(2048) NULL,
+  cn_name varchar(2048) NULL,
+  field_data_type varchar(50) NULL,
+  field_length integer NULL,
+  field_precision integer NULL,
+  field_can_null boolean NULL,
+  field_default_value varchar(2048) NULL,
+  business_definition varchar(2048) NULL,
+  parent_id varchar(32) NULL,
+  parent_std varchar(255) NULL,
+  reference varchar(255) NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_field_standard_1 (project_code),
+  KEY idx_field_standard_2 (parent_id),
+  KEY idx_field_standard_3 (reference)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_code_standard (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  parent_id varchar(32) NULL,
+  en_short_name varchar(128) NULL,
+  en_name varchar(2048) NULL,
+  cn_name varchar(2048) NULL,
+  remark varchar(2048) NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_code_standard_1 (project_code),
+  KEY idx_code_standard_2 (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_code_detail (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  code_id varchar(128) NULL,
+  en_short_name varchar(128) NULL,
+  en_name varchar(2048) NULL,
+  cn_name varchar(2048) NULL,
+  remark varchar(2048) NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_code_detail_1 (project_code),
+  KEY idx_code_detail_2 (code_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_unit_standard (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  en_short_name varchar(128) NOT NULL,
+  en_name varchar(2048) NOT NULL,
+  cn_name varchar(2048) NOT NULL,
+  parent_id varchar(32) NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_unit_standard_1 (project_code),
+  KEY idx_unit_standard_2 (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_dictionary_standard (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  en_short_name varchar(128) NOT NULL,
+  en_name varchar(2048) NOT NULL,
+  cn_name varchar(2048) NOT NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_dictionary_standard_1 (project_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_indicator_atom (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  en_short_name varchar(500) NULL,
+  en_name varchar(128) NULL,
+  cn_name varchar(2048) NULL,
+  director varchar(32) NULL,
+  remark varchar(2048) NULL,
+  business_caliber varchar(500) NULL,
+  bus_type_id varchar(32) NULL,
+  domain_id varchar(32) NULL,
+  bus_process_id varchar(32) NULL,
+  calculate_function varchar(500) NULL,
+  decimal_number integer NULL,
+  unit_id varchar(32) NULL,
+  remove_duplicates boolean NULL,
+  submit boolean NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_indicator_atom_1 (project_code),
+  KEY idx_indicator_atom_2 (bus_type_id),
+  KEY idx_indicator_atom_3 (domain_id),
+  KEY idx_indicator_atom_4 (bus_process_id),
+  KEY idx_indicator_atom_5 (unit_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_indicator_derivative (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  time_period_id varchar(32) NULL,
+  modifier_id varchar(2000) NULL,
+  atomic_id varchar(32) NULL,
+  dwh_id varchar(32) NULL,
+  mart_id varchar(32) NULL,
+  subject_id varchar(32) NULL,
+  bus_type_id varchar(32) NULL,
+  domain_id varchar(32) NULL,
+  bus_process_id varchar(128) NULL,
+  en_short_name varchar(128) NULL,
+  en_name varchar(2048) NULL,
+  cn_name varchar(2048) NULL,
+  director varchar(32) NULL,
+  remark varchar(2048) NULL,
+  submit boolean NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_indicator_derivative_1 (project_code),
+  KEY idx_indicator_derivative_2 (atomic_id),
+  KEY idx_indicator_derivative_3 (time_period_id),
+  KEY idx_indicator_derivative_4 (bus_type_id),
+  KEY idx_indicator_derivative_5 (domain_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_indicator_compose (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  dwh_id varchar(32) NULL,
+  mart_id varchar(32) NULL,
+  subject_id varchar(32) NULL,
+  bus_type_id varchar(32) NULL,
+  domain_id varchar(32) NULL,
+  bus_process_id varchar(32) NULL,
+  en_short_name varchar(128) NULL,
+  en_name varchar(1024) NULL,
+  cn_name varchar(1024) NULL,
+  director varchar(32) NULL,
+  remark varchar(2048) NULL,
+  compute_mode varchar(32) NULL,
+  compute_expr varchar(2048) NULL,
+  derive_id varchar(32) NULL,
+  compare_type varchar(32) NULL,
+  submit boolean NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_indicator_compose_1 (project_code),
+  KEY idx_indicator_compose_2 (derive_id),
+  KEY idx_indicator_compose_3 (bus_type_id),
+  KEY idx_indicator_compose_4 (domain_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_indicator_modifier (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  modifier_type varchar(100) NULL,
+  en_short_name varchar(128) NULL,
+  en_name varchar(2048) NULL,
+  cn_name varchar(2048) NULL,
+  director varchar(32) NULL,
+  business_caliber varchar(500) NULL,
+  remark varchar(2048) NULL,
+  submit boolean NULL,
+  dwh_id varchar(32) NULL,
+  mart_id varchar(32) NULL,
+  subject_id varchar(32) NULL,
+  bus_type_id varchar(32) NULL,
+  domain_id varchar(32) NULL,
+  dimension_tb_id varchar(32) NULL,
+  dimension_fd_id varchar(32) NULL,
+  code_id varchar(32) NULL,
+  code_detail_id varchar(32) NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_indicator_modifier_1 (project_code),
+  KEY idx_indicator_modifier_2 (modifier_type),
+  KEY idx_indicator_modifier_3 (code_id),
+  KEY idx_indicator_modifier_4 (code_detail_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_time_period_category (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  cn_name varchar(255) NULL,
+  en_name varchar(255) NULL,
+  parent_id varchar(32) NULL,
+  leaf boolean NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_time_period_category_1 (project_code),
+  KEY idx_time_period_category_2 (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_time_period (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  category_id varchar(32) NOT NULL,
+  en_short_name varchar(255) NULL,
+  cn_name varchar(255) NULL,
+  en_name varchar(255) NULL,
+  director varchar(100) NULL,
+  remark text NULL,
+  submit boolean NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_time_period_1 (project_code),
+  KEY idx_time_period_2 (category_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS t_cockpit_version_management (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  source_table_id varchar(32) NOT NULL,
+  version_data text NOT NULL,
+  version_type varchar(100) NOT NULL,
+  version_number integer NOT NULL,
+  create_time timestamp NULL,
+  create_by varchar(100) NULL,
+  update_time timestamp NULL,
+  update_by varchar(100) NULL,
+  PRIMARY KEY (id),
+  KEY idx_version_management_1 (project_code, source_table_id),
+  KEY idx_version_management_2 (version_type),
+  UNIQUE KEY uk_version_management_1 (project_code, source_table_id, version_type, version_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
