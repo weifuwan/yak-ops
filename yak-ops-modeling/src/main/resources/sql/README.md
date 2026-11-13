@@ -1,20 +1,17 @@
 # Modeling schema scripts
 
-These scripts are additive and repeatable. They create the warehouse-planning, data-standard and indicator tables with project-code indexes; they never drop or recreate tables.
+The modeling schema is additive and repeatable. It creates all 22 warehouse-planning, dimension-metadata, data-standard and indicator tables. It never drops or recreates an existing table.
 
-Supported dialect scripts:
+Supported complete dialect scripts:
 
 - `modeling_mysql.sql`
 - `modeling_postgresql.sql`
 - `modeling_h2.sql`
-- `modeling_assets_mysql.sql`
-- `modeling_assets_postgresql.sql`
-- `modeling_assets_h2.sql`
 
-Every migrated project-owned modeling table includes a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies this value from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
+All modeling tables use the `t_yak_ops_` prefix and include a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies this value from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
-If a table already exists without `project_code`, the initializer refuses to reuse it. Do not add a default project code automatically: existing legacy rows need an explicit workspace assignment decision first.
+Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for the former `t_cockpit_` table names. When only the legacy table exists, it renames that table in place and normalizes its index names, preserving existing rows. If both old and new table names exist, initialization stops and requires an explicit data reconciliation; it never drops or merges either table automatically.
 
-The asset scripts add standard directories, field standards, code sets and details, units, naming dictionaries, atom/derivative/composite indicators, modifiers, time-period categories, time periods and version snapshots.
+If a legacy table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
 
-When another modeling table is migrated, update the SQL scripts, DAO tenant allowlist and schema preflight list together.
+The three scripts contain the same 22 logical tables and 54 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
