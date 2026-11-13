@@ -629,21 +629,30 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
       </div>
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f6f6f6]">
-        {selectedRecord ? (
-          <>
-            <header className="flex h-[72px] shrink-0 items-center border-b border-[var(--yak-components-panel-border)] bg-white px-5">
-              <Building2 size={20} className="mr-2 text-[var(--yak-color-primary)]" />
-              <h1 className="truncate text-lg font-semibold text-[var(--yak-components-panel-text)]">{selectedRecord.businessName}</h1>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-              <BusinessTypeInfo record={selectedRecord} onEdit={() => void openEdit(selectedRecord.id || "")} />
-              <BusinessTypeChildren projectCode={projectCode} parent={selectedRecord}
-                onAdd={() => openCreate(selectedRecord.id)}
-                onEdit={(record) => void openEdit(record.id || "")} onDelete={setPendingDelete} />
-              <BusinessTypeDomainRelation projectCode={projectCode} businessTypeId={selectedRecord.id || ""} />
-              <DataMartManagement projectCode={projectCode} businessTypeId={selectedRecord.id || ""} />
+        {selectedId ? (
+          detailQuery.isPending ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">正在加载业务分类详情...</div>
+          ) : detailQuery.isError ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-white text-xs text-[var(--yak-components-muted-text)]">
+              <span>业务分类详情加载失败</span>
+              <Button size="sm" variant="secondary" onClick={() => void detailQuery.refetch()}>重试</Button>
             </div>
-          </>
+          ) : selectedRecord ? (
+            <>
+              <header className="flex h-[72px] shrink-0 items-center border-b border-[var(--yak-components-panel-border)] bg-white px-5">
+                <Building2 size={20} className="mr-2 text-[var(--yak-color-primary)]" />
+                <h1 className="truncate text-lg font-semibold text-[var(--yak-components-panel-text)]">{selectedRecord.businessName}</h1>
+              </header>
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <BusinessTypeInfo record={selectedRecord} onEdit={() => void openEdit(selectedRecord.id || "")} />
+                <BusinessTypeChildren projectCode={projectCode} parent={selectedRecord}
+                  onAdd={() => openCreate(selectedRecord.id)}
+                  onEdit={(record) => void openEdit(record.id || "")} onDelete={setPendingDelete} />
+                <BusinessTypeDomainRelation projectCode={projectCode} businessTypeId={selectedRecord.id || ""} />
+                <DataMartManagement projectCode={projectCode} businessTypeId={selectedRecord.id || ""} />
+              </div>
+            </>
+          ) : null
         ) : (
           <div className="flex min-h-0 flex-1 items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-2 text-center">
