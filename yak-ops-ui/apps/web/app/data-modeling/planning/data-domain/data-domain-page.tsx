@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Plus, RefreshCw, Search } from "lucide-react";
-import { Button, Input, Modal, toast } from "@yak-ops/yak-ui";
+import { LoaderCircle, Plus } from "lucide-react";
+import { Button, Modal, toast } from "@yak-ops/yak-ui";
 
 import { modelingEntityApi } from "../../service";
 import DataDomainCard from "./data-domain-card";
@@ -28,7 +28,6 @@ function CreateDomainCard({ onClick }: { onClick: () => void }) {
 
 export function DataModelingDataDomainPage({ projectCode }: Props) {
   const queryClient = useQueryClient();
-  const [keyword, setKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<DataDomainRecord>();
@@ -50,13 +49,6 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
   });
 
   const records = listQuery.data || [];
-  const filteredRecords = useMemo(() => {
-    const value = keyword.trim().toLocaleLowerCase();
-    if (!value) return records;
-    return records.filter((record) => [
-      record.cnName, record.enShortName, record.enName, record.director, record.reviewer, record.remark,
-    ].some((item) => String(item || "").toLocaleLowerCase().includes(value)));
-  }, [keyword, records]);
 
   const openCreate = () => {
     setEditing(undefined);
@@ -166,36 +158,22 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
               </div>
             ) : (
               <>
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="relative w-[280px] max-w-full">
-                    <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
-                    <Input size="small" variant="outlined" value={keyword} className="pl-8"
-                      placeholder="搜索数据域名称、英文缩写或负责人"
-                      onChange={(event) => setKeyword(event.target.value)} />
-                  </div>
-                  <Button size="sm" variant="secondary" isDisabled={listQuery.isFetching} onClick={() => void listQuery.refetch()}>
-                    <RefreshCw size={14} className={listQuery.isFetching ? "animate-spin" : ""} />刷新
-                  </Button>
+                <div
+                  className="grid gap-5"
+                  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}
+                >
+                  <CreateDomainCard onClick={openCreate} />
+                  {records.map((record) => (
+                    <DataDomainCard
+                      key={record.id}
+                      record={record}
+                      opening={openingId === record.id}
+                      onOpen={(item) => setSelectedId(item.id || "")}
+                      onEdit={(item) => void openEdit(item)}
+                      onDelete={setPendingDelete}
+                    />
+                  ))}
                 </div>
-                {filteredRecords.length === 0 && keyword ? (
-                  <div className="flex min-h-[220px] items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
-                    没有找到匹配的数据域
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-5 min-[576px]:grid-cols-2 min-[992px]:grid-cols-3 min-[1280px]:grid-cols-4 min-[1600px]:grid-cols-5">
-                    <CreateDomainCard onClick={openCreate} />
-                    {filteredRecords.map((record) => (
-                      <DataDomainCard
-                        key={record.id}
-                        record={record}
-                        opening={openingId === record.id}
-                        onOpen={(item) => setSelectedId(item.id || "")}
-                        onEdit={(item) => void openEdit(item)}
-                        onDelete={setPendingDelete}
-                      />
-                    ))}
-                  </div>
-                )}
               </>
             )}
           </main>
