@@ -1,6 +1,6 @@
 # Modeling schema scripts
 
-The modeling schema is additive and repeatable. It creates all 22 warehouse-planning, dimension-metadata, data-standard and indicator tables. It never drops or recreates an existing table. The scripts also normalize the historical warehouse model enum value `DIM(` to `DIM` so existing rows remain readable after the enum correction.
+The modeling schema is additive and repeatable. It creates all 22 warehouse-planning, dimension-metadata, data-standard and indicator tables. It never drops or recreates an existing table. The scripts also normalize legacy layer codes (`dim`, `dwd`, `ads`, `other`) to the current `DwTypeEnum` values and the historical model code `DIM(` to `DIM`, so existing rows remain readable after the enum correction.
 
 Supported complete dialect scripts:
 

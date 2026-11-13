@@ -38,8 +38,12 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dw_layer
     primary key (id)
 );
 
--- Normalize the legacy enum value before DwModelEnum uses the DIM code.
-UPDATE t_yak_ops_dw_layer SET dw_model_type = 'DIM' WHERE dw_model_type = 'DIM('; 
+-- Normalize legacy layer and model enum values before enum persistence uses the new codes.
+UPDATE t_yak_ops_dw_layer SET dw_type = 'SOURCE_LAYER' WHERE LOWER(dw_type) = 'dim';
+UPDATE t_yak_ops_dw_layer SET dw_type = 'PUBLIC_LAYER' WHERE LOWER(dw_type) = 'dwd';
+UPDATE t_yak_ops_dw_layer SET dw_type = 'APPLICATION_LAYER' WHERE LOWER(dw_type) = 'ads';
+UPDATE t_yak_ops_dw_layer SET dw_type = 'NONE_LAYER' WHERE LOWER(dw_type) = 'other';
+UPDATE t_yak_ops_dw_layer SET dw_model_type = 'DIM' WHERE LOWER(dw_model_type) = 'dim(';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_data_domain
 (
