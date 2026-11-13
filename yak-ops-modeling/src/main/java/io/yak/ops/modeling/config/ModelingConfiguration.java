@@ -11,7 +11,10 @@ import org.springframework.context.annotation.Configuration;
  * shared datasource, MyBatis session factory, authentication and project services.
  */
 @Configuration
-@ComponentScan(basePackages = "io.yak.ops.modeling")
+@ComponentScan(basePackages = {
+        "io.yak.ops.modeling.application",
+        "io.yak.ops.modeling.infrastructure"
+})
 @MapperScan(
         basePackages = "io.yak.ops.modeling.infrastructure.persistence.mapper",
         sqlSessionFactoryRef = "sqlSessionFactory")
