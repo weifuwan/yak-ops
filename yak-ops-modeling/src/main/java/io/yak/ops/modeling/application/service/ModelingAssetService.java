@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.application.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 /** Project-scoped application service for migrated standards and indicator assets. */
 @Service
@@ -443,12 +446,43 @@ public class ModelingAssetService {
             snapshot.setId(id);
             snapshot.setProjectCode(null);
             snapshot.initUpdate();
-            mapper.updateById(snapshot);
+            snapshot.setUpdateBy("sys");
+            restoreSnapshot(mapper, snapshot, id);
             saveVersion(snapshot, version.getVersionType());
             return toMap(mapper.selectById(id));
         } catch (Exception ex) {
             throw new IllegalStateException("解析历史版本失败", ex);
         }
+    }
+
+    private <T extends BasePO> void restoreSnapshot(BaseMapper<T> mapper, T snapshot, String id)
+            throws IllegalAccessException {
+        UpdateWrapper<T> wrapper = new UpdateWrapper<T>().eq("id", id);
+        Class<?> current = snapshot.getClass();
+        while (current != null && BasePO.class.isAssignableFrom(current)) {
+            for (Field field : current.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers())) continue;
+                String name = field.getName();
+                if ("id".equals(name) || "projectCode".equals(name)) continue;
+                field.setAccessible(true);
+                wrapper.set(toSnakeCase(name), field.get(snapshot));
+            }
+            if (current == BasePO.class) break;
+            current = current.getSuperclass();
+        }
+        mapper.update(null, wrapper);
+    }
+
+    private String toSnakeCase(String value) {
+        StringBuilder result = new StringBuilder();
+        for (char c : value.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                result.append('_').append(Character.toLowerCase(c));
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
     }
 
     private <T extends BasePO> void saveVersion(T po, String type) {
