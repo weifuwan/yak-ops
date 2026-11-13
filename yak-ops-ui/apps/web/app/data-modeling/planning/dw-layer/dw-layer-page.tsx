@@ -104,7 +104,10 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
 
   const save = async (values: DwLayerFormValues) => {
     if (saving) return;
-    const payload: Record<string, unknown> = { ...values };
+    const payload: Record<string, unknown> = {
+      ...values,
+      dwModelType: values.dwModelType || undefined,
+    };
     if (editing?.id) payload.id = editing.id;
 
     setSaving(true);
