@@ -163,7 +163,7 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
       />
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4">
         {currentWorkspace ? (
-          {definitionKey === "dwLayer" ? (
+          definitionKey === "dwLayer" ? (
             <DataModelingDwLayerPage projectCode={currentWorkspace.id} />
           ) : (
             <ModelingEntityPage
@@ -171,7 +171,7 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
               projectCode={currentWorkspace.id}
               definition={activeDefinition}
             />
-          )}
+          )
         ) : (
           <div className="flex min-h-[240px] flex-1 items-center justify-center rounded-md border border-dashed border-[var(--yak-components-panel-border)] bg-white text-sm text-[var(--yak-components-muted-text)]">
             请先选择工作空间
