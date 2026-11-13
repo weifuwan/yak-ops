@@ -96,11 +96,6 @@ export function DataModelingOverviewPage() {
               在当前工作空间内规划数仓、设计模型、管理标准与指标。
             </p>
           </div>
-          {currentWorkspace ? (
-            <div className="rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-1.5 text-xs text-[var(--yak-components-muted-text)]">
-              当前工作空间：{currentWorkspace.name}
-            </div>
-          ) : null}
         </div>
 
         {bootstrapQuery.isError ? (
