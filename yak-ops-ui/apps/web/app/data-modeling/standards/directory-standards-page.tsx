@@ -657,13 +657,13 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
                       </div>
                       <Table<StandardDirectoryRecord>
                         columns={directoryColumns}
-                        dataSource={directoryQuery.data?.bizData || []}
+                        dataSource={directoryQuery.data?.totalList || []}
                         rowKey={(item) => item.id || ""}
                         loading={directoryQuery.isPending || directoryQuery.isFetching}
                         bordered size="small" emptyText="暂无子目录"
-                        pagination={(directoryQuery.data?.pagination.total || 0) > 0 ? {
+                        pagination={(directoryQuery.data?.total || 0) > 0 ? {
                           current: directoryPageNo, pageSize: PAGE_SIZE,
-                          total: directoryQuery.data?.pagination.total || 0,
+                          total: directoryQuery.data?.total || 0,
                           disabled: directoryQuery.isFetching, onChange: setDirectoryPageNo,
                         } : false}
                       />
@@ -683,13 +683,13 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
                     </div>
                     <Table<StandardRecord>
                       columns={recordColumns}
-                      dataSource={recordQuery.data?.bizData || []}
+                      dataSource={recordQuery.data?.totalList || []}
                       rowKey={(item) => item.id || ""}
                       loading={recordQuery.isPending || recordQuery.isFetching}
                       bordered size="small" emptyText={"暂无" + title}
-                      pagination={(recordQuery.data?.pagination.total || 0) > 0 ? {
+                      pagination={(recordQuery.data?.total || 0) > 0 ? {
                         current: recordPageNo, pageSize: PAGE_SIZE,
-                        total: recordQuery.data?.pagination.total || 0,
+                        total: recordQuery.data?.total || 0,
                         disabled: recordQuery.isFetching, onChange: setRecordPageNo,
                       } : false}
                     />

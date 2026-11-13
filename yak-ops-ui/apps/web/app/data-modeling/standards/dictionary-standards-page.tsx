@@ -6,7 +6,6 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { modelingEntityApi } from "../service";
-import type { ModelingPageResult } from "../service";
 import type { DictionaryStandardRecord } from "./types";
 
 interface Props { projectCode: string; }
@@ -203,9 +202,8 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
     }
   };
 
-  const data = pageQuery.data as ModelingPageResult<DictionaryStandardRecord> | undefined;
-  const items = data?.bizData || [];
-  const total = data?.pagination.total || 0;
+  const items = pageQuery.data?.totalList || [];
+  const total = pageQuery.data?.total || 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedRecord = detailQuery.data;
 
