@@ -110,8 +110,12 @@ public class OperatorUtils {
 
     public static long getObjectIdentityByParam(String[] paramNameArr, Map<String, Object> paramsMap) {
         for (String name : paramNameArr) {
-            if (paramsMap.get(name) instanceof String) {
-                String param = (String) paramsMap.get(name);
+            Object value = paramsMap.get(name);
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            if (value instanceof String) {
+                String param = (String) value;
                 try {
                     if (param.matches("\\d+")) {
                         return Long.parseLong(param);
