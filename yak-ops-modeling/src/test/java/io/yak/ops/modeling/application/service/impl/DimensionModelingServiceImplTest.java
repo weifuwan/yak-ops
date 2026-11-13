@@ -89,7 +89,7 @@ class DimensionModelingServiceImplTest {
         layer.setCnName("未分层");
         when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer);
         when(dimensionTableDao.insert(any())).thenReturn(1);
-        when(versionManagementDao.queryOne(any(Wrapper.class))).thenReturn(null);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
 
         DimensionTableVO result = service.create(dimensionDto(DimensionTableTypeEnum.DETAIL));
 
