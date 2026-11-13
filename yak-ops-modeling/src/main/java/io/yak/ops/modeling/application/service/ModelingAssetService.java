@@ -120,7 +120,6 @@ public class ModelingAssetService {
                 return create(standardDirectoryMapper, StandardDirectoryPO.class, values).getId();
             case "field-standard":
                 validateDirectoryModule(text(values.get("parentId")), "FIELD");
-                validateOptionalReference(codeStandardMapper, text(values.get("reference")), "引用的标准代码不存在");
                 return create(fieldStandardMapper, FieldStandardPO.class, values).getId();
             case "code-standard": {
                 validateDirectoryModule(text(values.get("parentId")), "CODE");
@@ -138,27 +137,27 @@ public class ModelingAssetService {
             case "dictionary-standard":
                 return create(dictionaryStandardMapper, DictionaryStandardPO.class, values).getId();
             case "atom-indicator":
-                validateUniqueShortName(atomIndicatorMapper, values, null);
+                validateUniqueFields(atomIndicatorMapper, values, null);
                 validateOptionalReference(unitStandardMapper, text(values.get("unitId")), "度量单位不存在");
                 return createDraft(atomIndicatorMapper, AtomIndicatorPO.class, values).getId();
             case "derivative-indicator":
-                validateUniqueShortName(derivativeIndicatorMapper, values, null);
+                validateUniqueFields(derivativeIndicatorMapper, values, null);
                 validateOptionalReference(atomIndicatorMapper, text(values.get("atomicId")), "原子指标不存在");
                 validateOptionalReference(timePeriodMapper, text(values.get("timePeriodId")), "时间周期不存在");
                 return createDraft(derivativeIndicatorMapper, DerivativeIndicatorPO.class, values).getId();
             case "compose-indicator":
-                validateUniqueShortName(composeIndicatorMapper, values, null);
+                validateUniqueFields(composeIndicatorMapper, values, null);
                 validateOptionalReference(derivativeIndicatorMapper, text(values.get("deriveId")), "派生指标不存在");
                 return createDraft(composeIndicatorMapper, ComposeIndicatorPO.class, values).getId();
             case "modifier":
-                validateUniqueShortName(modifierMapper, values, null);
+                validateUniqueFields(modifierMapper, values, null);
                 validateOptionalReference(codeStandardMapper, text(values.get("codeId")), "标准代码不存在");
                 validateOptionalReference(codeDetailMapper, text(values.get("codeDetailId")), "标准代码明细不存在");
                 return createDraft(modifierMapper, ModifierPO.class, values).getId();
             case "time-period-category":
                 return create(timePeriodCategoryMapper, TimePeriodCategoryPO.class, values).getId();
             case "time-period":
-                validateUniqueShortName(timePeriodMapper, values, null);
+                validateUniqueFields(timePeriodMapper, values, null);
                 requireExists(timePeriodCategoryMapper, text(values.get("categoryId")), "时间周期目录不存在");
                 return createDraft(timePeriodMapper, TimePeriodPO.class, values).getId();
             default: throw unsupported(resource);
@@ -179,7 +178,6 @@ public class ModelingAssetService {
                 return toMap(update(standardDirectoryMapper, StandardDirectoryPO.class, values));
             case "field-standard":
                 validateDirectoryModule(text(values.get("parentId")), "FIELD");
-                validateOptionalReference(codeStandardMapper, text(values.get("reference")), "引用的标准代码不存在");
                 return toMap(update(fieldStandardMapper, FieldStandardPO.class, values));
             case "code-standard": {
                 validateDirectoryModule(text(values.get("parentId")), "CODE");
@@ -200,27 +198,27 @@ public class ModelingAssetService {
             case "dictionary-standard":
                 return toMap(update(dictionaryStandardMapper, DictionaryStandardPO.class, values));
             case "atom-indicator":
-                validateUniqueShortName(atomIndicatorMapper, values, id);
+                validateUniqueFields(atomIndicatorMapper, values, id);
                 validateOptionalReference(unitStandardMapper, text(values.get("unitId")), "度量单位不存在");
                 return updateDraft(atomIndicatorMapper, AtomIndicatorPO.class, values);
             case "derivative-indicator":
-                validateUniqueShortName(derivativeIndicatorMapper, values, id);
+                validateUniqueFields(derivativeIndicatorMapper, values, id);
                 validateOptionalReference(atomIndicatorMapper, text(values.get("atomicId")), "原子指标不存在");
                 validateOptionalReference(timePeriodMapper, text(values.get("timePeriodId")), "时间周期不存在");
                 return updateDraft(derivativeIndicatorMapper, DerivativeIndicatorPO.class, values);
             case "compose-indicator":
-                validateUniqueShortName(composeIndicatorMapper, values, id);
+                validateUniqueFields(composeIndicatorMapper, values, id);
                 validateOptionalReference(derivativeIndicatorMapper, text(values.get("deriveId")), "派生指标不存在");
                 return updateDraft(composeIndicatorMapper, ComposeIndicatorPO.class, values);
             case "modifier":
-                validateUniqueShortName(modifierMapper, values, id);
+                validateUniqueFields(modifierMapper, values, id);
                 validateOptionalReference(codeStandardMapper, text(values.get("codeId")), "标准代码不存在");
                 validateOptionalReference(codeDetailMapper, text(values.get("codeDetailId")), "标准代码明细不存在");
                 return updateDraft(modifierMapper, ModifierPO.class, values);
             case "time-period-category":
                 return toMap(update(timePeriodCategoryMapper, TimePeriodCategoryPO.class, values));
             case "time-period":
-                validateUniqueShortName(timePeriodMapper, values, id);
+                validateUniqueFields(timePeriodMapper, values, id);
                 requireExists(timePeriodCategoryMapper, text(values.get("categoryId")), "时间周期目录不存在");
                 return updateDraft(timePeriodMapper, TimePeriodPO.class, values);
             default: throw unsupported(resource);
@@ -275,11 +273,11 @@ public class ModelingAssetService {
         String key = normalize(resource);
         String versionType = versionType(key);
         switch (key) {
-            case "atom-indicator": return submit(atomIndicatorMapper, id, versionType);
-            case "derivative-indicator": return submit(derivativeIndicatorMapper, id, versionType);
-            case "compose-indicator": return submit(composeIndicatorMapper, id, versionType);
-            case "modifier": return submit(modifierMapper, id, versionType);
-            case "time-period": return submit(timePeriodMapper, id, versionType);
+            case "atom-indicator": return submit(atomIndicatorMapper, id, versionType, key);
+            case "derivative-indicator": return submit(derivativeIndicatorMapper, id, versionType, key);
+            case "compose-indicator": return submit(composeIndicatorMapper, id, versionType, key);
+            case "modifier": return submit(modifierMapper, id, versionType, key);
+            case "time-period": return submit(timePeriodMapper, id, versionType, key);
             default: throw new IllegalArgumentException("该资源不支持提交和版本管理");
         }
     }
@@ -420,9 +418,13 @@ public class ModelingAssetService {
         return toMap(mapper.selectById(po.getId()));
     }
 
-    private <T extends BasePO> Map<String, Object> submit(BaseMapper<T> mapper, String id, String type) {
+    private <T extends BasePO> Map<String, Object> submit(
+            BaseMapper<T> mapper, String id, String type, String resource) {
         T po = mapper.selectById(id);
         if (po == null) throw new IllegalArgumentException("记录不存在或不属于当前工作空间");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> values = safePayload(objectMapper.convertValue(po, Map.class));
+        validatePayload(resource, values);
         setIfWritable(po, "submit", Boolean.TRUE);
         po.initUpdate();
         mapper.updateById(po);
@@ -442,6 +444,7 @@ public class ModelingAssetService {
             snapshot.setProjectCode(null);
             snapshot.initUpdate();
             mapper.updateById(snapshot);
+            saveVersion(snapshot, version.getVersionType());
             return toMap(mapper.selectById(id));
         } catch (Exception ex) {
             throw new IllegalStateException("解析历史版本失败", ex);
@@ -555,6 +558,7 @@ public class ModelingAssetService {
         if ("standard-directory".equals(resource)) {
             if (text(values.get("dirModule")).isEmpty()) throw new IllegalArgumentException("目录模块不能为空");
             if (text(values.get("dirType")).isEmpty()) throw new IllegalArgumentException("目录类型不能为空");
+            validateDirectoryType(text(values.get("dirModule")), text(values.get("dirType")));
             validateDirectoryModule(text(values.get("parentId")), text(values.get("dirModule")));
         }
         if ("field-standard".equals(resource)) {
@@ -579,7 +583,13 @@ public class ModelingAssetService {
             requireFields(values, "enShortName");
         }
         if ("modifier".equals(resource)) {
-            requireFields(values, "enShortName", "modifierType");
+            requireFields(values, "enShortName", "modifierType", "businessCaliber", "director");
+        }
+        if ("compose-indicator".equals(resource)) {
+            String computeMode = text(values.get("computeMode"));
+            if ("0".equals(computeMode)) requireFields(values, "computeExpr");
+            else if ("1".equals(computeMode)) requireFields(values, "deriveId", "compareType");
+            else throw new IllegalArgumentException("计算模式必须是 0（计算表达式）或 1（同环比）");
         }
         if ("time-period".equals(resource)) {
             requireFields(values, "categoryId", "enShortName", "director");
@@ -608,14 +618,40 @@ public class ModelingAssetService {
         }
     }
 
-    private <T extends BasePO> void validateUniqueShortName(
+    private <T extends BasePO> void validateUniqueFields(
             BaseMapper<T> mapper, Map<String, Object> values, String excludeId) {
-        String shortName = text(values.get("enShortName"));
-        if (shortName.isEmpty()) return;
-        QueryWrapper<T> wrapper = new QueryWrapper<T>().eq("en_short_name", shortName);
+        validateUniqueField(mapper, "en_short_name", text(values.get("enShortName")), "英文缩写", excludeId);
+        validateUniqueField(mapper, "en_name", text(values.get("enName")), "英文名称", excludeId);
+        validateUniqueField(mapper, "cn_name", text(values.get("cnName")), "中文名称", excludeId);
+    }
+
+    private <T extends BasePO> void validateUniqueField(
+            BaseMapper<T> mapper, String column, String value, String label, String excludeId) {
+        if (value.isEmpty()) return;
+        QueryWrapper<T> wrapper = new QueryWrapper<T>().eq(column, value);
         if (excludeId != null) wrapper.ne("id", excludeId);
         if (mapper.selectCount(wrapper) > 0) {
-            throw new IllegalArgumentException("英文缩写已存在：" + shortName);
+            throw new IllegalArgumentException(label + "已存在：" + value);
+        }
+    }
+
+    private void validateDirectoryType(String module, String dirType) {
+        String normalizedModule = module.toUpperCase(Locale.ROOT);
+        if (!Arrays.asList("FIELD", "CODE", "UNIT").contains(normalizedModule)) {
+            throw new IllegalArgumentException("标准目录模块必须是 FIELD、CODE 或 UNIT");
+        }
+        Set<String> allowed = new HashSet<>();
+        allowed.add("FOLDER");
+        if ("FIELD".equals(normalizedModule)) {
+            allowed.add("STANDARD_SET");
+            allowed.add("STANDARD");
+        } else if ("CODE".equals(normalizedModule)) {
+            allowed.add("CODE");
+        } else {
+            allowed.add("UNIT");
+        }
+        if (!allowed.contains(dirType.toUpperCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("目录类型与所属标准模块不匹配");
         }
     }
 

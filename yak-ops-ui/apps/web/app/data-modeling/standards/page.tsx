@@ -9,9 +9,18 @@ import {
   type ModelingEntityDefinition,
 } from "../components/modeling-entity-page";
 
-const DIRECTORY_TYPES = [
+const FIELD_DIRECTORY_TYPES = [
   { value: "FOLDER", label: "文件夹" },
-  { value: "STANDARD", label: "标准集" },
+  { value: "STANDARD_SET", label: "标准集" },
+  { value: "STANDARD", label: "字段标准" },
+];
+const CODE_DIRECTORY_TYPES = [
+  { value: "FOLDER", label: "文件夹" },
+  { value: "CODE", label: "代码标准" },
+];
+const UNIT_DIRECTORY_TYPES = [
+  { value: "FOLDER", label: "文件夹" },
+  { value: "UNIT", label: "单位" },
 ];
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
@@ -25,13 +34,13 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
     defaults: { dirModule: "FIELD" },
     fields: [
       { key: "dirName", label: "目录名称", required: true },
-      { key: "dirType", label: "目录类型", required: true, options: DIRECTORY_TYPES },
+      { key: "dirType", label: "目录类型", required: true, options: FIELD_DIRECTORY_TYPES },
       { key: "dirModule", label: "归属模块", required: true, options: [{ value: "FIELD", label: "字段标准" }] },
       { key: "parentId", label: "上级目录", optionsSource: "standardDirectory", optionsParams: { dirModule: "FIELD" }, optionLabelField: "dirName", placeholder: "顶级目录留空" },
     ],
     columns: [
       { key: "dirName", title: "目录名称", width: 240 },
-      { key: "dirType", title: "目录类型", width: 140, render: (value) => value === "FOLDER" ? "文件夹" : "标准集" },
+      { key: "dirType", title: "目录类型", width: 140, render: (value) => value === "FOLDER" ? "文件夹" : value === "STANDARD_SET" ? "标准集" : "字段标准" },
       { key: "parentId", title: "上级目录", width: 200 },
     ],
   },
@@ -62,7 +71,7 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
       { key: "businessDefinition", label: "业务定义", multiline: true },
       { key: "parentId", label: "所属目录", optionsSource: "standardDirectory", optionsParams: { dirModule: "FIELD" }, optionLabelField: "dirName" },
       { key: "parentStd", label: "父级标准" },
-      { key: "reference", label: "引用标准代码", optionsSource: "codeStandard" },
+      { key: "reference", label: "引用代码", placeholder: "请输入引用代码" },
     ],
     columns: [
       { key: "stdCode", title: "标准编码", width: 150 },
@@ -84,13 +93,13 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
     defaults: { dirModule: "CODE" },
     fields: [
       { key: "dirName", label: "目录名称", required: true },
-      { key: "dirType", label: "目录类型", required: true, options: DIRECTORY_TYPES },
+      { key: "dirType", label: "目录类型", required: true, options: CODE_DIRECTORY_TYPES },
       { key: "dirModule", label: "归属模块", required: true, options: [{ value: "CODE", label: "标准代码" }] },
       { key: "parentId", label: "上级目录", optionsSource: "standardDirectory", optionsParams: { dirModule: "CODE" }, optionLabelField: "dirName", placeholder: "顶级目录留空" },
     ],
     columns: [
       { key: "dirName", title: "目录名称", width: 240 },
-      { key: "dirType", title: "目录类型", width: 140, render: (value) => value === "FOLDER" ? "文件夹" : "标准集" },
+      { key: "dirType", title: "目录类型", width: 140, render: (value) => value === "FOLDER" ? "文件夹" : "代码标准" },
       { key: "parentId", title: "上级目录", width: 200 },
     ],
   },
@@ -144,13 +153,13 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
     defaults: { dirModule: "UNIT" },
     fields: [
       { key: "dirName", label: "目录名称", required: true },
-      { key: "dirType", label: "目录类型", required: true, options: DIRECTORY_TYPES },
+      { key: "dirType", label: "目录类型", required: true, options: UNIT_DIRECTORY_TYPES },
       { key: "dirModule", label: "归属模块", required: true, options: [{ value: "UNIT", label: "度量单位" }] },
       { key: "parentId", label: "上级目录", optionsSource: "standardDirectory", optionsParams: { dirModule: "UNIT" }, optionLabelField: "dirName", placeholder: "顶级目录留空" },
     ],
     columns: [
       { key: "dirName", title: "目录名称", width: 240 },
-      { key: "dirType", title: "目录类型", width: 140, render: (value) => value === "FOLDER" ? "文件夹" : "标准集" },
+      { key: "dirType", title: "目录类型", width: 140, render: (value) => value === "FOLDER" ? "文件夹" : "单位" },
       { key: "parentId", title: "上级目录", width: 200 },
     ],
   },
