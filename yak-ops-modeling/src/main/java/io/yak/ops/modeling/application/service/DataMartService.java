@@ -1,10 +1,8 @@
 package io.yak.ops.modeling.application.service;
 
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.datamart.DataMartPO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.tree.TreeVO;
 
@@ -15,7 +13,7 @@ import java.util.List;
  *
  * @author bruce
  */
-public interface DataMartService extends IService<DataMartPO> {
+public interface DataMartService {
 
     String create(DataMartDTO dto);
 
