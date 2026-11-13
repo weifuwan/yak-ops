@@ -8,26 +8,6 @@ import { DataModelingBusinessTypePage } from "./business-type/business-type-page
 
 const DEFINITIONS: ModelingEntityDefinition[] = [
   {
-    key: "businessType", title: "业务分类",
-    description: "按业务视角组织数仓建设范围，支持层级分类及业务负责人维护。",
-    searchField: "businessName", searchPlaceholder: "搜索业务名称",
-    fields: [
-      { key: "businessName", label: "业务名称", required: true },
-      { key: "enShortName", label: "英文缩写" },
-      { key: "reviewer", label: "模型评审人", placeholder: "多个评审人使用逗号分隔" },
-      { key: "director", label: "负责人" },
-      { key: "parentId", label: "上级分类", optionsSource: "businessType", optionLabelField: "businessName", placeholder: "顶级分类留空" },
-      { key: "remark", label: "备注", multiline: true },
-    ],
-    columns: [
-      { key: "businessName", title: "业务名称", width: 220 },
-      { key: "enShortName", title: "英文缩写", width: 150 },
-      { key: "director", title: "负责人", width: 140 },
-      { key: "reviewer", title: "模型评审人", width: 200 },
-      { key: "parentId", title: "上级分类", width: 150 },
-    ],
-  },
-  {
     key: "dwLayer", title: "数仓分层",
     description: "维护数仓分层类型与模型类型，为后续模型设计提供统一的分层定义。",
     searchField: "cnName", searchPlaceholder: "搜索分层名称",

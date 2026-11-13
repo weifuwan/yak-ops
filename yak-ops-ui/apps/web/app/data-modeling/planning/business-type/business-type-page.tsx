@@ -461,7 +461,21 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
 
   useEffect(() => {
     if (treeData.length) {
-      setExpandedKeys((current) => current.size ? current : new Set(treeData.filter((item) => item.children?.length).map((item) => item.key)));
+      setExpandedKeys((current) => {
+        if (current.size) return current;
+        const keys = new Set<string>();
+        const visit = (nodes: BusinessTypeTreeNode[]) => {
+          nodes.forEach((node) => {
+            const key = node.key || node.value;
+            if (node.children?.length) {
+              keys.add(key);
+              visit(node.children);
+            }
+          });
+        };
+        visit(treeData);
+        return keys;
+      });
     }
   }, [treeData]);
 
