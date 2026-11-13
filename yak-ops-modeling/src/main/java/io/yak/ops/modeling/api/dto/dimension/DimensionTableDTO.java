@@ -2,10 +2,10 @@ package io.yak.ops.modeling.api.dto.dimension;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.yak.ops.modeling.api.dto.pagination.PaginationBaseDTO;
-import io.yak.ops.modeling.domain.enums.DimensionStoragePolicyEnum;
-import io.yak.ops.modeling.domain.enums.DimensionTableTypeEnum;
+import io.yak.ops.dao.entity.enums.DimensionStoragePolicyEnum;
+import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import io.yak.ops.modeling.domain.enums.DimensionTreeGroupingEnum;
-import io.yak.ops.modeling.domain.enums.DwTypeEnum;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
