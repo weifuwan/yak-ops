@@ -30,7 +30,7 @@ public class ModelingProjectAccessInterceptor implements HandlerInterceptor {
     @Override
     @SuppressWarnings("unchecked")
     public boolean preHandle(
-            HttpServletRequest request, HttpServletResponse response, Object handler) {
+                             HttpServletRequest request, HttpServletResponse response, Object handler) {
         ProjectCodeContext.clear();
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
@@ -78,10 +78,10 @@ public class ModelingProjectAccessInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Object handler,
-            Exception ex) {
+                                HttpServletRequest request,
+                                HttpServletResponse response,
+                                Object handler,
+                                Exception ex) {
         ProjectCodeContext.clear();
     }
 }

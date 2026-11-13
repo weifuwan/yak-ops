@@ -40,7 +40,7 @@ public class TaskPluginController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(LIST_TASK_TYPE_ERROR)
     public Result<List<TaskPluginTypeDto>> listRegisteredTaskTypes(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser) {
+                                                                   @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser) {
         List<TaskPluginTypeDto> taskTypes = TaskPluginManager.getRegisteredTaskTypes()
                 .stream()
                 .map(taskType -> new TaskPluginTypeDto(

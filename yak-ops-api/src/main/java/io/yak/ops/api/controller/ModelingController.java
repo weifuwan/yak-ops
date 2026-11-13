@@ -38,8 +38,8 @@ public class ModelingController extends BaseController {
     @GetMapping("/bootstrap")
     @ResponseStatus(HttpStatus.OK)
     public Result<ModelingBootstrapVO> queryBootstrap(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @PathVariable("projectCode") long projectCode) {
+                                                      @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                      @PathVariable("projectCode") long projectCode) {
         projectService.checkProjectAndAuthThrowException(loginUser, projectCode, null);
         return Result.success(modelingModuleService.getBootstrap(projectCode));
     }
