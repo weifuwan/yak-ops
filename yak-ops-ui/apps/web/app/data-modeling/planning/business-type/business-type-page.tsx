@@ -144,7 +144,7 @@ function BusinessTypeFormDialog({
         {field("模型评审人", "reviewer")}
         {field("负责人", "director", true)}
         {field("备注", "remark", false, true)}
-        {parentId ? <div className="pl-[124px] text-[11px] text-[var(--yak-components-muted-text)]">将作为所选业务分类的子级创建</div> : null}
+        {parentId && !record?.id ? <div className="pl-[124px] text-[11px] text-[var(--yak-components-muted-text)]">将作为所选业务分类的子级创建</div> : null}
         {error ? <div role="alert" className="pl-[124px] text-xs text-[#d92d20]">{error}</div> : null}
       </div>
     </Modal>
@@ -412,7 +412,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
             <label key={key} className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3">
               <span className="text-right text-xs text-[var(--yak-components-muted-text)]">{label}</span>
               {key === "martType" ? (
-                <Select size="small" value={values.martType || undefined}
+                <Select size="small" items={[{ value: "PUBLIC", label: "公共集市" }, { value: "BUSINESS", label: "业务集市" }, { value: "APPLICATION", label: "数据应用集市" }]} value={values.martType || undefined}
                   onValueChange={(value) => setValues((current) => ({ ...current, martType: String(value || "") }))}>
                   <SelectTrigger variant="outlined"><SelectValue placeholder="请选择集市类型" /></SelectTrigger>
                   <SelectContent>
