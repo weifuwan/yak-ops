@@ -1,6 +1,6 @@
 import { Button, Modal } from "@yak-ops/yak-ui";
 
-import { isSystemRecord, type BusinessProcessRecord } from "./types";
+import { isSystemBusinessProcess, type BusinessProcessRecord } from "./types";
 
 interface Props {
   record?: BusinessProcessRecord;
@@ -31,7 +31,7 @@ export function BusinessProcessViewDialog({ record, onClose }: Props) {
               <div className="mb-1 text-xs text-[var(--yak-components-muted-text)]">{label}</div>
               <div className="break-words whitespace-pre-wrap text-sm text-[var(--yak-components-panel-text)]">
                 {String(record[key] ?? "-") || "-"}
-                {key === "enShortName" && isSystemRecord(record) ? (
+                {key === "enShortName" && isSystemBusinessProcess(record) ? (
                   <span className="ml-2 rounded border border-[#91caff] bg-[#e6f4ff] px-1.5 py-0.5 text-[10px] text-[#1677ff]">系统默认</span>
                 ) : null}
               </div>

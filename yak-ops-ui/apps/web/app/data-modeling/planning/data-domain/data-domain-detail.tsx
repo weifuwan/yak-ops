@@ -7,7 +7,7 @@ import { modelingEntityApi } from "../../service";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
 import BusinessProcessViewDialog from "./business-process-view-dialog";
 import type { BusinessProcessFormValues, BusinessProcessRecord, DataDomainRecord } from "./types";
-import { isSystemRecord } from "./types";
+import { isSystemBusinessProcess } from "./types";
 
 interface Props {
   projectCode: string;
@@ -139,7 +139,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
   };
 
   const remove = async () => {
-    if (!pendingDelete?.id || deleting || isSystemRecord(pendingDelete)) return;
+    if (!pendingDelete?.id || deleting || isSystemBusinessProcess(pendingDelete)) return;
     setDeleting(true);
     try {
       await modelingEntityApi.remove(projectCode, "businessProcess", pendingDelete.id);
@@ -159,7 +159,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
       render: (value, record) => (
         <span>
           {String(value || "-")}
-          {isSystemRecord(record) ? <span className="ml-2 rounded border border-[#91caff] bg-[#e6f4ff] px-1.5 py-0.5 text-[10px] text-[#1677ff]">系统</span> : null}
+          {isSystemBusinessProcess(record) ? <span className="ml-2 rounded border border-[#91caff] bg-[#e6f4ff] px-1.5 py-0.5 text-[10px] text-[#1677ff]">系统</span> : null}
         </span>
       ),
     },
@@ -179,7 +179,7 @@ function BusinessProcessSection({ projectCode, domain }: { projectCode: string; 
           <Button size="sm" variant="ghost" className="px-1 text-xs font-normal text-[var(--yak-color-primary)]" isDisabled={Boolean(openingId)} onClick={() => void openEdit(record)}>
             {openingId === record.id ? "加载中" : <><SquarePen size={12} />编辑</>}
           </Button>
-          {!isSystemRecord(record) ? (
+          {!isSystemBusinessProcess(record) ? (
             <>
               <span className="h-3 w-px bg-[#e4e7ec]" />
               <Button size="sm" variant="ghost" className="px-1 text-xs font-normal text-[#d92d20]" onClick={() => setPendingDelete(record)}>

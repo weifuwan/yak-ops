@@ -66,3 +66,6 @@ export const EMPTY_BUSINESS_PROCESS_FORM: BusinessProcessFormValues = {
 };
 
 export const isSystemRecord = (record?: { flag?: number | string }) => Number(record?.flag) === 1;
+
+export const isSystemBusinessProcess = (record?: { flag?: number | string; enShortName?: string }) =>
+  Number(record?.flag) === 1 || String(record?.enShortName || "").toLocaleLowerCase().endsWith("_default");

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Field, FieldLabel, Input, Modal, Textarea } from "@yak-ops/yak-ui";
 
 import {
-  EMPTY_BUSINESS_PROCESS_FORM, isSystemRecord,
+  EMPTY_BUSINESS_PROCESS_FORM, isSystemBusinessProcess,
   type BusinessProcessFormValues, type BusinessProcessRecord, type DataDomainRecord,
 } from "./types";
 
@@ -18,7 +18,7 @@ interface Props {
 export function BusinessProcessFormDialog({ open, domain, editing, saving, onClose, onSubmit }: Props) {
   const [values, setValues] = useState<BusinessProcessFormValues>(EMPTY_BUSINESS_PROCESS_FORM);
   const [error, setError] = useState("");
-  const system = isSystemRecord(editing);
+  const system = isSystemBusinessProcess(editing);
 
   useEffect(() => {
     if (!open) return;
