@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_standard_directory (
   KEY idx_yak_standard_directory_1 (project_code, dir_module),
   KEY idx_yak_standard_directory_2 (parent_id),
   UNIQUE KEY uk_yak_standard_directory_1 (project_code, dir_module, dir_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据标准-标准目录';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_field_standard (
   id varchar(32) NOT NULL,
@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_field_standard (
   KEY idx_yak_field_standard_1 (project_code),
   KEY idx_yak_field_standard_2 (parent_id),
   KEY idx_yak_field_standard_3 (reference)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据标准-字段标准';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_code_standard (
   id varchar(32) NOT NULL,
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_code_standard (
   PRIMARY KEY (id),
   KEY idx_yak_code_standard_1 (project_code),
   KEY idx_yak_code_standard_2 (parent_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据标准-标准代码';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_code_detail (
   id varchar(32) NOT NULL,
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_code_detail (
   PRIMARY KEY (id),
   KEY idx_yak_code_detail_1 (project_code),
   KEY idx_yak_code_detail_2 (code_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据标准-标准代码明细';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_unit_standard (
   id varchar(32) NOT NULL,
@@ -232,7 +232,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_unit_standard (
   PRIMARY KEY (id),
   KEY idx_yak_unit_standard_1 (project_code),
   KEY idx_yak_unit_standard_2 (parent_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据标准-度量单位';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_dictionary_standard (
   id varchar(32) NOT NULL,
@@ -246,7 +246,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dictionary_standard (
   update_by varchar(100) NULL,
   PRIMARY KEY (id),
   KEY idx_yak_dictionary_standard_1 (project_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据标准-命名词典';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_atom (
   id varchar(32) NOT NULL,
@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_atom (
   KEY idx_yak_indicator_atom_3 (domain_id),
   KEY idx_yak_indicator_atom_4 (bus_process_id),
   KEY idx_yak_indicator_atom_5 (unit_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-原子指标';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (
   id varchar(32) NOT NULL,
@@ -305,7 +305,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (
   KEY idx_yak_indicator_derivative_3 (time_period_id),
   KEY idx_yak_indicator_derivative_4 (bus_type_id),
   KEY idx_yak_indicator_derivative_5 (domain_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-派生指标';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_compose (
   id varchar(32) NOT NULL,
@@ -335,7 +335,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_compose (
   KEY idx_yak_indicator_compose_2 (derive_id),
   KEY idx_yak_indicator_compose_3 (bus_type_id),
   KEY idx_yak_indicator_compose_4 (domain_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-复合指标';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_modifier (
   id varchar(32) NOT NULL,
@@ -366,7 +366,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_modifier (
   KEY idx_yak_indicator_modifier_2 (modifier_type),
   KEY idx_yak_indicator_modifier_3 (code_id),
   KEY idx_yak_indicator_modifier_4 (code_detail_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-指标修饰词';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_time_period_category (
   id varchar(32) NOT NULL,
@@ -382,7 +382,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_time_period_category (
   PRIMARY KEY (id),
   KEY idx_yak_time_period_category_1 (project_code),
   KEY idx_yak_time_period_category_2 (parent_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-时间周期目录';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_time_period (
   id varchar(32) NOT NULL,
@@ -418,7 +418,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_version_management (
   KEY idx_yak_version_management_1 (project_code, source_table_id),
   KEY idx_yak_version_management_2 (version_type),
   UNIQUE KEY uk_yak_version_management_1 (project_code, source_table_id, version_type, version_number)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-版本管理';
 
 
 -- Dimension modeling: dimension tables and their field definitions.
@@ -454,7 +454,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table (
   KEY idx_yak_dimension_table_3 (mart_id, subject_id),
   KEY idx_yak_dimension_table_4 (project_code, table_name),
   KEY idx_yak_dimension_table_5 (project_code, cn_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-维度表元数据';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_fields (
   id varchar(32) NOT NULL,
@@ -483,4 +483,4 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_fields (
   KEY idx_yak_dimension_fields_2 (unit_id),
   KEY idx_yak_dimension_fields_3 (field_std_id),
   KEY idx_yak_dimension_fields_4 (code_std_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-维度表字段元数据';
