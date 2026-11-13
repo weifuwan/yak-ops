@@ -1,23 +1,31 @@
 # Yak Ops Modeling Module
 
-The modeling business domain is migrated from [weifuwan/data_modal](https://github.com/weifuwan/data_modal). The module is intentionally isolated from the API and DAO modules so its domain, application services and persistence layer can evolve independently.
+The modeling business domain is migrated from [weifuwan/data_modal](https://github.com/weifuwan/data_modal). The module keeps modeling-specific DTOs, VOs, application services and domain orchestration separate from the shared persistence module.
 
 ## Package boundaries
 
-- `domain`: modeling enums and domain-level types.
+- `domain`: modeling domain types and grouping rules.
 - `api/dto`: request DTOs.
-- `api/vo`: response VOs and page/tree response types.
-- `application/service`: business service interfaces and implementations.
-- `infrastructure/persistence/entity`: MyBatis-Plus persistence entities (POs).
-- `infrastructure/persistence/mapper`: mapper interfaces.
-- `src/main/resources/mapper/modeling`: mapper XML.
-- `src/main/resources/sql`: additive database scripts by dialect.
+- `api/vo`: response VOs and tree/page response types.
+- `application/service`: modeling service interfaces and implementations, including business orchestration and transaction boundaries.
+- `config/ModelingConfiguration`: registers the Modeling application services only.
+- `src/main/resources/sql`: complete additive schema scripts for each supported database dialect.
 
-HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API boundary. The module reuses Yak Ops authentication, project permissions, datasource, MyBatis session factory and Yak-ui components.
+All persistence code is owned by `yak-ops-dao`, following the repository-level `AGENTS.md` rules:
+
+- Entities: `yak-ops-dao/src/main/java/io/yak/ops/dao/entity`
+- Modeling mappers: `yak-ops-dao/src/main/java/io/yak/ops/dao/mapper`
+- DAO interfaces: `yak-ops-dao/src/main/java/io/yak/ops/dao/repository/modeling`
+- DAO implementations: `yak-ops-dao/src/main/java/io/yak/ops/dao/repository/impl/modeling`
+- Mapper XML: `yak-ops-dao/src/main/resources/io/yak/ops/dao/mapper`
+
+Each modeling table has one independent PO, Mapper, DAO interface and DAO implementation. The 13 data-standard and indicator asset entities are no longer nested in a single PO container. The dynamic asset service uses a dedicated `ModelingAssetDao` facade, keeping mapper execution inside the DAO layer.
+
+HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API boundary. The modules reuse Yak Ops authentication, project permissions, datasource, MyBatis session factory and Yak UI components.
 
 ## Migrated business scope
 
-### Warehouse planning (first vertical slice)
+### Warehouse planning
 
 - Business types and business-type/data-domain relations
 - Warehouse layers
@@ -25,43 +33,42 @@ HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API bou
 - Business processes
 - Data marts
 - Subject domains
-- Dimension tables and their field definitions
+- Existing dimension table and field metadata
 - Dimension tree grouping by business type, data domain, mart and subject domain
-- Dimension table submission, version history and rollback
-
-The corresponding original POs, DTOs, VOs, Mapper interfaces, Service interfaces/implementations, controllers and table definitions have been moved into the new package structure. The original business fields and endpoint behavior are retained where possible.
 
 ### Migrated modeling assets
 
-- Dimension modeling: dimension tables, table fields, tree grouping, submission, version history and rollback.
 - Data standards: standard directories, field standards, code standards, units and naming dictionaries.
 - Data indicators: atomic, derivative and composite indicators, modifiers and time periods.
+- Existing version metadata and dimension metadata persistence.
+
+Core forward data modeling and reverse engineering remain outside this migration scope.
 
 ## Workspace isolation
 
-All migrated modeling tables must have a non-null `project_code`.
+All 22 modeling tables use the `t_yak_ops_` prefix and must have a non-null `project_code`.
 
 - API routes are rooted at `/projects/{projectCode}/modeling`.
 - `ModelingProjectAccessInterceptor` validates read/write access against the active Yak Ops project.
 - `ProjectCodeContext` carries the authenticated project code for the duration of the request.
 - MyBatis-Plus `TenantLineInnerInterceptor` adds `project_code` predicates to SELECT/UPDATE/DELETE and injects the project code on INSERT for the explicit migrated-table allowlist in `DaoConfiguration`.
 - A query against an allowlisted modeling table without an active project context fails closed.
-- When a new modeling table is migrated, add it to the DAO tenant allowlist and the schema preflight list in `yak-ops-tools` in the same change.
-- The browser's active workspace ID is the Yak Ops project code.
+- When another modeling table is added, update the dialect scripts, DAO tenant allowlist and schema preflight list in the same change.
+- Never accept a project code from a DTO as an authority. The request path and project permission check are authoritative.
 
-Do not accept a project code from a DTO as an authority. The request path and project permission check are authoritative.
+## Database schema and migration
 
-## Database migration
-
-The module owns repeatable, additive scripts:
+The module owns three complete, additive schema scripts:
 
 - `sql/modeling_mysql.sql`
 - `sql/modeling_postgresql.sql`
 - `sql/modeling_h2.sql`
 
-`yak-ops-tools` depends on this module and executes the modeling patch after the existing Yak Ops baseline has been validated. The scripts only create missing tables and indexes; they do not drop or recreate existing Yak Ops tables.
+Each script defines the same 22 tables and 54 indexes, with the same logical column set. Table names, table comments and index names are aligned across dialects. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
 
-If a legacy planning table already exists without `project_code`, initialization stops rather than exposing old rows to every workspace. Back up and explicitly assign those legacy rows to a project before enabling the migrated module.
+Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for former `t_cockpit_` table names. When only a legacy table exists, it renames it in place and normalizes its index names, preserving rows. If both old and new table names exist, initialization stops and requires explicit data reconciliation. It never drops or merges either table automatically.
+
+If a legacy table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
 
 ## Frontend
 
@@ -69,8 +76,8 @@ The product is routed under `/data-modeling`. The warehouse planning screens use
 
 ## Migration sequence
 
-1. Warehouse planning (business type, layer, domain, process, mart, subject domain).
-2. Dimension modeling (dimension tables, fields, tree, submit and version history).
+1. Warehouse planning (business type, layer, domain, process, mart and subject domain).
+2. Existing dimension metadata and tree grouping.
 3. Data standards.
 4. Data indicators.
-5. Replace remaining legacy interactions with Yak-ui components and remove obsolete compatibility code after verification.
+5. Core forward data modeling and reverse engineering (deferred).
