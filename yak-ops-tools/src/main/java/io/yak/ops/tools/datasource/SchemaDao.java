@@ -7,7 +7,10 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -24,6 +27,31 @@ public class SchemaDao {
     private final DataSource dataSource;
 
     private final DbType dbType;
+
+    private static final String[] MODELING_TABLES = {
+            "t_yak_ops_business_type",
+            "t_yak_ops_business_type_related_data_domain",
+            "t_yak_ops_dw_layer",
+            "t_yak_ops_data_domain",
+            "t_yak_ops_business_process",
+            "t_yak_ops_data_mart",
+            "t_yak_ops_subject_domain",
+            "t_yak_ops_dimension_table",
+            "t_yak_ops_dimension_table_fields",
+            "t_yak_ops_standard_directory",
+            "t_yak_ops_field_standard",
+            "t_yak_ops_code_standard",
+            "t_yak_ops_code_detail",
+            "t_yak_ops_unit_standard",
+            "t_yak_ops_dictionary_standard",
+            "t_yak_ops_indicator_atom",
+            "t_yak_ops_indicator_derivative",
+            "t_yak_ops_indicator_compose",
+            "t_yak_ops_indicator_modifier",
+            "t_yak_ops_time_period_category",
+            "t_yak_ops_time_period",
+            "t_yak_ops_version_management"
+    };
 
     public SchemaDao(DataSource dataSource, DbType dbType) {
         this.dataSource = dataSource;
@@ -107,33 +135,18 @@ public class SchemaDao {
      * unscoped modeling tables would be reused accidentally.
      */
     public void ensureModelingSchema() {
-        String[] modelingTables = {
-                "t_cockpit_business_type",
-                "t_cockpit_dw_layer",
-                "t_cockpit_data_domain",
-                "t_cockpit_business_process",
-                "t_cockpit_data_mart",
-                "t_cockpit_subject_domain",
-                "t_cockpit_dimension_table",
-                "t_cockpit_dimension_table_fields",
-                "t_cockpit_business_type_related_data_domain",
-                "t_cockpit_standard_directory",
-                "t_cockpit_field_standard",
-                "t_cockpit_code_standard",
-                "t_cockpit_code_detail",
-                "t_cockpit_unit_standard",
-                "t_cockpit_dictionary_standard",
-                "t_cockpit_indicator_atom",
-                "t_cockpit_indicator_derivative",
-                "t_cockpit_indicator_compose",
-                "t_cockpit_indicator_modifier",
-                "t_cockpit_time_period_category",
-                "t_cockpit_time_period",
-                "t_cockpit_version_management"
-        };
+        String db = dbType.getDb();
+        if (!"mysql".equalsIgnoreCase(db)
+                && !"postgresql".equalsIgnoreCase(db)
+                && !"h2".equalsIgnoreCase(db)) {
+            throw new IllegalStateException("Modeling schema is not available for database type " + db);
+        }
+
+        migrateLegacyModelingTableNames();
+
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            for (String tableName : modelingTables) {
+            for (String tableName : MODELING_TABLES) {
                 if (tableExists(metadata, connection, tableName)
                         && !columnExists(metadata, connection, tableName, "project_code")) {
                     throw new IllegalStateException(
@@ -146,21 +159,102 @@ public class SchemaDao {
             throw new IllegalStateException("Failed to validate modeling schema", ex);
         }
 
-        String db = dbType.getDb();
-        if (!"mysql".equalsIgnoreCase(db)
-                && !"postgresql".equalsIgnoreCase(db)
-                && !"h2".equalsIgnoreCase(db)) {
-            throw new IllegalStateException("Modeling schema is not available for database type " + db);
-        }
         String sqlFilePath = String.format("sql/modeling_%s.sql", db);
         try {
             new SqlScriptRunner(dataSource, sqlFilePath).execute();
-            String assetsSqlFilePath = String.format("sql/modeling_assets_%s.sql", db);
-            new SqlScriptRunner(dataSource, assetsSqlFilePath).execute();
-            log.info("Ensured data modeling schema using {} and {}", sqlFilePath, assetsSqlFilePath);
+            log.info("Ensured data modeling schema using {}", sqlFilePath);
         } catch (Exception ex) {
-            throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath + " and its asset patch", ex);
+            throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath, ex);
         }
+    }
+
+    /**
+     * Rename the former cockpit-prefixed modeling tables in place.
+     *
+     * <p>The operation preserves existing rows and indexes. If both the legacy and
+     * normalized table exist, initialization stops instead of guessing which data
+     * set should be kept or merged.
+     */
+    private void migrateLegacyModelingTableNames() {
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            for (String tableName : MODELING_TABLES) {
+                String legacyTableName = tableName.replace("t_yak_ops_", "t_cockpit_");
+                boolean legacyExists = tableExists(metadata, connection, legacyTableName);
+                boolean currentExists = tableExists(metadata, connection, tableName);
+
+                if (legacyExists && currentExists) {
+                    throw new IllegalStateException(
+                            "Both legacy modeling table " + legacyTableName + " and normalized table "
+                                    + tableName + " exist. Back up and reconcile the data before continuing.");
+                }
+                if (!legacyExists) {
+                    continue;
+                }
+
+                try (Statement statement = connection.createStatement()) {
+                    statement.execute("ALTER TABLE " + quoteIdentifier(legacyTableName)
+                            + " RENAME TO " + quoteIdentifier(tableName));
+                }
+                renameModelingIndexes(metadata, connection, tableName);
+                log.info("Renamed modeling table {} to {}", legacyTableName, tableName);
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to migrate legacy modeling table names", ex);
+        }
+    }
+
+    private void renameModelingIndexes(DatabaseMetaData metadata, Connection connection, String tableName)
+            throws SQLException {
+        Set<String> existingIndexes = new HashSet<>();
+        try (ResultSet indexes = metadata.getIndexInfo(
+                connection.getCatalog(), connection.getSchema(), tableName, false, false)) {
+            while (indexes.next()) {
+                String indexName = indexes.getString("INDEX_NAME");
+                if (indexName != null) {
+                    existingIndexes.add(indexName.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+
+        for (String indexName : new HashSet<>(existingIndexes)) {
+            String normalizedName = normalizeModelingIndexName(indexName);
+            if (normalizedName.equals(indexName) || existingIndexes.contains(normalizedName)) {
+                continue;
+            }
+
+            String sql;
+            if ("mysql".equalsIgnoreCase(dbType.getDb())) {
+                sql = "ALTER TABLE " + quoteIdentifier(tableName) + " RENAME INDEX "
+                        + quoteIdentifier(indexName) + " TO " + quoteIdentifier(normalizedName);
+            } else {
+                sql = "ALTER INDEX " + quoteIdentifier(indexName) + " RENAME TO "
+                        + quoteIdentifier(normalizedName);
+            }
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(sql);
+            }
+            existingIndexes.add(normalizedName);
+        }
+    }
+
+    private String normalizeModelingIndexName(String indexName) {
+        if (indexName.startsWith("idx_t_cockpit_")) {
+            return "idx_yak_" + indexName.substring("idx_t_cockpit_".length());
+        }
+        if (indexName.startsWith("idx_")) {
+            return "idx_yak_" + indexName.substring("idx_".length());
+        }
+        if (indexName.startsWith("uk_")) {
+            return "uk_yak_" + indexName.substring("uk_".length());
+        }
+        return indexName;
+    }
+
+    private String quoteIdentifier(String identifier) {
+        return "mysql".equalsIgnoreCase(dbType.getDb())
+                ? "`" + identifier + "`"
+                : "\"" + identifier + "\"";
     }
 
     private boolean tableExists(DatabaseMetaData metadata, Connection connection, String tableName)
