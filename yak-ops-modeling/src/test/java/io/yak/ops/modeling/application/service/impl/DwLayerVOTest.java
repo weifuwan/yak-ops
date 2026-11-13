@@ -21,4 +21,12 @@ class DwLayerVOTest {
 
         assertEquals("公共层", vo.getDwTypeName());
     }
+
+    @Test
+    void shouldReturnStoredTypeNameWhenLayerTypeIsMissing() {
+        DwLayerVO vo = new DwLayerVO();
+        vo.setDwTypeName("未分层");
+
+        assertEquals("未分层", vo.getDwTypeName());
+    }
 }

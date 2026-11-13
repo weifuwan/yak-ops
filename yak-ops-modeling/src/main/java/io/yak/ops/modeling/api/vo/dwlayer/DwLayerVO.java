@@ -77,7 +77,7 @@ public class DwLayerVO {
     private String updateBy;
 
     public String getDwTypeName() {
-        return dwType == null ? null : dwType.getName();
+        return dwType == null ? dwTypeName : dwType.getName();
     }
 }
 
