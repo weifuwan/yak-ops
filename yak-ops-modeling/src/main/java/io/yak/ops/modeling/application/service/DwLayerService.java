@@ -1,10 +1,8 @@
 package io.yak.ops.modeling.application.service;
 
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.dwlayer.DwLayerPO;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.modeling.domain.enums.DwModelEnum;
@@ -16,7 +14,7 @@ import java.util.List;
  *
  * @author bruce
  */
-public interface DwLayerService extends IService<DwLayerPO> {
+public interface DwLayerService {
 
     String create(DwLayerDTO DwLayerType);
 
