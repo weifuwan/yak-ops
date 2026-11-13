@@ -152,34 +152,6 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white text-[var(--yak-color-primary)]">
-            <Layers3 size={16} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs leading-5 text-[var(--yak-components-muted-text)]">
-              维护贴源层、公共层和应用层的分层定义，为后续模型设计提供统一的分层与模型类型。
-            </p>
-            <p className="mt-0.5 text-[11px] text-[var(--yak-components-muted-text)]">
-              共 {records.length} 个分层定义
-            </p>
-          </div>
-        </div>
-
-        {!selectedId ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            isDisabled={listQuery.isFetching}
-            onClick={() => void listQuery.refetch()}
-          >
-            <RefreshCw size={13} className={listQuery.isFetching ? "animate-spin" : ""} />
-            刷新
-          </Button>
-        ) : null}
-      </div>
-
       {selectedId ? (
         <DwLayerDetail
           record={detailQuery.data}
@@ -214,6 +186,15 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={listQuery.isFetching}
+                onClick={() => void listQuery.refetch()}
+              >
+                <RefreshCw size={13} className={listQuery.isFetching ? "animate-spin" : ""} />
+                刷新
+              </Button>
               <div className="flex items-center rounded-md border border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] p-0.5">
                 <Button
                   size="sm"
