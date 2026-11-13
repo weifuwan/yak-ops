@@ -1,7 +1,7 @@
 package io.yak.ops.modeling.api.vo.dimension;
 
-import io.yak.ops.modeling.domain.enums.DimensionDataTypeEnum;
-import io.yak.ops.modeling.domain.enums.DimensionFieldTypeEnum;
+import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
+import io.yak.ops.dao.entity.enums.DimensionFieldTypeEnum;
 import lombok.Data;
 
 import java.util.Date;
