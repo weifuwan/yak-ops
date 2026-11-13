@@ -10,6 +10,7 @@ import static io.yak.ops.api.audit.constants.AuditLogConstants.FULL_NAME;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.ID;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.NAME;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.PRIORITY;
+import static io.yak.ops.api.audit.constants.AuditLogConstants.PROJECT_CODE;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.QUEUE_ID;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.TASK_CODE;
 import static io.yak.ops.api.audit.constants.AuditLogConstants.TYPE;
@@ -27,6 +28,7 @@ import static io.yak.ops.common.enums.AuditModelType.ENVIRONMENT;
 import static io.yak.ops.common.enums.AuditModelType.FILE;
 import static io.yak.ops.common.enums.AuditModelType.FOLDER;
 import static io.yak.ops.common.enums.AuditModelType.PROJECT;
+import static io.yak.ops.common.enums.AuditModelType.MODELING;
 import static io.yak.ops.common.enums.AuditModelType.SCHEDULE;
 import static io.yak.ops.common.enums.AuditModelType.TASK;
 import static io.yak.ops.common.enums.AuditModelType.TASK_GROUP;
@@ -89,6 +91,10 @@ public enum AuditType {
     PROJECT_CREATE(PROJECT, CREATE, ProjectAuditOperatorImpl.class, new String[]{}, new String[]{CODE}),
     PROJECT_UPDATE(PROJECT, UPDATE, ProjectAuditOperatorImpl.class, new String[]{}, new String[]{CODE}),
     PROJECT_DELETE(PROJECT, DELETE, ProjectAuditOperatorImpl.class, new String[]{CODE}, new String[]{}),
+
+    MODELING_CREATE(MODELING, CREATE, ProjectAuditOperatorImpl.class, new String[]{PROJECT_CODE}, new String[]{}),
+    MODELING_UPDATE(MODELING, UPDATE, ProjectAuditOperatorImpl.class, new String[]{PROJECT_CODE}, new String[]{}),
+    MODELING_DELETE(MODELING, DELETE, ProjectAuditOperatorImpl.class, new String[]{PROJECT_CODE}, new String[]{}),
 
     WORKFLOW_CREATE(WORKFLOW, CREATE, WorkflowAuditOperatorImpl.class, new String[]{}, new String[]{CODE}),
     WORKFLOW_UPDATE(WORKFLOW, UPDATE, WorkflowAuditOperatorImpl.class, new String[]{}, new String[]{CODE}),

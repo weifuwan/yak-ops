@@ -10,6 +10,7 @@ import lombok.Getter;
 public enum AuditModelType {
 
     PROJECT("Project", null),
+    MODELING("DataModeling", PROJECT),
     WORKFLOW("Workflow", PROJECT),
     WORKFLOW_INSTANCE("WorkflowInstance", WORKFLOW),
     TASK("Task", WORKFLOW),
