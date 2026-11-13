@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dw_layer
     primary key (id)
 );
 
+-- Normalize the legacy enum value before DwModelEnum uses the DIM code.
+UPDATE t_yak_ops_dw_layer SET dw_model_type = 'DIM' WHERE dw_model_type = 'DIM('; 
+
 CREATE TABLE IF NOT EXISTS t_yak_ops_data_domain
 (
     id            varchar(32) not null,

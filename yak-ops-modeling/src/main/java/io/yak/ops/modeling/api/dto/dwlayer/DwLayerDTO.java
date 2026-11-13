@@ -34,7 +34,7 @@ public class DwLayerDTO extends PaginationBaseDTO {
      */
     private String cnName;
     /**
-     * 分层类型：DIM-贴源层、DWD-公共层、ADS-应用层、OTHER-其他
+     * 分层归属：SOURCE_LAYER-贴源层、PUBLIC_LAYER-公共层、APPLICATION_LAYER-应用层、NONE_LAYER-未分层
      */
     private DwTypeEnum dwType;
     /**

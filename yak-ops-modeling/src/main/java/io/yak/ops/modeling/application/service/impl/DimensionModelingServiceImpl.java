@@ -455,7 +455,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (notBlank(po.getDwhId())) {
             DwLayerVO layer = dwLayerService.selectById(po.getDwhId());
             if (layer == null) throw new IllegalStateException("未查到对应数仓分层信息: " + po.getDwhId());
-            if (layer.getDwModelType() != null) vo.setDwhName(layer.getDwModelType().getCode());
+            vo.setDwhName(notBlank(layer.getCnName()) ? layer.getCnName() : layer.getEnShortName());
         }
         return vo;
     }

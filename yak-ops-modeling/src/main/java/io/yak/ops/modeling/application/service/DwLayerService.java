@@ -25,7 +25,9 @@ public interface DwLayerService {
 
     List<DwLayerVO> all(DwLayerDTO dto);
 
-    List<OptionVO> option(List<String> dwType);
+    /** Returns warehouse-layer options filtered by model type codes. */
+    List<OptionVO> option(List<String> modelTypes);
 
+    /** Returns warehouse-layer options for one model type. */
     List<OptionVO> optionByModalType(DwModelEnum modalType);
 }

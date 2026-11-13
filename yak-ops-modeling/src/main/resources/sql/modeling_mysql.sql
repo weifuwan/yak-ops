@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_dw_layer`
     `en_short_name` varchar(100) default null comment '英文缩写',
     `en_name`       varchar(255) default null comment '英文名',
     `cn_name`       varchar(255) default null comment '中文名',
-    `dw_type`       varchar(20)  default null comment '数仓分层类型：dim-贴源层、dwd-公共层、ads-应用层、other-其他',
-    `dw_model_type` varchar(20)  default null comment '数仓模型类型：SOURCE-贴源表、DIMENSION-维度表、DETAIL-明细表、SUMMARY-汇总表、APPLICATION-应用表',
+    `dw_type`       varchar(20)  default null comment '数仓分层归属：SOURCE_LAYER、PUBLIC_LAYER、APPLICATION_LAYER、NONE_LAYER',
+    `dw_model_type` varchar(20)  default null comment '数仓模型类型：SOURCE、DIMENSION、DIM、DIMENSION_DIM、DETAIL、SUMMARY、APPLICATION',
     `director`      varchar(100) default null comment '负责人',
     `remark`        text         default null comment '备注',
     `create_time`   datetime     default null comment '创建时间',
@@ -39,6 +39,9 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_dw_layer`
 
     primary key (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-数仓分层';
+
+-- Normalize the legacy enum value before DwModelEnum uses the DIM code.
+UPDATE `t_yak_ops_dw_layer` SET `dw_model_type` = 'DIM' WHERE `dw_model_type` = 'DIM('; 
 
 CREATE TABLE IF NOT EXISTS `t_yak_ops_data_domain`
 (

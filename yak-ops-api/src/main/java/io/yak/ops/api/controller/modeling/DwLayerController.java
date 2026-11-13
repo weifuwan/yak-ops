@@ -103,15 +103,15 @@ public class DwLayerController extends BaseController {
     }
 
     /**
-     * 数仓分层选项
+     * 按模型类型筛选数仓分层选项
      */
     @PostMapping(value = "option")
-    public Result<List<OptionVO>> option(@RequestBody List<String> dwType) {
-        return Result.success(dwLayerService.option(dwType));
+    public Result<List<OptionVO>> option(@RequestBody List<String> modelTypes) {
+        return Result.success(dwLayerService.option(modelTypes));
     }
 
     /**
-     * 通过表获取数仓分层选项
+     * 按模型类型获取数仓分层选项
      */
     @GetMapping(value = "option/modal-type")
     public Result<List<OptionVO>> optionByModalType(@RequestParam("modalType") DwModelEnum modalType) {
