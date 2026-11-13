@@ -1,5 +1,6 @@
 import { YAK_OPS_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
+import type { PageInfo } from "@/service/http/page-info";
 
 export interface ModelingSection {
   code: string;
@@ -11,11 +12,6 @@ export interface ModelingBootstrap {
   moduleCode: string;
   moduleName: string;
   sections: ModelingSection[];
-}
-
-export interface ModelingPageResult<T> {
-  bizData: T[];
-  pagination: { total: number; current: number; pageSize: number };
 }
 
 export type ModelingResourceKey =
@@ -98,8 +94,8 @@ export const modelingEntityApi = {
     projectCode: string,
     resource: ModelingResourceKey,
     params: Record<string, unknown>,
-  ): Promise<ModelingPageResult<T>> {
-    return HttpUtils.postData<ModelingPageResult<T>>(
+  ): Promise<PageInfo<T>> {
+    return HttpUtils.postData<PageInfo<T>>(
       `${modelingPath(projectCode, resource)}/page`,
       params,
     );
