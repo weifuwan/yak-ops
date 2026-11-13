@@ -114,7 +114,7 @@ export function NavigationMenu({
     const branchActive = hasChildren
       && Boolean(item.children?.some((child) => itemContainsActive(child, activeKey)));
     const active = item.key === activeKey;
-    const itemPadding = 14 + depth * 8;
+    const itemPadding = 14 + depth * 16;
     const baseClassName =
       "flex min-h-8 w-full items-center gap-2.5 rounded-md py-1.5 pr-3 text-left text-[13px] transition-colors duration-150";
 
@@ -158,7 +158,7 @@ export function NavigationMenu({
             className={cn(
               baseClassName,
               active
-                ? "bg-white font-semibold text-[var(--yak-color-primary)] shadow-[0_1px_2px_rgba(16,24,40,0.06)]"
+                ? "bg-[var(--yak-color-primary-subtle)] font-semibold text-[var(--yak-color-primary)]"
                 : "font-normal text-[#525b67] hover:bg-[#f2f2f2]",
               item.disabled && "cursor-not-allowed opacity-50",
             )}
