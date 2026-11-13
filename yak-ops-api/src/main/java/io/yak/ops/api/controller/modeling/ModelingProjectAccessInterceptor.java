@@ -10,6 +10,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.HandlerMapping;
  * Validates project access and activates workspace-level SQL isolation for
  * every modeling endpoint.
  */
+@Component
 public class ModelingProjectAccessInterceptor implements HandlerInterceptor {
 
     private final ProjectService projectService;
