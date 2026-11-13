@@ -3,20 +3,19 @@ package io.yak.ops.modeling.application.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
-import io.yak.ops.modeling.infrastructure.persistence.entity.businessprocess.BusinessProcessPO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.businesstype.related.BusinessTypeRelatedDataDomainPO;
-import io.yak.ops.modeling.infrastructure.persistence.entity.datadomain.DataDomainPO;
+import io.yak.ops.dao.entity.BusinessProcessPO;
+import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
+import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.modeling.api.vo.businessprocess.BusinessProcessVO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
 import io.yak.ops.modeling.support.ConvertUtil;
 import io.yak.ops.modeling.support.TreeUtil;
 import io.yak.ops.modeling.application.service.BusinessProcessService;
-import io.yak.ops.modeling.application.service.BusinessTypeRelatedDataDomainService;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.BusinessProcessMapper;
-import io.yak.ops.modeling.infrastructure.persistence.mapper.DataDomainMapper;
+import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
+import io.yak.ops.dao.repository.modeling.DataDomainDao;
+import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -29,20 +28,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMapper, BusinessProcessPO> implements BusinessProcessService {
+public class BusinessProcessServiceImpl implements BusinessProcessService {
 
     @Resource
-    private DataDomainMapper dataDomainMapper;
+    private BusinessProcessDao businessProcessDao;
 
     @Resource
-    private BusinessTypeRelatedDataDomainService businessTypeRelatedDataDomainService;
+    private DataDomainDao dataDomainDao;
+
+    @Resource
+    private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
 
 
     @Override
     public String create(BusinessProcessDTO dto) {
         BusinessProcessPO po = ConvertUtil.sourceToTarget(dto, BusinessProcessPO.class);
         po.initInsert();
-        save(po);
+        businessProcessDao.insert(po);
         return po.getId();
     }
 
@@ -53,23 +55,23 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
         if (dto.getId() == null) {
             throw new RuntimeException("主键ID不能为空");
         }
-        updateById(po);
+        businessProcessDao.updateById(po);
         return ConvertUtil.sourceToTarget(po, BusinessProcessVO.class);
     }
 
     @Override
     public String delete(String id) {
-        removeById(id);
+        businessProcessDao.deleteById(id);
         return id;
     }
 
     @Override
     public BusinessProcessVO selectById(String id) {
-        BusinessProcessPO po = getById(id);
+        BusinessProcessPO po = businessProcessDao.queryById(id);
         if (po.getDataDomainId() == null) {
             throw new RuntimeException("数据域ID不能为空");
         }
-        DataDomainPO dataDomainPO = dataDomainMapper.selectById(po.getDataDomainId());
+        DataDomainPO dataDomainPO = dataDomainDao.queryById(po.getDataDomainId());
         if (dataDomainPO == null) {
             throw new RuntimeException("未找到数据域");
         }
@@ -80,23 +82,34 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
 
     @Override
     public PaginationResult<BusinessProcessVO> paging(BusinessProcessDTO dto) {
-        Page<BusinessProcessVO> page = new Page<>(dto.getPageNo(), dto.getPageSize());
-        IPage<BusinessProcessVO> result = baseMapper.paging(page, dto);
-        return PaginationResult.buildSuc(result.getRecords(), page);
+        IPage<BusinessProcessPO> result = businessProcessDao.paging(
+                new Page<BusinessProcessPO>(dto.getPageNo(), dto.getPageSize()),
+                dto.getEnShortName(),
+                dto.getCnName(),
+                dto.getEnName(),
+                dto.getDataDomainId(),
+                dto.getDirector(),
+                dto.getCreateBy());
+        List<BusinessProcessVO> records = result.getRecords().stream().map(item -> {
+            BusinessProcessVO vo = ConvertUtil.sourceToTarget(item, BusinessProcessVO.class);
+            vo.setDataDomainCnName(item.getDataDomainCnName());
+            return vo;
+        }).collect(Collectors.toList());
+        return PaginationResult.buildSuc(records, result);
     }
 
     @Override
     public List<BusinessProcessVO> all(BusinessProcessDTO dto) {
         LambdaQueryWrapper<BusinessProcessPO> queryWrapper = new LambdaQueryWrapper<>();
 
-        return baseMapper.selectList(queryWrapper).stream().map(item -> ConvertUtil.sourceToTarget(item, BusinessProcessVO.class)).collect(Collectors.toList());
+        return businessProcessDao.queryList(queryWrapper).stream().map(item -> ConvertUtil.sourceToTarget(item, BusinessProcessVO.class)).collect(Collectors.toList());
     }
 
     @Override
     public void deleteByDomainId(String dataDomainId) {
         LambdaQueryWrapper<BusinessProcessPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BusinessProcessPO::getDataDomainId, dataDomainId);
-        remove(wrapper);
+        businessProcessDao.deleteByWrapper(wrapper);
     }
 
     @Override
@@ -106,7 +119,7 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
 
         // 2. 如果根据busTypeId没有查询到数据，则返回所有数据
         if (CollectionUtils.isEmpty(businessProcessList)) {
-            businessProcessList = list();
+            businessProcessList = businessProcessDao.queryAll();
         }
 
         // 3. 如果最终还是没有数据，返回空列表
@@ -122,7 +135,7 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
      * 根据业务类型ID获取过滤后的业务处理列表
      */
     private List<BusinessProcessPO> getFilteredBusinessProcessList(String busTypeId) {
-        List<BusinessProcessPO> allBusinessProcessList = list();
+        List<BusinessProcessPO> allBusinessProcessList = businessProcessDao.queryAll();
 
         // 如果busTypeId为空，直接返回所有数据
         if (StringUtils.isEmpty(busTypeId)) {
@@ -149,7 +162,7 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
         LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, busTypeId);
 
-        return businessTypeRelatedDataDomainService.list(wrapper).stream()
+        return businessTypeRelatedDataDomainDao.queryList(wrapper).stream()
                 .map(BusinessTypeRelatedDataDomainPO::getDataId)
                 .collect(Collectors.toSet());
     }
@@ -199,7 +212,7 @@ public class BusinessProcessServiceImpl extends ServiceImpl<BusinessProcessMappe
         LambdaQueryWrapper<DataDomainPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(DataDomainPO::getId, dataDomainIds);
 
-        return dataDomainMapper.selectList(wrapper);
+        return dataDomainDao.queryList(wrapper);
     }
 
     /**
