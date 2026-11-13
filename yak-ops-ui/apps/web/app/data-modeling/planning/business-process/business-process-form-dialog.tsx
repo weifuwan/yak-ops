@@ -58,11 +58,11 @@ export function BusinessProcessFormDialog({
       return setError("英文缩写请使用小写字母、数字和下划线，且不能以下划线结尾");
     }
     if (!enName) return setError("请输入英文名");
-    if (enName.length > 64 || !/^[a-zA-Z0-9](?:[_&a-zA-Z0-9\\s]*[_&a-zA-Z0-9])?$/.test(enName)) {
+    if (enName.length > 64 || !/^[a-zA-Z0-9](?:[_&a-zA-Z0-9\s]*[_&a-zA-Z0-9])?$/.test(enName)) {
       return setError("英文名请以字母或数字开头，支持下划线和 &");
     }
     if (!cnName) return setError("请输入中文名");
-    if (cnName.length > 64 || !/^[a-zA-Z0-9\\u4e00-\\u9fa5](?:[_&a-zA-Z0-9\\u4e00-\\u9fa5]*)$/.test(cnName)) {
+    if (cnName.length > 64 || !/^[a-zA-Z0-9\u4e00-\u9fa5](?:[_&a-zA-Z0-9\u4e00-\u9fa5]*)$/.test(cnName)) {
       return setError("中文名格式不正确，请检查特殊字符");
     }
     if (!dataDomainId) return setError("请选择所属数据域");
