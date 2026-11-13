@@ -20,6 +20,7 @@
         <module>yak-ops-common</module>
         <module>yak-ops-api</module>
         <module>yak-ops-dao</module>
+        <module>yak-ops-modeling</module>
         <module>yak-ops-service</module>
         <module>yak-ops-standalone-server</module>
         <module>yak-ops-datasource-plugin</module>
@@ -108,6 +109,11 @@
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-modeling</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -61,6 +61,11 @@
             <artifactId>yak-ops-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-modeling</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>io.yak.ops</groupId>

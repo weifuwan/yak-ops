@@ -2,14 +2,19 @@ import {
   Activity,
   ArrowRightLeft,
   Bell,
+  BookOpen,
+  Boxes,
+  ChartNoAxesCombined,
   Database,
   GitBranch,
   FolderOpen,
   LayoutDashboard,
   LayoutGrid,
   Layers,
+  Network,
   ListOrdered,
   Settings,
+  Table2,
   Users,
   Wrench,
   type LucideIcon,
@@ -38,6 +43,7 @@ type AllProductGroup = {
 
 export const DATA_INTEGRATION_PRODUCT_LABEL = "数据集成";
 export const DATA_DEVELOPMENT_PRODUCT_LABEL = "数据开发";
+export const DATA_MODELING_PRODUCT_LABEL = "数据建模";
 export const OPERATIONS_PRODUCT_LABEL = "运维中心";
 export const MANAGEMENT_PRODUCT_LABEL = "管理中心";
 export const RESOURCE_MANAGEMENT_PRODUCT_LABEL = "资源管理";
@@ -57,6 +63,35 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
     label: "数据同步",
     path: "/data-sync",
     icon: ArrowRightLeft,
+  },
+];
+
+export const DATA_MODELING_NAVIGATION: ProductNavigationItem[] = [
+  {
+    label: "建模总览",
+    path: "/data-modeling",
+    icon: LayoutDashboard,
+    end: true,
+  },
+  {
+    label: "数仓规划",
+    path: "/data-modeling/planning",
+    icon: Network,
+  },
+  {
+    label: "模型设计",
+    path: "/data-modeling/models",
+    icon: Table2,
+  },
+  {
+    label: "数据标准",
+    path: "/data-modeling/standards",
+    icon: BookOpen,
+  },
+  {
+    label: "数据指标",
+    path: "/data-modeling/indicators",
+    icon: ChartNoAxesCombined,
   },
 ];
 
@@ -126,6 +161,13 @@ const DATA_DEVELOPMENT_PRODUCT: GlobalProductMenuItem = {
   path: "/data-development",
 };
 
+const DATA_MODELING_PRODUCT: GlobalProductMenuItem = {
+  id: "data-modeling",
+  label: DATA_MODELING_PRODUCT_LABEL,
+  icon: Boxes,
+  path: "/data-modeling",
+};
+
 const RESOURCE_MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
   id: "resource-management",
   label: RESOURCE_MANAGEMENT_PRODUCT_LABEL,
@@ -150,6 +192,7 @@ const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
 export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
   DATA_INTEGRATION_PRODUCT,
   DATA_DEVELOPMENT_PRODUCT,
+  DATA_MODELING_PRODUCT,
   RESOURCE_MANAGEMENT_PRODUCT,
   OPERATIONS_PRODUCT,
   MANAGEMENT_PRODUCT,
@@ -165,6 +208,11 @@ export const ALL_PRODUCT_GROUPS: AllProductGroup[] = [
     id: "data-development",
     label: DATA_DEVELOPMENT_PRODUCT_LABEL,
     products: [DATA_DEVELOPMENT_PRODUCT],
+  },
+  {
+    id: "data-modeling",
+    label: DATA_MODELING_PRODUCT_LABEL,
+    products: [DATA_MODELING_PRODUCT],
   },
   {
     id: "resource-management",

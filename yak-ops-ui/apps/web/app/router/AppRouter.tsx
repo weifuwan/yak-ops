@@ -1,6 +1,8 @@
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
+import { DataModelingOverviewPage } from "@/app/data-modeling/overview/page";
+import { DataModelingSectionPage } from "@/app/data-modeling/section/page";
 import { ResourceManagementPage } from "@/app/resources/page";
 import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
 import { TaskGroupQueuePage } from "@/app/resources/task-group-queue/page";
@@ -30,6 +32,8 @@ import AppLayout from "../layout/AppLayout";
 import {
   DATA_INTEGRATION_NAVIGATION,
   DATA_INTEGRATION_PRODUCT_LABEL,
+  DATA_MODELING_NAVIGATION,
+  DATA_MODELING_PRODUCT_LABEL,
   MANAGEMENT_NAVIGATION,
   MANAGEMENT_PRODUCT_LABEL,
   OPERATIONS_NAVIGATION,
@@ -44,6 +48,7 @@ const DEFAULT_AUTHENTICATED_PATH = "/overview";
 const AUTHENTICATED_PATHS = new Set([
   "/overview",
   "/data-development",
+  "/data-modeling",
   "/resources",
   "/resources/task-groups",
   "/resources/task-group-queue",
@@ -60,6 +65,7 @@ const AUTHENTICATED_PATHS = new Set([
 
 const isAuthenticatedPath = (pathname: string) =>
   AUTHENTICATED_PATHS.has(pathname) ||
+  pathname.startsWith("/data-modeling/") ||
   pathname.startsWith("/data-sync/") ||
   pathname.startsWith("/operations/") ||
   pathname.startsWith("/resources/");
@@ -153,6 +159,58 @@ export default function AppRouter() {
           </Route>
 
           <Route path="/data-development" element={<DataDevelopmentPage />} />
+
+          <Route
+            element={
+              <AppLayout
+                productLabel={DATA_MODELING_PRODUCT_LABEL}
+                productPath="/data-modeling"
+                navigation={DATA_MODELING_NAVIGATION}
+              />
+            }
+          >
+            <Route path="/data-modeling" element={<DataModelingOverviewPage />} />
+            <Route
+              path="/data-modeling/planning"
+              element={
+                <DataModelingSectionPage
+                  title="数仓规划"
+                  description="统一管理业务分类、数仓分层、数据域、业务过程、数据集市和主题域。"
+                  capabilities={["业务分类", "数仓分层", "数据域", "业务过程", "数据集市", "主题域"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/models"
+              element={
+                <DataModelingSectionPage
+                  title="模型设计"
+                  description="集中管理贴源、维度、明细、汇总和应用模型，并支持模型版本管理。"
+                  capabilities={["正向建模", "逆向建模", "字段设计", "分区配置", "版本管理"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/standards"
+              element={
+                <DataModelingSectionPage
+                  title="数据标准"
+                  description="建立统一的字段标准、标准代码、度量单位和命名词典。"
+                  capabilities={["字段标准", "标准代码", "度量单位", "命名词典"]}
+                />
+              }
+            />
+            <Route
+              path="/data-modeling/indicators"
+              element={
+                <DataModelingSectionPage
+                  title="数据指标"
+                  description="统一管理原子指标、派生指标、复合指标、修饰词和时间周期。"
+                  capabilities={["原子指标", "派生指标", "复合指标", "修饰词", "时间周期"]}
+                />
+              }
+            />
+          </Route>
 
           <Route
             element={

@@ -5,6 +5,7 @@ import io.yak.ops.common.CommonConfiguration;
 import io.yak.ops.common.lifecycle.ServerLifeCycleManager;
 import io.yak.ops.common.thread.DefaultUncaughtExceptionHandler;
 import io.yak.ops.dao.DaoConfiguration;
+import io.yak.ops.modeling.config.ModelingConfiguration;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginManager;
 import io.yak.ops.plugin.storage.api.StorageConfiguration;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
@@ -25,7 +26,8 @@ import lombok.extern.slf4j.Slf4j;
         CommonConfiguration.class,
         ServiceConfiguration.class,
         StorageConfiguration.class,
-        RegistryConfiguration.class})
+        RegistryConfiguration.class,
+        ModelingConfiguration.class})
 @ServletComponentScan
 @SpringBootApplication
 public class ApiApplicationServer {
