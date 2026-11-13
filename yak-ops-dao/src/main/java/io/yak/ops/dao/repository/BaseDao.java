@@ -8,8 +8,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import lombok.NonNull;
 
@@ -37,6 +39,36 @@ public abstract class BaseDao<ENTITY, MYBATIS_MAPPER extends BaseMapper<ENTITY>>
             return Collections.emptyList();
         }
         return mybatisMapper.selectBatchIds(ids);
+    }
+
+    @Override
+    public List<ENTITY> queryList(Wrapper<ENTITY> wrapper) {
+        return mybatisMapper.selectList(wrapper);
+    }
+
+    @Override
+    public IPage<ENTITY> queryPage(IPage<ENTITY> page, Wrapper<ENTITY> wrapper) {
+        return mybatisMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public ENTITY queryOne(Wrapper<ENTITY> wrapper) {
+        return mybatisMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public long queryCount(Wrapper<ENTITY> wrapper) {
+        return mybatisMapper.selectCount(wrapper);
+    }
+
+    @Override
+    public int update(ENTITY entity, Wrapper<ENTITY> wrapper) {
+        return mybatisMapper.update(entity, wrapper);
+    }
+
+    @Override
+    public int deleteByWrapper(Wrapper<ENTITY> wrapper) {
+        return mybatisMapper.delete(wrapper);
     }
 
     @Override
