@@ -144,7 +144,7 @@ export function DwLayerDetail({
               className="flex items-center justify-between"
               style={{ padding: 16 }}
             >
-              <div className="flex items-center">
+              <div className="flex items-center" style={{ marginBottom: 8 }}>
                 <span
                   aria-hidden="true"
                   style={{
@@ -191,7 +191,7 @@ export function DwLayerDetail({
                 marginBottom: 4,
               }}
             >
-              <div className="grid grid-cols-1 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
                 <DescriptionItem label="英文缩写" value={record.enShortName} />
                 <DescriptionItem label="英文名称" value={record.enName} />
                 <DescriptionItem label="中文名称" value={record.cnName} />
