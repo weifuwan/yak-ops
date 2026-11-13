@@ -244,7 +244,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
           </div>
         </div>
 
-        <div role="list" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+        <div role="tree" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {pageQuery.isPending ? (
             <div className="flex items-center justify-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
               <LoaderCircle size={14} className="animate-spin" />正在加载命名词典...
@@ -259,7 +259,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
               {items.map((item) => {
                 const selected = selectedId === item.id;
                 return (
-                  <div key={item.id} role="listitem" aria-selected={selected}
+                  <div key={item.id} role="treeitem" aria-selected={selected}
                     onClick={() => item.id && setSelectedId(item.id)}
                     className={[
                       "flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2.5 pr-2 text-[13px] transition-colors",
