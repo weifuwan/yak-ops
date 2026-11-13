@@ -139,7 +139,6 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping(value = "/delete/related-domain/{id}")
     public Result<Boolean> deleteTypeData(
-
                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                           @PathVariable("id") String id,
@@ -152,7 +151,6 @@ public class BusinessTypeController extends BaseController {
      */
     @GetMapping(value = "/option/related-domain/{id}")
     public Result<List<OptionVO>> optionRelatedDomain(
-
                                                       @PathVariable("id") String id,
                                                       @RequestParam("checked") boolean checked) {
         return Result.success(businessTypeService.optionRelatedDomain(id, checked));
