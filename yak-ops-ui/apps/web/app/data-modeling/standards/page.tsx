@@ -222,11 +222,6 @@ export function DataModelingStandardsPage({ initialTab = 0 }: { initialTab?: num
               统一管理字段标准、标准代码、度量单位和命名词典。
             </p>
           </div>
-          {currentWorkspace ? (
-            <div className="rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-1.5 text-xs text-[var(--yak-components-muted-text)]">
-              当前工作空间：{currentWorkspace.name}
-            </div>
-          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap gap-1 rounded-md border border-[var(--yak-components-panel-border)] bg-white p-1">
           {DEFINITIONS.map((item, index) => (
