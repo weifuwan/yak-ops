@@ -8,7 +8,6 @@ import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.enums.AuthorizationType;
 import io.yak.ops.common.enums.UserType;
-import io.yak.ops.common.service.BaseServiceImpl as SharedBaseServiceImpl;
 import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.dao.entity.User;
 
@@ -23,7 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BaseServiceImpl extends SharedBaseServiceImpl implements BaseService {
+public class BaseServiceImpl extends io.yak.ops.common.service.BaseServiceImpl implements BaseService {
 
     @Autowired
     protected ResourcePermissionCheckService resourcePermissionCheckService;
