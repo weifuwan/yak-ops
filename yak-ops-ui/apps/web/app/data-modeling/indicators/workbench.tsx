@@ -256,7 +256,6 @@ const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
   },
 ];
 
-const MODULE_OPTIONS = INDICATOR_DEFINITIONS.map((item) => ({ value: item.key, label: item.title }));
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const RELATION_FIELDS: Record<string, ModelingResourceKey> = {
   atomicId: "atomIndicator",
@@ -1059,7 +1058,7 @@ type DataIndicatorsWorkbenchProps = { projectCode: string; initialTab?: number }
 
 export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataIndicatorsWorkbenchProps) {
   const queryClient = useQueryClient();
-  const [activeKind, setActiveKind] = useState<IndicatorKind>(initialTab >= 4 ? "timePeriod" : INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator");
+  const activeKind: IndicatorKind = initialTab >= 4 ? "timePeriod" : INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator";
   const [groupBy, setGroupBy] = useState<"BUSINESS_TYPE" | "DATA_DOMAIN">("BUSINESS_TYPE");
   const [treeKeyword, setTreeKeyword] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -1286,22 +1285,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--yak-components-panel-border)] bg-white px-5 py-2.5">
-        <div className="flex items-center gap-2">
-          <ChartNoAxesCombined size={17} className="text-[var(--yak-color-primary)]" />
-          <div>
-            <div className="text-sm font-semibold">数据指标</div>
-            <div className="text-[11px] text-[var(--yak-components-muted-text)]">指标定义、业务口径与版本管理</div>
-          </div>
-        </div>
-        <Segmented
-          value={activeKind}
-          options={MODULE_OPTIONS}
-          onValueChange={(value) => setActiveKind(value as IndicatorKind)}
-        />
-      </div>
-
-      <div className="flex min-h-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white">
+      <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
         <aside className="flex w-[292px] min-w-[260px] max-w-[360px] shrink-0 flex-col border-r border-[var(--yak-components-panel-border)] bg-white">
           <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
             <div className="flex items-center gap-2">
