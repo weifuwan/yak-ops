@@ -44,6 +44,7 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
         { value: "SOURCE", label: "贴源表" },
         { value: "DIMENSION", label: "维度表" },
         { value: "DIM", label: "维度" },
+        { value: "DIMENSION_DIM", label: "维度表 / 维度" },
         { value: "DETAIL", label: "明细表" },
         { value: "SUMMARY", label: "汇总表" },
         { value: "APPLICATION", label: "应用表" },
@@ -156,8 +157,7 @@ export function DataModelingPlanningPage() {
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-medium">数仓规划</div>
-            <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
+            <p className="text-xs text-[var(--yak-components-muted-text)]">
               统一管理业务分类、数仓分层、数据域、业务过程、数据集市和主题域。
             </p>
           </div>
