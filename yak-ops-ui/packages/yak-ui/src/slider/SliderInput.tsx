@@ -58,7 +58,12 @@ export function SliderInput({
   };
 
   return (
-    <div className={cn("flex w-full min-w-0 items-center gap-3", className)}>
+    <div
+      className={cn(
+        "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_80px] items-center gap-2",
+        className,
+      )}
+    >
       <Slider
         value={safeValue}
         min={min}
@@ -68,7 +73,7 @@ export function SliderInput({
         onValueChange={(nextValue) => {
           if (typeof nextValue === "number") onValueChange(nextValue);
         }}
-        className="min-w-[44px] flex-1"
+        className="w-full min-w-0"
       >
         <SliderControl className="!h-8 min-w-0">
           <SliderTrack>
@@ -78,7 +83,7 @@ export function SliderInput({
         </SliderControl>
       </Slider>
 
-      <div className="w-24 shrink-0">
+      <div className="w-full min-w-0">
         <NumberField
           value={inputValue}
           min={min}
