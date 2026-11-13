@@ -2,9 +2,9 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
@@ -16,17 +16,19 @@ import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class DwLayerServiceImpl implements DwLayerService {
+public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerService {
 
     @javax.annotation.Resource
     private DwLayerDao dwLayerDao;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(DwLayerDTO dto) {
         DwLayerPO po = ConvertUtil.sourceToTarget(dto, DwLayerPO.class);
         po.initInsert();
@@ -35,17 +37,19 @@ public class DwLayerServiceImpl implements DwLayerService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DwLayerVO updateById(DwLayerDTO dto) {
         DwLayerPO po = ConvertUtil.sourceToTarget(dto, DwLayerPO.class);
         po.initUpdate();
         if (dto.getId() == null) {
-            throw new RuntimeException("主键ID不能为空");
+            throw new IllegalArgumentException("主键ID不能为空");
         }
         dwLayerDao.updateById(po);
         return ConvertUtil.sourceToTarget(po, DwLayerVO.class);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         dwLayerDao.deleteById(id);
         return id;
@@ -71,17 +75,16 @@ public class DwLayerServiceImpl implements DwLayerService {
     }
 
     @Override
-    public PaginationResult<DwLayerVO> paging(DwLayerDTO dto) {
+    public IPage<DwLayerVO> paging(DwLayerDTO dto) {
         IPage<DwLayerPO> iPage = new Page<>(dto.getPageNo(), dto.getPageSize());
         LambdaQueryWrapper<DwLayerPO> wrapper = new LambdaQueryWrapper<>();
 
         wrapper.orderByDesc(DwLayerPO::getUpdateTime);
         IPage<DwLayerPO> result = dwLayerDao.queryPage(iPage, wrapper);
         List<DwLayerVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), DwLayerVO.class);
-        return PaginationResult.buildSuc(
-                records,
-                iPage
-        );
+        Page<DwLayerVO> page = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        page.setRecords(records);
+        return page;
     }
 
     @Override

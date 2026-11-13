@@ -2,9 +2,9 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.datamart.DataMartDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
@@ -16,13 +16,14 @@ import io.yak.ops.modeling.application.service.DataMartService;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class DataMartServiceImpl implements DataMartService {
+public class DataMartServiceImpl extends BaseServiceImpl implements DataMartService {
 
     @Resource
     private BusinessTypeService businessTypeService;
@@ -31,6 +32,7 @@ public class DataMartServiceImpl implements DataMartService {
     private DataMartDao dataMartDao;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(DataMartDTO DataMart) {
         DataMartPO DataMartPO = ConvertUtil.sourceToTarget(DataMart, DataMartPO.class);
         DataMartPO.initInsert();
@@ -39,6 +41,7 @@ public class DataMartServiceImpl implements DataMartService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DataMartVO updateById(DataMartDTO DataMart) {
         DataMartPO DataMartPO = ConvertUtil.sourceToTarget(DataMart, DataMartPO.class);
         DataMartPO.initUpdate();
@@ -47,6 +50,7 @@ public class DataMartServiceImpl implements DataMartService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         dataMartDao.deleteById(id);
         return id;
@@ -67,7 +71,7 @@ public class DataMartServiceImpl implements DataMartService {
     }
 
     @Override
-    public PaginationResult<DataMartVO> paging(DataMartDTO dto) {
+    public IPage<DataMartVO> paging(DataMartDTO dto) {
         IPage<DataMartPO> iPage = new Page<>(dto.getPageNo(), dto.getPageSize());
         LambdaQueryWrapper<DataMartPO> wrapper = new LambdaQueryWrapper<>();
         if (dto.getId() != null) {
@@ -76,10 +80,9 @@ public class DataMartServiceImpl implements DataMartService {
         wrapper.orderByDesc(DataMartPO::getUpdateTime);
         IPage<DataMartPO> result = dataMartDao.queryPage(iPage, wrapper);
         List<DataMartVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), DataMartVO.class);
-        return PaginationResult.buildSuc(
-                records,
-                iPage
-        );
+        Page<DataMartVO> page = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        page.setRecords(records);
+        return page;
     }
 
     @Override

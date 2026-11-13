@@ -2,9 +2,9 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.modeling.api.dto.subjectdomain.SubjectDomainDTO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
 import io.yak.ops.dao.entity.SubjectDomainPO;
 import io.yak.ops.modeling.api.vo.datamart.DataMartVO;
 import io.yak.ops.modeling.api.vo.subjectdomain.SubjectDomainVO;
@@ -16,6 +16,7 @@ import io.yak.ops.modeling.application.service.SubjectDomainService;
 import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class SubjectDomainServiceImpl implements SubjectDomainService {
+public class SubjectDomainServiceImpl extends BaseServiceImpl implements SubjectDomainService {
 
     private static final String MART = "MART";
     private static final String SUBJECT = "SUBJECT";
@@ -35,6 +36,7 @@ public class SubjectDomainServiceImpl implements SubjectDomainService {
     private SubjectDomainDao subjectDomainDao;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String create(SubjectDomainDTO SubjectDomain) {
         SubjectDomainPO SubjectDomainPO = ConvertUtil.sourceToTarget(SubjectDomain, SubjectDomainPO.class);
         SubjectDomainPO.initInsert();
@@ -43,6 +45,7 @@ public class SubjectDomainServiceImpl implements SubjectDomainService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public SubjectDomainVO updateById(SubjectDomainDTO SubjectDomain) {
         SubjectDomainPO SubjectDomainPO = ConvertUtil.sourceToTarget(SubjectDomain, SubjectDomainPO.class);
         SubjectDomainPO.initUpdate();
@@ -51,6 +54,7 @@ public class SubjectDomainServiceImpl implements SubjectDomainService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String delete(String id) {
         subjectDomainDao.deleteById(id);
         return id;
@@ -66,7 +70,7 @@ public class SubjectDomainServiceImpl implements SubjectDomainService {
     }
 
     @Override
-    public PaginationResult<SubjectDomainVO> paging(SubjectDomainDTO dto) {
+    public IPage<SubjectDomainVO> paging(SubjectDomainDTO dto) {
         IPage<SubjectDomainPO> iPage = new Page<>(dto.getPageNo(), dto.getPageSize());
         LambdaQueryWrapper<SubjectDomainPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(dto.getDataMartId() != null, SubjectDomainPO::getDataMartId, dto.getDataMartId())
@@ -74,10 +78,9 @@ public class SubjectDomainServiceImpl implements SubjectDomainService {
                 .orderByDesc(SubjectDomainPO::getUpdateTime);
         IPage<SubjectDomainPO> result = subjectDomainDao.queryPage(iPage, wrapper);
         List<SubjectDomainVO> records = ConvertUtil.sourceListToTarget(result.getRecords(), SubjectDomainVO.class);
-        return PaginationResult.buildSuc(
-                records,
-                iPage
-        );
+        Page<SubjectDomainVO> page = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        page.setRecords(records);
+        return page;
     }
 
     @Override
