@@ -485,3 +485,27 @@ CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_1 ON t_yak_ops_dimension_tab
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_2 ON t_yak_ops_dimension_table_fields (unit_id);
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_3 ON t_yak_ops_dimension_table_fields (field_std_id);
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_4 ON t_yak_ops_dimension_table_fields (code_std_id);
+
+-- Table descriptions
+COMMENT ON TABLE t_yak_ops_business_type IS '智能建模-业务分类';
+COMMENT ON TABLE t_yak_ops_business_type_related_data_domain IS '智能建模-业务分类数据域关联';
+COMMENT ON TABLE t_yak_ops_dw_layer IS '智能建模-数仓分层';
+COMMENT ON TABLE t_yak_ops_data_domain IS '智能建模-数据域';
+COMMENT ON TABLE t_yak_ops_business_process IS '智能建模-业务过程';
+COMMENT ON TABLE t_yak_ops_data_mart IS '智能建模-数据集市';
+COMMENT ON TABLE t_yak_ops_subject_domain IS '智能建模-主题域';
+COMMENT ON TABLE t_yak_ops_dimension_table IS '智能建模-维度表元数据';
+COMMENT ON TABLE t_yak_ops_dimension_table_fields IS '智能建模-维度表字段元数据';
+COMMENT ON TABLE t_yak_ops_standard_directory IS '数据标准-标准目录';
+COMMENT ON TABLE t_yak_ops_field_standard IS '数据标准-字段标准';
+COMMENT ON TABLE t_yak_ops_code_standard IS '数据标准-标准代码';
+COMMENT ON TABLE t_yak_ops_code_detail IS '数据标准-标准代码明细';
+COMMENT ON TABLE t_yak_ops_unit_standard IS '数据标准-度量单位';
+COMMENT ON TABLE t_yak_ops_dictionary_standard IS '数据标准-命名词典';
+COMMENT ON TABLE t_yak_ops_indicator_atom IS '指标管理-原子指标';
+COMMENT ON TABLE t_yak_ops_indicator_derivative IS '指标管理-派生指标';
+COMMENT ON TABLE t_yak_ops_indicator_compose IS '指标管理-复合指标';
+COMMENT ON TABLE t_yak_ops_indicator_modifier IS '指标管理-指标修饰词';
+COMMENT ON TABLE t_yak_ops_time_period_category IS '指标管理-时间周期目录';
+COMMENT ON TABLE t_yak_ops_time_period IS '指标管理-时间周期';
+COMMENT ON TABLE t_yak_ops_version_management IS '指标管理-版本管理';
