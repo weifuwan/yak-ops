@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown, ChevronRight, Database, Folder, FolderOpen, Layers, LoaderCircle,
-  Pencil, Plus, PlusSquare, RefreshCw, Trash2,
+  Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
 } from "lucide-react";
 import {
   Button, Input, Modal, Table, toast, type TableColumns,
@@ -191,6 +191,9 @@ function SubjectDomainDetail({
 
 export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   const queryClient = useQueryClient();
+  const splitRef = useRef<HTMLDivElement | null>(null);
+  const [leftWidth, setLeftWidth] = useState(280);
+  const [resizing, setResizing] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedType, setSelectedType] = useState<"MART" | "SUBJECT">();
@@ -229,6 +232,20 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   useEffect(() => {
     setExpandedKeys(new Set(getExpandableKeys(treeRows)));
   }, [treeRows]);
+  useEffect(() => {
+    if (!resizing) return;
+    const onMove = (event: PointerEvent) => {
+      const rect = splitRef.current?.getBoundingClientRect();
+      if (rect) setLeftWidth(Math.min(480, Math.max(220, event.clientX - rect.left)));
+    };
+    const onUp = () => setResizing(false);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [resizing]);
 
   const refresh = async () => {
     await treeQuery.refetch();
@@ -341,86 +358,99 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f2f3f5]" onClick={() => setContextMenu(undefined)}>
-      <header className="shrink-0 bg-white px-5 py-4 shadow-[0_2px_8px_#0000000d]">
-        <h1 className="m-0 text-xl font-bold leading-7 text-[#26282c]">主题域</h1>
-        <p className="mb-0 mt-2 text-xs leading-5 text-[#626875]">
-          将数据集市按照分析视角进行切分，比如在电商行业，通常分为会员、交易、商品等。
-        </p>
-      </header>
-
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="flex w-[280px] shrink-0 flex-col border-r border-[#e7e9ee] bg-white max-md:w-[220px]">
-          <div className="flex items-center justify-between px-3 pb-2 pt-3">
-            <span className="text-xs font-semibold text-[#3a3d51]">主题域目录</span>
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" isIconOnly aria-label="新建主题域" onClick={() => openCreate()}>
-                <PlusSquare size={15} />
-              </Button>
-              <Button size="sm" variant="ghost" isIconOnly aria-label="刷新目录" onClick={() => void refresh()}>
-                <RefreshCw size={14} />
-              </Button>
-            </div>
+    <div ref={splitRef} className="relative flex h-full min-h-[620px] min-w-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white"
+      onClick={() => contextMenu && setContextMenu(undefined)}>
+      <aside className="flex min-h-0 shrink-0 flex-col overflow-hidden bg-white" style={{ width: leftWidth }}>
+        <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3">
+          <span className="truncate text-sm font-semibold text-[var(--yak-components-panel-text)]">主题域</span>
+          <div className="flex items-center gap-1">
+            <button type="button" title="新建主题域" className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]" onClick={() => openCreate()}>
+              <PlusSquare size={16} />
+            </button>
+            <button type="button" title="刷新" className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]" onClick={() => void refresh()}>
+              <RefreshCw size={15} className={treeQuery.isFetching ? "animate-spin" : ""} />
+            </button>
           </div>
-          <div className="px-3 pb-2">
-            <Input size="small" variant="outlined" value={keyword} placeholder="搜索主题域或数据集市"
-              onChange={(event) => setKeyword(event.target.value)} />
+        </div>
+        <div className="shrink-0 px-3 py-2">
+          <div className="relative">
+            <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
+            <Input size="small" variant="outlined" value={keyword} className="pl-8 pr-8" placeholder="搜索"
+              onValueChange={(value) => setKeyword(String(value))} />
+            {keyword ? <button type="button" aria-label="清空搜索" className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-[var(--yak-components-muted-text)]" onClick={() => setKeyword("")}><X size={13} /></button> : null}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-            {treeQuery.isPending ? (
-              <div className="flex items-center justify-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
-                <LoaderCircle size={14} className="animate-spin" />正在加载目录...
-              </div>
-            ) : treeQuery.isError ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
-                <span>目录加载失败</span>
-                <Button size="sm" variant="secondary" onClick={() => void treeQuery.refetch()}>重试</Button>
-              </div>
-            ) : treeRows.length ? (
-              <div role="tree" className="space-y-0.5">
-                {treeRows.map((node) => (
-                  <TreeNodeRow key={node.key || node.value} node={node} depth={0}
-                    selectedKey={selectedKey} expandedKeys={expandedKeys} onToggle={toggleExpanded}
-                    onSelect={(item) => {
-                      setSelectedKey(item.value || item.key);
-                      setSelectedType(item.type);
-                      setSelectedId(item.type === "SUBJECT" ? getSubjectDomainId(item) : "");
-                    }}
-                    onContextMenu={(event, item) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (item.type === "SUBJECT") {
-                        setContextMenu({ x: event.clientX, y: event.clientY, node: item });
-                      }
-                    }} />
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
-                {keyword ? "没有匹配的主题域" : "暂无主题域"}
-              </div>
-            )}
-          </div>
-        </aside>
-
-        <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {!selectedId || selectedType !== "SUBJECT" ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">
-              {selectedType === "MART" ? "已选择数据集市，请展开目录并选择主题域查看详情" : "请选择左侧主题域查看详情"}
+        </div>
+        <div role="tree" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+          {treeQuery.isPending ? (
+            <div className="py-8 text-center text-xs text-[var(--yak-components-muted-text)]">正在加载主题域...</div>
+          ) : treeQuery.isError ? (
+            <div className="px-2 py-6 text-center text-xs text-[var(--yak-components-muted-text)]">
+              <p>主题域加载失败</p>
+              <Button size="sm" variant="secondary" className="mt-2" onClick={() => void treeQuery.refetch()}>重试</Button>
             </div>
-          ) : detailQuery.isPending ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">
-              <LoaderCircle size={15} className="mr-2 animate-spin" />正在加载主题域详情...
-            </div>
-          ) : detailQuery.isError || !detailQuery.data ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-white text-xs text-[var(--yak-components-muted-text)]">
-              <span>主题域详情加载失败</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => void detailQuery.refetch()}>重试</Button>
-                <Button size="sm" variant="ghost" onClick={() => { setSelectedId(""); setSelectedKey(""); setSelectedType(undefined); }}>返回目录</Button>
-              </div>
+          ) : treeRows.length ? (
+            <div className="space-y-0.5">
+              {treeRows.map((node) => (
+                <TreeNodeRow key={node.key || node.value} node={node} depth={0}
+                  selectedKey={selectedKey} expandedKeys={expandedKeys} onToggle={toggleExpanded}
+                  onSelect={(item) => {
+                    setSelectedKey(item.value || item.key);
+                    setSelectedType(item.type);
+                    setSelectedId(item.type === "SUBJECT" ? getSubjectDomainId(item) : "");
+                  }}
+                  onContextMenu={(event, item) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (item.type === "SUBJECT") {
+                      setContextMenu({ x: event.clientX, y: event.clientY, node: item });
+                    }
+                  }} />
+              ))}
             </div>
           ) : (
+            <div className="px-2 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
+              {keyword ? "没有找到匹配的主题域" : "暂无主题域，点击右上角新建"}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <div role="separator" aria-orientation="vertical" aria-label="调整主题域目录宽度"
+        className={["relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
+        onPointerDown={(event) => { event.preventDefault(); setResizing(true); }}>
+        <span className="absolute inset-y-0 -left-1 -right-1" />
+      </div>
+
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f6f6f6]">
+        {!selectedId || selectedType !== "SUBJECT" ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-white">
+            <div className="flex flex-col items-center gap-2 text-center">
+              {selectedType === "MART"
+                ? <Database size={32} strokeWidth={1.3} className="text-[#c5cbd3]" />
+                : <Layers size={32} strokeWidth={1.3} className="text-[#c5cbd3]" />}
+              <span className="text-sm text-[var(--yak-components-muted-text)]">
+                {selectedType === "MART" ? "已选择数据集市，请展开目录并选择主题域查看详情" : "请选择左侧主题域查看详情"}
+              </span>
+            </div>
+          </div>
+        ) : detailQuery.isPending ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">
+            <LoaderCircle size={15} className="mr-2 animate-spin" />正在加载主题域详情...
+          </div>
+        ) : detailQuery.isError || !detailQuery.data ? (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-white text-xs text-[var(--yak-components-muted-text)]">
+            <span>主题域详情加载失败</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" onClick={() => void detailQuery.refetch()}>重试</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setSelectedId(""); setSelectedKey(""); setSelectedType(undefined); }}>返回目录</Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <header className="flex h-[72px] shrink-0 items-center border-b border-[var(--yak-components-panel-border)] bg-white px-5">
+              <Layers size={20} className="mr-2 text-[var(--yak-color-primary)]" />
+              <h1 className="truncate text-lg font-semibold text-[var(--yak-components-panel-text)]">{detailQuery.data.domainName}</h1>
+            </header>
             <SubjectDomainDetail
               projectCode={projectCode}
               record={detailQuery.data}
@@ -432,8 +462,8 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
               onEditChild={(item) => void openEdit(item.id || "")}
               onDeleteChild={setPendingDelete}
             />
-          )}
-        </section>
+          </>
+        )}
       </main>
 
       {contextMenu ? (
