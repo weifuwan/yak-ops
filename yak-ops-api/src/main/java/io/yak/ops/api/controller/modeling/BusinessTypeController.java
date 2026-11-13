@@ -141,7 +141,8 @@ public class BusinessTypeController extends BaseController {
     public Result<Boolean> deleteTypeData(
                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-                                          @PathVariable("id") String id, @RequestParam("dataDomainId") String dataDomainId) {
+                                          @PathVariable("id") String id,
+            @RequestParam("dataDomainId") String dataDomainId) {
         return Result.success(businessTypeService.deleteTypeData(id, dataDomainId));
     }
 
@@ -149,7 +150,9 @@ public class BusinessTypeController extends BaseController {
      * 获取业务分类 - 数据域选项
      */
     @GetMapping(value = "/option/related-domain/{id}")
-    public Result<List<OptionVO>> optionRelatedDomain(@PathVariable("id") String id, @RequestParam("checked") boolean checked) {
+    public Result<List<OptionVO>> optionRelatedDomain(
+            @PathVariable("id") String id,
+            @RequestParam("checked") boolean checked) {
         return Result.success(businessTypeService.optionRelatedDomain(id, checked));
     }
 
