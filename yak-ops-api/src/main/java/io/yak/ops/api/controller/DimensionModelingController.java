@@ -7,7 +7,7 @@ import io.yak.ops.modeling.api.vo.dimension.DimensionTableFieldVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionVersionHistoryVO;
-import io.yak.ops.modeling.api.vo.pagination.PaginationResult;
+import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.modeling.application.service.DimensionModelingService;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ import java.util.List;
 /** HTTP boundary for project-scoped dimension table and field modeling. */
 @RestController
 @RequestMapping("projects/{projectCode}/modeling/dimensions")
-public class DimensionModelingController {
+public class DimensionModelingController extends BaseController {
 
     @Resource
     private DimensionModelingService dimensionModelingService;
@@ -54,8 +54,9 @@ public class DimensionModelingController {
     }
 
     @PostMapping("/page")
-    public PaginationResult<DimensionTableVO> page(@RequestBody DimensionTableDTO dto) {
-        return dimensionModelingService.page(dto);
+    public Result<PageInfo<DimensionTableVO>> page(@RequestBody DimensionTableDTO dto) {
+        checkPageParams(dto.getPageNo(), dto.getPageSize());
+        return Result.success(PageInfo.of(dimensionModelingService.page(dto)));
     }
 
     @PostMapping("/tree")
