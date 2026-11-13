@@ -313,8 +313,8 @@ CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table (
 CREATE INDEX IF NOT EXISTS idx_dimension_table_1 ON t_cockpit_dimension_table (project_code, dwh_id);
 CREATE INDEX IF NOT EXISTS idx_dimension_table_2 ON t_cockpit_dimension_table (bus_type_id, domain_id, bus_process_id);
 CREATE INDEX IF NOT EXISTS idx_dimension_table_3 ON t_cockpit_dimension_table (mart_id, subject_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_dimension_table_1 ON t_cockpit_dimension_table (project_code, table_name);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_dimension_table_2 ON t_cockpit_dimension_table (project_code, cn_name);
+CREATE INDEX IF NOT EXISTS idx_dimension_table_4 ON t_cockpit_dimension_table (project_code, table_name);
+CREATE INDEX IF NOT EXISTS idx_dimension_table_5 ON t_cockpit_dimension_table (project_code, cn_name);
 
 CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table_fields (
   id varchar(32) NOT NULL,

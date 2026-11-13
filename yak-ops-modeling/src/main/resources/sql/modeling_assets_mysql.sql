@@ -312,8 +312,8 @@ CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table (
   KEY idx_dimension_table_1 (project_code, dwh_id),
   KEY idx_dimension_table_2 (bus_type_id, domain_id, bus_process_id),
   KEY idx_dimension_table_3 (mart_id, subject_id),
-  UNIQUE KEY uk_dimension_table_1 (project_code, table_name),
-  UNIQUE KEY uk_dimension_table_2 (project_code, cn_name)
+  KEY idx_dimension_table_4 (project_code, table_name),
+  KEY idx_dimension_table_5 (project_code, cn_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS t_cockpit_dimension_table_fields (
