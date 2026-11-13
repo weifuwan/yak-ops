@@ -196,7 +196,6 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 刷新
               </Button>
               <Segmented
-                size="sm"
                 value={viewMode}
                 options={[
                   { value: "layer", label: "层级结构展示" },
