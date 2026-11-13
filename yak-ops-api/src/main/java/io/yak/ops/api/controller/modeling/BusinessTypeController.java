@@ -1,8 +1,5 @@
 package io.yak.ops.api.controller.modeling;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-
 import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.controller.BaseController;
@@ -23,6 +20,9 @@ import javax.annotation.Resource;
 
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/projects/{projectCode}/modeling/business-type")
 public class BusinessTypeController extends BaseController {
@@ -37,9 +37,9 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
     public Result<String> create(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody BusinessTypeDTO businessType) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @RequestBody BusinessTypeDTO businessType) {
         return Result.success(businessTypeService.create(businessType));
     }
 
@@ -50,9 +50,9 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
     public Result<BusinessTypeVO> update(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @RequestBody BusinessTypeDTO businessType) {
+                                         @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                         @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                         @RequestBody BusinessTypeDTO businessType) {
         return Result.success(businessTypeService.updateById(businessType));
     }
 
@@ -63,9 +63,9 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
     public Result<String> delete(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable String id) {
+                                 @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                 @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                 @PathVariable String id) {
         return Result.success(businessTypeService.delete(id));
     }
 
@@ -117,9 +117,9 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping(value = "/update/related-domain/{id}")
     public Result<Boolean> updateTypeData(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id, @RequestBody List<String> dataDomainIds) {
+                                          @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                          @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                          @PathVariable("id") String id, @RequestBody List<String> dataDomainIds) {
         return Result.success(businessTypeService.updateTypeData(id, dataDomainIds));
     }
 
@@ -130,9 +130,9 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping(value = "/delete/related-domain/{id}")
     public Result<Boolean> deleteTypeData(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id, @RequestParam("dataDomainId") String dataDomainId) {
+                                          @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                          @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                          @PathVariable("id") String id, @RequestParam("dataDomainId") String dataDomainId) {
         return Result.success(businessTypeService.deleteTypeData(id, dataDomainId));
     }
 
@@ -151,9 +151,9 @@ public class BusinessTypeController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping(value = "/loadall/related-domain/{id}")
     public Result<Boolean> onLoadAllDomains(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id) {
+                                            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                            @PathVariable("id") String id) {
         return Result.success(businessTypeService.onLoadAllDomains(id));
     }
 }
