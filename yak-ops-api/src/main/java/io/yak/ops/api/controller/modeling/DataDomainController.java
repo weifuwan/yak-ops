@@ -1,5 +1,17 @@
 package io.yak.ops.api.controller.modeling;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.yak.ops.dao.entity.User;
+
+import io.yak.ops.common.constants.Constants;
+
+import io.yak.ops.api.audit.enums.AuditType;
+
+import io.yak.ops.api.audit.OperatorLog;
+
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
@@ -19,18 +31,33 @@ public class DataDomainController extends BaseController {
     @Resource
     private DataDomainService dataDomainService;
 
+    @Operation(description = "Create data domain")
+    @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
-    public Result<String> create(@RequestBody DataDomainDTO dto) {
+    public Result<String> create(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody DataDomainDTO dto) {
         return Result.success(dataDomainService.create(dto));
     }
 
+    @Operation(description = "Update data domain")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
-    public Result<DataDomainVO> update(@RequestBody DataDomainDTO DataDomain) {
+    public Result<DataDomainVO> update(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody DataDomainDTO DataDomain) {
         return Result.success(dataDomainService.updateById(dto));
     }
 
+    @Operation(description = "Delete data domain")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
-    public Result<String> delete(@PathVariable String id) {
+    public Result<String> delete(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable String id) {
         return Result.success(dataDomainService.delete(id));
     }
 

@@ -1,5 +1,17 @@
 package io.yak.ops.api.controller.modeling;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.yak.ops.dao.entity.User;
+
+import io.yak.ops.common.constants.Constants;
+
+import io.yak.ops.api.audit.enums.AuditType;
+
+import io.yak.ops.api.audit.OperatorLog;
+
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
@@ -23,24 +35,39 @@ public class BusinessProcessController extends BaseController {
     /**
      * 新增业务过程
      */
+    @Operation(description = "Create business process")
+    @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
-    public Result<String> create(@RequestBody BusinessProcessDTO dto) {
+    public Result<String> create(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody BusinessProcessDTO dto) {
         return Result.success(businessProcessService.create(dto));
     }
 
     /**
      * 修改业务过程
      */
+    @Operation(description = "Update business process")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
-    public Result<BusinessProcessVO> update(@RequestBody BusinessProcessDTO dto) {
+    public Result<BusinessProcessVO> update(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody BusinessProcessDTO dto) {
         return Result.success(businessProcessService.updateById(dto));
     }
 
     /**
      * 删除业务过程
      */
+    @Operation(description = "Delete business process")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
-    public Result<String> delete(@PathVariable String id) {
+    public Result<String> delete(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable String id) {
         return Result.success(businessProcessService.delete(id));
     }
 

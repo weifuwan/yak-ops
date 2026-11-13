@@ -1,5 +1,17 @@
 package io.yak.ops.api.controller.modeling;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.yak.ops.dao.entity.User;
+
+import io.yak.ops.common.constants.Constants;
+
+import io.yak.ops.api.audit.enums.AuditType;
+
+import io.yak.ops.api.audit.OperatorLog;
+
 import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
@@ -25,24 +37,39 @@ public class BusinessTypeController extends BaseController {
     /**
      * 新增业务分类
      */
+    @Operation(description = "Create business type")
+    @OperatorLog(auditType = AuditType.MODELING_CREATE)
     @PostMapping
-    public Result<String> create(@RequestBody BusinessTypeDTO businessType) {
+    public Result<String> create(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody BusinessTypeDTO businessType) {
         return Result.success(businessTypeService.create(businessType));
     }
 
     /**
      * 修改业务分类
      */
+    @Operation(description = "Update business type")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping
-    public Result<BusinessTypeVO> update(@RequestBody BusinessTypeDTO businessType) {
+    public Result<BusinessTypeVO> update(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @RequestBody BusinessTypeDTO businessType) {
         return Result.success(businessTypeService.updateById(businessType));
     }
 
     /**
      * 删除业务分类
      */
+    @Operation(description = "Delete business type")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping("/{id}")
-    public Result<String> delete(@PathVariable String id) {
+    public Result<String> delete(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable String id) {
         return Result.success(businessTypeService.delete(id));
     }
 
@@ -90,16 +117,26 @@ public class BusinessTypeController extends BaseController {
     /**
      * 更新业务分类 - 数据域关系
      */
+    @Operation(description = "Update business type data-domain relations")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping(value = "/update/related-domain/{id}")
-    public Result<Boolean> updateTypeData(@PathVariable("id") String id, @RequestBody List<String> dataDomainIds) {
+    public Result<Boolean> updateTypeData(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable("id") String id, @RequestBody List<String> dataDomainIds) {
         return Result.success(businessTypeService.updateTypeData(id, dataDomainIds));
     }
 
     /**
      * 删除业务分类 - 数据域关系
      */
+    @Operation(description = "Delete business type data-domain relation")
+    @OperatorLog(auditType = AuditType.MODELING_DELETE)
     @DeleteMapping(value = "/delete/related-domain/{id}")
-    public Result<Boolean> deleteTypeData(@PathVariable("id") String id, @RequestParam("dataDomainId") String dataDomainId) {
+    public Result<Boolean> deleteTypeData(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable("id") String id, @RequestParam("dataDomainId") String dataDomainId) {
         return Result.success(businessTypeService.deleteTypeData(id, dataDomainId));
     }
 
@@ -114,8 +151,13 @@ public class BusinessTypeController extends BaseController {
     /**
      * 加载所有数据域
      */
+    @Operation(description = "Load all data domains for business type")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping(value = "/loadall/related-domain/{id}")
-    public Result<Boolean> onLoadAllDomains(@PathVariable("id") String id) {
+    public Result<Boolean> onLoadAllDomains(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable("id") String id) {
         return Result.success(businessTypeService.onLoadAllDomains(id));
     }
 }
