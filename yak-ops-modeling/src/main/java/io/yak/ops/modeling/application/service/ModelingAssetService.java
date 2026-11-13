@@ -355,7 +355,7 @@ public class ModelingAssetService {
         int pageNo = positiveInt(params.get("pageNo"), 1);
         int pageSize = Math.min(positiveInt(params.get("pageSize"), 10), 100);
         IPage<T> result = mapper.selectPage(new Page<T>(pageNo, pageSize),
-                buildWrapper(params, resource).orderByDesc("update_time"));
+                this.<T>buildWrapper(params, resource).orderByDesc("update_time"));
         List<Map<String, Object>> rows = new ArrayList<>();
         for (T record : result.getRecords()) rows.add(toMap(record));
         return PaginationResult.buildSuc(rows, result);
@@ -363,7 +363,7 @@ public class ModelingAssetService {
 
     private <T extends BasePO> List<Map<String, Object>> all(
             BaseMapper<T> mapper, Map<String, Object> params, String resource) {
-        List<T> records = mapper.selectList(buildWrapper(params, resource).orderByDesc("update_time"));
+        List<T> records = mapper.selectList(this.<T>buildWrapper(params, resource).orderByDesc("update_time"));
         List<Map<String, Object>> rows = new ArrayList<>();
         for (T record : records) rows.add(toMap(record));
         return rows;
@@ -470,8 +470,8 @@ public class ModelingAssetService {
         }
     }
 
-    private QueryWrapper buildWrapper(Map<String, Object> params, String resource) {
-        QueryWrapper wrapper = new QueryWrapper();
+    private <T extends BasePO> QueryWrapper<T> buildWrapper(Map<String, Object> params, String resource) {
+        QueryWrapper<T> wrapper = new QueryWrapper<>();
         String keyword = text(params.get("keyword"));
         if (keyword.isEmpty()) {
             for (String column : searchColumns(resource)) {
