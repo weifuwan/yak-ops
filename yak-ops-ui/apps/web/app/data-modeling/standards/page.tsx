@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { Button, PageHeader } from "@yak-ops/yak-ui";
 
@@ -201,9 +201,10 @@ const DEFINITIONS: ModelingEntityDefinition[] = [
   },
 ];
 
-export function DataModelingStandardsPage() {
+export function DataModelingStandardsPage({ initialTab = 0 }: { initialTab?: number }) {
   const { currentWorkspace } = useWorkspace();
-  const [activeKey, setActiveKey] = useState(0);
+  const [activeKey, setActiveKey] = useState(initialTab);
+  useEffect(() => setActiveKey(initialTab), [initialTab]);
   const activeDefinition = DEFINITIONS[activeKey] || DEFINITIONS[0];
 
   return (

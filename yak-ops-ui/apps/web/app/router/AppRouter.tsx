@@ -234,43 +234,19 @@ export default function AppRouter() {
             />
             <Route
               path="/data-modeling/standards/fields"
-              element={
-                <DataModelingSectionPage
-                  title="字段标准"
-                  description="统一管理字段标准定义、适用范围和标准引用关系。"
-                  capabilities={["标准目录", "字段定义", "标准映射", "引用关系"]}
-                />
-              }
+              element={<DataModelingStandardsPage initialTab={1} />}
             />
             <Route
               path="/data-modeling/standards/codes"
-              element={
-                <DataModelingSectionPage
-                  title="标准代码"
-                  description="预留标准代码集及代码明细管理入口。"
-                  capabilities={["代码集", "代码明细", "代码映射", "版本维护"]}
-                />
-              }
+              element={<DataModelingStandardsPage initialTab={3} />}
             />
             <Route
               path="/data-modeling/standards/units"
-              element={
-                <DataModelingSectionPage
-                  title="度量单位"
-                  description="预留统一度量单位、单位换算和单位引用管理入口。"
-                  capabilities={["单位分类", "单位定义", "换算关系", "引用检查"]}
-                />
-              }
+              element={<DataModelingStandardsPage initialTab={6} />}
             />
             <Route
               path="/data-modeling/standards/dictionary"
-              element={
-                <DataModelingSectionPage
-                  title="命名词典"
-                  description="预留业务术语、命名词条和标准命名规则管理入口。"
-                  capabilities={["词条管理", "命名规则", "同义词", "标准检索"]}
-                />
-              }
+              element={<DataModelingStandardsPage initialTab={7} />}
             />
 
             <Route
@@ -279,53 +255,23 @@ export default function AppRouter() {
             />
             <Route
               path="/data-modeling/indicators/compose"
-              element={
-                <DataModelingSectionPage
-                  title="复合指标"
-                  description="预留由多个基础指标组合形成的复合指标管理入口。"
-                  capabilities={["指标组合", "计算表达式", "业务口径", "版本管理"]}
-                />
-              }
+              element={<DataModelingIndicatorsPage initialTab={2} />}
             />
             <Route
               path="/data-modeling/indicators/derivative"
-              element={
-                <DataModelingSectionPage
-                  title="派生指标"
-                  description="预留基于原子指标、业务限定和时间周期派生指标的管理入口。"
-                  capabilities={["原子指标引用", "业务限定", "时间周期", "派生规则"]}
-                />
-              }
+              element={<DataModelingIndicatorsPage initialTab={1} />}
             />
             <Route
               path="/data-modeling/indicators/atom"
-              element={
-                <DataModelingSectionPage
-                  title="原子指标"
-                  description="预留原子指标定义、业务过程绑定和统计口径管理入口。"
-                  capabilities={["业务过程", "统计对象", "度量定义", "指标口径"]}
-                />
-              }
+              element={<DataModelingIndicatorsPage initialTab={0} />}
             />
             <Route
               path="/data-modeling/indicators/modifier"
-              element={
-                <DataModelingSectionPage
-                  title="修饰词"
-                  description="预留指标修饰词及其业务限定条件管理入口。"
-                  capabilities={["修饰词分类", "限定条件", "适用范围", "指标关联"]}
-                />
-              }
+              element={<DataModelingIndicatorsPage initialTab={3} />}
             />
             <Route
               path="/data-modeling/indicators/time-period"
-              element={
-                <DataModelingSectionPage
-                  title="时间周期"
-                  description="预留指标时间周期定义和周期分类管理入口。"
-                  capabilities={["周期分类", "周期定义", "时间粒度", "指标关联"]}
-                />
-              }
+              element={<DataModelingIndicatorsPage initialTab={5} />}
             />
           </Route>
 
