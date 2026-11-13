@@ -2,8 +2,8 @@ package io.yak.ops.modeling.api.dto.dwlayer;
 
 import lombok.*;
 import io.yak.ops.modeling.api.dto.pagination.PaginationBaseDTO;
-import io.yak.ops.modeling.domain.enums.DwModelEnum;
-import io.yak.ops.modeling.domain.enums.DwTypeEnum;
+import io.yak.ops.dao.entity.enums.DwModelEnum;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 
 import java.util.Date;
 
