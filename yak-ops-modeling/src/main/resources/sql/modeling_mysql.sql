@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_data_domain`
     KEY `idx_yak_data_domain_project_code` (`project_code`),
 
     primary key (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-公共层-数据域';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-数据域';
 
 CREATE TABLE IF NOT EXISTS `t_yak_ops_business_process`
 (
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_business_process`
     KEY `idx_yak_business_process_project_code` (`project_code`),
 
     primary key (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-公共层-业务过程';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-业务过程';
 
 CREATE TABLE IF NOT EXISTS `t_yak_ops_data_mart`
 (
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_data_mart`
     KEY `idx_yak_data_mart_project_code` (`project_code`),
 
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-应用层-数据集市';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-数据集市';
 
 CREATE TABLE IF NOT EXISTS `t_yak_ops_subject_domain`
 (
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_subject_domain`
     KEY `idx_yak_subject_domain_project_code` (`project_code`),
 
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-应用层-主题域';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-主题域';
 
 CREATE TABLE IF NOT EXISTS `t_yak_ops_business_type_related_data_domain`
 (
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_business_type_related_data_domain`
     KEY `idx_yak_business_type_related_data_domain_project_code` (`project_code`),
 
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT ='业务分类-数据域关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-业务分类数据域关联';
 
 -- -----------------------------------------------------------------------------
 -- Data standards, indicators and existing dimension metadata
