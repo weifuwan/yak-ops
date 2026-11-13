@@ -122,8 +122,8 @@ public class DimensionModelingService {
         dimensionTableFieldDao.deleteByWrapper(new QueryWrapper<DimensionTableFieldPO>().eq("table_id", id));
         versionManagementDao.deleteByWrapper(new QueryWrapper<VersionManagementPO>()
                 .eq("source_table_id", id).eq("version_type", VERSION_TYPE));
-        int affected = dimensionTableDao.deleteById(id);
-        if (affected <= 0) throw new IllegalArgumentException("删除维度建模失败");
+        boolean deleted = dimensionTableDao.deleteById(id);
+        if (!deleted) throw new IllegalArgumentException("删除维度建模失败");
         return id;
     }
 
