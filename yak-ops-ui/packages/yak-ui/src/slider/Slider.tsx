@@ -19,7 +19,7 @@ export function Slider<Value extends SliderRootValue = SliderRootValue>({
     <BaseSlider.Root
       {...props}
       className={cn(
-        "group/slider relative inline-flex w-full min-w-0 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        "group/slider relative flex w-full min-w-0 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         "data-disabled:opacity-45",
         className,
       )}
