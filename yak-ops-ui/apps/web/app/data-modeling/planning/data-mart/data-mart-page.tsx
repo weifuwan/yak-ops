@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, ChevronDown, ChevronRight, Database, Folder, FolderOpen, LoaderCircle,
+  ChevronDown, ChevronRight, Database, LoaderCircle,
   Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
 } from "lucide-react";
 import {
@@ -16,6 +16,7 @@ import {
 import { DataMartFormDialog } from "./data-mart-form-dialog";
 import { SubjectDomainFormDialog } from "../subject-domain/subject-domain-form-dialog";
 import type { DataMartOption, SubjectDomainFormValues, SubjectDomainRecord } from "../subject-domain/types";
+import { PlanningIcon } from "../icons";
 
 interface Props { projectCode: string; }
 interface BusinessTypeOption extends ModelingRecord { id?: string; businessName?: string; }
@@ -87,9 +88,7 @@ function TreeNodeRow({
         >
           {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : <span className="size-1 rounded-full bg-[#c4c9d1]" />}
         </button>
-        {hasChildren ? (
-          expanded ? <FolderOpen size={14} className="shrink-0 text-[#8b929e]" /> : <Folder size={14} className="shrink-0 text-[#8b929e]" />
-        ) : <Building2 size={14} className="shrink-0 text-[#8b929e]" />}
+        <PlanningIcon name="data-mart" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[#8b929e]"} />
         <span className="min-w-0 flex-1 truncate">{node.title}</span>
       </div>
       {hasChildren && expanded ? (

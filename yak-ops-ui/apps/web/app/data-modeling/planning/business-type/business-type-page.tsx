@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, ChevronDown, ChevronRight, Folder, FolderOpen, Pencil, Plus, PlusSquare,
+  Building2, ChevronDown, ChevronRight, Pencil, Plus, PlusSquare,
   RefreshCw, Search, Trash2, X,
 } from "lucide-react";
 import {
@@ -15,6 +15,7 @@ import {
 } from "../../service";
 import { MART_TYPE_OPTIONS } from "../data-mart/types";
 import { withSelectedOption } from "../select-options";
+import { PlanningIcon } from "../icons";
 
 interface Props { projectCode: string; }
 interface BusinessTypeRecord extends ModelingRecord {
@@ -86,7 +87,7 @@ function TreeNodeRow({
         >
           {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : <span className="size-1 rounded-full bg-[#c4c9d1]" />}
         </button>
-        {hasChildren ? (expanded ? <FolderOpen size={14} className="shrink-0 text-[#8b929e]" /> : <Folder size={14} className="shrink-0 text-[#8b929e]" />) : <Building2 size={14} className="shrink-0 text-[#8b929e]" />}
+        <PlanningIcon name="business-type" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[#8b929e]"} />
         <span className="min-w-0 flex-1 truncate">{node.title}</span>
       </div>
       {hasChildren && expanded ? (

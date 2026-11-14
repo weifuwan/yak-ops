@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronDown, ChevronRight, Database, Folder, FolderOpen, Layers, LoaderCircle,
+  ChevronDown, ChevronRight, Database, Layers, LoaderCircle,
   Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
 } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import {
   type SubjectDomainTreeNode, type SubjectDomainFormValues,
 } from "./types";
 import { SubjectDomainFormDialog } from "./subject-domain-form-dialog";
+import { PlanningIcon } from "../icons";
 
 interface Props { projectCode: string; }
 interface ContextMenuState { x: number; y: number; node: SubjectDomainTreeNode; }
@@ -94,11 +95,7 @@ function TreeNodeRow({
         >
           {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : <span className="size-1 rounded-full bg-[#c4c9d1]" />}
         </button>
-        {isMart ? (
-          hasChildren
-            ? (expanded ? <FolderOpen size={14} className="shrink-0 text-[#8b929e]" /> : <Folder size={14} className="shrink-0 text-[#8b929e]" />)
-            : <Database size={14} className="shrink-0 text-[#8b929e]" />
-        ) : <Layers size={14} className="shrink-0 text-[#8b929e]" />}
+        <PlanningIcon name={isMart ? "data-mart" : "subject-domain"} size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[#8b929e]"} />
         <span className="min-w-0 flex-1 truncate">{node.title}</span>
         {isMart ? <span className="text-[10px] text-[#98a0aa]">集市</span> : null}
       </div>
