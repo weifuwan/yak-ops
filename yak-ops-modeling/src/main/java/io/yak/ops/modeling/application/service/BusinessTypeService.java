@@ -10,6 +10,7 @@ import io.yak.ops.modeling.api.vo.tree.TreeVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 业务分类服务接口
@@ -33,6 +34,8 @@ public interface BusinessTypeService {
     List<BusinessTypeVO> all();
 
     List<DataDomainVO> selectTypeData(String id);
+
+    Map<String, List<String>> allRelatedDomainIds();
 
     Boolean updateTypeData(String id, List<String> dataDomainIds);
 

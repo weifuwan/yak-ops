@@ -15,6 +15,7 @@ import io.yak.ops.modeling.api.vo.tree.TreeVO;
 import io.yak.ops.modeling.application.service.BusinessTypeService;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -117,6 +118,14 @@ public class BusinessTypeController extends BaseController {
     @GetMapping(value = "/select/related-domain/{id}")
     public Result<List<DataDomainVO>> selectTypeData(@PathVariable("id") String id) {
         return Result.success(businessTypeService.selectTypeData(id));
+    }
+
+    /**
+     * 查询全部业务分类与数据域的关联关系，供指标目录一次性构建树使用。
+     */
+    @GetMapping(value = "/related-domain/all")
+    public Result<Map<String, List<String>>> allRelatedDomainIds() {
+        return Result.success(businessTypeService.allRelatedDomainIds());
     }
 
     /**

@@ -189,6 +189,19 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
     }
 
     @Override
+    public Map<String, List<String>> allRelatedDomainIds() {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        businessTypeRelatedDataDomainDao.queryList(new LambdaQueryWrapper<>()).forEach(relation -> {
+            if (StringUtils.isBlank(relation.getBusTypeId()) || StringUtils.isBlank(relation.getDataId())) {
+                return;
+            }
+            result.computeIfAbsent(relation.getBusTypeId(), key -> new ArrayList<>()).add(relation.getDataId());
+        });
+        result.replaceAll((key, domainIds) -> domainIds.stream().distinct().collect(Collectors.toList()));
+        return result;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean updateTypeData(String id, List<String> dataDomainIds) {
         List<BusinessTypeRelatedDataDomainPO> insertList = new ArrayList<>();

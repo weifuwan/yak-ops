@@ -208,6 +208,11 @@ export const modelingBusinessTypeApi = {
       `${modelingPath(projectCode, "businessType")}/select/related-domain/${encodeURIComponent(id)}`,
     );
   },
+  allRelatedDomainIds(projectCode: string): Promise<Record<string, string[]>> {
+    return HttpUtils.getData<Record<string, string[]>>(
+      `${modelingPath(projectCode, "businessType")}/related-domain/all`,
+    );
+  },
   updateRelatedDomains(projectCode: string, id: string, domainIds: string[]): Promise<boolean> {
     return HttpUtils.putData<boolean>(
       `${modelingPath(projectCode, "businessType")}/update/related-domain/${encodeURIComponent(id)}`,

@@ -819,6 +819,7 @@ function IndicatorTreeRows({
 type IndicatorListTabProps = {
   projectCode: string;
   definition: IndicatorDefinition;
+  dwType: string;
   optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
   onEdit: (record: ModelingRecord) => void;
   onDelete: (record: ModelingRecord) => void;
@@ -827,6 +828,7 @@ type IndicatorListTabProps = {
 function IndicatorListTab({
   projectCode,
   definition,
+  dwType,
   optionsByResource,
   onEdit,
   onDelete,
@@ -855,6 +857,7 @@ function IndicatorListTab({
       pageNo,
       pageSize,
       JSON.stringify(applied),
+      definition.key === "atomIndicator" ? dwType : "all",
     ],
     queryFn: () => {
       const params: Record<string, unknown> = {
@@ -862,6 +865,7 @@ function IndicatorListTab({
         pageSize,
         keyword: applied.keyword || undefined,
       };
+      if (definition.key === "atomIndicator") params.dwType = dwType;
       if (applied.status !== "all") params.submit = applied.status;
       if (applied.businessTypeId) params.busTypeId = applied.businessTypeId;
       if (applied.domainId) params.domainId = applied.domainId;
@@ -1374,25 +1378,16 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
           modelingEntityApi.all<ModelingRecord>(projectCode, "businessProcess"),
           modelingEntityApi.all<ModelingRecord>(projectCode, "atomIndicator", { dwType }),
         ]);
-        const relatedEntries = groupBy === "BUSINESS_TYPE"
-          ? await Promise.all(businessTypes.filter((item) => item.id).map(async (businessType) => {
-              const relatedDomains = await modelingBusinessTypeApi.selectRelatedDomains<ModelingRecord>(
-                projectCode,
-                String(businessType.id),
-              );
-              return [
-                String(businessType.id),
-                relatedDomains.map((domain) => String(domain.id || "")).filter(Boolean),
-              ] as const;
-            }))
-          : [];
+        const relatedDomainMap = groupBy === "BUSINESS_TYPE"
+          ? await modelingBusinessTypeApi.allRelatedDomainIds(projectCode)
+          : {};
         return buildAtomIndicatorTree(
           businessTypes,
           dataDomains,
           businessProcesses,
           atomIndicators,
           groupBy,
-          new Map(relatedEntries),
+          new Map(Object.entries(relatedDomainMap)),
         );
       }
       const groupResource: ModelingResourceKey = groupBy === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
@@ -1756,6 +1751,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
                       <IndicatorListTab
                         projectCode={projectCode}
                         definition={definition}
+                        dwType={dwType}
                         optionsByResource={optionsByResource}
                         onEdit={(record) => void openEdit(record)}
                         onDelete={(record) => setPendingDelete({ kind: activeKind, record })}
