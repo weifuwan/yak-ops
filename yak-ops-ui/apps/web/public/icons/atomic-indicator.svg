@@ -1,9 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title">
   <title id="title">原子指标</title>
-  <g stroke="#3978D5" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="12" cy="12" rx="8.15" ry="3.55" transform="rotate(32 12 12)"/>
-    <ellipse cx="12" cy="12" rx="8.15" ry="3.55" transform="rotate(-32 12 12)"/>
-    <circle cx="12" cy="12" r="1.8" fill="#3978D5" stroke="#3978D5"/>
-    <circle cx="18.85" cy="8.05" r="1.05" fill="#3978D5" stroke="#3978D5"/>
-  </g>
+  <path
+    fill="#3978D5"
+    d="M512 64L32 896h960L512 64z m38.4 524.8v-320l281.6 492.8-281.6-172.8z m-76.8-320v320L192 761.6l281.6-492.8z m38.4 384l294.4 172.8H217.6L512 652.8z"
+  />
 </svg>
