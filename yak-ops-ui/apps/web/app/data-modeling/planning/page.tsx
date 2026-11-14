@@ -99,9 +99,16 @@ type DataModelingPlanningPageProps = {
 export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanningPageProps) {
   const { currentWorkspace } = useWorkspace();
   const activeDefinition = DEFINITIONS.find((item) => item.key === definitionKey) ?? DEFINITIONS[0];
+  const usesFullHeightWorkspace = [
+    "businessType",
+    "dataDomain",
+    "businessProcess",
+    "dataMart",
+    "subjectDomain",
+  ].includes(definitionKey);
 
   return (
-    <div className="flex min-h-full flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
+    <div className={`flex ${usesFullHeightWorkspace ? "h-full min-h-0" : "min-h-full"} flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]`}>
       {definitionKey !== "businessType" && definitionKey !== "dataDomain" && definitionKey !== "businessProcess" && definitionKey !== "dataMart" && definitionKey !== "subjectDomain" ? (
         <PageHeader
           title={activeDefinition.title}

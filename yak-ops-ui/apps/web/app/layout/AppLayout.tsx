@@ -49,7 +49,7 @@ export default function AppLayout({
       {currentNavigation.length > 0 ? (
         <ProductSidebar productLabel={currentLabel} navigation={currentNavigation} />
       ) : null}
-      <main className="min-w-0 flex-1 overflow-y-auto bg-white">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-white">
         <Outlet key={currentWorkspace?.id ?? "no-project"} />
       </main>
     </AppShell>
