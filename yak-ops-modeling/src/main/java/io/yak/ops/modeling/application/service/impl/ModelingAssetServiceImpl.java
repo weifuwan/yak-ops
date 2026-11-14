@@ -133,6 +133,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             case "dictionary-standard":
                 return create("dictionary-standard", DictionaryStandardPO.class, values).getId();
             case "atom-indicator":
+                if (text(values.get("dwType")).isEmpty()) values.put("dwType", "PUBLIC_LAYER");
                 validateUniqueFields("atom-indicator", values, null);
                 validateOptionalReference("unit-standard", text(values.get("unitId")), "度量单位不存在");
                 return createDraft("atom-indicator", AtomIndicatorPO.class, values).getId();
@@ -195,6 +196,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             case "dictionary-standard":
                 return toMap(update("dictionary-standard", DictionaryStandardPO.class, values));
             case "atom-indicator":
+                if (text(values.get("dwType")).isEmpty()) values.put("dwType", "PUBLIC_LAYER");
                 validateUniqueFields("atom-indicator", values, id);
                 validateOptionalReference("unit-standard", text(values.get("unitId")), "度量单位不存在");
                 return updateDraft("atom-indicator", AtomIndicatorPO.class, values);
@@ -559,8 +561,9 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         } else if ("code-detail".equals(resource)) {
             result.put("codeId", "code_id");
         } else if ("atom-indicator".equals(resource)) {
-            result.put("busTypeId", "bus_type_id"); result.put("domainId", "domain_id");
-            result.put("busProcessId", "bus_process_id"); result.put("unitId", "unit_id"); result.put("submit", "submit");
+            result.put("dwType", "dw_type"); result.put("busTypeId", "bus_type_id");
+            result.put("domainId", "domain_id"); result.put("busProcessId", "bus_process_id");
+            result.put("unitId", "unit_id"); result.put("submit", "submit");
         } else if ("derivative-indicator".equals(resource)) {
             result.put("atomicId", "atomic_id"); result.put("timePeriodId", "time_period_id");
             result.put("busTypeId", "bus_type_id"); result.put("domainId", "domain_id");

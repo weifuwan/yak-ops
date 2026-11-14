@@ -356,6 +356,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_atom (
   bus_type_id varchar(32) NULL,
   domain_id varchar(32) NULL,
   bus_process_id varchar(32) NULL,
+  dw_type varchar(32) NULL DEFAULT 'PUBLIC_LAYER',
   calculate_function varchar(500) NULL,
   decimal_number integer NULL,
   unit_id varchar(32) NULL,
@@ -370,7 +371,8 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_atom (
   KEY idx_yak_indicator_atom_2 (bus_type_id),
   KEY idx_yak_indicator_atom_3 (domain_id),
   KEY idx_yak_indicator_atom_4 (bus_process_id),
-  KEY idx_yak_indicator_atom_5 (unit_id)
+  KEY idx_yak_indicator_atom_5 (unit_id),
+  KEY idx_yak_indicator_atom_6 (dw_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-原子指标';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (

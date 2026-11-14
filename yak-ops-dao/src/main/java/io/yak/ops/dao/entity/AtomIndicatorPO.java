@@ -1,6 +1,7 @@
 package io.yak.ops.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -18,6 +19,7 @@ public class AtomIndicatorPO extends ModelingBasePO {
             private String busTypeId;
             private String domainId;
             private String busProcessId;
+            private DwTypeEnum dwType = DwTypeEnum.PUBLIC_LAYER;
             private String calculateFunction;
             private Integer decimalNumber;
             private String unitId;

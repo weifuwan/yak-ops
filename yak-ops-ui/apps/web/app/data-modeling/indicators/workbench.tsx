@@ -44,11 +44,13 @@ import {
 } from "lucide-react";
 
 import {
+  modelingBusinessTypeApi,
   modelingEntityApi,
   type ModelingRecord,
   type ModelingResourceKey,
   type ModelingVersionRecord,
 } from "../service";
+import { PlanningIcon } from "../planning/icons";
 
 type IndicatorKind = "atomIndicator" | "derivativeIndicator" | "composeIndicator" | "modifier" | "timePeriod";
 type IndicatorMode = "create" | "edit" | "list";
@@ -87,14 +89,25 @@ type IndicatorTab = {
   dirty?: boolean;
 };
 
+type IndicatorTreeNodeType = "root" | "businessType" | "dataDomain" | "businessProcess" | "asset" | "group";
+
 type IndicatorTreeNode = {
   key: string;
   id: string;
   title: string;
   kind: "group" | "asset";
+  nodeType?: IndicatorTreeNodeType;
+  count?: number;
   record?: ModelingRecord;
   children: IndicatorTreeNode[];
 };
+
+const DW_TYPE_OPTIONS: IndicatorFieldOption[] = [
+  { value: "SOURCE_LAYER", label: "贴源层" },
+  { value: "PUBLIC_LAYER", label: "公共层" },
+  { value: "APPLICATION_LAYER", label: "应用层" },
+  { value: "NONE_LAYER", label: "未分层" },
+];
 
 const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
   {
@@ -109,6 +122,7 @@ const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
       { key: "businessCaliber", label: "业务口径", section: "基本信息", required: true, multiline: true },
       { key: "director", label: "负责人", section: "基本信息", required: true },
       { key: "remark", label: "描述", section: "基本信息", multiline: true },
+      { key: "dwType", label: "数仓分层", section: "业务归属", required: true, options: DW_TYPE_OPTIONS },
       { key: "busTypeId", label: "业务分类", section: "业务归属", optionsSource: "businessType", optionLabelField: "businessName" },
       { key: "domainId", label: "数据域", section: "业务归属", optionsSource: "dataDomain" },
       { key: "busProcessId", label: "业务过程", section: "业务归属", optionsSource: "businessProcess" },
@@ -127,6 +141,7 @@ const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     columns: [
       { key: "enShortName", title: "英文缩写", width: 145 },
       { key: "cnName", title: "指标名称", width: 220 },
+      { key: "dwType", title: "数仓分层", width: 110 },
       { key: "calculateFunction", title: "计算函数", width: 130 },
       { key: "director", title: "负责人", width: 120 },
       { key: "submit", title: "状态", width: 90 },
@@ -296,6 +311,7 @@ function initialFormValues(
 ): Record<string, string> {
   const values = Object.fromEntries(fields.map((field) => [field.key, readFormValue(record, field.key)]));
   if (!record && kind === "atomIndicator") {
+    values.dwType = "PUBLIC_LAYER";
     values.removeDuplicates = "true";
     values.decimalNumber = "0";
   }
@@ -395,6 +411,242 @@ function buildGroupedTree(
   return roots;
 }
 
+function buildAtomIndicatorTree(
+  businessTypes: ModelingRecord[],
+  dataDomains: ModelingRecord[],
+  businessProcesses: ModelingRecord[],
+  records: ModelingRecord[],
+  groupBy: "BUSINESS_TYPE" | "DATA_DOMAIN",
+  relatedDomainIdsByBusinessType: Map<string, string[]>,
+): IndicatorTreeNode[] {
+  const uniqueRecordMap = new Map<string, ModelingRecord>();
+  records.forEach((record) => {
+    if (record.id) uniqueRecordMap.set(String(record.id), record);
+  });
+  const uniqueRecords = Array.from(uniqueRecordMap.values());
+
+  const domainMap = new Map<string, ModelingRecord>();
+  dataDomains.forEach((record) => {
+    if (record.id) domainMap.set(String(record.id), record);
+  });
+  const businessTypeMap = new Map<string, ModelingRecord>();
+  businessTypes.forEach((record) => {
+    if (record.id) businessTypeMap.set(String(record.id), record);
+  });
+  const processMap = new Map<string, ModelingRecord>();
+  businessProcesses.forEach((record) => {
+    if (record.id) processMap.set(String(record.id), record);
+  });
+
+  const assetNode = (record: ModelingRecord): IndicatorTreeNode => ({
+    key: "asset:" + String(record.id),
+    id: String(record.id),
+    title: recordName(record),
+    kind: "asset",
+    nodeType: "asset",
+    record,
+    children: [],
+  });
+
+  const buildDomainNode = (
+    domainId: string,
+    scopedRecords: ModelingRecord[],
+    keyPrefix: string,
+  ): IndicatorTreeNode => {
+    const domain = domainMap.get(domainId);
+    const domainProcesses = domain
+      ? businessProcesses.filter((process) => String(process.dataDomainId || "") === domainId)
+      : [];
+    const processIds = new Set(domainProcesses.map((process) => String(process.id)));
+    const children: IndicatorTreeNode[] = domainProcesses.map((process) => {
+      const processId = String(process.id);
+      const processRecords = scopedRecords.filter((record) => String(record.busProcessId || "") === processId);
+      return {
+        key: keyPrefix + ":process:" + processId,
+        id: processId,
+        title: recordName(process),
+        kind: "group",
+        nodeType: "businessProcess",
+        count: processRecords.length,
+        children: processRecords.map(assetNode),
+      };
+    });
+
+    const unassignedProcessRecords = scopedRecords.filter((record) => {
+      const processId = String(record.busProcessId || "");
+      const process = processMap.get(processId);
+      return !process || String(process.dataDomainId || "") !== domainId || !processIds.has(processId);
+    });
+    if (unassignedProcessRecords.length) {
+      children.push({
+        key: keyPrefix + ":domain:" + domainId + ":unassigned-process",
+        id: "unassigned-process",
+        title: "未关联业务过程",
+        kind: "group",
+        nodeType: "group",
+        count: unassignedProcessRecords.length,
+        children: unassignedProcessRecords.map(assetNode),
+      });
+    }
+
+    return {
+      key: keyPrefix + ":domain:" + domainId,
+      id: domainId,
+      title: domain ? recordName(domain) : "未关联数据域",
+      kind: "group",
+      nodeType: domain ? "dataDomain" : "group",
+      count: scopedRecords.length,
+      children,
+    };
+  };
+
+  const buildUnassignedDomainNode = (
+    scopedRecords: ModelingRecord[],
+    key: string,
+  ): IndicatorTreeNode => ({
+    key,
+    id: "unassigned-domain",
+    title: "未关联数据域",
+    kind: "group",
+    nodeType: "group",
+    count: scopedRecords.length,
+    children: scopedRecords.map(assetNode),
+  });
+
+  const root: IndicatorTreeNode = {
+    key: "root:atom-indicator",
+    id: "root",
+    title: "原子指标",
+    kind: "group",
+    nodeType: "root",
+    count: uniqueRecords.length,
+    children: [],
+  };
+
+  if (groupBy === "DATA_DOMAIN") {
+    root.children = dataDomains.filter((domain) => domain.id).map((domain) => {
+      const domainId = String(domain.id);
+      const domainRecords = uniqueRecords.filter((record) => String(record.domainId || "") === domainId);
+      return buildDomainNode(domainId, domainRecords, "data-domain:" + domainId);
+    });
+
+    const unassignedDomainRecords = uniqueRecords.filter((record) => {
+      const domainId = String(record.domainId || "");
+      return !domainId || !domainMap.has(domainId);
+    });
+    if (unassignedDomainRecords.length) {
+      root.children.push(buildUnassignedDomainNode(unassignedDomainRecords, "data-domain:unassigned"));
+    }
+    return [root];
+  }
+
+  const childrenByParent = new Map<string, ModelingRecord[]>();
+  businessTypes.forEach((businessType) => {
+    const id = String(businessType.id || "");
+    const parentId = String(businessType.parentId || "");
+    if (!id || !parentId || !businessTypeMap.has(parentId)) return;
+    const children = childrenByParent.get(parentId) || [];
+    children.push(businessType);
+    childrenByParent.set(parentId, children);
+  });
+
+  const visitedBusinessTypeIds = new Set<string>();
+  const buildBusinessTypeNode = (businessType: ModelingRecord): IndicatorTreeNode | null => {
+    const id = String(businessType.id || "");
+    if (!id || visitedBusinessTypeIds.has(id)) return null;
+    visitedBusinessTypeIds.add(id);
+
+    const directRecords = uniqueRecords.filter((record) => String(record.busTypeId || "") === id);
+    const childNodes = (childrenByParent.get(id) || [])
+      .map(buildBusinessTypeNode)
+      .filter((node): node is IndicatorTreeNode => Boolean(node));
+
+    const relatedDomainIds = relatedDomainIdsByBusinessType.get(id) || [];
+    const directDomainIds = directRecords
+      .map((record) => String(record.domainId || ""))
+      .filter((domainId) => domainId && domainMap.has(domainId));
+    const domainIds = Array.from(new Set([...relatedDomainIds, ...directDomainIds]))
+      .filter((domainId) => domainMap.has(domainId));
+    const domainNodes = domainIds.map((domainId) => buildDomainNode(
+      domainId,
+      directRecords.filter((record) => String(record.domainId || "") === domainId),
+      "business-type:" + id,
+    ));
+
+    const unassignedDomainRecords = directRecords.filter((record) => {
+      const domainId = String(record.domainId || "");
+      return !domainId || !domainMap.has(domainId);
+    });
+    if (unassignedDomainRecords.length) {
+      domainNodes.push(buildUnassignedDomainNode(
+        unassignedDomainRecords,
+        "business-type:" + id + ":unassigned-domain",
+      ));
+    }
+
+    return {
+      key: "business-type:" + id,
+      id,
+      title: recordName(businessType),
+      kind: "group",
+      nodeType: "businessType",
+      count: directRecords.length + childNodes.reduce((total, child) => total + (child.count || 0), 0),
+      children: [...childNodes, ...domainNodes],
+    };
+  };
+
+  const businessTypeRoots = businessTypes.filter((businessType) => {
+    const parentId = String(businessType.parentId || "");
+    return !parentId || !businessTypeMap.has(parentId);
+  }).map(buildBusinessTypeNode).filter((node): node is IndicatorTreeNode => Boolean(node));
+
+  businessTypes.forEach((businessType) => {
+    const id = String(businessType.id || "");
+    if (id && !visitedBusinessTypeIds.has(id)) {
+      const node = buildBusinessTypeNode(businessType);
+      if (node) businessTypeRoots.push(node);
+    }
+  });
+
+  root.children = businessTypeRoots;
+
+  const unassignedBusinessTypeRecords = uniqueRecords.filter((record) => {
+    const businessTypeId = String(record.busTypeId || "");
+    return !businessTypeId || !businessTypeMap.has(businessTypeId);
+  });
+  if (unassignedBusinessTypeRecords.length) {
+    const domainIds = Array.from(new Set(unassignedBusinessTypeRecords
+      .map((record) => String(record.domainId || ""))
+      .filter((domainId) => domainId && domainMap.has(domainId))));
+    const domainNodes = domainIds.map((domainId) => buildDomainNode(
+      domainId,
+      unassignedBusinessTypeRecords.filter((record) => String(record.domainId || "") === domainId),
+      "business-type:unassigned",
+    ));
+    const unassignedDomainRecords = unassignedBusinessTypeRecords.filter((record) => {
+      const domainId = String(record.domainId || "");
+      return !domainId || !domainMap.has(domainId);
+    });
+    if (unassignedDomainRecords.length) {
+      domainNodes.push(buildUnassignedDomainNode(
+        unassignedDomainRecords,
+        "business-type:unassigned:unassigned-domain",
+      ));
+    }
+    root.children.push({
+      key: "business-type:unassigned",
+      id: "unassigned-business-type",
+      title: "未关联业务分类",
+      kind: "group",
+      nodeType: "group",
+      count: unassignedBusinessTypeRecords.length,
+      children: domainNodes,
+    });
+  }
+
+  return [root];
+}
+
 function buildTimePeriodTree(categories: ModelingRecord[], records: ModelingRecord[]): IndicatorTreeNode[] {
   const nodeMap = new Map<string, IndicatorTreeNode>();
   categories.forEach((record) => {
@@ -449,7 +701,13 @@ function filterTree(nodes: IndicatorTreeNode[], keyword: string): IndicatorTreeN
   if (!normalized) return nodes;
   return nodes.reduce<IndicatorTreeNode[]>((result, node) => {
     const children = filterTree(node.children, normalized);
-    if (node.title.toLowerCase().includes(normalized) || children.length) {
+    const searchableText = [
+      node.title,
+      node.record?.cnName,
+      node.record?.enName,
+      node.record?.enShortName,
+    ].filter(Boolean).join(" ").toLowerCase();
+    if (searchableText.includes(normalized) || children.length) {
       result.push({ ...node, children });
     }
     return result;
@@ -517,12 +775,23 @@ function IndicatorTreeRows({
                   ? expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />
                   : null}
               </span>
-              {node.kind === "group" ? (
+              {node.nodeType === "root" ? (
+                <ChartNoAxesCombined size={14} className="shrink-0 text-[var(--yak-color-primary)]" />
+              ) : node.nodeType === "businessType" ? (
+                <PlanningIcon name="business-type" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
+              ) : node.nodeType === "dataDomain" ? (
+                <PlanningIcon name="data-domain" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
+              ) : node.nodeType === "businessProcess" ? (
+                <PlanningIcon name="business-process" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
+              ) : node.kind === "group" ? (
                 <Folder size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
               ) : (
                 <FileText size={14} className="shrink-0 text-[var(--yak-color-primary)]" />
               )}
               <span className="min-w-0 flex-1 truncate">{node.title}</span>
+              {typeof node.count === "number" ? (
+                <span className="shrink-0 text-[11px] tabular-nums text-[var(--yak-components-muted-text)]">({node.count})</span>
+              ) : null}
               {node.kind === "asset" && node.record?.submit === true ? (
                 <span className="shrink-0 rounded bg-[var(--yak-color-hover)] px-1.5 py-0.5 text-[10px] text-[var(--yak-components-muted-text)]">已提交</span>
               ) : null}
@@ -637,6 +906,7 @@ function IndicatorListTab({
             </span>
           );
         }
+        if (column.key === "dwType") return DW_TYPE_OPTIONS.find((option) => option.value === String(value))?.label || "-";
         if (column.key === "computeMode") return String(value) === "1" ? "同环比" : "计算表达式";
         if (column.key === "modifierType") return String(value) === "DIMENSION" ? "维度枚举" : "普通业务";
         return relationLabel(column.key, value);
@@ -1060,6 +1330,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
   const queryClient = useQueryClient();
   const activeKind: IndicatorKind = initialTab >= 4 ? "timePeriod" : INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator";
   const [groupBy, setGroupBy] = useState<"BUSINESS_TYPE" | "DATA_DOMAIN">("BUSINESS_TYPE");
+  const [dwType, setDwType] = useState("PUBLIC_LAYER");
   const [treeKeyword, setTreeKeyword] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
@@ -1087,7 +1358,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
   const activeTabKey = activeKeys[activeKind] || activeTabs[0]?.key || "";
 
   const treeQuery = useQuery<IndicatorTreeNode[]>({
-    queryKey: ["modeling", "indicator-tree", projectCode, activeKind, groupBy],
+    queryKey: ["modeling", "indicator-tree", projectCode, activeKind, groupBy, activeKind === "atomIndicator" ? dwType : "all"],
     queryFn: async () => {
       if (activeKind === "timePeriod") {
         const results = await Promise.all([
@@ -1095,6 +1366,34 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
           modelingEntityApi.all<ModelingRecord>(projectCode, "timePeriod"),
         ]);
         return buildTimePeriodTree(results[0], results[1]);
+      }
+      if (activeKind === "atomIndicator") {
+        const [businessTypes, dataDomains, businessProcesses, atomIndicators] = await Promise.all([
+          modelingEntityApi.all<ModelingRecord>(projectCode, "businessType"),
+          modelingEntityApi.all<ModelingRecord>(projectCode, "dataDomain"),
+          modelingEntityApi.all<ModelingRecord>(projectCode, "businessProcess"),
+          modelingEntityApi.all<ModelingRecord>(projectCode, "atomIndicator", { dwType }),
+        ]);
+        const relatedEntries = groupBy === "BUSINESS_TYPE"
+          ? await Promise.all(businessTypes.filter((item) => item.id).map(async (businessType) => {
+              const relatedDomains = await modelingBusinessTypeApi.selectRelatedDomains<ModelingRecord>(
+                projectCode,
+                String(businessType.id),
+              );
+              return [
+                String(businessType.id),
+                relatedDomains.map((domain) => String(domain.id || "")).filter(Boolean),
+              ] as const;
+            }))
+          : [];
+        return buildAtomIndicatorTree(
+          businessTypes,
+          dataDomains,
+          businessProcesses,
+          atomIndicators,
+          groupBy,
+          new Map(relatedEntries),
+        );
       }
       const groupResource: ModelingResourceKey = groupBy === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
       const results = await Promise.all([
@@ -1131,8 +1430,20 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
     () => filterTree(treeQuery.data || [], treeKeyword),
     [treeQuery.data, treeKeyword],
   );
+  const visibleExpandedKeys = useMemo(() => {
+    const next = new Set(expandedKeys);
+    if (treeKeyword.trim()) {
+      collectExpandedKeys(visibleTree).forEach((key) => next.add(key));
+    }
+    return next;
+  }, [expandedKeys, treeKeyword, visibleTree]);
 
   useEffect(() => {
+    if (activeKind === "atomIndicator") {
+      const root = (treeQuery.data || []).find((node) => node.nodeType === "root");
+      setExpandedKeys(new Set(root ? [root.key] : []));
+      return;
+    }
     setExpandedKeys(new Set(collectExpandedKeys(treeQuery.data || [])));
   }, [treeQuery.data, activeKind]);
 
@@ -1140,7 +1451,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
     setTreeKeyword("");
     setSelectedTreeKey("");
     setContextMenu(null);
-  }, [activeKind]);
+  }, [activeKind, groupBy, dwType]);
 
   const openTab = (kind: IndicatorKind, mode: IndicatorMode, record?: ModelingRecord) => {
     const currentTabs = tabsByKind[kind];
@@ -1166,6 +1477,9 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
       label,
       recordId: record?.id ? String(record.id) : undefined,
       record,
+      draftValues: mode === "create" && kind === "atomIndicator"
+        ? { ...initialFormValues(kind, undefined, getDefinition(kind).fields), dwType }
+        : undefined,
     };
     setTabsByKind((current) => ({ ...current, [kind]: [...current[kind], tab] }));
     setActiveKeys((current) => ({ ...current, [kind]: key }));
@@ -1289,7 +1603,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
         <aside className="flex w-[292px] min-w-[260px] max-w-[360px] shrink-0 flex-col border-r border-[var(--yak-components-panel-border)] bg-white">
           <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
             <div className="flex items-center gap-2">
-              {activeKind === "timePeriod" ? <CalendarDays size={15} className="text-[var(--yak-components-muted-text)]" /> : <Folder size={15} className="text-[var(--yak-components-muted-text)]" />}
+              {activeKind === "timePeriod" ? <CalendarDays size={15} className="text-[var(--yak-components-muted-text)]" /> : activeKind === "atomIndicator" ? <ChartNoAxesCombined size={15} className="text-[var(--yak-components-muted-text)]" /> : <Folder size={15} className="text-[var(--yak-components-muted-text)]" />}
               <span className="text-sm font-semibold">{definition.title}</span>
             </div>
             <div className="flex items-center gap-0.5">
@@ -1304,6 +1618,30 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
               </Button>
             </div>
           </div>
+
+          {activeKind === "atomIndicator" ? (
+            <div className="px-3 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-[11px] text-[var(--yak-components-muted-text)]">数仓分层</span>
+                <Select
+                  size="small"
+                  value={dwType}
+                  onValueChange={(value) => setDwType(String(value || "PUBLIC_LAYER"))}
+                >
+                  <SelectTrigger variant="outlined" className="min-w-0 flex-1">
+                    <SelectValue placeholder="请选择数仓分层" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DW_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <SelectItemText>{option.label}</SelectItemText><SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
 
           {activeKind !== "timePeriod" ? (
             <div className="px-3 pb-2">
@@ -1327,7 +1665,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
                 variant="outlined"
                 className="pl-8"
                 value={treeKeyword}
-                placeholder="搜索目录或指标"
+                placeholder={activeKind === "atomIndicator" ? "搜索业务分类、数据域、业务过程或指标" : "搜索目录或指标"}
                 onChange={(event) => setTreeKeyword(event.target.value)}
               />
             </div>
@@ -1347,14 +1685,17 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
               <IndicatorTreeRows
                 nodes={visibleTree}
                 depth={0}
-                expandedKeys={expandedKeys}
+                expandedKeys={visibleExpandedKeys}
                 selectedKey={selectedTreeKey}
-                onToggle={(key) => setExpandedKeys((current) => {
-                  const next = new Set(current);
-                  if (next.has(key)) next.delete(key);
-                  else next.add(key);
-                  return next;
-                })}
+                onToggle={(key) => {
+                  setSelectedTreeKey(key);
+                  setExpandedKeys((current) => {
+                    const next = new Set(current);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
+                    return next;
+                  });
+                }}
                 onSelect={(record) => void openEdit(record)}
                 onContextMenu={onTreeContextMenu}
               />

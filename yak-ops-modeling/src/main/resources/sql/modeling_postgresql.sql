@@ -357,6 +357,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_atom (
   bus_type_id varchar(32) NULL,
   domain_id varchar(32) NULL,
   bus_process_id varchar(32) NULL,
+  dw_type varchar(32) NULL DEFAULT 'PUBLIC_LAYER',
   calculate_function varchar(500) NULL,
   decimal_number integer NULL,
   unit_id varchar(32) NULL,
@@ -373,6 +374,7 @@ CREATE INDEX IF NOT EXISTS idx_yak_indicator_atom_2 ON t_yak_ops_indicator_atom 
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_atom_3 ON t_yak_ops_indicator_atom (domain_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_atom_4 ON t_yak_ops_indicator_atom (bus_process_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_atom_5 ON t_yak_ops_indicator_atom (unit_id);
+CREATE INDEX IF NOT EXISTS idx_yak_indicator_atom_6 ON t_yak_ops_indicator_atom (dw_type);
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (
   id varchar(32) NOT NULL,
