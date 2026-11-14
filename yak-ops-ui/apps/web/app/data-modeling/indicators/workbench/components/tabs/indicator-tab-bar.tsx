@@ -1,6 +1,7 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@yak-ops/yak-ui";
-import { ArrowLeftToLine, ArrowRightToLine, CalendarDays, ChartNoAxesCombined, Ellipsis, FileText, Folder, X, XCircle } from "lucide-react";
+import { ArrowLeftToLine, ArrowRightToLine, Ellipsis, X, XCircle } from "lucide-react";
 
+import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import type { IndicatorTab } from "../../types";
 
 type CloseAction = "current" | "other" | "left" | "right" | "all";
@@ -25,7 +26,7 @@ export function IndicatorTabBar({ tabs, activeTabKey, activeTab, onSelect, onClo
             active ? "bg-[#cedaff] text-[#26282c]" : "bg-transparent text-[#616161] hover:bg-[#e8e8e8]",
           ].join(" ")}>
             <button type="button" role="tab" aria-selected={active} tabIndex={active ? 0 : -1} title={tab.dirty ? tab.label + "（有未保存修改）" : tab.label} onClick={() => onSelect(tab.key)} className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 pl-2 pr-0 text-left text-[13px] leading-none outline-none">
-              {tab.kind === "timePeriod" ? <CalendarDays size={16} /> : tab.kind === "atomIndicator" ? <ChartNoAxesCombined size={16} /> : tab.kind === "modifier" ? <FileText size={16} /> : <Folder size={16} />}
+              <IndicatorIcon name={getIndicatorIconName(tab.kind)} size={16} />
               <span className="min-w-0 flex-1 truncate whitespace-nowrap">{tab.label}</span>
               {tab.dirty ? <span aria-label="有未保存修改" title="有未保存修改" className="mr-1.5 size-1.5 shrink-0 rounded-full bg-[#e6a23c]" /> : null}
             </button>

@@ -2,9 +2,10 @@ import {
   Button, Input, Segmented, Select, SelectContent, SelectItem, SelectItemIndicator,
   SelectItemText, SelectTrigger, SelectValue,
 } from "@yak-ops/yak-ui";
-import { CalendarDays, ChartNoAxesCombined, Folder, List, Plus, RefreshCw, Search } from "lucide-react";
+import { List, Plus, RefreshCw, Search } from "lucide-react";
 
 import type { ModelingRecord } from "../../../../service";
+import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import { DW_TYPE_OPTIONS } from "../../config/indicator-definitions";
 import type { IndicatorDefinition, IndicatorGroupBy, IndicatorKind, IndicatorTreeNode } from "../../types";
 import { IndicatorTreeRows } from "./indicator-tree";
@@ -40,7 +41,7 @@ export function IndicatorSidebar({
     <aside className="flex w-[292px] min-w-[260px] max-w-[360px] shrink-0 flex-col border-r border-[var(--yak-components-panel-border)] bg-white">
       <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
         <div className="flex items-center gap-2">
-          {activeKind === "timePeriod" ? <CalendarDays size={15} className="text-[var(--yak-components-muted-text)]" /> : activeKind === "atomIndicator" ? <ChartNoAxesCombined size={15} className="text-[var(--yak-components-muted-text)]" /> : <Folder size={15} className="text-[var(--yak-components-muted-text)]" />}
+          <IndicatorIcon name={getIndicatorIconName(activeKind)} size={16} />
           <span className="text-sm font-semibold">{definition.title}</span>
         </div>
         <div className="flex items-center gap-0.5">
@@ -69,7 +70,7 @@ export function IndicatorSidebar({
         {loading ? <div className="flex items-center gap-2 px-2 py-4 text-xs text-[var(--yak-components-muted-text)]"><RefreshCw size={13} className="animate-spin" />正在加载目录...</div> : error ? (
           <div className="px-2 py-4 text-xs text-[var(--yak-components-muted-text)]">目录加载失败。<Button size="sm" variant="secondary" className="ml-2" onClick={onRefresh}>重试</Button></div>
         ) : visibleTree.length ? (
-          <IndicatorTreeRows nodes={visibleTree} depth={0} expandedKeys={expandedKeys} selectedKey={selectedTreeKey} onToggle={onToggle} onSelect={onSelect} onContextMenu={onContextMenu} />
+          <IndicatorTreeRows activeKind={activeKind} nodes={visibleTree} depth={0} expandedKeys={expandedKeys} selectedKey={selectedTreeKey} onToggle={onToggle} onSelect={onSelect} onContextMenu={onContextMenu} />
         ) : <div className="px-2 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">{treeKeyword ? "没有匹配的指标" : "暂无指标，点击上方 + 新建"}</div>}
       </div>
     </aside>

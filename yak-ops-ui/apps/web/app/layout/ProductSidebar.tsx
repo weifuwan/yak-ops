@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { NavigationMenu, type NavigationMenuItem } from "@yak-ops/yak-ui";
 
 import { PlanningIcon } from "../data-modeling/planning/icons";
+import { IndicatorIcon } from "../data-modeling/indicators/icons";
 import type { ProductNavigationItem } from "./navigation";
 
 type ProductSidebarProps = {
@@ -21,11 +22,13 @@ const mapNavigationItems = (items: ProductNavigationItem[]): NavigationMenuItem[
       label: item.label,
       value: item.path,
       groupLabel: item.groupLabel,
-      icon: item.svgIcon
-        ? <PlanningIcon name={item.svgIcon} />
-        : Icon
-          ? <Icon size={16} strokeWidth={1.8} />
-          : undefined,
+      icon: item.indicatorIcon
+        ? <IndicatorIcon name={item.indicatorIcon} />
+        : item.svgIcon
+          ? <PlanningIcon name={item.svgIcon} />
+          : Icon
+            ? <Icon size={16} strokeWidth={1.8} />
+            : undefined,
       children: item.children ? mapNavigationItems(item.children) : undefined,
     };
   });

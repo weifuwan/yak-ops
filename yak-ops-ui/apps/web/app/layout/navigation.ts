@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { PlanningIconName } from "../data-modeling/planning/icons";
+import type { IndicatorIconName } from "../data-modeling/indicators/icons";
 
 export type ProductNavigationItem = {
   id?: string;
@@ -26,6 +27,7 @@ export type ProductNavigationItem = {
   path?: string;
   icon?: LucideIcon;
   svgIcon?: PlanningIconName;
+  indicatorIcon?: IndicatorIconName;
   groupLabel?: string;
   end?: boolean;
   children?: ProductNavigationItem[];
@@ -215,31 +217,35 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
         id: "composite-indicator",
         label: "复合指标",
         path: "/data-modeling/indicators/compose",
-        icon: ChartNoAxesCombined,
+        indicatorIcon: "composite-indicator",
         end: true,
       },
       {
         id: "derivative-indicator",
         label: "派生指标",
         path: "/data-modeling/indicators/derivative",
+        indicatorIcon: "derived-indicator",
         end: true,
       },
       {
         id: "atomic-indicator",
         label: "原子指标",
         path: "/data-modeling/indicators/atom",
+        indicatorIcon: "atomic-indicator",
         end: true,
       },
       {
         id: "indicator-modifier",
         label: "修饰词",
         path: "/data-modeling/indicators/modifier",
+        indicatorIcon: "indicator-modifier",
         end: true,
       },
       {
         id: "time-period",
         label: "时间周期",
         path: "/data-modeling/indicators/time-period",
+        indicatorIcon: "time-period",
         end: true,
       },
     ],

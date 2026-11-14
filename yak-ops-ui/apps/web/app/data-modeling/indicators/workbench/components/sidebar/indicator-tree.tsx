@@ -1,11 +1,13 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { ChartNoAxesCombined, ChevronDown, ChevronRight, FileText, Folder } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder } from "lucide-react";
 
 import { PlanningIcon } from "../../../../planning/icons";
 import type { ModelingRecord } from "../../../../service";
-import type { IndicatorTreeNode } from "../../types";
+import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
+import type { IndicatorKind, IndicatorTreeNode } from "../../types";
 
 type TreeRowsProps = {
+  activeKind: IndicatorKind;
   nodes: IndicatorTreeNode[];
   depth: number;
   expandedKeys: Set<string>;
@@ -16,6 +18,7 @@ type TreeRowsProps = {
 };
 
 export function IndicatorTreeRows({
+  activeKind,
   nodes,
   depth,
   expandedKeys,
@@ -56,17 +59,17 @@ export function IndicatorTreeRows({
                   : null}
               </span>
               {node.nodeType === "root" ? (
-                <ChartNoAxesCombined size={14} className="shrink-0 text-[var(--yak-color-primary)]" />
+                <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
               ) : node.nodeType === "businessType" ? (
                 <PlanningIcon name="business-type" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
               ) : node.nodeType === "dataDomain" ? (
                 <PlanningIcon name="data-domain" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
               ) : node.nodeType === "businessProcess" ? (
                 <PlanningIcon name="business-process" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
-              ) : node.kind === "group" ? (
-                <Folder size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
+              ) : node.kind === "asset" ? (
+                <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
               ) : (
-                <FileText size={14} className="shrink-0 text-[var(--yak-color-primary)]" />
+                <Folder size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
               )}
               <span className="min-w-0 flex-1 truncate">{node.title}</span>
               {typeof node.count === "number" ? (
@@ -79,6 +82,7 @@ export function IndicatorTreeRows({
             {hasChildren && expanded ? (
               <div className="mt-0.5">
                 <IndicatorTreeRows
+                  activeKind={activeKind}
                   nodes={node.children}
                   depth={depth + 1}
                   expandedKeys={expandedKeys}
