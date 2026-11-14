@@ -1,6 +1,8 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@yak-ops/yak-ui";
 
+import { PlanningIcon } from "../icons";
+
 import {
   getDwModelTypeLabel,
   getDwTypeLabel,
@@ -106,6 +108,7 @@ export function DwLayerDetail({
           >
             <ArrowLeft size={14} />
           </Button>
+          <PlanningIcon name="dw-layer" size={20} className="text-[var(--yak-color-primary)]" />
           <h1
             className="m-0"
             style={{

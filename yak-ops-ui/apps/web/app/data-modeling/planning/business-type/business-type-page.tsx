@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, ChevronDown, ChevronRight, Pencil, Plus, PlusSquare,
+  ChevronDown, ChevronRight, Pencil, Plus, PlusSquare,
   RefreshCw, Search, Trash2, X,
 } from "lucide-react";
 import {
@@ -667,7 +667,7 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
           ) : selectedRecord ? (
             <>
               <header className="flex h-[72px] shrink-0 items-center border-b border-[var(--yak-components-panel-border)] bg-white px-5">
-                <Building2 size={20} className="mr-2 text-[var(--yak-color-primary)]" />
+                <PlanningIcon name="business-type" size={20} className="mr-2 text-[var(--yak-color-primary)]" />
                 <h1 className="truncate text-lg font-semibold text-[var(--yak-components-panel-text)]">{selectedRecord.businessName}</h1>
               </header>
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -683,7 +683,7 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
         ) : (
           <div className="flex min-h-0 flex-1 items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-2 text-center">
-              <Building2 size={32} strokeWidth={1.3} className="text-[#c5cbd3]" />
+              <PlanningIcon name="business-type" size={32} className="text-[#c5cbd3]" />
               <span className="text-sm text-[var(--yak-components-muted-text)]">请选择左侧业务分类查看详情</span>
             </div>
           </div>

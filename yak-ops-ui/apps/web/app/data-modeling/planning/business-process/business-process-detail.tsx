@@ -1,6 +1,8 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@yak-ops/yak-ui";
 
+import { PlanningIcon } from "../icons";
+
 import type { BusinessProcessRecord } from "./types";
 
 interface Props {
@@ -82,6 +84,7 @@ export function BusinessProcessDetail({ record, onBack, onEdit }: Props) {
             className="h-6 w-[42px] rounded-xl p-0" onClick={onBack}>
             <ArrowLeft size={14} />
           </Button>
+          <PlanningIcon name="business-process" size={20} className="text-[var(--yak-color-primary)]" />
           <h1 className="m-0 text-xl font-bold leading-7 text-[#26282c]">{record.cnName || "业务过程详情"}</h1>
         </div>
       </header>

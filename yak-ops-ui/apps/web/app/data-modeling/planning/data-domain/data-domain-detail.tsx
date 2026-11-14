@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Eye, Plus, SquarePen, Trash2 } from "lucide-react";
 import { Button, Modal, Table, toast, type TableColumns } from "@yak-ops/yak-ui";
 
+import { PlanningIcon } from "../icons";
+
 import { modelingEntityApi, modelingQueryKeys } from "../../service";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
 import BusinessProcessViewDialog from "./business-process-view-dialog";
@@ -285,6 +287,7 @@ export function DataDomainDetail({ projectCode, record, onBack, onEditDomain }: 
           <Button size="sm" variant="outline" isIconOnly aria-label="返回数据域列表" className="h-6 w-[42px] rounded-xl p-0" onClick={onBack}>
             <ArrowLeft size={14} />
           </Button>
+          <PlanningIcon name="data-domain" size={20} className="text-[var(--yak-color-primary)]" />
           <h1 className="m-0 text-xl font-bold leading-7 text-[#26282c]">{record.cnName || "数据域详情"}</h1>
         </div>
       </header>
