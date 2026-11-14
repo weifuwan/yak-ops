@@ -186,7 +186,7 @@ export function IndicatorEditor({
                               disabled={disabled}
                               onValueChange={(value) => changeValue(field.key, String(value || ""))}
                             >
-                              <SelectTrigger variant="outlined">
+                              <SelectTrigger variant="outlined" className="w-full">
                                 <SelectValue placeholder={optionsLoading ? "正在加载选项..." : field.placeholder || ("请选择" + field.label)} />
                               </SelectTrigger>
                               <SelectContent>
