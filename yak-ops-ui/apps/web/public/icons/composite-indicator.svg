@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">复合指标</title>
+  <g stroke="#4D6FE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.75 7.65 10.05 10M16.25 7.65 13.95 10M12 15.25v1.35"/>
+    <circle cx="6.2" cy="6.2" r="2.25" fill="#4D6FE4" fill-opacity=".12"/>
+    <circle cx="17.8" cy="6.2" r="2.25" fill="#4D6FE4" fill-opacity=".12"/>
+    <circle cx="12" cy="18.8" r="2.25" fill="#4D6FE4" fill-opacity=".12"/>
+    <circle cx="12" cy="12" r="3.15" fill="#4D6FE4" fill-opacity=".1"/>
+    <path d="M12 10.75v2.5M10.75 12h2.5" stroke-width="1.5"/>
+  </g>
+</svg>
