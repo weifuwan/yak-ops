@@ -9,6 +9,7 @@ import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import { DW_TYPE_OPTIONS } from "../../config/indicator-definitions";
 import type { IndicatorDefinition, IndicatorGroupBy, IndicatorKind, IndicatorTreeNode } from "../../types";
 import { IndicatorTreeRows } from "./indicator-tree";
+import { selectOptionLabel } from "../../utils/indicator-form";
 
 export type IndicatorSidebarProps = {
   activeKind: IndicatorKind;
@@ -54,7 +55,11 @@ export function IndicatorSidebar({
         <div className="px-3 pb-2"><div className="flex items-center gap-2">
           <span className="shrink-0 text-[11px] text-[var(--yak-components-muted-text)]">数仓分层</span>
           <Select size="small" value={dwType} onValueChange={(value) => onDwTypeChange(String(value || "PUBLIC_LAYER"))}>
-            <SelectTrigger variant="outlined" className="min-w-0 flex-1"><SelectValue placeholder="请选择数仓分层" /></SelectTrigger>
+            <SelectTrigger variant="outlined" className="min-w-0 flex-1">
+              <SelectValue placeholder="请选择数仓分层">
+                {(value) => selectOptionLabel(DW_TYPE_OPTIONS, value, "请选择数仓分层")}
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>{DW_TYPE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText><SelectItemIndicator /></SelectItem>)}</SelectContent>
           </Select>
         </div></div>
