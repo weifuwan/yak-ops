@@ -34,7 +34,7 @@ export function IndicatorTreeRows({
         const expanded = expandedKeys.has(node.key);
         const selected = selectedKey === node.key;
         return (
-          <div key={node.key} className="[&+&>button]:shadow-[0_0_0_0.5px_#eceff780]">
+          <div key={node.key}>
             <button
               type="button"
               title={node.title}
@@ -51,7 +51,7 @@ export function IndicatorTreeRows({
                   ? "bg-[var(--yak-color-primary-soft)] text-[var(--yak-color-primary)]"
                   : "text-[var(--yak-components-panel-text)] hover:bg-[var(--yak-color-hover)]",
               ].join(" ")}
-              style={{ paddingLeft: depth * 24 }}
+              style={{ paddingLeft: depth * 24, boxShadow: "0 0 0 0.5px #eceff780" }}
             >
               <span className="flex size-4 shrink-0 items-center justify-center text-[var(--yak-components-muted-text)]">
                 {node.kind === "group" && hasChildren
