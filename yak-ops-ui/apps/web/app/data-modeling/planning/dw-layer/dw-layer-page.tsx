@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layers3, LoaderCircle, Plus } from "lucide-react";
-import { Button, Modal, PageHeader, toast } from "@yak-ops/yak-ui";
+import { Button, Modal, PageHeader, Segmented, toast } from "@yak-ops/yak-ui";
 
 import { modelingEntityApi } from "../../service";
 import DwLayerCard from "./dw-layer-card";
@@ -26,6 +26,13 @@ const LAYER_DISPLAY_ORDER: Record<string, number> = {
   ADS: 4,
 };
 
+type DwLayerDisplayMode = "hierarchy" | "flat";
+
+const DW_LAYER_DISPLAY_OPTIONS = [
+  { value: "hierarchy", label: "层级结构展示" },
+  { value: "flat", label: "平铺展示" },
+] as const;
+
 export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPageProps) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState("");
@@ -34,6 +41,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
   const [saving, setSaving] = useState(false);
   const [openingId, setOpeningId] = useState("");
   const [pendingDelete, setPendingDelete] = useState<DwLayerRecord>();
+  const [viewMode, setViewMode] = useState<DwLayerDisplayMode>("hierarchy");
   const [deleting, setDeleting] = useState(false);
 
   const listQueryKey = ["modeling", "dw-layer", "list", projectCode];
@@ -79,6 +87,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
     }
     return knownGroups;
   }, [records]);
+  const flatRecords = useMemo(() => groups.flatMap((group) => group.records), [groups]);
 
   const openCreate = () => {
     setEditing(undefined);
@@ -175,15 +184,23 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
             }
             bordered
             className="shrink-0 bg-white px-6 max-md:px-4"
-            extra={
+          />
+
+          <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4 max-md:px-4">
+            <div className="mb-4 flex min-h-8 flex-wrap items-center gap-3">
               <Button size="sm" variant="primary" onClick={openCreate}>
                 <Plus size={14} />
                 新建分层
               </Button>
-            }
-          />
+              <Segmented
+                aria-label="数仓分层展示方式"
+                value={viewMode}
+                onValueChange={setViewMode}
+                options={DW_LAYER_DISPLAY_OPTIONS}
+                className="h-8 items-center rounded-md p-0.5"
+              />
+            </div>
 
-          <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4 max-md:px-4">
             {listQuery.isPending ? (
               <div className="flex min-h-[220px] items-center justify-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
                 <LoaderCircle size={15} className="animate-spin" />
@@ -196,23 +213,37 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                   重试
                 </Button>
               </div>
-            ) : groups.length === 0 ? (
+            ) : records.length === 0 ? (
               <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
                 <Layers3 size={26} strokeWidth={1.4} />
-                <span>暂无数仓分层，点击右上角“新建分层”开始配置</span>
+                <span>暂无数仓分层，点击“新建分层”开始配置</span>
+              </div>
+            ) : viewMode === "flat" ? (
+              <div
+                className="grid gap-5 pb-2"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 240px))" }}
+              >
+                {flatRecords.map((record) => (
+                  <DwLayerCard
+                    key={record.id}
+                    record={record}
+                    opening={openingId === record.id}
+                    onOpen={(item) => setSelectedId(item.id || "")}
+                    onEdit={openEdit}
+                    onDelete={setPendingDelete}
+                  />
+                ))}
               </div>
             ) : (
               <div className="space-y-1 pb-2">
-                {groups.map((group) => (
+                {groups.map((group, groupIndex) => (
                   <section key={group.value}>
-                    {group.value !== "SOURCE_LAYER" ? (
-                      <div className="mb-3 mt-5 flex h-6 items-center">
-                        <span className="h-5 w-1 shrink-0 bg-[#5664ff]" />
-                        <h2 className="min-w-0 px-2 text-sm font-medium leading-6 text-[var(--yak-components-panel-text)]">
-                          {group.label}
-                        </h2>
-                      </div>
-                    ) : null}
+                    <div className={`mb-3 flex h-6 items-center ${groupIndex === 0 ? "mt-2" : "mt-5"}`}>
+                      <span className="h-5 w-1 shrink-0 bg-[#5664ff]" />
+                      <h2 className="min-w-0 px-2 text-sm font-medium leading-6 text-[var(--yak-components-panel-text)]">
+                        {group.label}
+                      </h2>
+                    </div>
                     <div
                       className="grid gap-5"
                       style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 240px))" }}
