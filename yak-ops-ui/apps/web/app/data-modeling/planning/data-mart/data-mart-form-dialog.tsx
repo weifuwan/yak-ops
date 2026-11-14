@@ -41,6 +41,7 @@ export function DataMartFormDialog({
   const [error, setError] = useState("");
   const isChild = Boolean(parentId || editing?.parentId);
   const availableBusinessTypes = businessTypes.filter((item) => Boolean(item.id));
+  const martTypeLabel = MART_TYPE_OPTIONS.find((item) => item.value === values.martType)?.label || "请选择集市类型";
 
   useEffect(() => {
     if (!open) return;
@@ -108,7 +109,7 @@ export function DataMartFormDialog({
           <FieldLabel className="pt-1.5 text-xs">集市类型</FieldLabel>
           <Select value={values.martType || undefined} onValueChange={(value) => update("martType", String(value || ""))}>
             <SelectTrigger size="small" variant="outlined" className="w-full">
-              <SelectValue placeholder="请选择集市类型" />
+              <SelectValue placeholder="请选择集市类型">{martTypeLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent emptyContent={MART_TYPE_OPTIONS.length === 0 ? "暂无集市类型" : undefined}>
               {MART_TYPE_OPTIONS.map((item) => (
