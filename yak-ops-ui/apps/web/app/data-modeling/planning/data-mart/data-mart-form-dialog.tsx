@@ -40,6 +40,7 @@ export function DataMartFormDialog({
   const [values, setValues] = useState<DataMartFormValues>(EMPTY_DATA_MART_FORM);
   const [error, setError] = useState("");
   const isChild = Boolean(parentId || editing?.parentId);
+  const availableBusinessTypes = businessTypes.filter((item) => Boolean(item.id));
 
   useEffect(() => {
     if (!open) return;
@@ -109,7 +110,7 @@ export function DataMartFormDialog({
             <SelectTrigger size="small" variant="outlined" className="w-full">
               <SelectValue placeholder="请选择集市类型" />
             </SelectTrigger>
-            <SelectContent emptyContent="暂无集市类型">
+            <SelectContent emptyContent={MART_TYPE_OPTIONS.length === 0 ? "暂无集市类型" : undefined}>
               {MART_TYPE_OPTIONS.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   <SelectItemText>{item.label}</SelectItemText>
@@ -122,13 +123,17 @@ export function DataMartFormDialog({
           <Field className={FIELD_CLASS}>
             <FieldLabel className="pt-1.5 text-xs">所属业务分类</FieldLabel>
             <Select value={values.businessTypeId || undefined}
-              disabled={(businessTypesLoading && businessTypes.length === 0) || (businessTypesError && businessTypes.length === 0)}
+              disabled={(businessTypesLoading && availableBusinessTypes.length === 0) || (businessTypesError && availableBusinessTypes.length === 0)}
               onValueChange={(value) => update("businessTypeId", String(value || ""))}>
               <SelectTrigger size="small" variant="outlined" className="w-full">
                 <SelectValue placeholder="请选择业务分类" />
               </SelectTrigger>
-              <SelectContent emptyContent={businessTypesError ? "业务分类加载失败，请重试" : businessTypesLoading ? "正在加载业务分类..." : "暂无业务分类"}>
-                {businessTypes.filter((item) => item.id).map((item) => (
+              <SelectContent
+                emptyContent={availableBusinessTypes.length === 0
+                  ? businessTypesError ? "业务分类加载失败，请重试" : businessTypesLoading ? "正在加载业务分类..." : "暂无业务分类"
+                  : undefined}
+              >
+                {availableBusinessTypes.map((item) => (
                   <SelectItem key={item.id} value={item.id || ""}>
                     <SelectItemText>{item.businessName || "-"}</SelectItemText>
                   </SelectItem>
@@ -137,7 +142,7 @@ export function DataMartFormDialog({
             </Select>
             {businessTypesError ? (
               <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#d92d20]">
-                <span>{businessTypes.length ? "业务分类刷新失败，当前显示已加载的数据" : "业务分类加载失败，暂时无法选择"}</span>
+                <span>{availableBusinessTypes.length ? "业务分类刷新失败，当前显示已加载的数据" : "业务分类加载失败，暂时无法选择"}</span>
                 {onRetryBusinessTypes ? <Button size="sm" variant="ghost" onClick={onRetryBusinessTypes}>重试</Button> : null}
               </div>
             ) : null}
