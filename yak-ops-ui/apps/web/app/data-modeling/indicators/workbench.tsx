@@ -966,7 +966,7 @@ function IndicatorListTab({
     })).filter((option) => option.value);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white p-4">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col bg-white p-4">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-3">
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
@@ -1191,7 +1191,7 @@ function IndicatorEditor({
   const isSubmitted = tab.record?.submit === true || tab.record?.submit === "true";
 
   return (
-    <div className="flex h-full min-h-0 bg-white">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 bg-white">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--yak-components-panel-border)] px-4 py-2.5">
           <div className="flex items-center gap-2">
@@ -1211,17 +1211,16 @@ function IndicatorEditor({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
-          {dirty ? (
-            <div className="mb-3 flex items-center gap-2 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
-              <CircleDot size={13} />当前存在未保存的变更，请及时保存。
-            </div>
-          ) : recordId && !isSubmitted ? (
-            <div className="mb-3 flex items-center gap-2 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
-              <CircleDot size={13} />当前存在未提交的内容，保存后可点击上方“提交”生成最新版本。
-            </div>
-          ) : null}
-
-          <div className="mx-auto max-w-[1120px] space-y-4">
+          <div className="mx-auto w-full max-w-[1120px] space-y-4">
+            {dirty ? (
+              <div className="flex items-center gap-2 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
+                <CircleDot size={13} />当前存在未保存的变更，请及时保存。
+              </div>
+            ) : recordId && !isSubmitted ? (
+              <div className="flex items-center gap-2 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
+                <CircleDot size={13} />当前存在未提交的内容，保存后可点击上方“提交”生成最新版本。
+              </div>
+            ) : null}
             {sectionNames.map((section) => (
               <section key={section} className="rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
                 <div className="mb-4 flex items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-2">
