@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -196,7 +197,10 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<DwLayerVO> all(DwLayerDTO dto) {
+        ensureDefaultLayers();
+
         LambdaQueryWrapper<DwLayerPO> queryWrapper = new LambdaQueryWrapper<>();
         if (dto != null && dto.getDwType() != null) {
             queryWrapper.eq(DwLayerPO::getDwType, dto.getDwType());
@@ -227,6 +231,62 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
         }
         queryWrapper.orderByAsc(DwLayerPO::getEnShortName);
         return convert(queryWrapper);
+    }
+
+    private void ensureDefaultLayers() {
+        if (existsByShortName("ODS")) {
+            return;
+        }
+
+        for (DwLayerDTO dto : defaultLayerDefinitions()) {
+            if (!existsByShortName(dto.getEnShortName())) {
+                create(dto, "sys");
+            }
+        }
+    }
+
+    private boolean existsByShortName(String enShortName) {
+        QueryWrapper<DwLayerPO> wrapper = new QueryWrapper<>();
+        wrapper.apply("UPPER(en_short_name) = {0}", StringUtils.upperCase(enShortName, Locale.ROOT));
+        return dwLayerDao.queryCount(wrapper) > 0;
+    }
+
+    private List<DwLayerDTO> defaultLayerDefinitions() {
+        List<DwLayerDTO> layers = new ArrayList<>();
+        layers.add(defaultLayer(
+                "DIM", "Dimension", "维度层", DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM,
+                "统一维护企业级公共维度，建立一致性维度，供各业务过程复用。"));
+        layers.add(defaultLayer(
+                "DWS", "Data Warehouse Summary", "汇总数据层", DwTypeEnum.PUBLIC_LAYER, DwModelEnum.SUMMARY,
+                "面向分析主题对明细数据进行汇总加工，形成可复用的公共汇总数据。"));
+        layers.add(defaultLayer(
+                "DWD", "Data Warehouse Detail", "明细数据层", DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL,
+                "基于业务过程构建明细数据，遵循一致性维度规范，保留可追溯的明细粒度。"));
+        layers.add(defaultLayer(
+                "ADS", "Application Data Service", "应用数据层", DwTypeEnum.APPLICATION_LAYER,
+                DwModelEnum.APPLICATION, "面向具体业务场景和应用产品组织数据，提供应用统计指标和数据服务。"));
+        layers.add(defaultLayer(
+                "ODS", "Operational Data Store", "数据引入层", DwTypeEnum.SOURCE_LAYER, DwModelEnum.SOURCE,
+                "存放来自业务系统的原始数据，尽量保持与源系统的数据结构一致，供后续清洗和加工使用。"));
+        return layers;
+    }
+
+    private DwLayerDTO defaultLayer(
+            String enShortName,
+            String enName,
+            String cnName,
+            DwTypeEnum dwType,
+            DwModelEnum dwModelType,
+            String remark) {
+        DwLayerDTO dto = new DwLayerDTO();
+        dto.setEnShortName(enShortName);
+        dto.setEnName(enName);
+        dto.setCnName(cnName);
+        dto.setDwType(dwType);
+        dto.setDwModelType(dwModelType);
+        dto.setDirector("admin");
+        dto.setRemark(remark);
+        return dto;
     }
 
     private String resolveOperator(String operator) {

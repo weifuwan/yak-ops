@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +20,7 @@ import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -63,6 +65,38 @@ class DwLayerServiceImplTest {
         assertEquals(DwModelEnum.DETAIL, captor.getValue().getDwModelType());
         assertEquals("alice", captor.getValue().getCreateBy());
         assertEquals("alice", captor.getValue().getUpdateBy());
+    }
+
+    @Test
+    void shouldInitializeFiveStandardLayersWhenWorkspaceHasNoOdsLayer() {
+        when(dwLayerDao.queryCount(any())).thenReturn(0L);
+        when(dwLayerDao.insert(any())).thenReturn(1);
+        when(dwLayerDao.queryList(any())).thenReturn(Collections.emptyList());
+
+        service.all(null);
+
+        ArgumentCaptor<DwLayerPO> captor = ArgumentCaptor.forClass(DwLayerPO.class);
+        verify(dwLayerDao, times(5)).insert(captor.capture());
+        assertEquals("DIM", captor.getAllValues().get(0).getEnShortName());
+        assertEquals(DwModelEnum.DIMENSION_DIM, captor.getAllValues().get(0).getDwModelType());
+        assertEquals("DWS", captor.getAllValues().get(1).getEnShortName());
+        assertEquals(DwModelEnum.SUMMARY, captor.getAllValues().get(1).getDwModelType());
+        assertEquals("DWD", captor.getAllValues().get(2).getEnShortName());
+        assertEquals(DwModelEnum.DETAIL, captor.getAllValues().get(2).getDwModelType());
+        assertEquals("ADS", captor.getAllValues().get(3).getEnShortName());
+        assertEquals(DwModelEnum.APPLICATION, captor.getAllValues().get(3).getDwModelType());
+        assertEquals("ODS", captor.getAllValues().get(4).getEnShortName());
+        assertEquals(DwModelEnum.SOURCE, captor.getAllValues().get(4).getDwModelType());
+    }
+
+    @Test
+    void shouldNotReinitializeStandardLayersWhenOdsAlreadyExists() {
+        when(dwLayerDao.queryCount(any())).thenReturn(1L);
+        when(dwLayerDao.queryList(any())).thenReturn(Collections.emptyList());
+
+        service.all(null);
+
+        verify(dwLayerDao, never()).insert(any());
     }
 
     @Test
