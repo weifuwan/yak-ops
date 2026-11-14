@@ -1,10 +1,25 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { ChevronDown, ChevronRight, Folder } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { PlanningIcon } from "../../../../planning/icons";
 import type { ModelingRecord } from "../../../../service";
 import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import type { IndicatorKind, IndicatorTreeNode } from "../../types";
+
+function FolderIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 1024 1024"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+    >
+      <path d="M42.688 106.688H404.48l85.376 106.624h491.52V896H42.624V106.688zM128 192v181.312h768V298.688H448.832L363.52 192H128z m768 266.688H128v352h768v-352z" />
+    </svg>
+  );
+}
 
 type TreeRowsProps = {
   activeKind: IndicatorKind;
@@ -69,7 +84,7 @@ export function IndicatorTreeRows({
               ) : node.kind === "asset" ? (
                 <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
               ) : (
-                <Folder size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
+                <FolderIcon className="shrink-0 text-[var(--yak-components-muted-text)]" />
               )}
               <span className="min-w-0 flex-1 truncate">{node.title}</span>
               {typeof node.count === "number" ? (
