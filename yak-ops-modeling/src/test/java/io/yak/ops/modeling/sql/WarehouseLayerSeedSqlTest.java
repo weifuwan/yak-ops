@@ -1,17 +1,16 @@
 package io.yak.ops.modeling.sql;
 
-import io.yak.ops.common.sql.SqlScriptRunner;
-import org.h2.jdbcx.JdbcDataSource;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.yak.ops.common.sql.SqlScriptRunner;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.h2.jdbcx.JdbcDataSource;
+import org.junit.jupiter.api.Test;
 
 class WarehouseLayerSeedSqlTest {
 
