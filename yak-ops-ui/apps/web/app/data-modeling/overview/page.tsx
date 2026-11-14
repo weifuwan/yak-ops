@@ -111,8 +111,8 @@ export function DataModelingOverviewPage() {
         ) : null}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {MODELING_SECTIONS.map((section) => {
-              <Link
+          {MODELING_SECTIONS.map((section) => (
+            <Link
                 key={section.path}
                 to={section.path}
                 className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)]"
@@ -148,9 +148,8 @@ export function DataModelingOverviewPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
-            );
-          })}
+            </Link>
+          ))}
         </div>
 
         <Card>
