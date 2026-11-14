@@ -168,7 +168,11 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
         <>
           <PageHeader
             title="数仓分层"
-            description="按数据处理链路组织标准数仓分层，统一管理各层的模型类型与负责人。"
+            description={
+              <span className="text-xs leading-5">
+                按数据处理链路组织标准数仓分层，统一管理各层的模型类型与负责人。
+              </span>
+            }
             bordered
             className="shrink-0 bg-white px-6 max-md:px-4"
             extra={
@@ -203,7 +207,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                   <section key={group.value}>
                     {group.value !== "SOURCE_LAYER" ? (
                       <div className="mb-3 mt-5 flex h-6 items-center">
-                        <span className="h-5 w-1 shrink-0 bg-[var(--yak-color-primary)]" />
+                        <span className="h-5 w-1 shrink-0 bg-[#5664ff]" />
                         <h2 className="min-w-0 px-2 text-sm font-medium leading-6 text-[var(--yak-components-panel-text)]">
                           {group.label}
                         </h2>
