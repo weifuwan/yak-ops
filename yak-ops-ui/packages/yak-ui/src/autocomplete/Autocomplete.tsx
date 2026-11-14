@@ -33,7 +33,7 @@ export function Autocomplete<ItemValue = string>({
   );
 }
 
-export type AutocompleteInputProps = Omit<BaseAutocomplete.Input.Props, "className"> &
+export type AutocompleteInputProps = Omit<BaseAutocomplete.Input.Props, "className" | "size"> &
   Pick<InputProps, "className" | "size" | "variant">;
 
 export function AutocompleteInput({
