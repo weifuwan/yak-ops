@@ -5,6 +5,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { DataDomainRecord } from "../data-domain/types";
+import { withSelectedOption } from "../select-options";
 import { isSystemBusinessProcess } from "../data-domain/types";
 import type { BusinessProcessRecord } from "./types";
 import { EMPTY_FORM, type BusinessProcessFormValues } from "./types";
@@ -35,6 +36,11 @@ export function BusinessProcessFormDialog({
     value: domain.id || "",
     label: `${domain.cnName || "未命名数据域"}（${domain.enShortName || "-"}）`,
   }));
+  const domainSelectItems = withSelectedOption(
+    domainOptions,
+    values.dataDomainId,
+    editing?.dataDomainCnName || "已关联数据域（名称暂不可用）",
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -122,7 +128,7 @@ export function BusinessProcessFormDialog({
         <div className={FIELD_CLASS}>
           <span className={LABEL_CLASS}><span className="mr-1 text-[#d92d20]">*</span>数据域</span>
           <Select
-            items={domainOptions}
+            items={domainSelectItems}
             value={values.dataDomainId || undefined}
             disabled={system || (domainsLoading && availableDomains.length === 0) || (domainsError && availableDomains.length === 0)}
             onValueChange={(value) => update("dataDomainId", String(value || ""))}

@@ -5,6 +5,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { ModelingRecord } from "../../service";
+import { withSelectedOption } from "../select-options";
 import {
   EMPTY_DATA_MART_FORM, MART_TYPE_OPTIONS, type DataMartFormValues, type DataMartRecord,
 } from "./types";
@@ -45,6 +46,16 @@ export function DataMartFormDialog({
     value: item.id || "",
     label: item.businessName || "未命名业务分类",
   }));
+  const businessTypeSelectItems = withSelectedOption(
+    businessTypeOptions,
+    values.businessTypeId,
+    editing?.businessTypeName || "已关联业务分类（名称暂不可用）",
+  );
+  const martTypeSelectItems = withSelectedOption(
+    MART_TYPE_OPTIONS,
+    values.martType,
+    editing?.martTypeName || "其他集市类型",
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -110,7 +121,7 @@ export function DataMartFormDialog({
         </Field>
         <Field className={FIELD_CLASS}>
           <FieldLabel className="pt-1.5 text-xs">集市类型</FieldLabel>
-          <Select items={MART_TYPE_OPTIONS} value={values.martType || undefined}
+          <Select items={martTypeSelectItems} value={values.martType || undefined}
             onValueChange={(value) => update("martType", String(value || ""))}>
             <SelectTrigger size="small" variant="outlined" className="w-full">
               <SelectValue placeholder="请选择集市类型" />
@@ -127,7 +138,7 @@ export function DataMartFormDialog({
         {!isChild ? (
           <Field className={FIELD_CLASS}>
             <FieldLabel className="pt-1.5 text-xs">所属业务分类</FieldLabel>
-            <Select items={businessTypeOptions} value={values.businessTypeId || undefined}
+            <Select items={businessTypeSelectItems} value={values.businessTypeId || undefined}
               disabled={(businessTypesLoading && availableBusinessTypes.length === 0) || (businessTypesError && availableBusinessTypes.length === 0)}
               onValueChange={(value) => update("businessTypeId", String(value || ""))}>
               <SelectTrigger size="small" variant="outlined" className="w-full">

@@ -7,6 +7,7 @@ import {
 import type {
   DataMartOption, SubjectDomainFormValues, SubjectDomainRecord,
 } from "./types";
+import { withSelectedOption } from "../select-options";
 import { EMPTY_SUBJECT_DOMAIN_FORM } from "./types";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   editing?: SubjectDomainRecord;
   parentId?: string;
   inheritedDataMartId?: string;
+  inheritedDataMartName?: string;
   dataMarts: DataMartOption[];
   dataMartsLoading?: boolean;
   dataMartsError?: boolean;
@@ -26,7 +28,7 @@ interface Props {
 const FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
 
 export function SubjectDomainFormDialog({
-  open, editing, parentId, inheritedDataMartId, dataMarts, dataMartsLoading = false, dataMartsError = false, onRetryDataMarts, saving, onClose, onSubmit,
+  open, editing, parentId, inheritedDataMartId, inheritedDataMartName, dataMarts, dataMartsLoading = false, dataMartsError = false, onRetryDataMarts, saving, onClose, onSubmit,
 }: Props) {
   const [values, setValues] = useState<SubjectDomainFormValues>(EMPTY_SUBJECT_DOMAIN_FORM);
   const [error, setError] = useState("");
@@ -37,6 +39,12 @@ export function SubjectDomainFormDialog({
     value: item.id || "",
     label: item.martName || "未命名数据集市",
   }));
+  const selectedDataMartId = isChild ? lockedDataMartId : values.dataMartId;
+  const dataMartSelectItems = withSelectedOption(
+    dataMartOptions,
+    selectedDataMartId,
+    editing?.dataMartName || inheritedDataMartName || "已关联数据集市（名称暂不可用）",
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -111,7 +119,7 @@ export function SubjectDomainFormDialog({
         <Field className={FIELD_CLASS}>
           <FieldLabel required className="pt-1.5 text-xs">所属数据集市</FieldLabel>
           <Select
-            items={dataMartOptions}
+            items={dataMartSelectItems}
             value={(isChild ? lockedDataMartId : values.dataMartId) || undefined}
             disabled={isChild || (dataMartsLoading && availableDataMarts.length === 0) || (dataMartsError && availableDataMarts.length === 0)}
             onValueChange={(value) => update("dataMartId", String(value || ""))}

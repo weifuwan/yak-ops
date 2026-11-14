@@ -8,6 +8,7 @@ import {
 
 import { modelingEntityApi, modelingQueryKeys } from "../../service";
 import type { DataDomainRecord } from "../data-domain/types";
+import { withSelectedOption } from "../select-options";
 import { isSystemBusinessProcess } from "../data-domain/types";
 import BusinessProcessDetail from "./business-process-detail";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
@@ -24,17 +25,22 @@ const PAGE_SIZE = 10;
 const FIELD_CLASS = "grid grid-cols-[64px_minmax(0,1fr)] items-center gap-2";
 
 function FilterSelect({
-  value, placeholder, options, disabled, onChange,
+  value, placeholder, options, disabled, fallbackLabel, onChange,
 }: {
   value: string;
   placeholder: string;
   options: Array<{ value: string; label: string }>;
   disabled?: boolean;
+  fallbackLabel?: string;
   onChange: (value: string) => void;
 }) {
+  const selectItems = [
+    { value: "__all__", label: "不限" },
+    ...withSelectedOption(options, value, fallbackLabel || value),
+  ];
   return (
     <Select
-      items={[{ value: "__all__", label: "不限" }, ...options]}
+      items={selectItems}
       value={value || undefined}
       disabled={disabled}
       onValueChange={(nextValue) => onChange(nextValue === "__all__" ? "" : String(nextValue || ""))}
@@ -314,6 +320,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
                     <span className="text-right text-xs text-[var(--yak-components-muted-text)]">数据域：</span>
                     <FilterSelect value={filters.dataDomainId} placeholder="请选择"
                       options={domainOptions} disabled={domainQuery.isPending || domainQuery.isError}
+                      fallbackLabel="已选数据域（名称暂不可用）"
                       onChange={(value) => updateFilter("dataDomainId", value)} />
                   </label>
                   <label className={FIELD_CLASS}>
