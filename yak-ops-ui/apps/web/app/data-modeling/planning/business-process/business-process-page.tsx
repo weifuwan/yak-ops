@@ -296,7 +296,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
 
           <main className="min-h-0 flex-1 overflow-y-auto p-4">
             <section className="bg-white pb-4 pt-4">
-              <div className="grid grid-cols-1 gap-x-8 gap-y-2 px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <div className="grid grid-cols-1 gap-x-8 gap-y-2 px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] 2xl:grid-cols-[440px_440px_auto] 2xl:gap-x-[100px]">
                 <div className="space-y-2">
                   <label className={FIELD_CLASS}>
                     <span className="text-right text-xs text-[var(--yak-components-muted-text)]">英文缩写：</span>
