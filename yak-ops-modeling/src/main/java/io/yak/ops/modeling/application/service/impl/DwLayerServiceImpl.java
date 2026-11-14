@@ -234,7 +234,7 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     }
 
     private void ensureDefaultLayers() {
-        if (existsByShortName("ODS")) {
+        if (hasDefaultLayerMarker()) {
             return;
         }
 
@@ -243,6 +243,13 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
                 create(dto, "sys");
             }
         }
+    }
+
+    private boolean hasDefaultLayerMarker() {
+        QueryWrapper<DwLayerPO> wrapper = new QueryWrapper<>();
+        wrapper.apply("UPPER(en_short_name) = {0}", "ODS");
+        wrapper.eq("create_by", "sys");
+        return dwLayerDao.queryCount(wrapper) > 0;
     }
 
     private boolean existsByShortName(String enShortName) {

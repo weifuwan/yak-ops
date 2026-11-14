@@ -10,7 +10,7 @@ Supported complete dialect scripts:
 
 All modeling tables use the `t_yak_ops_` prefix and include a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies this value from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
-The schema scripts also initialize the five conventional warehouse layers (ODS, DIM, DWS, DWD and ADS) for existing projects that do not yet have an ODS layer. ODS acts as the initialization marker, so later startup runs do not recreate individually removed layers while that marker remains. Projects created after application startup receive the same defaults lazily on their first warehouse-layer query.
+The schema scripts also initialize the five conventional warehouse layers (ODS, DIM, DWS, DWD and ADS) for existing projects that do not yet have an ODS layer. The system-created ODS row acts as the initialization marker, so later startup runs do not recreate individually removed layers while that marker remains. Projects created after application startup receive the same defaults lazily on their first warehouse-layer query.
 
 Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for the former `t_cockpit_` table names. When only the legacy table exists, it renames that table in place and normalizes its index names, preserving existing rows. If both old and new table names exist, initialization stops and requires an explicit data reconciliation; it never drops or merges either table automatically.
 

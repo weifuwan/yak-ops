@@ -60,7 +60,7 @@ SELECT CONCAT('DW', p.code, 'DIM'), p.code, 'DIM', 'Dimension', '维度层',
 FROM t_yak_ops_project p
 WHERE NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
-    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS' AND existing.create_by = 'sys'
 )
 AND NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
@@ -78,7 +78,7 @@ SELECT CONCAT('DW', p.code, 'DWS'), p.code, 'DWS', 'Data Warehouse Summary', '�
 FROM t_yak_ops_project p
 WHERE NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
-    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS' AND existing.create_by = 'sys'
 )
 AND NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
@@ -96,7 +96,7 @@ SELECT CONCAT('DW', p.code, 'DWD'), p.code, 'DWD', 'Data Warehouse Detail', '明
 FROM t_yak_ops_project p
 WHERE NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
-    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS' AND existing.create_by = 'sys'
 )
 AND NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
@@ -114,7 +114,7 @@ SELECT CONCAT('DW', p.code, 'ADS'), p.code, 'ADS', 'Application Data Service', '
 FROM t_yak_ops_project p
 WHERE NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
-    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS' AND existing.create_by = 'sys'
 )
 AND NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
