@@ -47,6 +47,95 @@ UPDATE `t_yak_ops_dw_layer` SET `dw_type` = 'APPLICATION_LAYER' WHERE LOWER(`dw_
 UPDATE `t_yak_ops_dw_layer` SET `dw_type` = 'NONE_LAYER' WHERE LOWER(`dw_type`) = 'other';
 UPDATE `t_yak_ops_dw_layer` SET `dw_model_type` = 'DIM' WHERE LOWER(`dw_model_type`) = 'dim(';
 
+-- Seed the conventional warehouse layers for projects that have not initialized ODS.
+-- ODS is inserted last and acts as the initialization marker for subsequent startup runs.
+INSERT INTO t_yak_ops_dw_layer (
+    id, project_code, en_short_name, en_name, cn_name, dw_type, dw_model_type,
+    director, remark, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('DW', p.code, 'DIM'), p.code, 'DIM', 'Dimension', '维度层',
+       'PUBLIC_LAYER', 'DIMENSION_DIM', 'admin',
+       '统一维护企业级公共维度，建立一致性维度，供各业务过程复用。',
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'DIM'
+);
+
+INSERT INTO t_yak_ops_dw_layer (
+    id, project_code, en_short_name, en_name, cn_name, dw_type, dw_model_type,
+    director, remark, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('DW', p.code, 'DWS'), p.code, 'DWS', 'Data Warehouse Summary', '汇总数据层',
+       'PUBLIC_LAYER', 'SUMMARY', 'admin',
+       '面向分析主题对明细数据进行汇总加工，形成可复用的公共汇总数据。',
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'DWS'
+);
+
+INSERT INTO t_yak_ops_dw_layer (
+    id, project_code, en_short_name, en_name, cn_name, dw_type, dw_model_type,
+    director, remark, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('DW', p.code, 'DWD'), p.code, 'DWD', 'Data Warehouse Detail', '明细数据层',
+       'PUBLIC_LAYER', 'DETAIL', 'admin',
+       '基于业务过程构建明细数据，遵循一致性维度规范，保留可追溯的明细粒度。',
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'DWD'
+);
+
+INSERT INTO t_yak_ops_dw_layer (
+    id, project_code, en_short_name, en_name, cn_name, dw_type, dw_model_type,
+    director, remark, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('DW', p.code, 'ADS'), p.code, 'ADS', 'Application Data Service', '应用数据层',
+       'APPLICATION_LAYER', 'APPLICATION', 'admin',
+       '面向具体业务场景和应用产品组织数据，提供应用统计指标和数据服务。',
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ADS'
+);
+
+INSERT INTO t_yak_ops_dw_layer (
+    id, project_code, en_short_name, en_name, cn_name, dw_type, dw_model_type,
+    director, remark, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('DW', p.code, 'ODS'), p.code, 'ODS', 'Operational Data Store', '数据引入层',
+       'SOURCE_LAYER', 'SOURCE', 'admin',
+       '存放来自业务系统的原始数据，尽量保持与源系统的数据结构一致，供后续清洗和加工使用。',
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_dw_layer existing
+    WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
+);
+
+
 CREATE TABLE IF NOT EXISTS `t_yak_ops_data_domain`
 (
     `id`            varchar(32) not null comment '主键',
