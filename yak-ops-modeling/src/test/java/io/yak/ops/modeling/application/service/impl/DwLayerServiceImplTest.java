@@ -69,6 +69,8 @@ class DwLayerServiceImplTest {
 
     @Test
     void shouldInitializeFiveStandardLayersWhenWorkspaceHasNoOdsLayer() {
+        when(dwLayerDao.existsSystemOdsLayer()).thenReturn(false);
+        when(dwLayerDao.existsByEnShortName(any())).thenReturn(false);
         when(dwLayerDao.queryCount(any())).thenReturn(0L);
         when(dwLayerDao.insert(any())).thenReturn(1);
         when(dwLayerDao.queryList(any())).thenReturn(Collections.emptyList());
@@ -91,7 +93,7 @@ class DwLayerServiceImplTest {
 
     @Test
     void shouldNotReinitializeStandardLayersWhenOdsAlreadyExists() {
-        when(dwLayerDao.queryCount(any())).thenReturn(1L);
+        when(dwLayerDao.existsSystemOdsLayer()).thenReturn(true);
         when(dwLayerDao.queryList(any())).thenReturn(Collections.emptyList());
 
         service.all(null);

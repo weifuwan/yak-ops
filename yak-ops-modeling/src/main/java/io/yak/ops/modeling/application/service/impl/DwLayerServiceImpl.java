@@ -234,28 +234,15 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
     }
 
     private void ensureDefaultLayers() {
-        if (hasDefaultLayerMarker()) {
+        if (dwLayerDao.existsSystemOdsLayer()) {
             return;
         }
 
         for (DwLayerDTO dto : defaultLayerDefinitions()) {
-            if (!existsByShortName(dto.getEnShortName())) {
+            if (!dwLayerDao.existsByEnShortName(dto.getEnShortName())) {
                 create(dto, "sys");
             }
         }
-    }
-
-    private boolean hasDefaultLayerMarker() {
-        QueryWrapper<DwLayerPO> wrapper = new QueryWrapper<>();
-        wrapper.apply("UPPER(en_short_name) = {0}", "ODS");
-        wrapper.eq("create_by", "sys");
-        return dwLayerDao.queryCount(wrapper) > 0;
-    }
-
-    private boolean existsByShortName(String enShortName) {
-        QueryWrapper<DwLayerPO> wrapper = new QueryWrapper<>();
-        wrapper.apply("UPPER(en_short_name) = {0}", StringUtils.upperCase(enShortName, Locale.ROOT));
-        return dwLayerDao.queryCount(wrapper) > 0;
     }
 
     private List<DwLayerDTO> defaultLayerDefinitions() {
