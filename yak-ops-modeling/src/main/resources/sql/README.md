@@ -15,3 +15,13 @@ Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks
 If a legacy table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
 
 The three scripts contain the same 22 logical tables and 54 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
+
+## Manual reset scripts
+
+The following scripts drop all 22 modeling tables, including data belonging to every Yak Ops project:
+
+- `modeling_drop_mysql.sql`
+- `modeling_drop_postgresql.sql`
+- `modeling_drop_h2.sql`
+
+These scripts are destructive and are intentionally separate from the additive schema scripts above. Run the matching script manually only when a full modeling reset is intended and after backing up the target database. Never add them to application startup or normal schema initialization.
