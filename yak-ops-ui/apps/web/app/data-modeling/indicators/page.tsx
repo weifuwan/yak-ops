@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { DataIndicatorsWorkbench } from "./workbench";
-import type { IndicatorKind } from "./workbench";
+import type { IndicatorKind } from "./workbench/types";
 
 const INDICATOR_ROUTE_KINDS: Record<string, IndicatorKind> = {
   atom: "atomIndicator",
