@@ -69,6 +69,8 @@ export default function TopBar({
                 <Link
                   key={item.id}
                   to={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-current={active ? "page" : undefined}
                   className="flex h-full shrink-0 items-center px-3 text-xs font-medium text-white/65 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/25"
                 >
