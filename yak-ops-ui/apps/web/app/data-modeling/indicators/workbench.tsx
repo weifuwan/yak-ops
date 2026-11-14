@@ -15,10 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
   Table,
-  Tabs,
-  TabsList,
-  TabsPanel,
-  TabsTab,
   Textarea,
   toast,
   type TableColumns,
@@ -1328,12 +1324,80 @@ function IndicatorEditor({
   );
 }
 
+
+type IndicatorTabContentProps = {
+  projectCode: string;
+  tab: IndicatorTab;
+  dwType: string;
+  onEdit: (kind: IndicatorKind, record: ModelingRecord) => void;
+  onDelete: (kind: IndicatorKind, record: ModelingRecord) => void;
+  onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
+  onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
+};
+
+function IndicatorTabContent({
+  projectCode,
+  tab,
+  dwType,
+  onEdit,
+  onDelete,
+  onSaved,
+  onDraftChange,
+}: IndicatorTabContentProps) {
+  const definition = getDefinition(tab.kind);
+  const optionResources = useMemo(() => {
+    const resources = new Set<ModelingResourceKey>(["businessType", "dataDomain"]);
+    definition.fields.forEach((field) => {
+      if (field.optionsSource) resources.add(field.optionsSource);
+    });
+    return Array.from(resources);
+  }, [definition]);
+
+  const optionsQuery = useQuery<Partial<Record<ModelingResourceKey, ModelingRecord[]>>>({
+    queryKey: ["modeling", "indicator-options", projectCode, tab.kind],
+    queryFn: async () => {
+      const entries = await Promise.all(optionResources.map(async (resource) => [
+        resource,
+        await modelingEntityApi.all<ModelingRecord>(projectCode, resource),
+      ] as const));
+      return Object.fromEntries(entries) as Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
+    },
+    enabled: Boolean(projectCode),
+  });
+  const optionsByResource = optionsQuery.data || {};
+
+  if (tab.mode === "list") {
+    return (
+      <IndicatorListTab
+        projectCode={projectCode}
+        definition={definition}
+        dwType={dwType}
+        optionsByResource={optionsByResource}
+        onEdit={(record) => onEdit(tab.kind, record)}
+        onDelete={(record) => onDelete(tab.kind, record)}
+      />
+    );
+  }
+
+  return (
+    <IndicatorEditor
+      projectCode={projectCode}
+      definition={definition}
+      tab={tab}
+      optionsByResource={optionsByResource}
+      optionsLoading={optionsQuery.isFetching}
+      onSaved={onSaved}
+      onDraftChange={onDraftChange}
+    />
+  );
+}
+
 type DeleteTarget = { kind: IndicatorKind; record: ModelingRecord };
 type ContextMenuState = { x: number; y: number; record: ModelingRecord } | null;
 
 type DataIndicatorsWorkbenchProps = { projectCode: string; initialTab?: number };
 
-export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataIndicatorsWorkbenchProps) {
+export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataIndicatorsWorkbenchProps) {
   const queryClient = useQueryClient();
   const activeKind: IndicatorKind = initialTab >= 4 ? "timePeriod" : INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator";
   const [groupBy, setGroupBy] = useState<"BUSINESS_TYPE" | "DATA_DOMAIN">("BUSINESS_TYPE");
@@ -1341,28 +1405,15 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
   const [treeKeyword, setTreeKeyword] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
-  const [tabsByKind, setTabsByKind] = useState<Record<IndicatorKind, IndicatorTab[]>>({
-    atomIndicator: [],
-    derivativeIndicator: [],
-    composeIndicator: [],
-    modifier: [],
-    timePeriod: [],
-  });
-  const [activeKeys, setActiveKeys] = useState<Record<IndicatorKind, string>>({
-    atomIndicator: "",
-    derivativeIndicator: "",
-    composeIndicator: "",
-    modifier: "",
-    timePeriod: "",
-  });
+  const [tabs, setTabs] = useState<IndicatorTab[]>([]);
+  const [activeTabKey, setActiveTabKey] = useState("");
   const [showTabActions, setShowTabActions] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
   const [pendingDelete, setPendingDelete] = useState<DeleteTarget | null>(null);
   const [openingId, setOpeningId] = useState("");
 
   const definition = getDefinition(activeKind);
-  const activeTabs = tabsByKind[activeKind];
-  const activeTabKey = activeKeys[activeKind] || activeTabs[0]?.key || "";
+  const activeTab = tabs.find((tab) => tab.key === activeTabKey) || null;
 
   const treeQuery = useQuery<IndicatorTreeNode[]>({
     queryKey: ["modeling", "indicator-tree", projectCode, activeKind, groupBy, activeKind === "atomIndicator" ? dwType : "all"],
@@ -1403,27 +1454,6 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
     enabled: Boolean(projectCode),
   });
 
-  const optionResources = useMemo(() => {
-    const resources = new Set<ModelingResourceKey>(["businessType", "dataDomain"]);
-    definition.fields.forEach((field) => {
-      if (field.optionsSource) resources.add(field.optionsSource);
-    });
-    return Array.from(resources);
-  }, [definition]);
-
-  const optionsQuery = useQuery<Partial<Record<ModelingResourceKey, ModelingRecord[]>>>({
-    queryKey: ["modeling", "indicator-options", projectCode, activeKind],
-    queryFn: async () => {
-      const entries = await Promise.all(optionResources.map(async (resource) => [
-        resource,
-        await modelingEntityApi.all<ModelingRecord>(projectCode, resource),
-      ] as const));
-      return Object.fromEntries(entries) as Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
-    },
-    enabled: Boolean(projectCode && activeTabs.length),
-  });
-  const optionsByResource = optionsQuery.data || {};
-
   const visibleTree = useMemo(
     () => filterTree(treeQuery.data || [], treeKeyword),
     [treeQuery.data, treeKeyword],
@@ -1452,16 +1482,18 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
   }, [activeKind, groupBy, dwType]);
 
   const openTab = (kind: IndicatorKind, mode: IndicatorMode, record?: ModelingRecord) => {
-    const currentTabs = tabsByKind[kind];
-    const existing = mode === "list"
-      ? currentTabs.find((tab) => tab.mode === "list")
-      : record?.id
-        ? currentTabs.find((tab) => tab.recordId === String(record.id))
-        : undefined;
+    const existing = tabs.find((tab) => (
+      tab.kind === kind && (
+        mode === "list"
+          ? tab.mode === "list"
+          : Boolean(record?.id) && tab.recordId === String(record?.id)
+      )
+    ));
     if (existing) {
-      setActiveKeys((current) => ({ ...current, [kind]: existing.key }));
+      setActiveTabKey(existing.key);
       return;
     }
+
     const key = kind + "-" + mode + "-" + String(Date.now());
     const label = mode === "create"
       ? "新建" + getDefinition(kind).title
@@ -1479,25 +1511,26 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
         ? { ...initialFormValues(kind, undefined, getDefinition(kind).fields), dwType }
         : undefined,
     };
-    setTabsByKind((current) => ({ ...current, [kind]: [...current[kind], tab] }));
-    setActiveKeys((current) => ({ ...current, [kind]: key }));
+    setTabs((current) => [...current, tab]);
+    setActiveTabKey(key);
   };
 
-  const openEdit = async (record: ModelingRecord) => {
+  const openEdit = async (kind: IndicatorKind, record: ModelingRecord) => {
     if (!record.id) return;
     const id = String(record.id);
-    const existing = tabsByKind[activeKind].find((tab) => tab.recordId === id);
+    const existing = tabs.find((tab) => tab.kind === kind && tab.recordId === id);
     if (existing) {
-      setActiveKeys((current) => ({ ...current, [activeKind]: existing.key }));
-      setSelectedTreeKey("asset:" + id);
+      setActiveTabKey(existing.key);
+      if (kind === activeKind) setSelectedTreeKey("asset:" + id);
       return;
     }
-    if (openingId) return;
-    setOpeningId(id);
+    const openingKey = kind + ":" + id;
+    if (openingId === openingKey) return;
+    setOpeningId(openingKey);
     try {
-      const detail = await modelingEntityApi.getById<ModelingRecord>(projectCode, activeKind, id);
-      openTab(activeKind, "edit", detail);
-      setSelectedTreeKey("asset:" + id);
+      const detail = await modelingEntityApi.getById<ModelingRecord>(projectCode, kind, id);
+      openTab(kind, "edit", detail);
+      if (kind === activeKind) setSelectedTreeKey("asset:" + id);
     } catch {
       toast.warning("获取详情失败，请刷新列表后重试");
     } finally {
@@ -1505,49 +1538,40 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
     }
   };
 
-  const closeTab = (kind: IndicatorKind, key: string) => {
-    const currentTabs = tabsByKind[kind];
-    const index = currentTabs.findIndex((tab) => tab.key === key);
-    const nextTabs = currentTabs.filter((tab) => tab.key !== key);
-    setTabsByKind((current) => ({ ...current, [kind]: current[kind].filter((tab) => tab.key !== key) }));
-    setActiveKeys((current) => ({
-      ...current,
-      [kind]: current[kind] === key
-        ? nextTabs[Math.max(0, index - 1)]?.key || nextTabs[0]?.key || ""
-        : current[kind],
-    }));
+  const closeTab = (key: string) => {
+    const index = tabs.findIndex((tab) => tab.key === key);
+    const nextTabs = tabs.filter((tab) => tab.key !== key);
+    setTabs(nextTabs);
+    if (activeTabKey === key) {
+      setActiveTabKey(nextTabs[Math.max(0, index - 1)]?.key || nextTabs[0]?.key || "");
+    }
   };
 
   const closeTabs = (action: "closeCurrent" | "closeLeft" | "closeRight" | "closeAll") => {
-    const index = activeTabs.findIndex((tab) => tab.key === activeTabKey);
-    let nextTabs = [...activeTabs];
+    const index = tabs.findIndex((tab) => tab.key === activeTabKey);
+    let nextTabs = [...tabs];
     if (action === "closeRight") nextTabs = nextTabs.slice(0, index + 1);
     if (action === "closeLeft") nextTabs = nextTabs.slice(index);
     if (action === "closeAll") nextTabs = [];
     if (action === "closeCurrent") nextTabs = nextTabs.filter((tab) => tab.key !== activeTabKey);
-    setTabsByKind((current) => ({ ...current, [activeKind]: nextTabs }));
+    setTabs(nextTabs);
     if (!nextTabs.some((tab) => tab.key === activeTabKey)) {
-      setActiveKeys((current) => ({
-        ...current,
-        [activeKind]: nextTabs[Math.max(0, index - 1)]?.key || nextTabs[0]?.key || "",
-      }));
+      setActiveTabKey(nextTabs[Math.max(0, index - 1)]?.key || nextTabs[0]?.key || "");
     }
     setShowTabActions(false);
   };
 
   const onDraftChange = (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => {
-    setTabsByKind((current) => ({
-      ...current,
-      [kind]: current[kind].map((tab) => tab.key === tabKey
+    setTabs((current) => current.map((tab) => (
+      tab.kind === kind && tab.key === tabKey
         ? { ...tab, draftValues: values, dirty: true }
-        : tab),
-    }));
+        : tab
+    )));
   };
 
   const onSaved = (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => {
-    setTabsByKind((current) => ({
-      ...current,
-      [kind]: current[kind].map((tab) => tab.key === tabKey
+    setTabs((current) => current.map((tab) => (
+      tab.kind === kind && tab.key === tabKey
         ? {
             ...tab,
             mode: "edit",
@@ -1557,8 +1581,8 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
             dirty: false,
             label: String(record.cnName || record.enShortName || tab.label),
           }
-        : tab),
-    }));
+        : tab
+    )));
     void queryClient.invalidateQueries({ queryKey: ["modeling", "indicator-tree", projectCode] });
     void queryClient.invalidateQueries({ queryKey: ["modeling", "indicator-page", projectCode, kind] });
   };
@@ -1569,14 +1593,15 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
       await modelingEntityApi.remove(projectCode, pendingDelete.kind, String(pendingDelete.record.id));
       toast.success(getDefinition(pendingDelete.kind).title + "已删除");
       const deletedId = String(pendingDelete.record.id);
-      const remainingTabs = tabsByKind[pendingDelete.kind].filter((tab) => tab.recordId !== deletedId);
-      setTabsByKind((current) => ({ ...current, [pendingDelete.kind]: remainingTabs }));
-      setActiveKeys((current) => ({
-        ...current,
-        [pendingDelete.kind]: current[pendingDelete.kind] && !remainingTabs.some((tab) => tab.key === current[pendingDelete.kind])
-          ? remainingTabs[0]?.key || ""
-          : current[pendingDelete.kind],
-      }));
+      const removedKeys = tabs
+        .filter((tab) => tab.kind === pendingDelete.kind && tab.recordId === deletedId)
+        .map((tab) => tab.key);
+      const nextTabs = tabs.filter((tab) => !removedKeys.includes(tab.key));
+      setTabs(nextTabs);
+      if (removedKeys.includes(activeTabKey)) {
+        const activeIndex = tabs.findIndex((tab) => tab.key === activeTabKey);
+        setActiveTabKey(nextTabs[Math.max(0, activeIndex - 1)]?.key || nextTabs[0]?.key || "");
+      }
       setPendingDelete(null);
       void queryClient.invalidateQueries({ queryKey: ["modeling", "indicator-tree", projectCode] });
       void queryClient.invalidateQueries({ queryKey: ["modeling", "indicator-page", projectCode, pendingDelete.kind] });
@@ -1694,7 +1719,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
                     return next;
                   });
                 }}
-                onSelect={(record) => void openEdit(record)}
+                onSelect={(record) => void openEdit(activeKind, record)}
                 onContextMenu={onTreeContextMenu}
               />
             ) : (
@@ -1706,87 +1731,122 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 0 }: DataInd
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-color-hover)]">
-          {activeTabs.length ? (
-            <div className="flex h-full min-h-0 flex-col">
-            <Tabs value={activeTabKey} onValueChange={(value) => setActiveKeys((current) => ({ ...current, [activeKind]: value }))}>
-              <div className="flex shrink-0 items-center border-b border-[var(--yak-components-panel-border)] bg-white pr-2">
-                <TabsList className="min-w-0 flex-1 gap-1 overflow-x-auto border-0 px-3 pt-2">
-                  {activeTabs.map((tab) => (
-                    <TabsTab key={tab.key} value={tab.key} className="flex h-8 shrink-0 items-center gap-2 rounded-t-md border border-b-0 border-transparent px-3 pb-2 text-xs data-active:border-[var(--yak-components-panel-border)] data-active:bg-[var(--yak-color-hover)]">
-                      <span className="max-w-48 truncate">{tab.label}</span>
+          {tabs.length ? (
+            <div className="flex h-[35px] min-w-0 shrink-0 items-center gap-1 overflow-hidden border-b border-[#e2e2e2] bg-[#f2f2f2] px-2">
+              <div
+                role="tablist"
+                aria-label="指标工作区选项卡"
+                className="flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {tabs.map((tab) => {
+                  const active = tab.key === activeTabKey;
+                  return (
+                    <div
+                      key={tab.key}
+                      className={[
+                        "group relative flex h-[27px] w-fit min-w-[120px] max-w-[240px] shrink-0 items-center rounded-[3px]",
+                        active
+                          ? "bg-[#cedaff] text-[#26282c]"
+                          : "bg-transparent text-[#616161] hover:bg-[#e8e8e8]",
+                      ].join(" ")}
+                    >
                       <button
                         type="button"
-                        aria-label="关闭标签"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          closeTab(activeKind, tab.key);
-                        }}
-                        className="flex size-4 items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-components-menu-item-hover)] hover:text-[var(--yak-components-panel-text)]"
+                        role="tab"
+                        aria-selected={active}
+                        tabIndex={active ? 0 : -1}
+                        title={tab.dirty ? tab.label + "（有未保存修改）" : tab.label}
+                        onClick={() => setActiveTabKey(tab.key)}
+                        className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 pl-2 pr-0 text-left text-[13px] leading-none outline-none"
                       >
-                        <X size={11} />
+                        {tab.kind === "timePeriod" ? (
+                          <CalendarDays size={16} />
+                        ) : tab.kind === "atomIndicator" ? (
+                          <ChartNoAxesCombined size={16} />
+                        ) : tab.kind === "modifier" ? (
+                          <FileText size={16} />
+                        ) : (
+                          <Folder size={16} />
+                        )}
+                        <span className="min-w-0 flex-1 truncate whitespace-nowrap">{tab.label}</span>
+                        {tab.dirty ? (
+                          <span
+                            aria-label="有未保存修改"
+                            title="有未保存修改"
+                            className="mr-1.5 size-1.5 shrink-0 rounded-full bg-[#e6a23c]"
+                          />
+                        ) : null}
                       </button>
-                    </TabsTab>
-                  ))}
-                </TabsList>
-                <div className="relative shrink-0">
-                  <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="标签操作" onClick={() => setShowTabActions((open) => !open)}>
-                    <MoreHorizontal size={15} />
-                  </Button>
-                  {showTabActions ? (
-                    <>
-                      <button type="button" aria-label="关闭标签菜单" className="fixed inset-0 z-30 cursor-default" onClick={() => setShowTabActions(false)} />
-                      <div className="absolute right-0 top-8 z-40 w-36 rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-1 shadow-[var(--yak-components-panel-shadow)]">
-                        <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeCurrent")}>关闭当前</button>
-                        <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeLeft")}>关闭左边</button>
-                        <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeRight")}>关闭右边</button>
-                        <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeAll")}>关闭所有</button>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
+                      <button
+                        type="button"
+                        aria-label={"关闭 " + tab.label}
+                        title={"关闭 " + tab.label}
+                        onClick={() => closeTab(tab.key)}
+                        className={[
+                          "mr-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[#343434] transition-opacity hover:bg-black/5 focus-visible:opacity-100 focus-visible:outline-none",
+                          active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                        ].join(" ")}
+                      >
+                        <X size={15} strokeWidth={1.8} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+              <div className="relative shrink-0">
+                <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="标签操作" onClick={() => setShowTabActions((open) => !open)}>
+                  <MoreHorizontal size={15} />
+                </Button>
+                {showTabActions ? (
+                  <>
+                    <button type="button" aria-label="关闭标签菜单" className="fixed inset-0 z-30 cursor-default" onClick={() => setShowTabActions(false)} />
+                    <div className="absolute right-0 top-8 z-40 w-40 rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-1 shadow-[var(--yak-components-panel-shadow)]">
+                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeCurrent")}>关闭当前</button>
+                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeLeft")}>关闭左侧</button>
+                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeRight")}>关闭右侧</button>
+                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeAll")}>关闭全部</button>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
-              <div className="min-h-0 flex-1 overflow-hidden">
-                {activeTabs.map((tab) => (
-                  <TabsPanel key={tab.key} value={tab.key} className="h-full min-h-0">
-                    {tab.mode === "list" ? (
-                      <IndicatorListTab
-                        projectCode={projectCode}
-                        definition={definition}
-                        dwType={dwType}
-                        optionsByResource={optionsByResource}
-                        onEdit={(record) => void openEdit(record)}
-                        onDelete={(record) => setPendingDelete({ kind: activeKind, record })}
-                      />
-                    ) : (
-                      <IndicatorEditor
-                        projectCode={projectCode}
-                        definition={definition}
-                        tab={tab}
-                        optionsByResource={optionsByResource}
-                        optionsLoading={optionsQuery.isFetching}
-                        onSaved={onSaved}
-                        onDraftChange={onDraftChange}
-                      />
-                    )}
-                  </TabsPanel>
-                ))}
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            {tabs.map((tab) => {
+              const isActive = tab.key === activeTabKey;
+              return (
+                <div
+                  key={tab.key}
+                  aria-hidden={!isActive}
+                  className={["absolute inset-0 min-h-0", isActive ? "flex" : "hidden"].join(" ")}
+                >
+                  <IndicatorTabContent
+                    projectCode={projectCode}
+                    tab={tab}
+                    dwType={dwType}
+                    onEdit={openEdit}
+                    onDelete={(kind, record) => setPendingDelete({ kind, record })}
+                    onSaved={onSaved}
+                    onDraftChange={onDraftChange}
+                  />
+                </div>
+              );
+            })}
+
+            {!activeTab ? (
+              <div className="absolute inset-0 flex min-h-0 flex-col items-center justify-center bg-white text-center">
+                <div className="mb-3 flex size-12 items-center justify-center rounded-xl bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]">
+                  {activeKind === "timePeriod" ? <CalendarDays size={22} /> : <ChartNoAxesCombined size={22} />}
+                </div>
+                <div className="text-sm font-medium text-[var(--yak-components-panel-text)]">请选择或创建{definition.title}</div>
+                <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">从左侧目录打开指标，或新建一条记录开始维护</div>
+                <Button size="sm" variant="primary" className="mt-4" onClick={() => openTab(activeKind, "create")}>
+                  <Plus size={14} />新建{definition.title}
+                </Button>
               </div>
-            </Tabs>
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-white text-center">
-              <div className="mb-3 flex size-12 items-center justify-center rounded-xl bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]">
-                {activeKind === "timePeriod" ? <CalendarDays size={22} /> : <ChartNoAxesCombined size={22} />}
-              </div>
-              <div className="text-sm font-medium text-[var(--yak-components-panel-text)]">请选择或创建{definition.title}</div>
-              <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">从左侧目录打开指标，或新建一条记录开始维护</div>
-              <Button size="sm" variant="primary" className="mt-4" onClick={() => openTab(activeKind, "create")}>
-                <Plus size={14} />新建{definition.title}
-              </Button>
-            </div>
-          )}
+            ) : null}
+          </div>
         </main>
       </div>
 
