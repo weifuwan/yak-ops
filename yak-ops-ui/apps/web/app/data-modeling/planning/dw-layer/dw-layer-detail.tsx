@@ -33,14 +33,7 @@ function DescriptionItem({
 }: DescriptionItemProps) {
   return (
     <div className={"flex min-w-0 items-baseline " + className}>
-      <span
-        className="shrink-0"
-        style={{
-          color: "rgba(128, 128, 128, 1)",
-          fontSize: 12,
-          lineHeight: "22px",
-        }}
-      >
+      <span className="shrink-0 text-xs leading-5 text-[var(--yak-components-muted-text)]">
         {label}：
       </span>
       <span
