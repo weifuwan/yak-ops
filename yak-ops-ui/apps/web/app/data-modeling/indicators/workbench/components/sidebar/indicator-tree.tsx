@@ -34,7 +34,7 @@ export function IndicatorTreeRows({
         const expanded = expandedKeys.has(node.key);
         const selected = selectedKey === node.key;
         return (
-          <div key={node.key}>
+          <div key={node.key} className="[&+&>button]:shadow-[0_0_0_0.5px_#eceff780]">
             <button
               type="button"
               title={node.title}
@@ -46,7 +46,7 @@ export function IndicatorTreeRows({
                 if (node.kind === "asset") onContextMenu(event, node);
               }}
               className={[
-                "group flex min-h-8 w-full items-center gap-1 border-b border-[var(--yak-components-panel-border)]/60 rounded-none px-0 text-left text-xs leading-6 transition-colors",
+                "group flex min-h-8 w-full items-center gap-1 rounded-none px-0 text-left text-xs leading-6 transition-colors",
                 selected
                   ? "bg-[var(--yak-color-primary-soft)] text-[var(--yak-color-primary)]"
                   : "text-[var(--yak-components-panel-text)] hover:bg-[var(--yak-color-hover)]",
