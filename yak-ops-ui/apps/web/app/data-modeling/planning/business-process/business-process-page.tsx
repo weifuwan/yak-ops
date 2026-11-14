@@ -34,6 +34,7 @@ function FilterSelect({
 }) {
   return (
     <Select
+      items={[{ value: "__all__", label: "不限" }, ...options]}
       value={value || undefined}
       disabled={disabled}
       onValueChange={(nextValue) => onChange(nextValue === "__all__" ? "" : String(nextValue || ""))}
@@ -97,7 +98,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
   const domains = domainQuery.data || [];
   const domainOptions = useMemo(() => domains
     .filter((item) => item.id)
-    .map((item) => ({ value: item.id || "", label: item.cnName || item.enShortName || item.id || "" })),
+    .map((item) => ({ value: item.id || "", label: item.cnName || item.enShortName || "未命名数据域" })),
   [domains]);
 
   const processOptions = processOptionsQuery.data || [];

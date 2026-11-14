@@ -41,7 +41,10 @@ export function DataMartFormDialog({
   const [error, setError] = useState("");
   const isChild = Boolean(parentId || editing?.parentId);
   const availableBusinessTypes = businessTypes.filter((item) => Boolean(item.id));
-  const martTypeLabel = MART_TYPE_OPTIONS.find((item) => item.value === values.martType)?.label || "请选择集市类型";
+  const businessTypeOptions = availableBusinessTypes.map((item) => ({
+    value: item.id || "",
+    label: item.businessName || "未命名业务分类",
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -107,9 +110,10 @@ export function DataMartFormDialog({
         </Field>
         <Field className={FIELD_CLASS}>
           <FieldLabel className="pt-1.5 text-xs">集市类型</FieldLabel>
-          <Select value={values.martType || undefined} onValueChange={(value) => update("martType", String(value || ""))}>
+          <Select items={MART_TYPE_OPTIONS} value={values.martType || undefined}
+            onValueChange={(value) => update("martType", String(value || ""))}>
             <SelectTrigger size="small" variant="outlined" className="w-full">
-              <SelectValue placeholder="请选择集市类型">{martTypeLabel}</SelectValue>
+              <SelectValue placeholder="请选择集市类型" />
             </SelectTrigger>
             <SelectContent emptyContent={MART_TYPE_OPTIONS.length === 0 ? "暂无集市类型" : undefined}>
               {MART_TYPE_OPTIONS.map((item) => (
@@ -123,7 +127,7 @@ export function DataMartFormDialog({
         {!isChild ? (
           <Field className={FIELD_CLASS}>
             <FieldLabel className="pt-1.5 text-xs">所属业务分类</FieldLabel>
-            <Select value={values.businessTypeId || undefined}
+            <Select items={businessTypeOptions} value={values.businessTypeId || undefined}
               disabled={(businessTypesLoading && availableBusinessTypes.length === 0) || (businessTypesError && availableBusinessTypes.length === 0)}
               onValueChange={(value) => update("businessTypeId", String(value || ""))}>
               <SelectTrigger size="small" variant="outlined" className="w-full">
@@ -134,9 +138,9 @@ export function DataMartFormDialog({
                   ? businessTypesError ? "业务分类加载失败，请重试" : businessTypesLoading ? "正在加载业务分类..." : "暂无业务分类"
                   : undefined}
               >
-                {availableBusinessTypes.map((item) => (
-                  <SelectItem key={item.id} value={item.id || ""}>
-                    <SelectItemText>{item.businessName || "-"}</SelectItemText>
+                {businessTypeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <SelectItemText>{option.label}</SelectItemText>
                   </SelectItem>
                 ))}
               </SelectContent>

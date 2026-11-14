@@ -31,6 +31,10 @@ export function BusinessProcessFormDialog({
   const [error, setError] = useState("");
   const system = isSystemBusinessProcess(editing);
   const availableDomains = domains.filter((domain) => Boolean(domain.id));
+  const domainOptions = availableDomains.map((domain) => ({
+    value: domain.id || "",
+    label: `${domain.cnName || "未命名数据域"}（${domain.enShortName || "-"}）`,
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -118,6 +122,7 @@ export function BusinessProcessFormDialog({
         <div className={FIELD_CLASS}>
           <span className={LABEL_CLASS}><span className="mr-1 text-[#d92d20]">*</span>数据域</span>
           <Select
+            items={domainOptions}
             value={values.dataDomainId || undefined}
             disabled={system || (domainsLoading && availableDomains.length === 0) || (domainsError && availableDomains.length === 0)}
             onValueChange={(value) => update("dataDomainId", String(value || ""))}
@@ -130,9 +135,9 @@ export function BusinessProcessFormDialog({
                 ? domainsError ? "数据域加载失败，请重试" : domainsLoading ? "正在加载数据域..." : "暂无数据域，请先创建"
                 : undefined}
             >
-              {availableDomains.map((domain) => (
-                <SelectItem key={domain.id} value={domain.id || ""}>
-                  <SelectItemText>{(domain.cnName || "-") + "（" + (domain.enShortName || "-") + "）"}</SelectItemText>
+              {domainOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <SelectItemText>{option.label}</SelectItemText>
                 </SelectItem>
               ))}
             </SelectContent>

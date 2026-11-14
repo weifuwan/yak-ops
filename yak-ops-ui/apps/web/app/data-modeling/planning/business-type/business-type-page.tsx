@@ -13,6 +13,7 @@ import {
 import {
   modelingBusinessTypeApi, modelingEntityApi, modelingQueryKeys, type BusinessTypeTreeNode, type ModelingRecord,
 } from "../../service";
+import { MART_TYPE_OPTIONS } from "../data-mart/types";
 
 interface Props { projectCode: string; }
 interface BusinessTypeRecord extends ModelingRecord {
@@ -427,13 +428,16 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
             <label key={key} className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3">
               <span className="text-right text-xs text-[var(--yak-components-muted-text)]">{label}</span>
               {key === "martType" ? (
-                <Select size="small" items={[{ value: "PUBLIC", label: "公共集市" }, { value: "BUSINESS", label: "业务集市" }, { value: "APPLICATION", label: "数据应用集市" }]} value={values.martType || undefined}
+                <Select size="small" items={MART_TYPE_OPTIONS} value={values.martType || undefined}
                   onValueChange={(value) => setValues((current) => ({ ...current, martType: String(value || "") }))}>
                   <SelectTrigger variant="outlined"><SelectValue placeholder="请选择集市类型" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PUBLIC"><SelectItemText>公共集市</SelectItemText><SelectItemIndicator /></SelectItem>
-                    <SelectItem value="BUSINESS"><SelectItemText>业务集市</SelectItemText><SelectItemIndicator /></SelectItem>
-                    <SelectItem value="APPLICATION"><SelectItemText>数据应用集市</SelectItemText><SelectItemIndicator /></SelectItem>
+                    {MART_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <SelectItemText>{option.label}</SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ) : (

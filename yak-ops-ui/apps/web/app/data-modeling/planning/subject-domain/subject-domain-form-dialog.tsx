@@ -33,6 +33,10 @@ export function SubjectDomainFormDialog({
   const isChild = Boolean(parentId || editing?.parentId);
   const lockedDataMartId = inheritedDataMartId || editing?.dataMartId || "";
   const availableDataMarts = dataMarts.filter((item) => Boolean(item.id));
+  const dataMartOptions = availableDataMarts.map((item) => ({
+    value: item.id || "",
+    label: item.martName || "未命名数据集市",
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +111,7 @@ export function SubjectDomainFormDialog({
         <Field className={FIELD_CLASS}>
           <FieldLabel required className="pt-1.5 text-xs">所属数据集市</FieldLabel>
           <Select
+            items={dataMartOptions}
             value={(isChild ? lockedDataMartId : values.dataMartId) || undefined}
             disabled={isChild || (dataMartsLoading && availableDataMarts.length === 0) || (dataMartsError && availableDataMarts.length === 0)}
             onValueChange={(value) => update("dataMartId", String(value || ""))}
@@ -119,9 +124,9 @@ export function SubjectDomainFormDialog({
                 ? dataMartsError ? "数据集市加载失败，请重试" : dataMartsLoading ? "正在加载数据集市..." : "暂无数据集市"
                 : undefined}
             >
-              {availableDataMarts.map((item) => (
-                <SelectItem key={item.id} value={item.id || ""}>
-                  <SelectItemText>{item.martName || "-"}</SelectItemText>
+              {dataMartOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <SelectItemText>{option.label}</SelectItemText>
                 </SelectItem>
               ))}
             </SelectContent>
