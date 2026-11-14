@@ -93,7 +93,7 @@ function TreeNodeRow({
           aria-label={hasChildren ? (expanded ? "收起" : "展开") : "无子级"}
           onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(key); }}
         >
-          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : <span className="size-1 rounded-full bg-[#c4c9d1]" />}
+          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
         </button>
         <PlanningIcon name={isMart ? "data-mart" : "subject-domain"} size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[#8b929e]"} />
         <span className="min-w-0 flex-1 truncate">{node.title}</span>

@@ -121,7 +121,7 @@ function TreeNodeRow({
           aria-label={hasChildren ? (expanded ? "收起" : "展开") : "无子级"}
           onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(node.key); }}
         >
-          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : <span className="size-1 rounded-full bg-[#c4c9d1]" />}
+          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
         </button>
         {node.type === "FOLDER"
           ? (expanded ? <FolderOpen size={14} className="shrink-0 text-[#8b929e]" /> : <Folder size={14} className="shrink-0 text-[#8b929e]" />)
