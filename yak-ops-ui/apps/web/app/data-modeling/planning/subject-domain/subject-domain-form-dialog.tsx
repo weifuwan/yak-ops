@@ -32,6 +32,7 @@ export function SubjectDomainFormDialog({
   const [error, setError] = useState("");
   const isChild = Boolean(parentId || editing?.parentId);
   const lockedDataMartId = inheritedDataMartId || editing?.dataMartId || "";
+  const availableDataMarts = dataMarts.filter((item) => Boolean(item.id));
 
   useEffect(() => {
     if (!open) return;
@@ -107,14 +108,18 @@ export function SubjectDomainFormDialog({
           <FieldLabel required className="pt-1.5 text-xs">所属数据集市</FieldLabel>
           <Select
             value={(isChild ? lockedDataMartId : values.dataMartId) || undefined}
-            disabled={isChild || (dataMartsLoading && dataMarts.length === 0) || (dataMartsError && dataMarts.length === 0)}
+            disabled={isChild || (dataMartsLoading && availableDataMarts.length === 0) || (dataMartsError && availableDataMarts.length === 0)}
             onValueChange={(value) => update("dataMartId", String(value || ""))}
           >
             <SelectTrigger size="small" variant="outlined" className="w-full">
               <SelectValue placeholder="请选择数据集市" />
             </SelectTrigger>
-            <SelectContent emptyContent={dataMartsError ? "数据集市加载失败，请重试" : dataMartsLoading ? "正在加载数据集市..." : "暂无数据集市"}>
-              {dataMarts.filter((item) => item.id).map((item) => (
+            <SelectContent
+              emptyContent={availableDataMarts.length === 0
+                ? dataMartsError ? "数据集市加载失败，请重试" : dataMartsLoading ? "正在加载数据集市..." : "暂无数据集市"
+                : undefined}
+            >
+              {availableDataMarts.map((item) => (
                 <SelectItem key={item.id} value={item.id || ""}>
                   <SelectItemText>{item.martName || "-"}</SelectItemText>
                 </SelectItem>
@@ -123,7 +128,7 @@ export function SubjectDomainFormDialog({
           </Select>
           {!isChild && dataMartsError ? (
             <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#d92d20]">
-              <span>{dataMarts.length ? "数据集市刷新失败，当前显示已加载的数据" : "数据集市加载失败，暂时无法选择"}</span>
+              <span>{availableDataMarts.length ? "数据集市刷新失败，当前显示已加载的数据" : "数据集市加载失败，暂时无法选择"}</span>
               {onRetryDataMarts ? <Button size="sm" variant="ghost" onClick={onRetryDataMarts}>重试</Button> : null}
             </div>
           ) : null}
