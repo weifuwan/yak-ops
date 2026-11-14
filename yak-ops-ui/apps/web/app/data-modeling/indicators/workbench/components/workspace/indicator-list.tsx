@@ -9,7 +9,7 @@ import { RefreshCw, Search } from "lucide-react";
 import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../../service";
 import { DW_TYPE_OPTIONS, PAGE_SIZE_OPTIONS, RELATION_FIELDS } from "../../config/indicator-definitions";
 import type { IndicatorDefinition, IndicatorFieldOption } from "../../types";
-import { recordName } from "../../utils/indicator-form";
+import { recordName, selectOptionLabel } from "../../utils/indicator-form";
 
 type IndicatorListTabProps = {
   projectCode: string;
@@ -148,6 +148,24 @@ export function IndicatorList({
       label: String(record[labelField || "cnName"] || recordName(record)),
     })).filter((option) => option.value);
 
+  const statusOptions: IndicatorFieldOption[] = [
+    { value: "all", label: "全部状态" },
+    { value: "true", label: "已提交" },
+    { value: "false", label: "草稿" },
+  ];
+  const categoryOptions: IndicatorFieldOption[] = [
+    { value: "all", label: "全部周期" },
+    ...filterOptions("timePeriodCategory"),
+  ];
+  const businessTypeOptions: IndicatorFieldOption[] = [
+    { value: "all", label: "全部业务分类" },
+    ...filterOptions("businessType", "businessName"),
+  ];
+  const domainOptions: IndicatorFieldOption[] = [
+    { value: "all", label: "全部数据域" },
+    ...filterOptions("dataDomain"),
+  ];
+
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col bg-white p-4">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-3">
@@ -165,21 +183,30 @@ export function IndicatorList({
         </div>
         <div className="w-32">
           <Select size="small" value={status} onValueChange={(value) => setStatus(value ?? "all")}>
-            <SelectTrigger variant="outlined"><SelectValue placeholder="状态" /></SelectTrigger>
+            <SelectTrigger variant="outlined">
+              <SelectValue placeholder="状态">
+                {(value) => selectOptionLabel(statusOptions, value, "状态")}
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all"><SelectItemText>全部状态</SelectItemText><SelectItemIndicator /></SelectItem>
-              <SelectItem value="true"><SelectItemText>已提交</SelectItemText><SelectItemIndicator /></SelectItem>
-              <SelectItem value="false"><SelectItemText>草稿</SelectItemText><SelectItemIndicator /></SelectItem>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <SelectItemText>{option.label}</SelectItemText><SelectItemIndicator />
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         {definition.key === "timePeriod" ? (
           <div className="w-40">
             <Select value={categoryId || "all"} size="small" onValueChange={(value) => setCategoryId(value === "all" ? "" : String(value))}>
-              <SelectTrigger variant="outlined"><SelectValue placeholder="周期粒度" /></SelectTrigger>
+              <SelectTrigger variant="outlined">
+                <SelectValue placeholder="周期粒度">
+                  {(value) => selectOptionLabel(categoryOptions, value, "周期粒度")}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all"><SelectItemText>全部周期</SelectItemText></SelectItem>
-                {filterOptions("timePeriodCategory").map((option) => (
+                {categoryOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText></SelectItem>
                 ))}
               </SelectContent>
@@ -189,10 +216,13 @@ export function IndicatorList({
           <>
             <div className="w-36">
               <Select value={businessTypeId || "all"} size="small" onValueChange={(value) => setBusinessTypeId(value === "all" ? "" : String(value))}>
-                <SelectTrigger variant="outlined"><SelectValue placeholder="业务分类" /></SelectTrigger>
+                <SelectTrigger variant="outlined">
+                  <SelectValue placeholder="业务分类">
+                    {(value) => selectOptionLabel(businessTypeOptions, value, "业务分类")}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all"><SelectItemText>全部业务分类</SelectItemText></SelectItem>
-                  {filterOptions("businessType", "businessName").map((option) => (
+                  {businessTypeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText></SelectItem>
                   ))}
                 </SelectContent>
@@ -200,10 +230,13 @@ export function IndicatorList({
             </div>
             <div className="w-36">
               <Select value={domainId || "all"} size="small" onValueChange={(value) => setDomainId(value === "all" ? "" : String(value))}>
-                <SelectTrigger variant="outlined"><SelectValue placeholder="数据域" /></SelectTrigger>
+                <SelectTrigger variant="outlined">
+                  <SelectValue placeholder="数据域">
+                    {(value) => selectOptionLabel(domainOptions, value, "数据域")}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all"><SelectItemText>全部数据域</SelectItemText></SelectItem>
-                  {filterOptions("dataDomain").map((option) => (
+                  {domainOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText></SelectItem>
                   ))}
                 </SelectContent>
