@@ -79,7 +79,7 @@ export function IndicatorTreeRows({
               className={[
                 "group flex min-h-8 w-full items-center gap-1 rounded-none px-0 text-left text-xs leading-6 transition-colors",
                 selected
-                  ? "bg-[var(--yak-color-primary-soft)] text-[var(--yak-color-primary)]"
+                  ? "bg-[#DFE7FF] text-[var(--yak-components-panel-text)]"
                   : "text-[var(--yak-components-panel-text)] hover:bg-[var(--yak-color-hover)]",
               ].join(" ")}
               style={{ paddingLeft: depth * 24, boxShadow: "0 0 0 0.5px #eceff780" }}
@@ -92,11 +92,11 @@ export function IndicatorTreeRows({
               {node.nodeType === "root" ? (
                 <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
               ) : node.nodeType === "businessType" ? (
-                <PlanningIcon name="business-type" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
+                <PlanningIcon name="business-type" size={14} className="text-[var(--yak-components-muted-text)]" />
               ) : node.nodeType === "dataDomain" ? (
-                <PlanningIcon name="data-domain" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
+                <PlanningIcon name="data-domain" size={14} className="text-[var(--yak-components-muted-text)]" />
               ) : node.nodeType === "businessProcess" ? (
-                <PlanningIcon name="business-process" size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)]"} />
+                <PlanningIcon name="business-process" size={14} className="text-[var(--yak-components-muted-text)]" />
               ) : node.kind === "asset" ? (
                 <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
               ) : (
