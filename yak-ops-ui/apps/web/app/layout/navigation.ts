@@ -4,7 +4,6 @@ import {
   Bell,
   BookOpen,
   Boxes,
-  ChartNoAxesCombined,
   Database,
   GitBranch,
   FolderOpen,
