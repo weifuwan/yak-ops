@@ -557,6 +557,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
         editing={editingSubject}
         parentId={editingSubject?.parentId || undefined}
         inheritedDataMartId={editingSubject?.dataMartId}
+        inheritedDataMartName={editingSubject?.dataMartName}
         dataMarts={dataMartsQuery.data || []}
         dataMartsLoading={dataMartsQuery.isPending}
         dataMartsError={dataMartsQuery.isError}

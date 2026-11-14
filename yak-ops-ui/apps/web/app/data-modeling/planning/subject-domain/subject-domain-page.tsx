@@ -204,6 +204,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   const [editing, setEditing] = useState<SubjectDomainRecord>();
   const [formParentId, setFormParentId] = useState<string>();
   const [inheritedDataMartId, setInheritedDataMartId] = useState<string>();
+  const [inheritedDataMartName, setInheritedDataMartName] = useState<string>();
   const [saving, setSaving] = useState(false);
   const [openingId, setOpeningId] = useState("");
   const [pendingDelete, setPendingDelete] = useState<SubjectDomainRecord>();
@@ -252,10 +253,11 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     if (selectedId) await detailQuery.refetch();
   };
 
-  const openCreate = (parentId?: string, dataMartId?: string) => {
+  const openCreate = (parentId?: string, dataMartId?: string, dataMartName?: string) => {
     setEditing(undefined);
     setFormParentId(parentId);
     setInheritedDataMartId(dataMartId);
+    setInheritedDataMartName(dataMartName);
     setFormOpen(true);
     setContextMenu(undefined);
   };
@@ -266,7 +268,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     setOpeningId(parentId);
     try {
       const parent = await modelingEntityApi.getById<SubjectDomainRecord>(projectCode, "subjectDomain", parentId);
-      openCreate(parentId, parent.dataMartId);
+      openCreate(parentId, parent.dataMartId, parent.dataMartName);
     } catch {
       toast.warning("获取上级主题域失败，请刷新目录后重试");
     } finally {
@@ -282,6 +284,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
       setEditing(record);
       setFormParentId(record.parentId || undefined);
       setInheritedDataMartId(record.dataMartId || undefined);
+      setInheritedDataMartName(record.dataMartName || undefined);
       setFormOpen(true);
     } catch {
       toast.warning("获取主题域详情失败，请刷新后重试");
@@ -457,7 +460,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
               onEdit={() => void openEdit(detailQuery.data.id || "")}
               onAddChild={() => {
                 const current = detailQuery.data;
-                if (current.id) void openCreate(current.id, current.dataMartId);
+                if (current.id) void openCreate(current.id, current.dataMartId, current.dataMartName);
               }}
               onEditChild={(item) => void openEdit(item.id || "")}
               onDeleteChild={setPendingDelete}
@@ -495,6 +498,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
         editing={editing}
         parentId={formParentId}
         inheritedDataMartId={inheritedDataMartId}
+        inheritedDataMartName={inheritedDataMartName}
         dataMarts={dataMartsQuery.data || []}
         dataMartsLoading={dataMartsQuery.isPending}
         dataMartsError={dataMartsQuery.isError}
@@ -506,6 +510,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
             setEditing(undefined);
             setFormParentId(undefined);
             setInheritedDataMartId(undefined);
+            setInheritedDataMartName(undefined);
           }
         }}
         onSubmit={(values) => void save(values)}

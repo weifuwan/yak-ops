@@ -14,6 +14,7 @@ import {
   modelingBusinessTypeApi, modelingEntityApi, modelingQueryKeys, type BusinessTypeTreeNode, type ModelingRecord,
 } from "../../service";
 import { MART_TYPE_OPTIONS } from "../data-mart/types";
+import { withSelectedOption } from "../select-options";
 
 interface Props { projectCode: string; }
 interface BusinessTypeRecord extends ModelingRecord {
@@ -27,6 +28,7 @@ interface DomainRecord extends ModelingRecord {
 interface DataMartRecord extends ModelingRecord {
   id?: string; martName?: string; enShortName?: string;
   martType?: string | { code?: string; name?: string };
+  martTypeName?: string;
   businessTypeId?: string; director?: string; remark?: string; createTime?: string;
 }
 interface BusinessTypeFormValues {
@@ -362,6 +364,11 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
       .filter((item) => item.businessTypeId === businessTypeId),
     enabled: Boolean(projectCode && businessTypeId),
   });
+  const martTypeSelectItems = withSelectedOption(
+    MART_TYPE_OPTIONS,
+    values.martType,
+    editing?.martTypeName || "其他集市类型",
+  );
   const openEdit = (record: DataMartRecord) => {
     setEditing(record);
     const martType = typeof record.martType === "string" ? record.martType : record.martType?.code || "";
@@ -428,7 +435,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
             <label key={key} className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3">
               <span className="text-right text-xs text-[var(--yak-components-muted-text)]">{label}</span>
               {key === "martType" ? (
-                <Select size="small" items={MART_TYPE_OPTIONS} value={values.martType || undefined}
+                <Select size="small" items={martTypeSelectItems} value={values.martType || undefined}
                   onValueChange={(value) => setValues((current) => ({ ...current, martType: String(value || "") }))}>
                   <SelectTrigger variant="outlined"><SelectValue placeholder="请选择集市类型" /></SelectTrigger>
                   <SelectContent>

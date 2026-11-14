@@ -15,6 +15,7 @@ import {
   Textarea,
 } from "@yak-ops/yak-ui";
 
+import { withSelectedOption } from "../select-options";
 import {
   DW_LAYER_TYPES,
   getDwModelTypeOptions,
@@ -58,6 +59,8 @@ export function DwLayerFormDialog({
   }, [open, editing]);
 
   const modelOptions = getDwModelTypeOptions(values.dwType);
+  const layerTypeSelectItems = withSelectedOption(DW_LAYER_TYPES, values.dwType, "其他分层");
+  const modelTypeSelectItems = withSelectedOption(modelOptions, values.dwModelType, "其他模型类型");
   const setValue = (key: keyof DwLayerFormValues, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
     setFormError("");
@@ -196,7 +199,7 @@ export function DwLayerFormDialog({
           <div className="min-w-0">
             <Select
               size="small"
-              items={DW_LAYER_TYPES}
+              items={layerTypeSelectItems}
               value={values.dwType || undefined}
               disabled={Boolean(editing)}
               onValueChange={(value) => {
@@ -230,7 +233,7 @@ export function DwLayerFormDialog({
           <div className="min-w-0">
             <Select
               size="small"
-              items={modelOptions}
+              items={modelTypeSelectItems}
               value={values.dwModelType || undefined}
               disabled={Boolean(editing) || !values.dwType || modelOptions.length === 0}
               onValueChange={(value) => setValue("dwModelType", String(value || ""))}
