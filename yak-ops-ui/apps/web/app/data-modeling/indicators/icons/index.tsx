@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { IndicatorKind } from "../workbench/types";
 
 export type IndicatorIconName =
@@ -23,17 +24,45 @@ type IndicatorIconProps = {
   name: IndicatorIconName;
   size?: number;
   className?: string;
+  monochrome?: boolean;
 };
 
 /**
- * Renders the indicator SVG from public/icons without masking its semantic colors.
+ * Renders indicator SVGs with their original colors by default.
+ * Menu icons can opt into a monochrome CSS mask to follow the product palette.
  */
 export function IndicatorIcon({
   name,
   size = 16,
   className = "",
+  monochrome = false,
 }: IndicatorIconProps) {
   const iconUrl = `${import.meta.env.BASE_URL}icons/${name}.svg`;
+
+  if (monochrome) {
+    const maskStyle: CSSProperties = {
+      width: size,
+      height: size,
+      maskImage: `url("${iconUrl}")`,
+      WebkitMaskImage: `url("${iconUrl}")`,
+      maskRepeat: "no-repeat",
+      WebkitMaskRepeat: "no-repeat",
+      maskPosition: "center",
+      WebkitMaskPosition: "center",
+      maskSize: "contain",
+      WebkitMaskSize: "contain",
+    };
+
+    return (
+      <span
+        aria-hidden="true"
+        className={["inline-block shrink-0 bg-[#262874]", className]
+          .filter(Boolean)
+          .join(" ")}
+        style={maskStyle}
+      />
+    );
+  }
 
   return (
     <img
