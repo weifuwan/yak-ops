@@ -467,6 +467,7 @@ function buildAtomIndicatorTree(
         title: recordName(process),
         kind: "group",
         nodeType: "businessProcess",
+        record: process,
         count: processRecords.length,
         children: processRecords.map(assetNode),
       };
@@ -495,6 +496,7 @@ function buildAtomIndicatorTree(
       title: domain ? recordName(domain) : "未关联数据域",
       kind: "group",
       nodeType: domain ? "dataDomain" : "group",
+      record: domain,
       count: scopedRecords.length,
       children,
     };
@@ -590,6 +592,7 @@ function buildAtomIndicatorTree(
       title: recordName(businessType),
       kind: "group",
       nodeType: "businessType",
+      record: businessType,
       count: directRecords.length + childNodes.reduce((total, child) => total + (child.count || 0), 0),
       children: [...childNodes, ...domainNodes],
     };

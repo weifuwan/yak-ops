@@ -196,7 +196,12 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             case "dictionary-standard":
                 return toMap(update("dictionary-standard", DictionaryStandardPO.class, values));
             case "atom-indicator":
-                if (text(values.get("dwType")).isEmpty()) values.put("dwType", "PUBLIC_LAYER");
+                if (text(values.get("dwType")).isEmpty()) {
+                    AtomIndicatorPO existing = modelingAssetDao.queryById("atom-indicator", id);
+                    values.put("dwType", existing == null || existing.getDwType() == null
+                            ? "PUBLIC_LAYER"
+                            : existing.getDwType().getCode());
+                }
                 validateUniqueFields("atom-indicator", values, id);
                 validateOptionalReference("unit-standard", text(values.get("unitId")), "度量单位不存在");
                 return updateDraft("atom-indicator", AtomIndicatorPO.class, values);
