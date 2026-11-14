@@ -25,9 +25,9 @@ const mapNavigationItems = (items: ProductNavigationItem[]): NavigationMenuItem[
       icon: item.indicatorIcon
         ? <IndicatorIcon name={item.indicatorIcon} monochrome />
         : item.svgIcon
-          ? <PlanningIcon name={item.svgIcon} className="text-[#262874]" />
+          ? <PlanningIcon name={item.svgIcon} className="text-[#3a3d51]" />
           : Icon
-            ? <Icon size={16} strokeWidth={1.8} className="text-[#262874]" />
+            ? <Icon size={16} strokeWidth={1.8} className="text-[#3a3d51]" />
             : undefined,
       children: item.children ? mapNavigationItems(item.children) : undefined,
     };
