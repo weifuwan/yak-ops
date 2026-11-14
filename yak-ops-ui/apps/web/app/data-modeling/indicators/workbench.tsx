@@ -695,7 +695,7 @@ function IndicatorListTab({
           />
         </div>
         <div className="w-32">
-          <Select size="small" value={status} onValueChange={setStatus}>
+          <Select size="small" value={status} onValueChange={(value) => setStatus(value ?? "all")}>
             <SelectTrigger variant="outlined"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all"><SelectItemText>全部状态</SelectItemText><SelectItemIndicator /></SelectItem>

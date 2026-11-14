@@ -638,7 +638,7 @@ export function JavaTaskEditor({
                 <Autocomplete<string>
                   items={jarFiles}
                   value={form.mainJar}
-                  onValueChange={(value) => updateField("mainJar", value)}
+                  onValueChange={(value) => setForm((current) => ({ ...current, mainJar: value ?? "" }))}
                   openOnInputClick
                 >
                   <AutocompleteInput

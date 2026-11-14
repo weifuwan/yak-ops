@@ -14,7 +14,11 @@ const autocompleteFontSizeClasses: Record<AutocompleteSize, string> = {
   large: "text-[length:var(--yak-font-size-control-large)]",
 };
 
-export type AutocompleteProps<ItemValue = string> = BaseAutocomplete.Root.Props<ItemValue> & {
+export type AutocompleteProps<ItemValue = string> = Omit<
+  BaseAutocomplete.Root.Props<ItemValue>,
+  "items"
+> & {
+  items?: readonly ItemValue[] | undefined;
   size?: AutocompleteSize;
 };
 
@@ -24,7 +28,7 @@ export function Autocomplete<ItemValue = string>({
 }: AutocompleteProps<ItemValue>) {
   return (
     <AutocompleteSizeContext.Provider value={size}>
-      <BaseAutocomplete.Root {...props} />
+      <BaseAutocomplete.Root<ItemValue> {...props} />
     </AutocompleteSizeContext.Provider>
   );
 }
@@ -86,7 +90,6 @@ export function AutocompleteContent({
         align={align}
         sideOffset={sideOffset}
         alignOffset={alignOffset}
-        alignItemWithTrigger={false}
         className={cn("z-50 outline-none", positionerClassName)}
       >
         <BaseAutocomplete.Popup
