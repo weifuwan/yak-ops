@@ -1,10 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title">
   <title id="title">时间周期</title>
-  <g stroke="#896BCB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3.2" y="4.25" width="14.8" height="15.35" rx="2.1"/>
-    <path d="M3.2 9h14.8M7.1 3.15v2.25M14.15 3.15v2.25"/>
-    <path d="M6.8 12.25h.01M10.35 12.25h.01M6.8 15.7h.01M10.35 15.7h.01" stroke-width="2.1"/>
-    <circle cx="17.65" cy="17.35" r="4.2" fill="#fff"/>
-    <path d="M17.65 15.15v2.35l1.5 1"/>
+  <g fill="#896BCB">
+    <path d="M512 32C246.4 32 32 246.4 32 512s214.4 480 480 480 480-214.4 480-480S777.6 32 512 32z m0 896C281.6 928 96 742.4 96 512S281.6 96 512 96s416 185.6 416 416-185.6 416-416 416z" />
+    <path d="M544 499.2V256c0-19.2-12.8-32-32-32s-32 12.8-32 32v256c0 3.2 0 9.6 3.2 12.8 3.2 3.2 3.2 6.4 6.4 9.6l204.8 204.8c6.4 6.4 16 9.6 22.4 9.6s16-3.2 22.4-9.6 9.6-16 9.6-22.4-3.2-16-9.6-22.4L544 499.2z" />
   </g>
 </svg>
