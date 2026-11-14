@@ -29,6 +29,16 @@ export function initialFormValues(
   return values;
 }
 
+export function selectOptionLabel(
+  options: IndicatorFieldOption[],
+  value: unknown,
+  placeholder: string,
+  fallbackLabel = "未知选项",
+): string {
+  if (value === undefined || value === null || value === "") return placeholder;
+  return options.find((option) => option.value === String(value))?.label || fallbackLabel;
+}
+
 export function fieldOptions(
   field: IndicatorField,
   optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>,
