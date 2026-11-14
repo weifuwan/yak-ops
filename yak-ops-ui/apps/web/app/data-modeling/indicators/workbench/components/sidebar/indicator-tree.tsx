@@ -28,7 +28,7 @@ export function IndicatorTreeRows({
   onContextMenu,
 }: TreeRowsProps) {
   return (
-    <div className="space-y-0.5">
+    <div className="flex flex-col">
       {nodes.map((node) => {
         const hasChildren = node.children.length > 0;
         const expanded = expandedKeys.has(node.key);
@@ -46,16 +46,16 @@ export function IndicatorTreeRows({
                 if (node.kind === "asset") onContextMenu(event, node);
               }}
               className={[
-                "group flex min-h-8 w-full items-center gap-1.5 rounded-md px-2 text-left text-xs transition-colors",
+                "group flex min-h-8 w-full items-center gap-1 border-b border-[var(--yak-components-panel-border)]/60 rounded-none px-0 text-left text-xs leading-6 transition-colors",
                 selected
                   ? "bg-[var(--yak-color-primary-soft)] text-[var(--yak-color-primary)]"
                   : "text-[var(--yak-components-panel-text)] hover:bg-[var(--yak-color-hover)]",
               ].join(" ")}
-              style={{ paddingLeft: 8 + depth * 14 }}
+              style={{ paddingLeft: depth * 24 }}
             >
               <span className="flex size-4 shrink-0 items-center justify-center text-[var(--yak-components-muted-text)]">
                 {node.kind === "group" && hasChildren
-                  ? expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />
+                  ? expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />
                   : null}
               </span>
               {node.nodeType === "root" ? (
@@ -80,7 +80,7 @@ export function IndicatorTreeRows({
               ) : null}
             </button>
             {hasChildren && expanded ? (
-              <div className="mt-0.5">
+              <div>
                 <IndicatorTreeRows
                   activeKind={activeKind}
                   nodes={node.children}
