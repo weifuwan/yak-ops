@@ -60,6 +60,7 @@ import {
   type ModelingVersionRecord,
 } from "../service";
 import { PlanningIcon } from "../planning/icons";
+import { PanelResizer } from "../../data-development/layout/panel-resizer";
 
 export type IndicatorKind = "atomIndicator" | "derivativeIndicator" | "composeIndicator" | "modifier" | "timePeriod";
 type IndicatorMode = "create" | "edit" | "list";
@@ -1098,6 +1099,7 @@ function IndicatorEditor({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [versionOpen, setVersionOpen] = useState(false);
+  const [versionPanelWidth, setVersionPanelWidth] = useState(340);
   const recordId = tab.recordId || (tab.record?.id ? String(tab.record.id) : "");
 
   useEffect(() => {
@@ -1288,50 +1290,85 @@ function IndicatorEditor({
         </div>
       </div>
 
-      <div className="flex shrink-0">
-        <div className="flex w-9 flex-col items-center border-l border-[var(--yak-components-panel-border)] bg-white pt-3">
+      <aside className="flex h-full min-h-0 shrink-0 bg-white">
+        {versionOpen ? (
+          <>
+            <PanelResizer
+              width={versionPanelWidth}
+              minWidth={280}
+              maxWidth={520}
+              resizeDirection="left"
+              ariaLabel="调整版本管理面板宽度"
+              onResize={setVersionPanelWidth}
+            />
+            <section
+              className="flex h-full min-h-0 max-w-[calc(100vw-64px)] flex-col border-l border-[#e5e7eb] bg-white"
+              style={{ width: versionPanelWidth }}
+            >
+              <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-3">
+                <span className="text-sm font-semibold text-[#303846]">版本管理</span>
+                <button
+                  type="button"
+                  title="收起面板"
+                  aria-label="收起版本管理面板"
+                  onClick={() => setVersionOpen(false)}
+                  className="flex size-6 cursor-pointer items-center justify-center rounded text-[#8b93a1] transition-colors hover:bg-[#f0f2f5] hover:text-[#303846]"
+                >
+                  <X size={14} />
+                </button>
+              </header>
+              <div className="min-h-0 flex-1 overflow-y-auto bg-white p-2">
+                <Table<ModelingVersionRecord>
+                  columns={[
+                    { key: "versionNumber", title: "版本", width: 56, render: (_value, record) => "V" + record.versionNumber },
+                    { key: "updateTime", title: "提交时间", width: 118, render: (_value, record) => record.updateTime || "-" },
+                    { key: "updateBy", title: "提交人", width: 70, render: (_value, record) => record.updateBy || "-" },
+                    { key: "actions", title: "操作", width: 56, align: "center", render: (_value, record) => (
+                      <Button size="sm" variant="ghost" className="px-1 text-xs" onClick={() => void rollback(record)}>回滚</Button>
+                    ) },
+                  ]}
+                  dataSource={versionQuery.data || []}
+                  rowKey={(record) => record.id}
+                  loading={versionQuery.isFetching}
+                  emptyText="暂无已提交版本"
+                  pagination={false}
+                  size="small"
+                  scroll={{ y: "calc(100vh - 220px)" }}
+                />
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        <nav
+          aria-label="版本管理"
+          className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
+        >
           <button
             type="button"
             title="版本管理"
+            aria-label="版本管理"
+            aria-pressed={versionOpen}
             disabled={!recordId}
             onClick={() => setVersionOpen((open) => !open)}
             className={[
-              "flex min-h-24 cursor-pointer items-center justify-center rounded-md px-2 py-3 text-xs [writing-mode:vertical-rl]",
-              versionOpen ? "bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]" : "text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)]",
-              !recordId ? "cursor-not-allowed opacity-40" : "",
+              "relative flex w-full shrink-0 cursor-pointer flex-col items-center justify-center border-b border-[#e5e7eb] px-0 py-2 text-xs leading-[18px] transition-colors hover:bg-[#f7f9fc] hover:text-[#315efb] disabled:cursor-not-allowed disabled:opacity-40",
+              versionOpen ? "bg-white text-[#315efb]" : "bg-white text-[#7c8796]",
             ].join(" ")}
           >
-            <History size={14} className="mb-2" />版本管理
-          </button>
-        </div>
-        {versionOpen ? (
-          <aside className="flex w-[330px] shrink-0 flex-col border-l border-[var(--yak-components-panel-border)] bg-white">
-            <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3">
-              <span className="text-xs font-semibold">版本管理</span>
-              <Button size="sm" variant="ghost" className="!h-6 !w-6 !p-0" onClick={() => setVersionOpen(false)}><X size={13} /></Button>
-            </div>
-            <div className="min-h-0 flex-1 p-3">
-              <Table<ModelingVersionRecord>
-                columns={[
-                  { key: "versionNumber", title: "版本", width: 70, render: (_value, record) => "V" + record.versionNumber },
-                  { key: "updateTime", title: "提交时间", width: 150, render: (_value, record) => record.updateTime || "-" },
-                  { key: "updateBy", title: "提交人", render: (_value, record) => record.updateBy || "-" },
-                  { key: "actions", title: "操作", width: 72, align: "center", render: (_value, record) => (
-                    <Button size="sm" variant="ghost" className="px-1 text-xs" onClick={() => void rollback(record)}>回滚</Button>
-                  ) },
-                ]}
-                dataSource={versionQuery.data || []}
-                rowKey={(record) => record.id}
-                loading={versionQuery.isFetching}
-                emptyText="暂无已提交版本"
-                pagination={false}
-                size="small"
-                scroll={{ y: "calc(100vh - 220px)" }}
+            {versionOpen ? (
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 z-[1] w-0.5 bg-[#315efb]"
               />
-            </div>
-          </aside>
-        ) : null}
-      </div>
+            ) : null}
+            <History size={14} className="mb-1" />
+            <span className="[writing-mode:vertical-rl] [text-orientation:upright] [word-break:keep-all] whitespace-nowrap tracking-[2px]">
+              版本管理
+            </span>
+          </button>
+        </nav>
+      </aside>
     </div>
   );
 }
