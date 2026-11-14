@@ -1,15 +1,15 @@
 import type { ModelingRecord } from "../../../../service";
-import type { IndicatorTab } from "../../types";
+import type { IndicatorKind, IndicatorTab } from "../../types";
 import { IndicatorEmptyState } from "./indicator-empty-state";
 import { IndicatorTabContent } from "./indicator-tab-content";
 
 type Props = {
   projectCode: string; dwType: string;
   tabs: IndicatorTab[]; activeTabKey: string;
-  onEdit: (kind: import("../../types").IndicatorKind, record: ModelingRecord) => void;
-  onDelete: (kind: import("../../types").IndicatorKind, record: ModelingRecord) => void;
-  onSaved: (kind: import("../../types").IndicatorKind, tabKey: string, record: ModelingRecord) => void;
-  onDraftChange: (kind: import("../../types").IndicatorKind, tabKey: string, values: Record<string, string>) => void;
+  onEdit: (kind: IndicatorKind, record: ModelingRecord) => void;
+  onDelete: (kind: IndicatorKind, record: ModelingRecord) => void;
+  onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
+  onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
 };
 
 export function IndicatorWorkspace({ projectCode, dwType, tabs, activeTabKey, onEdit, onDelete, onSaved, onDraftChange }: Props) {
