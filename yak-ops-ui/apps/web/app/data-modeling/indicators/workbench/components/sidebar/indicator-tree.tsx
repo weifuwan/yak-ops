@@ -8,8 +8,8 @@ function ExpandArrowIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
       viewBox="0 0 1024 1024"
-      width="10"
-      height="10"
+      width="8"
+      height="8"
       aria-hidden="true"
       fill="currentColor"
       className={[
