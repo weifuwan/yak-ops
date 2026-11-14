@@ -8,7 +8,7 @@ import { Save, Send, X } from "lucide-react";
 
 import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey, type ModelingVersionRecord } from "../../../../service";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
-import { fieldOptions, initialFormValues, readFormValue } from "../../utils/indicator-form";
+import { fieldOptions, initialFormValues, readFormValue, selectOptionLabel } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";
 import { IndicatorVersionPanel } from "../panels/indicator-version-panel";
 
@@ -190,6 +190,7 @@ export function IndicatorEditor({
                     const options = fieldOptions(field, optionsByResource);
                     const isSelect = Boolean(field.options || field.optionsSource);
                     const disabled = Boolean(field.readOnly && recordId);
+                    const selectPlaceholder = optionsLoading ? "正在加载选项..." : field.placeholder || ("请选择" + field.label);
                     return (
                       <Field key={field.key} className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-3">
                         <FieldLabel required={field.required} className="pt-1.5 text-xs leading-5 text-[var(--yak-components-muted-text)]">{field.label}</FieldLabel>
@@ -202,7 +203,9 @@ export function IndicatorEditor({
                               onValueChange={(value) => changeValue(field.key, String(value || ""))}
                             >
                               <SelectTrigger variant="outlined" className="w-full">
-                                <SelectValue placeholder={optionsLoading ? "正在加载选项..." : field.placeholder || ("请选择" + field.label)} />
+                                <SelectValue placeholder={selectPlaceholder}>
+                                  {(value) => selectOptionLabel(options, value, selectPlaceholder, optionsLoading ? "正在加载选项..." : "未知选项")}
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {options.map((option) => (
