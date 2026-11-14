@@ -61,7 +61,7 @@ import {
 } from "../service";
 import { PlanningIcon } from "../planning/icons";
 
-type IndicatorKind = "atomIndicator" | "derivativeIndicator" | "composeIndicator" | "modifier" | "timePeriod";
+export type IndicatorKind = "atomIndicator" | "derivativeIndicator" | "composeIndicator" | "modifier" | "timePeriod";
 type IndicatorMode = "create" | "edit" | "list";
 
 type IndicatorFieldOption = { value: string; label: string };
@@ -1410,11 +1410,10 @@ type ContextMenuState = { x: number; y: number; record: ModelingRecord } | null;
 type TabContextMenuState = { tabKey: string; x: number; y: number };
 type PendingTabClose = { keys: string[]; dirtyTitles: string[] };
 
-type DataIndicatorsWorkbenchProps = { projectCode: string; initialTab?: number };
+type DataIndicatorsWorkbenchProps = { projectCode: string; activeKind: IndicatorKind };
 
-export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataIndicatorsWorkbenchProps) {
+export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicatorsWorkbenchProps) {
   const queryClient = useQueryClient();
-  const activeKind: IndicatorKind = initialTab >= 4 ? "timePeriod" : INDICATOR_DEFINITIONS[initialTab]?.key || "atomIndicator";
   const [groupBy, setGroupBy] = useState<"BUSINESS_TYPE" | "DATA_DOMAIN">("BUSINESS_TYPE");
   const [dwType, setDwType] = useState("PUBLIC_LAYER");
   const [treeKeyword, setTreeKeyword] = useState("");
