@@ -119,8 +119,6 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
           />
           <IndicatorWorkspace
             projectCode={projectCode}
-            activeKind={activeKind}
-            definition={definition}
             dwType={tree.dwType}
             tabs={tabs.tabs}
             activeTabKey={tabs.activeTabKey}
@@ -128,7 +126,6 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
             onDelete={(kind, record) => setPendingDelete({ kind, record })}
             onSaved={tabs.onSaved}
             onDraftChange={tabs.onDraftChange}
-            onCreate={() => tabs.openTab(activeKind, "create")}
           />
         </main>
       </div>
