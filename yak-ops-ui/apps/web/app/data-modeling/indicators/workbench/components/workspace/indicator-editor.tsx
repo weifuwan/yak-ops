@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Button, Field, FieldLabel, Input, Select, SelectContent, SelectItem, SelectItemIndicator,
+  Alert, Button, Field, FieldLabel, Input, Select, SelectContent, SelectItem, SelectItemIndicator,
   SelectItemText, SelectTrigger, SelectValue, Textarea, toast,
 } from "@yak-ops/yak-ui";
-import { CircleDot, Save, Send } from "lucide-react";
+import { Save, Send, X } from "lucide-react";
 
 import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey, type ModelingVersionRecord } from "../../../../service";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
@@ -39,6 +39,7 @@ export function IndicatorEditor({
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
   const [versionPanelWidth, setVersionPanelWidth] = useState(340);
   const recordId = tab.recordId || (tab.record?.id ? String(tab.record.id) : "");
@@ -47,6 +48,7 @@ export function IndicatorEditor({
     setValues(tab.draftValues || initialFormValues(definition.key, tab.record, definition.fields));
     setDirty(Boolean(tab.dirty));
     setError("");
+    setNoticeDismissed(false);
   }, [tab.key, tab.record, definition]);
 
   const versionQuery = useQuery<ModelingVersionRecord[]>({
@@ -59,6 +61,7 @@ export function IndicatorEditor({
     const nextValues = { ...values, [key]: value };
     setValues(nextValues);
     setDirty(true);
+    setNoticeDismissed(false);
     onDraftChange(tab.kind, tab.key, nextValues);
     setError("");
   };
@@ -91,6 +94,7 @@ export function IndicatorEditor({
       onSaved(tab.kind, tab.key, saved);
       setDirty(false);
       setError("");
+      setNoticeDismissed(false);
       toast.success(definition.title + "已保存");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "indicator-versions", projectCode, definition.key] });
     } catch {
@@ -106,6 +110,7 @@ export function IndicatorEditor({
     try {
       const submitted = await modelingEntityApi.submit(projectCode, definition.key, recordId);
       onSaved(tab.kind, tab.key, submitted);
+      setNoticeDismissed(false);
       toast.success("已提交，版本快照已保存");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "indicator-versions", projectCode, definition.key, recordId] });
     } catch {
@@ -122,6 +127,7 @@ export function IndicatorEditor({
       onSaved(tab.kind, tab.key, restored);
       setValues(Object.fromEntries(definition.fields.map((field) => [field.key, readFormValue(restored, field.key)])));
       setDirty(false);
+      setNoticeDismissed(false);
       setVersionOpen(false);
       toast.success("已回滚到 V" + version.versionNumber);
     } catch {
@@ -132,6 +138,10 @@ export function IndicatorEditor({
   const sectionNames = Array.from(new Set(definition.fields.map((field) => field.section || "基本信息")));
   const currentVersion = tab.record?.currentVersion ? "V" + String(tab.record.currentVersion) : "暂无";
   const isSubmitted = tab.record?.submit === true || tab.record?.submit === "true";
+  const showNotice = dirty || Boolean(recordId && !isSubmitted);
+  const noticeMessage = dirty
+    ? "当前存在未保存的变更，请及时保存。"
+    : "当前存在未提交的内容，保存后可点击上方“提交”生成最新版本。";
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 bg-white">
@@ -153,17 +163,22 @@ export function IndicatorEditor({
           </div>
         </div>
 
+        {showNotice && !noticeDismissed ? (
+          <Alert pop className="shrink-0 rounded-none px-4 py-1.5">
+            <span>{noticeMessage}</span>
+            <button
+              type="button"
+              aria-label="关闭提示"
+              className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-[var(--yak-components-muted-text)] transition-colors hover:bg-black/5 hover:text-[var(--yak-components-panel-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)]"
+              onClick={() => setNoticeDismissed(true)}
+            >
+              <X size={12} />
+            </button>
+          </Alert>
+        ) : null}
+
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
           <div className="w-full space-y-4">
-            {dirty ? (
-              <div className="flex items-center gap-2 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
-                <CircleDot size={13} />当前存在未保存的变更，请及时保存。
-              </div>
-            ) : recordId && !isSubmitted ? (
-              <div className="flex items-center gap-2 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
-                <CircleDot size={13} />当前存在未提交的内容，保存后可点击上方“提交”生成最新版本。
-              </div>
-            ) : null}
             {sectionNames.map((section) => (
               <section key={section} className="bg-white p-4">
                 <div className="mb-3 flex items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-2">
