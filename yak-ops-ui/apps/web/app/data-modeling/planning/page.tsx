@@ -100,6 +100,7 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
   const { currentWorkspace } = useWorkspace();
   const activeDefinition = DEFINITIONS.find((item) => item.key === definitionKey) ?? DEFINITIONS[0];
   const usesFullHeightWorkspace = [
+    "dwLayer",
     "businessType",
     "dataDomain",
     "businessProcess",
@@ -109,14 +110,14 @@ export function DataModelingPlanningPage({ definitionKey }: DataModelingPlanning
 
   return (
     <div className={`flex ${usesFullHeightWorkspace ? "h-full min-h-0" : "min-h-full"} flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]`}>
-      {definitionKey !== "businessType" && definitionKey !== "dataDomain" && definitionKey !== "businessProcess" && definitionKey !== "dataMart" && definitionKey !== "subjectDomain" ? (
+      {!usesFullHeightWorkspace ? (
         <PageHeader
           title={activeDefinition.title}
           bordered
           className="bg-white px-6 max-md:px-4"
         />
       ) : null}
-      <div className={definitionKey === "businessType" || definitionKey === "dataDomain" || definitionKey === "businessProcess" || definitionKey === "dataMart" || definitionKey === "subjectDomain"
+      <div className={usesFullHeightWorkspace
         ? "flex min-h-0 flex-1 flex-col"
         : "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-5 max-md:px-4"}>
         {currentWorkspace ? (

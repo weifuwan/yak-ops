@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Layers3, LoaderCircle, Plus, RefreshCw, Search } from "lucide-react";
-import { Button, Input, Modal, Segmented, toast } from "@yak-ops/yak-ui";
+import { Layers3, LoaderCircle, Plus } from "lucide-react";
+import { Button, Modal, PageHeader, toast } from "@yak-ops/yak-ui";
 
 import { modelingEntityApi } from "../../service";
 import DwLayerCard from "./dw-layer-card";
@@ -9,7 +9,6 @@ import DwLayerDetail from "./dw-layer-detail";
 import DwLayerFormDialog from "./dw-layer-form-dialog";
 import {
   DW_LAYER_TYPES,
-  getDwTypeLabel,
   getEnumCode,
   type DwLayerFormValues,
   type DwLayerRecord,
@@ -19,10 +18,16 @@ interface DataModelingDwLayerPageProps {
   projectCode: string;
 }
 
+const LAYER_DISPLAY_ORDER: Record<string, number> = {
+  ODS: 0,
+  DIM: 1,
+  DWS: 2,
+  DWD: 3,
+  ADS: 4,
+};
+
 export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPageProps) {
   const queryClient = useQueryClient();
-  const [keyword, setKeyword] = useState("");
-  const [viewMode, setViewMode] = useState<"layer" | "flat">("layer");
   const [selectedId, setSelectedId] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<DwLayerRecord>();
@@ -45,37 +50,35 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
   });
 
   const records = listQuery.data || [];
-  const filteredRecords = useMemo(() => {
-    const value = keyword.trim().toLocaleLowerCase();
-    if (!value) return records;
-    return records.filter((record) => [
-      record.cnName,
-      record.enShortName,
-      record.enName,
-      record.director,
-      record.remark,
-      getDwTypeLabel(record.dwType, record.dwTypeName),
-    ].some((item) => String(item || "").toLocaleLowerCase().includes(value)));
-  }, [keyword, records]);
-
   const groups = useMemo(() => {
     const knownGroups = DW_LAYER_TYPES.map((type) => ({
       ...type,
-      records: filteredRecords.filter((record) => getEnumCode(record.dwType) === type.value),
+      label: type.value === "NONE_LAYER" ? "其他" : type.label,
+      records: records
+        .filter((record) => getEnumCode(record.dwType) === type.value)
+        .sort((left, right) =>
+          (LAYER_DISPLAY_ORDER[left.enShortName || ""] ?? 99)
+          - (LAYER_DISPLAY_ORDER[right.enShortName || ""] ?? 99),
+        ),
     })).filter((group) => group.records.length > 0);
 
     const knownCodes = new Set(DW_LAYER_TYPES.map((type) => type.value));
-    const otherRecords = filteredRecords.filter((record) => !knownCodes.has(getEnumCode(record.dwType)));
+    const otherRecords = records.filter((record) => !knownCodes.has(getEnumCode(record.dwType)));
     if (otherRecords.length > 0) {
-      knownGroups.push({
-        value: "OTHER_LAYER",
-        label: "其他",
-        modelKeys: [],
-        records: otherRecords,
-      });
+      const otherGroup = knownGroups.find((group) => group.value === "NONE_LAYER");
+      if (otherGroup) {
+        otherGroup.records.push(...otherRecords);
+      } else {
+        knownGroups.push({
+          value: "OTHER_LAYER",
+          label: "其他",
+          modelKeys: [],
+          records: otherRecords,
+        });
+      }
     }
     return knownGroups;
-  }, [filteredRecords]);
+  }, [records]);
 
   const openCreate = () => {
     setEditing(undefined);
@@ -151,7 +154,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#f5f6f8]">
       {selectedId ? (
         <DwLayerDetail
           record={detailQuery.data}
@@ -162,97 +165,54 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
           onRetry={() => void detailQuery.refetch()}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col bg-[#f2f3f5] px-6 py-4">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <>
+          <PageHeader
+            title="数仓分层"
+            description="按数据处理链路组织标准数仓分层，统一管理各层的模型类型与负责人。"
+            bordered
+            className="shrink-0 bg-white px-6 max-md:px-4"
+            extra={
               <Button size="sm" variant="primary" onClick={openCreate}>
                 <Plus size={14} />
                 新建分层
               </Button>
-              <div className="relative w-[260px] max-w-full">
-                <Search
-                  size={14}
-                  className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
-                />
-                <Input
-                  size="small"
-                  variant="outlined"
-                  value={keyword}
-                  className="pl-8"
-                  placeholder="搜索分层名称、英文缩写或负责人"
-                  onChange={(event) => setKeyword(event.target.value)}
-                />
-              </div>
-            </div>
+            }
+          />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                isDisabled={listQuery.isFetching}
-                onClick={() => void listQuery.refetch()}
-              >
-                <RefreshCw size={13} className={listQuery.isFetching ? "animate-spin" : ""} />
-                刷新
-              </Button>
-              <Segmented
-                value={viewMode}
-                options={[
-                  { value: "layer", label: "层级结构展示" },
-                  { value: "flat", label: "平铺展示" },
-                ]}
-                onValueChange={setViewMode}
-              />
-            </div>
-          </div>
-
-          {listQuery.isError ? (
-            <div
-              role="alert"
-              className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800"
-            >
-              <span>数仓分层加载失败，请检查建模服务或当前工作空间权限。</span>
-              <Button size="sm" variant="secondary" onClick={() => void listQuery.refetch()}>
-                重试
-              </Button>
-            </div>
-          ) : null}
-
-          <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
+          <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4 max-md:px-4">
             {listQuery.isPending ? (
               <div className="flex min-h-[220px] items-center justify-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
                 <LoaderCircle size={15} className="animate-spin" />
                 正在加载数仓分层...
               </div>
-            ) : listQuery.isError ? null : filteredRecords.length === 0 ? (
-              <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
-                <Layers3 size={24} strokeWidth={1.4} />
-                <span>{keyword ? "没有找到匹配的分层" : "暂无数仓分层，点击“新建分层”开始配置"}</span>
+            ) : listQuery.isError ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-xs text-[var(--yak-components-muted-text)]">
+                <span>数仓分层加载失败，请检查建模服务或当前工作空间权限。</span>
+                <Button size="sm" variant="secondary" onClick={() => void listQuery.refetch()}>
+                  重试
+                </Button>
               </div>
-            ) : viewMode === "flat" ? (
-              <div className="mt-4 grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 min-[992px]:grid-cols-3 min-[1200px]:grid-cols-4 min-[1600px]:grid-cols-6">
-                {filteredRecords.map((record) => (
-                  <DwLayerCard
-                    key={record.id}
-                    record={record}
-                    opening={openingId === record.id}
-                    onOpen={(item) => setSelectedId(item.id || "")}
-                    onEdit={openEdit}
-                    onDelete={setPendingDelete}
-                  />
-                ))}
+            ) : groups.length === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
+                <Layers3 size={26} strokeWidth={1.4} />
+                <span>暂无数仓分层，点击右上角“新建分层”开始配置</span>
               </div>
             ) : (
-              <div className="space-y-0 pb-2">
+              <div className="space-y-1 pb-2">
                 {groups.map((group) => (
                   <section key={group.value}>
-                    <div className="my-4 flex h-6 items-center">
-                      <span className="h-5 w-1 shrink-0 bg-[#5664ff]" />
-                      <h3 className="min-w-0 px-2 text-sm font-normal leading-6 text-black">
-                        {group.label}
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 min-[992px]:grid-cols-3 min-[1200px]:grid-cols-4 min-[1600px]:grid-cols-6">
+                    {group.value !== "SOURCE_LAYER" ? (
+                      <div className="mb-3 mt-5 flex h-6 items-center">
+                        <span className="h-5 w-1 shrink-0 bg-[var(--yak-color-primary)]" />
+                        <h2 className="min-w-0 px-2 text-sm font-medium leading-6 text-[var(--yak-components-panel-text)]">
+                          {group.label}
+                        </h2>
+                      </div>
+                    ) : null}
+                    <div
+                      className="grid gap-5"
+                      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 240px))" }}
+                    >
                       {group.records.map((record) => (
                         <DwLayerCard
                           key={record.id}
@@ -268,8 +228,8 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 ))}
               </div>
             )}
-          </div>
-        </div>
+          </main>
+        </>
       )}
 
       <DwLayerFormDialog

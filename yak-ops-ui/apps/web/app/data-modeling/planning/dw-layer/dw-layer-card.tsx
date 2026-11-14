@@ -23,9 +23,9 @@ export function DwLayerCard({
 }: DwLayerCardProps) {
   return (
     <Card
-      className="flex h-full flex-col shadow-[0_2px_8px_#0000000d] transition-shadow duration-150 hover:shadow-[0px_5px_5px_0px_rgba(0,0,0,0.2)]"
+      className="flex h-full flex-col shadow-[0_1px_4px_#0000000d] transition-shadow duration-150 hover:shadow-[0_3px_8px_#00000014]"
       style={{
-        minHeight: 200,
+        minHeight: 184,
         boxSizing: "border-box",
         border: "1px solid rgba(0, 0, 0, 0.1)",
         borderRadius: 6,
