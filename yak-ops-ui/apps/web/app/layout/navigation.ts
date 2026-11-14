@@ -18,12 +18,14 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import type { PlanningIconName } from "../data-modeling/planning/icons";
 
 export type ProductNavigationItem = {
   id?: string;
   label: string;
   path?: string;
   icon?: LucideIcon;
+  svgIcon?: PlanningIconName;
   groupLabel?: string;
   end?: boolean;
   children?: ProductNavigationItem[];
@@ -95,14 +97,14 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
         id: "business-type",
         label: "业务分类",
         path: "/data-modeling/planning/business-type",
-        icon: LayoutGrid,
+        svgIcon: "business-type",
         end: true,
       },
       {
         id: "dw-layer",
         label: "数仓分层",
         path: "/data-modeling/planning/dw-layer",
-        icon: Layers,
+        svgIcon: "dw-layer",
         end: true,
       },
       {
@@ -114,12 +116,14 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
             id: "data-domain",
             label: "数据域",
             path: "/data-modeling/planning/common-layer/data-domain",
+            svgIcon: "data-domain",
             end: true,
           },
           {
             id: "business-process",
             label: "业务过程",
             path: "/data-modeling/planning/common-layer/business-process",
+            svgIcon: "business-process",
             end: true,
           },
         ],
@@ -133,12 +137,14 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
             id: "data-mart",
             label: "数据集市",
             path: "/data-modeling/planning/application-layer/data-market",
+            svgIcon: "data-mart",
             end: true,
           },
           {
             id: "subject-domain",
             label: "主题域",
             path: "/data-modeling/planning/application-layer/subject-domain",
+            svgIcon: "subject-domain",
             end: true,
           },
         ],

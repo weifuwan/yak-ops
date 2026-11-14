@@ -1,14 +1,13 @@
+import type { ReactNode } from "react";
 import {
   ArrowRight,
   BookOpen,
   Boxes,
   ChartNoAxesCombined,
   Layers,
-  Network,
   RefreshCw,
   Table2,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Card, CardContent, PageHeader } from "@yak-ops/yak-ui";
 import { Link } from "react-router-dom";
@@ -16,40 +15,41 @@ import { Link } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { getModelingBootstrap } from "../service";
+import { PlanningIcon } from "../planning/icons";
 
 const MODELING_SECTIONS: Array<{
   title: string;
   description: string;
   path: string;
-  icon: LucideIcon;
+  icon: ReactNode;
   capabilities: string[];
 }> = [
   {
     title: "数仓规划",
     description: "建立统一的业务分类、数仓分层和主题组织体系。",
     path: "/data-modeling/planning/business-type",
-    icon: Network,
+    icon: <PlanningIcon name="dw-layer" size={18} />,
     capabilities: ["业务分类", "数仓分层", "数据域", "业务过程", "数据集市", "主题域"],
   },
   {
     title: "维度建模",
     description: "管理维度建模与逆向建模，逐步完善模型设计能力。",
     path: "/data-modeling/models/positive",
-    icon: Table2,
+    icon: <Table2 size={18} strokeWidth={1.8} />,
     capabilities: ["维度建模", "逆向建模", "字段设计", "分区配置", "版本管理"],
   },
   {
     title: "数据标准",
     description: "统一字段标准、标准代码、度量单位和命名词典。",
     path: "/data-modeling/standards/fields",
-    icon: BookOpen,
+    icon: <BookOpen size={18} strokeWidth={1.8} />,
     capabilities: ["字段标准", "标准代码", "度量单位", "命名词典"],
   },
   {
     title: "数据指标",
     description: "沉淀可复用的原子指标、派生指标和复合指标。",
     path: "/data-modeling/indicators/compose",
-    icon: ChartNoAxesCombined,
+    icon: <ChartNoAxesCombined size={18} strokeWidth={1.8} />,
     capabilities: ["原子指标", "派生指标", "复合指标", "修饰词", "时间周期"],
   },
 ];
@@ -112,8 +112,6 @@ export function DataModelingOverviewPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {MODELING_SECTIONS.map((section) => {
-            const Icon = section.icon;
-            return (
               <Link
                 key={section.path}
                 to={section.path}
@@ -124,7 +122,7 @@ export function DataModelingOverviewPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]">
-                          <Icon size={18} strokeWidth={1.8} />
+                          {section.icon}
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-semibold">{section.title}</div>
