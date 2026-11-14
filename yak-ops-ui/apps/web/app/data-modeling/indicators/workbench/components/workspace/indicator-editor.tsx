@@ -164,7 +164,7 @@ export function IndicatorEditor({
         </div>
 
         {showNotice && !noticeDismissed ? (
-          <Alert pop className="shrink-0 rounded-none px-4 py-1.5">
+          <Alert className="shrink-0 rounded-none px-4 py-1.5">
             <span>{noticeMessage}</span>
             <button
               type="button"
