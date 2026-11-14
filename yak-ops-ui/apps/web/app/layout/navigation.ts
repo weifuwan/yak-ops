@@ -30,6 +30,15 @@ export type ProductNavigationItem = {
   children?: ProductNavigationItem[];
 };
 
+export type ProductModuleNavigationItem = {
+  id: string;
+  label: string;
+  path: string;
+  matchPath: string;
+  exact?: boolean;
+  navigation: ProductNavigationItem[];
+};
+
 type GlobalProductMenuItem = {
   id: string;
   label: string;
@@ -68,34 +77,39 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
   },
 ];
 
-export const DATA_MODELING_NAVIGATION: ProductNavigationItem[] = [
+export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
   {
-    id: "modeling-overview",
-    label: "建模总览",
+    id: "modeling-home",
+    label: "首页",
     path: "/data-modeling",
-    icon: LayoutDashboard,
-    end: true,
+    matchPath: "/data-modeling",
+    exact: true,
+    navigation: [],
   },
   {
     id: "dw-planning",
     label: "数仓规划",
-    icon: Network,
-    children: [
+    path: "/data-modeling/planning/business-type",
+    matchPath: "/data-modeling/planning",
+    navigation: [
       {
         id: "business-type",
         label: "业务分类",
         path: "/data-modeling/planning/business-type",
+        icon: LayoutGrid,
         end: true,
       },
       {
         id: "dw-layer",
         label: "数仓分层",
         path: "/data-modeling/planning/dw-layer",
+        icon: Layers,
         end: true,
       },
       {
         id: "common-layer",
         label: "公共层",
+        icon: Database,
         children: [
           {
             id: "data-domain",
@@ -114,6 +128,7 @@ export const DATA_MODELING_NAVIGATION: ProductNavigationItem[] = [
       {
         id: "application-layer",
         label: "应用层",
+        icon: Boxes,
         children: [
           {
             id: "data-mart",
@@ -132,33 +147,16 @@ export const DATA_MODELING_NAVIGATION: ProductNavigationItem[] = [
     ],
   },
   {
-    id: "dimension-modeling",
-    label: "维度建模",
-    icon: Table2,
-    children: [
-      {
-        id: "dimension-modeling-positive",
-        label: "维度建模",
-        path: "/data-modeling/models/positive",
-        end: true,
-      },
-      {
-        id: "dimension-modeling-reverse",
-        label: "逆向建模",
-        path: "/data-modeling/models/reverse",
-        end: true,
-      },
-    ],
-  },
-  {
     id: "data-standards",
     label: "数据标准",
-    icon: BookOpen,
-    children: [
+    path: "/data-modeling/standards/fields",
+    matchPath: "/data-modeling/standards",
+    navigation: [
       {
         id: "field-standard",
         label: "字段标准",
         path: "/data-modeling/standards/fields",
+        icon: BookOpen,
         end: true,
       },
       {
@@ -182,14 +180,37 @@ export const DATA_MODELING_NAVIGATION: ProductNavigationItem[] = [
     ],
   },
   {
+    id: "dimension-modeling",
+    label: "维度建模",
+    path: "/data-modeling/models/positive",
+    matchPath: "/data-modeling/models",
+    navigation: [
+      {
+        id: "dimension-modeling-positive",
+        label: "维度建模",
+        path: "/data-modeling/models/positive",
+        icon: Table2,
+        end: true,
+      },
+      {
+        id: "dimension-modeling-reverse",
+        label: "逆向建模",
+        path: "/data-modeling/models/reverse",
+        end: true,
+      },
+    ],
+  },
+  {
     id: "data-indicators",
     label: "数据指标",
-    icon: ChartNoAxesCombined,
-    children: [
+    path: "/data-modeling/indicators/atom",
+    matchPath: "/data-modeling/indicators",
+    navigation: [
       {
         id: "composite-indicator",
         label: "复合指标",
         path: "/data-modeling/indicators/compose",
+        icon: ChartNoAxesCombined,
         end: true,
       },
       {

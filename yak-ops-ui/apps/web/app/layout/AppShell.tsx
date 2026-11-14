@@ -9,15 +9,20 @@ import "./app-layout.css";
 
 import ProductLauncher from "./ProductLauncher";
 import TopBar from "./TopBar";
+import type { ProductModuleNavigationItem } from "./navigation";
 
 type AppShellProps = PropsWithChildren<{
   productLabel: string;
   productPath: string;
+  moduleNavigation?: ProductModuleNavigationItem[];
+  activeModuleId?: string;
 }>;
 
 export default function AppShell({
   productLabel,
   productPath,
+  moduleNavigation,
+  activeModuleId,
   children,
 }: AppShellProps) {
   const location = useLocation();
@@ -45,6 +50,8 @@ export default function AppShell({
         onToggleLauncher={() => setLauncherOpen((open) => !open)}
         productLabel={productLabel}
         productPath={productPath}
+        moduleNavigation={moduleNavigation}
+        activeModuleId={activeModuleId}
       />
 
       <div className="flex min-h-0 flex-1">{children}</div>

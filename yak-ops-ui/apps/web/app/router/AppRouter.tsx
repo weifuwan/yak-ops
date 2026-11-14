@@ -35,7 +35,7 @@ import AppLayout from "../layout/AppLayout";
 import {
   DATA_INTEGRATION_NAVIGATION,
   DATA_INTEGRATION_PRODUCT_LABEL,
-  DATA_MODELING_NAVIGATION,
+  DATA_MODELING_MODULE_NAVIGATION,
   DATA_MODELING_PRODUCT_LABEL,
   MANAGEMENT_NAVIGATION,
   MANAGEMENT_PRODUCT_LABEL,
@@ -168,7 +168,7 @@ export default function AppRouter() {
               <AppLayout
                 productLabel={DATA_MODELING_PRODUCT_LABEL}
                 productPath="/data-modeling"
-                navigation={DATA_MODELING_NAVIGATION}
+                moduleNavigation={DATA_MODELING_MODULE_NAVIGATION}
               />
             }
           >

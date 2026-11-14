@@ -1,6 +1,8 @@
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import type { ProductModuleNavigationItem } from "./navigation";
+
 import AccountMenu from "./account-menu";
 import WorkspaceSwitcher from "./workspace-switcher";
 
@@ -9,6 +11,8 @@ type TopBarProps = {
   onToggleLauncher: () => void;
   productLabel: string;
   productPath: string;
+  moduleNavigation?: ProductModuleNavigationItem[];
+  activeModuleId?: string;
 };
 
 /** The header composes product navigation and account actions. */
@@ -17,6 +21,8 @@ export default function TopBar({
   onToggleLauncher,
   productLabel,
   productPath,
+  moduleNavigation,
+  activeModuleId,
 }: TopBarProps) {
   return (
     <header className="relative z-50 flex h-10 shrink-0 items-center bg-[#14171a] text-white">
@@ -46,14 +52,50 @@ export default function TopBar({
             className="h-6 w-auto select-none object-contain brightness-0 invert"
           />
         </Link>
+        {moduleNavigation?.length ? (
+          <span className="truncate text-xs font-semibold text-white/90">{productLabel}</span>
+        ) : null}
       </div>
-      <div className="flex min-w-0 flex-1 items-center justify-between px-4">
-        <span className="truncate text-xs font-semibold text-white/90">{productLabel}</span>
-        <div className="flex min-w-0 items-center gap-3">
-          <WorkspaceSwitcher />
-          <AccountMenu />
+
+      {moduleNavigation?.length ? (
+        <>
+          <nav
+            aria-label="数据建模模块"
+            className="flex h-full min-w-0 flex-1 items-center gap-0 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {moduleNavigation.map((item) => {
+              const active = item.id === activeModuleId;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  aria-current={active ? "page" : undefined}
+                  className={[
+                    "relative flex h-full shrink-0 items-center px-3 text-xs font-medium transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/25",
+                    active
+                      ? "bg-white/10 text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-[#fe2c55]"
+                      : "text-white/65",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="flex shrink-0 items-center gap-3 px-3">
+            <WorkspaceSwitcher />
+            <AccountMenu />
+          </div>
+        </>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center justify-between px-4">
+          <span className="truncate text-xs font-semibold text-white/90">{productLabel}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <WorkspaceSwitcher />
+            <AccountMenu />
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
