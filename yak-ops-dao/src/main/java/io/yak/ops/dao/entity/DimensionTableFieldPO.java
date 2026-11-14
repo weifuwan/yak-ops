@@ -17,7 +17,7 @@ public class DimensionTableFieldPO extends ModelingBasePO {
     private String cnName;
     private DimensionDataTypeEnum dataType;
     private Integer length;
-    @TableField("precision")
+    @TableField("field_precision")
     private Integer precision;
     private String remark;
     private Boolean primaryFlag;

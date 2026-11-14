@@ -640,7 +640,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .set("cn_name", po.getCnName())
                 .set("data_type", po.getDataType())
                 .set("length", po.getLength())
-                .set("precision", po.getPrecision())
+                .set("field_precision", po.getPrecision())
                 .set("remark", po.getRemark())
                 .set("primary_flag", po.getPrimaryFlag())
                 .set("can_null", po.getCanNull())

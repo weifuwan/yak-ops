@@ -64,7 +64,7 @@ The module owns three complete, additive schema scripts:
 - `sql/modeling_postgresql.sql`
 - `sql/modeling_h2.sql`
 
-Each script defines the same 22 tables and 54 indexes, with the same logical column set. Table names, table comments and index names are aligned across dialects. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
+Each script defines the same 22 tables and 55 indexes, with the same logical column set. Table names, table comments and index names are aligned across dialects. All table and index DDL is kept before the initialization DML. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
 
 Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for former `t_cockpit_` table names. When only a legacy table exists, it renames it in place and normalizes its index names, preserving rows. If both old and new table names exist, initialization stops and requires explicit data reconciliation. It never drops or merges either table automatically.
 
