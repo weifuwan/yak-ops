@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layers3, LoaderCircle, Plus } from "lucide-react";
-import { Button, Modal, PageHeader, Segmented, toast } from "@yak-ops/yak-ui";
+import { Button, Modal, PageHeader, Radio, RadioGroup, toast } from "@yak-ops/yak-ui";
 
 import { modelingEntityApi } from "../../service";
 import DwLayerCard from "./dw-layer-card";
@@ -192,13 +192,26 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
                 <Plus size={14} />
                 新建分层
               </Button>
-              <Segmented
+              <RadioGroup
                 aria-label="数仓分层展示方式"
                 value={viewMode}
-                onValueChange={setViewMode}
-                options={DW_LAYER_DISPLAY_OPTIONS}
-                className="h-8 items-center rounded-md p-0.5"
-              />
+                onValueChange={(value) => setViewMode(value as DwLayerDisplayMode)}
+                className="flex items-center gap-4"
+              >
+                {DW_LAYER_DISPLAY_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    htmlFor={`dw-layer-view-${option.value}`}
+                    className="inline-flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-panel-text)]"
+                  >
+                    <Radio
+                      id={`dw-layer-view-${option.value}`}
+                      value={option.value}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </RadioGroup>
             </div>
 
             {listQuery.isPending ? (
