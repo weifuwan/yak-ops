@@ -1,6 +1,4 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { ChevronRight } from "lucide-react";
-
 import { PlanningIcon } from "../../../../planning/icons";
 import type { ModelingRecord } from "../../../../service";
 import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
@@ -10,12 +8,26 @@ function ExpandDownIcon() {
   return (
     <svg
       viewBox="0 0 1024 1024"
-      width="12"
-      height="12"
+      width="10"
+      height="10"
       aria-hidden="true"
       fill="currentColor"
     >
       <path d="M511.96 766.27L67 257.73h890L511.96 766.27z" />
+    </svg>
+  );
+}
+
+function ExpandRightIcon() {
+  return (
+    <svg
+      viewBox="0 0 1024 1024"
+      width="10"
+      height="10"
+      aria-hidden="true"
+      fill="currentColor"
+    >
+      <path d="M215.578947 0v1024l592.842106-512L215.578947 0z" />
     </svg>
   );
 }
@@ -84,7 +96,7 @@ export function IndicatorTreeRows({
             >
               <span className="flex size-4 shrink-0 items-center justify-center text-[var(--yak-components-muted-text)]">
                 {node.kind === "group" && hasChildren
-                  ? expanded ? <ExpandDownIcon /> : <ChevronRight size={12} />
+                  ? expanded ? <ExpandDownIcon /> : <ExpandRightIcon />
                   : null}
               </span>
               {node.nodeType === "root" ? (
