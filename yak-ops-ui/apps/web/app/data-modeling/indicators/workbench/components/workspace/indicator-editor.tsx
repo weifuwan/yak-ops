@@ -22,7 +22,7 @@ type IndicatorEditorProps = {
   onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
 };
 
-function IndicatorEditor({
+export function IndicatorEditor({
   projectCode,
   definition,
   tab,
