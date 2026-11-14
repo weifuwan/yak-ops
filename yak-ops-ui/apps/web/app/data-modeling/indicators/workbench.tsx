@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Field,
   FieldLabel,
   Input,
@@ -20,6 +30,8 @@ import {
   type TableColumns,
 } from "@yak-ops/yak-ui";
 import {
+  ArrowLeftToLine,
+  ArrowRightToLine,
   CalendarDays,
   ChartNoAxesCombined,
   ChevronDown,
@@ -29,7 +41,7 @@ import {
   Folder,
   History,
   List,
-  MoreHorizontal,
+  Ellipsis,
   Plus,
   RefreshCw,
   Save,
@@ -37,6 +49,7 @@ import {
   Send,
   Trash2,
   X,
+  XCircle,
 } from "lucide-react";
 
 import {
@@ -1394,6 +1407,8 @@ function IndicatorTabContent({
 
 type DeleteTarget = { kind: IndicatorKind; record: ModelingRecord };
 type ContextMenuState = { x: number; y: number; record: ModelingRecord } | null;
+type TabContextMenuState = { tabKey: string; x: number; y: number };
+type PendingTabClose = { keys: string[]; dirtyTitles: string[] };
 
 type DataIndicatorsWorkbenchProps = { projectCode: string; initialTab?: number };
 
@@ -1407,13 +1422,21 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataInd
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
   const [tabs, setTabs] = useState<IndicatorTab[]>([]);
   const [activeTabKey, setActiveTabKey] = useState("");
-  const [showTabActions, setShowTabActions] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+  const [tabContextMenu, setTabContextMenu] = useState<TabContextMenuState | null>(null);
+  const [contextMenuPortalRoot, setContextMenuPortalRoot] = useState<HTMLElement | null>(null);
+  const [pendingClose, setPendingClose] = useState<PendingTabClose | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DeleteTarget | null>(null);
   const [openingId, setOpeningId] = useState("");
 
   const definition = getDefinition(activeKind);
   const activeTab = tabs.find((tab) => tab.key === activeTabKey) || null;
+  const contextTab = tabs.find((tab) => tab.key === tabContextMenu?.tabKey) || null;
+  const contextTabIndex = contextTab ? tabs.findIndex((tab) => tab.key === contextTab.key) : -1;
+
+  useEffect(() => {
+    setContextMenuPortalRoot(document.body);
+  }, []);
 
   const treeQuery = useQuery<IndicatorTreeNode[]>({
     queryKey: ["modeling", "indicator-tree", projectCode, activeKind, groupBy, activeKind === "atomIndicator" ? dwType : "all"],
@@ -1538,27 +1561,48 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataInd
     }
   };
 
-  const closeTab = (key: string) => {
-    const index = tabs.findIndex((tab) => tab.key === key);
-    const nextTabs = tabs.filter((tab) => tab.key !== key);
+  const closeTabKeys = (keys: string[]) => {
+    const closingKeys = new Set(keys);
+    if (!closingKeys.size) return;
+    const closingIndex = tabs.findIndex((tab) => closingKeys.has(tab.key));
+    if (closingIndex < 0) return;
+    const nextTabs = tabs.filter((tab) => !closingKeys.has(tab.key));
     setTabs(nextTabs);
-    if (activeTabKey === key) {
-      setActiveTabKey(nextTabs[Math.max(0, index - 1)]?.key || nextTabs[0]?.key || "");
+    if (activeTabKey && closingKeys.has(activeTabKey)) {
+      setActiveTabKey(nextTabs[Math.min(closingIndex, nextTabs.length - 1)]?.key || "");
     }
   };
 
-  const closeTabs = (action: "closeCurrent" | "closeLeft" | "closeRight" | "closeAll") => {
-    const index = tabs.findIndex((tab) => tab.key === activeTabKey);
-    let nextTabs = [...tabs];
-    if (action === "closeRight") nextTabs = nextTabs.slice(0, index + 1);
-    if (action === "closeLeft") nextTabs = nextTabs.slice(index);
-    if (action === "closeAll") nextTabs = [];
-    if (action === "closeCurrent") nextTabs = nextTabs.filter((tab) => tab.key !== activeTabKey);
-    setTabs(nextTabs);
-    if (!nextTabs.some((tab) => tab.key === activeTabKey)) {
-      setActiveTabKey(nextTabs[Math.max(0, index - 1)]?.key || nextTabs[0]?.key || "");
+  const requestCloseTabs = (keys: string[]) => {
+    const closingKeys = Array.from(new Set(keys));
+    if (!closingKeys.length) return;
+    const dirtyTitles = tabs
+      .filter((tab) => closingKeys.includes(tab.key) && tab.dirty)
+      .map((tab) => tab.label);
+    if (dirtyTitles.length) {
+      setPendingClose({ keys: closingKeys, dirtyTitles });
+      return;
     }
-    setShowTabActions(false);
+    closeTabKeys(closingKeys);
+  };
+
+  const getTabKeysToClose = (
+    anchorKey: string,
+    action: "current" | "other" | "left" | "right" | "all",
+  ) => {
+    const index = tabs.findIndex((tab) => tab.key === anchorKey);
+    if (action === "all") return tabs.map((tab) => tab.key);
+    if (index < 0) return [];
+    if (action === "current") return [anchorKey];
+    if (action === "other") return tabs.filter((tab) => tab.key !== anchorKey).map((tab) => tab.key);
+    if (action === "left") return tabs.slice(0, index).map((tab) => tab.key);
+    return tabs.slice(index + 1).map((tab) => tab.key);
+  };
+
+  const confirmPendingClose = () => {
+    if (!pendingClose) return;
+    closeTabKeys(pendingClose.keys);
+    setPendingClose(null);
   };
 
   const onDraftChange = (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => {
@@ -1743,6 +1787,15 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataInd
                   return (
                     <div
                       key={tab.key}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setTabContextMenu({
+                          tabKey: tab.key,
+                          x: event.clientX,
+                          y: event.clientY,
+                        });
+                      }}
                       className={[
                         "group relative flex h-[27px] w-fit min-w-[120px] max-w-[240px] shrink-0 items-center rounded-[3px]",
                         active
@@ -1781,7 +1834,7 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataInd
                         type="button"
                         aria-label={"关闭 " + tab.label}
                         title={"关闭 " + tab.label}
-                        onClick={() => closeTab(tab.key)}
+                        onClick={() => requestCloseTabs([tab.key])}
                         className={[
                           "mr-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[#343434] transition-opacity hover:bg-black/5 focus-visible:opacity-100 focus-visible:outline-none",
                           active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
@@ -1793,22 +1846,51 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataInd
                   );
                 })}
               </div>
-              <div className="relative shrink-0">
-                <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="标签操作" onClick={() => setShowTabActions((open) => !open)}>
-                  <MoreHorizontal size={15} />
-                </Button>
-                {showTabActions ? (
-                  <>
-                    <button type="button" aria-label="关闭标签菜单" className="fixed inset-0 z-30 cursor-default" onClick={() => setShowTabActions(false)} />
-                    <div className="absolute right-0 top-8 z-40 w-40 rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-1 shadow-[var(--yak-components-panel-shadow)]">
-                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeCurrent")}>关闭当前</button>
-                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeLeft")}>关闭左侧</button>
-                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeRight")}>关闭右侧</button>
-                      <button type="button" className="w-full rounded px-2.5 py-2 text-left text-xs hover:bg-[var(--yak-color-hover)]" onClick={() => closeTabs("closeAll")}>关闭全部</button>
-                    </div>
-                  </>
-                ) : null}
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="标签页更多操作"
+                  title="标签页更多操作"
+                  disabled={!activeTab}
+                  className="flex h-[27px] w-8 shrink-0 cursor-pointer items-center justify-center rounded-[3px] border-0 bg-transparent p-0 text-[#616161] outline-none transition-colors hover:bg-[#e8e8e8] hover:text-[#26282c] focus-visible:ring-1 focus-visible:ring-[#9bb6ff] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Ellipsis size={18} strokeWidth={1.8} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="end" sideOffset={4} className="w-48">
+                  <DropdownMenuItem
+                    disabled={!activeTab}
+                    onClick={() => requestCloseTabs(getTabKeysToClose(activeTabKey, "current"))}
+                  >
+                    <X size={14} />关闭当前标签页
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!activeTab || tabs.length < 2}
+                    onClick={() => requestCloseTabs(getTabKeysToClose(activeTabKey, "other"))}
+                  >
+                    <XCircle size={14} />关闭其他标签页
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={!activeTab || getTabKeysToClose(activeTabKey, "left").length === 0}
+                    onClick={() => requestCloseTabs(getTabKeysToClose(activeTabKey, "left"))}
+                  >
+                    <ArrowLeftToLine size={14} />关闭左侧标签页
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!activeTab || getTabKeysToClose(activeTabKey, "right").length === 0}
+                    onClick={() => requestCloseTabs(getTabKeysToClose(activeTabKey, "right"))}
+                  >
+                    <ArrowRightToLine size={14} />关闭右侧标签页
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    tone="danger"
+                    disabled={tabs.length === 0}
+                    onClick={() => requestCloseTabs(getTabKeysToClose(activeTabKey, "all"))}
+                  >
+                    <XCircle size={14} />关闭全部标签页
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : null}
 
@@ -1867,6 +1949,70 @@ export function DataIndicatorsWorkbench({ projectCode, initialTab = 2 }: DataInd
           </div>
         </>
       ) : null}
+
+      {tabContextMenu && contextMenuPortalRoot && contextTab ? createPortal(
+        <DropdownMenu
+          open
+          onOpenChange={(open) => {
+            if (!open) setTabContextMenu(null);
+          }}
+        >
+          <DropdownMenuTrigger
+            aria-hidden="true"
+            tabIndex={-1}
+            className="pointer-events-none fixed size-px opacity-0"
+            style={{ left: tabContextMenu.x, top: tabContextMenu.y }}
+          />
+          <DropdownMenuContent side="bottom" align="start" sideOffset={0} className="w-[208px] rounded-md p-1">
+            <DropdownMenuItem onClick={() => requestCloseTabs([contextTab.key])}>
+              <X size={14} />关闭
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={tabs.length < 2}
+              onClick={() => requestCloseTabs(getTabKeysToClose(contextTab.key, "other"))}
+            >
+              <XCircle size={14} />关闭其他标签页
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={contextTabIndex < 1}
+              onClick={() => requestCloseTabs(getTabKeysToClose(contextTab.key, "left"))}
+            >
+              <ArrowLeftToLine size={14} />关闭左侧标签页
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={contextTabIndex < 0 || contextTabIndex >= tabs.length - 1}
+              onClick={() => requestCloseTabs(getTabKeysToClose(contextTab.key, "right"))}
+            >
+              <ArrowRightToLine size={14} />关闭右侧标签页
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem tone="danger" onClick={() => requestCloseTabs(getTabKeysToClose(contextTab.key, "all"))}>
+              <XCircle size={14} />关闭全部标签页
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>,
+        contextMenuPortalRoot,
+      ) : null}
+
+      <Dialog
+        open={Boolean(pendingClose)}
+        onOpenChange={(open) => {
+          if (!open) setPendingClose(null);
+        }}
+      >
+        {pendingClose ? (
+          <DialogContent className="w-[420px]">
+            <DialogTitle className="text-base font-semibold">关闭未保存的标签页</DialogTitle>
+            <DialogDescription className="mt-2 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+              {pendingClose.dirtyTitles.join("、")}存在未保存的修改。关闭后，这些修改将丢失，确定继续吗？
+            </DialogDescription>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button size="sm" variant="secondary" onClick={() => setPendingClose(null)}>取消</Button>
+              <Button size="sm" variant="danger" onClick={confirmPendingClose}>仍然关闭</Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
 
       <Modal
         open={Boolean(pendingDelete)}
