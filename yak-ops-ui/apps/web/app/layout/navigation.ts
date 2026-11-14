@@ -12,7 +12,6 @@ import {
   LayoutGrid,
   Layers,
   ListOrdered,
-  Network,
   Settings,
   Table2,
   Users,
