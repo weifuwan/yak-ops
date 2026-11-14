@@ -1,14 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title">
   <title id="title">修饰词</title>
-  <g stroke="#D89435" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 6.5h16M4 12h16M4 17.5h16"/>
-    <circle cx="9" cy="6.5" r="2.05" fill="#fff"/>
-    <circle cx="15" cy="12" r="2.05" fill="#fff"/>
-    <circle cx="7" cy="17.5" r="2.05" fill="#fff"/>
-  </g>
   <g fill="#D89435">
-    <circle cx="9" cy="6.5" r=".75"/>
-    <circle cx="15" cy="12" r=".75"/>
-    <circle cx="7" cy="17.5" r=".75"/>
+    <path d="M448 960h-32V64H448l256 141.44V288h-64v-45.44L480 151.232v721.536l160-91.456V736h64v82.56L448 960z" />
+    <path d="M160 288a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m128 224a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m384-32a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m0 192a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m192-192a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m0 192a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m-704 32a64 64 0 1 0 0-128 64 64 0 0 0 0 128z m128 192a64 64 0 1 0 0-128 64 64 0 0 0 0 128z" />
   </g>
 </svg>
