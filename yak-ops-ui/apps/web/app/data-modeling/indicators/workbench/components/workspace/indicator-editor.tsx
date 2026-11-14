@@ -6,7 +6,7 @@ import {
 } from "@yak-ops/yak-ui";
 import { CircleDot, Save, Send } from "lucide-react";
 
-import { modelingEntityApi, type ModelingRecord, type ModelingVersionRecord } from "../../../../service";
+import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey, type ModelingVersionRecord } from "../../../../service";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
 import { fieldOptions, initialFormValues, readFormValue } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";

@@ -2,7 +2,7 @@ import { Button, Table } from "@yak-ops/yak-ui";
 import { X } from "lucide-react";
 
 import type { ModelingVersionRecord } from "../../../../service";
-import { PanelResizer } from "../../../../data-development/layout/panel-resizer";
+import { PanelResizer } from "../../../../../data-development/layout/panel-resizer";
 
 type IndicatorVersionPanelProps = {
   width: number;

@@ -29,7 +29,7 @@ export function IndicatorTabContent({
 
   if (tab.mode === "list") {
     return (
-      <IndicatorListTab
+      <IndicatorList
         projectCode={projectCode}
         definition={definition}
         dwType={dwType}
