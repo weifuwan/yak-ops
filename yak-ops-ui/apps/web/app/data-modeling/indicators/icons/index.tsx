@@ -56,7 +56,7 @@ export function IndicatorIcon({
     return (
       <span
         aria-hidden="true"
-        className={["inline-block shrink-0 bg-[#262874]", className]
+        className={["inline-block shrink-0 bg-[#3a3d51]", className]
           .filter(Boolean)
           .join(" ")}
         style={maskStyle}
