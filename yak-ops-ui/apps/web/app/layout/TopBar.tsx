@@ -70,12 +70,7 @@ export default function TopBar({
                   key={item.id}
                   to={item.path}
                   aria-current={active ? "page" : undefined}
-                  className={[
-                    "relative flex h-full shrink-0 items-center px-3 text-xs font-medium transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/25",
-                    active
-                      ? "bg-white/10 text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-[#fe2c55]"
-                      : "text-white/65",
-                  ].join(" ")}
+                  className="flex h-full shrink-0 items-center px-3 text-xs font-medium text-white/65 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/25"
                 >
                   {item.label}
                 </Link>
