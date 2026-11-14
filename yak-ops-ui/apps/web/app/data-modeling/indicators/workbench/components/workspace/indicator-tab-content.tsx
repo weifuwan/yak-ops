@@ -1,3 +1,4 @@
+import type { ModelingRecord } from "../../../../service";
 import type { IndicatorKind, IndicatorTab } from "../../types";
 import { getDefinition } from "../../config/indicator-definitions";
 import { useIndicatorResources } from "../../hooks/use-indicator-resources";

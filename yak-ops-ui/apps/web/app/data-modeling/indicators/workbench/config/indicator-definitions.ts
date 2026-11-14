@@ -1,7 +1,7 @@
 import type { ModelingResourceKey } from "../../../service";
 import type { IndicatorDefinition, IndicatorFieldOption, IndicatorKind } from "../types";
 
-const DW_TYPE_OPTIONS: IndicatorFieldOption[] = [
+export const DW_TYPE_OPTIONS: IndicatorFieldOption[] = [
   { value: "SOURCE_LAYER", label: "贴源层" },
   { value: "PUBLIC_LAYER", label: "公共层" },
   { value: "APPLICATION_LAYER", label: "应用层" },
@@ -170,8 +170,8 @@ const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
   },
 ];
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-const RELATION_FIELDS: Record<string, ModelingResourceKey> = {
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+export const RELATION_FIELDS: Record<string, ModelingResourceKey> = {
   atomicId: "atomIndicator",
   timePeriodId: "timePeriod",
   deriveId: "derivativeIndicator",

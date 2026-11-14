@@ -2,6 +2,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import { ChartNoAxesCombined, ChevronDown, ChevronRight, FileText, Folder } from "lucide-react";
 
 import { PlanningIcon } from "../../../../planning/icons";
+import type { ModelingRecord } from "../../../../service";
 import type { IndicatorTreeNode } from "../../types";
 
 type TreeRowsProps = {
