@@ -592,3 +592,104 @@ WHERE NOT EXISTS (
     SELECT 1 FROM t_yak_ops_dw_layer existing
     WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
 );
+
+-- Seed the standard unit directories for every existing project.
+-- Deterministic IDs and NOT EXISTS make this section safe to execute repeatedly.
+INSERT INTO t_yak_ops_standard_directory (
+    id, project_code, dir_name, dir_type, dir_module, parent_id,
+    create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('UD', p.code, unit_seed.id_suffix), p.code, unit_seed.dir_name,
+       'FOLDER', 'UNIT', NULL,
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+CROSS JOIN (
+    SELECT 'CURRENCY' AS id_suffix, '货币单位' AS dir_name
+    UNION ALL SELECT 'OBJECT', '对象量词'
+    UNION ALL SELECT 'RATIO', '比例单位'
+    UNION ALL SELECT 'RANK', '排名单位'
+    UNION ALL SELECT 'TIME', '时间单位'
+) AS unit_seed
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM t_yak_ops_standard_directory existing
+    WHERE existing.project_code = p.code
+      AND existing.dir_module = 'UNIT'
+      AND existing.dir_name = unit_seed.dir_name
+);
+
+-- Seed the time-period root directory for every existing project.
+INSERT INTO t_yak_ops_time_period_category (
+    id, project_code, cn_name, en_name, parent_id, leaf,
+    create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('TPC', p.code, 'ROOT'), p.code, '时间周期', 'TIME_PERIOD', NULL, FALSE,
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM t_yak_ops_time_period_category existing
+    WHERE existing.project_code = p.code
+      AND existing.en_name = 'TIME_PERIOD'
+);
+
+-- Seed the nine standard time-period categories under the project root.
+INSERT INTO t_yak_ops_time_period_category (
+    id, project_code, cn_name, en_name, parent_id, leaf,
+    create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('TPC', p.code, category_seed.en_name), p.code,
+       category_seed.cn_name, category_seed.en_name, root.id, TRUE,
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+JOIN t_yak_ops_time_period_category root
+  ON root.project_code = p.code
+ AND root.en_name = 'TIME_PERIOD'
+CROSS JOIN (
+    SELECT 'DAY' AS en_name, '天' AS cn_name
+    UNION ALL SELECT 'WEEK', '周'
+    UNION ALL SELECT 'MONTH', '月'
+    UNION ALL SELECT 'QUARTER', '季度'
+    UNION ALL SELECT 'YEAR', '年'
+    UNION ALL SELECT 'HOUR', '小时'
+    UNION ALL SELECT 'MINUTE', '分钟'
+    UNION ALL SELECT 'SECOND', '秒'
+    UNION ALL SELECT 'HISTORY', '历史全量'
+) AS category_seed
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM t_yak_ops_time_period_category existing
+    WHERE existing.project_code = p.code
+      AND existing.en_name = category_seed.en_name
+);
+
+-- Seed the seven standard time-period assets.
+INSERT INTO t_yak_ops_time_period (
+    id, project_code, category_id, en_short_name, cn_name, en_name,
+    director, remark, submit, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('TPR', p.code, period_seed.id_suffix), p.code, category.id,
+       period_seed.en_short_name, period_seed.cn_name, period_seed.en_name,
+       NULL, period_seed.remark, FALSE,
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+CROSS JOIN (
+    SELECT '1D' AS id_suffix, 'DAY' AS category_en_name,
+           '1d' AS en_short_name, '近1天' AS cn_name,
+           'last 1 day' AS en_name, '最近1天' AS remark
+    UNION ALL SELECT '3D', 'DAY', '3d', '近3天', 'last 3 day', '最近3天'
+    UNION ALL SELECT '1W', 'WEEK', '1w', '近7天', 'last 7 day', '最近7天'
+    UNION ALL SELECT '1M', 'MONTH', '1m', '近30天', 'last 30 day', '最近30天'
+    UNION ALL SELECT 'CW', 'WEEK', 'cw', '自然周', 'calendar week', '自然周（周一至周日）'
+    UNION ALL SELECT 'CM', 'MONTH', 'cm', '自然月', 'calendar month', '自然月（每月1日至月末）'
+    UNION ALL SELECT 'CQ', 'QUARTER', 'cq', '自然季度', 'calendar quarter', '自然季度'
+) AS period_seed
+JOIN t_yak_ops_time_period_category category
+  ON category.project_code = p.code
+ AND category.en_name = period_seed.category_en_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM t_yak_ops_time_period existing
+    WHERE existing.project_code = p.code
+      AND existing.en_short_name = period_seed.en_short_name
+);

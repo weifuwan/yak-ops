@@ -3,7 +3,10 @@
 The modeling schema is additive and repeatable. Each database-specific script is organized in two ordered sections:
 
 1. **DDL** creates the complete set of 22 warehouse-planning, dimension-metadata, data-standard and indicator tables, indexes and table comments.
-2. **DML** normalizes legacy warehouse-layer enum values, initializes missing atomic-indicator `dw_type` values to `PUBLIC_LAYER`, and seeds the five conventional warehouse layers (ODS, DIM, DWS, DWD and ADS) for projects that do not yet have an ODS layer.
+2. **DML** runs after all DDL and performs legacy-value normalization, atomic-indicator `dw_type` initialization, and project-scoped default-data seeding:
+   - Five conventional warehouse layers: ODS, DIM, DWS, DWD and ADS.
+   - Five unit-standard directories: currency, object quantity, ratio, ranking and time.
+   - One time-period root, nine time-period categories, and seven common time-period assets.
 
 Supported complete dialect scripts:
 
@@ -15,7 +18,7 @@ The standalone `20261114_add_atom_indicator_dw_type.sql` patch is no longer need
 
 All modeling tables use the `t_yak_ops_` prefix and include a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies this value from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
-The five warehouse-layer seed statements read existing projects from `t_yak_ops_project`; they do not create projects. The system-created ODS row acts as the initialization marker, so later startup runs do not recreate individually removed layers while that marker remains. Projects created after application startup receive the same defaults lazily on their first warehouse-layer query.
+All default-data statements read existing projects from `t_yak_ops_project`; they do not create projects. They use project-scoped `NOT EXISTS` checks and deterministic IDs so repeated schema initialization does not duplicate the default rows. The system-created ODS row remains the initialization marker for the five warehouse layers. The service layer retains lazy initialization as a fallback for projects created after application startup.
 
 Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for the former `t_cockpit_` table names. When only the legacy table exists, it renames that table in place and normalizes its index names, preserving existing rows. If both old and new table names exist, initialization stops and requires an explicit data reconciliation; it never drops or merges either table automatically.
 
