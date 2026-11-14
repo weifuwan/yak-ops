@@ -254,24 +254,8 @@ export default function AppRouter() {
               element={<Navigate replace to="/data-modeling/indicators/compose" />}
             />
             <Route
-              path="/data-modeling/indicators/compose"
-              element={<DataModelingIndicatorsPage initialTab={2} />}
-            />
-            <Route
-              path="/data-modeling/indicators/derivative"
-              element={<DataModelingIndicatorsPage initialTab={1} />}
-            />
-            <Route
-              path="/data-modeling/indicators/atom"
-              element={<DataModelingIndicatorsPage initialTab={0} />}
-            />
-            <Route
-              path="/data-modeling/indicators/modifier"
-              element={<DataModelingIndicatorsPage initialTab={3} />}
-            />
-            <Route
-              path="/data-modeling/indicators/time-period"
-              element={<DataModelingIndicatorsPage initialTab={5} />}
+              path="/data-modeling/indicators/:indicatorKind"
+              element={<DataModelingIndicatorsPage />}
             />
           </Route>
 

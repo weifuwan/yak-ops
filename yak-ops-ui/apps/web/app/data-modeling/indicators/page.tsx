@@ -1,9 +1,20 @@
+import { useParams } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { DataIndicatorsWorkbench } from "./workbench";
 
-export function DataModelingIndicatorsPage({ initialTab = 0 }: { initialTab?: number }) {
+const INDICATOR_ROUTE_TABS: Record<string, number> = {
+  atom: 0,
+  derivative: 1,
+  compose: 2,
+  modifier: 3,
+  "time-period": 5,
+};
+
+export function DataModelingIndicatorsPage() {
+  const { indicatorKind = "compose" } = useParams();
   const { currentWorkspace } = useWorkspace();
+  const initialTab = INDICATOR_ROUTE_TABS[indicatorKind] ?? 2;
 
   if (!currentWorkspace) {
     return (
