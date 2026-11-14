@@ -4,7 +4,7 @@ import type { ModelingRecord } from "../../../../service";
 import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import type { IndicatorKind, IndicatorTreeNode } from "../../types";
 
-function ExpandDownIcon() {
+function ExpandArrowIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
       viewBox="0 0 1024 1024"
@@ -12,20 +12,10 @@ function ExpandDownIcon() {
       height="10"
       aria-hidden="true"
       fill="currentColor"
-    >
-      <path d="M511.96 766.27L67 257.73h890L511.96 766.27z" />
-    </svg>
-  );
-}
-
-function ExpandRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 1024 1024"
-      width="10"
-      height="10"
-      aria-hidden="true"
-      fill="currentColor"
+      className={[
+        "shrink-0 transition-transform duration-150 ease-out motion-reduce:transition-none",
+        expanded ? "rotate-90" : "rotate-0",
+      ].join(" ")}
     >
       <path d="M215.578947 0v1024l592.842106-512L215.578947 0z" />
     </svg>
@@ -96,7 +86,7 @@ export function IndicatorTreeRows({
             >
               <span className="flex size-4 shrink-0 items-center justify-center text-[var(--yak-components-muted-text)]">
                 {node.kind === "group" && hasChildren
-                  ? expanded ? <ExpandDownIcon /> : <ExpandRightIcon />
+                  ? <ExpandArrowIcon expanded={expanded} />
                   : null}
               </span>
               {node.nodeType === "root" ? (
