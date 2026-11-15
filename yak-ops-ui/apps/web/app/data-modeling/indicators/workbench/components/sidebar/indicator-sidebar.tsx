@@ -9,6 +9,7 @@ import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import { DW_TYPE_OPTIONS } from "../../config/indicator-definitions";
 import type { IndicatorDefinition, IndicatorGroupBy, IndicatorKind, IndicatorTreeNode } from "../../types";
 import { IndicatorTreeRows } from "./indicator-tree";
+import { ModifierTreeFilter } from "./modifier-tree-filter";
 import { selectOptionLabel } from "../../utils/indicator-form";
 
 export type IndicatorSidebarProps = {
@@ -64,13 +65,19 @@ export function IndicatorSidebar({
           </Select>
         </div></div>
       ) : null}
-      {activeKind !== "timePeriod" ? (
-        <div className="px-3 pb-2"><Segmented className="w-full" value={groupBy} options={[{ value: "BUSINESS_TYPE", label: "业务分类" }, { value: "DATA_DOMAIN", label: "数据域" }]} onValueChange={(value) => onGroupByChange(value as IndicatorGroupBy)} /></div>
-      ) : null}
-      <div className="shrink-0 px-3 pb-2"><div className="relative">
-        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
-        <Input size="small" variant="outlined" className="pl-8" value={treeKeyword} placeholder={activeKind === "atomIndicator" ? "搜索业务分类、数据域、业务过程或指标" : "搜索目录或指标"} onChange={(event) => onTreeKeywordChange(event.target.value)} />
-      </div></div>
+      {activeKind === "modifier" ? (
+        <ModifierTreeFilter keyword={treeKeyword} onKeywordChange={onTreeKeywordChange} />
+      ) : (
+        <>
+          {activeKind !== "timePeriod" ? (
+            <div className="px-3 pb-2"><Segmented className="w-full" value={groupBy} options={[{ value: "BUSINESS_TYPE", label: "业务分类" }, { value: "DATA_DOMAIN", label: "数据域" }]} onValueChange={(value) => onGroupByChange(value as IndicatorGroupBy)} /></div>
+          ) : null}
+          <div className="shrink-0 px-3 pb-2"><div className="relative">
+            <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
+            <Input size="small" variant="outlined" className="pl-8" value={treeKeyword} placeholder={activeKind === "atomIndicator" ? "搜索业务分类、数据域、业务过程或指标" : "搜索目录或指标"} onChange={(event) => onTreeKeywordChange(event.target.value)} />
+          </div></div>
+        </>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         {loading ? <div className="flex items-center gap-2 px-2 py-4 text-xs text-[var(--yak-components-muted-text)]"><RefreshCw size={13} className="animate-spin" />正在加载目录...</div> : error ? (
           <div className="px-2 py-4 text-xs text-[var(--yak-components-muted-text)]">目录加载失败。<Button size="sm" variant="secondary" className="ml-2" onClick={onRefresh}>重试</Button></div>
