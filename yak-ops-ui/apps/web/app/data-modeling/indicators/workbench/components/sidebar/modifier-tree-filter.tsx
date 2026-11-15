@@ -202,7 +202,7 @@ export function ModifierTreeFilter({
                 onChange={(event) => setScopeKeyword(event.target.value)}
               />
             }
-            emptyContent={`没有匹配的${activeScope.label}`}
+            emptyContent={visibleScopeOptions.length === 0 ? `没有匹配的${activeScope.label}` : undefined}
           >
             {visibleScopeOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
