@@ -108,7 +108,7 @@ export function DataMartDetail({
         />
       </section>
 
-      <section className={CARD}>
+      <section className={DETAIL_CARD_CLASS}>
         <div className="mb-3 flex items-center justify-between">
           <SectionTitle>主题域管理</SectionTitle>
         </div>
