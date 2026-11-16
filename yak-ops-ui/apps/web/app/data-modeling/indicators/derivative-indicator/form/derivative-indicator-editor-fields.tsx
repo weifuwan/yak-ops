@@ -201,9 +201,7 @@ export function DerivativeIndicatorEditorFields({
                       </span>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-[11px] text-[var(--yak-components-muted-text)]">修饰词为非必填项，可以不选择。</p>
-                )}
+                ) : null}
               </div>
             </FormRow>
             <FormRow label="原子指标" required>
