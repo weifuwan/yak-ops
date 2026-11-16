@@ -14,8 +14,6 @@ import io.yak.ops.modeling.api.vo.timeperiod.TimePeriodCategoryVO;
 import io.yak.ops.modeling.api.vo.timeperiod.TimePeriodVO;
 import io.yak.ops.modeling.application.service.TimePeriodService;
 
-import io.swagger.v3.oas.annotations.Parameter;
-
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -31,6 +29,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.swagger.v3.oas.annotations.Parameter;
 
 /** HTTP API for TimePeriod. */
 @RestController

@@ -11,8 +11,6 @@ import io.yak.ops.modeling.api.dto.measurementunit.MeasurementUnitDTO;
 import io.yak.ops.modeling.api.vo.measurementunit.MeasurementUnitVO;
 import io.yak.ops.modeling.application.service.MeasurementUnitService;
 
-import io.swagger.v3.oas.annotations.Parameter;
-
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -27,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.swagger.v3.oas.annotations.Parameter;
 
 /** HTTP API for MeasurementUnit. */
 @RestController

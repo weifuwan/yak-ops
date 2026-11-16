@@ -13,8 +13,6 @@ import io.yak.ops.modeling.api.vo.codestandard.CodeDetailVO;
 import io.yak.ops.modeling.api.vo.codestandard.CodeStandardVO;
 import io.yak.ops.modeling.application.service.CodeStandardService;
 
-import io.swagger.v3.oas.annotations.Parameter;
-
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -29,6 +27,8 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.swagger.v3.oas.annotations.Parameter;
 
 /** HTTP API for standard codes and their nested code details. */
 @RestController
