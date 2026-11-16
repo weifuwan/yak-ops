@@ -7,6 +7,11 @@ export interface BusinessProcessFilters {
   director: string;
 }
 
+export interface BusinessProcessSelectOption {
+  value: string;
+  label: string;
+}
+
 export interface BusinessProcessFormValues {
   enShortName: string;
   enName: string;

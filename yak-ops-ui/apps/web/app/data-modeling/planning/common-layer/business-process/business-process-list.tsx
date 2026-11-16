@@ -3,13 +3,11 @@ import { Button, Table, type TableColumns } from "@yak-ops/yak-ui";
 
 import type { BusinessProcessRecord } from "../types";
 import { isSystemBusinessProcess } from "../types";
-import type { BusinessProcessFilters } from "./types";
-import { BUSINESS_PROCESS_PAGE_SIZE } from "./types";
+import { BUSINESS_PROCESS_PAGE_SIZE, type BusinessProcessFilters, type BusinessProcessSelectOption } from "./types";
 import { BusinessProcessFiltersPanel } from "./business-process-filters";
 
-interface SelectOption { value: string; label: string; }
 interface Props {
-  filters: BusinessProcessFilters; domainOptions: SelectOption[];
+  filters: BusinessProcessFilters; domainOptions: BusinessProcessSelectOption[];
   creatorOptions: string[]; directorOptions: string[];
   domainsLoading: boolean; domainsError: boolean; processOptionsLoading: boolean;
   onFilterChange: (key: keyof BusinessProcessFilters, value: string) => void;

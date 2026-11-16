@@ -4,12 +4,11 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { withSelectedOption } from "../../select-options";
-import type { BusinessProcessFilters } from "./types";
+import type { BusinessProcessFilters, BusinessProcessSelectOption } from "./types";
 
-interface SelectOption { value: string; label: string; }
 interface Props {
   filters: BusinessProcessFilters;
-  domainOptions: SelectOption[];
+  domainOptions: BusinessProcessSelectOption[];
   creatorOptions: string[];
   directorOptions: string[];
   domainsLoading: boolean;
@@ -25,7 +24,7 @@ const FIELD_CLASS = "grid grid-cols-[64px_minmax(0,1fr)] items-center gap-2";
 function FilterSelect({
   value, placeholder, options, disabled, fallbackLabel, onChange,
 }: {
-  value: string; placeholder: string; options: SelectOption[];
+  value: string; placeholder: string; options: BusinessProcessSelectOption[];
   disabled?: boolean; fallbackLabel?: string; onChange: (value: string) => void;
 }) {
   const selectItems = [
