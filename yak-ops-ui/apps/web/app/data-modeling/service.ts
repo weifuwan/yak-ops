@@ -59,6 +59,18 @@ export interface ModelingRecord {
   [key: string]: unknown;
 }
 
+export interface ModelingSelectOption {
+  value: string;
+  label: string;
+}
+
+export interface ModelingDimensionFieldRecord extends ModelingRecord {
+  tableId?: string;
+  fieldName?: string;
+  cnName?: string;
+  codeStdId?: string;
+}
+
 const RESOURCE_PATH: Record<ModelingResourceKey, string> = {
   businessType: "business-type",
   dwLayer: "dw-layer",
@@ -185,6 +197,20 @@ export const modelingEntityApi = {
     return HttpUtils.postData<ModelingRecord>(
       `${modelingPath(projectCode, resource)}/${encodeURIComponent(id)}/rollback/${versionNumber}`,
       {},
+    );
+  },
+};
+
+
+export const modelingDimensionApi = {
+  dimensionOptions(projectCode: string): Promise<ModelingSelectOption[]> {
+    return HttpUtils.getData<ModelingSelectOption[]>(
+      `${modelingPath(projectCode)}/dimensions/options/select/dim`,
+    );
+  },
+  fields(projectCode: string, tableId: string): Promise<ModelingDimensionFieldRecord[]> {
+    return HttpUtils.getData<ModelingDimensionFieldRecord[]>(
+      `${modelingPath(projectCode)}/dimensions/${encodeURIComponent(tableId)}/fields`,
     );
   },
 };

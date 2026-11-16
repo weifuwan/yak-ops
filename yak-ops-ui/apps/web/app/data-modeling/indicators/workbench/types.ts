@@ -15,6 +15,8 @@ export type IndicatorField = {
   options?: IndicatorFieldOption[];
   optionsSource?: ModelingResourceKey;
   optionLabelField?: string;
+  optionLabelPrefixField?: string;
+  excludeOptionValues?: string[];
 };
 export type IndicatorColumn = { key: string; title: string; width?: number };
 export type IndicatorDefinition = {

@@ -11,6 +11,7 @@ import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../typ
 import { fieldOptions, initialFormValues, readFormValue, selectOptionLabel } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";
 import { IndicatorVersionPanel } from "../panels/indicator-version-panel";
+import { ModifierEditorFields } from "./modifier-editor-fields";
 
 type IndicatorEditorProps = {
   projectCode: string;
@@ -57,14 +58,16 @@ export function IndicatorEditor({
     enabled: Boolean(projectCode && recordId && versionOpen),
   });
 
-  const changeValue = (key: string, value: string) => {
-    const nextValues = { ...values, [key]: value };
+  const changeValues = (updates: Record<string, string>) => {
+    const nextValues = { ...values, ...updates };
     setValues(nextValues);
     setDirty(true);
     setNoticeDismissed(false);
     onDraftChange(tab.kind, tab.key, nextValues);
     setError("");
   };
+
+  const changeValue = (key: string, value: string) => changeValues({ [key]: value });
 
   const save = async () => {
     if (saving) return;
@@ -106,6 +109,19 @@ export function IndicatorEditor({
 
   const submit = async () => {
     if (!recordId || dirty || submitting) return;
+    if (definition.key === "modifier" && values.modifierType === "DIMENSION") {
+      const requiredFields = [
+        ["dimensionTbId", "关联维度表"],
+        ["dimensionFdId", "关联维度字段"],
+        ["codeId", "关联标准代码"],
+        ["codeDetailId", "关联代码明细"],
+      ] as const;
+      const missing = requiredFields.find(([key]) => !String(values[key] || "").trim());
+      if (missing) {
+        setError("维度枚举修饰词提交前，请完成" + missing[1]);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       const submitted = await modelingEntityApi.submit(projectCode, definition.key, recordId);
@@ -179,7 +195,19 @@ export function IndicatorEditor({
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
           <div className="w-full space-y-4">
-            {sectionNames.map((section) => (
+            {definition.key === "modifier" ? (
+              <ModifierEditorFields
+                projectCode={projectCode}
+                values={values}
+                recordId={recordId}
+                optionsByResource={optionsByResource}
+                optionsLoading={optionsLoading}
+                onChange={changeValue}
+                onChangeMany={changeValues}
+              />
+            ) : (
+              <>
+                {sectionNames.map((section) => (
               <section key={section} className="bg-white p-4">
                 <div className="mb-3 flex items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-2">
                   <span aria-hidden="true" className="h-4 w-1 shrink-0 bg-[#5664ff]" />
@@ -244,7 +272,9 @@ export function IndicatorEditor({
                   })}
                 </div>
               </section>
-            ))}
+                ))}
+              </>
+            )}
             {error ? <p role="alert" className="text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
           </div>
         </div>

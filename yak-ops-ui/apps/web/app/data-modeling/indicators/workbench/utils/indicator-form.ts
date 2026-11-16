@@ -46,9 +46,14 @@ export function fieldOptions(
   if (field.options) return field.options;
   if (!field.optionsSource) return [];
   const labelField = field.optionLabelField || "cnName";
-  return (optionsByResource[field.optionsSource] || []).map((record) => {
-    const label = record[labelField] ?? record.cnName ?? record.businessName ?? record.id;
-    const shortName = record.enShortName ? " (" + String(record.enShortName) + ")" : "";
-    return { value: String(record.id || ""), label: String(label || "未命名") + shortName };
-  }).filter((item) => item.value);
+  const excludedValues = new Set(field.excludeOptionValues || []);
+  return (optionsByResource[field.optionsSource] || [])
+    .filter((record) => !excludedValues.has(String(record.dwType ?? "")))
+    .map((record) => {
+      const label = record[labelField] ?? record.cnName ?? record.businessName ?? record.id;
+      const prefix = field.optionLabelPrefixField ? record[field.optionLabelPrefixField] : undefined;
+      const shortName = record.enShortName ? " (" + String(record.enShortName) + ")" : "";
+      const displayLabel = [prefix, label].filter((item) => item !== undefined && item !== null && String(item).trim()).join(" ");
+      return { value: String(record.id || ""), label: String(displayLabel || "未命名") + shortName };
+    }).filter((item) => item.value);
 }
