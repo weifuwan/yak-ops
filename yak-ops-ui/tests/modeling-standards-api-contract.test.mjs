@@ -84,11 +84,12 @@ test("standard code details use nested code-standard endpoints", () => {
   const codeService = read(`${standardsPath}/code-standard.ts`);
   const codeController = read(`${controllersPath}/CodeStandardController.java`);
 
-  assert.match(codeService, /modelingResourcePath\\(projectCode, "codeStandard"\\).*\\/details/s);
-  assert.match(codeController, /@GetMapping\\("\\/\\{id\\}\\/details"\\)/);
-  assert.match(codeController, /@PostMapping\\("\\/\\{id\\}\\/details"\\)/);
-  assert.match(codeController, /@PutMapping\\("\\/\\{id\\}\\/details\\/\\{detailId\\}"\\)/);
-  assert.match(codeController, /@DeleteMapping\\("\\/\\{id\\}\\/details\\/\\{detailId\\}"\\)/);
+  assert.ok(codeService.includes('modelingResourcePath(projectCode, "codeStandard")'));
+  assert.ok(codeService.includes('/details`'));
+  assert.ok(codeController.includes('@GetMapping("/{id}/details")'));
+  assert.ok(codeController.includes('@PostMapping("/{id}/details")'));
+  assert.ok(codeController.includes('@PutMapping("/{id}/details/{detailId}")'));
+  assert.ok(codeController.includes('@DeleteMapping("/{id}/details/{detailId}")'));
 });
 
 test("standard directory tree uses the shared standard-directories endpoint", () => {
