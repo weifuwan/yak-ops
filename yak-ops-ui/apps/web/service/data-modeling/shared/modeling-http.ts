@@ -14,7 +14,6 @@ type ModelingResourceKey =
   | "standardDirectory"
   | "fieldStandard"
   | "codeStandard"
-  | "codeDetail"
   | "unitStandard"
   | "dictionaryStandard"
   | "atomIndicator"
@@ -33,16 +32,15 @@ const RESOURCE_PATH: Record<ModelingResourceKey, string> = {
   subjectDomain: "subject-domain",
   standardDirectory: "assets/standard-directory",
   fieldStandard: "assets/field-standard",
-  codeStandard: "assets/code-standard",
-  codeDetail: "assets/code-detail",
-  unitStandard: "assets/unit-standard",
+  codeStandard: "code-standards",
+  unitStandard: "measurement-units",
   dictionaryStandard: "assets/dictionary-standard",
-  atomIndicator: "assets/atom-indicator",
-  derivativeIndicator: "assets/derivative-indicator",
-  composeIndicator: "assets/compose-indicator",
-  modifier: "assets/modifier",
-  timePeriodCategory: "assets/time-period-category",
-  timePeriod: "assets/time-period",
+  atomIndicator: "atom-indicators",
+  derivativeIndicator: "derived-indicators",
+  composeIndicator: "composite-indicators",
+  modifier: "modifiers",
+  timePeriodCategory: "time-periods/categories",
+  timePeriod: "time-periods",
 };
 
 export function modelingBasePath(projectCode: string): string {
@@ -65,9 +63,16 @@ export interface ModelingResourceApi {
   rollback(projectCode: string, id: string, versionNumber: number): Promise<ModelingRecord>;
 }
 
+type ModelingResourceApiOptions = {
+  allMethod?: "GET" | "POST";
+  listEndpoint?: "all" | "list";
+  updateWithId?: boolean;
+  rollbackWithQuery?: boolean;
+};
+
 export function createModelingResourceApi(
   resource: ModelingResourceKey,
-  options: { allMethod?: "GET" | "POST" } = {},
+  options: ModelingResourceApiOptions = {},
 ): ModelingResourceApi {
   const path = (projectCode: string) => modelingResourcePath(projectCode, resource);
 
@@ -78,7 +83,8 @@ export function createModelingResourceApi(
 
     all<T extends ModelingRecord>(projectCode: string, params: Record<string, string> = {}) {
       const query = new URLSearchParams(params).toString();
-      const url = `${path(projectCode)}/all${query ? `?${query}` : ""}`;
+      const endpoint = options.listEndpoint || "all";
+      const url = `${path(projectCode)}/${endpoint}${query ? `?${query}` : ""}`;
       return options.allMethod === "POST"
         ? HttpUtils.postData<T[]>(url, {})
         : HttpUtils.getData<T[]>(url);
@@ -93,7 +99,14 @@ export function createModelingResourceApi(
     },
 
     update<T extends ModelingRecord>(projectCode: string, payload: Record<string, unknown>) {
-      return HttpUtils.putData<T>(path(projectCode), payload);
+      const id = payload.id;
+      if (options.updateWithId && (id === undefined || id === null || !String(id).trim())) {
+        throw new Error("更新建模资源时必须提供 id");
+      }
+      const url = options.updateWithId
+        ? `${path(projectCode)}/${encodeURIComponent(String(id))}`
+        : path(projectCode);
+      return HttpUtils.putData<T>(url, payload);
     },
 
     remove(projectCode: string, id: string) {
@@ -109,10 +122,11 @@ export function createModelingResourceApi(
     },
 
     rollback(projectCode: string, id: string, versionNumber: number) {
-      return HttpUtils.postData<ModelingRecord>(
-        `${path(projectCode)}/${encodeURIComponent(id)}/rollback/${versionNumber}`,
-        {},
-      );
+      const resourcePath = `${path(projectCode)}/${encodeURIComponent(id)}/rollback`;
+      const url = options.rollbackWithQuery
+        ? `${resourcePath}?versionNumber=${encodeURIComponent(String(versionNumber))}`
+        : `${resourcePath}/${versionNumber}`;
+      return HttpUtils.postData<ModelingRecord>(url, {});
     },
   };
 }
