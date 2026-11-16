@@ -139,7 +139,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
       }
       setFormOpen(false);
       setEditing(undefined);
-      await queryClient.invalidateQueries({ queryKey: planningQueryKeys.subjectDomainTree(projectCode) });
+      await queryClient.invalidateQueries({ queryKey: planningQueryKeys.subjectDomainTreePrefix(projectCode) });
       await queryClient.invalidateQueries({ queryKey: planningQueryKeys.subjectDomainChildrenPrefix(projectCode) });
       await queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataMartSubjectDomainsPrefix(projectCode) });
       if (selectedId) {
