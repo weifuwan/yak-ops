@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (
   time_period_id varchar(32) NULL,
   modifier_id varchar(2000) NULL,
   atomic_id varchar(32) NULL,
-  dwh_id varchar(32) NULL,
+  dw_type varchar(32) NULL,
   mart_id varchar(32) NULL,
   subject_id varchar(32) NULL,
   bus_type_id varchar(32) NULL,
@@ -308,7 +308,10 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (
   KEY idx_yak_indicator_derivative_2 (atomic_id),
   KEY idx_yak_indicator_derivative_3 (time_period_id),
   KEY idx_yak_indicator_derivative_4 (bus_type_id),
-  KEY idx_yak_indicator_derivative_5 (domain_id)
+  KEY idx_yak_indicator_derivative_5 (domain_id),
+  KEY idx_yak_indicator_derivative_6 (dw_type),
+  KEY idx_yak_indicator_derivative_7 (mart_id),
+  KEY idx_yak_indicator_derivative_8 (subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-派生指标';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_compose (

@@ -1,5 +1,6 @@
 package io.yak.ops.modeling.api.vo.derivedindicator;
 
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.modeling.api.vo.ModelingBaseVO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,7 +13,7 @@ public class DerivedIndicatorVO extends ModelingBaseVO {
     private String timePeriodId;
     private String modifierId;
     private String atomicId;
-    private String dwhId;
+    private DwTypeEnum dwType;
     private String martId;
     private String subjectId;
     private String busTypeId;

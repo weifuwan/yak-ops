@@ -24,7 +24,7 @@ Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks
 
 If a legacy table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
 
-The three scripts contain the same 22 logical tables and 59 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
+The three scripts contain the same 22 logical tables and 62 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
 
 Existing installations should apply the matching one-time modifier-scope index patch before deploying the modifier query changes:
 
@@ -43,3 +43,15 @@ The following scripts drop all 22 modeling tables, including data belonging to e
 - `modeling_drop_h2.sql`
 
 These scripts are destructive and are intentionally separate from the additive schema scripts above. Run the matching script manually only when a full modeling reset is intended and after backing up the target database. Never add them to application startup or normal schema initialization.
+
+## Derived-indicator warehouse-layer migration
+
+For existing installations, apply exactly one matching script before deploying the derived-indicator service update:
+
+- `20261116_migrate_derivative_indicator_dw_type_mysql.sql`
+- `20261116_migrate_derivative_indicator_dw_type_postgresql.sql`
+- `20261116_migrate_derivative_indicator_dw_type_h2.sql`
+
+The migration adds `dw_type`, backfills it from the legacy `dwh_id` relation, and infers a layer only when exactly one ownership branch is populated. Conflicting or unsupported legacy rows are returned by the final query for manual review. The migration intentionally retains the old `dwh_id` column until that review is complete. After verifying the migrated rows and taking a backup, remove the obsolete column manually with the dialect-appropriate `ALTER TABLE t_yak_ops_indicator_derivative DROP COLUMN dwh_id` statement.
+
+Fresh installations use `dw_type` directly and do not create `dwh_id` on the derived-indicator table.

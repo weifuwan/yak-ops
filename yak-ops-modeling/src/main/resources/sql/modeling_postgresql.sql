@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_derivative (
   time_period_id varchar(32) NULL,
   modifier_id varchar(2000) NULL,
   atomic_id varchar(32) NULL,
-  dwh_id varchar(32) NULL,
+  dw_type varchar(32) NULL,
   mart_id varchar(32) NULL,
   subject_id varchar(32) NULL,
   bus_type_id varchar(32) NULL,
@@ -311,6 +311,9 @@ CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_2 ON t_yak_ops_indicator
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_3 ON t_yak_ops_indicator_derivative (time_period_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_4 ON t_yak_ops_indicator_derivative (bus_type_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_5 ON t_yak_ops_indicator_derivative (domain_id);
+CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_6 ON t_yak_ops_indicator_derivative (dw_type);
+CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_7 ON t_yak_ops_indicator_derivative (mart_id);
+CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_8 ON t_yak_ops_indicator_derivative (subject_id);
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_compose (
   id varchar(32) NOT NULL,
