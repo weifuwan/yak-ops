@@ -19,9 +19,9 @@ All persistence code is owned by `yak-ops-dao`, following the repository-level `
 - DAO implementations: `yak-ops-dao/src/main/java/io/yak/ops/dao/repository/impl/modeling`
 - Mapper XML: `yak-ops-dao/src/main/resources/io/yak/ops/dao/mapper`
 
-Each modeling table has one independent PO, Mapper, DAO interface and DAO implementation. The 13 data-standard and indicator asset entities are no longer nested in a single PO container. The dynamic asset service uses a dedicated `ModelingAssetDao` facade, keeping mapper execution inside the DAO layer.
+Each modeling table has one independent PO, Mapper, DAO interface and DAO implementation. The data-standard and indicator pages each expose a dedicated typed service contract and implementation. Shared CRUD mechanics live in a small abstract service; resource-specific validation, relations, versioning and nested records remain in their own service. `ModelingAssetDao` is used only as the persistence facade, not as a string-dispatched application service.
 
-HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API boundary. The modules reuse Yak Ops authentication, project permissions, datasource, MyBatis session factory and Yak UI components.
+HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API boundary. Each standards/indicator page has its own controller and REST resource path under `/projects/{projectCode}/modeling`: `standard-directories`, `field-standards`, `code-standards`, `measurement-units`, `naming-dictionaries`, `atom-indicators`, `derived-indicators`, `composite-indicators`, `modifiers` and `time-periods`. The modules reuse Yak Ops authentication, project permissions, datasource and MyBatis session factory.
 
 ## Migrated business scope
 

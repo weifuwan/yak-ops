@@ -97,9 +97,9 @@ public class CodeStandardServiceImpl
     }
 
     @Override
-    protected CodeStandardVO toView(CodeStandardPO entity) {
-        CodeStandardVO view = super.toView(entity);
-        view.setDetailList(listDetails(entity.getId()));
+    public CodeStandardVO getById(String id) {
+        CodeStandardVO view = super.getById(id);
+        view.setDetailList(listDetails(id));
         return view;
     }
 

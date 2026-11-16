@@ -13,4 +13,6 @@ public class ModelingAssetVersionVO {
     private Integer versionNumber;
     private Date createTime;
     private String createBy;
+    private Date updateTime;
+    private String updateBy;
 }

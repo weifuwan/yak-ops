@@ -60,12 +60,14 @@ public class TimePeriodServiceImpl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public IPage<TimePeriodVO> page(TimePeriodDTO query) {
         ensureDefaultTimePeriods();
         return super.page(query);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<TimePeriodVO> list(TimePeriodDTO query) {
         ensureDefaultTimePeriods();
         return super.list(query);
@@ -97,6 +99,7 @@ public class TimePeriodServiceImpl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public IPage<TimePeriodCategoryVO> pageCategories(TimePeriodCategoryDTO query) {
         ensureDefaultTimePeriodCategories();
         TimePeriodCategoryDTO actual = query == null ? new TimePeriodCategoryDTO() : query;
@@ -113,6 +116,7 @@ public class TimePeriodServiceImpl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<TimePeriodCategoryVO> listCategories(TimePeriodCategoryDTO query) {
         ensureDefaultTimePeriodCategories();
         TimePeriodCategoryDTO actual = query == null ? new TimePeriodCategoryDTO() : query;

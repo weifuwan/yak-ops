@@ -47,12 +47,14 @@ public class MeasurementUnitServiceImpl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public IPage<MeasurementUnitVO> page(MeasurementUnitDTO query) {
         ensureDefaultDirectories();
         return super.page(query);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<MeasurementUnitVO> list(MeasurementUnitDTO query) {
         ensureDefaultDirectories();
         return super.list(query);
@@ -81,7 +83,6 @@ public class MeasurementUnitServiceImpl
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     private void ensureDefaultDirectories() {
         if (modelingAssetDao.queryCount("standard-directory",
                 new QueryWrapper<StandardDirectoryPO>().eq("dir_module", "UNIT")) > 0) {

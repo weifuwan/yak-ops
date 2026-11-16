@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.dao.entity.CodeStandardPO;
 import io.yak.ops.dao.entity.FieldStandardPO;
 import io.yak.ops.dao.entity.StandardDirectoryPO;
@@ -88,6 +89,24 @@ public class StandardDirectoryServiceImpl
                 new QueryWrapper<UnitStandardPO>().eq("parent_id", id)) > 0) {
             throw new IllegalArgumentException("目录下仍有子目录或标准记录，请先清空后再删除");
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public IPage<StandardDirectoryVO> page(StandardDirectoryDTO query) {
+        if (query != null && "UNIT".equalsIgnoreCase(query.getDirModule())) {
+            ensureDefaultUnitDirectories();
+        }
+        return super.page(query);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<StandardDirectoryVO> list(StandardDirectoryDTO query) {
+        if (query != null && "UNIT".equalsIgnoreCase(query.getDirModule())) {
+            ensureDefaultUnitDirectories();
+        }
+        return super.list(query);
     }
 
     @Override
