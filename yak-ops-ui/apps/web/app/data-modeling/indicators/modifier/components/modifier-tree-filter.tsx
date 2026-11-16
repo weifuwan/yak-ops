@@ -16,7 +16,7 @@ import {
 import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import type { ModifierScopeType } from "../../types";
+import type { ModifierScopeType } from "../../workbench/types";
 
 type FilterOption = { value: string; label: string };
 type ModifierDwLayer = "PUBLIC_LAYER" | "APPLICATION_LAYER" | "NONE_LAYER";

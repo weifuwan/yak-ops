@@ -1,13 +1,7 @@
-import type { ComponentType } from "react";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorKind, IndicatorTab } from "../../types";
-import { AtomIndicatorTabContent } from "../../../atom-indicator";
-import { DerivativeIndicatorTabContent } from "../../../derivative-indicator";
-import { CompositeIndicatorTabContent } from "../../../composite-indicator";
-import { ModifierIndicatorTabContent } from "../../../modifier";
-import { TimePeriodIndicatorTabContent } from "../../../time-period";
-import type { IndicatorTabContentProps } from "./indicator-tab-content";
 import { IndicatorEmptyState } from "./indicator-empty-state";
+import { INDICATOR_PAGE_REGISTRY } from "../../config/indicator-page-registry";
 
 type Props = {
   projectCode: string;
@@ -18,14 +12,6 @@ type Props = {
   onDelete: (kind: IndicatorKind, record: ModelingRecord) => void;
   onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
   onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
-};
-
-const TAB_CONTENT: Record<IndicatorKind, ComponentType<IndicatorTabContentProps>> = {
-  atomIndicator: AtomIndicatorTabContent,
-  derivativeIndicator: DerivativeIndicatorTabContent,
-  composeIndicator: CompositeIndicatorTabContent,
-  modifier: ModifierIndicatorTabContent,
-  timePeriod: TimePeriodIndicatorTabContent,
 };
 
 export function IndicatorWorkspace({
@@ -44,7 +30,7 @@ export function IndicatorWorkspace({
     <div className="relative min-h-0 flex-1 overflow-hidden">
       {tabs.map((tab) => {
         const isActive = tab.key === activeTabKey;
-        const TabContent = TAB_CONTENT[tab.kind];
+        const TabContent = INDICATOR_PAGE_REGISTRY[tab.kind].TabContent;
         return (
           <div
             key={tab.key}

@@ -1,37 +1,34 @@
 import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-sidebar";
 import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
-import { ModifierEditorFields } from "../workbench/components/workspace/modifier-editor-fields";
+import { ModifierEditorFields } from "./form/modifier-editor-fields";
+import { ModifierTreeFilter } from "./components/modifier-tree-filter";
 import { useModifierIndicatorTree } from "./hooks/use-modifier-indicator-tree";
 import type { IndicatorEditorFieldsProps, IndicatorPageProps } from "../workbench/types";
 import { MODIFIER_DEFINITION } from "./config";
 
 export function ModifierPage(props: IndicatorPageProps) {
   const tree = useModifierIndicatorTree(props.projectCode, props.dwType, props.active);
+  const treeControls = (
+    <ModifierTreeFilter
+      projectCode={props.projectCode}
+      dwType={props.dwType}
+      onDwTypeChange={props.onDwTypeChange}
+      scopeType={tree.modifierScopeType}
+      onScopeTypeChange={tree.setModifierScopeType}
+      scopeValue={tree.modifierScopeValue}
+      onScopeValueChange={tree.setModifierScopeValue}
+      keyword={tree.treeKeyword}
+      onKeywordChange={tree.setTreeKeyword}
+    />
+  );
 
   return (
     <div aria-hidden={!props.active} className={props.active ? "flex h-full min-h-0" : "hidden"}>
       <IndicatorSidebar
-        projectCode={props.projectCode}
-        activeKind="modifier"
-        definition={MODIFIER_DEFINITION}
-        dwType={props.dwType}
-        onDwTypeChange={props.onDwTypeChange}
-        modifierScopeType={tree.modifierScopeType}
-        onModifierScopeTypeChange={tree.setModifierScopeType}
-        modifierScopeValue={tree.modifierScopeValue}
-        onModifierScopeValueChange={tree.setModifierScopeValue}
-        groupBy="BUSINESS_TYPE"
-        onGroupByChange={() => {}}
-        treeKeyword={tree.treeKeyword}
-        onTreeKeywordChange={tree.setTreeKeyword}
-        visibleTree={tree.visibleTree}
-        expandedKeys={tree.visibleExpandedKeys}
-        selectedTreeKey={tree.selectedTreeKey}
-        loading={tree.treeQuery.isPending || tree.treeQuery.isFetching}
-        error={tree.treeQuery.isError}
-        onRefresh={() => void tree.treeQuery.refetch()}
-        onCreate={props.onCreate}
-        onList={props.onList}
+        activeKind="modifier" definition={MODIFIER_DEFINITION} treeControls={treeControls}
+        visibleTree={tree.visibleTree} expandedKeys={tree.visibleExpandedKeys} selectedTreeKey={tree.selectedTreeKey}
+        loading={tree.treeQuery.isPending || tree.treeQuery.isFetching} error={tree.treeQuery.isError}
+        onRefresh={() => void tree.treeQuery.refetch()} onCreate={props.onCreate} onList={props.onList}
         onToggle={(key) => {
           tree.setSelectedTreeKey(key);
           tree.setExpandedKeys((current) => {

@@ -3,12 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@yak-ops/yak-ui";
 
 import { getIndicatorApi } from "@/service/data-modeling/indicators";
-import AtomIndicatorPage from "../atom-indicator";
-import DerivativeIndicatorPage from "../derivative-indicator";
-import CompositeIndicatorPage from "../composite-indicator";
-import ModifierPage from "../modifier";
-import TimePeriodPage from "../time-period";
 import { getDefinition } from "./config/indicator-definitions";
+import { INDICATOR_PAGE_REGISTRY } from "./config/indicator-page-registry";
 import { IndicatorDeleteDialog } from "./components/dialogs/indicator-delete-dialog";
 import { IndicatorTreeContextMenu } from "./components/dialogs/indicator-tree-context-menu";
 import { IndicatorTabBar } from "./components/tabs/indicator-tab-bar";
@@ -82,41 +78,19 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
       <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
         <div className="flex h-full min-h-0 shrink-0">
-          <AtomIndicatorPage
-            {...pageProps}
-            active={activeKind === "atomIndicator"}
-            onCreate={() => tabs.openTab("atomIndicator", "create")}
-            onList={() => tabs.openTab("atomIndicator", "list")}
-            onSelect={(record) => void tabs.openEdit("atomIndicator", record)}
-          />
-          <DerivativeIndicatorPage
-            {...pageProps}
-            active={activeKind === "derivativeIndicator"}
-            onCreate={() => tabs.openTab("derivativeIndicator", "create")}
-            onList={() => tabs.openTab("derivativeIndicator", "list")}
-            onSelect={(record) => void tabs.openEdit("derivativeIndicator", record)}
-          />
-          <CompositeIndicatorPage
-            {...pageProps}
-            active={activeKind === "composeIndicator"}
-            onCreate={() => tabs.openTab("composeIndicator", "create")}
-            onList={() => tabs.openTab("composeIndicator", "list")}
-            onSelect={(record) => void tabs.openEdit("composeIndicator", record)}
-          />
-          <ModifierPage
-            {...pageProps}
-            active={activeKind === "modifier"}
-            onCreate={() => tabs.openTab("modifier", "create")}
-            onList={() => tabs.openTab("modifier", "list")}
-            onSelect={(record) => void tabs.openEdit("modifier", record)}
-          />
-          <TimePeriodPage
-            {...pageProps}
-            active={activeKind === "timePeriod"}
-            onCreate={() => tabs.openTab("timePeriod", "create")}
-            onList={() => tabs.openTab("timePeriod", "list")}
-            onSelect={(record) => void tabs.openEdit("timePeriod", record)}
-          />
+          {(Object.keys(INDICATOR_PAGE_REGISTRY) as IndicatorKind[]).map((kind) => {
+            const Page = INDICATOR_PAGE_REGISTRY[kind].Page;
+            return (
+              <Page
+                key={kind}
+                {...pageProps}
+                active={activeKind === kind}
+                onCreate={() => tabs.openTab(kind, "create")}
+                onList={() => tabs.openTab(kind, "list")}
+                onSelect={(record) => void tabs.openEdit(kind, record)}
+              />
+            );
+          })}
         </div>
 
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-color-hover)]">

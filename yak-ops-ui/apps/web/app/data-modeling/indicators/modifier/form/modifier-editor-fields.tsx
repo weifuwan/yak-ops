@@ -11,8 +11,8 @@ import { businessTypeApi } from "@/service/data-modeling/planning/business-type"
 import { dimensionReferenceApi, type ModelingDimensionFieldRecord } from "@/service/data-modeling/indicators/dimension-reference";
 import { codeDetailApi } from "@/service/data-modeling/standards/code-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import type { IndicatorFieldOption, IndicatorOptionResource } from "../../types";
-import { fieldOptions, selectOptionLabel } from "../../utils/indicator-form";
+import type { IndicatorFieldOption, IndicatorOptionResource } from "../../workbench/types";
+import { fieldOptions, selectOptionLabel } from "../../workbench/utils/indicator-form";
 
 type Props = {
   projectCode: string;

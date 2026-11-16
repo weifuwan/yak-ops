@@ -1,18 +1,16 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Alert, Button, Field, FieldLabel, Input, Select, SelectContent, SelectItem, SelectItemIndicator,
-  SelectItemText, SelectTrigger, SelectValue, Textarea, toast,
-} from "@yak-ops/yak-ui";
+import { Alert, Button, toast } from "@yak-ops/yak-ui";
 import { Save, Send, X } from "lucide-react";
 
 import { getIndicatorApi } from "@/service/data-modeling/indicators";
 import type { ModelingRecord, ModelingVersionRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorEditorFieldsProps, IndicatorOptionResource } from "../../types";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
-import { fieldOptions, initialFormValues, readFormValue, selectOptionLabel } from "../../utils/indicator-form";
+import { initialFormValues, readFormValue } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";
 import { IndicatorVersionPanel } from "../panels/indicator-version-panel";
+import { IndicatorFormRenderer } from "./indicator-form-renderer";
 
 type IndicatorEditorProps = {
   projectCode: string;
@@ -148,7 +146,6 @@ export function IndicatorEditor({
     }
   };
 
-  const sectionNames = Array.from(new Set(definition.fields.map((field) => field.section || "基本信息")));
   const currentVersion = tab.record?.currentVersion ? "V" + String(tab.record.currentVersion) : "暂无";
   const isSubmitted = tab.record?.submit === true || tab.record?.submit === "true";
   const showNotice = dirty || Boolean(recordId && !isSubmitted);
@@ -192,86 +189,20 @@ export function IndicatorEditor({
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
           <div className="w-full space-y-4">
-            {renderFields ? renderFields({
-              projectCode,
-              values,
-              recordId,
-              optionsByResource,
-              optionsLoading,
-              onChange: changeValue,
-              onChangeMany: changeValues,
-            }) : (
-              <>
-                {sectionNames.map((section) => (
-              <section key={section} className="bg-white p-4">
-                <div className="mb-3 flex items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-2">
-                  <span aria-hidden="true" className="h-4 w-1 shrink-0 bg-[#5664ff]" />
-                  <h3 className="m-0 text-sm font-semibold leading-7 text-[var(--yak-components-panel-text)]">{section}</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-y-3">
-                  {definition.fields.filter((field) => (field.section || "基本信息") === section).map((field) => {
-                    const options = fieldOptions(field, optionsByResource);
-                    const isSelect = Boolean(field.options || field.optionsSource);
-                    const disabled = Boolean(field.readOnly && recordId);
-                    const selectPlaceholder = optionsLoading ? "正在加载选项..." : field.placeholder || ("请选择" + field.label);
-                    return (
-                      <Field key={field.key} className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-3">
-                        <FieldLabel required={field.required} className="pt-1.5 text-xs leading-5 text-[var(--yak-components-muted-text)]">{field.label}</FieldLabel>
-                        <div className="min-w-0">
-                          {isSelect ? (
-                            <Select
-                              size="small"
-                              value={values[field.key] || undefined}
-                              disabled={disabled}
-                              onValueChange={(value) => changeValue(field.key, String(value || ""))}
-                            >
-                              <SelectTrigger variant="outlined" className="w-full">
-                                <SelectValue placeholder={selectPlaceholder}>
-                                  {(value) => selectOptionLabel(options, value, selectPlaceholder, optionsLoading ? "正在加载选项..." : "未知选项")}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {options.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    <SelectItemText>{option.label}</SelectItemText><SelectItemIndicator />
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : field.multiline ? (
-                            <Textarea
-                              size="small"
-                              variant="outlined"
-                              rows={3}
-                              value={values[field.key] || ""}
-                              disabled={disabled}
-                              placeholder={field.placeholder || ("请输入" + field.label)}
-                              onValueChange={(value) => changeValue(field.key, String(value || ""))}
-                            />
-                          ) : (
-                            <Input
-                              size="small"
-                              className="w-full"
-                              variant="outlined"
-                              type={field.key === "decimalNumber" ? "number" : "text"}
-                              min={field.key === "decimalNumber" ? 0 : undefined}
-                              value={values[field.key] || ""}
-                              disabled={disabled}
-                              placeholder={field.placeholder || ("请输入" + field.label)}
-                              onChange={(event) => changeValue(field.key, event.target.value)}
-                            />
-                          )}
-                        </div>
-                      </Field>
-                    );
-                  })}
-                </div>
-              </section>
-                ))}
-              </>
-            )}
+            <IndicatorFormRenderer
+              projectCode={projectCode}
+              definition={definition}
+              values={values}
+              recordId={recordId}
+              optionsByResource={optionsByResource}
+              optionsLoading={optionsLoading}
+              renderFields={renderFields}
+              onChange={changeValue}
+              onChangeMany={changeValues}
+            />
             {error ? <p role="alert" className="text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
           </div>
+
         </div>
       </div>
 
