@@ -150,7 +150,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
       toast.warning("获取目录详情失败，请刷新后重试");
     } finally {
       setOpeningId("");
-      }
+    }
   };
 
   const openCreateRecord = (parentId?: string) => {
@@ -171,7 +171,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
       toast.warning("获取标准详情失败，请刷新后重试");
     } finally {
       setOpeningId("");
-      }
+    }
   };
 
   const saveDirectory = async (values: Record<string, unknown>) => {
@@ -297,7 +297,6 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const breadcrumb = selectedNode
     ? findNodePath(treeQuery.data || [], selectedNode.key)
     : [];
-
 
   return (
     <div ref={splitRef} className="relative flex h-full min-h-[620px] min-w-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white">
