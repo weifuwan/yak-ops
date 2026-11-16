@@ -317,11 +317,11 @@ export function ModifierEditorFields({
         </FormRow>
       </div>
 
-      <div className="mt-4 border-t border-[var(--yak-components-panel-border)] pt-3">
+      <div className="mt-4 pt-3">
         <button
           type="button"
           aria-expanded={advancedOpen}
-          className="inline-flex items-center gap-1 text-xs font-medium text-[#4169df] transition-colors hover:text-[#3156c9]"
+          className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-[#4169df] transition-colors hover:text-[#3156c9]"
           onClick={() => setAdvancedOpen((open) => !open)}
         >
           {advancedOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
