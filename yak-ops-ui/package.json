@@ -23,7 +23,8 @@
     "test:resources": "node --experimental-strip-types --test tests/resources-current-dir.test.mjs",
     "test:standards": "node --experimental-strip-types --test tests/modeling-standards-api-contract.test.mjs tests/modeling-standards-tree-visual-contract.test.mjs",
     "test:planning-tree": "node --experimental-strip-types --test tests/modeling-planning-tree-visual-contract.test.mjs",
-    "test:derivative-indicator": "node --experimental-strip-types --test tests/derivative-indicator-form-contract.test.mjs"
+    "test:derivative-indicator": "node --experimental-strip-types --test tests/derivative-indicator-form-contract.test.mjs",
+    "test:composite-indicator": "node --experimental-strip-types --test tests/composite-indicator-form-contract.test.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
