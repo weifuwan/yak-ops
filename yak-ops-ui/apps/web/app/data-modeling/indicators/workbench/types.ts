@@ -3,7 +3,7 @@ import type { ModelingRecord, ModelingResourceKey } from "../../service";
 export type IndicatorKind = "atomIndicator" | "derivativeIndicator" | "composeIndicator" | "modifier" | "timePeriod";
 export type IndicatorMode = "create" | "edit" | "list";
 
-export type IndicatorFieldOption = { value: string; label: string };
+export type IndicatorFieldOption = { value: string; label: string; disabled?: boolean };
 export type IndicatorField = {
   key: string;
   label: string;

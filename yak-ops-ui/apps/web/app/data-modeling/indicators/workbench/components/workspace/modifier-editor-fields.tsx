@@ -126,13 +126,24 @@ export function ModifierEditorFields({
     { value: "SIMPLE", label: "普通业务修饰词" },
     { value: "DIMENSION", label: "维度枚举修饰词" },
   ];
-  const layerOptions = fieldOptions({
-    key: "dwhId",
-    label: "数仓分层",
-    optionsSource: "dwLayer",
-    excludeOptionValues: ["SOURCE_LAYER"],
-    optionLabelPrefixField: "dwTypeName",
-  }, optionsByResource);
+  const currentOdsLayer = (optionsByResource.dwLayer || []).find((record) =>
+    String(record.id || "") === values.dwhId && String(record.dwType || "") === "SOURCE_LAYER",
+  );
+  const layerOptions: IndicatorFieldOption[] = [
+    { value: "__NO_LAYER__", label: "不关联数仓分层" },
+    ...fieldOptions({
+      key: "dwhId",
+      label: "数仓分层",
+      optionsSource: "dwLayer",
+      excludeOptionValues: ["SOURCE_LAYER"],
+      optionLabelPrefixField: "dwTypeName",
+    }, optionsByResource),
+    ...(currentOdsLayer ? [{
+      value: values.dwhId,
+      label: "ODS 贴源层（当前记录已关联，请清除）",
+      disabled: true,
+    }] : []),
+  ];
   const businessTypeOptions = fieldOptions({
     key: "busTypeId",
     label: "业务分类",
@@ -283,7 +294,14 @@ export function ModifierEditorFields({
         {advancedOpen ? (
           <div className="mt-3 space-y-3">
             <FormRow label="数仓分层">
-              <OptionSelect value={values.dwhId || ""} options={layerOptions} placeholder="请选择数仓分层" loading={optionsLoading} onChange={(value) => onChange("dwhId", value)} />
+              <OptionSelect
+                value={values.dwhId || ""}
+                options={layerOptions}
+                placeholder="请选择数仓分层"
+                loading={optionsLoading}
+                onChange={(value) => onChange("dwhId", value === "__NO_LAYER__" ? "" : value)}
+              />
+              {currentOdsLayer ? <p className="mt-1 text-[11px] text-[#b45309]">当前记录关联了 ODS 贴源层，该关联已不再允许使用，请清除或更换数仓分层后保存。</p> : null}
             </FormRow>
             <FormRow label="业务分类">
               <OptionSelect value={values.busTypeId || ""} options={businessTypeOptions} placeholder="请选择业务分类" loading={optionsLoading} onChange={changeBusinessType} />
