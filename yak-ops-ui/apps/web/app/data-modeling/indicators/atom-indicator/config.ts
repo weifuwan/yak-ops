@@ -1,5 +1,4 @@
 import type { IndicatorDefinition } from "../workbench/types";
-import { DW_TYPE_OPTIONS } from "../workbench/config/indicator-options";
 
 export const CALCULATE_FUNCTION_OPTIONS = [
   { value: "COUNT", label: "计算(COUNT)" },
@@ -28,12 +27,11 @@ export const ATOM_INDICATOR_DEFINITION: IndicatorDefinition = {
     { key: "enName", label: "英文名称", section: "基本信息" },
     { key: "cnName", label: "中文名称", section: "基本信息", required: true },
     { key: "businessCaliber", label: "业务口径", section: "基本信息", required: true, multiline: true },
+    { key: "busTypeId", label: "业务分类", section: "基本信息", optionsSource: "businessType", optionLabelField: "businessName" },
+    { key: "domainId", label: "数据域", section: "基本信息" },
+    { key: "busProcessId", label: "业务过程", section: "基本信息", required: true },
     { key: "director", label: "负责人", section: "基本信息", required: true },
     { key: "remark", label: "描述", section: "基本信息", multiline: true },
-    { key: "dwType", label: "数仓分层", section: "业务归属", required: true, options: DW_TYPE_OPTIONS },
-    { key: "busTypeId", label: "业务分类", section: "业务归属", optionsSource: "businessType", optionLabelField: "businessName" },
-    { key: "domainId", label: "数据域", section: "业务归属" },
-    { key: "busProcessId", label: "业务过程", section: "业务归属", required: true },
     { key: "calculateFunction", label: "计算函数", section: "计算逻辑", options: CALCULATE_FUNCTION_OPTIONS },
     { key: "decimalNumber", label: "小数位数", section: "计算逻辑", placeholder: "例如 0、2、4" },
     { key: "unitId", label: "度量单位", section: "计算逻辑" },
