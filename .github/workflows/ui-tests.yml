@@ -30,6 +30,9 @@ jobs:
       - name: Data Sync Pipeline contract tests
         working-directory: yak-ops-ui
         run: npm run test:data-sync
+      - name: Atom Indicator form contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:atom-indicator
       - name: Build UI
         working-directory: yak-ops-ui
         run: npm run build
