@@ -14,12 +14,12 @@ import { businessTypeApi } from "@/service/data-modeling/planning/business-type"
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { planningQueryKeys } from "../../query-keys";
 import {
-  getMartTypeLabel, type DataMartRecord, type DataMartTreeNode,
-  type DataMartFormValues,
-} from "./types";
+  getMartTypeLabel, type DataMartRecord, type DataMartTreeNode, type DataMartFormValues,
+  type DataMartOption, type SubjectDomainFormValues, type SubjectDomainRecord,
+} from "../types";
 import { DataMartFormDialog } from "./data-mart-form-dialog";
 import { SubjectDomainFormDialog } from "../components/subject-domain-form-dialog";
-import type { DataMartOption, SubjectDomainFormValues, SubjectDomainRecord } from "../subject-domain/types";
+
 import { PlanningIcon } from "../../components/icons";
 
 interface Props { projectCode: string; }

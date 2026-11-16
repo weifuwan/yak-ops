@@ -8,7 +8,7 @@ import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { MART_TYPE_OPTIONS, withSelectedOption } from "../../select-options";
 import {
   EMPTY_DATA_MART_FORM, type DataMartFormValues, type DataMartRecord,
-} from "./types";
+} from "../types";
 
 interface BusinessTypeOption extends ModelingRecord {
   id?: string;

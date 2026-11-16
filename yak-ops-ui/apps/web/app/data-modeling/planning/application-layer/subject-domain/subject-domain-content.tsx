@@ -14,7 +14,7 @@ import { planningQueryKeys } from "../../query-keys";
 import {
   getSubjectDomainId, type DataMartOption, type SubjectDomainRecord,
   type SubjectDomainTreeNode, type SubjectDomainFormValues,
-} from "./types";
+} from "../types";
 import { SubjectDomainFormDialog } from "../components/subject-domain-form-dialog";
 import { PlanningIcon } from "../../components/icons";
 
