@@ -3,7 +3,10 @@ import HttpUtils from "@/service/http/HttpUtils";
 import { createModelingResourceApi, modelingResourcePath } from "../../shared/modeling-http";
 import type { ModelingAssetTreeNode } from "../../shared/types";
 
-const resourceApi = createModelingResourceApi("standardDirectory");
+const resourceApi = createModelingResourceApi("standardDirectory", {
+  listEndpoint: "list",
+  updateWithId: true,
+});
 
 export const standardDirectoryApi = {
   ...resourceApi,
