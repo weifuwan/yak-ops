@@ -109,7 +109,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
       await queryClient.invalidateQueries({ queryKey: planningQueryKeys.subjectDomainTreePrefix(projectCode) });
       await queryClient.invalidateQueries({ queryKey: planningQueryKeys.subjectDomainDataMarts(projectCode) });
       if (selectedId) {
-        await queryClient.invalidateQueries({ queryKey: ["modeling", "data-mart", "detail", projectCode, selectedId] });
+        await queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataMartDetail(projectCode, selectedId) });
       }
     } catch {
       toast.warning("保存数据集市失败，请检查填写内容后重试");
