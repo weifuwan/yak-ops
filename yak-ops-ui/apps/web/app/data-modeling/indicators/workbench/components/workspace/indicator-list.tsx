@@ -54,7 +54,7 @@ export function IndicatorList({
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
-    if (definition.key !== "derivativeIndicator") return;
+    if (definition.key !== "derivativeIndicator" && definition.key !== "composeIndicator") return;
     const emptyFilters = { ...EMPTY_FILTERS };
     setFilters(emptyFilters);
     setApplied((current) => ({ ...current, filters: emptyFilters }));
