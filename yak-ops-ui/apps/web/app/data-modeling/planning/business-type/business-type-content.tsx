@@ -37,7 +37,7 @@ function findBusinessTypePathKeys(
   for (const node of nodes) {
     const key = node.key || node.value;
     const path = key ? [...ancestors, key] : ancestors;
-    if (node.id === targetId || node.value === targetId || node.key === targetId) return path;
+    if (node.value === targetId || node.key === targetId) return path;
     const found = findBusinessTypePathKeys(node.children || [], targetId, path);
     if (found.length) return found;
   }
