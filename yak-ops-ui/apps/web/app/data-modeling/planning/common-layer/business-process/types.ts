@@ -16,6 +16,8 @@ export interface BusinessProcessFormValues {
   remark: string;
 }
 
+export const BUSINESS_PROCESS_PAGE_SIZE = 10;
+
 export const EMPTY_FILTERS: BusinessProcessFilters = {
   enShortName: "",
   enName: "",
