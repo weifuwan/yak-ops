@@ -18,7 +18,7 @@ export function DerivativeIndicatorPage(props: IndicatorPageProps) {
       projectCode={props.projectCode}
       dwType={treeDwType}
       dwTypeOptions={DERIVATIVE_INDICATOR_TREE_DW_OPTIONS}
-      groupingMode="DERIVATIVE"
+      groupingMode="WAREHOUSE"
       onDwTypeChange={props.onDwTypeChange}
       scopeType={tree.groupBy}
       onScopeTypeChange={(value) => {
