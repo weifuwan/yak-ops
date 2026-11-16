@@ -1,4 +1,4 @@
-import type { ModelingRecord } from "../../../service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorGroupBy, IndicatorTreeNode, ModifierScopeType } from "../types";
 import { recordName } from "./indicator-form";
 

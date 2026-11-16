@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, type ModelingRecord } from "../../../service";
+import { getIndicatorApi } from "@/service/data-modeling/indicators";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { getDefinition } from "../config/indicator-definitions";
 import type { IndicatorKind, IndicatorMode, IndicatorTab, PendingTabClose } from "../types";
 import { initialFormValues } from "../utils/indicator-form";
@@ -39,7 +40,7 @@ export function useIndicatorTabs({ projectCode, activeKind, dwType, onSelectTree
     if (openingId === openingKey) return;
     setOpeningId(openingKey);
     try {
-      const detail = await modelingEntityApi.getById<ModelingRecord>(projectCode, kind, id);
+      const detail = await getIndicatorApi(kind).getById<ModelingRecord>(projectCode, id);
       openTab(kind, "edit", detail);
       if (kind === activeKind) onSelectTreeKey("asset:" + id);
     } catch {

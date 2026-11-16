@@ -2,6 +2,7 @@ import { atomIndicatorApi } from "./atom-indicator";
 import { compositeIndicatorApi } from "./composite-indicator";
 import { derivativeIndicatorApi } from "./derivative-indicator";
 import { modifierApi } from "./modifier";
+import { timePeriodApi } from "./time-period";
 
 export type IndicatorResourceKind =
   | "atomIndicator"
@@ -22,7 +23,8 @@ export type IndicatorOptionResource =
   | "subjectDomain"
   | "derivativeIndicator"
   | "codeStandard"
-  | "timePeriodCategory";
+  | "timePeriodCategory"
+  | "codeDetail";
 
 export function getIndicatorApi(kind: IndicatorResourceKind) {
   switch (kind) {
@@ -37,6 +39,6 @@ export function getIndicatorApi(kind: IndicatorResourceKind) {
     case "timePeriod":
       return timePeriodApi;
   }
+  return timePeriodApi;
 }
 
-import { timePeriodApi } from "./time-period";

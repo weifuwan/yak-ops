@@ -2,7 +2,7 @@ import { useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, type ModelingRecord } from "../../service";
+import { getIndicatorApi } from "@/service/data-modeling/indicators";
 import { getDefinition } from "./config/indicator-definitions";
 import { IndicatorDeleteDialog } from "./components/dialogs/indicator-delete-dialog";
 import { IndicatorTreeContextMenu } from "./components/dialogs/indicator-tree-context-menu";
@@ -63,7 +63,7 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
     if (!pendingDelete?.record.id) return;
     const target = pendingDelete;
     try {
-      await modelingEntityApi.remove(projectCode, target.kind, String(target.record.id));
+      await getIndicatorApi(target.kind).remove(projectCode, String(target.record.id));
       toast.success(getDefinition(target.kind).title + "已删除");
       tabs.removeTabsForRecord(target.kind, String(target.record.id));
       setPendingDelete(null);

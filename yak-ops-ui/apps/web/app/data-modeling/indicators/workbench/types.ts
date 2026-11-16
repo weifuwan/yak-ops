@@ -1,6 +1,7 @@
-import type { ModelingRecord, ModelingResourceKey } from "../../service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import type { IndicatorOptionResource, IndicatorResourceKind } from "@/service/data-modeling/indicators";
 
-export type IndicatorKind = "atomIndicator" | "derivativeIndicator" | "composeIndicator" | "modifier" | "timePeriod";
+export type IndicatorKind = IndicatorResourceKind;
 export type IndicatorMode = "create" | "edit" | "list";
 
 export type IndicatorFieldOption = { value: string; label: string; disabled?: boolean };
@@ -13,7 +14,7 @@ export type IndicatorField = {
   multiline?: boolean;
   readOnly?: boolean;
   options?: IndicatorFieldOption[];
-  optionsSource?: ModelingResourceKey;
+  optionsSource?: IndicatorOptionResource;
   optionLabelField?: string;
   optionLabelPrefixField?: string;
   excludeOptionValues?: string[];

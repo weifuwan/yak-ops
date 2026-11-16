@@ -1,4 +1,5 @@
-import type { ModelingRecord, ModelingResourceKey } from "../../../service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import type { IndicatorOptionResource } from "../types";
 import type { IndicatorField, IndicatorFieldOption, IndicatorKind } from "../types";
 
 export function recordName(record: ModelingRecord): string {
@@ -41,7 +42,7 @@ export function selectOptionLabel(
 
 export function fieldOptions(
   field: IndicatorField,
-  optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>,
+  optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>,
 ): IndicatorFieldOption[] {
   if (field.options) return field.options;
   if (!field.optionsSource) return [];

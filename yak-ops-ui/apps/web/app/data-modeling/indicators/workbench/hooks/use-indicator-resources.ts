@@ -1,28 +1,29 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../service";
+import { getIndicatorOptionRecords } from "@/service/data-modeling/indicators/options";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { getDefinition } from "../config/indicator-definitions";
-import type { IndicatorKind } from "../types";
+import type { IndicatorKind, IndicatorOptionResource } from "../types";
 
 export function useIndicatorResources(projectCode: string, kind: IndicatorKind) {
   const definition = getDefinition(kind);
   const optionResources = useMemo(() => {
-    const resources = new Set<ModelingResourceKey>(["businessType", "dataDomain"]);
+    const resources = new Set<IndicatorOptionResource>(["businessType", "dataDomain"]);
     definition.fields.forEach((field) => {
       if (field.optionsSource) resources.add(field.optionsSource);
     });
     return Array.from(resources);
   }, [definition]);
 
-  const optionsQuery = useQuery<Partial<Record<ModelingResourceKey, ModelingRecord[]>>>({
+  const optionsQuery = useQuery<Partial<Record<IndicatorOptionResource, ModelingRecord[]>>>({
     queryKey: ["modeling", "indicator-options", projectCode, kind],
     queryFn: async () => {
       const entries = await Promise.all(optionResources.map(async (resource) => [
         resource,
-        await modelingEntityApi.all<ModelingRecord>(projectCode, resource),
+        await getIndicatorOptionRecords(projectCode, resource),
       ] as const));
-      return Object.fromEntries(entries) as Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
+      return Object.fromEntries(entries) as Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
     },
     enabled: Boolean(projectCode),
   });

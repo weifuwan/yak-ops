@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { modelingBusinessTypeApi, modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../service";
+import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
+import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
+import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
+import { atomIndicatorApi } from "@/service/data-modeling/indicators/atom-indicator";
+import { getIndicatorApi } from "@/service/data-modeling/indicators";
+import { modifierApi } from "@/service/data-modeling/indicators/modifier";
+import { timePeriodApi, timePeriodCategoryApi } from "@/service/data-modeling/indicators/time-period";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorGroupBy, IndicatorKind, IndicatorTreeNode, ModifierScopeType } from "../types";
 import {
   buildAtomIndicatorTree,
@@ -35,34 +42,34 @@ export function useIndicatorTree(projectCode: string, activeKind: IndicatorKind)
     queryFn: async () => {
       if (activeKind === "timePeriod") {
         const results = await Promise.all([
-          modelingEntityApi.all<ModelingRecord>(projectCode, "timePeriodCategory"),
-          modelingEntityApi.all<ModelingRecord>(projectCode, "timePeriod"),
+          timePeriodCategoryApi.all<ModelingRecord>(projectCode),
+          timePeriodApi.all<ModelingRecord>(projectCode),
         ]);
         return buildTimePeriodTree(results[0], results[1]);
       }
       if (activeKind === "atomIndicator") {
         const [businessTypes, dataDomains, businessProcesses, atomIndicators] = await Promise.all([
-          modelingEntityApi.all<ModelingRecord>(projectCode, "businessType"),
-          modelingEntityApi.all<ModelingRecord>(projectCode, "dataDomain"),
-          modelingEntityApi.all<ModelingRecord>(projectCode, "businessProcess"),
-          modelingEntityApi.all<ModelingRecord>(projectCode, "atomIndicator", { dwType }),
+          businessTypeApi.all<ModelingRecord>(projectCode),
+          dataDomainApi.all<ModelingRecord>(projectCode),
+          businessProcessApi.all<ModelingRecord>(projectCode),
+          atomIndicatorApi.all<ModelingRecord>(projectCode, { dwType }),
         ]);
-        const relatedDomainMap = groupBy === "BUSINESS_TYPE" ? await modelingBusinessTypeApi.allRelatedDomainIds(projectCode) : {};
+        const relatedDomainMap = groupBy === "BUSINESS_TYPE" ? await businessTypeApi.allRelatedDomainIds(projectCode) : {};
         return buildAtomIndicatorTree(businessTypes, dataDomains, businessProcesses, atomIndicators, groupBy, new Map(Object.entries(relatedDomainMap)));
       }
       if (activeKind === "modifier") {
-        const groupResource: ModelingResourceKey = modifierScopeType === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
+        const groupApi = modifierScopeType === "BUSINESS_TYPE" ? businessTypeApi : dataDomainApi;
         const [groups, modifiers] = await Promise.all([
-          modelingEntityApi.all<ModelingRecord>(projectCode, groupResource),
-          modelingEntityApi.all<ModelingRecord>(projectCode, "modifier", { dwType }),
+          groupApi.all<ModelingRecord>(projectCode),
+          modifierApi.all<ModelingRecord>(projectCode, { dwType }),
         ]);
         return buildModifierTree(groups, modifiers, modifierScopeType, modifierScopeValue);
       }
 
-      const groupResource: ModelingResourceKey = groupBy === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
+      const groupApi = groupBy === "BUSINESS_TYPE" ? businessTypeApi : dataDomainApi;
       const results = await Promise.all([
-        modelingEntityApi.all<ModelingRecord>(projectCode, groupResource),
-        modelingEntityApi.all<ModelingRecord>(projectCode, activeKind),
+        groupApi.all<ModelingRecord>(projectCode),
+        getIndicatorApi(activeKind).all<ModelingRecord>(projectCode),
       ]);
       return buildGroupedTree(results[0], results[1], groupBy);
     },

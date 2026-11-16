@@ -1,4 +1,4 @@
-import type { ModelingResourceKey } from "../../../service";
+import type { IndicatorOptionResource } from "../types";
 import type { IndicatorDefinition, IndicatorFieldOption, IndicatorKind } from "../types";
 
 export const DW_TYPE_OPTIONS: IndicatorFieldOption[] = [
@@ -169,7 +169,7 @@ const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
 ];
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-export const RELATION_FIELDS: Record<string, ModelingResourceKey> = {
+export const RELATION_FIELDS: Record<string, IndicatorOptionResource> = {
   atomicId: "atomIndicator",
   timePeriodId: "timePeriod",
   deriveId: "derivativeIndicator",
