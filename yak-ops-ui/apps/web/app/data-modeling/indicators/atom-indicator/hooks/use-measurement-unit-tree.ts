@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { createElement, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Folder, Ruler } from "lucide-react";
 import type { TreeSelectOption } from "@yak-ops/yak-ui";
@@ -15,8 +15,8 @@ function mapUnitNode(node: ModelingAssetTreeNode): TreeSelectOption {
     label: node.title,
     selectable: isUnit,
     icon: isUnit
-      ? <Ruler size={13} className="text-[var(--yak-components-muted-text)]" />
-      : <Folder size={13} className="text-[var(--yak-components-muted-text)]" />,
+      ? createElement(Ruler, { size: 13, className: "text-[var(--yak-components-muted-text)]" })
+      : createElement(Folder, { size: 13, className: "text-[var(--yak-components-muted-text)]" }),
     searchText: node.key + " " + node.id,
     children: children.length ? children : undefined,
   };

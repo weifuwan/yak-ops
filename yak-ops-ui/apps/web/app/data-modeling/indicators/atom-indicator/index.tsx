@@ -6,6 +6,7 @@ import { useAtomIndicatorTree } from "./hooks/use-atom-indicator-tree";
 import type { IndicatorEditorFieldsProps, IndicatorPageProps } from "../workbench/types";
 import { ATOM_INDICATOR_DEFINITION } from "./config";
 import { AtomIndicatorEditorFields } from "./form/atom-indicator-editor-fields";
+import { validateAtomIndicatorSubmit } from "./form/validation";
 
 export function AtomIndicatorPage(props: IndicatorPageProps) {
   const treeDwType = ATOM_INDICATOR_TREE_DW_OPTIONS.some((option) => option.value === props.dwType)
@@ -69,6 +70,7 @@ export function AtomIndicatorTabContent(props: IndicatorTabContentProps) {
       {...props}
       definition={ATOM_INDICATOR_DEFINITION}
       renderFields={renderAtomIndicatorFields}
+      validateBeforeSubmit={validateAtomIndicatorSubmit}
     />
   );
 }
