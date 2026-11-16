@@ -15,7 +15,7 @@ import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
-import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
+import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;\nimport io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;\n\nimport java.util.List;
 
 import java.util.Collections;
 
@@ -92,11 +92,43 @@ class BusinessProcessServiceImplTest {
     }
 
     @Test
-    void shouldReturnEmptyTreeWhenBusinessTypeHasNoRelatedDomains() {
-        when(businessTypeRelatedDataDomainDao.queryList(any())).thenReturn(Collections.emptyList());
+    void shouldReturnAllDomainsAndProcessesWhenBusinessTypeHasNoRelatedDomains() {
+        DataDomainPO domain = new DataDomainPO();
+        domain.setId(DOMAIN_ID);
+        domain.setCnName("测试数据域");
+        BusinessProcessPO process = new BusinessProcessPO();
+        process.setId(PROCESS_ID);
+        process.setDataDomainId(DOMAIN_ID);
+        process.setCnName("测试业务过程");
 
-        assertTrue(service.treeList("business-type-id").isEmpty());
-        verify(businessProcessDao, never()).queryList(any());
+        when(businessTypeRelatedDataDomainDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dataDomainDao.queryList(any())).thenReturn(Collections.singletonList(domain));
+        when(businessProcessDao.queryList(any())).thenReturn(Collections.singletonList(process));
+
+        List<CascaderTreeVO> tree = service.treeList("business-type-id");
+
+        assertEquals(1, tree.size());
+        assertEquals(DOMAIN_ID, tree.get(0).getValue());
+        assertEquals(1, tree.get(0).getChildren().size());
+        assertEquals(PROCESS_ID, tree.get(0).getChildren().get(0).getValue());
+        verify(businessProcessDao).queryList(any());
+    }
+
+    @Test
+    void shouldKeepDomainWithoutBusinessProcessesInCascaderTree() {
+        DataDomainPO domain = new DataDomainPO();
+        domain.setId(DOMAIN_ID);
+        domain.setCnName("暂无业务过程的数据域");
+
+        when(businessTypeRelatedDataDomainDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dataDomainDao.queryList(any())).thenReturn(Collections.singletonList(domain));
+        when(businessProcessDao.queryList(any())).thenReturn(Collections.emptyList());
+
+        List<CascaderTreeVO> tree = service.treeList("business-type-id");
+
+        assertEquals(1, tree.size());
+        assertEquals(DOMAIN_ID, tree.get(0).getValue());
+        assertTrue(tree.get(0).getChildren().isEmpty());
     }
 
     private BusinessProcessDTO dto() {
