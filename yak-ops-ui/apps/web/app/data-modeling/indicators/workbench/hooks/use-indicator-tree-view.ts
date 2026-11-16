@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import type { IndicatorKind, IndicatorTreeNode } from "../types";
@@ -10,7 +10,6 @@ type UseIndicatorTreeViewOptions = {
   queryKeyParts: unknown[];
   queryFn: () => Promise<IndicatorTreeNode[]>;
   enabled: boolean;
-  expandRootOnly?: boolean;
 };
 
 export function useIndicatorTreeView({
@@ -19,11 +18,11 @@ export function useIndicatorTreeView({
   queryKeyParts,
   queryFn,
   enabled,
-  expandRootOnly = false,
 }: UseIndicatorTreeViewOptions) {
   const [treeKeyword, setTreeKeyword] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
+  const initializedTreeKeyRef = useRef("");
   const queryKeySuffix = JSON.stringify(queryKeyParts);
 
   const treeQuery = useQuery<IndicatorTreeNode[]>({
@@ -44,19 +43,19 @@ export function useIndicatorTreeView({
   }, [expandedKeys, treeKeyword, visibleTree]);
 
   useEffect(() => {
-    const nodes = treeQuery.data || [];
-    if (expandRootOnly) {
-      const root = nodes.find((node) => node.nodeType === "root");
-      setExpandedKeys(new Set(root ? [root.key] : []));
-      return;
-    }
-    setExpandedKeys(new Set(collectExpandedKeys(nodes)));
-  }, [treeQuery.data, expandRootOnly]);
+    if (!treeQuery.data || treeQuery.isPlaceholderData) return;
+    const treeIdentity = [projectCode, kind, queryKeySuffix].join(":");
+    if (initializedTreeKeyRef.current === treeIdentity) return;
+
+    const root = treeQuery.data.find((node) => node.nodeType === "root");
+    setExpandedKeys(new Set(root ? [root.key] : []));
+    initializedTreeKeyRef.current = treeIdentity;
+  }, [projectCode, kind, queryKeySuffix, treeQuery.data, treeQuery.isPlaceholderData]);
 
   useEffect(() => {
     setTreeKeyword("");
     setSelectedTreeKey("");
-  }, [kind, queryKeySuffix]);
+  }, [projectCode, kind, queryKeySuffix]);
 
   return {
     treeKeyword,

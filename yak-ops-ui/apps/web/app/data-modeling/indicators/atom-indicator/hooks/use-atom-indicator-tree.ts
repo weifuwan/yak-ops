@@ -17,7 +17,6 @@ export function useAtomIndicatorTree(projectCode: string, dwType: string, enable
     kind: "atomIndicator",
     queryKeyParts: [groupBy, dwType, scopeValue],
     enabled,
-    expandRootOnly: !scopeValue,
     queryFn: async () => {
       const [businessTypes, dataDomains, businessProcesses, atomIndicators] = await Promise.all([
         businessTypeApi.all<ModelingRecord>(projectCode),

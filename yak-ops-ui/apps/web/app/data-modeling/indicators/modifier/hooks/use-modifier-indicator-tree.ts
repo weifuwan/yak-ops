@@ -16,7 +16,6 @@ export function useModifierIndicatorTree(projectCode: string, dwType: string, en
     kind: "modifier",
     queryKeyParts: [dwType, modifierScopeType, modifierScopeValue],
     enabled,
-    expandRootOnly: !modifierScopeValue,
     queryFn: async () => {
       const groupApi = modifierScopeType === "BUSINESS_TYPE" ? businessTypeApi : dataDomainApi;
       const [groups, modifiers] = await Promise.all([
