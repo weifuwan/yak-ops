@@ -17,9 +17,8 @@ import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.vo.businessprocess.CascaderTreeVO;
 
-import java.util.List;
-
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
