@@ -1,11 +1,13 @@
 package io.yak.ops.modeling.api.dto.modifier;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.yak.ops.modeling.api.dto.pagination.ModelingQueryDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 
 /** Typed request model for Modifier. */
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ModifierDTO extends ModelingQueryDTO {

@@ -1,10 +1,12 @@
 package io.yak.ops.modeling.api.dto.fieldstandard;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.yak.ops.modeling.api.dto.pagination.ModelingQueryDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /** Typed request model for FieldStandard. */
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class FieldStandardDTO extends ModelingQueryDTO {

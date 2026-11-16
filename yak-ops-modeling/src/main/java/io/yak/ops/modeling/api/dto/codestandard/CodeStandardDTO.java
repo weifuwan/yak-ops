@@ -1,5 +1,6 @@
 package io.yak.ops.modeling.api.dto.codestandard;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.yak.ops.modeling.api.dto.pagination.ModelingQueryDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -7,6 +8,7 @@ import java.util.List;
 import io.yak.ops.modeling.api.dto.codestandard.CodeDetailDTO;
 
 /** Typed request model for CodeStandard. */
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CodeStandardDTO extends ModelingQueryDTO {
