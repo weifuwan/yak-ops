@@ -80,6 +80,17 @@ test("data-standard controller CRUD mappings match the frontend contract", () =>
   }
 });
 
+test("standard code details use nested code-standard endpoints", () => {
+  const codeService = read(`${standardsPath}/code-standard.ts`);
+  const codeController = read(`${controllersPath}/CodeStandardController.java`);
+
+  assert.match(codeService, /modelingResourcePath\\(projectCode, "codeStandard"\\).*\\/details/s);
+  assert.match(codeController, /@GetMapping\\("\\/\\{id\\}\\/details"\\)/);
+  assert.match(codeController, /@PostMapping\\("\\/\\{id\\}\\/details"\\)/);
+  assert.match(codeController, /@PutMapping\\("\\/\\{id\\}\\/details\\/\\{detailId\\}"\\)/);
+  assert.match(codeController, /@DeleteMapping\\("\\/\\{id\\}\\/details\\/\\{detailId\\}"\\)/);
+});
+
 test("standard directory tree uses the shared standard-directories endpoint", () => {
   const directoryService = read(resources[0].service);
   const directoryController = read(`${controllersPath}/StandardDirectoryController.java`);
