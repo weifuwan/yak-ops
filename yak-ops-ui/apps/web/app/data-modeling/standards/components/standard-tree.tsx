@@ -25,7 +25,7 @@ interface Props {
 }
 interface ContextMenuState { x: number; y: number; node: StandardTreeNode; }
 
-function filterTree(nodes: StandardTreeNode[], keyword: string): StandardTreeNode[] {
+export function filterTree(nodes: StandardTreeNode[], keyword: string): StandardTreeNode[] {
   const normalized = keyword.trim().toLocaleLowerCase();
   if (!normalized) return nodes;
   return nodes.reduce<StandardTreeNode[]>((result, node) => {
@@ -37,14 +37,14 @@ function filterTree(nodes: StandardTreeNode[], keyword: string): StandardTreeNod
   }, []);
 }
 
-function getExpandableKeys(nodes: StandardTreeNode[]): string[] {
+export function getExpandableKeys(nodes: StandardTreeNode[]): string[] {
   return nodes.reduce<string[]>((keys, node) => {
     if (node.children?.length) keys.push(node.key, ...getExpandableKeys(node.children));
     return keys;
   }, []);
 }
 
-function findNodePath(nodes: StandardTreeNode[], key: string, path: string[] = []): string[] {
+export function findNodePath(nodes: StandardTreeNode[], key: string, path: string[] = []): string[] {
   for (const node of nodes) {
     const next = [...path, node.title];
     if (node.key === key) return next;
