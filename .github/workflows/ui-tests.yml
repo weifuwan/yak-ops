@@ -36,6 +36,9 @@ jobs:
       - name: Derived Indicator form contract tests
         working-directory: yak-ops-ui
         run: npm run test:derivative-indicator
+      - name: Composite Indicator form contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:composite-indicator
       - name: Planning tree visual contract tests
         working-directory: yak-ops-ui
         run: npm run test:planning-tree
