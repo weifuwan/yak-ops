@@ -1,5 +1,6 @@
 import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-sidebar";
 import { ATOM_INDICATOR_DEFINITION } from "./config";
+import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 import { useAtomIndicatorTree } from "./hooks/use-atom-indicator-tree";
 import type { IndicatorPageProps } from "../workbench/types";
 
@@ -50,3 +51,7 @@ export function AtomIndicatorPage(props: IndicatorPageProps) {
 }
 
 export default AtomIndicatorPage;
+
+export function AtomIndicatorTabContent(props: IndicatorTabContentProps) {
+  return <IndicatorTabContent {...props} definition={ATOM_INDICATOR_DEFINITION} />;
+}

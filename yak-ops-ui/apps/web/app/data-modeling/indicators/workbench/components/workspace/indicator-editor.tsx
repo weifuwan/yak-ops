@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert, Button, Field, FieldLabel, Input, Select, SelectContent, SelectItem, SelectItemIndicator,
@@ -8,12 +8,11 @@ import { Save, Send, X } from "lucide-react";
 
 import { getIndicatorApi } from "@/service/data-modeling/indicators";
 import type { ModelingRecord, ModelingVersionRecord } from "@/service/data-modeling/shared/types";
-import type { IndicatorOptionResource } from "../../types";
+import type { IndicatorEditorFieldsProps, IndicatorOptionResource } from "../../types";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
 import { fieldOptions, initialFormValues, readFormValue, selectOptionLabel } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";
 import { IndicatorVersionPanel } from "../panels/indicator-version-panel";
-import { ModifierEditorFields } from "./modifier-editor-fields";
 
 type IndicatorEditorProps = {
   projectCode: string;
@@ -21,6 +20,8 @@ type IndicatorEditorProps = {
   tab: IndicatorTab;
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   optionsLoading: boolean;
+  renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
+  validateBeforeSubmit?: (values: Record<string, string>) => string | undefined;
   onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
   onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
 };
@@ -31,6 +32,8 @@ export function IndicatorEditor({
   tab,
   optionsByResource,
   optionsLoading,
+  renderFields,
+  validateBeforeSubmit,
   onSaved,
   onDraftChange,
 }: IndicatorEditorProps) {
@@ -111,18 +114,10 @@ export function IndicatorEditor({
 
   const submit = async () => {
     if (!recordId || dirty || submitting) return;
-    if (definition.key === "modifier" && values.modifierType === "DIMENSION") {
-      const requiredFields = [
-        ["dimensionTbId", "关联维度表"],
-        ["dimensionFdId", "关联维度字段"],
-        ["codeId", "关联标准代码"],
-        ["codeDetailId", "关联代码明细"],
-      ] as const;
-      const missing = requiredFields.find(([key]) => !String(values[key] || "").trim());
-      if (missing) {
-        setError("维度枚举修饰词提交前，请完成" + missing[1]);
-        return;
-      }
+    const validationMessage = validateBeforeSubmit?.(values);
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
     }
     setSubmitting(true);
     try {
@@ -197,17 +192,15 @@ export function IndicatorEditor({
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-4">
           <div className="w-full space-y-4">
-            {definition.key === "modifier" ? (
-              <ModifierEditorFields
-                projectCode={projectCode}
-                values={values}
-                recordId={recordId}
-                optionsByResource={optionsByResource}
-                optionsLoading={optionsLoading}
-                onChange={changeValue}
-                onChangeMany={changeValues}
-              />
-            ) : (
+            {renderFields ? renderFields({
+              projectCode,
+              values,
+              recordId,
+              optionsByResource,
+              optionsLoading,
+              onChange: changeValue,
+              onChangeMany: changeValues,
+            }) : (
               <>
                 {sectionNames.map((section) => (
               <section key={section} className="bg-white p-4">

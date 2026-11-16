@@ -2,6 +2,7 @@ import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-side
 import { useGroupedIndicatorTree } from "../workbench/hooks/use-grouped-indicator-tree";
 import type { IndicatorPageProps } from "../workbench/types";
 import { COMPOSITE_INDICATOR_DEFINITION } from "./config";
+import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 
 export function CompositeIndicatorPage(props: IndicatorPageProps) {
   const tree = useGroupedIndicatorTree(props.projectCode, "composeIndicator", props.active);
@@ -50,3 +51,7 @@ export function CompositeIndicatorPage(props: IndicatorPageProps) {
 }
 
 export default CompositeIndicatorPage;
+
+export function CompositeIndicatorTabContent(props: IndicatorTabContentProps) {
+  return <IndicatorTabContent {...props} definition={COMPOSITE_INDICATOR_DEFINITION} />;
+}

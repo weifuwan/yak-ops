@@ -2,6 +2,7 @@ import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-side
 import { useGroupedIndicatorTree } from "../workbench/hooks/use-grouped-indicator-tree";
 import type { IndicatorPageProps } from "../workbench/types";
 import { DERIVATIVE_INDICATOR_DEFINITION } from "./config";
+import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 
 export function DerivativeIndicatorPage(props: IndicatorPageProps) {
   const tree = useGroupedIndicatorTree(props.projectCode, "derivativeIndicator", props.active);
@@ -50,3 +51,7 @@ export function DerivativeIndicatorPage(props: IndicatorPageProps) {
 }
 
 export default DerivativeIndicatorPage;
+
+export function DerivativeIndicatorTabContent(props: IndicatorTabContentProps) {
+  return <IndicatorTabContent {...props} definition={DERIVATIVE_INDICATOR_DEFINITION} />;
+}

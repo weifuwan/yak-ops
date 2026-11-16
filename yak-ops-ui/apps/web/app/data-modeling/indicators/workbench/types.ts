@@ -72,3 +72,12 @@ export type IndicatorPageProps = {
   onSelect: (record: ModelingRecord) => void;
   onContextMenu: (event: ReactMouseEvent<HTMLButtonElement>, node: IndicatorTreeNode) => void;
 };
+export type IndicatorEditorFieldsProps = {
+  projectCode: string;
+  values: Record<string, string>;
+  recordId: string;
+  optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+  optionsLoading: boolean;
+  onChange: (key: string, value: string) => void;
+  onChangeMany: (values: Record<string, string>) => void;
+};

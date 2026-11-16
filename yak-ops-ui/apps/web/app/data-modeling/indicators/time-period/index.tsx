@@ -2,6 +2,7 @@ import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-side
 import { useTimePeriodIndicatorTree } from "./hooks/use-time-period-indicator-tree";
 import type { IndicatorPageProps } from "../workbench/types";
 import { TIME_PERIOD_DEFINITION } from "./config";
+import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 
 export function TimePeriodPage(props: IndicatorPageProps) {
   const tree = useTimePeriodIndicatorTree(props.projectCode, props.active);
@@ -50,3 +51,7 @@ export function TimePeriodPage(props: IndicatorPageProps) {
 }
 
 export default TimePeriodPage;
+
+export function TimePeriodIndicatorTabContent(props: IndicatorTabContentProps) {
+  return <IndicatorTabContent {...props} definition={TIME_PERIOD_DEFINITION} />;
+}
