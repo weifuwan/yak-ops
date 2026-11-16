@@ -203,9 +203,7 @@ export function AtomIndicatorEditorFields({
                 />
                 {processQuery.isError ? (
                   <p className="mt-1 text-[11px] text-[var(--yak-components-danger-text)]">业务过程加载失败，请刷新后重试。</p>
-                ) : (
-                  
-                )}
+                ) : null}
               </div>
             </FormRow>
             <FormRow label="负责人" required>
