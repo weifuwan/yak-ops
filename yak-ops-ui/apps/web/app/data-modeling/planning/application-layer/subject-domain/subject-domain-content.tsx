@@ -20,6 +20,21 @@ import type { DataMartOption } from "../data-mart/types";
 
 interface Props { projectCode: string; }
 
+function findSubjectDomainPathKeys(
+  nodes: SubjectDomainTreeNode[],
+  targetId: string,
+  ancestors: string[] = [],
+): string[] {
+  for (const node of nodes) {
+    const key = node.value || node.key;
+    const path = key ? [...ancestors, key] : ancestors;
+    if (getSubjectDomainId(node) === targetId) return path;
+    const found = findSubjectDomainPathKeys(node.children || [], targetId, path);
+    if (found.length) return found;
+  }
+  return [];
+}
+
 export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   const queryClient = useQueryClient();
   const splitRef = useRef<HTMLDivElement | null>(null);
@@ -60,9 +75,11 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     () => filterTree(treeQuery.data || [], keyword),
     [treeQuery.data, keyword],
   );
-  useEffect(() => {
-    setExpandedKeys(new Set(getExpandableKeys(treeRows)));
-  }, [treeRows]);
+  const visibleExpandedKeys = useMemo(() => {
+    const next = new Set(expandedKeys);
+    if (keyword.trim()) getExpandableKeys(treeRows).forEach((key) => next.add(key));
+    return next;
+  }, [expandedKeys, keyword, treeRows]);
   useEffect(() => {
     if (!resizing) return;
     const onMove = (event: PointerEvent) => {
@@ -88,6 +105,10 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     setFormParentId(parentId);
     setInheritedDataMartId(dataMartId);
     setInheritedDataMartName(dataMartName);
+    if (parentId) {
+      const path = findSubjectDomainPathKeys(treeQuery.data || [], parentId);
+      setExpandedKeys((current) => new Set([...current, ...(path.length ? path : [parentId])]));
+    }
     setFormOpen(true);
   };
 
@@ -194,7 +215,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
         width={leftWidth}
         treeData={treeRows}
         selectedKey={selectedKey}
-        expandedKeys={expandedKeys}
+        expandedKeys={visibleExpandedKeys}
         keyword={keyword}
         loading={treeQuery.isPending}
         error={treeQuery.isError}

@@ -16,6 +16,23 @@ import type { BusinessTypeOption, DataMartFormValues, DataMartOption, DataMartRe
 import type { SubjectDomainFormValues, SubjectDomainRecord } from "../subject-domain/types";
 
 interface Props { projectCode: string; }
+type DataMartPathNode = { key?: string; value?: string; children?: DataMartPathNode[] };
+
+function findDataMartPathKeys(
+  nodes: DataMartPathNode[],
+  targetId: string,
+  ancestors: string[] = [],
+): string[] {
+  for (const node of nodes) {
+    const key = node.value || node.key || "";
+    const path = key ? [...ancestors, key] : ancestors;
+    if (node.value === targetId || node.key === targetId) return path;
+    const found = findDataMartPathKeys(node.children || [], targetId, path);
+    if (found.length) return found;
+  }
+  return [];
+}
+
 type PendingDelete =
   | { kind: "mart"; record: DataMartRecord }
   | { kind: "subjectDomain"; record: SubjectDomainRecord };
@@ -68,6 +85,10 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
   const openCreate = (parentId?: string) => {
     setEditing(undefined);
     setFormParentId(parentId);
+    if (parentId) {
+      const path = findDataMartPathKeys(treeQuery.data || [], parentId);
+      setExpandedKeys((current) => new Set([...current, ...(path.length ? path : [parentId])]));
+    }
     setFormOpen(true);
   };
 
@@ -194,9 +215,11 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
   };
 
   const treeRows = useMemo(() => treeQuery.data || [], [treeQuery.data]);
-  useEffect(() => {
-    setExpandedKeys(new Set(getExpandableKeys(treeRows)));
-  }, [treeRows]);
+  const visibleExpandedKeys = useMemo(() => {
+    const next = new Set(expandedKeys);
+    if (keyword.trim()) getExpandableKeys(treeRows).forEach((key) => next.add(key));
+    return next;
+  }, [expandedKeys, keyword, treeRows]);
   useEffect(() => {
     if (!resizing) return;
     const onMove = (event: PointerEvent) => {
@@ -222,7 +245,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
         width={leftWidth}
         treeData={treeRows}
         selectedId={selectedId}
-        expandedKeys={expandedKeys}
+        expandedKeys={visibleExpandedKeys}
         keyword={keyword}
         loading={treeQuery.isPending}
         error={treeQuery.isError}

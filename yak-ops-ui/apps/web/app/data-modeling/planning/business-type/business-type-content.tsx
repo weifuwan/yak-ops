@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Modal, toast } from "@yak-ops/yak-ui";
 
@@ -29,10 +29,24 @@ function collectExpandedBusinessTypeKeys(nodes: BusinessTypeTreeNode[]): Set<str
   return keys;
 }
 
+function findBusinessTypePathKeys(
+  nodes: BusinessTypeTreeNode[],
+  targetId: string,
+  ancestors: string[] = [],
+): string[] {
+  for (const node of nodes) {
+    const key = node.key || node.value;
+    const path = key ? [...ancestors, key] : ancestors;
+    if (node.id === targetId || node.value === targetId || node.key === targetId) return path;
+    const found = findBusinessTypePathKeys(node.children || [], targetId, path);
+    if (found.length) return found;
+  }
+  return [];
+}
+
 export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const queryClient = useQueryClient();
   const splitRef = useRef<HTMLDivElement | null>(null);
-  const previousKeywordRef = useRef("");
   const [leftWidth, setLeftWidth] = useState(280);
   const [resizing, setResizing] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -56,17 +70,13 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   });
   const treeData = treeQuery.data || [];
 
-  useEffect(() => {
-    if (treeQuery.isPending || treeQuery.isFetching) return;
-    const previousKeyword = previousKeywordRef.current.trim();
-    const currentKeyword = keyword.trim();
-    if (currentKeyword || previousKeyword) {
-      setExpandedKeys(collectExpandedBusinessTypeKeys(treeData));
-    } else {
-      setExpandedKeys((current) => current.size ? current : collectExpandedBusinessTypeKeys(treeData));
+  const visibleExpandedKeys = useMemo(() => {
+    const next = new Set(expandedKeys);
+    if (keyword.trim()) {
+      collectExpandedBusinessTypeKeys(treeData).forEach((key) => next.add(key));
     }
-    previousKeywordRef.current = keyword;
-  }, [treeData, keyword, treeQuery.isFetching, treeQuery.isPending]);
+    return next;
+  }, [expandedKeys, keyword, treeData]);
 
   useEffect(() => {
     if (!resizing) return;
@@ -105,7 +115,10 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const openCreate = (parentId?: string) => {
     setFormRecord(undefined);
     setFormParentId(parentId);
-    if (parentId) setExpandedKeys((current) => new Set([...current, parentId]));
+    if (parentId) {
+      const path = findBusinessTypePathKeys(treeData, parentId);
+      setExpandedKeys((current) => new Set([...current, ...(path.length ? path : [parentId])]));
+    }
     setFormOpen(true);
   };
 
@@ -186,7 +199,7 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
         width={leftWidth}
         treeData={treeData}
         selectedId={selectedId}
-        expandedKeys={expandedKeys}
+        expandedKeys={visibleExpandedKeys}
         keyword={keyword}
         loading={treeQuery.isPending}
         error={treeQuery.isError}
