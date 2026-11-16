@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import {
-  ChevronDown, ChevronRight, Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
-} from "lucide-react";
+import { Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { Button, Input } from "@yak-ops/yak-ui";
 
 import type { SubjectDomainTreeNode } from "./types";
-import { PlanningIcon } from "../../components/icons";
+import { PlanningTreeRow, PlanningTreeSkeleton } from "../../components/tree-visuals";
 
 interface Props {
   width: number;
@@ -58,34 +56,21 @@ function TreeNodeRow({
   const expanded = expandedKeys.has(key);
   const selected = selectedKey === key;
   const isMart = node.type === "MART";
+
   return (
     <div>
-      <div
-        role="treeitem"
-        aria-selected={selected}
-        aria-expanded={hasChildren ? expanded : undefined}
+      <PlanningTreeRow
+        title={node.title}
+        icon={isMart ? "data-mart" : "subject-domain"}
+        depth={depth}
+        selected={selected}
+        hasChildren={hasChildren}
+        expanded={expanded}
+        suffix={isMart ? <span className="shrink-0 text-[10px] text-[var(--yak-components-muted-text)]">集市</span> : null}
+        onToggle={() => onToggle(key)}
+        onSelect={() => onSelect(node)}
         onContextMenu={(event) => onContextMenu(event, node)}
-        onClick={() => onSelect(node)}
-        style={{ paddingLeft: 10 + depth * 18 }}
-        className={[
-          "flex min-h-8 cursor-pointer items-center gap-1 rounded-md pr-2 text-[13px] transition-colors",
-          selected
-            ? "bg-[var(--yak-color-primary-subtle)] font-medium text-[var(--yak-color-primary)]"
-            : "text-[#3a3d51] hover:bg-[var(--yak-color-hover)]",
-        ].join(" ")}
-      >
-        <button
-          type="button"
-          className="flex size-4 shrink-0 cursor-pointer items-center justify-center text-[#98a0aa]"
-          aria-label={hasChildren ? (expanded ? "收起" : "展开") : "无子级"}
-          onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(key); }}
-        >
-          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
-        </button>
-        <PlanningIcon name={isMart ? "data-mart" : "subject-domain"} size={14} className={selected ? "text-[var(--yak-color-primary)]" : "text-[#8b929e]"} />
-        <span className="min-w-0 flex-1 truncate">{node.title}</span>
-        {isMart ? <span className="text-[10px] text-[#98a0aa]">集市</span> : null}
-      </div>
+      />
       {hasChildren && expanded ? (
         <div role="group">
           {node.children?.map((child) => (
@@ -134,18 +119,18 @@ export function SubjectDomainTree({
       className="relative flex min-h-0 shrink-0 flex-col overflow-hidden bg-white"
       style={{ width }}
       onClick={() => contextMenu && setContextMenu(undefined)}>
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3">
+      <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
         <span className="truncate text-sm font-semibold text-[var(--yak-components-panel-text)]">主题域</span>
-        <div className="flex items-center gap-1">
-          <button type="button" title="新建主题域"
-            className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
-            onClick={onCreateRoot}><PlusSquare size={16} /></button>
-          <button type="button" title="刷新"
-            className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
-            onClick={onRefresh}><RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /></button>
+        <div className="flex items-center gap-0.5">
+          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0"
+            title="新建主题域" onClick={onCreateRoot}><Plus size={14} /></Button>
+          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0"
+            title="刷新" isDisabled={refreshing} onClick={onRefresh}>
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+          </Button>
         </div>
       </div>
-      <div className="shrink-0 px-3 py-2">
+      <div className="shrink-0 px-3 pb-2">
         <div className="relative">
           <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
           <Input size="small" variant="outlined" value={keyword} className="pl-8 pr-8"
@@ -157,16 +142,16 @@ export function SubjectDomainTree({
           ) : null}
         </div>
       </div>
-      <div role="tree" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div role="tree" className="min-h-0 flex-1 overflow-y-auto pb-3">
         {loading ? (
-          <div className="py-8 text-center text-xs text-[var(--yak-components-muted-text)]">正在加载主题域...</div>
+          <PlanningTreeSkeleton />
         ) : error ? (
-          <div className="px-2 py-6 text-center text-xs text-[var(--yak-components-muted-text)]">
-            <p>主题域加载失败</p>
-            <Button size="sm" variant="secondary" className="mt-2" onClick={onRetry}>重试</Button>
+          <div className="flex items-center gap-1.5 px-2 py-2 text-xs text-[var(--yak-components-muted-text)]">
+            <span>主题域加载失败。</span>
+            <Button size="sm" variant="secondary" onClick={onRetry}>重试</Button>
           </div>
         ) : treeData.length ? (
-          <div className="space-y-0.5">
+          <div className="flex flex-col">
             {treeData.map((node) => (
               <TreeNodeRow key={node.key || node.value} node={node} depth={0}
                 selectedKey={selectedKey} expandedKeys={expandedKeys} onToggle={onToggleExpanded}
