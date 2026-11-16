@@ -23,6 +23,25 @@ Each modeling table has one independent PO, Mapper, DAO interface and DAO implem
 
 HTTP controllers remain in `yak-ops-api`, following the existing Yak Ops API boundary. Each standards/indicator page has its own controller and REST resource path under `/projects/{projectCode}/modeling`: `standard-directories`, `field-standards`, `code-standards`, `measurement-units`, `naming-dictionaries`, `atom-indicators`, `derived-indicators`, `composite-indicators`, `modifiers` and `time-periods`. The modules reuse Yak Ops authentication, project permissions, datasource and MyBatis session factory.
 
+## REST endpoints
+
+All endpoints below are prefixed with `/projects/{projectCode}/modeling`.
+
+| Page / capability | Resource path | Controller | Service |
+|---|---|---|---|
+| Standard directories | `/standard-directories` | `StandardDirectoryController` | `StandardDirectoryService` |
+| Field standards | `/field-standards` | `FieldStandardController` | `FieldStandardService` |
+| Standard codes | `/code-standards` | `CodeStandardController` | `CodeStandardService` |
+| Measurement units | `/measurement-units` | `MeasurementUnitController` | `MeasurementUnitService` |
+| Naming dictionaries | `/naming-dictionaries` | `NamingDictionaryController` | `NamingDictionaryService` |
+| Atomic indicators | `/atom-indicators` | `AtomIndicatorController` | `AtomIndicatorService` |
+| Derived indicators | `/derived-indicators` | `DerivedIndicatorController` | `DerivedIndicatorService` |
+| Composite indicators | `/composite-indicators` | `CompositeIndicatorController` | `CompositeIndicatorService` |
+| Modifiers | `/modifiers` | `ModifierController` | `ModifierService` |
+| Time periods and categories | `/time-periods` | `TimePeriodController` | `TimePeriodService` |
+
+Each resource uses typed `page`, `list`, `getById`, `create`, `update` and `delete` operations. Versioned indicator resources additionally expose `POST /{id}/submit`, `GET /{id}/versions` and `POST /{id}/rollback?versionNumber={versionNumber}`. Standard-code details are nested under `/code-standards/{id}/details`; time-period categories are nested under `/time-periods/categories`.
+
 ## Migrated business scope
 
 ### Warehouse planning
