@@ -141,11 +141,6 @@ class AtomIndicatorServiceImplTest {
 
     @Test
     void shouldRejectNegativeDecimalNumber() {
-        when(dataDomainDao.queryById(DOMAIN_ID)).thenReturn(new DataDomainPO());
-        BusinessProcessPO process = new BusinessProcessPO();
-        process.setDataDomainId(DOMAIN_ID);
-        when(businessProcessDao.queryById(PROCESS_ID)).thenReturn(process);
-
         AtomIndicatorDTO dto = validDto();
         dto.setDecimalNumber(Integer.valueOf(-1));
 
