@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { ModelingWorkspaceEmptyState } from "@/app/data-modeling/components/workspace-empty-state";
@@ -18,6 +18,9 @@ export default function IndicatorsIndexPage() {
   const { pathname } = useLocation();
 
   if (!currentWorkspace) return <ModelingWorkspaceEmptyState />;
+  if (pathname.replace(/\/$/, "") === "/data-modeling/indicators") {
+    return <Navigate replace to="/data-modeling/indicators/compose" />;
+  }
 
   const segment = pathname.slice(pathname.lastIndexOf("/") + 1);
   const activeKind = ROUTE_KIND[segment] || "composeIndicator";
@@ -28,7 +31,6 @@ export default function IndicatorsIndexPage() {
         projectCode={String(currentWorkspace.id)}
         activeKind={activeKind}
       />
-      <Outlet />
     </div>
   );
 }

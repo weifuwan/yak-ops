@@ -8,9 +8,9 @@ import { getDefinition } from "../config/indicator-definitions";
 import type { IndicatorKind, IndicatorMode, IndicatorTab, PendingTabClose } from "../types";
 import { initialFormValues } from "../utils/indicator-form";
 
-type UseIndicatorTabsOptions = { projectCode: string; activeKind: IndicatorKind; dwType: string; onSelectTreeKey: (key: string) => void };
+type UseIndicatorTabsOptions = { projectCode: string; dwType: string };
 
-export function useIndicatorTabs({ projectCode, activeKind, dwType, onSelectTreeKey }: UseIndicatorTabsOptions) {
+export function useIndicatorTabs({ projectCode, dwType }: UseIndicatorTabsOptions) {
   const queryClient = useQueryClient();
   const [tabs, setTabs] = useState<IndicatorTab[]>([]);
   const [activeTabKey, setActiveTabKey] = useState("");
@@ -35,14 +35,13 @@ export function useIndicatorTabs({ projectCode, activeKind, dwType, onSelectTree
     if (!record.id) return;
     const id = String(record.id);
     const existing = tabs.find((tab) => tab.kind === kind && tab.recordId === id);
-    if (existing) { setActiveTabKey(existing.key); if (kind === activeKind) onSelectTreeKey("asset:" + id); return; }
+    if (existing) { setActiveTabKey(existing.key); return; }
     const openingKey = kind + ":" + id;
     if (openingId === openingKey) return;
     setOpeningId(openingKey);
     try {
       const detail = await getIndicatorApi(kind).getById<ModelingRecord>(projectCode, id);
       openTab(kind, "edit", detail);
-      if (kind === activeKind) onSelectTreeKey("asset:" + id);
     } catch {
       toast.warning("获取详情失败，请刷新列表后重试");
     } finally { setOpeningId(""); }

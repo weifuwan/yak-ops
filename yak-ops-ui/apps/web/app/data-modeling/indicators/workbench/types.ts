@@ -1,3 +1,4 @@
+import type { MouseEvent as ReactMouseEvent } from "react";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorOptionResource as IndicatorOptionResourceType, IndicatorResourceKind } from "@/service/data-modeling/indicators";
 
@@ -61,3 +62,13 @@ export type IndicatorDeleteTarget = { kind: IndicatorKind; record: ModelingRecor
 export type IndicatorTreeContextMenuState = { x: number; y: number; record: ModelingRecord } | null;
 export type IndicatorTabContextMenuState = { tabKey: string; x: number; y: number };
 export type PendingTabClose = { keys: string[]; dirtyTitles: string[] };
+export type IndicatorPageProps = {
+  projectCode: string;
+  active: boolean;
+  dwType: string;
+  onDwTypeChange: (value: string) => void;
+  onCreate: () => void;
+  onList: () => void;
+  onSelect: (record: ModelingRecord) => void;
+  onContextMenu: (event: ReactMouseEvent<HTMLButtonElement>, node: IndicatorTreeNode) => void;
+};
