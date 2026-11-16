@@ -60,7 +60,7 @@ public abstract class AbstractModelingAssetService<
 
     @Override
     public IPage<V> page(D query) {
-        D actualQuery = query == null ? newQuery() : query;
+        D actualQuery = query == null ? newDto() : query;
         int pageNo = positive(actualQuery.getPageNo(), 1);
         int pageSize = Math.min(positive(actualQuery.getPageSize(), 10), 100);
         IPage<PO> source = modelingAssetDao.queryPage(

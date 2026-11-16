@@ -185,8 +185,12 @@ public class TimePeriodServiceImpl
     private QueryWrapper<TimePeriodCategoryPO> buildCategoryWrapper(TimePeriodCategoryDTO query) {
         QueryWrapper<TimePeriodCategoryPO> wrapper = new QueryWrapper<TimePeriodCategoryPO>();
         addCategoryKeyword(wrapper, query.getKeyword());
-        eqIfNotBlank(wrapper, query.getParentId(), "parent_id");
-        eqIfPresent(wrapper, query.getLeaf(), "leaf");
+        if (notBlank(query.getParentId())) {
+            wrapper.eq("parent_id", query.getParentId());
+        }
+        if (query.getLeaf() != null) {
+            wrapper.eq("leaf", query.getLeaf());
+        }
         return wrapper;
     }
 

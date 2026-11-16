@@ -1,7 +1,7 @@
 package io.yak.ops.api.controller.modeling;
 
-import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
+import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
@@ -10,9 +10,13 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.modeling.api.dto.fieldstandard.FieldStandardDTO;
 import io.yak.ops.modeling.api.vo.fieldstandard.FieldStandardVO;
 import io.yak.ops.modeling.application.service.FieldStandardService;
+
 import io.swagger.v3.oas.annotations.Parameter;
+
 import java.util.List;
+
 import javax.annotation.Resource;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -76,6 +80,5 @@ public class FieldStandardController extends BaseController {
             @PathVariable("id") String id) {
         return Result.success(fieldStandardService.delete(id));
     }
-
 
 }

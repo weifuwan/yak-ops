@@ -1,18 +1,27 @@
 package io.yak.ops.api.controller.modeling;
 
-import io.yak.ops.api.audit.OperatorLog;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
 import io.yak.ops.api.audit.enums.AuditType;
+import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.controller.BaseController;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.modeling.api.dto.timeperiod.TimePeriodCategoryDTO;
 import io.yak.ops.modeling.api.dto.timeperiod.TimePeriodDTO;
+import io.yak.ops.modeling.api.vo.ModelingAssetVersionVO;
+import io.yak.ops.modeling.api.vo.timeperiod.TimePeriodCategoryVO;
 import io.yak.ops.modeling.api.vo.timeperiod.TimePeriodVO;
 import io.yak.ops.modeling.application.service.TimePeriodService;
+
 import io.swagger.v3.oas.annotations.Parameter;
+
 import java.util.List;
+
 import javax.annotation.Resource;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -24,10 +33,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import io.yak.ops.modeling.api.vo.ModelingAssetVersionVO;
-import io.yak.ops.modeling.api.dto.timeperiod.TimePeriodCategoryDTO;
-import io.yak.ops.modeling.api.vo.timeperiod.TimePeriodCategoryVO;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /** HTTP API for TimePeriod. */
 @RestController
@@ -104,7 +109,6 @@ public class TimePeriodController extends BaseController {
             @RequestParam("versionNumber") Integer versionNumber) {
         return Result.success(timePeriodService.rollback(id, versionNumber, loginUser.getUserName()));
     }
-
 
     @PostMapping("/categories/page")
     public Result<PageInfo<TimePeriodCategoryVO>> pageCategories(@RequestBody TimePeriodCategoryDTO query) {
