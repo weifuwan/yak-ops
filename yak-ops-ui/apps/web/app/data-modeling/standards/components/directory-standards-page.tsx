@@ -8,7 +8,8 @@ import {
   Button, Input, Modal, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "@/app/data-modeling/service";
+import { standardDirectoryApi } from "@/service/data-modeling/standards/shared/standard-directory";
+import { getStandardRecordApi } from "@/service/data-modeling/standards/shared/standard-record";
 import type {
   CodeDetailRecord, CodeStandardRecord, FieldStandardRecord, StandardDirectoryRecord,
   StandardModule, StandardTreeNode, UnitStandardRecord,
@@ -218,6 +219,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const queryClient = useQueryClient();
   const title = getStandardTitle(module);
   const resource = getStandardResource(module);
+  const recordApi = getStandardRecordApi(resource);
   const splitRef = useRef<HTMLDivElement | null>(null);
   const [leftWidth, setLeftWidth] = useState(280);
   const [resizing, setResizing] = useState(false);
@@ -242,7 +244,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
 
   const treeQuery = useQuery({
     queryKey: ["modeling", "standards", "tree", projectCode, module],
-    queryFn: () => modelingEntityApi.directoryTree(projectCode, module),
+    queryFn: () => standardDirectoryApi.tree(projectCode, module),
     enabled: Boolean(projectCode),
   });
   const treeRows = useMemo(
@@ -282,15 +284,15 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
 
   const detailQuery = useQuery({
     queryKey: ["modeling", "standards", "detail", projectCode, module, selectedNode?.type, selectedNode?.id],
-    queryFn: () => modelingEntityApi.getById<StandardDirectoryRecord | StandardRecord>(
-      projectCode, detailResource!, selectedNode!.id,
-    ),
+    queryFn: () => selectedIsDirectory
+      ? standardDirectoryApi.getById<StandardDirectoryRecord>(projectCode, selectedNode!.id)
+      : recordApi.getById<StandardRecord>(projectCode, selectedNode!.id),
     enabled: Boolean(projectCode && selectedNode?.id && detailResource),
   });
 
   const directoryQuery = useQuery({
     queryKey: ["modeling", "standards", "directories", projectCode, module, selectedNode?.id, directoryPageNo],
-    queryFn: () => modelingEntityApi.page<StandardDirectoryRecord>(projectCode, "standardDirectory", {
+    queryFn: () => standardDirectoryApi.page<StandardDirectoryRecord>(projectCode, {
       dirModule: module,
       parentId: selectedNode?.id,
       pageNo: directoryPageNo,
@@ -301,7 +303,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
 
   const recordQuery = useQuery({
     queryKey: ["modeling", "standards", "records", projectCode, module, selectedNode?.id, recordPageNo, recordKeyword],
-    queryFn: () => modelingEntityApi.page<StandardRecord>(projectCode, resource, {
+    queryFn: () => recordApi.page<StandardRecord>(projectCode, {
       parentId: selectedNode?.id,
       pageNo: recordPageNo,
       pageSize: PAGE_SIZE,
@@ -336,7 +338,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     if (!id || openingId) return;
     setOpeningId(id);
     try {
-      const record = await modelingEntityApi.getById<StandardDirectoryRecord>(projectCode, "standardDirectory", id);
+      const record = await standardDirectoryApi.getById<StandardDirectoryRecord>(projectCode, id);
       setEditingDirectory(record);
       setDirectoryParentId(record.parentId || undefined);
       setInitialDirType(record.dirType || "FOLDER");
@@ -360,7 +362,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     if (!id || openingId) return;
     setOpeningId(id);
     try {
-      const record = await modelingEntityApi.getById<StandardRecord>(projectCode, resource, id);
+      const record = await recordApi.getById<StandardRecord>(projectCode, id);
       setEditingRecord(record);
       setRecordParentId(record.parentId || undefined);
       setRecordDialogOpen(true);
@@ -377,10 +379,10 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     setSaving(true);
     try {
       if (editingDirectory?.id) {
-        await modelingEntityApi.update(projectCode, "standardDirectory", { ...values, id: editingDirectory.id });
+        await standardDirectoryApi.update(projectCode, { ...values, id: editingDirectory.id });
         toast.success("目录已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "standardDirectory", values);
+        await standardDirectoryApi.create(projectCode, values);
         toast.success("目录已创建");
       }
       setDirectoryDialogOpen(false);
@@ -398,10 +400,10 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     setSaving(true);
     try {
       if (editingRecord?.id) {
-        await modelingEntityApi.update(projectCode, resource, { ...values, id: editingRecord.id });
+        await recordApi.update(projectCode, { ...values, id: editingRecord.id });
         toast.success(title + "已更新");
       } else {
-        await modelingEntityApi.create(projectCode, resource, values);
+        await recordApi.create(projectCode, values);
         toast.success(title + "已创建");
       }
       setRecordDialogOpen(false);
@@ -418,7 +420,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     if (!pendingDelete || deleting) return;
     setDeleting(true);
     try {
-      await modelingEntityApi.remove(projectCode, pendingDelete.resource, pendingDelete.id);
+      await (pendingDelete.directory ? standardDirectoryApi : recordApi).remove(projectCode, pendingDelete.id);
       toast.success(pendingDelete.directory ? "目录已删除" : title + "已删除");
       if (selectedNode?.id === pendingDelete.id) setSelectedNode(undefined);
       setPendingDelete(undefined);

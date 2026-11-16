@@ -5,7 +5,7 @@ import {
   Button, Input, Modal, toast,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "@/app/data-modeling/service";
+import { namingDictionaryApi } from "@/service/data-modeling/standards/naming-dictionary";
 import type { DictionaryStandardRecord } from "../types";
 
 interface Props { projectCode: string; }
@@ -109,7 +109,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
 
   const pageQuery = useQuery({
     queryKey: ["modeling", "standards", "dictionary", projectCode, pageNo, keyword],
-    queryFn: () => modelingEntityApi.page<DictionaryStandardRecord>(projectCode, "dictionaryStandard", {
+    queryFn: () => namingDictionaryApi.page<DictionaryStandardRecord>(projectCode, {
       pageNo, pageSize: PAGE_SIZE, keyword: keyword.trim(),
     }),
     enabled: Boolean(projectCode),
@@ -117,7 +117,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
 
   const detailQuery = useQuery({
     queryKey: ["modeling", "standards", "dictionary-detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<DictionaryStandardRecord>(projectCode, "dictionaryStandard", selectedId),
+    queryFn: () => namingDictionaryApi.getById<DictionaryStandardRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId),
   });
 
@@ -154,7 +154,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
     if (!id || opening) return;
     setOpening(true);
     try {
-      const record = await modelingEntityApi.getById<DictionaryStandardRecord>(projectCode, "dictionaryStandard", id);
+      const record = await namingDictionaryApi.getById<DictionaryStandardRecord>(projectCode, id);
       setEditing(record);
       setFormOpen(true);
     } catch {
@@ -170,10 +170,10 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
     setSaving(true);
     try {
       if (editing?.id) {
-        await modelingEntityApi.update(projectCode, "dictionaryStandard", { ...payload, id: editing.id });
+        await namingDictionaryApi.update(projectCode, { ...payload, id: editing.id });
         toast.success("命名词典已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "dictionaryStandard", payload);
+        await namingDictionaryApi.create(projectCode, payload);
         toast.success("命名词典已创建");
       }
       setFormOpen(false);
@@ -190,7 +190,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
     if (!pendingDelete?.id || deleting) return;
     setDeleting(true);
     try {
-      await modelingEntityApi.remove(projectCode, "dictionaryStandard", pendingDelete.id);
+      await namingDictionaryApi.remove(projectCode, pendingDelete.id);
       toast.success("命名词典已删除");
       if (selectedId === pendingDelete.id) setSelectedId("");
       setPendingDelete(undefined);
