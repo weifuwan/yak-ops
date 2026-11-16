@@ -1,7 +1,7 @@
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
-import { DataModelingOverviewPage } from "@/app/data-modeling/overview/page";
+import { DataModelingOverviewPage } from "@/app/data-modeling/overview";
 import { DataModelingStandardsPage } from "@/app/data-modeling/standards/page";
 import { DataModelingIndicatorsPage } from "@/app/data-modeling/indicators/page";
 import { DataModelingPlanningPage } from "@/app/data-modeling/planning/page";

@@ -17,7 +17,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import type { PlanningIconName } from "../data-modeling/planning/icons";
+import type { PlanningIconName } from "../data-modeling/planning/components/icons";
 import type { IndicatorIconName } from "../data-modeling/indicators/icons";
 
 export type ProductNavigationItem = {
