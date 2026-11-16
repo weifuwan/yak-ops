@@ -9,6 +9,7 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 
 const indicatorTree = read("../apps/web/app/data-modeling/indicators/workbench/components/sidebar/indicator-tree.tsx");
 const standardTree = read("../apps/web/app/data-modeling/standards/components/standard-tree.tsx");
+const standardIcons = read("../apps/web/app/data-modeling/standards/components/icons/index.tsx");
 const dictionaryList = read("../apps/web/app/data-modeling/standards/naming-dictionary/dictionary-list.tsx");
 const standardsPage = read("../apps/web/app/data-modeling/standards/components/directory-standards-page.tsx");
 const dictionaryPage = read("../apps/web/app/data-modeling/standards/naming-dictionary/dictionary-standards-content.tsx");
@@ -26,6 +27,17 @@ test("standard directory tree follows the indicator tree row visual contract", (
   assert.ok(standardTree.includes('height="8"'));
   assert.ok(standardTree.includes("duration-150"));
   assert.ok(standardTree.includes('bg-[#DFE7FF] text-[var(--yak-components-panel-text)]'));
+});
+
+test("standard record nodes use module-specific public SVG icons", () => {
+  assert.ok(standardTree.includes('import { StandardIcon } from "./icons";'));
+  assert.ok(standardTree.includes('name={module === "FIELD" ? "field-standard" : module === "CODE" ? "standard-code" : "unit-standard"}'));
+  assert.ok(standardTree.includes("size={14}"));
+  assert.ok(!standardTree.includes("FileText"));
+  for (const icon of ["field-standard", "standard-code", "unit-standard"]) {
+    assert.ok(standardIcons.includes(`"${icon}"`), `standard icon component should support ${icon}`);
+  }
+  assert.ok(standardIcons.includes('icons/data-modeling/standards/${name}.svg'));
 });
 
 test("standard tree keeps its directory actions and uses skeleton loading", () => {
