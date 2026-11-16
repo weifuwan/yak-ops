@@ -7,7 +7,7 @@ type DataModelingSectionPageProps = {
   capabilities: string[];
 };
 
-export function DataModelingSectionPage({
+export function ModelingSectionPage({
   title,
   description,
   capabilities,
@@ -63,4 +63,4 @@ export function DataModelingSectionPage({
   );
 }
 
-export default DataModelingSectionPage;
+export default ModelingSectionPage;

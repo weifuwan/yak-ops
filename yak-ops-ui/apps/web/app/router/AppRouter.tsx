@@ -18,7 +18,8 @@ import DataDomainPage from "@/app/data-modeling/planning/common-layer/data-domai
 import BusinessProcessPage from "@/app/data-modeling/planning/common-layer/business-process";
 import DataMartPage from "@/app/data-modeling/planning/application-layer/data-mart";
 import SubjectDomainPage from "@/app/data-modeling/planning/application-layer/subject-domain";
-import { DataModelingSectionPage } from "@/app/data-modeling/section/page";
+import DimensionModelingPage from "@/app/data-modeling/models/dimension-modeling";
+import ReverseModelingPage from "@/app/data-modeling/models/reverse-modeling";
 import { ResourceManagementPage } from "@/app/resources/page";
 import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
 import { TaskGroupQueuePage } from "@/app/resources/task-group-queue/page";
@@ -223,21 +224,13 @@ export default function AppRouter() {
             <Route
               path="/data-modeling/models/positive"
               element={
-                <DataModelingSectionPage
-                  title="维度建模"
-                  description="围绕维度、维度表和数仓模型，逐步迁移原 data_modal 的维度建模能力。"
-                  capabilities={["维度管理", "维度表设计", "模型字段", "版本管理"]}
-                />
+                <DimensionModelingPage />
               }
             />
             <Route
               path="/data-modeling/models/reverse"
               element={
-                <DataModelingSectionPage
-                  title="逆向建模"
-                  description="预留数据库逆向解析、表结构导入和模型生成入口，后续逐步迁移原有功能。"
-                  capabilities={["数据源选择", "表结构读取", "模型反向生成", "模型校验"]}
-                />
+                <ReverseModelingPage />
               }
             />
 
