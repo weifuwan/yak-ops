@@ -52,57 +52,66 @@ export default function WorkspaceSwitcher() {
         <DropdownMenuContent
           side="bottom"
           align="start"
-          className="w-72 border border-[#3b414a] bg-[#20242b] p-1.5 text-white shadow-xl"
+          className="w-80 p-1.5"
+          style={{
+            backgroundColor: "#20242b",
+            borderColor: "#3b414a",
+            color: "#f5f5f5",
+            boxShadow: "0 12px 32px rgba(0, 0, 0, 0.36)",
+          }}
         >
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-medium tracking-wide text-white/45">
+            <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-medium tracking-wide !text-white/45">
               切换工作空间
             </DropdownMenuLabel>
             {workspaces.length ? (
-              workspaces.map((workspace) => (
-                <DropdownMenuItem
-                  key={workspace.id}
-                  onClick={() => selectWorkspace(workspace.id)}
-                  className="min-h-12 cursor-pointer gap-2 rounded-sm px-2 py-2 text-white/85 outline-none focus:bg-white/8 focus:text-white data-[highlighted]:bg-white/8"
-                >
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="block truncate text-xs font-medium text-white/90">
-                      {workspace.name}
+              workspaces.map((workspace) => {
+                const selected = workspace.id === currentWorkspace?.id;
+                return (
+                  <DropdownMenuItem
+                    key={workspace.id}
+                    onClick={() => selectWorkspace(workspace.id)}
+                    className={`min-h-12 cursor-pointer gap-2 rounded-sm px-2 py-2 outline-none data-[highlighted]:!bg-white/10 ${selected ? "!bg-white/6" : ""}`}
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="block truncate text-xs font-medium !text-white/90">
+                        {workspace.name}
+                      </span>
+                      <span className="flex min-w-0 items-center gap-2 text-[10px] !text-white/45">
+                        <span className="truncate">编码：{workspace.id}</span>
+                        {workspace.roleName ? (
+                          <span className="shrink-0">{workspace.roleName}</span>
+                        ) : null}
+                      </span>
                     </span>
-                    <span className="flex min-w-0 items-center gap-2 text-[10px] text-white/45">
-                      <span className="truncate">编码：{workspace.id}</span>
-                      {workspace.roleName ? (
-                        <span className="shrink-0">{workspace.roleName}</span>
-                      ) : null}
-                    </span>
-                  </span>
-                  {workspace.id === currentWorkspace?.id ? (
-                    <Check className="h-4 w-4 shrink-0 text-[var(--yak-color-primary)]" />
-                  ) : null}
-                </DropdownMenuItem>
-              ))
+                    {selected ? (
+                      <Check className="h-4 w-4 shrink-0 text-[var(--yak-color-primary)]" />
+                    ) : null}
+                  </DropdownMenuItem>
+                );
+              })
             ) : (
-              <DropdownMenuItem disabled className="text-xs text-white/45">
+              <DropdownMenuItem disabled className="text-xs !text-white/45">
                 暂无工作空间
               </DropdownMenuItem>
             )}
           </DropdownMenuGroup>
 
-          <DropdownMenuSeparator className="my-1 bg-white/10" />
+          <DropdownMenuSeparator className="my-1 !bg-white/10" />
 
           {error ? (
             <DropdownMenuItem
               onClick={() => void refreshWorkspaces().catch(() => undefined)}
-              className="cursor-pointer text-xs text-white/80 focus:bg-white/8 focus:text-white data-[highlighted]:bg-white/8"
+              className="cursor-pointer text-xs !text-white/80 data-[highlighted]:!bg-white/10"
             >
               重新加载工作空间
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem
             onClick={() => setCreateOpen(true)}
-            className="cursor-pointer gap-2 text-xs text-white/80 focus:bg-white/8 focus:text-white data-[highlighted]:bg-white/8"
+            className="cursor-pointer gap-2 text-xs !text-white/80 data-[highlighted]:!bg-white/10"
           >
-            <Plus className="h-4 w-4 text-white/55" />
+            <Plus className="h-4 w-4 !text-white/55" />
             新建工作空间
           </DropdownMenuItem>
         </DropdownMenuContent>
