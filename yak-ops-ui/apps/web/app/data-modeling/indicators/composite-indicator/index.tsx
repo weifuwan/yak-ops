@@ -5,6 +5,8 @@ import { useGroupedIndicatorTree } from "../workbench/hooks/use-grouped-indicato
 import type { IndicatorPageProps } from "../workbench/types";
 import { COMPOSITE_INDICATOR_DEFINITION } from "./config";
 import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
+import { CompositeIndicatorEditorFields } from "./form/composite-indicator-editor-fields";
+import { validateCompositeIndicator } from "./form/validation";
 
 export function CompositeIndicatorPage(props: IndicatorPageProps) {
   const treeDwType = COMPOSITE_INDICATOR_TREE_DW_OPTIONS.some((option) => option.value === props.dwType)
@@ -17,6 +19,7 @@ export function CompositeIndicatorPage(props: IndicatorPageProps) {
       dwType={treeDwType}
       dwTypeOptions={COMPOSITE_INDICATOR_TREE_DW_OPTIONS}
       onDwTypeChange={props.onDwTypeChange}
+      groupingMode="WAREHOUSE"
       scopeType={tree.groupBy}
       onScopeTypeChange={(value) => {
         tree.setGroupBy(value);
@@ -59,5 +62,13 @@ export function CompositeIndicatorPage(props: IndicatorPageProps) {
 export default CompositeIndicatorPage;
 
 export function CompositeIndicatorTabContent(props: IndicatorTabContentProps) {
-  return <IndicatorTabContent {...props} definition={COMPOSITE_INDICATOR_DEFINITION} />;
+  return (
+    <IndicatorTabContent
+      {...props}
+      definition={COMPOSITE_INDICATOR_DEFINITION}
+      renderFields={(fieldProps) => <CompositeIndicatorEditorFields {...fieldProps} />}
+      validateBeforeSave={validateCompositeIndicator}
+      validateBeforeSubmit={validateCompositeIndicator}
+    />
+  );
 }
