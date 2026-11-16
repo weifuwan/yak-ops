@@ -4,16 +4,11 @@ import {
   SelectItemText, SelectTrigger, SelectValue, Textarea,
 } from "@yak-ops/yak-ui";
 
-import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import type { BusinessTypeOption } from "./types";
 import { MART_TYPE_OPTIONS, withSelectedOption } from "../../select-options";
 import {
   EMPTY_DATA_MART_FORM, type DataMartFormValues, type DataMartRecord,
-} from "../types";
-
-interface BusinessTypeOption extends ModelingRecord {
-  id?: string;
-  businessName?: string;
-}
+} from "./types";
 
 interface Props {
   open: boolean;
