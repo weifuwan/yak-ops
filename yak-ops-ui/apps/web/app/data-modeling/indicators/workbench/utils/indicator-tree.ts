@@ -1,5 +1,5 @@
 import type { ModelingRecord } from "../../../service";
-import type { IndicatorGroupBy, IndicatorTreeNode } from "../types";
+import type { IndicatorGroupBy, IndicatorTreeNode, ModifierScopeType } from "../types";
 import { recordName } from "./indicator-form";
 
 export function buildGroupedTree(

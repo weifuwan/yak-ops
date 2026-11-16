@@ -9,6 +9,7 @@ import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DataMartPO;
+import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.modeling.api.vo.businesstype.BusinessTypeVO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
@@ -21,6 +22,7 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
+import io.yak.ops.dao.repository.modeling.ModifierDao;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,9 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
 
     @Resource
     private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
+
+    @Resource
+    private ModifierDao modifierDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -89,6 +94,10 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
         dataMartWrapper.eq(DataMartPO::getBusinessTypeId, id);
         if (dataMartDao.queryCount(dataMartWrapper) > 0) {
             throw new IllegalArgumentException("该业务分类下存在数据集市，不能删除");
+        }
+
+        if (modifierDao.queryCount(new LambdaQueryWrapper<ModifierPO>().eq(ModifierPO::getBusTypeId, id)) > 0) {
+            throw new IllegalArgumentException("该业务分类已被修饰词引用，不能删除");
         }
 
         businessTypeDao.deleteById(id);
@@ -218,6 +227,11 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean deleteTypeData(String id, String dataDomainId) {
+        if (modifierDao.queryCount(new LambdaQueryWrapper<ModifierPO>()
+                .eq(ModifierPO::getBusTypeId, id)
+                .eq(ModifierPO::getDomainId, dataDomainId)) > 0) {
+            throw new IllegalArgumentException("该业务分类与数据域的关联已被修饰词使用，不能解除");
+        }
         LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO> wrapper = new LambdaQueryWrapper<>();
         if (id != null && dataDomainId != null) {
             wrapper.eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, id)

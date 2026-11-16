@@ -7,6 +7,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.modeling.api.vo.tree.ModelingAssetTreeVO;
 import io.yak.ops.modeling.application.service.ModelingAssetService;
+import io.yak.ops.modeling.application.service.DwLayerService;
+import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
+import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.common.service.BaseServiceImpl;
 import io.yak.ops.dao.entity.*;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
@@ -34,6 +37,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
     @Resource private ObjectMapper objectMapper;
     @Resource private ModelingAssetDao modelingAssetDao;
     @Resource private DwLayerDao dwLayerDao;
+    @Resource private DwLayerService dwLayerService;
     @Resource private BusinessTypeDao businessTypeDao;
     @Resource private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
     @Resource private DataDomainDao dataDomainDao;
@@ -450,7 +454,10 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         @SuppressWarnings("unchecked")
         Map<String, Object> values = safePayload(objectMapper.convertValue(po, Map.class));
         validatePayload(resource, values);
-        if ("modifier".equals(resource)) validateModifierForSubmit(values);
+        if ("modifier".equals(resource)) {
+            validateModifierForSubmit(values);
+            setIfWritable(po, "codeId", text(values.get("codeId")));
+        }
         setIfWritable(po, "submit", Boolean.TRUE);
         po.initUpdate();
         modelingAssetDao.updateById(mapperKey, po);
@@ -470,6 +477,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
                 @SuppressWarnings("unchecked")
                 Map<String, Object> snapshotValues = safePayload(objectMapper.convertValue(snapshot, Map.class));
                 validatePayload(mapperKey, snapshotValues);
+                setIfWritable(snapshot, "codeId", text(snapshotValues.get("codeId")));
             }
             snapshot.setId(id);
             snapshot.setProjectCode(null);
@@ -579,10 +587,9 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             throw new IllegalArgumentException("修饰词不允许关联或筛选 ODS 贴源层");
         }
 
-        List<DwLayerPO> layers = dwLayerDao.queryList(
-                new QueryWrapper<DwLayerPO>().eq("dw_type", dwType.getCode()));
+        List<DwLayerVO> layers = dwLayerService.all(DwLayerDTO.builder().dwType(dwType).build());
         List<String> layerIds = new ArrayList<>();
-        for (DwLayerPO layer : layers) {
+        for (DwLayerVO layer : layers) {
             if (layer.getId() != null && !layer.getId().trim().isEmpty()) {
                 layerIds.add(layer.getId());
             }
@@ -679,6 +686,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
         if ("derivative-indicator".equals(resource)) {
             requireFields(values, "enShortName", "atomicId", "timePeriodId");
+            validateDerivativeModifiers(values);
         }
         if ("compose-indicator".equals(resource)) {
             requireFields(values, "enShortName");

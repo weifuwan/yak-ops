@@ -77,7 +77,7 @@ export function useIndicatorTree(projectCode: string, activeKind: IndicatorKind)
   }, [expandedKeys, treeKeyword, visibleTree]);
 
   useEffect(() => {
-    if (activeKind === "atomIndicator") {
+    if (activeKind === "atomIndicator" || activeKind === "modifier") {
       const root = (treeQuery.data || []).find((node) => node.nodeType === "root");
       setExpandedKeys(new Set(root ? [root.key] : []));
       return;

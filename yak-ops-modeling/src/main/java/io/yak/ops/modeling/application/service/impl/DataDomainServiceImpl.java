@@ -9,10 +9,12 @@ import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
+import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
+import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
 import io.yak.ops.modeling.api.vo.datadomain.DataDomainVO;
@@ -45,6 +47,9 @@ public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomain
 
     @Resource
     private DimensionTableDao dimensionTableDao;
+
+    @Resource
+    private ModifierDao modifierDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -129,6 +134,9 @@ public class DataDomainServiceImpl extends BaseServiceImpl implements DataDomain
         }
         if (existing.getFlag() == 1) {
             throw new IllegalArgumentException("系统默认数据域不能删除");
+        }
+        if (modifierDao.queryCount(new LambdaQueryWrapper<ModifierPO>().eq(ModifierPO::getDomainId, id)) > 0) {
+            throw new IllegalArgumentException("该数据域已被修饰词引用，不能删除");
         }
 
         List<BusinessProcessPO> processes = businessProcessDao.queryList(

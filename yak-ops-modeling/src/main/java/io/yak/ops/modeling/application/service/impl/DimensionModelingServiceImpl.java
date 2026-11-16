@@ -113,6 +113,11 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         DimensionTablePO existing = dimensionTableDao.queryById(dto.getId());
         if (existing == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
 
+        if (existing.getTableType() == DimensionTableTypeEnum.DIM
+                && dto.getTableType() != DimensionTableTypeEnum.DIM
+                && modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_tb_id", dto.getId())) > 0) {
+            throw new IllegalArgumentException("该维度表已被修饰词引用，不能修改为非维度类型");
+        }
         normalizeRelations(dto);
         validateBusinessRelations(dto);
         validateWarehouseLayer(dto.getDwhId(), dto.getTableType());
@@ -327,6 +332,10 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (existing == null) throw new IllegalArgumentException("维度字段不存在或不属于当前维度表");
 
         DimensionTableFieldPO po = toFieldPO(dto, tableId);
+        if (!Objects.equals(existing.getCodeStdId(), po.getCodeStdId())
+                && modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", fieldId)) > 0) {
+            throw new IllegalArgumentException("该维度字段已被修饰词引用，不能修改其关联标准代码");
+        }
         po.setId(fieldId);
         po.setProjectCode(null);
         po.setCreateTime(existing.getCreateTime());
@@ -354,6 +363,10 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                     DimensionTableFieldPO old = existingById.get(dto.getId());
                     if (old == null) throw new IllegalArgumentException("字段ID不属于当前维度表: " + dto.getId());
                     DimensionTableFieldPO po = toFieldPO(dto, tableId);
+                    if (!Objects.equals(old.getCodeStdId(), po.getCodeStdId())
+                            && modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", old.getId())) > 0) {
+                        throw new IllegalArgumentException("维度字段已被修饰词引用，不能修改其关联标准代码: " + old.getFieldName());
+                    }
                     po.setId(old.getId());
                     po.setProjectCode(null);
                     po.setCreateTime(old.getCreateTime());

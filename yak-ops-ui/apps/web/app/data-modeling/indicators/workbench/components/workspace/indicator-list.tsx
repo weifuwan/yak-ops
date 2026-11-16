@@ -52,7 +52,7 @@ export function IndicatorList({
       pageNo,
       pageSize,
       JSON.stringify(applied),
-      definition.key === "atomIndicator" ? dwType : "all",
+      definition.key === "atomIndicator" || definition.key === "modifier" ? dwType : "all",
     ],
     queryFn: () => {
       const params: Record<string, unknown> = {
@@ -60,7 +60,7 @@ export function IndicatorList({
         pageSize,
         keyword: applied.keyword || undefined,
       };
-      if (definition.key === "atomIndicator") params.dwType = dwType;
+      if (definition.key === "atomIndicator" || definition.key === "modifier") params.dwType = dwType;
       if (applied.status !== "all") params.submit = applied.status;
       if (applied.businessTypeId) params.busTypeId = applied.businessTypeId;
       if (applied.domainId) params.domainId = applied.domainId;
