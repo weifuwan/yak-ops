@@ -72,6 +72,7 @@ export default function ProductSidebar({ productLabel, navigation }: ProductSide
         ariaLabel={productLabel}
         items={menuItems}
         activeKey={activeItem ? getItemKey(activeItem) : undefined}
+        showNestedIcons={false}
         onSelect={(item) => {
           if (item.value) navigate(item.value);
         }}
