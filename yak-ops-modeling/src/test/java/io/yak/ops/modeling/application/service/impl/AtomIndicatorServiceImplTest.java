@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import io.yak.ops.dao.entity.AtomIndicatorPO;
 import io.yak.ops.dao.entity.BusinessProcessPO;
-import io.yak.ops.dao.entity.BusinessTypePO;
+import io.yak.ops.dao.entity.BusinessTypePO;\nimport io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
@@ -18,7 +18,7 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
-import io.yak.ops.modeling.api.dto.atomindicator.AtomIndicatorDTO;
+import io.yak.ops.modeling.api.dto.atomindicator.AtomIndicatorDTO;\nimport java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -101,7 +101,9 @@ class AtomIndicatorServiceImplTest {
         BusinessProcessPO process = new BusinessProcessPO();
         process.setDataDomainId(DOMAIN_ID);
         when(businessProcessDao.queryById(PROCESS_ID)).thenReturn(process);
-        when(businessTypeRelatedDataDomainDao.queryCount(any())).thenReturn(0L);
+        BusinessTypeRelatedDataDomainPO relation = new BusinessTypeRelatedDataDomainPO();
+        relation.setDataId("another-domain");
+        when(businessTypeRelatedDataDomainDao.queryList(any())).thenReturn(Collections.singletonList(relation));
 
         AtomIndicatorDTO dto = validDto();
         dto.setBusTypeId(BUSINESS_TYPE_ID);
@@ -115,13 +117,35 @@ class AtomIndicatorServiceImplTest {
     }
 
     @Test
+    void shouldCreateWhenBusinessTypeHasNoRelatedDomains() {
+        when(businessTypeDao.queryById(BUSINESS_TYPE_ID)).thenReturn(new BusinessTypePO());
+        when(dataDomainDao.queryById(DOMAIN_ID)).thenReturn(new DataDomainPO());
+        BusinessProcessPO process = new BusinessProcessPO();
+        process.setDataDomainId(DOMAIN_ID);
+        when(businessProcessDao.queryById(PROCESS_ID)).thenReturn(process);
+        when(businessTypeRelatedDataDomainDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(modelingAssetDao.queryCount(eq("atom-indicator"), any())).thenReturn(0L);
+        when(modelingAssetDao.insert(eq("atom-indicator"), any(AtomIndicatorPO.class))).thenReturn(1);
+
+        AtomIndicatorDTO dto = validDto();
+        dto.setBusTypeId(BUSINESS_TYPE_ID);
+
+        String id = service.create(dto, "alice");
+
+        assertEquals(32, id.length());
+        verify(modelingAssetDao).insert(eq("atom-indicator"), any(AtomIndicatorPO.class));
+    }
+
+    @Test
     void shouldCreateWithValidatedReferencesAndDefaultCalculationValues() {
         when(businessTypeDao.queryById(BUSINESS_TYPE_ID)).thenReturn(new BusinessTypePO());
         when(dataDomainDao.queryById(DOMAIN_ID)).thenReturn(new DataDomainPO());
         BusinessProcessPO process = new BusinessProcessPO();
         process.setDataDomainId(DOMAIN_ID);
         when(businessProcessDao.queryById(PROCESS_ID)).thenReturn(process);
-        when(businessTypeRelatedDataDomainDao.queryCount(any())).thenReturn(1L);
+        BusinessTypeRelatedDataDomainPO relation = new BusinessTypeRelatedDataDomainPO();
+        relation.setDataId(DOMAIN_ID);
+        when(businessTypeRelatedDataDomainDao.queryList(any())).thenReturn(Collections.singletonList(relation));
         when(modelingAssetDao.queryCount(eq("atom-indicator"), any())).thenReturn(0L);
         when(modelingAssetDao.insert(eq("atom-indicator"), any(AtomIndicatorPO.class))).thenReturn(1);
 
