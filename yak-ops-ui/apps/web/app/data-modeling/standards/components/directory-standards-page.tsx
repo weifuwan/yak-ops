@@ -26,7 +26,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const resource = getStandardResource(module);
   const recordApi = getStandardRecordApi(resource);
   const splitRef = useRef<HTMLDivElement | null>(null);
-  const [leftWidth, setLeftWidth] = useState(280);
+  const [leftWidth, setLeftWidth] = useState(292);
   const [resizing, setResizing] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [selectedNode, setSelectedNode] = useState<StandardTreeNode>();
@@ -64,7 +64,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     if (!resizing) return;
     const onMove = (event: PointerEvent) => {
       const rect = splitRef.current?.getBoundingClientRect();
-      if (rect) setLeftWidth(Math.min(480, Math.max(220, event.clientX - rect.left)));
+      if (rect) setLeftWidth(Math.min(360, Math.max(260, event.clientX - rect.left)));
     };
     const onUp = () => setResizing(false);
     window.addEventListener("pointermove", onMove);
@@ -316,7 +316,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
         onDeleteRecord={(node) => setPendingDelete({ id: node.id, name: node.title, resource, directory: false })}
       />
       <div role="separator" aria-orientation="vertical" aria-label={"调整" + title + "目录宽度"}
-        className={["relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
+        className={["relative z-10 w-px shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
         onPointerDown={(event) => { event.preventDefault(); setResizing(true); }}>
         <span className="absolute inset-y-0 -left-1 -right-1" />
       </div>
