@@ -250,6 +250,7 @@ export default function AppRouter() {
               element={<NamingDictionaryPage />}
             />
 
+            <Route path="/data-modeling/indicators" element={<IndicatorsIndexPage />} />
             <Route path="/data-modeling/indicators/*" element={<IndicatorsIndexPage />} />
           </Route>
 
