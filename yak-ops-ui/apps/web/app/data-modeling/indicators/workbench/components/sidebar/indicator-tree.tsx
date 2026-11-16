@@ -90,11 +90,7 @@ export function IndicatorTreeRows({
                   : null}
               </span>
               {node.nodeType === "root" ? (
-                activeKind === "modifier" ? (
-                  <FolderIcon className="shrink-0 text-[var(--yak-components-muted-text)]" />
-                ) : (
-                  <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
-                )
+                <IndicatorIcon name={getIndicatorIconName(activeKind)} size={14} />
               ) : node.nodeType === "businessType" ? (
                 <PlanningIcon name="business-type" size={14} className="text-[var(--yak-components-muted-text)]" />
               ) : node.nodeType === "dataDomain" ? (

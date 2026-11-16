@@ -1,38 +1,33 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectSearch,
-  SelectTrigger,
-  SelectValue,
-} from "@yak-ops/yak-ui";
+import { Input, Select, SelectContent, SelectItem, SelectItemIndicator, SelectItemText, SelectSearch, SelectTrigger, SelectValue } from "@yak-ops/yak-ui";
+import { Search } from "lucide-react";
 
-import { PlanningIcon } from "../../../planning/components/icons";
+import { PlanningIcon } from "../../../../planning/components/icons";
 import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import type { ModifierScopeType } from "../../workbench/types";
+import type { IndicatorFieldOption, IndicatorGroupBy } from "../../types";
 
-type FilterOption = { value: string; label: string };
-type ModifierDwLayer = "PUBLIC_LAYER" | "APPLICATION_LAYER" | "NONE_LAYER";
+type IndicatorTreeFilterProps = {
+  projectCode: string;
+  dwType: string;
+  dwTypeOptions: IndicatorFieldOption[];
+  onDwTypeChange: (value: string) => void;
+  scopeType: IndicatorGroupBy;
+  onScopeTypeChange: (value: IndicatorGroupBy) => void;
+  scopeValue: string;
+  onScopeValueChange: (value: string) => void;
+  keyword: string;
+  onKeywordChange: (value: string) => void;
+};
 
-const DW_LAYER_OPTIONS: Array<{ value: ModifierDwLayer; label: string }> = [
-  { value: "PUBLIC_LAYER", label: "公共层" },
-  { value: "APPLICATION_LAYER", label: "应用层" },
-  { value: "NONE_LAYER", label: "未分层" },
-];
-
-const SCOPE_OPTIONS: Array<{ value: ModifierScopeType; label: string }> = [
+const SCOPE_OPTIONS: Array<{ value: IndicatorGroupBy; label: string }> = [
   { value: "DATA_DOMAIN", label: "数据域" },
   { value: "BUSINESS_TYPE", label: "业务分类" },
 ];
 
-function ScopeIcon({ scope }: { scope: ModifierScopeType }) {
+function ScopeIcon({ scope }: { scope: IndicatorGroupBy }) {
   return (
     <PlanningIcon
       name={scope === "BUSINESS_TYPE" ? "business-type" : "data-domain"}
@@ -42,21 +37,10 @@ function ScopeIcon({ scope }: { scope: ModifierScopeType }) {
   );
 }
 
-type ModifierTreeFilterProps = {
-  projectCode: string;
-  dwType: string;
-  onDwTypeChange: (value: string) => void;
-  scopeType: ModifierScopeType;
-  onScopeTypeChange: (value: ModifierScopeType) => void;
-  scopeValue: string;
-  onScopeValueChange: (value: string) => void;
-  keyword: string;
-  onKeywordChange: (value: string) => void;
-};
-
-export function ModifierTreeFilter({
+export function IndicatorTreeFilter({
   projectCode,
   dwType,
+  dwTypeOptions,
   onDwTypeChange,
   scopeType,
   onScopeTypeChange,
@@ -64,17 +48,17 @@ export function ModifierTreeFilter({
   onScopeValueChange,
   keyword,
   onKeywordChange,
-}: ModifierTreeFilterProps) {
+}: IndicatorTreeFilterProps) {
   const [scopeKeyword, setScopeKeyword] = useState("");
   const scopeOptionsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "modifier-tree-scope-options", projectCode, scopeType],
+    queryKey: ["modeling", "indicator-tree-scope-options", projectCode, scopeType],
     queryFn: () => scopeType === "BUSINESS_TYPE"
       ? businessTypeApi.all<ModelingRecord>(projectCode)
       : dataDomainApi.all<ModelingRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
 
-  const scopeOptions = useMemo<FilterOption[]>(() => (scopeOptionsQuery.data || [])
+  const scopeOptions = useMemo(() => (scopeOptionsQuery.data || [])
     .map((record) => ({
       value: String(record.id || ""),
       label: String(record.businessName || record.cnName || record.domainName || record.id || "未命名"),
@@ -89,8 +73,8 @@ export function ModifierTreeFilter({
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
     const direction = event.key === "ArrowRight" ? 1 : -1;
-    const nextIndex = (index + direction + DW_LAYER_OPTIONS.length) % DW_LAYER_OPTIONS.length;
-    const nextOption = DW_LAYER_OPTIONS[nextIndex];
+    const nextIndex = (index + direction + dwTypeOptions.length) % dwTypeOptions.length;
+    const nextOption = dwTypeOptions[nextIndex];
     if (!nextOption) return;
     onDwTypeChange(nextOption.value);
     event.currentTarget.parentElement
@@ -105,7 +89,7 @@ export function ModifierTreeFilter({
         aria-label="数仓分层"
         className="flex h-6 w-full overflow-hidden rounded-[4px] border border-[#d7dce5] bg-white"
       >
-        {DW_LAYER_OPTIONS.map((option, index) => {
+        {dwTypeOptions.map((option, index) => {
           const checked = dwType === option.value;
           return (
             <button
@@ -135,8 +119,7 @@ export function ModifierTreeFilter({
           size="small"
           value={scopeType}
           onValueChange={(value) => {
-            const next = String(value || "DATA_DOMAIN") as ModifierScopeType;
-            onScopeTypeChange(next);
+            onScopeTypeChange(String(value || "DATA_DOMAIN") as IndicatorGroupBy);
             onScopeValueChange("");
             setScopeKeyword("");
           }}
@@ -192,14 +175,19 @@ export function ModifierTreeFilter({
         </Select>
       </div>
 
-      <Input
-        size="small"
-        variant="outlined"
-        value={keyword}
-        placeholder="搜索修饰词"
-        className="!h-6 !rounded-[4px] !px-2 text-[11px]"
-        onChange={(event) => onKeywordChange(event.target.value)}
-      />
+      <div className="relative">
+        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
+        <Input
+          size="small"
+          variant="outlined"
+          value={keyword}
+          placeholder="搜索目录或指标"
+          className="!h-6 !rounded-[4px] !pl-8 !pr-2 text-[11px]"
+          onChange={(event) => onKeywordChange(event.target.value)}
+        />
+      </div>
     </div>
   );
 }
+
+export default IndicatorTreeFilter;

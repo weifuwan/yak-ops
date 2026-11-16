@@ -1,12 +1,35 @@
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import type { IndicatorGroupBy, IndicatorTreeNode, ModifierScopeType } from "../types";
+import type { IndicatorGroupBy, IndicatorKind, IndicatorTreeNode, ModifierScopeType } from "../types";
 import { recordName } from "./indicator-form";
+
+type GroupedIndicatorKind = Extract<IndicatorKind, "derivativeIndicator" | "composeIndicator">;
+
+function findGroupNode(
+  nodes: IndicatorTreeNode[],
+  id: string,
+  nodeType: "businessType" | "dataDomain",
+): IndicatorTreeNode | undefined {
+  for (const node of nodes) {
+    if (node.kind === "group" && node.nodeType === nodeType && node.id === id) return node;
+    const child = findGroupNode(node.children, id, nodeType);
+    if (child) return child;
+  }
+  return undefined;
+}
 
 export function buildGroupedTree(
   groups: ModelingRecord[],
   records: ModelingRecord[],
   groupBy: IndicatorGroupBy,
+  kind: GroupedIndicatorKind,
+  scopeValue = "",
 ): IndicatorTreeNode[] {
+  const uniqueRecordMap = new Map<string, ModelingRecord>();
+  records.forEach((record) => {
+    if (record.id) uniqueRecordMap.set(String(record.id), record);
+  });
+  const uniqueRecords = Array.from(uniqueRecordMap.values());
+  const groupNodeType = groupBy === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
   const groupMap = new Map<string, IndicatorTreeNode>();
   groups.forEach((record) => {
     if (!record.id) return;
@@ -16,6 +39,8 @@ export function buildGroupedTree(
       id,
       title: recordName(record),
       kind: "group",
+      nodeType: groupNodeType,
+      record,
       children: [],
     });
   });
@@ -34,14 +59,14 @@ export function buildGroupedTree(
 
   const relationKey = groupBy === "BUSINESS_TYPE" ? "busTypeId" : "domainId";
   const ungrouped: IndicatorTreeNode[] = [];
-  records.forEach((record) => {
-    if (!record.id) return;
+  uniqueRecords.forEach((record) => {
     const id = String(record.id);
     const leaf: IndicatorTreeNode = {
       key: "asset:" + id,
       id,
       title: recordName(record),
       kind: "asset",
+      nodeType: "asset",
       record,
       children: [],
     };
@@ -57,26 +82,36 @@ export function buildGroupedTree(
       id: "uncategorized",
       title: "未分类",
       kind: "group",
-      children: ungrouped,
+      nodeType: "group",
+      count: ungrouped.length,
+      children: ungrouped.map((node) => node),
     });
   }
-  if (!roots.length) {
-    return [{
-      key: "group:all",
-      id: "all",
-      title: "全部指标",
-      kind: "group",
-      children: records.filter((record) => Boolean(record.id)).map((record) => ({
-        key: "asset:" + String(record.id),
-        id: String(record.id),
-        title: recordName(record),
-        kind: "asset" as const,
-        record,
-        children: [],
-      })),
-    }];
+
+  const countAssets = (node: IndicatorTreeNode): number => {
+    if (node.kind === "asset") return 1;
+    const count = node.children.reduce((total, child) => total + countAssets(child), 0);
+    node.count = count;
+    return count;
+  };
+
+  const root: IndicatorTreeNode = {
+    key: "root:" + kind,
+    id: "root",
+    title: kind === "derivativeIndicator" ? "派生指标" : "复合指标",
+    kind: "group",
+    nodeType: "root",
+    children: roots,
+  };
+  root.count = countAssets(root);
+
+  if (scopeValue) {
+    const selectedNode = findGroupNode(root.children, scopeValue, groupNodeType);
+    root.children = selectedNode ? [selectedNode] : [];
+    root.count = selectedNode?.count || 0;
   }
-  return roots;
+
+  return [root];
 }
 
 export function buildAtomIndicatorTree(
@@ -86,6 +121,7 @@ export function buildAtomIndicatorTree(
   records: ModelingRecord[],
   groupBy: IndicatorGroupBy,
   relatedDomainIdsByBusinessType: Map<string, string[]>,
+  scopeValue = "",
 ): IndicatorTreeNode[] {
   const uniqueRecordMap = new Map<string, ModelingRecord>();
   records.forEach((record) => {
@@ -207,6 +243,12 @@ export function buildAtomIndicatorTree(
     if (unassignedDomainRecords.length) {
       root.children.push(buildUnassignedDomainNode(unassignedDomainRecords, "data-domain:unassigned"));
     }
+
+    if (scopeValue) {
+      const selectedNode = findGroupNode(root.children, scopeValue, "dataDomain");
+      root.children = selectedNode ? [selectedNode] : [];
+      root.count = selectedNode?.count || 0;
+    }
     return [root];
   }
 
@@ -313,6 +355,12 @@ export function buildAtomIndicatorTree(
       count: unassignedBusinessTypeRecords.length,
       children: domainNodes,
     });
+  }
+
+  if (scopeValue) {
+    const selectedNode = findGroupNode(root.children, scopeValue, "businessType");
+    root.children = selectedNode ? [selectedNode] : [];
+    root.count = selectedNode?.count || 0;
   }
 
   return [root];

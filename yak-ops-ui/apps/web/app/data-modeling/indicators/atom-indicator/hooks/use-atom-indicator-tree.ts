@@ -11,12 +11,13 @@ import { useIndicatorTreeView } from "../../workbench/hooks/use-indicator-tree-v
 
 export function useAtomIndicatorTree(projectCode: string, dwType: string, enabled: boolean) {
   const [groupBy, setGroupBy] = useState<IndicatorGroupBy>("BUSINESS_TYPE");
+  const [scopeValue, setScopeValue] = useState("");
   const tree = useIndicatorTreeView({
     projectCode,
     kind: "atomIndicator",
-    queryKeyParts: [groupBy, dwType],
+    queryKeyParts: [groupBy, dwType, scopeValue],
     enabled,
-    expandRootOnly: true,
+    expandRootOnly: !scopeValue,
     queryFn: async () => {
       const [businessTypes, dataDomains, businessProcesses, atomIndicators] = await Promise.all([
         businessTypeApi.all<ModelingRecord>(projectCode),
@@ -34,9 +35,10 @@ export function useAtomIndicatorTree(projectCode: string, dwType: string, enable
         atomIndicators,
         groupBy,
         new Map(Object.entries(relatedDomainMap)),
+        scopeValue,
       );
     },
   });
 
-  return { ...tree, groupBy, setGroupBy };
+  return { ...tree, groupBy, setGroupBy, scopeValue, setScopeValue };
 }
