@@ -129,7 +129,7 @@ export function IndicatorTreeFilter({
             variant="outlined"
             className="!h-6 !w-[60px] !min-w-[60px] !shrink-0 !rounded-r-none !px-2 [&>span:last-child>svg]:!size-3"
           >
-            <SelectValue>{() => <ScopeIcon scope={scopeType} />}</SelectValue>
+            <SelectValue className="!inline-flex !h-6 !items-center !justify-center !leading-none">{() => <ScopeIcon scope={scopeType} />}</SelectValue>
           </SelectTrigger>
           <SelectContent className="!min-w-[148px]">
             {SCOPE_OPTIONS.map((option) => (
