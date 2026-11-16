@@ -22,7 +22,6 @@ import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { IndicatorSectionHeader } from "../../workbench/components/workspace/indicator-section-header";
 import type { IndicatorEditorFieldsProps, IndicatorFieldOption, IndicatorOptionResource } from "../../workbench/types";
 import { CALCULATE_FUNCTION_OPTIONS } from "../config";
-import { DW_TYPE_OPTIONS } from "../../workbench/config/indicator-options";
 import { useAtomIndicatorOwnerOptions } from "../hooks/use-atom-indicator-owner-options";
 import { useBusinessProcessCascader } from "../hooks/use-business-process-cascader";
 import { useMeasurementUnitTree } from "../hooks/use-measurement-unit-tree";
@@ -177,44 +176,6 @@ export function AtomIndicatorEditorFields({
             <FormRow label="业务口径" required>
               <Textarea size="small" variant="outlined" rows={3} maxLength={500} value={values.businessCaliber || ""} placeholder="请输入业务口径" onValueChange={(value) => onChange("businessCaliber", String(value || ""))} />
             </FormRow>
-            <FormRow label="负责人" required>
-              {ownerQuery.isFetching || ownerOptions.length > 0 ? (
-                <OptionSelect
-                  value={values.director || ""}
-                  options={ownerOptions}
-                  placeholder="请选择负责人"
-                  loading={ownerQuery.isFetching}
-                  searchable
-                  onChange={(value) => onChange("director", value)}
-                />
-              ) : (
-                <Input
-                  size="small"
-                  variant="outlined"
-                  maxLength={32}
-                  value={values.director || ""}
-                  placeholder="请输入负责人"
-                  onChange={(event) => onChange("director", event.target.value)}
-                />
-              )}
-              {!ownerQuery.isFetching && ownerOptions.length === 0 ? (
-                <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">当前账号无法获取用户列表，可手动填写负责人账号。</p>
-              ) : null}
-            </FormRow>
-            <FormRow label="描述">
-              <Textarea size="small" variant="outlined" rows={3} maxLength={2048} value={values.remark || ""} placeholder="请输入描述" onValueChange={(value) => onChange("remark", String(value || ""))} />
-            </FormRow>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white p-4">
-        <div className="max-w-[1080px]">
-          <IndicatorSectionHeader title="业务归属" />
-          <div className="space-y-3">
-            <FormRow label="数仓分层" required>
-              <OptionSelect value={values.dwType || "PUBLIC_LAYER"} options={DW_TYPE_OPTIONS} placeholder="请选择数仓分层" onChange={(value) => onChange("dwType", value)} />
-            </FormRow>
             <FormRow label="业务分类">
               <OptionSelect
                 value={values.busTypeId || ""}
@@ -246,6 +207,33 @@ export function AtomIndicatorEditorFields({
                   <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">选择业务过程后，系统会自动带出所属数据域。</p>
                 )}
               </div>
+            </FormRow>
+            <FormRow label="负责人" required>
+              {ownerQuery.isFetching || ownerOptions.length > 0 ? (
+                <OptionSelect
+                  value={values.director || ""}
+                  options={ownerOptions}
+                  placeholder="请选择负责人"
+                  loading={ownerQuery.isFetching}
+                  searchable
+                  onChange={(value) => onChange("director", value)}
+                />
+              ) : (
+                <Input
+                  size="small"
+                  variant="outlined"
+                  maxLength={32}
+                  value={values.director || ""}
+                  placeholder="请输入负责人"
+                  onChange={(event) => onChange("director", event.target.value)}
+                />
+              )}
+              {!ownerQuery.isFetching && ownerOptions.length === 0 ? (
+                <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">当前账号无法获取用户列表，可手动填写负责人账号。</p>
+              ) : null}
+            </FormRow>
+            <FormRow label="描述">
+              <Textarea size="small" variant="outlined" rows={3} maxLength={2048} value={values.remark || ""} placeholder="请输入描述" onValueChange={(value) => onChange("remark", String(value || ""))} />
             </FormRow>
           </div>
         </div>
