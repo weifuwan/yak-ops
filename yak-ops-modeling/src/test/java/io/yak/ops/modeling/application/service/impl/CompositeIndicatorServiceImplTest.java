@@ -84,7 +84,6 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldRejectUnknownComparisonType() {
-        stubPublicLayer();
         CompositeIndicatorDTO dto = baseDto();
         dto.setComputeMode("1");
         dto.setDeriveId("derived-id");
@@ -98,7 +97,6 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldRequireExpressionInExpressionMode() {
-        stubPublicLayer();
         CompositeIndicatorDTO dto = baseDto();
         dto.setComputeMode("0");
         dto.setComputeExpr(" ");
