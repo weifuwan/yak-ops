@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { FileText, Layers, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Layers, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { Button, Input, Skeleton } from "@yak-ops/yak-ui";
 
 import type { StandardModule, StandardTreeNode } from "../types";
 import { isDirectoryNode } from "../types";
+import { StandardIcon } from "./icons";
 
 interface Props {
   width: number; title: string; module: StandardModule; treeRows: StandardTreeNode[];
@@ -113,9 +114,9 @@ function StandardTreeSkeleton() {
 }
 
 function TreeNodeRow({
-  node, depth, selectedKey, expandedKeys, onToggle, onSelect, onContextMenu,
+  node, depth, module, selectedKey, expandedKeys, onToggle, onSelect, onContextMenu,
 }: {
-  node: StandardTreeNode; depth: number; selectedKey: string; expandedKeys: Set<string>;
+  node: StandardTreeNode; depth: number; module: StandardModule; selectedKey: string; expandedKeys: Set<string>;
   onToggle: (key: string) => void; onSelect: (node: StandardTreeNode) => void;
   onContextMenu: (event: ReactMouseEvent, node: StandardTreeNode) => void;
 }) {
@@ -152,7 +153,11 @@ function TreeNodeRow({
           ? <FolderIcon className="shrink-0 text-[var(--yak-components-muted-text)]" />
           : node.type === "STANDARD_SET"
             ? <Layers size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
-            : <FileText size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />}
+            : <StandardIcon
+                name={module === "FIELD" ? "field-standard" : module === "CODE" ? "standard-code" : "unit-standard"}
+                size={14}
+                className="text-[var(--yak-components-muted-text)]"
+              />}
         <span className="min-w-0 flex-1 truncate">{node.title}</span>
         {node.type === "STANDARD_SET" ? (
           <span className="shrink-0 text-[10px] text-[var(--yak-components-muted-text)]">标准集</span>
@@ -166,7 +171,7 @@ function TreeNodeRow({
       {hasChildren && expanded ? (
         <div role="group">
           {node.children?.map((child) => (
-            <TreeNodeRow key={child.key} node={child} depth={depth + 1}
+            <TreeNodeRow key={child.key} node={child} depth={depth + 1} module={module}
               selectedKey={selectedKey} expandedKeys={expandedKeys} onToggle={onToggle}
               onSelect={onSelect} onContextMenu={onContextMenu} />
           ))}
@@ -246,7 +251,7 @@ export function DirectoryStandardsTree({
         ) : treeRows.length ? (
           <div className="flex flex-col">
             {treeRows.map((node) => (
-              <TreeNodeRow key={node.key} node={node} depth={0}
+              <TreeNodeRow key={node.key} node={node} depth={0} module={module}
                 selectedKey={selectedNode?.key || ""} expandedKeys={expandedKeys}
                 onToggle={onToggleExpanded} onSelect={onSelect}
                 onContextMenu={(event, item) => {
