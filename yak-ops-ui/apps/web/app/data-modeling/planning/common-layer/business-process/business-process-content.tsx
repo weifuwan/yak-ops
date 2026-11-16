@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { Button, toast } from "@yak-ops/yak-ui";
 
+import { listAllUsers, type UserBriefRecord } from "@/service/user";
 import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import { planningQueryKeys } from "../../query-keys";
@@ -49,7 +50,14 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
     enabled: Boolean(projectCode),
   });
 
-  const processOptionsQuery = useQuery({
+  const creatorOptionsQuery = useQuery<UserBriefRecord[]>({
+    queryKey: businessProcessQueryKeys.creatorOptions(projectCode),
+    queryFn: listAllUsers,
+    enabled: Boolean(projectCode),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const directorOptionsQuery = useQuery({
     queryKey: planningQueryKeys.businessProcessFilterOptions(projectCode),
     queryFn: () => businessProcessApi.all<BusinessProcessRecord>(projectCode),
     enabled: Boolean(projectCode),
@@ -64,16 +72,23 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
   const domains = domainQuery.data || [];
   const domainOptions = useMemo(() => domains
     .filter((item) => item.id)
-    .map((item) => ({ value: item.id || "", label: item.cnName || item.enShortName || "未命名数据域" })),
+    .map((item) => ({
+      value: item.id || "",
+      label: item.cnName || item.enShortName || "未命名数据域",
+    })),
   [domains]);
 
-  const processOptions = processOptionsQuery.data || [];
   const creatorOptions = useMemo(() => Array.from(new Set(
-    processOptions.map((item) => String(item.createBy || "").trim()).filter(Boolean),
-  )).sort((a, b) => a.localeCompare(b)), [processOptions]);
+    (creatorOptionsQuery.data || [])
+      .map((user) => String(user.userName || "").trim())
+      .filter(Boolean),
+  )).sort((a, b) => a.localeCompare(b)), [creatorOptionsQuery.data]);
+
   const directorOptions = useMemo(() => Array.from(new Set(
-    processOptions.map((item) => String(item.director || "").trim()).filter(Boolean),
-  )).sort((a, b) => a.localeCompare(b)), [processOptions]);
+    (directorOptionsQuery.data || [])
+      .map((item) => String(item.director || "").trim())
+      .filter(Boolean),
+  )).sort((a, b) => a.localeCompare(b)), [directorOptionsQuery.data]);
 
   const updateFilter = (key: keyof BusinessProcessFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -198,15 +213,34 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
         )
       ) : (
         <BusinessProcessList
-          filters={filters} domainOptions={domainOptions} creatorOptions={creatorOptions} directorOptions={directorOptions}
-          domainsLoading={domainQuery.isPending} domainsError={domainQuery.isError}
-          processOptionsLoading={processOptionsQuery.isPending}
-          onFilterChange={updateFilter} onSearch={search} onReset={reset}
-          items={listQuery.data?.totalList || []} total={listQuery.data?.total || 0}
-          pageNo={pageNo} loading={listQuery.isPending || listQuery.isFetching} error={listQuery.isError}
-          openingId={openingId} onRetry={() => void listQuery.refetch()} onPageChange={setPageNo}
-          onCreate={openCreate} onView={(record) => setSelectedId(record.id || "")}
-          onEdit={(record) => void openEdit(record)} onDelete={setPendingDelete}
+          filters={filters}
+          domainOptions={domainOptions}
+          creatorOptions={creatorOptions}
+          directorOptions={directorOptions}
+          domainsLoading={domainQuery.isPending}
+          domainsError={domainQuery.isError && !domainQuery.data}
+          creatorsLoading={creatorOptionsQuery.isPending}
+          creatorsError={creatorOptionsQuery.isError && !creatorOptionsQuery.data}
+          directorsLoading={directorOptionsQuery.isPending}
+          directorsError={directorOptionsQuery.isError && !directorOptionsQuery.data}
+          onRetryDomains={() => void domainQuery.refetch()}
+          onRetryCreators={() => void creatorOptionsQuery.refetch()}
+          onRetryDirectors={() => void directorOptionsQuery.refetch()}
+          onFilterChange={updateFilter}
+          onSearch={search}
+          onReset={reset}
+          items={listQuery.data?.totalList || []}
+          total={listQuery.data?.total || 0}
+          pageNo={pageNo}
+          loading={listQuery.isPending || listQuery.isFetching}
+          error={listQuery.isError}
+          openingId={openingId}
+          onRetry={() => void listQuery.refetch()}
+          onPageChange={setPageNo}
+          onCreate={openCreate}
+          onView={(record) => setSelectedId(record.id || "")}
+          onEdit={(record) => void openEdit(record)}
+          onDelete={setPendingDelete}
         />
       )}
 

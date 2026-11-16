@@ -7,22 +7,65 @@ import { BUSINESS_PROCESS_PAGE_SIZE, type BusinessProcessFilters, type BusinessP
 import { BusinessProcessFiltersPanel } from "./business-process-filters";
 
 interface Props {
-  filters: BusinessProcessFilters; domainOptions: BusinessProcessSelectOption[];
-  creatorOptions: string[]; directorOptions: string[];
-  domainsLoading: boolean; domainsError: boolean; processOptionsLoading: boolean;
+  filters: BusinessProcessFilters;
+  domainOptions: BusinessProcessSelectOption[];
+  creatorOptions: string[];
+  directorOptions: string[];
+  domainsLoading: boolean;
+  domainsError: boolean;
+  creatorsLoading: boolean;
+  creatorsError: boolean;
+  directorsLoading: boolean;
+  directorsError: boolean;
+  onRetryDomains: () => void;
+  onRetryCreators: () => void;
+  onRetryDirectors: () => void;
   onFilterChange: (key: keyof BusinessProcessFilters, value: string) => void;
-  onSearch: () => void; onReset: () => void;
-  items: BusinessProcessRecord[]; total: number; pageNo: number;
-  loading: boolean; error: boolean; openingId: string;
-  onRetry: () => void; onPageChange: (page: number) => void;
-  onCreate: () => void; onView: (record: BusinessProcessRecord) => void;
-  onEdit: (record: BusinessProcessRecord) => void; onDelete: (record: BusinessProcessRecord) => void;
+  onSearch: () => void;
+  onReset: () => void;
+  items: BusinessProcessRecord[];
+  total: number;
+  pageNo: number;
+  loading: boolean;
+  error: boolean;
+  openingId: string;
+  onRetry: () => void;
+  onPageChange: (page: number) => void;
+  onCreate: () => void;
+  onView: (record: BusinessProcessRecord) => void;
+  onEdit: (record: BusinessProcessRecord) => void;
+  onDelete: (record: BusinessProcessRecord) => void;
 }
 
 export function BusinessProcessList({
-  filters, domainOptions, creatorOptions, directorOptions, domainsLoading, domainsError,
-  processOptionsLoading, onFilterChange, onSearch, onReset, items, total, pageNo,
-  loading, error, openingId, onRetry, onPageChange, onCreate, onView, onEdit, onDelete,
+  filters,
+  domainOptions,
+  creatorOptions,
+  directorOptions,
+  domainsLoading,
+  domainsError,
+  creatorsLoading,
+  creatorsError,
+  directorsLoading,
+  directorsError,
+  onRetryDomains,
+  onRetryCreators,
+  onRetryDirectors,
+  onFilterChange,
+  onSearch,
+  onReset,
+  items,
+  total,
+  pageNo,
+  loading,
+  error,
+  openingId,
+  onRetry,
+  onPageChange,
+  onCreate,
+  onView,
+  onEdit,
+  onDelete,
 }: Props) {
   const columns: TableColumns<BusinessProcessRecord> = [
     {
@@ -74,9 +117,22 @@ export function BusinessProcessList({
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto p-4">
         <BusinessProcessFiltersPanel
-          filters={filters} domainOptions={domainOptions} creatorOptions={creatorOptions} directorOptions={directorOptions}
-          domainsLoading={domainsLoading} domainsError={domainsError} processOptionsLoading={processOptionsLoading}
-          onChange={onFilterChange} onSearch={onSearch} onReset={onReset}
+          filters={filters}
+          domainOptions={domainOptions}
+          creatorOptions={creatorOptions}
+          directorOptions={directorOptions}
+          domainsLoading={domainsLoading}
+          domainsError={domainsError}
+          creatorsLoading={creatorsLoading}
+          creatorsError={creatorsError}
+          directorsLoading={directorsLoading}
+          directorsError={directorsError}
+          onRetryDomains={onRetryDomains}
+          onRetryCreators={onRetryCreators}
+          onRetryDirectors={onRetryDirectors}
+          onChange={onFilterChange}
+          onSearch={onSearch}
+          onReset={onReset}
         />
         <section className="bg-white px-4 pb-4">
           <Button size="sm" variant="primary" className="mb-3" onClick={onCreate}><Plus size={14} />新建业务过程</Button>

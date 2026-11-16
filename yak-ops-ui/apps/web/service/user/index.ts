@@ -4,6 +4,7 @@ import HttpUtils from "@/service/http/HttpUtils";
 import type {
   QueueOption,
   TenantOption,
+  UserBriefRecord,
   UserId,
   UserPageParams,
   UserPageResult,
@@ -11,9 +12,9 @@ import type {
   UserSavePayload,
 } from "./types";
 
-const USER_API = `${YAK_OPS_API_PREFIX}/users`;
-const TENANT_API = `${YAK_OPS_API_PREFIX}/tenants`;
-const QUEUE_API = `${YAK_OPS_API_PREFIX}/queues`;
+const USER_API = \`\${YAK_OPS_API_PREFIX}/users\`;
+const TENANT_API = \`\${YAK_OPS_API_PREFIX}/tenants\`;
+const QUEUE_API = \`\${YAK_OPS_API_PREFIX}/queues\`;
 
 const queryString = (values: Record<string, string | number | undefined>) => {
   const query = new URLSearchParams();
@@ -31,7 +32,7 @@ export const listUsers = async (params: UserPageParams): Promise<UserPageResult>
     currentPage: number;
     pageSize: number;
     totalPage: number;
-  }>(`${USER_API}/list-paging?${query}`);
+  }>(\`\${USER_API}/list-paging?\${query}\`);
 
   return {
     records: page.totalList.map((user) => ({ ...user, id: String(user.id) })),
@@ -42,36 +43,47 @@ export const listUsers = async (params: UserPageParams): Promise<UserPageResult>
   };
 };
 
+/**
+ * Query all enabled users for selectors that store the user's account name.
+ * The backend endpoint is restricted to system administrators.
+ */
+export const listAllUsers = async (): Promise<UserBriefRecord[]> => {
+  const users = await HttpUtils.getData<Array<Omit<UserBriefRecord, "id"> & { id: string | number }>>(
+    \`\${USER_API}/list-all\`,
+  );
+  return users.map((user) => ({ ...user, id: String(user.id) }));
+};
+
 export const getUsersByIds = async (ids: readonly UserId[]): Promise<UserRecord[]> => {
   if (ids.length === 0) return [];
   const users = await HttpUtils.getData<Array<Omit<UserRecord, "id"> & { id: string | number }>>(
-    `${USER_API}/by-ids?${queryString({ ids: ids.join(",") })}`,
+    \`\${USER_API}/by-ids?\${queryString({ ids: ids.join(",") })}\`,
   );
   return users.map((user) => ({ ...user, id: String(user.id) }));
 };
 
 export const listTenants = (): Promise<TenantOption[]> =>
-  HttpUtils.getData<TenantOption[]>(`${TENANT_API}/list`);
+  HttpUtils.getData<TenantOption[]>(\`\${TENANT_API}/list\`);
 
 export const listQueues = (): Promise<QueueOption[]> =>
-  HttpUtils.getData<QueueOption[]>(`${QUEUE_API}/list`);
+  HttpUtils.getData<QueueOption[]>(\`\${QUEUE_API}/list\`);
 
 export const createUser = async (payload: UserSavePayload): Promise<UserRecord> => {
   const { userName, userPassword, tenantId, queue, email, phone, state } = payload;
   return HttpUtils.postData<UserRecord>(
-    `${USER_API}/create?${queryString({ userName, userPassword, tenantId, queue, email, phone, state })}`,
+    \`\${USER_API}/create?\${queryString({ userName, userPassword, tenantId, queue, email, phone, state })}\`,
   );
 };
 
 export const updateUser = async (id: UserId, payload: UserSavePayload): Promise<UserRecord> => {
   const { userName, userPassword, tenantId, queue, email, phone, state, timeZone } = payload;
   return HttpUtils.postData<UserRecord>(
-    `${USER_API}/update?${queryString({ id, userName, userPassword, tenantId, queue, email, phone, state, timeZone })}`,
+    \`\${USER_API}/update?\${queryString({ id, userName, userPassword, tenantId, queue, email, phone, state, timeZone })}\`,
   );
 };
 
 export const deleteUser = async (id: UserId): Promise<void> => {
-  await HttpUtils.postData<void>(`${USER_API}/delete?${queryString({ id })}`);
+  await HttpUtils.postData<void>(\`\${USER_API}/delete?\${queryString({ id })}\`);
 };
 
 export type * from "./types";
