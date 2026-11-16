@@ -71,7 +71,9 @@ export function StandardDirectoryFormDialog({
           <FieldLabel required className="pt-1.5 text-xs">目录类型</FieldLabel>
           <Select value={dirType} disabled={Boolean(editing)} onValueChange={(value) => setDirType(String(value || "FOLDER"))}>
             <SelectTrigger size="small" variant="outlined" className="w-full">
-              <SelectValue placeholder="请选择目录类型" />
+              <SelectValue placeholder="请选择目录类型">
+              {(selected) => options.find((item) => item.value === selected)?.label ?? String(selected ?? "")}
+            </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {options.map((item) => (
