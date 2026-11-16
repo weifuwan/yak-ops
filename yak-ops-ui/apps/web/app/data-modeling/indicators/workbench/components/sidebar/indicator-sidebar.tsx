@@ -4,7 +4,7 @@ import {
 } from "@yak-ops/yak-ui";
 import { List, Plus, RefreshCw, Search } from "lucide-react";
 
-import type { ModelingRecord } from "../../../../service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import { DW_TYPE_OPTIONS } from "../../config/indicator-definitions";
 import type { IndicatorDefinition, IndicatorGroupBy, IndicatorKind, IndicatorTreeNode, ModifierScopeType } from "../../types";

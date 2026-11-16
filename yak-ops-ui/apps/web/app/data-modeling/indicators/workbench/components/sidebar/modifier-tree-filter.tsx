@@ -13,7 +13,9 @@ import {
   SelectValue,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../../service";
+import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
+import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { ModifierScopeType } from "../../types";
 
 type FilterOption = { value: string; label: string };
@@ -59,10 +61,11 @@ export function ModifierTreeFilter({
   onKeywordChange,
 }: ModifierTreeFilterProps) {
   const [scopeKeyword, setScopeKeyword] = useState("");
-  const scopeResource: ModelingResourceKey = scopeType === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
   const scopeOptionsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "modifier-tree-scope-options", projectCode, scopeResource],
-    queryFn: () => modelingEntityApi.all<ModelingRecord>(projectCode, scopeResource),
+    queryKey: ["modeling", "modifier-tree-scope-options", projectCode, scopeType],
+    queryFn: () => scopeType === "BUSINESS_TYPE"
+      ? businessTypeApi.all<ModelingRecord>(projectCode)
+      : dataDomainApi.all<ModelingRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
 

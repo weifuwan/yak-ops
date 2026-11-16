@@ -1,6 +1,6 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { PlanningIcon } from "../../../../planning/icons";
-import type { ModelingRecord } from "../../../../service";
+import { PlanningIcon } from "../../../../planning/components/icons";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import type { IndicatorKind, IndicatorTreeNode } from "../../types";
 

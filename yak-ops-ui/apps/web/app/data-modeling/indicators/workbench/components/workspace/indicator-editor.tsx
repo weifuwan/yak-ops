@@ -6,7 +6,9 @@ import {
 } from "@yak-ops/yak-ui";
 import { Save, Send, X } from "lucide-react";
 
-import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey, type ModelingVersionRecord } from "../../../../service";
+import { getIndicatorApi } from "@/service/data-modeling/indicators";
+import type { ModelingRecord, ModelingVersionRecord } from "@/service/data-modeling/shared/types";
+import type { IndicatorOptionResource } from "../../types";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
 import { fieldOptions, initialFormValues, readFormValue, selectOptionLabel } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";
@@ -17,7 +19,7 @@ type IndicatorEditorProps = {
   projectCode: string;
   definition: IndicatorDefinition;
   tab: IndicatorTab;
-  optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
+  optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   optionsLoading: boolean;
   onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
   onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
@@ -54,7 +56,7 @@ export function IndicatorEditor({
 
   const versionQuery = useQuery<ModelingVersionRecord[]>({
     queryKey: ["modeling", "indicator-versions", projectCode, definition.key, recordId],
-    queryFn: () => recordId ? modelingEntityApi.versions(projectCode, definition.key, recordId) : Promise.resolve([]),
+    queryFn: () => recordId ? getIndicatorApi(definition.key).versions(projectCode, recordId) : Promise.resolve([]),
     enabled: Boolean(projectCode && recordId && versionOpen),
   });
 
@@ -89,10 +91,10 @@ export function IndicatorEditor({
     try {
       let saved: ModelingRecord;
       if (recordId) {
-        saved = await modelingEntityApi.update(projectCode, definition.key, payload);
+        saved = await getIndicatorApi(definition.key).update(projectCode, payload);
       } else {
-        const createdId = await modelingEntityApi.create(projectCode, definition.key, payload);
-        saved = await modelingEntityApi.getById<ModelingRecord>(projectCode, definition.key, String(createdId));
+        const createdId = await getIndicatorApi(definition.key).create(projectCode, payload);
+        saved = await getIndicatorApi(definition.key).getById<ModelingRecord>(projectCode, String(createdId));
       }
       onSaved(tab.kind, tab.key, saved);
       setDirty(false);
@@ -124,7 +126,7 @@ export function IndicatorEditor({
     }
     setSubmitting(true);
     try {
-      const submitted = await modelingEntityApi.submit(projectCode, definition.key, recordId);
+      const submitted = await getIndicatorApi(definition.key).submit(projectCode, recordId);
       onSaved(tab.kind, tab.key, submitted);
       setNoticeDismissed(false);
       toast.success("已提交，版本快照已保存");
@@ -139,7 +141,7 @@ export function IndicatorEditor({
   const rollback = async (version: ModelingVersionRecord) => {
     if (!recordId) return;
     try {
-      const restored = await modelingEntityApi.rollback(projectCode, definition.key, recordId, version.versionNumber);
+      const restored = await getIndicatorApi(definition.key).rollback(projectCode, recordId, version.versionNumber);
       onSaved(tab.kind, tab.key, restored);
       setValues(Object.fromEntries(definition.fields.map((field) => [field.key, readFormValue(restored, field.key)])));
       setDirty(false);

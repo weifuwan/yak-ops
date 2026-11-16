@@ -1,7 +1,7 @@
 import { Button, Table } from "@yak-ops/yak-ui";
 import { X } from "lucide-react";
 
-import type { ModelingVersionRecord } from "../../../../service";
+import type { ModelingVersionRecord } from "@/service/data-modeling/shared/types";
 import { PanelResizer } from "../../../../../data-development/layout/panel-resizer";
 
 type IndicatorVersionPanelProps = {

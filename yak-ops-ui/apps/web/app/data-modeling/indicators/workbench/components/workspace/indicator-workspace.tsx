@@ -1,4 +1,4 @@
-import type { ModelingRecord } from "../../../../service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorKind, IndicatorTab } from "../../types";
 import { IndicatorEmptyState } from "./indicator-empty-state";
 import { IndicatorTabContent } from "./indicator-tab-content";

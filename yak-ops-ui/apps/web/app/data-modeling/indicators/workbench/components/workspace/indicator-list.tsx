@@ -6,16 +6,17 @@ import {
 } from "@yak-ops/yak-ui";
 import { RefreshCw, Search } from "lucide-react";
 
-import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../../service";
+import { getIndicatorApi } from "@/service/data-modeling/indicators";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { DW_TYPE_OPTIONS, PAGE_SIZE_OPTIONS, RELATION_FIELDS } from "../../config/indicator-definitions";
-import type { IndicatorDefinition, IndicatorFieldOption } from "../../types";
+import type { IndicatorDefinition, IndicatorFieldOption, IndicatorOptionResource } from "../../types";
 import { recordName, selectOptionLabel } from "../../utils/indicator-form";
 
 type IndicatorListTabProps = {
   projectCode: string;
   definition: IndicatorDefinition;
   dwType: string;
-  optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
+  optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   onEdit: (record: ModelingRecord) => void;
   onDelete: (record: ModelingRecord) => void;
 };
@@ -65,7 +66,7 @@ export function IndicatorList({
       if (applied.businessTypeId) params.busTypeId = applied.businessTypeId;
       if (applied.domainId) params.domainId = applied.domainId;
       if (applied.categoryId) params.categoryId = applied.categoryId;
-      return modelingEntityApi.page<ModelingRecord>(projectCode, definition.key, params);
+      return getIndicatorApi(definition.key).page<ModelingRecord>(projectCode, params);
     },
     enabled: Boolean(projectCode),
   });
@@ -142,7 +143,7 @@ export function IndicatorList({
     setApplied({ keyword: "", status: "all", businessTypeId: "", domainId: "", categoryId: "" });
   };
 
-  const filterOptions = (resource: ModelingResourceKey, labelField?: string): IndicatorFieldOption[] =>
+  const filterOptions = (resource: IndicatorOptionResource, labelField?: string): IndicatorFieldOption[] =>
     (optionsByResource[resource] || []).map((record) => ({
       value: String(record.id || ""),
       label: String(record[labelField || "cnName"] || recordName(record)),

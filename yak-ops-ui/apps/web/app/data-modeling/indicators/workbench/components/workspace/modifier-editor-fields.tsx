@@ -7,22 +7,18 @@ import {
   SelectItemIndicator, SelectItemText, SelectTrigger, SelectValue, Textarea,
 } from "@yak-ops/yak-ui";
 
-import {
-  modelingBusinessTypeApi,
-  modelingDimensionApi,
-  modelingEntityApi,
-  type ModelingDimensionFieldRecord,
-  type ModelingRecord,
-  type ModelingResourceKey,
-} from "../../../../service";
-import type { IndicatorFieldOption } from "../../types";
+import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
+import { dimensionReferenceApi, type ModelingDimensionFieldRecord } from "@/service/data-modeling/indicators/dimension-reference";
+import { codeDetailApi } from "@/service/data-modeling/standards/code-standard";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import type { IndicatorFieldOption, IndicatorOptionResource } from "../../types";
 import { fieldOptions, selectOptionLabel } from "../../utils/indicator-form";
 
 type Props = {
   projectCode: string;
   values: Record<string, string>;
   recordId: string;
-  optionsByResource: Partial<Record<ModelingResourceKey, ModelingRecord[]>>;
+  optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   optionsLoading: boolean;
   onChange: (key: string, value: string) => void;
   onChangeMany: (values: Record<string, string>) => void;
@@ -100,17 +96,17 @@ export function ModifierEditorFields({
 
   const dimensionOptionsQuery = useQuery({
     queryKey: ["modeling", "modifier-dimension-options", projectCode],
-    queryFn: () => modelingDimensionApi.dimensionOptions(projectCode),
+    queryFn: () => dimensionReferenceApi.dimensionOptions(projectCode),
     enabled: Boolean(projectCode && isDimension),
   });
   const dimensionFieldsQuery = useQuery<ModelingDimensionFieldRecord[]>({
     queryKey: ["modeling", "modifier-dimension-fields", projectCode, values.dimensionTbId],
-    queryFn: () => modelingDimensionApi.fields(projectCode, values.dimensionTbId),
+    queryFn: () => dimensionReferenceApi.fields(projectCode, values.dimensionTbId),
     enabled: Boolean(projectCode && isDimension && values.dimensionTbId),
   });
   const relatedDomainsQuery = useQuery<Record<string, string[]>>({
     queryKey: ["modeling", "modifier-business-domains", projectCode],
-    queryFn: () => modelingBusinessTypeApi.allRelatedDomainIds(projectCode),
+    queryFn: () => businessTypeApi.allRelatedDomainIds(projectCode),
     enabled: Boolean(projectCode),
   });
   const ownerOptionsQuery = useQuery<UserRecord[]>({
@@ -138,7 +134,7 @@ export function ModifierEditorFields({
   const effectiveCodeId = String(selectedDimensionField?.codeStdId || values.codeId || "");
   const codeDetailsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "modifier-code-details", projectCode, effectiveCodeId],
-    queryFn: () => modelingEntityApi.all<ModelingRecord>(projectCode, "codeDetail", { codeId: effectiveCodeId }),
+    queryFn: () => codeDetailApi.all<ModelingRecord>(projectCode, { codeId: effectiveCodeId }),
     enabled: Boolean(projectCode && isDimension && effectiveCodeId),
   });
 
