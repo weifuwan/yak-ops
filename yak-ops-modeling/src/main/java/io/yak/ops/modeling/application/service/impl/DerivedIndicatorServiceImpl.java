@@ -80,7 +80,11 @@ public class DerivedIndicatorServiceImpl
         addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getAtomicId(), "atomic_id");
         eqIfNotBlank(wrapper, query.getTimePeriodId(), "time_period_id");
-        eqIfPresent(wrapper, query.getDwType(), "dw_type");
+        if (Boolean.TRUE.equals(query.getDwTypeUnassigned())) {
+            wrapper.and(w -> w.isNull("dw_type").or().notIn("dw_type", "PUBLIC_LAYER", "APPLICATION_LAYER"));
+        } else {
+            eqIfPresent(wrapper, query.getDwType(), "dw_type");
+        }
         eqIfNotBlank(wrapper, query.getMartId(), "mart_id");
         eqIfNotBlank(wrapper, query.getSubjectId(), "subject_id");
         eqIfNotBlank(wrapper, query.getBusTypeId(), "bus_type_id");

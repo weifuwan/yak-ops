@@ -16,6 +16,8 @@ public class DerivedIndicatorDTO extends ModelingQueryDTO {
     private String modifierId;
     private String atomicId;
     private DwTypeEnum dwType;
+    /** Query-only flag for unassigned and legacy unsupported warehouse-layer values. */
+    private Boolean dwTypeUnassigned;
     private String martId;
     private String subjectId;
     private String busTypeId;

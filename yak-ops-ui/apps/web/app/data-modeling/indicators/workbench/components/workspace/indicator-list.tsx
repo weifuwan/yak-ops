@@ -50,6 +50,9 @@ export function IndicatorList({
     status: "all",
     filters: { ...EMPTY_FILTERS },
   });
+  const [pageNo, setPageNo] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   useEffect(() => {
     if (definition.key !== "derivativeIndicator") return;
     const emptyFilters = { ...EMPTY_FILTERS };
@@ -57,9 +60,6 @@ export function IndicatorList({
     setApplied((current) => ({ ...current, filters: emptyFilters }));
     setPageNo(1);
   }, [definition.key, dwType]);
-
-  const [pageNo, setPageNo] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
 
   const pageQuery = useQuery({
     queryKey: [
@@ -78,7 +78,10 @@ export function IndicatorList({
         pageSize,
         keyword: applied.keyword || undefined,
       };
-      if (definition.filterByDwType && dwType !== "UNASSIGNED") params.dwType = dwType;
+      if (definition.filterByDwType) {
+        if (dwType === "UNASSIGNED") params.dwTypeUnassigned = true;
+        else params.dwType = dwType;
+      }
       if (applied.status !== "all") params.submit = applied.status;
       (definition.listFilters || []).forEach((filter) => {
         const value = applied.filters[filter.key];

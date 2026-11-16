@@ -643,8 +643,9 @@ export function buildDerivativeIndicatorTree(input: DerivativeIndicatorTreeInput
   });
   const countAssets = (node: IndicatorTreeNode): number => {
     if (node.kind === "asset") return 1;
-    node.count = node.children.reduce((total, child) => total + countAssets(child), 0);
-    return node.count;
+    const count = node.children.reduce((total, child) => total + countAssets(child), 0);
+    node.count = count;
+    return count;
   };
   const root: IndicatorTreeNode = {
     key: "root:derivative-indicator",
