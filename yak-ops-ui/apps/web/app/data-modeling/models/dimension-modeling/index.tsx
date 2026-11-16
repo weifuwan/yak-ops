@@ -1,11 +1,15 @@
-import { ModelingSectionPage } from "../components/modeling-section-page";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { ModelingWorkspaceEmptyState } from "@/app/data-modeling/components/workspace-empty-state";
+import { DimensionModelingWorkbench } from "./workbench";
 
 export default function DimensionModelingPage() {
+  const { currentWorkspace } = useWorkspace();
+
+  if (!currentWorkspace) return <ModelingWorkspaceEmptyState />;
+
   return (
-    <ModelingSectionPage
-      title="维度建模"
-      description="围绕维度、维度表和数仓模型，逐步迁移原 data_modal 的维度建模能力。"
-      capabilities={["维度管理", "维度表设计", "模型字段", "版本管理"]}
-    />
+    <div className="h-full min-h-0">
+      <DimensionModelingWorkbench projectCode={String(currentWorkspace.id)} />
+    </div>
   );
 }
