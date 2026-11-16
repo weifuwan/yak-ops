@@ -15,4 +15,5 @@ public class TimePeriodVO extends ModelingBaseVO {
     private String cnName;
     private String director;
     private String remark;
+    private Boolean submit;
 }

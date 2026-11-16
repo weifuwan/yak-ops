@@ -24,4 +24,5 @@ public class CompositeIndicatorVO extends ModelingBaseVO {
     private String computeExpr;
     private String deriveId;
     private String compareType;
+    private Boolean submit;
 }

@@ -25,4 +25,5 @@ public class ModifierVO extends ModelingBaseVO {
     private String dimensionFdId;
     private String codeId;
     private String codeDetailId;
+    private Boolean submit;
 }

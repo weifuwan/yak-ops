@@ -23,4 +23,5 @@ public class DerivedIndicatorVO extends ModelingBaseVO {
     private String cnName;
     private String director;
     private String remark;
+    private Boolean submit;
 }

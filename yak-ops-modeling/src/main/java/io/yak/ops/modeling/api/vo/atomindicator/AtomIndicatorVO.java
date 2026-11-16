@@ -24,4 +24,5 @@ public class AtomIndicatorVO extends ModelingBaseVO {
     private Integer decimalNumber;
     private String unitId;
     private Boolean removeDuplicates;
+    private Boolean submit;
 }
