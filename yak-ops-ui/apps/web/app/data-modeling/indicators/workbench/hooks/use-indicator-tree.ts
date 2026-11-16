@@ -2,18 +2,36 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { modelingBusinessTypeApi, modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../service";
-import type { IndicatorGroupBy, IndicatorKind, IndicatorTreeNode } from "../types";
-import { buildAtomIndicatorTree, buildGroupedTree, buildTimePeriodTree, collectExpandedKeys, filterTree } from "../utils/indicator-tree";
+import type { IndicatorGroupBy, IndicatorKind, IndicatorTreeNode, ModifierScopeType } from "../types";
+import {
+  buildAtomIndicatorTree,
+  buildGroupedTree,
+  buildModifierTree,
+  buildTimePeriodTree,
+  collectExpandedKeys,
+  filterTree,
+} from "../utils/indicator-tree";
 
 export function useIndicatorTree(projectCode: string, activeKind: IndicatorKind) {
   const [groupBy, setGroupBy] = useState<IndicatorGroupBy>("BUSINESS_TYPE");
   const [dwType, setDwType] = useState("PUBLIC_LAYER");
+  const [modifierScopeType, setModifierScopeType] = useState<ModifierScopeType>("DATA_DOMAIN");
+  const [modifierScopeValue, setModifierScopeValue] = useState("");
   const [treeKeyword, setTreeKeyword] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
 
   const treeQuery = useQuery<IndicatorTreeNode[]>({
-    queryKey: ["modeling", "indicator-tree", projectCode, activeKind, groupBy, activeKind === "atomIndicator" ? dwType : "all"],
+    queryKey: [
+      "modeling",
+      "indicator-tree",
+      projectCode,
+      activeKind,
+      groupBy,
+      activeKind === "atomIndicator" || activeKind === "modifier" ? dwType : "all",
+      activeKind === "modifier" ? modifierScopeType : "",
+      activeKind === "modifier" ? modifierScopeValue : "",
+    ],
     queryFn: async () => {
       if (activeKind === "timePeriod") {
         const results = await Promise.all([
@@ -32,6 +50,15 @@ export function useIndicatorTree(projectCode: string, activeKind: IndicatorKind)
         const relatedDomainMap = groupBy === "BUSINESS_TYPE" ? await modelingBusinessTypeApi.allRelatedDomainIds(projectCode) : {};
         return buildAtomIndicatorTree(businessTypes, dataDomains, businessProcesses, atomIndicators, groupBy, new Map(Object.entries(relatedDomainMap)));
       }
+      if (activeKind === "modifier") {
+        const groupResource: ModelingResourceKey = modifierScopeType === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
+        const [groups, modifiers] = await Promise.all([
+          modelingEntityApi.all<ModelingRecord>(projectCode, groupResource),
+          modelingEntityApi.all<ModelingRecord>(projectCode, "modifier", { dwType }),
+        ]);
+        return buildModifierTree(groups, modifiers, modifierScopeType, modifierScopeValue);
+      }
+
       const groupResource: ModelingResourceKey = groupBy === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
       const results = await Promise.all([
         modelingEntityApi.all<ModelingRecord>(projectCode, groupResource),
@@ -61,7 +88,25 @@ export function useIndicatorTree(projectCode: string, activeKind: IndicatorKind)
   useEffect(() => {
     setTreeKeyword("");
     setSelectedTreeKey("");
-  }, [activeKind, groupBy, dwType]);
+  }, [activeKind, groupBy, dwType, modifierScopeType, modifierScopeValue]);
 
-  return { groupBy, setGroupBy, dwType, setDwType, treeKeyword, setTreeKeyword, expandedKeys, setExpandedKeys, selectedTreeKey, setSelectedTreeKey, visibleTree, visibleExpandedKeys, treeQuery };
+  return {
+    groupBy,
+    setGroupBy,
+    dwType,
+    setDwType,
+    modifierScopeType,
+    setModifierScopeType,
+    modifierScopeValue,
+    setModifierScopeValue,
+    treeKeyword,
+    setTreeKeyword,
+    expandedKeys,
+    setExpandedKeys,
+    selectedTreeKey,
+    setSelectedTreeKey,
+    visibleTree,
+    visibleExpandedKeys,
+    treeQuery,
+  };
 }

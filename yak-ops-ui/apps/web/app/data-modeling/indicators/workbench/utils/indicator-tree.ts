@@ -318,6 +318,172 @@ export function buildAtomIndicatorTree(
   return [root];
 }
 
+export function buildModifierTree(
+  groups: ModelingRecord[],
+  records: ModelingRecord[],
+  scopeType: ModifierScopeType,
+  scopeValue = "",
+): IndicatorTreeNode[] {
+  const uniqueRecordMap = new Map<string, ModelingRecord>();
+  records.forEach((record) => {
+    if (record.id) uniqueRecordMap.set(String(record.id), record);
+  });
+  const uniqueRecords = Array.from(uniqueRecordMap.values());
+  const root: IndicatorTreeNode = {
+    key: "root:modifier",
+    id: "root",
+    title: "修饰词",
+    kind: "group",
+    nodeType: "root",
+    count: uniqueRecords.length,
+    children: [],
+  };
+  const assetNode = (record: ModelingRecord): IndicatorTreeNode => ({
+    key: "asset:" + String(record.id),
+    id: String(record.id),
+    title: recordName(record),
+    kind: "asset",
+    nodeType: "asset",
+    record,
+    children: [],
+  });
+
+  if (scopeType === "DATA_DOMAIN") {
+    const domainMap = new Map<string, ModelingRecord>();
+    groups.forEach((group) => {
+      if (group.id) domainMap.set(String(group.id), group);
+    });
+    const domainNodes = Array.from(domainMap.values()).map((domain) => {
+      const id = String(domain.id);
+      const scopedRecords = uniqueRecords.filter((record) => String(record.domainId || "") === id);
+      return {
+        key: "modifier-domain:" + id,
+        id,
+        title: recordName(domain),
+        kind: "group" as const,
+        nodeType: "dataDomain" as const,
+        record: domain,
+        count: scopedRecords.length,
+        children: scopedRecords.map(assetNode),
+      };
+    });
+    const unassignedRecords = uniqueRecords.filter((record) => {
+      const id = String(record.domainId || "");
+      return !id || !domainMap.has(id);
+    });
+    const defaultNode: IndicatorTreeNode = {
+      key: "modifier-default",
+      id: "default",
+      title: "默认",
+      kind: "group",
+      nodeType: "group",
+      count: unassignedRecords.length,
+      children: unassignedRecords.map(assetNode),
+    };
+    if (scopeValue) {
+      const selected = domainNodes.find((node) => node.id === scopeValue);
+      root.children = selected ? [selected] : [];
+      root.count = selected?.count || 0;
+    } else {
+      root.children = [defaultNode, ...domainNodes];
+    }
+    return [root];
+  }
+
+  const groupMap = new Map<string, ModelingRecord>();
+  groups.forEach((group) => {
+    if (group.id) groupMap.set(String(group.id), group);
+  });
+  const childrenByParent = new Map<string, ModelingRecord[]>();
+  groups.forEach((group) => {
+    const id = String(group.id || "");
+    const parentId = String(group.parentId || "");
+    if (!id || !parentId || !groupMap.has(parentId)) return;
+    const children = childrenByParent.get(parentId) || [];
+    children.push(group);
+    childrenByParent.set(parentId, children);
+  });
+
+  const visited = new Set<string>();
+  const buildBusinessTypeNode = (group: ModelingRecord): IndicatorTreeNode | null => {
+    const id = String(group.id || "");
+    if (!id || visited.has(id)) return null;
+    visited.add(id);
+    const directRecords = uniqueRecords.filter((record) => String(record.busTypeId || "") === id);
+    const childNodes = (childrenByParent.get(id) || [])
+      .map(buildBusinessTypeNode)
+      .filter((node): node is IndicatorTreeNode => Boolean(node));
+    const count = directRecords.length + childNodes.reduce((total, child) => total + (child.count || 0), 0);
+    return {
+      key: "modifier-business-type:" + id,
+      id,
+      title: recordName(group),
+      kind: "group",
+      nodeType: "businessType",
+      record: group,
+      count,
+      children: [...childNodes, ...directRecords.map(assetNode)],
+    };
+  };
+
+  const roots = groups.filter((group) => {
+    const parentId = String(group.parentId || "");
+    return !parentId || !groupMap.has(parentId);
+  }).map(buildBusinessTypeNode).filter((node): node is IndicatorTreeNode => Boolean(node));
+  groups.forEach((group) => {
+    const id = String(group.id || "");
+    if (id && !visited.has(id)) {
+      const node = buildBusinessTypeNode(group);
+      if (node) roots.push(node);
+    }
+  });
+
+  const unassignedRecords = uniqueRecords.filter((record) => {
+    const id = String(record.busTypeId || "");
+    return !id || !groupMap.has(id);
+  });
+  const defaultNode: IndicatorTreeNode = {
+    key: "modifier-default",
+    id: "default",
+    title: "默认",
+    kind: "group",
+    nodeType: "group",
+    count: unassignedRecords.length,
+    children: unassignedRecords.map(assetNode),
+  };
+
+  if (scopeValue) {
+    const selectedNode = roots.reduce<IndicatorTreeNode | undefined>((found, node) => {
+      if (found) return found;
+      if (node.id === scopeValue) return node;
+      const pending = [...node.children];
+      while (pending.length) {
+        const current = pending.shift();
+        if (!current || current.kind !== "group") continue;
+        if (current.id === scopeValue) return current;
+        pending.push(...current.children.filter((child) => child.kind === "group"));
+      }
+      return undefined;
+    }, undefined);
+    if (!selectedNode) {
+      root.children = [];
+      root.count = 0;
+    } else {
+      const selectedIds = new Set<string>();
+      const collectGroupIds = (node: IndicatorTreeNode) => {
+        selectedIds.add(node.id);
+        node.children.filter((child) => child.kind === "group").forEach(collectGroupIds);
+      };
+      collectGroupIds(selectedNode);
+      root.children = [selectedNode];
+      root.count = uniqueRecords.filter((record) => selectedIds.has(String(record.busTypeId || ""))).length;
+    }
+  } else {
+    root.children = [defaultNode, ...roots];
+  }
+  return [root];
+}
+
 export function buildTimePeriodTree(categories: ModelingRecord[], records: ModelingRecord[]): IndicatorTreeNode[] {
   const nodeMap = new Map<string, IndicatorTreeNode>();
   categories.forEach((record) => {

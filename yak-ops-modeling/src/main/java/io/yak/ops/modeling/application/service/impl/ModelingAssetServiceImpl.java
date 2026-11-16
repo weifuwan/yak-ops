@@ -10,6 +10,8 @@ import io.yak.ops.modeling.application.service.ModelingAssetService;
 import io.yak.ops.common.service.BaseServiceImpl;
 import io.yak.ops.dao.entity.*;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
+import io.yak.ops.dao.repository.modeling.DwLayerDao;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
 
     @Resource private ObjectMapper objectMapper;
     @Resource private ModelingAssetDao modelingAssetDao;
+    @Resource private DwLayerDao dwLayerDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -540,7 +543,44 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
                 wrapper.eq(filter.getValue(), value);
             }
         }
+        if ("modifier".equals(resource)) {
+            applyModifierDwTypeFilter(wrapper, text(params.get("dwType")));
+        }
         return wrapper;
+    }
+
+    private <T> void applyModifierDwTypeFilter(QueryWrapper<T> wrapper, String value) {
+        if (value.isEmpty()) return;
+
+        DwTypeEnum dwType;
+        try {
+            dwType = DwTypeEnum.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("不支持的修饰词数仓分层筛选类型：" + value, ex);
+        }
+        if (dwType == DwTypeEnum.SOURCE_LAYER) {
+            throw new IllegalArgumentException("修饰词不允许关联或筛选 ODS 贴源层");
+        }
+
+        List<DwLayerPO> layers = dwLayerDao.queryList(
+                new QueryWrapper<DwLayerPO>().eq("dw_type", dwType.getCode()));
+        List<String> layerIds = new ArrayList<>();
+        for (DwLayerPO layer : layers) {
+            if (layer.getId() != null && !layer.getId().trim().isEmpty()) {
+                layerIds.add(layer.getId());
+            }
+        }
+
+        if (dwType == DwTypeEnum.NONE_LAYER) {
+            wrapper.and(scope -> {
+                scope.isNull("dwh_id").or().eq("dwh_id", "");
+                if (!layerIds.isEmpty()) scope.or().in("dwh_id", layerIds);
+            });
+        } else if (layerIds.isEmpty()) {
+            wrapper.apply("1 = 0");
+        } else {
+            wrapper.in("dwh_id", layerIds);
+        }
     }
 
     private String[] searchColumns(String resource) {
@@ -577,8 +617,9 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             result.put("deriveId", "derive_id"); result.put("busTypeId", "bus_type_id");
             result.put("domainId", "domain_id"); result.put("busProcessId", "bus_process_id"); result.put("submit", "submit");
         } else if ("modifier".equals(resource)) {
-            result.put("modifierType", "modifier_type"); result.put("busTypeId", "bus_type_id");
-            result.put("domainId", "domain_id"); result.put("submit", "submit");
+            result.put("modifierType", "modifier_type"); result.put("dwhId", "dwh_id");
+            result.put("busTypeId", "bus_type_id"); result.put("domainId", "domain_id");
+            result.put("submit", "submit");
         } else if ("time-period-category".equals(resource)) {
             result.put("parentId", "parent_id"); result.put("leaf", "leaf");
         } else if ("time-period".equals(resource)) {

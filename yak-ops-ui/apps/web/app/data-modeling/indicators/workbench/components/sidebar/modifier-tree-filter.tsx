@@ -1,10 +1,6 @@
-import { useState, type KeyboardEvent } from "react";
-import {
-  Database,
-  Folder,
-  Globe,
-  Layers,
-} from "lucide-react";
+import { useMemo, useState, type KeyboardEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Globe, Layers } from "lucide-react";
 import {
   Input,
   Select,
@@ -17,13 +13,11 @@ import {
   SelectValue,
 } from "@yak-ops/yak-ui";
 
-type ModifierDwLayer = "PUBLIC_LAYER" | "APPLICATION_LAYER" | "NONE_LAYER";
-type ModifierScopeType = "DATA_DOMAIN" | "BUSINESS_TYPE" | "SUBJECT_DOMAIN" | "DATA_MART";
+import { modelingEntityApi, type ModelingRecord, type ModelingResourceKey } from "../../../../service";
+import type { ModifierScopeType } from "../../types";
 
-type FilterOption = {
-  value: string;
-  label: string;
-};
+type FilterOption = { value: string; label: string };
+type ModifierDwLayer = "PUBLIC_LAYER" | "APPLICATION_LAYER" | "NONE_LAYER";
 
 const DW_LAYER_OPTIONS: Array<{ value: ModifierDwLayer; label: string }> = [
   { value: "PUBLIC_LAYER", label: "公共层" },
@@ -34,85 +28,63 @@ const DW_LAYER_OPTIONS: Array<{ value: ModifierDwLayer; label: string }> = [
 const SCOPE_OPTIONS: Array<{ value: ModifierScopeType; label: string }> = [
   { value: "DATA_DOMAIN", label: "数据域" },
   { value: "BUSINESS_TYPE", label: "业务分类" },
-  { value: "SUBJECT_DOMAIN", label: "主题域" },
-  { value: "DATA_MART", label: "数据集市" },
 ];
-
-const SCOPE_FILTER_OPTIONS: Record<ModifierScopeType, FilterOption[]> = {
-  DATA_DOMAIN: [
-    { value: "DEFAULT", label: "默认" },
-    { value: "CUSTOMER_SERVICE", label: "客服域" },
-    { value: "LOGISTICS", label: "物流域" },
-    { value: "TOOLS_AND_SERVICES", label: "工具和服务域" },
-    { value: "COMMON", label: "公共域" },
-    { value: "CONSUMER", label: "消费者域" },
-    { value: "MERCHANT", label: "商家域" },
-    { value: "PRODUCT", label: "商品域" },
-    { value: "TRAFFIC", label: "流量域" },
-    { value: "MARKETING", label: "营销域" },
-    { value: "TRADE", label: "交易域" },
-  ],
-  BUSINESS_TYPE: [
-    { value: "DEFAULT", label: "默认" },
-    { value: "CUSTOMER_OPERATION", label: "客户运营" },
-    { value: "PRODUCT_MANAGEMENT", label: "商品管理" },
-    { value: "ORDER_MANAGEMENT", label: "订单管理" },
-    { value: "MARKETING_OPERATION", label: "营销运营" },
-  ],
-  SUBJECT_DOMAIN: [
-    { value: "DEFAULT", label: "默认" },
-    { value: "CUSTOMER_SUBJECT", label: "客户主题" },
-    { value: "PRODUCT_SUBJECT", label: "商品主题" },
-    { value: "TRADE_SUBJECT", label: "交易主题" },
-    { value: "MARKETING_SUBJECT", label: "营销主题" },
-  ],
-  DATA_MART: [
-    { value: "DEFAULT", label: "默认" },
-    { value: "OPERATION_MART", label: "经营分析集市" },
-    { value: "CUSTOMER_MART", label: "客户分析集市" },
-    { value: "PRODUCT_MART", label: "商品分析集市" },
-  ],
-};
 
 function ScopeIcon({ scope }: { scope: ModifierScopeType }) {
   const className = "size-[15px] shrink-0 text-[#3a3d51]";
-
-  if (scope === "BUSINESS_TYPE") return <Layers className={className} />;
-  if (scope === "SUBJECT_DOMAIN") return <Folder className={className} />;
-  if (scope === "DATA_MART") return <Database className={className} />;
-  return <Globe className={className} />;
+  return scope === "BUSINESS_TYPE" ? <Layers className={className} /> : <Globe className={className} />;
 }
 
 type ModifierTreeFilterProps = {
+  projectCode: string;
+  dwType: string;
+  onDwTypeChange: (value: string) => void;
+  scopeType: ModifierScopeType;
+  onScopeTypeChange: (value: ModifierScopeType) => void;
+  scopeValue: string;
+  onScopeValueChange: (value: string) => void;
   keyword: string;
   onKeywordChange: (value: string) => void;
 };
 
 export function ModifierTreeFilter({
+  projectCode,
+  dwType,
+  onDwTypeChange,
+  scopeType,
+  onScopeTypeChange,
+  scopeValue,
+  onScopeValueChange,
   keyword,
   onKeywordChange,
 }: ModifierTreeFilterProps) {
-  const [dwLayer, setDwLayer] = useState<ModifierDwLayer>("PUBLIC_LAYER");
-  const [scopeType, setScopeType] = useState<ModifierScopeType>("DATA_DOMAIN");
-  const [scopeValue, setScopeValue] = useState("");
   const [scopeKeyword, setScopeKeyword] = useState("");
+  const scopeResource: ModelingResourceKey = scopeType === "BUSINESS_TYPE" ? "businessType" : "dataDomain";
+  const scopeOptionsQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "modifier-tree-scope-options", projectCode, scopeResource],
+    queryFn: () => modelingEntityApi.all<ModelingRecord>(projectCode, scopeResource),
+    enabled: Boolean(projectCode),
+  });
 
-  const activeScope = SCOPE_OPTIONS.find((option) => option.value === scopeType) ?? SCOPE_OPTIONS[0];
-  const scopeOptions = SCOPE_FILTER_OPTIONS[scopeType];
+  const scopeOptions = useMemo<FilterOption[]>(() => (scopeOptionsQuery.data || [])
+    .map((record) => ({
+      value: String(record.id || ""),
+      label: String(record.businessName || record.cnName || record.domainName || record.id || "未命名"),
+    }))
+    .filter((option) => option.value), [scopeOptionsQuery.data]);
   const visibleScopeOptions = scopeOptions.filter((option) =>
     option.label.toLocaleLowerCase().includes(scopeKeyword.trim().toLocaleLowerCase()),
   );
+  const activeScope = SCOPE_OPTIONS.find((option) => option.value === scopeType) || SCOPE_OPTIONS[0];
 
   const handleLayerKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-
     event.preventDefault();
     const direction = event.key === "ArrowRight" ? 1 : -1;
     const nextIndex = (index + direction + DW_LAYER_OPTIONS.length) % DW_LAYER_OPTIONS.length;
     const nextOption = DW_LAYER_OPTIONS[nextIndex];
     if (!nextOption) return;
-
-    setDwLayer(nextOption.value);
+    onDwTypeChange(nextOption.value);
     event.currentTarget.parentElement
       ?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[nextIndex]
       ?.focus();
@@ -126,8 +98,7 @@ export function ModifierTreeFilter({
         className="flex h-6 w-full overflow-hidden rounded-[4px] border border-[#d7dce5] bg-white"
       >
         {DW_LAYER_OPTIONS.map((option, index) => {
-          const checked = dwLayer === option.value;
-
+          const checked = dwType === option.value;
           return (
             <button
               key={option.value}
@@ -135,7 +106,7 @@ export function ModifierTreeFilter({
               role="radio"
               aria-checked={checked}
               tabIndex={checked ? 0 : -1}
-              onClick={() => setDwLayer(option.value)}
+              onClick={() => onDwTypeChange(option.value)}
               onKeyDown={(event) => handleLayerKeyDown(event, index)}
               className={[
                 "relative flex h-full min-w-0 flex-1 items-center justify-center px-1 text-[11px] leading-none transition-colors",
@@ -156,8 +127,9 @@ export function ModifierTreeFilter({
           size="small"
           value={scopeType}
           onValueChange={(value) => {
-            setScopeType(String(value || "DATA_DOMAIN") as ModifierScopeType);
-            setScopeValue("");
+            const next = String(value || "DATA_DOMAIN") as ModifierScopeType;
+            onScopeTypeChange(next);
+            onScopeValueChange("");
             setScopeKeyword("");
           }}
         >
@@ -166,9 +138,7 @@ export function ModifierTreeFilter({
             variant="outlined"
             className="!h-6 !w-[60px] !min-w-[60px] !shrink-0 !rounded-r-none !px-2 [&>span:last-child>svg]:!size-3"
           >
-            <SelectValue>
-              {() => <ScopeIcon scope={scopeType} />}
-            </SelectValue>
+            <SelectValue>{() => <ScopeIcon scope={scopeType} />}</SelectValue>
           </SelectTrigger>
           <SelectContent className="!min-w-[148px]">
             {SCOPE_OPTIONS.map((option) => (
@@ -184,14 +154,14 @@ export function ModifierTreeFilter({
         <Select
           size="small"
           value={scopeValue || undefined}
-          onValueChange={(value) => setScopeValue(String(value || ""))}
+          onValueChange={(value) => onScopeValueChange(String(value || ""))}
         >
           <SelectTrigger
             aria-label={`选择${activeScope.label}`}
             variant="outlined"
             className="!h-6 !min-w-0 !flex-1 !rounded-l-none !border-l-0 !px-2 [&>span:last-child>svg]:!size-3"
           >
-            <SelectValue placeholder={`请选择${activeScope.label}`} />
+            <SelectValue placeholder={scopeOptionsQuery.isFetching ? "正在加载..." : `请选择${activeScope.label}`} />
           </SelectTrigger>
           <SelectContent
             header={
@@ -202,7 +172,7 @@ export function ModifierTreeFilter({
                 onChange={(event) => setScopeKeyword(event.target.value)}
               />
             }
-            emptyContent={visibleScopeOptions.length === 0 ? `没有匹配的${activeScope.label}` : undefined}
+            emptyContent={scopeOptionsQuery.isError ? "加载失败，请刷新重试" : visibleScopeOptions.length === 0 ? `没有匹配的${activeScope.label}` : undefined}
           >
             {visibleScopeOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
@@ -218,7 +188,7 @@ export function ModifierTreeFilter({
         size="small"
         variant="outlined"
         value={keyword}
-        placeholder="搜索"
+        placeholder="搜索修饰词"
         className="!h-6 !rounded-[4px] !px-2 text-[11px]"
         onChange={(event) => onKeywordChange(event.target.value)}
       />

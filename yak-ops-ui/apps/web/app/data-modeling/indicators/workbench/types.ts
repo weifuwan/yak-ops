@@ -53,6 +53,7 @@ export type IndicatorTreeNode = {
 };
 
 export type IndicatorGroupBy = "BUSINESS_TYPE" | "DATA_DOMAIN";
+export type ModifierScopeType = "BUSINESS_TYPE" | "DATA_DOMAIN";
 export type IndicatorDeleteTarget = { kind: IndicatorKind; record: ModelingRecord };
 export type IndicatorTreeContextMenuState = { x: number; y: number; record: ModelingRecord } | null;
 export type IndicatorTabContextMenuState = { tabKey: string; x: number; y: number };

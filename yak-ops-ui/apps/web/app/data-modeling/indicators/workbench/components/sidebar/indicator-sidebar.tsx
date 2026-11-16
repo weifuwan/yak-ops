@@ -7,16 +7,21 @@ import { List, Plus, RefreshCw, Search } from "lucide-react";
 import type { ModelingRecord } from "../../../../service";
 import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import { DW_TYPE_OPTIONS } from "../../config/indicator-definitions";
-import type { IndicatorDefinition, IndicatorGroupBy, IndicatorKind, IndicatorTreeNode } from "../../types";
+import type { IndicatorDefinition, IndicatorGroupBy, IndicatorKind, IndicatorTreeNode, ModifierScopeType } from "../../types";
 import { IndicatorTreeRows } from "./indicator-tree";
 import { ModifierTreeFilter } from "./modifier-tree-filter";
 import { selectOptionLabel } from "../../utils/indicator-form";
 
 export type IndicatorSidebarProps = {
+  projectCode: string;
   activeKind: IndicatorKind;
   definition: IndicatorDefinition;
   dwType: string;
   onDwTypeChange: (value: string) => void;
+  modifierScopeType: ModifierScopeType;
+  onModifierScopeTypeChange: (value: ModifierScopeType) => void;
+  modifierScopeValue: string;
+  onModifierScopeValueChange: (value: string) => void;
   groupBy: IndicatorGroupBy;
   onGroupByChange: (value: IndicatorGroupBy) => void;
   treeKeyword: string;
@@ -35,8 +40,9 @@ export type IndicatorSidebarProps = {
 };
 
 export function IndicatorSidebar({
-  activeKind, definition, dwType, onDwTypeChange, groupBy, onGroupByChange,
-  treeKeyword, onTreeKeywordChange, visibleTree, expandedKeys, selectedTreeKey,
+  projectCode, activeKind, definition, dwType, onDwTypeChange,
+  modifierScopeType, onModifierScopeTypeChange, modifierScopeValue, onModifierScopeValueChange,
+  groupBy, onGroupByChange, treeKeyword, onTreeKeywordChange, visibleTree, expandedKeys, selectedTreeKey,
   loading, error, onRefresh, onCreate, onList, onToggle, onSelect, onContextMenu,
 }: IndicatorSidebarProps) {
   return (
@@ -66,7 +72,17 @@ export function IndicatorSidebar({
         </div></div>
       ) : null}
       {activeKind === "modifier" ? (
-        <ModifierTreeFilter keyword={treeKeyword} onKeywordChange={onTreeKeywordChange} />
+        <ModifierTreeFilter
+          projectCode={projectCode}
+          dwType={dwType}
+          onDwTypeChange={onDwTypeChange}
+          scopeType={modifierScopeType}
+          onScopeTypeChange={onModifierScopeTypeChange}
+          scopeValue={modifierScopeValue}
+          onScopeValueChange={onModifierScopeValueChange}
+          keyword={treeKeyword}
+          onKeywordChange={onTreeKeywordChange}
+        />
       ) : (
         <>
           {activeKind !== "timePeriod" ? (

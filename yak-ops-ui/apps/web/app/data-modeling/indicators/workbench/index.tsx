@@ -78,10 +78,15 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
       <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
         <IndicatorSidebar
+          projectCode={projectCode}
           activeKind={activeKind}
           definition={definition}
           dwType={tree.dwType}
           onDwTypeChange={tree.setDwType}
+          modifierScopeType={tree.modifierScopeType}
+          onModifierScopeTypeChange={tree.setModifierScopeType}
+          modifierScopeValue={tree.modifierScopeValue}
+          onModifierScopeValueChange={tree.setModifierScopeValue}
           groupBy={tree.groupBy}
           onGroupByChange={tree.setGroupBy}
           treeKeyword={tree.treeKeyword}
