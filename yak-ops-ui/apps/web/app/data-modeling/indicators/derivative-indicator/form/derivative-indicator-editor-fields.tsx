@@ -28,6 +28,12 @@ import { useDerivativeBusinessProcessCascader } from "../hooks/use-derivative-bu
 
 type Props = IndicatorEditorFieldsProps;
 
+const DW_TYPE_SELECT_ITEMS = {
+  __NONE__: "不选择",
+  PUBLIC_LAYER: "公共层",
+  APPLICATION_LAYER: "应用层",
+} as const;
+
 function FormRow({
   label,
   required = false,
@@ -241,7 +247,7 @@ export function DerivativeIndicatorEditorFields({
           <IndicatorSectionHeader title="数仓归属" />
           <div className="space-y-3">
             <FormRow label="数仓分层">
-              <Select size="small" value={supportedDwType || "__NONE__"} onValueChange={(value) => changeDwType(String(value || "__NONE__"))}>
+              <Select<string> size="small" items={DW_TYPE_SELECT_ITEMS} value={supportedDwType || "__NONE__"} onValueChange={(value) => changeDwType(String(value || "__NONE__"))}>
                 <SelectTrigger variant="outlined" className="w-full">
                   <SelectValue placeholder="请选择数仓分层" />
                 </SelectTrigger>
