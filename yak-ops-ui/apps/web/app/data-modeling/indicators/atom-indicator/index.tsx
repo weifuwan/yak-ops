@@ -1,10 +1,11 @@
 import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-sidebar";
 import { IndicatorTreeFilter } from "../workbench/components/sidebar/indicator-tree-filter";
 import { ATOM_INDICATOR_TREE_DW_OPTIONS } from "../workbench/config/indicator-options";
-import { ATOM_INDICATOR_DEFINITION } from "./config";
 import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 import { useAtomIndicatorTree } from "./hooks/use-atom-indicator-tree";
-import type { IndicatorPageProps } from "../workbench/types";
+import type { IndicatorEditorFieldsProps, IndicatorPageProps } from "../workbench/types";
+import { ATOM_INDICATOR_DEFINITION } from "./config";
+import { AtomIndicatorEditorFields } from "./form/atom-indicator-editor-fields";
 
 export function AtomIndicatorPage(props: IndicatorPageProps) {
   const treeDwType = ATOM_INDICATOR_TREE_DW_OPTIONS.some((option) => option.value === props.dwType)
@@ -58,6 +59,16 @@ export function AtomIndicatorPage(props: IndicatorPageProps) {
 
 export default AtomIndicatorPage;
 
+const renderAtomIndicatorFields = (props: IndicatorEditorFieldsProps) => (
+  <AtomIndicatorEditorFields {...props} />
+);
+
 export function AtomIndicatorTabContent(props: IndicatorTabContentProps) {
-  return <IndicatorTabContent {...props} definition={ATOM_INDICATOR_DEFINITION} />;
+  return (
+    <IndicatorTabContent
+      {...props}
+      definition={ATOM_INDICATOR_DEFINITION}
+      renderFields={renderAtomIndicatorFields}
+    />
+  );
 }
