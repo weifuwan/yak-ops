@@ -4,6 +4,7 @@ import { NavigationMenu, type NavigationMenuItem } from "@yak-ops/yak-ui";
 
 import { PlanningIcon } from "../data-modeling/planning/components/icons";
 import { IndicatorIcon } from "../data-modeling/indicators/icons";
+import { StandardIcon } from "../data-modeling/standards/components/icons";
 import type { ProductNavigationItem } from "./navigation";
 
 type ProductSidebarProps = {
@@ -24,7 +25,9 @@ const mapNavigationItems = (items: ProductNavigationItem[]): NavigationMenuItem[
       groupLabel: item.groupLabel,
       icon: item.indicatorIcon
         ? <IndicatorIcon name={item.indicatorIcon} monochrome />
-        : item.svgIcon
+        : item.standardIcon
+          ? <StandardIcon name={item.standardIcon} className="text-[#3a3d51]" />
+          : item.svgIcon
           ? <PlanningIcon name={item.svgIcon} className="text-[#3a3d51]" />
           : Icon
             ? <Icon size={16} strokeWidth={1.8} className="text-[#3a3d51]" />
