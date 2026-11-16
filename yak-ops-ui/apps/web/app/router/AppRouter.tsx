@@ -2,7 +2,10 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 
 import { DataDevelopmentPage } from "@/app/data-development/page";
 import { DataModelingOverviewPage } from "@/app/data-modeling/overview";
-import { DataModelingStandardsPage } from "@/app/data-modeling/standards/page";
+import FieldStandardPage from "@/app/data-modeling/standards/field-standard";
+import CodeStandardPage from "@/app/data-modeling/standards/code-standard";
+import UnitStandardPage from "@/app/data-modeling/standards/unit-standard";
+import NamingDictionaryPage from "@/app/data-modeling/standards/naming-dictionary";
 import { DataModelingIndicatorsPage } from "@/app/data-modeling/indicators/page";
 import BusinessTypePage from "@/app/data-modeling/planning/business-type";
 import DwLayerPage from "@/app/data-modeling/planning/dw-layer";
@@ -239,19 +242,19 @@ export default function AppRouter() {
             />
             <Route
               path="/data-modeling/standards/fields"
-              element={<DataModelingStandardsPage initialTab={1} />}
+              element={<FieldStandardPage />}
             />
             <Route
               path="/data-modeling/standards/codes"
-              element={<DataModelingStandardsPage initialTab={3} />}
+              element={<CodeStandardPage />}
             />
             <Route
               path="/data-modeling/standards/units"
-              element={<DataModelingStandardsPage initialTab={6} />}
+              element={<UnitStandardPage />}
             />
             <Route
               path="/data-modeling/standards/dictionary"
-              element={<DataModelingStandardsPage initialTab={7} />}
+              element={<NamingDictionaryPage />}
             />
 
             <Route

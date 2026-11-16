@@ -1,4 +1,4 @@
-import type { ModelingAssetTreeNode, ModelingRecord } from "../service";
+import type { ModelingAssetTreeNode, ModelingRecord } from "@/app/data-modeling/service";
 
 export type StandardModule = "FIELD" | "CODE" | "UNIT";
 export type StandardResource = "fieldStandard" | "codeStandard" | "unitStandard";

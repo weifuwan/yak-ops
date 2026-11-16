@@ -4,7 +4,7 @@ import {
   SelectItemText, SelectTrigger, SelectValue,
 } from "@yak-ops/yak-ui";
 
-import type { StandardDirectoryRecord, StandardModule } from "./types";
+import type { StandardDirectoryRecord, StandardModule } from "../types";
 
 interface Props {
   open: boolean;

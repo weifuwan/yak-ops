@@ -8,7 +8,7 @@ import {
 import type {
   CodeDetailRecord, CodeStandardRecord, FieldStandardRecord, StandardModule,
   UnitStandardRecord,
-} from "./types";
+} from "../types";
 
 type RecordValue = FieldStandardRecord | CodeStandardRecord | UnitStandardRecord;
 interface DetailValue {

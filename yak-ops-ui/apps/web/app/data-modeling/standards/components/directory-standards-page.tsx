@@ -8,11 +8,11 @@ import {
   Button, Input, Modal, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "../service";
+import { modelingEntityApi } from "@/app/data-modeling/service";
 import type {
   CodeDetailRecord, CodeStandardRecord, FieldStandardRecord, StandardDirectoryRecord,
   StandardModule, StandardTreeNode, UnitStandardRecord,
-} from "./types";
+} from "../types";
 import {
   getDirectoryTypeLabel, getStandardResource,
   getStandardTitle, isDirectoryNode,

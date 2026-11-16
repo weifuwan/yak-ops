@@ -5,8 +5,8 @@ import {
   Button, Input, Modal, toast,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "../service";
-import type { DictionaryStandardRecord } from "./types";
+import { modelingEntityApi } from "@/app/data-modeling/service";
+import type { DictionaryStandardRecord } from "../types";
 
 interface Props { projectCode: string; }
 interface FormValues { enShortName: string; enName: string; cnName: string; }
