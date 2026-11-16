@@ -210,7 +210,9 @@ export function StandardRecordFormDialog({
               <FieldLabel required className="pt-1.5 text-xs">数据类型</FieldLabel>
               <Select value={values.fieldDataType} onValueChange={(value) => update("fieldDataType", String(value || ""))}>
                 <SelectTrigger size="small" variant="outlined" className="w-full">
-                  <SelectValue placeholder="请选择数据类型" />
+                  <SelectValue placeholder="请选择数据类型">
+                  {(selected) => DATA_TYPES.find((item) => item.value === selected)?.label ?? String(selected ?? "")}
+                </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {DATA_TYPES.map((item) => (
@@ -236,7 +238,11 @@ export function StandardRecordFormDialog({
             <Field className={FIELD_CLASS}>
               <FieldLabel className="pt-1.5 text-xs">允许为空</FieldLabel>
               <Select value={values.fieldCanNull} onValueChange={(value) => update("fieldCanNull", String(value || "true"))}>
-                <SelectTrigger size="small" variant="outlined" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger size="small" variant="outlined" className="w-full">
+                  <SelectValue>
+                    {(selected) => selected === "true" ? "是" : selected === "false" ? "否" : String(selected ?? "")}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="true"><SelectItemText>是</SelectItemText></SelectItem>
                   <SelectItem value="false"><SelectItemText>否</SelectItemText></SelectItem>
