@@ -11,6 +11,7 @@ import { businessTypeApi } from "@/service/data-modeling/planning/business-type"
 import { dimensionReferenceApi, type ModelingDimensionFieldRecord } from "@/service/data-modeling/indicators/dimension-reference";
 import { codeDetailApi } from "@/service/data-modeling/standards/code-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import { IndicatorSectionHeader } from "../../workbench/components/workspace/indicator-section-header";
 import type { IndicatorFieldOption, IndicatorOptionResource } from "../../workbench/types";
 import { fieldOptions, selectOptionLabel } from "../../workbench/utils/indicator-form";
 
@@ -245,10 +246,7 @@ export function ModifierEditorFields({
 
   return (
     <section className="bg-white p-4">
-      <div className="mb-3 flex items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-2">
-        <span aria-hidden="true" className="h-4 w-1 shrink-0 bg-[#5664ff]" />
-        <h3 className="m-0 text-sm font-semibold leading-7 text-[var(--yak-components-panel-text)]">修饰词基本信息</h3>
-      </div>
+      <IndicatorSectionHeader title="修饰词基本信息" />
 
       <div className="space-y-3">
         <FormRow label="修饰词类型" required>
