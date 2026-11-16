@@ -33,6 +33,9 @@ jobs:
       - name: Atom Indicator form contract tests
         working-directory: yak-ops-ui
         run: npm run test:atom-indicator
+      - name: Planning tree visual contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:planning-tree
       - name: Build UI
         working-directory: yak-ops-ui
         run: npm run build
