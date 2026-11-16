@@ -8,9 +8,9 @@ import { getDefinition } from "../config/indicator-definitions";
 import type { IndicatorKind, IndicatorMode, IndicatorTab, PendingTabClose } from "../types";
 import { initialFormValues } from "../utils/indicator-form";
 
-type UseIndicatorTabsOptions = { projectCode: string; dwType: string };
+type UseIndicatorTabsOptions = { projectCode: string };
 
-export function useIndicatorTabs({ projectCode, dwType }: UseIndicatorTabsOptions) {
+export function useIndicatorTabs({ projectCode }: UseIndicatorTabsOptions) {
   const queryClient = useQueryClient();
   const [tabs, setTabs] = useState<IndicatorTab[]>([]);
   const [activeTabKey, setActiveTabKey] = useState("");
