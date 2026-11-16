@@ -11,14 +11,14 @@ import { subjectDomainApi } from "@/service/data-modeling/planning/application-l
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorFieldOption, IndicatorGroupBy } from "../../types";
 
-type IndicatorTreeFilterProps = {
+type IndicatorTreeFilterProps<ScopeType extends IndicatorGroupBy = IndicatorGroupBy> = {
   projectCode: string;
   dwType: string;
   dwTypeOptions: IndicatorFieldOption[];
   groupingMode?: "DERIVATIVE";
   onDwTypeChange: (value: string) => void;
-  scopeType: IndicatorGroupBy;
-  onScopeTypeChange: (value: IndicatorGroupBy) => void;
+  scopeType: ScopeType;
+  onScopeTypeChange: (value: ScopeType) => void;
   scopeValue: string;
   onScopeValueChange: (value: string) => void;
   keyword: string;
@@ -47,7 +47,7 @@ function ScopeIcon({ scope }: { scope: IndicatorGroupBy }) {
   );
 }
 
-export function IndicatorTreeFilter({
+export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = IndicatorGroupBy>({
   projectCode,
   dwType,
   dwTypeOptions,
@@ -59,7 +59,7 @@ export function IndicatorTreeFilter({
   onScopeValueChange,
   keyword,
   onKeywordChange,
-}: IndicatorTreeFilterProps) {
+}: IndicatorTreeFilterProps<ScopeType>) {
   const [scopeKeyword, setScopeKeyword] = useState("");
   const scopeTypeOptions = groupingMode === "DERIVATIVE" && dwType === "APPLICATION_LAYER"
     ? APPLICATION_SCOPE_OPTIONS
@@ -140,7 +140,7 @@ export function IndicatorTreeFilter({
           size="small"
           value={activeScope.value}
           onValueChange={(value) => {
-            onScopeTypeChange(String(value || scopeTypeOptions[0]?.value || "DATA_DOMAIN") as IndicatorGroupBy);
+            onScopeTypeChange(String(value || scopeTypeOptions[0]?.value || "DATA_DOMAIN") as ScopeType);
             onScopeValueChange("");
             setScopeKeyword("");
           }}
