@@ -36,7 +36,7 @@ public class NamingDictionaryServiceImpl
     @Override
     protected QueryWrapper<DictionaryStandardPO> buildQueryWrapper(NamingDictionaryDTO query) {
         QueryWrapper<DictionaryStandardPO> wrapper = new QueryWrapper<DictionaryStandardPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         return wrapper;
     }
 

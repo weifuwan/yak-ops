@@ -45,7 +45,7 @@ public class CodeStandardServiceImpl
     @Override
     protected QueryWrapper<CodeStandardPO> buildQueryWrapper(CodeStandardDTO query) {
         QueryWrapper<CodeStandardPO> wrapper = new QueryWrapper<CodeStandardPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getParentId(), "parent_id");
         return wrapper;
     }

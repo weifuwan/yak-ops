@@ -175,6 +175,24 @@ public abstract class AbstractModelingAssetService<
         return result;
     }
 
+    protected void addSearch(QueryWrapper<PO> wrapper, D query, String... columns) {
+        String keyword = text(query.getKeyword());
+        if (!notBlank(keyword)) {
+            BeanWrapperImpl bean = new BeanWrapperImpl(query);
+            for (String column : columns) {
+                String property = toCamel(column);
+                if (bean.isReadableProperty(property)) {
+                    String value = text(bean.getPropertyValue(property));
+                    if (notBlank(value)) {
+                        keyword = value;
+                        break;
+                    }
+                }
+            }
+        }
+        addKeyword(wrapper, keyword, columns);
+    }
+
     protected void addKeyword(QueryWrapper<PO> wrapper, String keyword, String... columns) {
         if (!notBlank(keyword) || columns == null || columns.length == 0) {
             return;
@@ -185,6 +203,20 @@ public abstract class AbstractModelingAssetService<
                 condition.or().like(columns[i], keyword);
             }
         });
+    }
+
+    private String toCamel(String column) {
+        StringBuilder result = new StringBuilder();
+        boolean upper = false;
+        for (char character : column.toCharArray()) {
+            if (character == '_') {
+                upper = true;
+            } else {
+                result.append(upper ? Character.toUpperCase(character) : character);
+                upper = false;
+            }
+        }
+        return result.toString();
     }
 
     protected void eqIfNotBlank(QueryWrapper<PO> wrapper, String value, String column) {

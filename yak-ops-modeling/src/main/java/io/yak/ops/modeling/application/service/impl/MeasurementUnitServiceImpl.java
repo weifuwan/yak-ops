@@ -41,7 +41,7 @@ public class MeasurementUnitServiceImpl
     @Override
     protected QueryWrapper<UnitStandardPO> buildQueryWrapper(MeasurementUnitDTO query) {
         QueryWrapper<UnitStandardPO> wrapper = new QueryWrapper<UnitStandardPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getParentId(), "parent_id");
         return wrapper;
     }

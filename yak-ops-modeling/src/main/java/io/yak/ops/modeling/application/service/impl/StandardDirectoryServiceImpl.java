@@ -50,7 +50,7 @@ public class StandardDirectoryServiceImpl
     @Override
     protected QueryWrapper<StandardDirectoryPO> buildQueryWrapper(StandardDirectoryDTO query) {
         QueryWrapper<StandardDirectoryPO> wrapper = new QueryWrapper<StandardDirectoryPO>();
-        addKeyword(wrapper, query.getKeyword(), "dir_name");
+        addSearch(wrapper, query, "dir_name");
         eqIfNotBlank(wrapper, query.getParentId(), "parent_id");
         eqIfNotBlank(wrapper, query.getDirModule(), "dir_module");
         eqIfNotBlank(wrapper, query.getDirType(), "dir_type");

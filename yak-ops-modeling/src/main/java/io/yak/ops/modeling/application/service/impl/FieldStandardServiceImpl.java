@@ -36,7 +36,7 @@ public class FieldStandardServiceImpl
     @Override
     protected QueryWrapper<FieldStandardPO> buildQueryWrapper(FieldStandardDTO query) {
         QueryWrapper<FieldStandardPO> wrapper = new QueryWrapper<FieldStandardPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name", "std_code");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name", "std_code");
         eqIfNotBlank(wrapper, query.getParentId(), "parent_id");
         return wrapper;
     }
