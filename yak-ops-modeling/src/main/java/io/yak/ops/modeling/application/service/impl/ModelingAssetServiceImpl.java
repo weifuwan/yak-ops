@@ -706,6 +706,22 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
     }
 
+    private void validateDerivativeModifiers(Map<String, Object> values) {
+        String rawModifierIds = text(values.get("modifierId"));
+        if (rawModifierIds.isEmpty()) return;
+
+        LinkedHashSet<String> modifierIds = new LinkedHashSet<>();
+        for (String part : rawModifierIds.split("[,，]")) {
+            String modifierId = part.trim();
+            if (modifierId.isEmpty()) continue;
+            if (modelingAssetDao.queryById("modifier", modifierId) == null) {
+                throw new IllegalArgumentException("所选修饰词不存在或不属于当前项目：" + modifierId);
+            }
+            modifierIds.add(modifierId);
+        }
+        values.put("modifierId", String.join(",", modifierIds));
+    }
+
     private void validateModifierRelations(Map<String, Object> values) {
         String modifierType = text(values.get("modifierType")).toUpperCase(Locale.ROOT);
         if (!"SIMPLE".equals(modifierType) && !"DIMENSION".equals(modifierType)) {
@@ -919,7 +935,13 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
                 throw new IllegalArgumentException("该派生指标已被复合指标引用，不能删除");
             }
         } else if ("modifier".equals(resource)) {
-            if (modelingAssetDao.queryCount("derivative-indicator", new QueryWrapper<DerivativeIndicatorPO>().like("modifier_id", id)) > 0) {
+            QueryWrapper<DerivativeIndicatorPO> referenceWrapper = new QueryWrapper<DerivativeIndicatorPO>()
+                    .and(wrapper -> wrapper
+                            .eq("modifier_id", id)
+                            .or().likeRight("modifier_id", id + ",")
+                            .or().like("modifier_id", "," + id + ",")
+                            .or().likeLeft("modifier_id", "," + id));
+            if (modelingAssetDao.queryCount("derivative-indicator", referenceWrapper) > 0) {
                 throw new IllegalArgumentException("该修饰词已被派生指标引用，不能删除");
             }
         } else if ("time-period".equals(resource)) {
