@@ -2,6 +2,7 @@ export type PlanningIconName =
   | "business-type"
   | "dw-layer"
   | "application-layer"
+  | "public-layer"
   | "data-domain"
   | "business-process"
   | "data-mart"

@@ -111,7 +111,7 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
       {
         id: "common-layer",
         label: "公共层",
-        icon: Database,
+        svgIcon: "public-layer",
         children: [
           {
             id: "data-domain",
