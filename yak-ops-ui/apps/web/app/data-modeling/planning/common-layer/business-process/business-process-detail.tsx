@@ -3,7 +3,7 @@ import { Button } from "@yak-ops/yak-ui";
 
 import { PlanningIcon } from "../../components/icons";
 
-import type { BusinessProcessRecord } from "./types";
+import type { BusinessProcessRecord } from "../types";
 
 interface Props {
   record: BusinessProcessRecord;

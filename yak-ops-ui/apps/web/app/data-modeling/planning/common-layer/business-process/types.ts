@@ -1,5 +1,3 @@
-import type { BusinessProcessRecord } from "../types";
-
 export interface BusinessProcessFilters {
   enShortName: string;
   enName: string;
@@ -36,4 +34,3 @@ export const EMPTY_FORM: BusinessProcessFormValues = {
   remark: "",
 };
 
-export type { BusinessProcessRecord };

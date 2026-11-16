@@ -4,10 +4,9 @@ import {
   SelectTrigger, SelectValue, Textarea,
 } from "@yak-ops/yak-ui";
 
-import type { DataDomainRecord } from "../types";
+import type { BusinessProcessRecord, DataDomainRecord } from "../types";
 import { withSelectedOption } from "../../select-options";
 import { isSystemBusinessProcess } from "../types";
-import type { BusinessProcessRecord } from "./types";
 import { EMPTY_FORM, type BusinessProcessFormValues } from "./types";
 
 interface Props {
