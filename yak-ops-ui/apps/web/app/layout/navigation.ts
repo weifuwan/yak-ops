@@ -132,7 +132,7 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
       {
         id: "application-layer",
         label: "应用层",
-        icon: Boxes,
+        svgIcon: "application-layer",
         children: [
           {
             id: "data-mart",
