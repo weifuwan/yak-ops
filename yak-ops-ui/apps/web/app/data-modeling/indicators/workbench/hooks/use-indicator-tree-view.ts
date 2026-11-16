@@ -30,6 +30,7 @@ export function useIndicatorTreeView({
     queryKey: ["modeling", "indicator-tree", projectCode, kind, ...queryKeyParts],
     queryFn,
     enabled: Boolean(projectCode && enabled),
+    placeholderData: (previousData) => previousData,
   });
 
   const visibleTree = useMemo(
