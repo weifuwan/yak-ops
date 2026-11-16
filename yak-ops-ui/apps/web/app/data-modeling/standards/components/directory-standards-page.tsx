@@ -20,6 +20,20 @@ type PendingDelete = {
 };
 const PAGE_SIZE = 10;
 
+function findStandardNodePathKeys(
+  nodes: StandardTreeNode[],
+  targetId: string,
+  ancestors: string[] = [],
+): string[] {
+  for (const node of nodes) {
+    const path = [...ancestors, node.key];
+    if (node.id === targetId) return path;
+    const found = findStandardNodePathKeys(node.children || [], targetId, path);
+    if (found.length) return found;
+  }
+  return [];
+}
+
 export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const queryClient = useQueryClient();
   const title = getStandardTitle(module);
@@ -56,9 +70,11 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     [treeQuery.data, keyword],
   );
 
-  useEffect(() => {
-    setExpandedKeys(new Set(getExpandableKeys(treeRows)));
-  }, [treeRows]);
+  const visibleExpandedKeys = useMemo(() => {
+    const next = new Set(expandedKeys);
+    if (keyword.trim()) getExpandableKeys(treeRows).forEach((key) => next.add(key));
+    return next;
+  }, [expandedKeys, keyword, treeRows]);
 
   useEffect(() => {
     if (!resizing) return;
@@ -133,6 +149,10 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const openCreateDirectory = (parentId?: string, dirType = "FOLDER") => {
     setEditingDirectory(undefined);
     setDirectoryParentId(parentId);
+    if (parentId) {
+      const path = findStandardNodePathKeys(treeQuery.data || [], parentId);
+      setExpandedKeys((current) => new Set([...current, ...(path.length ? path : [parentId])]));
+    }
     setInitialDirType(dirType);
     setDirectoryDialogOpen(true);
   };
@@ -156,6 +176,10 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const openCreateRecord = (parentId?: string) => {
     setEditingRecord(undefined);
     setRecordParentId(parentId);
+    if (parentId) {
+      const path = findStandardNodePathKeys(treeQuery.data || [], parentId);
+      setExpandedKeys((current) => new Set([...current, ...(path.length ? path : [parentId])]));
+    }
     setRecordDialogOpen(true);
   };
 
@@ -302,7 +326,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     <div ref={splitRef} className="relative flex h-full min-h-[620px] min-w-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white">
       <DirectoryStandardsTree
         width={leftWidth} title={title} module={module} treeRows={treeRows}
-        selectedNode={selectedNode} expandedKeys={expandedKeys} keyword={keyword}
+        selectedNode={selectedNode} expandedKeys={visibleExpandedKeys} keyword={keyword}
         loading={treeQuery.isPending} error={treeQuery.isError} refreshing={treeQuery.isFetching}
         onKeywordChange={setKeyword} onToggleExpanded={toggleExpanded}
         onRefresh={() => void refresh()} onRetry={() => void treeQuery.refetch()}
