@@ -10,7 +10,7 @@ import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
 import { getIndicatorApi } from "@/service/data-modeling/indicators";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorGroupBy, IndicatorKind } from "../types";
-import { buildDerivativeIndicatorTree, buildGroupedTree } from "../utils/indicator-tree";
+import { buildWarehouseIndicatorTree } from "../utils/indicator-tree";
 import { useIndicatorTreeView } from "./use-indicator-tree-view";
 
 type GroupedIndicatorKind = Extract<IndicatorKind, "derivativeIndicator" | "composeIndicator">;
@@ -23,54 +23,62 @@ export function useGroupedIndicatorTree(
 ) {
   const queryClient = useQueryClient();
   const [groupBy, setGroupBy] = useState<IndicatorGroupBy>(() =>
-    kind === "derivativeIndicator" && dwType === "APPLICATION_LAYER" ? "DATA_MART" : "BUSINESS_TYPE",
+    dwType === "APPLICATION_LAYER" ? "DATA_MART" : "BUSINESS_TYPE",
   );
   const [scopeValue, setScopeValue] = useState("");
+
   useEffect(() => {
-    if (kind !== "derivativeIndicator") return;
     setGroupBy(dwType === "APPLICATION_LAYER" ? "DATA_MART" : "BUSINESS_TYPE");
     setScopeValue("");
   }, [kind, dwType]);
+
   const tree = useIndicatorTreeView({
     projectCode,
     kind,
     queryKeyParts: [groupBy, dwType, scopeValue],
     enabled,
     queryFn: async () => {
+      const [businessTypes, dataDomains, businessProcesses, dataMarts, subjectDomains, records] = await Promise.all([
+        businessTypeApi.all<ModelingRecord>(projectCode),
+        dataDomainApi.all<ModelingRecord>(projectCode),
+        businessProcessApi.all<ModelingRecord>(projectCode),
+        dataMartApi.all<ModelingRecord>(projectCode),
+        subjectDomainApi.all<ModelingRecord>(projectCode),
+        getIndicatorApi(kind).all<ModelingRecord>(projectCode),
+      ]);
+
+      let scopedRecords: ModelingRecord[];
       if (kind === "derivativeIndicator") {
-        const [businessTypes, dataDomains, businessProcesses, dataMarts, subjectDomains, records] = await Promise.all([
-          businessTypeApi.all<ModelingRecord>(projectCode),
-          dataDomainApi.all<ModelingRecord>(projectCode),
-          businessProcessApi.all<ModelingRecord>(projectCode),
-          dataMartApi.all<ModelingRecord>(projectCode),
-          subjectDomainApi.all<ModelingRecord>(projectCode),
-          getIndicatorApi(kind).all<ModelingRecord>(projectCode),
-        ]);
-        const scopedRecords = records.filter((record) => {
+        scopedRecords = records.filter((record) => {
           const type = String(record.dwType || "");
           return dwType === "UNASSIGNED"
             ? type !== "PUBLIC_LAYER" && type !== "APPLICATION_LAYER"
             : type === dwType;
         });
-        return buildDerivativeIndicatorTree({
-          businessTypes, dataDomains, businessProcesses, dataMarts, subjectDomains,
-          records: scopedRecords, groupBy, scopeValue, dwType,
-        });
-      }
-
-      const groupApi = groupBy === "BUSINESS_TYPE" ? businessTypeApi : dataDomainApi;
-      const [groups, records, dwLayers] = await Promise.all([
-        groupApi.all<ModelingRecord>(projectCode),
-        getIndicatorApi(kind).all<ModelingRecord>(projectCode),
-        queryClient.fetchQuery({
+      } else {
+        const dwLayers = await queryClient.fetchQuery({
           queryKey: ["modeling", "indicator-tree-dw-layers", projectCode, dwType],
           queryFn: () => dwLayerApi.all<ModelingRecord>(projectCode, { dwType }),
           staleTime: 60_000,
-        }),
-      ]);
-      const layerIds = new Set(dwLayers.map((layer) => String(layer.id || "")).filter(Boolean));
-      const scopedRecords = records.filter((record) => layerIds.has(String(record.dwhId || "")));
-      return buildGroupedTree(groups, scopedRecords, groupBy, kind, scopeValue);
+        });
+        const layerIds = new Set(dwLayers.map((layer) => String(layer.id || "")).filter(Boolean));
+        scopedRecords = records
+          .filter((record) => layerIds.has(String(record.dwhId || "")))
+          .map((record) => ({ ...record, dwType }));
+      }
+
+      return buildWarehouseIndicatorTree({
+        kind,
+        businessTypes,
+        dataDomains,
+        businessProcesses,
+        dataMarts,
+        subjectDomains,
+        records: scopedRecords,
+        groupBy,
+        scopeValue,
+        dwType,
+      });
     },
   });
 
