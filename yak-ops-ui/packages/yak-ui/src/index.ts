@@ -3,6 +3,7 @@ export * from "./autocomplete";
 export * from "./badge";
 export * from "./button";
 export * from "./card";
+export * from "./cascader";
 export * from "./checkbox";
 export * from "./collapsible";
 export * from "./combobox";

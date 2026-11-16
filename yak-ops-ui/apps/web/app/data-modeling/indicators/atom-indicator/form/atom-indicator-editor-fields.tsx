@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import {
+  Cascader,
   Field,
   FieldLabel,
   Input,
@@ -12,8 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
   Textarea,
+  type CascaderOption,
 } from "@yak-ops/yak-ui";
 
+import { businessProcessApi, type BusinessProcessCascaderNode } from "@/service/data-modeling/planning/common-layer/business-process";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { IndicatorSectionHeader } from "../../workbench/components/workspace/indicator-section-header";
 import type { IndicatorEditorFieldsProps, IndicatorFieldOption, IndicatorOptionResource } from "../../workbench/types";
@@ -93,7 +97,23 @@ function resourceOptions(
   );
 }
 
+function toCascaderOptions(
+  nodes: BusinessProcessCascaderNode[],
+  depth = 0,
+): CascaderOption[] {
+  return nodes.map((node) => {
+    const children = node.children || [];
+    return {
+      value: node.value,
+      label: node.label,
+      selectable: depth > 0 && children.length === 0,
+      children: children.length ? toCascaderOptions(children, depth + 1) : undefined,
+    };
+  });
+}
+
 export function AtomIndicatorEditorFields({
+  projectCode,
   values,
   recordId,
   optionsByResource,
@@ -102,9 +122,13 @@ export function AtomIndicatorEditorFields({
   onChangeMany,
 }: Props) {
   const businessTypeOptions = resourceOptions("businessType", "业务分类", optionsByResource, "businessName");
-  const domainOptions = resourceOptions("dataDomain", "数据域", optionsByResource);
-  const processOptions = resourceOptions("businessProcess", "业务过程", optionsByResource);
   const unitOptions = resourceOptions("unitStandard", "度量单位", optionsByResource);
+  const processQuery = useQuery({
+    queryKey: ["modeling", "atom-indicator-business-process-cascader", projectCode, values.busTypeId || ""],
+    queryFn: () => businessProcessApi.cascaderOption(projectCode, values.busTypeId || undefined),
+    enabled: Boolean(projectCode),
+  });
+  const processOptions = toCascaderOptions(processQuery.data || []);
 
   return (
     <div className="space-y-4">
@@ -162,11 +186,26 @@ export function AtomIndicatorEditorFields({
                 onChange={(value) => onChangeMany({ busTypeId: value, domainId: "", busProcessId: "" })}
               />
             </FormRow>
-            <FormRow label="数据域" required>
-              <OptionSelect value={values.domainId || ""} options={domainOptions} placeholder="请选择数据域" loading={optionsLoading} onChange={(value) => onChangeMany({ domainId: value, busProcessId: "" })} />
-            </FormRow>
             <FormRow label="业务过程" required>
-              <OptionSelect value={values.busProcessId || ""} options={processOptions} placeholder="请选择业务过程" loading={optionsLoading} onChange={(value) => onChange("busProcessId", value)} />
+              <Cascader
+                items={processOptions}
+                value={values.domainId && values.busProcessId ? [values.domainId, values.busProcessId] : null}
+                columnLabels={["数据域", "业务过程"]}
+                placeholder={processQuery.isFetching ? "正在加载业务过程..." : "请选择数据域及业务过程"}
+                emptyText="暂无可选业务过程"
+                disabled={processQuery.isFetching}
+                size="small"
+                variant="outlined"
+                onValueChange={(path) => onChangeMany({
+                  domainId: path?.[0] || "",
+                  busProcessId: path?.[path.length - 1] || "",
+                })}
+              />
+              {processQuery.isError ? (
+                <p className="mt-1 text-[11px] text-[var(--yak-components-danger-text)]">业务过程加载失败，请刷新后重试。</p>
+              ) : (
+                <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">选择业务过程后，系统会自动带出所属数据域。</p>
+              )}
             </FormRow>
           </div>
         </div>
