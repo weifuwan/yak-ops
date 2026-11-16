@@ -6,8 +6,8 @@ import {
 
 import type {
   DataMartOption, SubjectDomainFormValues, SubjectDomainRecord,
-} from "./types";
-import { withSelectedOption } from "../select-options";
+} from "../subject-domain/types";
+import { withSelectedOption } from "../../select-options";
 import { EMPTY_SUBJECT_DOMAIN_FORM } from "./types";
 
 interface Props {

@@ -1,4 +1,5 @@
-import type { ModelingRecord } from "../../service";
+import type { ModelingRecord } from "@/app/data-modeling/service";
+import { MART_TYPE_OPTIONS } from "../../select-options";
 
 export interface DataMartRecord extends ModelingRecord {
   id?: string;
@@ -42,12 +43,6 @@ export const EMPTY_DATA_MART_FORM: DataMartFormValues = {
   director: "",
   remark: "",
 };
-
-export const MART_TYPE_OPTIONS = [
-  { value: "PUBLIC", label: "公共集市" },
-  { value: "BUSINESS", label: "业务集市" },
-  { value: "APPLICATION", label: "数据应用集市" },
-];
 
 export function getMartTypeLabel(record?: DataMartRecord): string {
   if (!record) return "-";

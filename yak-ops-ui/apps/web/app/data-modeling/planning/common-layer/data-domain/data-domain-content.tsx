@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Plus } from "lucide-react";
 import { Button, Modal, toast } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingQueryKeys } from "../../service";
+import { modelingEntityApi, modelingQueryKeys } from "@/app/data-modeling/service";
 import DataDomainCard from "./data-domain-card";
 import DataDomainDetail from "./data-domain-detail";
 import DataDomainFormDialog from "./data-domain-form-dialog";

@@ -1,4 +1,4 @@
-import type { ModelingRecord } from "../../service";
+import type { ModelingRecord } from "@/app/data-modeling/service";
 
 export interface SubjectDomainRecord extends ModelingRecord {
   id?: string;

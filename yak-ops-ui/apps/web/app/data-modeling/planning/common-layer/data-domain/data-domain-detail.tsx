@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Eye, Plus, SquarePen, Trash2 } from "lucide-react";
 import { Button, Modal, Table, toast, type TableColumns } from "@yak-ops/yak-ui";
 
-import { PlanningIcon } from "../icons";
+import { PlanningIcon } from "../../components/icons";
 
-import { modelingEntityApi, modelingQueryKeys } from "../../service";
+import { modelingEntityApi, modelingQueryKeys } from "@/app/data-modeling/service";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
 import BusinessProcessViewDialog from "./business-process-view-dialog";
 import type { BusinessProcessFormValues, BusinessProcessRecord, DataDomainRecord } from "./types";

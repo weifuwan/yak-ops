@@ -4,7 +4,12 @@ import { DataDevelopmentPage } from "@/app/data-development/page";
 import { DataModelingOverviewPage } from "@/app/data-modeling/overview";
 import { DataModelingStandardsPage } from "@/app/data-modeling/standards/page";
 import { DataModelingIndicatorsPage } from "@/app/data-modeling/indicators/page";
-import { DataModelingPlanningPage } from "@/app/data-modeling/planning/page";
+import BusinessTypePage from "@/app/data-modeling/planning/business-type";
+import DwLayerPage from "@/app/data-modeling/planning/dw-layer";
+import DataDomainPage from "@/app/data-modeling/planning/common-layer/data-domain";
+import BusinessProcessPage from "@/app/data-modeling/planning/common-layer/business-process";
+import DataMartPage from "@/app/data-modeling/planning/application-layer/data-mart";
+import SubjectDomainPage from "@/app/data-modeling/planning/application-layer/subject-domain";
 import { DataModelingSectionPage } from "@/app/data-modeling/section/page";
 import { ResourceManagementPage } from "@/app/resources/page";
 import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
@@ -180,27 +185,27 @@ export default function AppRouter() {
             />
             <Route
               path="/data-modeling/planning/business-type"
-              element={<DataModelingPlanningPage definitionKey="businessType" />}
+              element={<BusinessTypePage />}
             />
             <Route
               path="/data-modeling/planning/dw-layer"
-              element={<DataModelingPlanningPage definitionKey="dwLayer" />}
+              element={<DwLayerPage />}
             />
             <Route
               path="/data-modeling/planning/common-layer/data-domain"
-              element={<DataModelingPlanningPage definitionKey="dataDomain" />}
+              element={<DataDomainPage />}
             />
             <Route
               path="/data-modeling/planning/common-layer/business-process"
-              element={<DataModelingPlanningPage definitionKey="businessProcess" />}
+              element={<BusinessProcessPage />}
             />
             <Route
               path="/data-modeling/planning/application-layer/data-market"
-              element={<DataModelingPlanningPage definitionKey="dataMart" />}
+              element={<DataMartPage />}
             />
             <Route
               path="/data-modeling/planning/application-layer/subject-domain"
-              element={<DataModelingPlanningPage definitionKey="subjectDomain" />}
+              element={<SubjectDomainPage />}
             />
 
             <Route

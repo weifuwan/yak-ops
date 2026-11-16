@@ -6,9 +6,9 @@ import {
   SelectTrigger, SelectValue, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingQueryKeys } from "../../service";
+import { modelingEntityApi, modelingQueryKeys } from "@/app/data-modeling/service";
 import type { DataDomainRecord } from "../data-domain/types";
-import { withSelectedOption } from "../select-options";
+import { withSelectedOption } from "../../select-options";
 import { isSystemBusinessProcess } from "../data-domain/types";
 import BusinessProcessDetail from "./business-process-detail";
 import BusinessProcessFormDialog from "./business-process-form-dialog";

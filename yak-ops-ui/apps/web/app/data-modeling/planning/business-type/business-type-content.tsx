@@ -13,9 +13,8 @@ import {
 import {
   modelingBusinessTypeApi, modelingEntityApi, modelingQueryKeys, type BusinessTypeTreeNode, type ModelingRecord,
 } from "../../service";
-import { MART_TYPE_OPTIONS } from "../data-mart/types";
-import { withSelectedOption } from "../select-options";
-import { PlanningIcon } from "../icons";
+import { MART_TYPE_OPTIONS, withSelectedOption } from "../select-options";
+import { PlanningIcon } from "../components/icons";
 
 interface Props { projectCode: string; }
 interface BusinessTypeRecord extends ModelingRecord {

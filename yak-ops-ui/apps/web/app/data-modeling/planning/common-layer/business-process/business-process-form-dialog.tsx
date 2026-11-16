@@ -5,7 +5,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { DataDomainRecord } from "../data-domain/types";
-import { withSelectedOption } from "../select-options";
+import { withSelectedOption } from "../../select-options";
 import { isSystemBusinessProcess } from "../data-domain/types";
 import type { BusinessProcessRecord } from "./types";
 import { EMPTY_FORM, type BusinessProcessFormValues } from "./types";

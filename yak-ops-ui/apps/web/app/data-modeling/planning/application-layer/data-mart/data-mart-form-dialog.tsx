@@ -4,8 +4,8 @@ import {
   SelectItemText, SelectTrigger, SelectValue, Textarea,
 } from "@yak-ops/yak-ui";
 
-import type { ModelingRecord } from "../../service";
-import { withSelectedOption } from "../select-options";
+import type { ModelingRecord } from "@/app/data-modeling/service";
+import { withSelectedOption } from "../../select-options";
 import {
   EMPTY_DATA_MART_FORM, MART_TYPE_OPTIONS, type DataMartFormValues, type DataMartRecord,
 } from "./types";

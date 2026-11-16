@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@yak-ops/yak-ui";
 
-import { PlanningIcon } from "../icons";
+import { PlanningIcon } from "../../components/icons";
 
 import type { BusinessProcessRecord } from "./types";
 
