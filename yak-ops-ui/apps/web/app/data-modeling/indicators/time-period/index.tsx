@@ -8,12 +8,13 @@ import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench
 export function TimePeriodPage(props: IndicatorPageProps) {
   const tree = useTimePeriodIndicatorTree(props.projectCode, props.active);
   const treeControls = (
-    <IndicatorTreeSearch value={tree.treeKeyword} placeholder="搜索周期目录或时间周期" onChange={tree.setTreeKeyword} />
+    <IndicatorTreeSearch value={tree.treeKeyword} placeholder="搜索目录或指标" onChange={tree.setTreeKeyword} />
   );
 
   return (
     <div aria-hidden={!props.active} className={props.active ? "flex h-full min-h-0" : "hidden"}>
       <IndicatorSidebar
+        emptyText={tree.treeKeyword ? "没有匹配的指标" : "暂无指标，点击上方 + 新建"}
         activeKind="timePeriod" definition={TIME_PERIOD_DEFINITION} treeControls={treeControls}
         visibleTree={tree.visibleTree} expandedKeys={tree.visibleExpandedKeys} selectedTreeKey={tree.selectedTreeKey}
         loading={tree.treeQuery.isPending || tree.treeQuery.isFetching} error={tree.treeQuery.isError}

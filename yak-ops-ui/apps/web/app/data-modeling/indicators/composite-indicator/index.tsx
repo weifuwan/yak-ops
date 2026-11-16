@@ -24,6 +24,7 @@ export function CompositeIndicatorPage(props: IndicatorPageProps) {
   return (
     <div aria-hidden={!props.active} className={props.active ? "flex h-full min-h-0" : "hidden"}>
       <IndicatorSidebar
+        emptyText={tree.treeKeyword ? "没有匹配的指标" : "暂无指标，点击上方 + 新建"}
         activeKind="composeIndicator" definition={COMPOSITE_INDICATOR_DEFINITION} treeControls={treeControls}
         visibleTree={tree.visibleTree} expandedKeys={tree.visibleExpandedKeys} selectedTreeKey={tree.selectedTreeKey}
         loading={tree.treeQuery.isPending || tree.treeQuery.isFetching} error={tree.treeQuery.isError}

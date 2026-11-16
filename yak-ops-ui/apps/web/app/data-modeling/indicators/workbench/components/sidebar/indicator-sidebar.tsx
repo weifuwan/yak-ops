@@ -16,6 +16,7 @@ export type IndicatorSidebarProps = {
   selectedTreeKey: string;
   loading: boolean;
   error: boolean;
+  emptyText: string;
   onRefresh: () => void;
   onCreate: () => void;
   onList: () => void;
@@ -26,7 +27,7 @@ export type IndicatorSidebarProps = {
 
 export function IndicatorSidebar({
   activeKind, definition, treeControls, visibleTree, expandedKeys, selectedTreeKey,
-  loading, error, onRefresh, onCreate, onList, onToggle, onSelect, onContextMenu,
+  loading, error, emptyText, onRefresh, onCreate, onList, onToggle, onSelect, onContextMenu,
 }: IndicatorSidebarProps) {
   return (
     <aside className="flex w-[292px] min-w-[260px] max-w-[360px] shrink-0 flex-col border-r border-[var(--yak-components-panel-border)] bg-white">
@@ -47,7 +48,7 @@ export function IndicatorSidebar({
           <div className="px-2 py-4 text-xs text-[var(--yak-components-muted-text)]">目录加载失败。<Button size="sm" variant="secondary" className="ml-2" onClick={onRefresh}>重试</Button></div>
         ) : visibleTree.length ? (
           <IndicatorTreeRows activeKind={activeKind} nodes={visibleTree} depth={0} expandedKeys={expandedKeys} selectedKey={selectedTreeKey} onToggle={onToggle} onSelect={onSelect} onContextMenu={onContextMenu} />
-        ) : <div className="px-2 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">暂无指标，点击上方 + 新建</div>}
+        ) : <div className="px-2 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">{emptyText}</div>}
       </div>
     </aside>
   );
