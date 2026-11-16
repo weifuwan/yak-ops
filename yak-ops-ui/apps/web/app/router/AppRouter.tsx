@@ -6,7 +6,12 @@ import FieldStandardPage from "@/app/data-modeling/standards/field-standard";
 import CodeStandardPage from "@/app/data-modeling/standards/code-standard";
 import UnitStandardPage from "@/app/data-modeling/standards/unit-standard";
 import NamingDictionaryPage from "@/app/data-modeling/standards/naming-dictionary";
-import { DataModelingIndicatorsPage } from "@/app/data-modeling/indicators/page";
+import IndicatorsIndexPage from "@/app/data-modeling/indicators";
+import AtomIndicatorPage from "@/app/data-modeling/indicators/atom-indicator";
+import DerivativeIndicatorPage from "@/app/data-modeling/indicators/derivative-indicator";
+import CompositeIndicatorPage from "@/app/data-modeling/indicators/composite-indicator";
+import ModifierPage from "@/app/data-modeling/indicators/modifier";
+import TimePeriodPage from "@/app/data-modeling/indicators/time-period";
 import BusinessTypePage from "@/app/data-modeling/planning/business-type";
 import DwLayerPage from "@/app/data-modeling/planning/dw-layer";
 import DataDomainPage from "@/app/data-modeling/planning/common-layer/data-domain";
@@ -257,14 +262,14 @@ export default function AppRouter() {
               element={<NamingDictionaryPage />}
             />
 
-            <Route
-              path="/data-modeling/indicators"
-              element={<Navigate replace to="/data-modeling/indicators/compose" />}
-            />
-            <Route
-              path="/data-modeling/indicators/:indicatorKind"
-              element={<DataModelingIndicatorsPage />}
-            />
+            <Route path="/data-modeling/indicators" element={<IndicatorsIndexPage />}>
+              <Route index element={<Navigate replace to="/data-modeling/indicators/compose" />} />
+              <Route path="atom" element={<AtomIndicatorPage />} />
+              <Route path="derivative" element={<DerivativeIndicatorPage />} />
+              <Route path="compose" element={<CompositeIndicatorPage />} />
+              <Route path="modifier" element={<ModifierPage />} />
+              <Route path="time-period" element={<TimePeriodPage />} />
+            </Route>
           </Route>
 
           <Route
