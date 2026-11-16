@@ -86,6 +86,9 @@ export function IndicatorEditor({
       else if (field.key === "removeDuplicates" && value !== "") payload[field.key] = value === "true";
       else payload[field.key] = value;
     });
+    // Atomic indicators are always stored in the public layer; the editor intentionally
+    // does not expose this as a user-editable form field.
+    if (definition.key === "atomIndicator") payload.dwType = "PUBLIC_LAYER";
     if (recordId) payload.id = recordId;
 
     setSaving(true);
