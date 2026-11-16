@@ -15,7 +15,7 @@ type IndicatorTreeFilterProps<ScopeType extends IndicatorGroupBy = IndicatorGrou
   projectCode: string;
   dwType: string;
   dwTypeOptions: IndicatorFieldOption[];
-  groupingMode?: "DERIVATIVE";
+  groupingMode?: "WAREHOUSE";
   onDwTypeChange: (value: string) => void;
   scopeType: ScopeType;
   onScopeTypeChange: (value: ScopeType) => void;
@@ -61,10 +61,10 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
   onKeywordChange,
 }: IndicatorTreeFilterProps<ScopeType>) {
   const [scopeKeyword, setScopeKeyword] = useState("");
-  const scopeTypeOptions = groupingMode === "DERIVATIVE" && dwType === "APPLICATION_LAYER"
+  const scopeTypeOptions = groupingMode === "WAREHOUSE" && dwType === "APPLICATION_LAYER"
     ? APPLICATION_SCOPE_OPTIONS
     : COMMON_SCOPE_OPTIONS;
-  const showScopeControls = !(groupingMode === "DERIVATIVE" && dwType === "UNASSIGNED");
+  const showScopeControls = !(groupingMode === "WAREHOUSE" && dwType === "UNASSIGNED");
   const activeScope = scopeTypeOptions.find((option) => option.value === scopeType) || scopeTypeOptions[0] || COMMON_SCOPE_OPTIONS[0];
   const scopeOptionsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "indicator-tree-scope-options", projectCode, groupingMode || "COMMON", dwType, scopeType],
