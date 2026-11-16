@@ -36,7 +36,7 @@ function FormRow({
 }) {
   return (
     <Field className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[116px_minmax(0,1fr)] sm:gap-3">
-      <FieldLabel required={required} className="shrink-0 pt-1.5 text-xs font-normal leading-5 text-[var(--yak-components-muted-text)]">
+      <FieldLabel required={required} className="shrink-0 pt-1.5 text-[length:var(--yak-font-size-control-small)] font-normal leading-5 text-[var(--yak-components-muted-text)]">
         {label}
       </FieldLabel>
       <div className="min-w-0">{children}</div>
