@@ -33,7 +33,7 @@ export function IndicatorSidebar({
     <aside className="flex w-[292px] min-w-[260px] max-w-[360px] shrink-0 flex-col border-r border-[var(--yak-components-panel-border)] bg-white">
       <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
         <div className="flex items-center gap-2">
-          <IndicatorIcon name={getIndicatorIconName(activeKind)} size={16} />
+          {activeKind !== "modifier" ? <IndicatorIcon name={getIndicatorIconName(activeKind)} size={16} /> : null}
           <span className="text-sm font-semibold">{definition.title}</span>
         </div>
         <div className="flex items-center gap-0.5">

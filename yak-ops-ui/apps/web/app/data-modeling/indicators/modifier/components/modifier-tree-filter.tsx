@@ -1,6 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Globe, Layers } from "lucide-react";
 import {
   Input,
   Select,
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from "@yak-ops/yak-ui";
 
+import { PlanningIcon } from "../../../planning/components/icons";
 import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
@@ -33,8 +33,13 @@ const SCOPE_OPTIONS: Array<{ value: ModifierScopeType; label: string }> = [
 ];
 
 function ScopeIcon({ scope }: { scope: ModifierScopeType }) {
-  const className = "size-[15px] shrink-0 text-[#3a3d51]";
-  return scope === "BUSINESS_TYPE" ? <Layers className={className} /> : <Globe className={className} />;
+  return (
+    <PlanningIcon
+      name={scope === "BUSINESS_TYPE" ? "business-type" : "data-domain"}
+      size={15}
+      className="text-[#3a3d51]"
+    />
+  );
 }
 
 type ModifierTreeFilterProps = {

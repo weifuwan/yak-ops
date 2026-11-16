@@ -376,7 +376,7 @@ export function buildModifierTree(
       id: "default",
       title: "默认",
       kind: "group",
-      nodeType: "group",
+      nodeType: "dataDomain",
       count: unassignedRecords.length,
       children: unassignedRecords.map(assetNode),
     };
@@ -447,7 +447,7 @@ export function buildModifierTree(
     id: "default",
     title: "默认",
     kind: "group",
-    nodeType: "group",
+    nodeType: "businessType",
     count: unassignedRecords.length,
     children: unassignedRecords.map(assetNode),
   };
