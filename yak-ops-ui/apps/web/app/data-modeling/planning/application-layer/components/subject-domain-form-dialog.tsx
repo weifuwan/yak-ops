@@ -4,11 +4,10 @@ import {
   SelectItemText, SelectTrigger, SelectValue, Textarea,
 } from "@yak-ops/yak-ui";
 
-import type {
-  DataMartOption, SubjectDomainFormValues, SubjectDomainRecord,
-} from "../types";
+import type { DataMartOption } from "../data-mart/types";
+import type { SubjectDomainFormValues, SubjectDomainRecord } from "../subject-domain/types";
 import { withSelectedOption } from "../../select-options";
-import { EMPTY_SUBJECT_DOMAIN_FORM } from "../types";
+import { EMPTY_SUBJECT_DOMAIN_FORM } from "../subject-domain/types";
 
 interface Props {
   open: boolean;
