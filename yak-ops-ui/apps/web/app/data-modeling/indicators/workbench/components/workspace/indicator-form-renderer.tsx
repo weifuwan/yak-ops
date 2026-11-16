@@ -49,7 +49,7 @@ export function IndicatorFormRenderer({
               const selectPlaceholder = optionsLoading ? "正在加载选项..." : field.placeholder || ("请选择" + field.label);
               return (
                 <Field key={field.key} className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-3">
-                  <FieldLabel required={field.required} className="pt-1.5 text-xs leading-5 text-[var(--yak-components-muted-text)]">{field.label}</FieldLabel>
+                  <FieldLabel required={field.required} className="shrink-0 pt-1.5 text-xs font-normal leading-5 text-[var(--yak-components-muted-text)]">{field.label}</FieldLabel>
                   <div className="min-w-0">
                     {isSelect ? (
                       <Select
