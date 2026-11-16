@@ -2,7 +2,6 @@ import {
   Activity,
   ArrowRightLeft,
   Bell,
-  BookOpen,
   Boxes,
   Database,
   GitBranch,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import type { PlanningIconName } from "../data-modeling/planning/components/icons";
 import type { IndicatorIconName } from "../data-modeling/indicators/icons";
+import type { StandardIconName } from "../data-modeling/standards/components/icons";
 
 export type ProductNavigationItem = {
   id?: string;
@@ -27,6 +27,7 @@ export type ProductNavigationItem = {
   icon?: LucideIcon;
   svgIcon?: PlanningIconName;
   indicatorIcon?: IndicatorIconName;
+  standardIcon?: StandardIconName;
   groupLabel?: string;
   end?: boolean;
   children?: ProductNavigationItem[];
@@ -162,25 +163,28 @@ export const DATA_MODELING_MODULE_NAVIGATION: ProductModuleNavigationItem[] = [
         id: "field-standard",
         label: "字段标准",
         path: "/data-modeling/standards/fields",
-        icon: BookOpen,
+        standardIcon: "field-standard",
         end: true,
       },
       {
         id: "code-standard",
         label: "标准代码",
         path: "/data-modeling/standards/codes",
+        standardIcon: "standard-code",
         end: true,
       },
       {
         id: "unit-standard",
         label: "度量单位",
         path: "/data-modeling/standards/units",
+        standardIcon: "unit-standard",
         end: true,
       },
       {
         id: "naming-dictionary",
         label: "命名词典",
         path: "/data-modeling/standards/dictionary",
+        standardIcon: "naming-dictionary",
         end: true,
       },
     ],
