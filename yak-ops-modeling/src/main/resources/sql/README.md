@@ -24,7 +24,15 @@ Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks
 
 If a legacy table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
 
-The three scripts contain the same 22 logical tables and 55 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
+The three scripts contain the same 22 logical tables and 59 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
+
+Existing installations should apply the matching one-time modifier-scope index patch before deploying the modifier query changes:
+
+- `20261116_add_modifier_scope_indexes_mysql.sql`
+- `20261116_add_modifier_scope_indexes_postgresql.sql`
+- `20261116_add_modifier_scope_indexes_h2.sql`
+
+The complete dialect scripts above also create these four indexes for fresh installations.
 
 ## Manual reset scripts
 

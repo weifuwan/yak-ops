@@ -369,7 +369,11 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_modifier (
   KEY idx_yak_indicator_modifier_1 (project_code),
   KEY idx_yak_indicator_modifier_2 (modifier_type),
   KEY idx_yak_indicator_modifier_3 (code_id),
-  KEY idx_yak_indicator_modifier_4 (code_detail_id)
+  KEY idx_yak_indicator_modifier_4 (code_detail_id),
+  KEY idx_yak_indicator_modifier_5 (project_code, dwh_id),
+  KEY idx_yak_indicator_modifier_6 (project_code, bus_type_id),
+  KEY idx_yak_indicator_modifier_7 (project_code, domain_id),
+  KEY idx_yak_indicator_modifier_8 (project_code, dimension_tb_id, dimension_fd_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指标管理-指标修饰词';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_time_period_category (

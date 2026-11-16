@@ -12,6 +12,12 @@ import io.yak.ops.dao.entity.*;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
 import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
+import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
+import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
+import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
+import io.yak.ops.dao.repository.modeling.DataDomainDao;
+import io.yak.ops.dao.repository.modeling.DimensionTableDao;
+import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +34,11 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
     @Resource private ObjectMapper objectMapper;
     @Resource private ModelingAssetDao modelingAssetDao;
     @Resource private DwLayerDao dwLayerDao;
+    @Resource private BusinessTypeDao businessTypeDao;
+    @Resource private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
+    @Resource private DataDomainDao dataDomainDao;
+    @Resource private DimensionTableDao dimensionTableDao;
+    @Resource private DimensionTableFieldDao dimensionTableFieldDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -439,6 +450,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         @SuppressWarnings("unchecked")
         Map<String, Object> values = safePayload(objectMapper.convertValue(po, Map.class));
         validatePayload(resource, values);
+        if ("modifier".equals(resource)) validateModifierForSubmit(values);
         setIfWritable(po, "submit", Boolean.TRUE);
         po.initUpdate();
         modelingAssetDao.updateById(mapperKey, po);
@@ -454,6 +466,11 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
             @SuppressWarnings("unchecked")
             Class<T> type = (Class<T>) current.getClass();
             T snapshot = objectMapper.readValue(version.getVersionData(), type);
+            if ("modifier".equals(mapperKey)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> snapshotValues = safePayload(objectMapper.convertValue(snapshot, Map.class));
+                validatePayload(mapperKey, snapshotValues);
+            }
             snapshot.setId(id);
             snapshot.setProjectCode(null);
             snapshot.initUpdate();
@@ -668,6 +685,7 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
         if ("modifier".equals(resource)) {
             requireFields(values, "enShortName", "modifierType", "businessCaliber", "director");
+            validateModifierRelations(values);
         }
         if ("compose-indicator".equals(resource)) {
             String computeMode = text(values.get("computeMode"));
@@ -677,6 +695,104 @@ public class ModelingAssetServiceImpl extends BaseServiceImpl implements Modelin
         }
         if ("time-period".equals(resource)) {
             requireFields(values, "categoryId", "enShortName", "director");
+        }
+    }
+
+    private void validateModifierRelations(Map<String, Object> values) {
+        String modifierType = text(values.get("modifierType")).toUpperCase(Locale.ROOT);
+        if (!"SIMPLE".equals(modifierType) && !"DIMENSION".equals(modifierType)) {
+            throw new IllegalArgumentException("修饰词类型必须是 SIMPLE 或 DIMENSION");
+        }
+        values.put("modifierType", modifierType);
+
+        String dwhId = text(values.get("dwhId"));
+        if (!dwhId.isEmpty()) {
+            DwLayerPO layer = dwLayerDao.queryById(dwhId);
+            if (layer == null) throw new IllegalArgumentException("所选数仓分层不存在或不属于当前项目");
+            if (layer.getDwType() == null || layer.getDwType() == DwTypeEnum.SOURCE_LAYER) {
+                throw new IllegalArgumentException("修饰词不允许关联 ODS 贴源层");
+            }
+        }
+
+        String busTypeId = text(values.get("busTypeId"));
+        if (!busTypeId.isEmpty() && businessTypeDao.queryById(busTypeId) == null) {
+            throw new IllegalArgumentException("所选业务分类不存在或不属于当前项目");
+        }
+        String domainId = text(values.get("domainId"));
+        if (!domainId.isEmpty() && dataDomainDao.queryById(domainId) == null) {
+            throw new IllegalArgumentException("所选数据域不存在或不属于当前项目");
+        }
+        if (!busTypeId.isEmpty() && !domainId.isEmpty()) {
+            QueryWrapper<BusinessTypeRelatedDataDomainPO> relation = new QueryWrapper<BusinessTypeRelatedDataDomainPO>()
+                    .eq("bus_type_id", busTypeId);
+            long relationCount = businessTypeRelatedDataDomainDao.queryCount(relation);
+            if (relationCount > 0 && businessTypeRelatedDataDomainDao.queryCount(
+                    new QueryWrapper<BusinessTypeRelatedDataDomainPO>()
+                            .eq("bus_type_id", busTypeId)
+                            .eq("data_id", domainId)) == 0) {
+                throw new IllegalArgumentException("所选数据域未关联到当前业务分类");
+            }
+        }
+
+        String dimensionTbId = text(values.get("dimensionTbId"));
+        String dimensionFdId = text(values.get("dimensionFdId"));
+        String codeId = text(values.get("codeId"));
+        String codeDetailId = text(values.get("codeDetailId"));
+
+        if ("SIMPLE".equals(modifierType)) {
+            if (!dimensionTbId.isEmpty() || !dimensionFdId.isEmpty() || !codeId.isEmpty() || !codeDetailId.isEmpty()) {
+                throw new IllegalArgumentException("普通业务修饰词不能配置维度枚举关联");
+            }
+            return;
+        }
+
+        if (!dimensionTbId.isEmpty()) {
+            DimensionTablePO dimensionTable = dimensionTableDao.queryById(dimensionTbId);
+            if (dimensionTable == null) {
+                throw new IllegalArgumentException("所选维度表不存在或不属于当前项目");
+            }
+            if (dimensionTable.getTableType() != DimensionTableTypeEnum.DIM) {
+                throw new IllegalArgumentException("维度枚举修饰词只能关联维度类型的数据表");
+            }
+        }
+
+        if (!dimensionFdId.isEmpty()) {
+            if (dimensionTbId.isEmpty()) {
+                throw new IllegalArgumentException("选择维度字段前必须先选择维度表");
+            }
+            DimensionTableFieldPO dimensionField = dimensionTableFieldDao.queryOne(
+                    new QueryWrapper<DimensionTableFieldPO>()
+                            .eq("id", dimensionFdId)
+                            .eq("table_id", dimensionTbId));
+            if (dimensionField == null) {
+                throw new IllegalArgumentException("所选维度字段不存在或不属于当前维度表");
+            }
+            String fieldCodeId = text(dimensionField.getCodeStdId());
+            if (!fieldCodeId.isEmpty()) {
+                if (codeId.isEmpty()) {
+                    codeId = fieldCodeId;
+                    values.put("codeId", codeId);
+                } else if (!fieldCodeId.equals(codeId)) {
+                    throw new IllegalArgumentException("所选维度字段已关联其他标准代码，不能选择不一致的标准代码");
+                }
+            }
+        }
+
+        if (!codeId.isEmpty() && modelingAssetDao.queryById("code-standard", codeId) == null) {
+            throw new IllegalArgumentException("所选标准代码不存在或不属于当前项目");
+        }
+        if (!codeDetailId.isEmpty()) {
+            if (codeId.isEmpty()) throw new IllegalArgumentException("选择代码明细前必须先选择标准代码");
+            CodeDetailPO codeDetail = modelingAssetDao.queryById("code-detail", codeDetailId);
+            if (codeDetail == null || !codeId.equals(codeDetail.getCodeId())) {
+                throw new IllegalArgumentException("所选代码明细不属于当前标准代码");
+            }
+        }
+    }
+
+    private void validateModifierForSubmit(Map<String, Object> values) {
+        if ("DIMENSION".equals(text(values.get("modifierType")).toUpperCase(Locale.ROOT))) {
+            requireFields(values, "dimensionTbId", "dimensionFdId", "codeId", "codeDetailId");
         }
     }
 
