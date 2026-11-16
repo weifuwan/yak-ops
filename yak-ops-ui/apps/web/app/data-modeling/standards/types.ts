@@ -56,16 +56,8 @@ export interface UnitStandardRecord extends ModelingRecord {
   updateBy?: string;
 }
 
-export interface DictionaryStandardRecord extends ModelingRecord {
-  enShortName?: string;
-  enName?: string;
-  cnName?: string;
-  flag?: number;
-  createBy?: string;
-  updateBy?: string;
-}
-
 export type StandardTreeNode = ModelingAssetTreeNode;
+export type StandardRecord = FieldStandardRecord | CodeStandardRecord | UnitStandardRecord;
 
 export function getStandardResource(module: StandardModule): StandardResource {
   if (module === "FIELD") return "fieldStandard";
