@@ -25,7 +25,8 @@ export type IndicatorOptionResource =
   | "derivativeIndicator"
   | "codeStandard"
   | "timePeriodCategory"
-  | "codeDetail";
+  | "codeDetail"
+  | "modifier";
 
 const INDICATOR_APIS: Record<IndicatorResourceKind, ModelingResourceApi> = {
   atomIndicator: atomIndicatorApi,

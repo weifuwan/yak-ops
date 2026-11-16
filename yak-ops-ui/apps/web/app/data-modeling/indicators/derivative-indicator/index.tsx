@@ -4,6 +4,8 @@ import { DERIVATIVE_INDICATOR_TREE_DW_OPTIONS } from "../workbench/config/indica
 import { useGroupedIndicatorTree } from "../workbench/hooks/use-grouped-indicator-tree";
 import type { IndicatorPageProps } from "../workbench/types";
 import { DERIVATIVE_INDICATOR_DEFINITION } from "./config";
+import { DerivativeIndicatorEditorFields } from "./form/derivative-indicator-editor-fields";
+import { validateDerivativeIndicator } from "./form/validation";
 import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 
 export function DerivativeIndicatorPage(props: IndicatorPageProps) {
@@ -59,5 +61,13 @@ export function DerivativeIndicatorPage(props: IndicatorPageProps) {
 export default DerivativeIndicatorPage;
 
 export function DerivativeIndicatorTabContent(props: IndicatorTabContentProps) {
-  return <IndicatorTabContent {...props} definition={DERIVATIVE_INDICATOR_DEFINITION} />;
+  return (
+    <IndicatorTabContent
+      {...props}
+      definition={DERIVATIVE_INDICATOR_DEFINITION}
+      renderFields={(fieldProps) => <DerivativeIndicatorEditorFields {...fieldProps} />}
+      validateBeforeSave={validateDerivativeIndicator}
+      validateBeforeSubmit={validateDerivativeIndicator}
+    />
+  );
 }

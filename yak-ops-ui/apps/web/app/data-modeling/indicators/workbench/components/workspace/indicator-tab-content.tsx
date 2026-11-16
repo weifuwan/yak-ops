@@ -24,6 +24,7 @@ export type IndicatorTabContentProps = {
 type Props = IndicatorTabContentProps & {
   definition: IndicatorDefinition;
   renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
+  validateBeforeSave?: (values: Record<string, string>) => string | undefined;
   validateBeforeSubmit?: (values: Record<string, string>) => string | undefined;
 };
 
@@ -33,6 +34,7 @@ export function IndicatorTabContent({
   dwType,
   definition,
   renderFields,
+  validateBeforeSave,
   validateBeforeSubmit,
   onEdit,
   onDelete,
@@ -62,6 +64,7 @@ export function IndicatorTabContent({
       optionsByResource={optionsByResource}
       optionsLoading={optionsLoading}
       renderFields={renderFields}
+      validateBeforeSave={validateBeforeSave}
       validateBeforeSubmit={validateBeforeSubmit}
       onSaved={onSaved}
       onDraftChange={onDraftChange}

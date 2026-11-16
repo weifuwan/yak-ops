@@ -7,6 +7,7 @@ import { dwLayerApi } from "../planning/dw-layer";
 import { codeStandardApi } from "../standards/code-standard";
 import { unitStandardApi } from "../standards/unit-standard";
 import { atomIndicatorApi } from "./atom-indicator";
+import { modifierApi } from "./modifier";
 import { derivativeIndicatorApi } from "./derivative-indicator";
 import { timePeriodApi, timePeriodCategoryApi } from "./time-period";
 import type { IndicatorOptionResource } from "./index";
@@ -37,6 +38,8 @@ export async function getIndicatorOptionRecords(
       return subjectDomainApi.all<ModelingRecord>(projectCode);
     case "derivativeIndicator":
       return derivativeIndicatorApi.all<ModelingRecord>(projectCode);
+    case "modifier":
+      return modifierApi.all<ModelingRecord>(projectCode);
     case "codeStandard":
       return codeStandardApi.all<ModelingRecord>(projectCode);
     case "timePeriodCategory":

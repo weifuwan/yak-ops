@@ -19,6 +19,7 @@ type IndicatorEditorProps = {
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   optionsLoading: boolean;
   renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
+  validateBeforeSave?: (values: Record<string, string>) => string | undefined;
   validateBeforeSubmit?: (values: Record<string, string>) => string | undefined;
   onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
   onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
@@ -31,6 +32,7 @@ export function IndicatorEditor({
   optionsByResource,
   optionsLoading,
   renderFields,
+  validateBeforeSave,
   validateBeforeSubmit,
   onSaved,
   onDraftChange,
@@ -79,11 +81,17 @@ export function IndicatorEditor({
       setError("请填写" + missing.label);
       return;
     }
+    const validationMessage = validateBeforeSave?.(values);
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
     const payload: Record<string, unknown> = {};
     definition.fields.forEach((field) => {
       const value = String(values[field.key] ?? "").trim();
       if (field.key === "decimalNumber" && value !== "") payload[field.key] = Number(value);
       else if (field.key === "removeDuplicates" && value !== "") payload[field.key] = value === "true";
+      else if (field.key === "dwType" && value !== "PUBLIC_LAYER" && value !== "APPLICATION_LAYER") payload[field.key] = null;
       else payload[field.key] = value;
     });
     // Atomic indicators are always stored in the public layer; the editor intentionally
