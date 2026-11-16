@@ -128,12 +128,11 @@ export function Cascader({
     const nextPath = [...activePath.slice(0, columnIndex), option.value];
     const children = option.children ?? [];
 
-    if (children.length > 0) {
+    if (children.length > 0 || option.selectable === false) {
       setActivePath(nextPath);
       return;
     }
 
-    if (option.selectable === false) return;
     selectOption(nextPath);
   };
 
@@ -221,7 +220,7 @@ export function Cascader({
                           !option.disabled && "cursor-pointer hover:bg-[var(--yak-components-select-item-bg-hover)]",
                         )}
                         onMouseEnter={() => {
-                          if (!option.disabled && hasChildren) {
+                          if (!option.disabled && (hasChildren || option.selectable === false)) {
                             setActivePath([...activePath.slice(0, columnIndex), option.value]);
                           }
                         }}

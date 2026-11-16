@@ -2,11 +2,11 @@ import type { IndicatorDefinition } from "../workbench/types";
 import { DW_TYPE_OPTIONS } from "../workbench/config/indicator-options";
 
 export const CALCULATE_FUNCTION_OPTIONS = [
-  { value: "COUNT", label: "计算（COUNT）" },
-  { value: "SUM", label: "累加（SUM）" },
-  { value: "AVG", label: "平均值（AVG）" },
-  { value: "MAX", label: "最大值（MAX）" },
-  { value: "MIN", label: "最小值（MIN）" },
+  { value: "COUNT", label: "计算(COUNT)" },
+  { value: "SUM", label: "累加(SUM)" },
+  { value: "AVG", label: "平均值(AVG)" },
+  { value: "MAX", label: "最大值(MAX)" },
+  { value: "MIN", label: "最小值(MIN)" },
   { value: "RATE", label: "率" },
   { value: "RANK", label: "排名" },
   { value: "OTHER", label: "其他" },
@@ -32,7 +32,7 @@ export const ATOM_INDICATOR_DEFINITION: IndicatorDefinition = {
     { key: "remark", label: "描述", section: "基本信息", multiline: true },
     { key: "dwType", label: "数仓分层", section: "业务归属", required: true, options: DW_TYPE_OPTIONS },
     { key: "busTypeId", label: "业务分类", section: "业务归属", optionsSource: "businessType", optionLabelField: "businessName" },
-    { key: "domainId", label: "数据域", section: "业务归属", required: true },
+    { key: "domainId", label: "数据域", section: "业务归属" },
     { key: "busProcessId", label: "业务过程", section: "业务归属", required: true },
     { key: "calculateFunction", label: "计算函数", section: "计算逻辑", options: CALCULATE_FUNCTION_OPTIONS },
     { key: "decimalNumber", label: "小数位数", section: "计算逻辑", placeholder: "例如 0、2、4" },

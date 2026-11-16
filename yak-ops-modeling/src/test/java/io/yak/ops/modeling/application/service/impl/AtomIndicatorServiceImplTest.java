@@ -65,6 +65,21 @@ class AtomIndicatorServiceImplTest {
     }
 
     @Test
+    void shouldRejectUnknownBusinessType() {
+        AtomIndicatorDTO dto = validDto();
+        dto.setBusTypeId(BUSINESS_TYPE_ID);
+        when(businessTypeDao.queryById(BUSINESS_TYPE_ID)).thenReturn(null);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(dto, "alice"));
+
+        assertEquals("所选业务分类不存在或不属于当前项目", exception.getMessage());
+        verify(dataDomainDao, never()).queryById(DOMAIN_ID);
+        verify(modelingAssetDao, never()).insert(eq("atom-indicator"), any(AtomIndicatorPO.class));
+    }
+
+    @Test
     void shouldRejectBusinessProcessFromAnotherDomain() {
         when(dataDomainDao.queryById(DOMAIN_ID)).thenReturn(new DataDomainPO());
         BusinessProcessPO process = new BusinessProcessPO();
@@ -153,6 +168,25 @@ class AtomIndicatorServiceImplTest {
 
         assertEquals("计算函数不合法", exception.getMessage());
         verify(dataDomainDao, never()).queryById(DOMAIN_ID);
+        verify(modelingAssetDao, never()).insert(eq("atom-indicator"), any(AtomIndicatorPO.class));
+    }
+
+    @Test
+    void shouldRejectUnitThatDoesNotBelongToCurrentProject() {
+        when(dataDomainDao.queryById(DOMAIN_ID)).thenReturn(new DataDomainPO());
+        BusinessProcessPO process = new BusinessProcessPO();
+        process.setDataDomainId(DOMAIN_ID);
+        when(businessProcessDao.queryById(PROCESS_ID)).thenReturn(process);
+        when(modelingAssetDao.queryById("unit-standard", "unit-id")).thenReturn(null);
+
+        AtomIndicatorDTO dto = validDto();
+        dto.setUnitId("unit-id");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(dto, "alice"));
+
+        assertEquals("度量单位不存在或不属于当前项目", exception.getMessage());
         verify(modelingAssetDao, never()).insert(eq("atom-indicator"), any(AtomIndicatorPO.class));
     }
 

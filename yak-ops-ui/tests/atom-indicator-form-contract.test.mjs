@@ -25,7 +25,7 @@ test("business process cascader stores both the domain and process IDs", () => {
   assert.match(form, /columnLabels=\{\["数据域", "业务过程"\]\}/);
   assert.match(form, /domainId:\s*path\?\.\[0\]/);
   assert.match(form, /busProcessId:\s*path\?\.\[path\.length - 1\]/);
-  assert.match(config, /key: "domainId".*required: true/s);
+  assert.match(config, /key: "domainId".*section: "业务归属"/s);
   assert.match(config, /key: "busProcessId".*required: true/s);
 });
 
@@ -36,8 +36,9 @@ test("measurement unit selector uses the standard directory tree rather than a f
   assert.doesNotMatch(config, /key: "unitId".*optionsSource/);
 });
 
-test("owner selector uses user options with manual entry fallback", () => {
+test("owner selector uses searchable user options with manual entry fallback", () => {
   assert.match(form, /useAtomIndicatorOwnerOptions/);
+  assert.match(form, /searchable/);
   assert.match(ownerHook, /listUsers\(/);
   assert.match(form, /请输入负责人/);
 });

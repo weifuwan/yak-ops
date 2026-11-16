@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Field,
   FieldLabel,
@@ -9,6 +10,7 @@ import {
   SelectItem,
   SelectItemIndicator,
   SelectItemText,
+  SelectSearch,
   SelectTrigger,
   SelectValue,
   Textarea,
@@ -52,6 +54,7 @@ function OptionSelect({
   placeholder,
   disabled = false,
   loading = false,
+  searchable = false,
   onChange,
 }: {
   value: string;
@@ -59,22 +62,46 @@ function OptionSelect({
   placeholder: string;
   disabled?: boolean;
   loading?: boolean;
+  searchable?: boolean;
   onChange: (value: string) => void;
 }) {
+  const [keyword, setKeyword] = useState("");
+  const filteredOptions = searchable
+    ? options.filter((option) => option.label.toLocaleLowerCase().includes(keyword.trim().toLocaleLowerCase()))
+    : options;
+  const emptyContent = loading
+    ? "正在加载选项..."
+    : filteredOptions.length === 0
+      ? keyword.trim() ? "没有匹配的选项" : "暂无可选数据"
+      : undefined;
+
   return (
     <Select
       size="small"
       value={value || undefined}
       disabled={disabled}
-      onValueChange={(next) => onChange(String(next || ""))}
+      onValueChange={(next) => {
+        setKeyword("");
+        onChange(String(next || ""));
+      }}
     >
       <SelectTrigger variant="outlined" className="w-full">
         <SelectValue placeholder={loading ? "正在加载选项..." : placeholder}>
           {(selected) => selectOptionLabel(options, selected, loading ? "正在加载选项..." : placeholder)}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent emptyContent={loading ? "正在加载选项..." : "暂无可选数据"}>
-        {options.map((option) => (
+      <SelectContent
+        header={searchable ? (
+          <SelectSearch
+            size="small"
+            value={keyword}
+            placeholder="搜索负责人"
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+        ) : undefined}
+        emptyContent={emptyContent}
+      >
+        {filteredOptions.map((option) => (
           <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
             <SelectItemText>{option.label}</SelectItemText>
             <SelectItemIndicator />
@@ -156,6 +183,7 @@ export function AtomIndicatorEditorFields({
                   options={ownerOptions}
                   placeholder="请选择负责人"
                   loading={ownerQuery.isFetching}
+                  searchable
                   onChange={(value) => onChange("director", value)}
                 />
               ) : (

@@ -3,9 +3,7 @@ package io.yak.ops.modeling.application.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.yak.ops.dao.entity.AtomIndicatorPO;
 import io.yak.ops.dao.entity.BusinessProcessPO;
-import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
-import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DerivativeIndicatorPO;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
@@ -17,6 +15,7 @@ import io.yak.ops.modeling.api.vo.atomindicator.AtomIndicatorVO;
 import io.yak.ops.modeling.application.service.AtomIndicatorService;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -146,7 +145,7 @@ public class AtomIndicatorServiceImpl
         dto.setBusProcessId(optionalText(dto.getBusProcessId()));
         dto.setUnitId(optionalText(dto.getUnitId()));
         String calculateFunction = optionalText(dto.getCalculateFunction());
-        dto.setCalculateFunction(calculateFunction == null ? null : calculateFunction.toUpperCase());
+        dto.setCalculateFunction(calculateFunction == null ? null : calculateFunction.toUpperCase(Locale.ROOT));
     }
 
     private void validateLengths(AtomIndicatorDTO dto) {
@@ -168,9 +167,7 @@ public class AtomIndicatorServiceImpl
         if (notBlank(dto.getBusTypeId()) && businessTypeDao.queryById(dto.getBusTypeId()) == null) {
             throw new IllegalArgumentException("所选业务分类不存在或不属于当前项目");
         }
-
-        DataDomainPO domain = dataDomainDao.queryById(dto.getDomainId());
-        if (domain == null) {
+        if (dataDomainDao.queryById(dto.getDomainId()) == null) {
             throw new IllegalArgumentException("所选数据域不存在或不属于当前项目");
         }
 

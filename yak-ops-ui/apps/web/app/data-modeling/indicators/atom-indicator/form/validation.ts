@@ -10,16 +10,16 @@ const CALCULATE_FUNCTIONS = new Set([
 ]);
 
 export function validateAtomIndicatorSubmit(values: Record<string, string>): string | undefined {
-  if (!values.domainId || !values.busProcessId) {
+  if (!String(values.domainId || "").trim() || !String(values.busProcessId || "").trim()) {
     return "请选择业务过程";
   }
 
-  const decimalNumber = values.decimalNumber.trim();
-  if (decimalNumber && (!/^\d+$/.test(decimalNumber) || Number(decimalNumber) < 0)) {
+  const decimalNumber = String(values.decimalNumber || "").trim();
+  if (decimalNumber && !/^\d+$/.test(decimalNumber)) {
     return "小数位数必须是大于等于0的整数";
   }
 
-  const calculateFunction = values.calculateFunction.trim().toUpperCase();
+  const calculateFunction = String(values.calculateFunction || "").trim().toUpperCase();
   if (calculateFunction && !CALCULATE_FUNCTIONS.has(calculateFunction)) {
     return "请选择有效的计算函数";
   }
