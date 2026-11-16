@@ -6,14 +6,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.service.BaseServiceImpl;
 import io.yak.ops.dao.entity.ComposeIndicatorPO;
-import io.yak.ops.dao.entity.DerivativeIndicatorPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.ComposeIndicatorDao;
-import io.yak.ops.dao.repository.modeling.DerivativeIndicatorDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
@@ -41,9 +39,6 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
 
     @Resource
     private DimensionTableDao dimensionTableDao;
-
-    @Resource
-    private DerivativeIndicatorDao derivativeIndicatorDao;
 
     @Resource
     private ComposeIndicatorDao composeIndicatorDao;
@@ -126,17 +121,14 @@ public class DwLayerServiceImpl extends BaseServiceImpl implements DwLayerServic
 
         long dimensionTableCount = dimensionTableDao.queryCount(
                 new LambdaQueryWrapper<DimensionTablePO>().eq(DimensionTablePO::getDwhId, id));
-        long derivativeIndicatorCount = derivativeIndicatorDao.queryCount(
-                new LambdaQueryWrapper<DerivativeIndicatorPO>().eq(DerivativeIndicatorPO::getDwhId, id));
         long composeIndicatorCount = composeIndicatorDao.queryCount(
                 new LambdaQueryWrapper<ComposeIndicatorPO>().eq(ComposeIndicatorPO::getDwhId, id));
         long modifierCount = modifierDao.queryCount(
                 new LambdaQueryWrapper<ModifierPO>().eq(ModifierPO::getDwhId, id));
 
-        if (dimensionTableCount + derivativeIndicatorCount + composeIndicatorCount + modifierCount > 0) {
+        if (dimensionTableCount + composeIndicatorCount + modifierCount > 0) {
             throw new IllegalArgumentException(
                     "该数仓分层已被引用，不能删除（维度模型 " + dimensionTableCount
-                            + " 条、派生指标 " + derivativeIndicatorCount
                             + " 条、复合指标 " + composeIndicatorCount
                             + " 条、指标修饰词 " + modifierCount + " 条）");
         }

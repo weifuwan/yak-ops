@@ -15,7 +15,6 @@ import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.ComposeIndicatorDao;
-import io.yak.ops.dao.repository.modeling.DerivativeIndicatorDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
@@ -38,9 +37,6 @@ class DwLayerServiceImplTest {
 
     @Mock
     private DimensionTableDao dimensionTableDao;
-
-    @Mock
-    private DerivativeIndicatorDao derivativeIndicatorDao;
 
     @Mock
     private ComposeIndicatorDao composeIndicatorDao;
@@ -169,10 +165,9 @@ class DwLayerServiceImplTest {
     }
 
     @Test
-    void shouldRejectDeleteWhenAnyModelingAssetReferencesLayer() {
+    void shouldRejectDeleteWhenAnyWarehouseAssetReferencesLayer() {
         when(dwLayerDao.queryById(LAYER_ID)).thenReturn(new DwLayerPO());
         when(dimensionTableDao.queryCount(any())).thenReturn(1L);
-        when(derivativeIndicatorDao.queryCount(any())).thenReturn(2L);
         when(composeIndicatorDao.queryCount(any())).thenReturn(3L);
         when(modifierDao.queryCount(any())).thenReturn(4L);
 
@@ -181,7 +176,6 @@ class DwLayerServiceImplTest {
                 () -> service.delete(LAYER_ID));
 
         assertTrue(exception.getMessage().contains("维度模型 1 条"));
-        assertTrue(exception.getMessage().contains("派生指标 2 条"));
         assertTrue(exception.getMessage().contains("复合指标 3 条"));
         assertTrue(exception.getMessage().contains("指标修饰词 4 条"));
         verify(dwLayerDao, never()).deleteById(LAYER_ID);
@@ -191,7 +185,6 @@ class DwLayerServiceImplTest {
     void shouldDeleteLayerWhenNoReferencesExist() {
         when(dwLayerDao.queryById(LAYER_ID)).thenReturn(new DwLayerPO());
         when(dimensionTableDao.queryCount(any())).thenReturn(0L);
-        when(derivativeIndicatorDao.queryCount(any())).thenReturn(0L);
         when(composeIndicatorDao.queryCount(any())).thenReturn(0L);
         when(modifierDao.queryCount(any())).thenReturn(0L);
         when(dwLayerDao.deleteById(LAYER_ID)).thenReturn(true);
