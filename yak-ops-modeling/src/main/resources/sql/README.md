@@ -36,11 +36,11 @@ Available manual reset scripts:
 - `modeling_drop_postgresql.sql`
 - `modeling_drop_h2.sql`
 
-Back up the target database before resetting. For a MySQL database, run the following from the repository root and replace the connection placeholders:
+Back up the target database before resetting. For a MySQL database, set `DB_HOST`, `DB_PORT`, `DB_USER` and `DB_NAME`, then run the following from the repository root:
 
 ```bash
-mysql -h <host> -P <port> -u <user> -p <database> < yak-ops-modeling/src/main/resources/sql/modeling_drop_mysql.sql
-mysql -h <host> -P <port> -u <user> -p <database> < yak-ops-modeling/src/main/resources/sql/modeling_mysql.sql
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p "$DB_NAME" < yak-ops-modeling/src/main/resources/sql/modeling_drop_mysql.sql
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p "$DB_NAME" < yak-ops-modeling/src/main/resources/sql/modeling_mysql.sql
 ```
 
 For PostgreSQL or H2, use the matching `modeling_drop_<dialect>.sql` and `modeling_<dialect>.sql` scripts. Do not run `yak-ops-dao/src/main/resources/sql/yak-ops_mysql.sql` for a modeling-only reset: that is the full Yak Ops baseline schema and contains destructive DDL for base tables.
@@ -58,6 +58,21 @@ After rebuilding, verify that:
 Example MySQL checks:
 
 ```sql
+SELECT COUNT(*) AS modeling_table_count
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name IN (
+    't_yak_ops_business_type', 't_yak_ops_business_type_related_data_domain',
+    't_yak_ops_dw_layer', 't_yak_ops_data_domain', 't_yak_ops_business_process',
+    't_yak_ops_data_mart', 't_yak_ops_subject_domain', 't_yak_ops_dimension_table',
+    't_yak_ops_dimension_table_fields', 't_yak_ops_standard_directory',
+    't_yak_ops_field_standard', 't_yak_ops_code_standard', 't_yak_ops_code_detail',
+    't_yak_ops_unit_standard', 't_yak_ops_dictionary_standard', 't_yak_ops_indicator_atom',
+    't_yak_ops_indicator_derivative', 't_yak_ops_indicator_compose',
+    't_yak_ops_indicator_modifier', 't_yak_ops_time_period_category',
+    't_yak_ops_time_period', 't_yak_ops_version_management'
+  );
+
 SHOW COLUMNS FROM t_yak_ops_indicator_derivative LIKE 'dw_type';
 SHOW COLUMNS FROM t_yak_ops_indicator_derivative LIKE 'dwh_id';
 SHOW INDEX FROM t_yak_ops_indicator_modifier;
