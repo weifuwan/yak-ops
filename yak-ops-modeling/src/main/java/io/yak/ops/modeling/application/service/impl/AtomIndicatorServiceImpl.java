@@ -1,6 +1,6 @@
 package io.yak.ops.modeling.application.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;\nimport com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.yak.ops.dao.entity.AtomIndicatorPO;
 import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
@@ -180,11 +180,28 @@ public class AtomIndicatorServiceImpl
         }
 
         if (notBlank(dto.getBusTypeId())) {
-            QueryWrapper<BusinessTypeRelatedDataDomainPO> wrapper =
-                    new QueryWrapper<BusinessTypeRelatedDataDomainPO>()
-                            .eq("bus_type_id", dto.getBusTypeId())
-                            .eq("data_id", dto.getDomainId());
-            if (businessTypeRelatedDataDomainDao.queryCount(wrapper) <= 0) {
+            LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO> wrapper =
+                    new LambdaQueryWrapper<BusinessTypeRelatedDataDomainPO>()
+                            .eq(BusinessTypeRelatedDataDomainPO::getBusTypeId, dto.getBusTypeId());
+            List<BusinessTypeRelatedDataDomainPO> relatedDomains =
+                    businessTypeRelatedDataDomainDao.queryList(wrapper);
+
+            boolean hasRelatedDomains = false;
+            boolean selectedDomainRelated = false;
+            if (relatedDomains != null) {
+                for (BusinessTypeRelatedDataDomainPO relation : relatedDomains) {
+                    if (relation == null || !notBlank(relation.getDataId())) {
+                        continue;
+                    }
+                    hasRelatedDomains = true;
+                    if (dto.getDomainId().equals(relation.getDataId())) {
+                        selectedDomainRelated = true;
+                    }
+                }
+            }
+            // Keep strict relation validation when the business type has configured domains.
+            // When it has none, allow any existing project domain selected in the indicator form.
+            if (hasRelatedDomains && !selectedDomainRelated) {
                 throw new IllegalArgumentException("所选数据域未关联到当前业务分类");
             }
         }
