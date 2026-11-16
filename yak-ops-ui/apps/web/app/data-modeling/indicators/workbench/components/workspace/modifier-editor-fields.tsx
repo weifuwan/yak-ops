@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { listUsers, type UserRecord } from "@/service/user";
 import {
   Field, FieldLabel, Input, Radio, RadioGroup, Select, SelectContent, SelectItem,
   SelectItemIndicator, SelectItemText, SelectTrigger, SelectValue, Textarea,
@@ -112,6 +113,25 @@ export function ModifierEditorFields({
     queryFn: () => modelingBusinessTypeApi.allRelatedDomainIds(projectCode),
     enabled: Boolean(projectCode),
   });
+  const ownerOptionsQuery = useQuery<UserRecord[]>({
+    queryKey: ["modeling", "modifier-owner-options", projectCode],
+    queryFn: async () => {
+      try {
+        const firstPage = await listUsers({ pageNo: 1, pageSize: 100 });
+        if (firstPage.totalPage <= 1) return firstPage.records;
+        const remainingPages = await Promise.all(
+          Array.from({ length: firstPage.totalPage - 1 }, (_, index) =>
+            listUsers({ pageNo: index + 2, pageSize: 100 }),
+          ),
+        );
+        return [...firstPage.records, ...remainingPages.flatMap((page) => page.records)];
+      } catch {
+        // The user-list API is admin-only; keep manual entry available for other roles.
+        return [];
+      }
+    },
+    enabled: Boolean(projectCode),
+  });
 
   const dimensionFields = dimensionFieldsQuery.data || [];
   const selectedDimensionField = dimensionFields.find((field) => String(field.id || "") === values.dimensionFdId);
@@ -164,6 +184,13 @@ export function ModifierEditorFields({
     label: "标准代码",
     optionsSource: "codeStandard",
   }, optionsByResource);
+  const ownerOptions: IndicatorFieldOption[] = (ownerOptionsQuery.data || []).map((user) => ({
+    value: user.userName,
+    label: user.userName,
+  }));
+  if (values.director && !ownerOptions.some((option) => option.value === values.director)) {
+    ownerOptions.unshift({ value: values.director, label: values.director });
+  }
   const dimensionTableOptions: IndicatorFieldOption[] = (dimensionOptionsQuery.data || []).map((option) => ({
     value: String(option.value),
     label: String(option.label),
@@ -272,7 +299,23 @@ export function ModifierEditorFields({
         </FormRow>
 
         <FormRow label="负责人" required>
-          <Input size="small" variant="outlined" value={values.director || ""} placeholder="请输入负责人" onChange={(event) => onChange("director", event.target.value)} />
+          {ownerOptionsQuery.isFetching || ownerOptionsQuery.data?.length ? (
+            <OptionSelect
+              value={values.director || ""}
+              options={ownerOptions}
+              placeholder="请选择负责人"
+              loading={ownerOptionsQuery.isFetching}
+              onChange={(value) => onChange("director", value)}
+            />
+          ) : (
+            <Input
+              size="small"
+              variant="outlined"
+              value={values.director || ""}
+              placeholder="请输入负责人"
+              onChange={(event) => onChange("director", event.target.value)}
+            />
+          )}
         </FormRow>
 
         <FormRow label="描述">
