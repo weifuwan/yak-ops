@@ -1,5 +1,7 @@
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import type { IndicatorOptionResource, IndicatorResourceKind } from "@/service/data-modeling/indicators";
+import type { IndicatorOptionResource as IndicatorOptionResourceType, IndicatorResourceKind } from "@/service/data-modeling/indicators";
+
+export type IndicatorOptionResource = IndicatorOptionResourceType;
 
 export type IndicatorKind = IndicatorResourceKind;
 export type IndicatorMode = "create" | "edit" | "list";

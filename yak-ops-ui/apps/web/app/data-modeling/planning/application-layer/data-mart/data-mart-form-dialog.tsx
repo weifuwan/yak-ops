@@ -5,9 +5,9 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import { withSelectedOption } from "../../select-options";
+import { MART_TYPE_OPTIONS, withSelectedOption } from "../../select-options";
 import {
-  EMPTY_DATA_MART_FORM, MART_TYPE_OPTIONS, type DataMartFormValues, type DataMartRecord,
+  EMPTY_DATA_MART_FORM, type DataMartFormValues, type DataMartRecord,
 } from "./types";
 
 interface BusinessTypeOption extends ModelingRecord {

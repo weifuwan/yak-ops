@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NavigationMenu, type NavigationMenuItem } from "@yak-ops/yak-ui";
 
-import { PlanningIcon } from "../data-modeling/planning/icons";
+import { PlanningIcon } from "../data-modeling/planning/components/icons";
 import { IndicatorIcon } from "../data-modeling/indicators/icons";
 import type { ProductNavigationItem } from "./navigation";
 
