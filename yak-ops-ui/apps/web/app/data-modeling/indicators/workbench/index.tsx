@@ -25,7 +25,7 @@ export type DataIndicatorsWorkbenchProps = { projectCode: string; activeKind: In
 export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicatorsWorkbenchProps) {
   const queryClient = useQueryClient();
   const [dwType, setDwType] = useState("PUBLIC_LAYER");
-  const tabs = useIndicatorTabs({ projectCode });
+  const tabs = useIndicatorTabs({ projectCode, defaultDwType: dwType });
   const [contextMenu, setContextMenu] = useState<IndicatorTreeContextMenuState>(null);
   const [tabContextMenu, setTabContextMenu] = useState<IndicatorTabContextMenuState | null>(null);
   const [contextMenuPortalRoot, setContextMenuPortalRoot] = useState<HTMLElement | null>(null);

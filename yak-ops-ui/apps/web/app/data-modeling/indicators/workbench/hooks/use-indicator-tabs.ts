@@ -8,9 +8,9 @@ import { getDefinition } from "../config/indicator-definitions";
 import type { IndicatorKind, IndicatorMode, IndicatorTab, PendingTabClose } from "../types";
 import { initialFormValues } from "../utils/indicator-form";
 
-type UseIndicatorTabsOptions = { projectCode: string };
+type UseIndicatorTabsOptions = { projectCode: string; defaultDwType: string };
 
-export function useIndicatorTabs({ projectCode }: UseIndicatorTabsOptions) {
+export function useIndicatorTabs({ projectCode, defaultDwType }: UseIndicatorTabsOptions) {
   const queryClient = useQueryClient();
   const [tabs, setTabs] = useState<IndicatorTab[]>([]);
   const [activeTabKey, setActiveTabKey] = useState("");
@@ -25,7 +25,7 @@ export function useIndicatorTabs({ projectCode }: UseIndicatorTabsOptions) {
     const label = mode === "create" ? "新建" + getDefinition(kind).title : mode === "list" ? getDefinition(kind).title + "列表" : String(record?.cnName || record?.enShortName || getDefinition(kind).title);
     const tab: IndicatorTab = {
       key, kind, mode, label, recordId: record?.id ? String(record.id) : undefined, record,
-      draftValues: mode === "create" && kind === "atomIndicator" ? { ...initialFormValues(kind, undefined, getDefinition(kind).fields), dwType } : undefined,
+      draftValues: mode === "create" && kind === "atomIndicator" ? { ...initialFormValues(kind, undefined, getDefinition(kind).fields), dwType: defaultDwType } : undefined,
     };
     setTabs((current) => [...current, tab]);
     setActiveTabKey(key);
