@@ -21,7 +21,8 @@ import org.springframework.beans.BeanWrapperImpl;
  */
 public abstract class AbstractModelingAssetService<
         PO extends ModelingBasePO, D extends ModelingQueryDTO, V extends ModelingBaseVO>
-        extends BaseServiceImpl {
+        extends BaseServiceImpl
+        implements io.yak.ops.modeling.application.service.ModelingCrudService<D, V> {
 
     @Resource
     protected ModelingAssetDao modelingAssetDao;
