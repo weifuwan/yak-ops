@@ -1,4 +1,21 @@
 export const planningQueryKeys = {
+  dataMartTree: (projectCode: string, keyword = "") => ["modeling", "data-mart", "tree", projectCode, keyword] as const,
+  dataMartTreePrefix: (projectCode: string) => ["modeling", "data-mart", "tree", projectCode] as const,
+  dataMartDetail: (projectCode: string, id: string) => ["modeling", "data-mart", "detail", projectCode, id] as const,
+  dataMartDetailPrefix: (projectCode: string) => ["modeling", "data-mart", "detail", projectCode] as const,
+  dataMartChildren: (projectCode: string, id: string, pageNo: number) =>
+    ["modeling", "data-mart", "children", projectCode, id, pageNo] as const,
+  dataMartChildrenPrefix: (projectCode: string) => ["modeling", "data-mart", "children", projectCode] as const,
+  dataMartSubjectDomains: (projectCode: string, id: string, pageNo: number) =>
+    ["modeling", "data-mart", "subject-domains", projectCode, id, pageNo] as const,
+  dataMartSubjectDomainsPrefix: (projectCode: string) =>
+    ["modeling", "data-mart", "subject-domains", projectCode] as const,
+  subjectDomainTreePrefix: (projectCode: string) => ["modeling", "subject-domain", "tree", projectCode] as const,
+  subjectDomainDetail: (projectCode: string, id: string) => ["modeling", "subject-domain", "detail", projectCode, id] as const,
+  subjectDomainDetailPrefix: (projectCode: string) => ["modeling", "subject-domain", "detail", projectCode] as const,
+  subjectDomainChildren: (projectCode: string, id: string, pageNo: number) =>
+    ["modeling", "subject-domain", "children", projectCode, id, pageNo] as const,
+  subjectDomainChildrenPrefix: (projectCode: string) => ["modeling", "subject-domain", "children", projectCode] as const,
   businessTypeTree: (projectCode: string, keyword = "") => ["modeling", "business-type", "tree", projectCode, keyword] as const,
   businessTypeTreePrefix: (projectCode: string) => ["modeling", "business-type", "tree", projectCode] as const,
   businessTypeDetail: (projectCode: string, id: string) => ["modeling", "business-type", "detail", projectCode, id] as const,
