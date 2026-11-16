@@ -52,6 +52,6 @@ For existing installations, apply exactly one matching script before deploying t
 - `20261116_migrate_derivative_indicator_dw_type_postgresql.sql`
 - `20261116_migrate_derivative_indicator_dw_type_h2.sql`
 
-The migration adds `dw_type`, backfills it from the legacy `dwh_id` relation, and infers a layer only when exactly one ownership branch is populated. Conflicting or unsupported legacy rows are returned by the final query for manual review. The migration intentionally retains the old `dwh_id` column until that review is complete. After verifying the migrated rows and taking a backup, remove the obsolete column manually with the dialect-appropriate `ALTER TABLE t_yak_ops_indicator_derivative DROP COLUMN dwh_id` statement.
+The migration adds `dw_type`, backfills it from the legacy `dwh_id` relation, and infers a layer only when exactly one ownership branch is populated. Unmapped, incomplete, conflicting, or unsupported legacy rows are returned by the final query for manual review. The migration intentionally retains the old `dwh_id` column until that review is complete. After verifying the migrated rows and taking a backup, remove the obsolete column manually with the dialect-appropriate `ALTER TABLE t_yak_ops_indicator_derivative DROP COLUMN dwh_id` statement.
 
 Fresh installations use `dw_type` directly and do not create `dwh_id` on the derived-indicator table.

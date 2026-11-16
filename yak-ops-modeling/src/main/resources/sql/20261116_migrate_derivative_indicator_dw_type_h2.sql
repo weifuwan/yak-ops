@@ -27,5 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_8 ON t_yak_ops_indicator
 SELECT id, dwh_id, dw_type, mart_id, subject_id, bus_type_id, domain_id, bus_process_id
 FROM t_yak_ops_indicator_derivative
 WHERE dw_type IS NULL OR dw_type NOT IN ('PUBLIC_LAYER', 'APPLICATION_LAYER')
+   OR (dw_type = 'PUBLIC_LAYER' AND (domain_id IS NULL OR domain_id = '' OR bus_process_id IS NULL OR bus_process_id = ''))
+   OR (dw_type = 'APPLICATION_LAYER' AND (mart_id IS NULL OR mart_id = '' OR subject_id IS NULL OR subject_id = ''))
    OR ((mart_id IS NOT NULL OR subject_id IS NOT NULL)
        AND (bus_type_id IS NOT NULL OR domain_id IS NOT NULL OR bus_process_id IS NOT NULL));
