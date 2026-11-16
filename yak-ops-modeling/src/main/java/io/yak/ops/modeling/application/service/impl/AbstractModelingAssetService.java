@@ -74,7 +74,7 @@ public abstract class AbstractModelingAssetService<
 
     @Override
     public List<V> list(D query) {
-        D actualQuery = query == null ? newQuery() : query;
+        D actualQuery = query == null ? newDto() : query;
         return toViews(modelingAssetDao.queryList(
                 resourceKey(), buildQueryWrapper(actualQuery).orderByDesc("update_time")));
     }
