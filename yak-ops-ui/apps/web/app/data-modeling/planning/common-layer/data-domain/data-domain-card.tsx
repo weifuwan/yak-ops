@@ -1,7 +1,7 @@
 import { Package, SquarePen, Trash2 } from "lucide-react";
 import { Button, Card } from "@yak-ops/yak-ui";
 
-import { isSystemRecord, type DataDomainRecord } from "./types";
+import { isSystemRecord, type DataDomainRecord } from "../types";
 
 interface DataDomainCardProps {
   record: DataDomainRecord;

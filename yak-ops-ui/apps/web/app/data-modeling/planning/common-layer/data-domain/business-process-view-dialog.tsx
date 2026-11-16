@@ -1,6 +1,6 @@
 import { Button, Modal } from "@yak-ops/yak-ui";
 
-import { isSystemBusinessProcess, type BusinessProcessRecord } from "./types";
+import { isSystemBusinessProcess, type BusinessProcessRecord } from "../types";
 
 interface Props {
   record?: BusinessProcessRecord;

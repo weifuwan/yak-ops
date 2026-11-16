@@ -1,4 +1,4 @@
-import type { BusinessProcessRecord } from "../data-domain/types";
+import type { BusinessProcessRecord } from "../types";
 
 export interface BusinessProcessFilters {
   enShortName: string;

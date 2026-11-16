@@ -8,8 +8,9 @@ import { planningQueryKeys } from "../../query-keys";
 import DataDomainCard from "./data-domain-card";
 import DataDomainDetail from "./data-domain-detail";
 import DataDomainFormDialog from "./data-domain-form-dialog";
-import type { DataDomainFormValues, DataDomainRecord } from "./types";
-import { isSystemRecord } from "./types";
+import type { DataDomainRecord } from "../types";
+import { isSystemRecord } from "../types";
+import type { DataDomainFormValues } from "./types";
 
 interface Props { projectCode: string; }
 

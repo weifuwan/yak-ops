@@ -9,14 +9,13 @@ import {
 import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import { planningQueryKeys } from "../../query-keys";
-import type { DataDomainRecord } from "../data-domain/types";
+import type { BusinessProcessRecord, DataDomainRecord } from "../types";
 import { withSelectedOption } from "../../select-options";
-import { isSystemBusinessProcess } from "../data-domain/types";
+import { isSystemBusinessProcess } from "../types";
 import BusinessProcessDetail from "./business-process-detail";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
 import {
-  EMPTY_FILTERS, type BusinessProcessFilters, type BusinessProcessFormValues,
-  type BusinessProcessRecord,
+  EMPTY_FILTERS, type BusinessProcessFilters, type BusinessProcessFormValues
 } from "./types";
 
 interface Props {

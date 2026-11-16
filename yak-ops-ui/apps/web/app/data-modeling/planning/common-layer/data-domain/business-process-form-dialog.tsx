@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button, Field, FieldLabel, Input, Modal, Textarea } from "@yak-ops/yak-ui";
 
-import {
-  EMPTY_BUSINESS_PROCESS_FORM, isSystemBusinessProcess,
-  type BusinessProcessFormValues, type BusinessProcessRecord, type DataDomainRecord,
-} from "./types";
+import { isSystemBusinessProcess, type BusinessProcessRecord, type DataDomainRecord } from "../types";
+import { EMPTY_BUSINESS_PROCESS_FORM, type BusinessProcessFormValues } from "./types";
 
 interface Props {
   open: boolean;

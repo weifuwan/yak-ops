@@ -9,8 +9,9 @@ import { businessProcessApi } from "@/service/data-modeling/planning/common-laye
 import { planningQueryKeys } from "../../query-keys";
 import BusinessProcessFormDialog from "./business-process-form-dialog";
 import BusinessProcessViewDialog from "./business-process-view-dialog";
-import type { BusinessProcessFormValues, BusinessProcessRecord, DataDomainRecord } from "./types";
-import { isSystemBusinessProcess } from "./types";
+import type { BusinessProcessRecord, DataDomainRecord } from "../types";
+import { isSystemBusinessProcess } from "../types";
+import type { BusinessProcessFormValues } from "./types";
 
 interface Props {
   projectCode: string;

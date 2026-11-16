@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button, Field, FieldLabel, Input, Modal, Textarea } from "@yak-ops/yak-ui";
 
-import { EMPTY_DATA_DOMAIN_FORM, isSystemRecord, type DataDomainFormValues, type DataDomainRecord } from "./types";
+import { isSystemRecord, type DataDomainRecord } from "../types";
+import { EMPTY_DATA_DOMAIN_FORM, type DataDomainFormValues } from "./types";
 
 interface Props {
   open: boolean;
