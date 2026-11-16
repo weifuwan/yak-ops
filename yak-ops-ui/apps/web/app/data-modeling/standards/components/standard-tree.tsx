@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import {
-  ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Layers, LoaderCircle,
-  Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
-} from "lucide-react";
-import { Button, Input } from "@yak-ops/yak-ui";
+import { FileText, Layers, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Button, Input, Skeleton } from "@yak-ops/yak-ui";
 
 import type { StandardModule, StandardTreeNode } from "../types";
 import { isDirectoryNode } from "../types";
@@ -54,6 +51,67 @@ export function findNodePath(nodes: StandardTreeNode[], key: string, path: strin
   return [];
 }
 
+function ExpandArrowIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 1024 1024"
+      width="8"
+      height="8"
+      aria-hidden="true"
+      fill="currentColor"
+      className={[
+        "shrink-0 transition-transform duration-150 ease-out motion-reduce:transition-none",
+        expanded ? "rotate-90" : "rotate-0",
+      ].join(" ")}
+    >
+      <path d="M215.578947 0v1024l592.842106-512L215.578947 0z" />
+    </svg>
+  );
+}
+
+function FolderIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 1024 1024"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+    >
+      <path d="M42.688 106.688H404.48l85.376 106.624h491.52V896H42.624V106.688zM128 192v181.312h768V298.688H448.832L363.52 192H128z m768 266.688H128v352h768v-352z" />
+    </svg>
+  );
+}
+
+function StandardTreeSkeleton() {
+  const rows = [
+    { depth: 0, width: 92 },
+    { depth: 1, width: 116 },
+    { depth: 1, width: 84 },
+    { depth: 2, width: 76 },
+    { depth: 2, width: 104 },
+    { depth: 1, width: 112 },
+  ];
+
+  return (
+    <div role="status" aria-label="正在加载目录" className="flex flex-col gap-1 px-2 py-2">
+      <span className="sr-only">正在加载目录...</span>
+      {rows.map((row, index) => (
+        <div
+          key={index}
+          className="flex min-h-8 items-center gap-1"
+          style={{ paddingLeft: row.depth * 24 }}
+        >
+          <Skeleton width={8} height={8} className="rounded-[2px]" />
+          <Skeleton width={14} height={14} className="rounded-sm" />
+          <Skeleton width={row.width} height={10} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TreeNodeRow({
   node, depth, selectedKey, expandedKeys, onToggle, onSelect, onContextMenu,
 }: {
@@ -65,6 +123,7 @@ function TreeNodeRow({
   const expanded = expandedKeys.has(node.key);
   const selected = selectedKey === node.key;
   const directory = isDirectoryNode(node);
+
   return (
     <div>
       <div
@@ -73,30 +132,36 @@ function TreeNodeRow({
         aria-expanded={hasChildren ? expanded : undefined}
         onContextMenu={(event) => onContextMenu(event, node)}
         onClick={() => onSelect(node)}
-        style={{ paddingLeft: 10 + depth * 18 }}
         className={[
-          "flex min-h-8 cursor-pointer items-center gap-1 rounded-md pr-2 text-[13px] transition-colors",
+          "group flex min-h-8 w-full items-center gap-1 rounded-none px-0 text-left text-xs leading-6 transition-colors",
           selected
-            ? "bg-[var(--yak-color-primary-subtle)] font-medium text-[var(--yak-color-primary)]"
-            : "text-[#3a3d51] hover:bg-[var(--yak-color-hover)]",
+            ? "bg-[#DFE7FF] text-[var(--yak-components-panel-text)]"
+            : "text-[var(--yak-components-panel-text)] hover:bg-[var(--yak-color-hover)]",
         ].join(" ")}
+        style={{ paddingLeft: depth * 24, boxShadow: "0 0 0 0.5px #eceff780" }}
       >
         <button
           type="button"
-          className="flex size-4 shrink-0 cursor-pointer items-center justify-center text-[#98a0aa]"
+          className="flex size-4 shrink-0 cursor-pointer items-center justify-center text-[var(--yak-components-muted-text)]"
           aria-label={hasChildren ? (expanded ? "收起" : "展开") : "无子级"}
           onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(node.key); }}
         >
-          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
+          {hasChildren ? <ExpandArrowIcon expanded={expanded} /> : null}
         </button>
-        {node.type === "FOLDER"
-          ? (expanded ? <FolderOpen size={14} className="shrink-0 text-[#8b929e]" /> : <Folder size={14} className="shrink-0 text-[#8b929e]" />)
+        {node.type === "FOLDER" || node.type === "STANDARD"
+          ? <FolderIcon className="shrink-0 text-[var(--yak-components-muted-text)]" />
           : node.type === "STANDARD_SET"
-            ? <Layers size={14} className="shrink-0 text-[#8b929e]" />
-            : <FileText size={14} className="shrink-0 text-[#8b929e]" />}
+            ? <Layers size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
+            : <FileText size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />}
         <span className="min-w-0 flex-1 truncate">{node.title}</span>
-        {node.type === "STANDARD_SET" ? <span className="text-[10px] text-[#98a0aa]">标准集</span> : null}
-        {!directory ? <span className="text-[10px] text-[#98a0aa]">{node.type === "FIELD_STANDARD" ? "字段" : node.type === "CODE_STANDARD" ? "代码" : node.type === "UNIT_STANDARD" ? "单位" : ""}</span> : null}
+        {node.type === "STANDARD_SET" ? (
+          <span className="shrink-0 text-[10px] text-[var(--yak-components-muted-text)]">标准集</span>
+        ) : null}
+        {!directory ? (
+          <span className="shrink-0 text-[10px] text-[var(--yak-components-muted-text)]">
+            {node.type === "FIELD_STANDARD" ? "字段" : node.type === "CODE_STANDARD" ? "代码" : node.type === "UNIT_STANDARD" ? "单位" : ""}
+          </span>
+        ) : null}
       </div>
       {hasChildren && expanded ? (
         <div role="group">
@@ -149,20 +214,20 @@ export function DirectoryStandardsTree({
   return (
     <aside ref={treeRef} className="relative flex min-h-0 shrink-0 flex-col overflow-hidden bg-white"
       style={{ width }} onClick={() => contextMenu && setContextMenu(undefined)}>
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3">
+      <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
         <span className="truncate text-sm font-semibold text-[var(--yak-components-panel-text)]">{title}</span>
-        <div className="flex items-center gap-1">
-          <button type="button" title={"新建" + title + "目录"}
-            className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
-            onClick={onCreateRoot}><PlusSquare size={16} /></button>
-          <button type="button" title="刷新"
-            className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
-            onClick={onRefresh}><RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /></button>
+        <div className="flex items-center gap-0.5">
+          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title={"新建" + title + "目录"} onClick={onCreateRoot}>
+            <Plus size={14} />
+          </Button>
+          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="刷新" isDisabled={refreshing} onClick={onRefresh}>
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+          </Button>
         </div>
       </div>
-      <div className="shrink-0 px-3 py-2">
+      <div className="shrink-0 px-3 pb-2">
         <div className="relative">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
+          <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
           <Input size="small" variant="outlined" value={keyword} className="pl-8 pr-8"
             placeholder="搜索" onValueChange={(value) => onKeywordChange(String(value))} />
           {keyword ? <button type="button" aria-label="清空搜索"
@@ -170,17 +235,16 @@ export function DirectoryStandardsTree({
             onClick={() => onKeywordChange("")}><X size={13} /></button> : null}
         </div>
       </div>
-      <div role="tree" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div role="tree" className="min-h-0 flex-1 overflow-y-auto pb-3">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
-            <LoaderCircle size={14} className="animate-spin" />正在加载目录...
-          </div>
+          <StandardTreeSkeleton />
         ) : error ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
-            <span>目录加载失败</span><Button size="sm" variant="secondary" onClick={onRetry}>重试</Button>
+          <div className="flex items-center gap-1.5 px-2 py-2 text-xs text-[var(--yak-components-muted-text)]">
+            <span>{treeRows.length ? "目录刷新失败，当前展示上次数据。" : "目录加载失败。"}</span>
+            <Button size="sm" variant="secondary" onClick={onRetry}>重试</Button>
           </div>
         ) : treeRows.length ? (
-          <div className="space-y-0.5">
+          <div className="flex flex-col">
             {treeRows.map((node) => (
               <TreeNodeRow key={node.key} node={node} depth={0}
                 selectedKey={selectedNode?.key || ""} expandedKeys={expandedKeys}
@@ -192,7 +256,7 @@ export function DirectoryStandardsTree({
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
+          <div className="px-2 py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
             {keyword ? "没有匹配的目录" : "暂无目录，点击上方按钮新建"}
           </div>
         )}
