@@ -23,7 +23,7 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
   const [activeTabKey, setActiveTabKey] = useState("");
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
 
-  const openTab = (mode: DimensionTab["mode"], record?: DimensionTableRecord, tabDwType = tree.dwType) => {
+  const openTab = (mode: DimensionTab["mode"], record?: DimensionTableRecord, tabDwType: string = tree.dwType) => {
     const existing = tabs.find((tab) => {
       if (mode === "create" || mode === "list") return tab.mode === mode && tab.dwType === tabDwType;
       return tab.mode === "edit" && String(tab.record?.id || "") === String(record?.id || "");
