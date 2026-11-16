@@ -23,6 +23,15 @@ export type IndicatorField = {
   excludeOptionValues?: string[];
 };
 export type IndicatorColumn = { key: string; title: string; width?: number };
+export type IndicatorColumnFormat = "indicatorName" | "status" | "dwType" | "computeMode" | "modifierType" | "relation";
+export type IndicatorListFilterKey = "businessTypeId" | "domainId" | "categoryId";
+export type IndicatorListFilter = {
+  key: IndicatorListFilterKey;
+  paramKey: string;
+  label: string;
+  optionsSource: IndicatorOptionResource;
+  optionLabelField?: string;
+};
 export type IndicatorDefinition = {
   key: IndicatorKind;
   title: string;
@@ -30,6 +39,9 @@ export type IndicatorDefinition = {
   fields: IndicatorField[];
   columns: IndicatorColumn[];
   versioned: boolean;
+  listFilters?: IndicatorListFilter[];
+  filterByDwType?: boolean;
+  columnFormats?: Record<string, IndicatorColumnFormat>;
 };
 
 export type IndicatorTab = {

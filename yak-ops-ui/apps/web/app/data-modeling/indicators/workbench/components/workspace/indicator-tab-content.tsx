@@ -5,7 +5,6 @@ import type {
   IndicatorDefinition,
   IndicatorEditorFieldsProps,
   IndicatorKind,
-  IndicatorOptionResource,
   IndicatorTab,
 } from "../../types";
 import { useIndicatorResources } from "../../hooks/use-indicator-resources";

@@ -4,6 +4,11 @@ export const DERIVATIVE_INDICATOR_DEFINITION: IndicatorDefinition = {
     key: "derivativeIndicator",
     title: "派生指标",
     description: "基于原子指标、时间周期和业务修饰词组合形成派生指标。",
+    listFilters: [
+      { key: "businessTypeId", paramKey: "busTypeId", label: "全部业务分类", optionsSource: "businessType", optionLabelField: "businessName" },
+      { key: "domainId", paramKey: "domainId", label: "全部数据域", optionsSource: "dataDomain" },
+    ],
+    columnFormats: { cnName: "indicatorName", submit: "status" },
     versioned: true,
     fields: [
       { key: "atomicId", label: "原子指标", section: "指标定义", required: true, optionsSource: "atomIndicator" },

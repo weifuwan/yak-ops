@@ -5,6 +5,12 @@ export const ATOM_INDICATOR_DEFINITION: IndicatorDefinition = {
     key: "atomIndicator",
     title: "原子指标",
     description: "原子指标是最小、不可再拆分的业务度量，负责沉淀统一的业务口径与计算逻辑。",
+    listFilters: [
+      { key: "businessTypeId", paramKey: "busTypeId", label: "全部业务分类", optionsSource: "businessType", optionLabelField: "businessName" },
+      { key: "domainId", paramKey: "domainId", label: "全部数据域", optionsSource: "dataDomain" },
+    ],
+    filterByDwType: true,
+    columnFormats: { cnName: "indicatorName", submit: "status", dwType: "dwType" },
     versioned: true,
     fields: [
       { key: "enShortName", label: "英文缩写", section: "基本信息", required: true, readOnly: true, placeholder: "创建后作为指标唯一标识" },

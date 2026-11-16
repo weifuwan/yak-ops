@@ -4,6 +4,11 @@ export const COMPOSITE_INDICATOR_DEFINITION: IndicatorDefinition = {
     key: "composeIndicator",
     title: "复合指标",
     description: "基于派生指标和计算表达式构建复合指标，支持计算表达式及同环比模式。",
+    listFilters: [
+      { key: "businessTypeId", paramKey: "busTypeId", label: "全部业务分类", optionsSource: "businessType", optionLabelField: "businessName" },
+      { key: "domainId", paramKey: "domainId", label: "全部数据域", optionsSource: "dataDomain" },
+    ],
+    columnFormats: { cnName: "indicatorName", submit: "status", computeMode: "computeMode" },
     versioned: true,
     fields: [
       { key: "deriveId", label: "关联派生指标", section: "指标定义", optionsSource: "derivativeIndicator" },

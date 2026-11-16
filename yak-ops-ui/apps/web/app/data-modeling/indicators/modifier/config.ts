@@ -4,6 +4,12 @@ export const MODIFIER_DEFINITION: IndicatorDefinition = {
     key: "modifier",
     title: "修饰词",
     description: "维护普通业务修饰词和维度枚举修饰词，支持关联数仓分层、业务分类、数据域及维度标准。",
+    listFilters: [
+      { key: "businessTypeId", paramKey: "busTypeId", label: "全部业务分类", optionsSource: "businessType", optionLabelField: "businessName" },
+      { key: "domainId", paramKey: "domainId", label: "全部数据域", optionsSource: "dataDomain" },
+    ],
+    filterByDwType: true,
+    columnFormats: { cnName: "indicatorName", submit: "status", modifierType: "modifierType" },
     versioned: true,
     fields: [
       { key: "modifierType", label: "修饰词类型", section: "基本信息", required: true, options: [

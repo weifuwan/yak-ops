@@ -1,9 +1,8 @@
 import { IndicatorSidebar } from "../workbench/components/sidebar/indicator-sidebar";
 import { IndicatorTabContent, type IndicatorTabContentProps } from "../workbench/components/workspace/indicator-tab-content";
 import { ModifierEditorFields } from "../workbench/components/workspace/modifier-editor-fields";
-import type { IndicatorEditorFieldsProps } from "../workbench/types";
 import { useModifierIndicatorTree } from "./hooks/use-modifier-indicator-tree";
-import type { IndicatorPageProps } from "../workbench/types";
+import type { IndicatorEditorFieldsProps, IndicatorPageProps } from "../workbench/types";
 import { MODIFIER_DEFINITION } from "./config";
 
 export function ModifierPage(props: IndicatorPageProps) {

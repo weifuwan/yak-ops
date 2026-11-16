@@ -9,7 +9,12 @@ import { RefreshCw, Search } from "lucide-react";
 import { getIndicatorApi } from "@/service/data-modeling/indicators";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { DW_TYPE_OPTIONS, PAGE_SIZE_OPTIONS, RELATION_FIELDS } from "../../config/indicator-definitions";
-import type { IndicatorDefinition, IndicatorFieldOption, IndicatorOptionResource } from "../../types";
+import type {
+  IndicatorDefinition,
+  IndicatorFieldOption,
+  IndicatorListFilterKey,
+  IndicatorOptionResource,
+} from "../../types";
 import { recordName, selectOptionLabel } from "../../utils/indicator-form";
 
 type IndicatorListTabProps = {
@@ -19,6 +24,12 @@ type IndicatorListTabProps = {
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   onEdit: (record: ModelingRecord) => void;
   onDelete: (record: ModelingRecord) => void;
+};
+
+const EMPTY_FILTERS: Record<IndicatorListFilterKey, string> = {
+  businessTypeId: "",
+  domainId: "",
+  categoryId: "",
 };
 
 export function IndicatorList({
@@ -31,15 +42,11 @@ export function IndicatorList({
 }: IndicatorListTabProps) {
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("all");
-  const [businessTypeId, setBusinessTypeId] = useState("");
-  const [domainId, setDomainId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
   const [applied, setApplied] = useState({
     keyword: "",
     status: "all",
-    businessTypeId: "",
-    domainId: "",
-    categoryId: "",
+    filters: { ...EMPTY_FILTERS },
   });
   const [pageNo, setPageNo] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -53,7 +60,7 @@ export function IndicatorList({
       pageNo,
       pageSize,
       JSON.stringify(applied),
-      definition.key === "atomIndicator" || definition.key === "modifier" ? dwType : "all",
+      definition.filterByDwType ? dwType : "all",
     ],
     queryFn: () => {
       const params: Record<string, unknown> = {
@@ -61,11 +68,12 @@ export function IndicatorList({
         pageSize,
         keyword: applied.keyword || undefined,
       };
-      if (definition.key === "atomIndicator" || definition.key === "modifier") params.dwType = dwType;
+      if (definition.filterByDwType) params.dwType = dwType;
       if (applied.status !== "all") params.submit = applied.status;
-      if (applied.businessTypeId) params.busTypeId = applied.businessTypeId;
-      if (applied.domainId) params.domainId = applied.domainId;
-      if (applied.categoryId) params.categoryId = applied.categoryId;
+      (definition.listFilters || []).forEach((filter) => {
+        const value = applied.filters[filter.key];
+        if (value) params[filter.paramKey] = value;
+      });
       return getIndicatorApi(definition.key).page<ModelingRecord>(projectCode, params);
     },
     enabled: Boolean(projectCode),
@@ -80,7 +88,13 @@ export function IndicatorList({
   };
 
   const columns: TableColumns<ModelingRecord> = [
-    { key: "sequence", title: "序号", width: 64, align: "center", render: (_value, _record, index) => String((pageNo - 1) * pageSize + index + 1).padStart(2, "0") },
+    {
+      key: "sequence",
+      title: "序号",
+      width: 64,
+      align: "center",
+      render: (_value, _record, index) => String((pageNo - 1) * pageSize + index + 1).padStart(2, "0"),
+    },
     ...definition.columns.map((column) => ({
       key: column.key,
       title: column.title,
@@ -88,7 +102,9 @@ export function IndicatorList({
       width: column.width,
       ellipsis: true,
       render: (value: unknown, record: ModelingRecord) => {
-        if (column.key === "cnName") {
+        const format = definition.columnFormats?.[column.key]
+          || (RELATION_FIELDS[column.key] ? "relation" : undefined);
+        if (format === "indicatorName") {
           return (
             <div className="min-w-0 leading-5">
               <div className="truncate text-xs text-[var(--yak-components-panel-text)]">{String(record.enName || "-")}</div>
@@ -96,7 +112,7 @@ export function IndicatorList({
             </div>
           );
         }
-        if (column.key === "submit") {
+        if (format === "status") {
           const submitted = record.submit === true || record.submit === "true";
           return (
             <span className={submitted
@@ -106,13 +122,21 @@ export function IndicatorList({
             </span>
           );
         }
-        if (column.key === "dwType") return DW_TYPE_OPTIONS.find((option) => option.value === String(value))?.label || "-";
-        if (column.key === "computeMode") return String(value) === "1" ? "同环比" : "计算表达式";
-        if (column.key === "modifierType") return String(value) === "DIMENSION" ? "维度枚举" : "普通业务";
-        return relationLabel(column.key, value);
+        if (format === "dwType") {
+          return DW_TYPE_OPTIONS.find((option) => option.value === String(value))?.label || "-";
+        }
+        if (format === "computeMode") return String(value) === "1" ? "同环比" : "计算表达式";
+        if (format === "modifierType") return String(value) === "DIMENSION" ? "维度枚举" : "普通业务";
+        if (format === "relation") return relationLabel(column.key, value);
+        return value === undefined || value === null || value === "" ? "-" : String(value);
       },
     })),
-    { key: "updateTime", title: "最近修改时间", width: 170, render: (_value, record) => String(record.updateTime || "-") },
+    {
+      key: "updateTime",
+      title: "最近修改时间",
+      width: 170,
+      render: (_value, record) => String(record.updateTime || "-"),
+    },
     {
       key: "actions",
       title: "操作",
@@ -130,41 +154,36 @@ export function IndicatorList({
 
   const applySearch = () => {
     setPageNo(1);
-    setApplied({ keyword, status, businessTypeId, domainId, categoryId });
+    setApplied({ keyword, status, filters: { ...filters } });
   };
 
   const resetSearch = () => {
+    const emptyFilters = { ...EMPTY_FILTERS };
     setKeyword("");
     setStatus("all");
-    setBusinessTypeId("");
-    setDomainId("");
-    setCategoryId("");
+    setFilters(emptyFilters);
     setPageNo(1);
-    setApplied({ keyword: "", status: "all", businessTypeId: "", domainId: "", categoryId: "" });
+    setApplied({ keyword: "", status: "all", filters: emptyFilters });
   };
 
-  const filterOptions = (resource: IndicatorOptionResource, labelField?: string): IndicatorFieldOption[] =>
-    (optionsByResource[resource] || []).map((record) => ({
+  const updateFilter = (key: IndicatorListFilterKey, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const filterOptions = (
+    resource: IndicatorOptionResource,
+    labelField?: string,
+  ): IndicatorFieldOption[] => (optionsByResource[resource] || [])
+    .map((record) => ({
       value: String(record.id || ""),
       label: String(record[labelField || "cnName"] || recordName(record)),
-    })).filter((option) => option.value);
+    }))
+    .filter((option) => option.value);
 
   const statusOptions: IndicatorFieldOption[] = [
     { value: "all", label: "全部状态" },
     { value: "true", label: "已提交" },
     { value: "false", label: "草稿" },
-  ];
-  const categoryOptions: IndicatorFieldOption[] = [
-    { value: "all", label: "全部周期" },
-    ...filterOptions("timePeriodCategory"),
-  ];
-  const businessTypeOptions: IndicatorFieldOption[] = [
-    { value: "all", label: "全部业务分类" },
-    ...filterOptions("businessType", "businessName"),
-  ];
-  const domainOptions: IndicatorFieldOption[] = [
-    { value: "all", label: "全部数据域" },
-    ...filterOptions("dataDomain"),
   ];
 
   return (
@@ -198,53 +217,34 @@ export function IndicatorList({
             </SelectContent>
           </Select>
         </div>
-        {definition.key === "timePeriod" ? (
-          <div className="w-40">
-            <Select value={categoryId || "all"} size="small" onValueChange={(value) => setCategoryId(value === "all" ? "" : String(value))}>
-              <SelectTrigger variant="outlined">
-                <SelectValue placeholder="周期粒度">
-                  {(value) => selectOptionLabel(categoryOptions, value, "周期粒度")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText></SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : (
-          <>
-            <div className="w-36">
-              <Select value={businessTypeId || "all"} size="small" onValueChange={(value) => setBusinessTypeId(value === "all" ? "" : String(value))}>
+        {(definition.listFilters || []).map((filter) => {
+          const options: IndicatorFieldOption[] = [
+            { value: "all", label: filter.label },
+            ...filterOptions(filter.optionsSource, filter.optionLabelField),
+          ];
+          return (
+            <div key={filter.key} className="w-36">
+              <Select
+                size="small"
+                value={filters[filter.key] || "all"}
+                onValueChange={(value) => updateFilter(filter.key, value === "all" ? "" : String(value || ""))}
+              >
                 <SelectTrigger variant="outlined">
-                  <SelectValue placeholder="业务分类">
-                    {(value) => selectOptionLabel(businessTypeOptions, value, "业务分类")}
+                  <SelectValue placeholder={filter.label}>
+                    {(value) => selectOptionLabel(options, value, filter.label)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {businessTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText></SelectItem>
+                  {options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <SelectItemText>{option.label}</SelectItemText><SelectItemIndicator />
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-36">
-              <Select value={domainId || "all"} size="small" onValueChange={(value) => setDomainId(value === "all" ? "" : String(value))}>
-                <SelectTrigger variant="outlined">
-                  <SelectValue placeholder="数据域">
-                    {(value) => selectOptionLabel(domainOptions, value, "数据域")}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {domainOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}><SelectItemText>{option.label}</SelectItemText></SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        )}
+          );
+        })}
         <Button size="sm" variant="primary" onClick={applySearch}><Search size={13} />查询</Button>
         <Button size="sm" variant="secondary" onClick={resetSearch}>重置</Button>
         <Button size="sm" variant="secondary" isDisabled={pageQuery.isFetching} onClick={() => void pageQuery.refetch()}>

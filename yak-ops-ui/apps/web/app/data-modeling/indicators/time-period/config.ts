@@ -4,6 +4,10 @@ export const TIME_PERIOD_DEFINITION: IndicatorDefinition = {
     key: "timePeriod",
     title: "时间周期",
     description: "维护时间周期定义，按周期目录组织，并支持提交、历史版本和回滚。",
+    listFilters: [
+      { key: "categoryId", paramKey: "categoryId", label: "全部周期", optionsSource: "timePeriodCategory" },
+    ],
+    columnFormats: { cnName: "indicatorName", submit: "status" },
     versioned: true,
     fields: [
       { key: "categoryId", label: "周期粒度", section: "基本信息", required: true, optionsSource: "timePeriodCategory" },
