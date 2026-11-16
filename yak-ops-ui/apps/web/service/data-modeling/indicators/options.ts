@@ -4,7 +4,7 @@ import { dataMartApi } from "../planning/application-layer/data-mart";
 import { subjectDomainApi } from "../planning/application-layer/subject-domain";
 import { businessTypeApi } from "../planning/business-type";
 import { dwLayerApi } from "../planning/dw-layer";
-import { codeDetailApi, codeStandardApi } from "../standards/code-standard";
+import { codeStandardApi } from "../standards/code-standard";
 import { unitStandardApi } from "../standards/unit-standard";
 import { atomIndicatorApi } from "./atom-indicator";
 import { derivativeIndicatorApi } from "./derivative-indicator";
@@ -39,8 +39,6 @@ export async function getIndicatorOptionRecords(
       return derivativeIndicatorApi.all<ModelingRecord>(projectCode);
     case "codeStandard":
       return codeStandardApi.all<ModelingRecord>(projectCode);
-    case "codeDetail":
-      return codeDetailApi.all<ModelingRecord>(projectCode);
     case "timePeriodCategory":
       return timePeriodCategoryApi.all<ModelingRecord>(projectCode);
     default:
