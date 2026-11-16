@@ -30,7 +30,16 @@ public abstract class AbstractVersionedModelingAssetService<
     protected void beforeSubmit(D dto, PO current) {
     }
 
-    protected void beforeRollback(D dto, PO snapshot) {
+    protected void validateRollback(D dto, PO snapshot) {
+    }
+
+    @Override
+    protected void afterDelete(PO deleted) {
+        modelingAssetDao.deleteByWrapper(
+                "version-management",
+                new QueryWrapper<VersionManagementPO>()
+                        .eq("source_table_id", deleted.getId())
+                        .eq("version_type", versionType()));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -82,8 +91,7 @@ public abstract class AbstractVersionedModelingAssetService<
             PO snapshot = objectMapper.readValue(version.getVersionData(), entityClass());
             D dto = newDto();
             BeanUtils.copyProperties(snapshot, dto);
-            validate(dto);
-            beforeRollback(dto, snapshot);
+            validateRollback(dto, snapshot);
             snapshot.setId(id);
             snapshot.setProjectCode(null);
             snapshot.initUpdate();

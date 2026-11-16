@@ -210,8 +210,9 @@ public class StandardDirectoryServiceImpl
     }
 
     private void ensureDefaultUnitDirectories() {
-        if (modelingAssetDao.queryCount("standard-directory",
-                new QueryWrapper<StandardDirectoryPO>().eq("dir_module", "UNIT")) > 0) {
+        Long count = modelingAssetDao.queryCount("standard-directory",
+                new QueryWrapper<StandardDirectoryPO>().eq("dir_module", "UNIT"));
+        if (count != null && count.longValue() > 0) {
             return;
         }
         for (String name : new String[]{"货币单位", "对象量词", "比例单位", "排名单位", "时间单位"}) {

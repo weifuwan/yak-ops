@@ -56,20 +56,23 @@ public class AtomIndicatorServiceImpl
     @Override
     protected void validate(AtomIndicatorDTO dto) {
         requireFields(dto, "cnName", "enShortName", "businessCaliber", "director");
-        if (dto.getDwType() == null) {
-            dto.setDwType(DwTypeEnum.PUBLIC_LAYER);
-        }
         validateUniqueFields(resourceKey(), dto, dto.getId());
         validateOptionalReference("unit-standard", dto.getUnitId(), "度量单位不存在");
     }
 
     @Override
     protected void beforeCreate(AtomIndicatorDTO dto) {
+        if (dto.getDwType() == null) {
+            dto.setDwType(DwTypeEnum.PUBLIC_LAYER);
+        }
         dto.setSubmit(Boolean.FALSE);
     }
 
     @Override
     protected void beforeUpdate(AtomIndicatorDTO dto, AtomIndicatorPO existing) {
+        if (dto.getDwType() == null) {
+            dto.setDwType(existing.getDwType() == null ? DwTypeEnum.PUBLIC_LAYER : existing.getDwType());
+        }
         dto.setSubmit(Boolean.FALSE);
     }
 

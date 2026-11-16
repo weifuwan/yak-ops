@@ -110,7 +110,14 @@ public class ModifierServiceImpl
     protected void beforeSubmit(ModifierDTO dto, ModifierPO current) {
         if ("DIMENSION".equals(text(dto.getModifierType()).toUpperCase(Locale.ROOT))) {
             requireFields(dto, "dimensionTbId", "dimensionFdId", "codeId", "codeDetailId");
+            current.setCodeId(dto.getCodeId());
         }
+    }
+
+    @Override
+    protected void validateRollback(ModifierDTO dto, ModifierPO snapshot) {
+        validate(dto);
+        snapshot.setCodeId(dto.getCodeId());
     }
 
     @Override

@@ -233,8 +233,9 @@ public class TimePeriodServiceImpl
     }
 
     private void ensureDefaultTimePeriodCategories() {
-        if (modelingAssetDao.queryCount("time-period-category",
-                new QueryWrapper<TimePeriodCategoryPO>()) > 0) {
+        Long categoryCount = modelingAssetDao.queryCount(
+                "time-period-category", new QueryWrapper<TimePeriodCategoryPO>());
+        if (categoryCount != null && categoryCount.longValue() > 0) {
             return;
         }
         TimePeriodCategoryPO root = new TimePeriodCategoryPO();
@@ -264,7 +265,8 @@ public class TimePeriodServiceImpl
 
     private void ensureDefaultTimePeriods() {
         ensureDefaultTimePeriodCategories();
-        if (modelingAssetDao.queryCount("time-period", new QueryWrapper<TimePeriodPO>()) > 0) {
+        Long periodCount = modelingAssetDao.queryCount("time-period", new QueryWrapper<TimePeriodPO>());
+        if (periodCount != null && periodCount.longValue() > 0) {
             return;
         }
         Map<String, String> categoryIds = new HashMap<String, String>();
