@@ -162,7 +162,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
         await dataMartApi.remove(projectCode, pendingDelete.record.id);
         toast.success("数据集市已删除");
         if (selectedId === pendingDelete.record.id) setSelectedId("");
-        await queryClient.invalidateQueries({ queryKey: ["modeling", "data-mart", "tree", projectCode] });
+        await queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataMartTreePrefix(projectCode) });
         await queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataMartChildrenPrefix(projectCode) });
         await queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataMartAll(projectCode) });
         await queryClient.invalidateQueries({ queryKey: planningQueryKeys.subjectDomainTreePrefix(projectCode) });
