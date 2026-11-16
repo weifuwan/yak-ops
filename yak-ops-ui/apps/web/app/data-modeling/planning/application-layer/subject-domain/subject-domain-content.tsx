@@ -8,13 +8,15 @@ import {
   Button, Input, Modal, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingSubjectDomainApi, modelingQueryKeys } from "../../service";
+import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
+import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
+import { planningQueryKeys } from "../../query-keys";
 import {
   getSubjectDomainId, type DataMartOption, type SubjectDomainRecord,
   type SubjectDomainTreeNode, type SubjectDomainFormValues,
 } from "./types";
-import { SubjectDomainFormDialog } from "./subject-domain-form-dialog";
-import { PlanningIcon } from "../icons";
+import { SubjectDomainFormDialog } from "../components/subject-domain-form-dialog";
+import { PlanningIcon } from "../../components/icons";
 
 interface Props { projectCode: string; }
 interface ContextMenuState { x: number; y: number; node: SubjectDomainTreeNode; }
@@ -122,7 +124,7 @@ function SubjectDomainDetail({
   const pageSize = 10;
   const childrenQuery = useQuery({
     queryKey: ["modeling", "subject-domain", "children", projectCode, record.id, pageNo],
-    queryFn: () => modelingEntityApi.page<SubjectDomainRecord>(projectCode, "subjectDomain", {
+    queryFn: () => subjectDomainApi.page<SubjectDomainRecord>(projectCode, {
       id: record.id, dataMartId: record.dataMartId, pageNo, pageSize,
     }),
     enabled: Boolean(projectCode && record.id),
@@ -208,18 +210,18 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
   const [deleting, setDeleting] = useState(false);
 
   const treeQuery = useQuery({
-    queryKey: modelingQueryKeys.subjectDomainTree(projectCode),
-    queryFn: () => modelingSubjectDomainApi.tree(projectCode),
+    queryKey: planningQueryKeys.subjectDomainTree(projectCode),
+    queryFn: () => subjectDomainApi.tree(projectCode),
     enabled: Boolean(projectCode),
   });
   const dataMartsQuery = useQuery({
-    queryKey: modelingQueryKeys.dataMartAll(projectCode),
-    queryFn: () => modelingEntityApi.all<DataMartOption>(projectCode, "dataMart"),
+    queryKey: planningQueryKeys.dataMartAll(projectCode),
+    queryFn: () => dataMartApi.all<DataMartOption>(projectCode),
     enabled: Boolean(projectCode),
   });
   const detailQuery = useQuery({
     queryKey: ["modeling", "subject-domain", "detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<SubjectDomainRecord>(projectCode, "subjectDomain", selectedId),
+    queryFn: () => subjectDomainApi.getById<SubjectDomainRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId && selectedType === "SUBJECT"),
   });
 
@@ -264,7 +266,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     if (!parentId || openingId) return;
     setOpeningId(parentId);
     try {
-      const parent = await modelingEntityApi.getById<SubjectDomainRecord>(projectCode, "subjectDomain", parentId);
+      const parent = await subjectDomainApi.getById<SubjectDomainRecord>(projectCode, parentId);
       openCreate(parentId, parent.dataMartId, parent.dataMartName);
     } catch {
       toast.warning("获取上级主题域失败，请刷新目录后重试");
@@ -277,7 +279,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     if (!id || openingId) return;
     setOpeningId(id);
     try {
-      const record = await modelingEntityApi.getById<SubjectDomainRecord>(projectCode, "subjectDomain", id);
+      const record = await subjectDomainApi.getById<SubjectDomainRecord>(projectCode, id);
       setEditing(record);
       setFormParentId(record.parentId || undefined);
       setInheritedDataMartId(record.dataMartId || undefined);
@@ -305,10 +307,10 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
       }
       if (editing?.parentId) payload.dataMartId = editing.dataMartId || inheritedDataMartId || values.dataMartId;
       if (editing?.id) {
-        await modelingEntityApi.update(projectCode, "subjectDomain", payload);
+        await subjectDomainApi.update(projectCode, payload);
         toast.success("主题域已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "subjectDomain", payload);
+        await subjectDomainApi.create(projectCode, payload);
         toast.success("主题域已创建");
       }
       setFormOpen(false);
@@ -330,7 +332,7 @@ export function DataModelingSubjectDomainPage({ projectCode }: Props) {
     if (!pendingDelete?.id || deleting) return;
     setDeleting(true);
     try {
-      await modelingEntityApi.remove(projectCode, "subjectDomain", pendingDelete.id);
+      await subjectDomainApi.remove(projectCode, pendingDelete.id);
       toast.success("主题域已删除");
       if (selectedId === pendingDelete.id) {
         setSelectedId("");

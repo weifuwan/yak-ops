@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Plus } from "lucide-react";
 import { Button, Modal, toast } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingQueryKeys } from "@/app/data-modeling/service";
+import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
+import { planningQueryKeys } from "../../query-keys";
 import DataDomainCard from "./data-domain-card";
 import DataDomainDetail from "./data-domain-detail";
 import DataDomainFormDialog from "./data-domain-form-dialog";
@@ -36,15 +37,15 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
   const [pendingDelete, setPendingDelete] = useState<DataDomainRecord>();
   const [deleting, setDeleting] = useState(false);
 
-  const listQueryKey = modelingQueryKeys.dataDomainAll(projectCode);
+  const listQueryKey = planningQueryKeys.dataDomainAll(projectCode);
   const listQuery = useQuery({
     queryKey: listQueryKey,
-    queryFn: () => modelingEntityApi.all<DataDomainRecord>(projectCode, "dataDomain"),
+    queryFn: () => dataDomainApi.all<DataDomainRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
   const detailQuery = useQuery({
     queryKey: ["modeling", "data-domain", "detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<DataDomainRecord>(projectCode, "dataDomain", selectedId),
+    queryFn: () => dataDomainApi.getById<DataDomainRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId),
   });
 
@@ -59,7 +60,7 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
     if (!record.id || openingId) return;
     setOpeningId(record.id);
     try {
-      const detail = await modelingEntityApi.getById<DataDomainRecord>(projectCode, "dataDomain", record.id);
+      const detail = await dataDomainApi.getById<DataDomainRecord>(projectCode, record.id);
       setEditing(detail);
       setFormOpen(true);
     } catch {
@@ -79,20 +80,20 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
     setSaving(true);
     try {
       if (editing?.id) {
-        await modelingEntityApi.update(projectCode, "dataDomain", payload);
+        await dataDomainApi.update(projectCode, payload);
         toast.success("数据域已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "dataDomain", payload);
+        await dataDomainApi.create(projectCode, payload);
         toast.success("数据域已创建");
       }
       setFormOpen(false);
       setEditing(undefined);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listQueryKey }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataDomainBusinessProcesses(projectCode) }),
       ]);
       if (selectedId) {
         await queryClient.invalidateQueries({ queryKey: ["modeling", "data-domain", "detail", projectCode, selectedId] });
@@ -108,16 +109,16 @@ export function DataModelingDataDomainPage({ projectCode }: Props) {
     if (!pendingDelete?.id || deleting || isSystemRecord(pendingDelete)) return;
     setDeleting(true);
     try {
-      await modelingEntityApi.remove(projectCode, "dataDomain", pendingDelete.id);
+      await dataDomainApi.remove(projectCode, pendingDelete.id);
       toast.success("数据域已删除");
       setPendingDelete(undefined);
       if (selectedId === pendingDelete.id) setSelectedId("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listQueryKey }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataDomainBusinessProcesses(projectCode) }),
         queryClient.invalidateQueries({ queryKey: ["modeling", "business-type", "related-domains", projectCode] }),
       ]);
     } catch {

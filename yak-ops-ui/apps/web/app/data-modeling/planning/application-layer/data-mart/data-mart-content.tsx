@@ -8,15 +8,19 @@ import {
   Button, Input, Modal, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingDataMartApi, modelingQueryKeys, type ModelingRecord } from "../../service";
+import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
+import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
+import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import { planningQueryKeys } from "../../query-keys";
 import {
   getMartTypeLabel, type DataMartRecord, type DataMartTreeNode,
   type DataMartFormValues,
 } from "./types";
 import { DataMartFormDialog } from "./data-mart-form-dialog";
-import { SubjectDomainFormDialog } from "../subject-domain/subject-domain-form-dialog";
+import { SubjectDomainFormDialog } from "../components/subject-domain-form-dialog";
 import type { DataMartOption, SubjectDomainFormValues, SubjectDomainRecord } from "../subject-domain/types";
-import { PlanningIcon } from "../icons";
+import { PlanningIcon } from "../../components/icons";
 
 interface Props { projectCode: string; }
 interface BusinessTypeOption extends ModelingRecord { id?: string; businessName?: string; }
@@ -118,14 +122,14 @@ function DataMartDetail({
   const pageSize = 10;
   const childrenQuery = useQuery({
     queryKey: ["modeling", "data-mart", "children", projectCode, record.id, childPage],
-    queryFn: () => modelingEntityApi.page<DataMartRecord>(projectCode, "dataMart", {
+    queryFn: () => dataMartApi.page<DataMartRecord>(projectCode, {
       id: record.id, pageNo: childPage, pageSize,
     }),
     enabled: Boolean(projectCode && record.id),
   });
   const subjectQuery = useQuery({
     queryKey: ["modeling", "data-mart", "subject-domains", projectCode, record.id, subjectPage],
-    queryFn: () => modelingEntityApi.page<SubjectDomainRecord>(projectCode, "subjectDomain", {
+    queryFn: () => subjectDomainApi.page<SubjectDomainRecord>(projectCode, {
       dataMartId: record.id, pageNo: subjectPage, pageSize,
     }),
     enabled: Boolean(projectCode && record.id),
@@ -243,22 +247,22 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
 
   const treeQuery = useQuery({
     queryKey: ["modeling", "data-mart", "tree", projectCode, keyword],
-    queryFn: () => modelingDataMartApi.tree(projectCode, keyword),
+    queryFn: () => dataMartApi.tree(projectCode, keyword),
     enabled: Boolean(projectCode),
   });
   const detailQuery = useQuery({
     queryKey: ["modeling", "data-mart", "detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<DataMartRecord>(projectCode, "dataMart", selectedId),
+    queryFn: () => dataMartApi.getById<DataMartRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId),
   });
   const businessTypesQuery = useQuery({
-    queryKey: modelingQueryKeys.dataMartBusinessTypes(projectCode),
-    queryFn: () => modelingEntityApi.all<BusinessTypeOption>(projectCode, "businessType"),
+    queryKey: planningQueryKeys.dataMartBusinessTypes(projectCode),
+    queryFn: () => businessTypeApi.all<BusinessTypeOption>(projectCode),
     enabled: Boolean(projectCode),
   });
   const dataMartsQuery = useQuery({
-    queryKey: modelingQueryKeys.dataMartAll(projectCode),
-    queryFn: () => modelingEntityApi.all<DataMartOption>(projectCode, "dataMart"),
+    queryKey: planningQueryKeys.dataMartAll(projectCode),
+    queryFn: () => dataMartApi.all<DataMartOption>(projectCode),
     enabled: Boolean(projectCode),
   });
 
@@ -278,7 +282,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
     if (!id || openingId) return;
     setOpeningId(id);
     try {
-      const record = await modelingEntityApi.getById<DataMartRecord>(projectCode, "dataMart", id);
+      const record = await dataMartApi.getById<DataMartRecord>(projectCode, id);
       setEditing(record);
       setFormParentId(record.parentId || undefined);
       setFormOpen(true);
@@ -298,11 +302,11 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
       if (editing?.id) {
         payload.id = editing.id;
         payload.parentId = editing.parentId || null;
-        await modelingEntityApi.update(projectCode, "dataMart", payload);
+        await dataMartApi.update(projectCode, payload);
         toast.success("数据集市已更新");
       } else {
         if (formParentId) payload.parentId = formParentId;
-        await modelingEntityApi.create(projectCode, "dataMart", payload);
+        await dataMartApi.create(projectCode, payload);
         toast.success("数据集市已创建");
       }
       setFormOpen(false);
@@ -326,7 +330,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
     if (!record.id || openingId) return;
     setOpeningId(record.id);
     try {
-      const detail = await modelingEntityApi.getById<SubjectDomainRecord>(projectCode, "subjectDomain", record.id);
+      const detail = await subjectDomainApi.getById<SubjectDomainRecord>(projectCode, record.id);
       setEditingSubject(detail);
       setSubjectFormOpen(true);
     } catch {
@@ -340,7 +344,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
     if (!editingSubject?.id || savingSubject) return;
     setSavingSubject(true);
     try {
-      await modelingEntityApi.update(projectCode, "subjectDomain", {
+      await subjectDomainApi.update(projectCode, {
         id: editingSubject.id,
         parentId: editingSubject.parentId || null,
         ...values,
@@ -363,7 +367,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
     setDeleting(true);
     try {
       if (pendingDelete.kind === "mart") {
-        await modelingEntityApi.remove(projectCode, "dataMart", pendingDelete.record.id);
+        await dataMartApi.remove(projectCode, pendingDelete.record.id);
         toast.success("数据集市已删除");
         if (selectedId === pendingDelete.record.id) setSelectedId("");
         await queryClient.invalidateQueries({ queryKey: ["modeling", "data-mart", "tree", projectCode] });
@@ -372,7 +376,7 @@ export function DataModelingDataMartPage({ projectCode }: Props) {
         await queryClient.invalidateQueries({ queryKey: ["modeling", "subject-domain", "tree", projectCode] });
         await queryClient.invalidateQueries({ queryKey: ["modeling", "subject-domain", "data-marts", projectCode] });
       } else {
-        await modelingEntityApi.remove(projectCode, "subjectDomain", pendingDelete.record.id);
+        await subjectDomainApi.remove(projectCode, pendingDelete.record.id);
         toast.success("主题域已删除");
         await queryClient.invalidateQueries({ queryKey: ["modeling", "data-mart", "subject-domains", projectCode] });
         await queryClient.invalidateQueries({ queryKey: ["modeling", "subject-domain", "tree", projectCode] });

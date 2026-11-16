@@ -10,9 +10,11 @@ import {
   Table, Textarea, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import {
-  modelingBusinessTypeApi, modelingEntityApi, modelingQueryKeys, type BusinessTypeTreeNode, type ModelingRecord,
-} from "../../service";
+import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-modeling/planning/business-type";
+import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
+import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import { planningQueryKeys } from "../query-keys";
 import { MART_TYPE_OPTIONS, withSelectedOption } from "../select-options";
 import { PlanningIcon } from "../components/icons";
 
@@ -208,7 +210,7 @@ function BusinessTypeChildren({
   const pageSize = 10;
   const query = useQuery({
     queryKey: ["modeling", "business-type", "children", projectCode, parent.id, pageNo],
-    queryFn: () => modelingEntityApi.page<BusinessTypeRecord>(projectCode, "businessType", { id: parent.id, pageNo, pageSize }),
+    queryFn: () => businessTypeApi.page<BusinessTypeRecord>(projectCode, { id: parent.id, pageNo, pageSize }),
     enabled: Boolean(projectCode && parent.id),
   });
   useEffect(() => setPageNo(1), [parent.id]);
@@ -248,14 +250,14 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const domainsQuery = useQuery({
-    queryKey: modelingQueryKeys.dataDomainAll(projectCode),
-    queryFn: () => modelingEntityApi.all<DomainRecord>(projectCode, "dataDomain"),
+    queryKey: planningQueryKeys.dataDomainAll(projectCode),
+    queryFn: () => dataDomainApi.all<DomainRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
   const relationKey = ["modeling", "business-type", "related-domains", projectCode, businessTypeId];
   const relatedQuery = useQuery({
     queryKey: relationKey,
-    queryFn: () => modelingBusinessTypeApi.selectRelatedDomains<DomainRecord>(projectCode, businessTypeId),
+    queryFn: () => businessTypeApi.selectRelatedDomains<DomainRecord>(projectCode, businessTypeId),
     enabled: Boolean(projectCode && businessTypeId),
   });
   const related = relatedQuery.data || [];
@@ -267,7 +269,7 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
     if (!newIds.length) { setPickerOpen(false); return; }
     setSaving(true);
     try {
-      await modelingBusinessTypeApi.updateRelatedDomains(projectCode, businessTypeId, newIds);
+      await businessTypeApi.updateRelatedDomains(projectCode, businessTypeId, newIds);
       toast.success("数据域关联已更新");
       await queryClient.invalidateQueries({ queryKey: relationKey });
       setPickerOpen(false);
@@ -277,7 +279,7 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
   };
   const removeDomain = async (id: string) => {
     try {
-      await modelingBusinessTypeApi.deleteRelatedDomain(projectCode, businessTypeId, id);
+      await businessTypeApi.deleteRelatedDomain(projectCode, businessTypeId, id);
       toast.success("数据域已解除关联");
       await queryClient.invalidateQueries({ queryKey: relationKey });
     } catch { toast.warning("解除关联失败，请刷新后重试"); }
@@ -285,7 +287,7 @@ function BusinessTypeDomainRelation({ projectCode, businessTypeId }: { projectCo
   const loadAll = async () => {
     setSaving(true);
     try {
-      await modelingBusinessTypeApi.loadAllDomains(projectCode, businessTypeId);
+      await businessTypeApi.loadAllDomains(projectCode, businessTypeId);
       toast.success("已加载全部数据域");
       await queryClient.invalidateQueries({ queryKey: relationKey });
     } catch { toast.warning("加载全部数据域失败，请重试"); }
@@ -360,7 +362,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
   const queryKey = ["modeling", "business-type", "data-marts", projectCode, businessTypeId];
   const martsQuery = useQuery({
     queryKey,
-    queryFn: async () => (await modelingEntityApi.all<DataMartRecord>(projectCode, "dataMart"))
+    queryFn: async () => (await dataMartApi.all<DataMartRecord>(projectCode))
       .filter((item) => item.businessTypeId === businessTypeId),
     enabled: Boolean(projectCode && businessTypeId),
   });
@@ -381,7 +383,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
     if (!editing?.id || !values.martName.trim()) { toast.warning("请输入集市名称"); return; }
     setSaving(true);
     try {
-      await modelingEntityApi.update(projectCode, "dataMart", {
+      await dataMartApi.update(projectCode, {
         id: editing.id, businessTypeId, ...values,
         martName: values.martName.trim(), enShortName: values.enShortName.trim(),
         director: values.director.trim(), remark: values.remark.trim(),
@@ -395,7 +397,7 @@ function DataMartManagement({ projectCode, businessTypeId }: { projectCode: stri
   const remove = async () => {
     if (!pendingDelete?.id) return;
     try {
-      await modelingEntityApi.remove(projectCode, "dataMart", pendingDelete.id);
+      await dataMartApi.remove(projectCode, pendingDelete.id);
       toast.success("数据集市已删除");
       setPendingDelete(undefined);
       await queryClient.invalidateQueries({ queryKey });
@@ -489,12 +491,12 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const [pendingDelete, setPendingDelete] = useState<BusinessTypeRecord>();
   const treeQuery = useQuery({
     queryKey: ["modeling", "business-type", "tree", projectCode, keyword],
-    queryFn: () => modelingBusinessTypeApi.tree(projectCode, keyword),
+    queryFn: () => businessTypeApi.tree(projectCode, keyword),
     enabled: Boolean(projectCode),
   });
   const detailQuery = useQuery({
     queryKey: ["modeling", "business-type", "detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<BusinessTypeRecord>(projectCode, "businessType", selectedId),
+    queryFn: () => businessTypeApi.getById<BusinessTypeRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId),
   });
   const treeData = treeQuery.data || [];
@@ -533,8 +535,8 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
       ...queryKeys.map((key) => queryClient.invalidateQueries({
         queryKey: ["modeling", "business-type", key, projectCode],
       })),
-      queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainAll(projectCode) }),
-      queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataMartBusinessTypes(projectCode) }),
+      queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataDomainAll(projectCode) }),
+      queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataMartBusinessTypes(projectCode) }),
     ]);
   };
   const toggleExpanded = (key: string) => setExpandedKeys((current) => {
@@ -552,7 +554,7 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const openEdit = async (id: string) => {
     setContextMenu(undefined);
     try {
-      const record = await modelingEntityApi.getById<BusinessTypeRecord>(projectCode, "businessType", id);
+      const record = await businessTypeApi.getById<BusinessTypeRecord>(projectCode, id);
       setFormRecord(record);
       setFormParentId(record.parentId);
       setFormOpen(true);
@@ -564,10 +566,10 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
     const payload: Record<string, unknown> = { ...values, ...(formParentId ? { parentId: formParentId } : {}) };
     try {
       if (formRecord?.id) {
-        await modelingEntityApi.update(projectCode, "businessType", { ...payload, id: formRecord.id });
+        await businessTypeApi.update(projectCode, { ...payload, id: formRecord.id });
         toast.success("业务分类已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "businessType", payload);
+        await businessTypeApi.create(projectCode, payload);
         toast.success("业务分类已创建");
       }
       setFormOpen(false);
@@ -583,7 +585,7 @@ export function DataModelingBusinessTypePage({ projectCode }: Props) {
   const removeBusinessType = async () => {
     if (!pendingDelete?.id) return;
     try {
-      await modelingEntityApi.remove(projectCode, "businessType", pendingDelete.id);
+      await businessTypeApi.remove(projectCode, pendingDelete.id);
       toast.success("业务分类已删除");
       if (selectedId === pendingDelete.id) setSelectedId("");
       setPendingDelete(undefined);

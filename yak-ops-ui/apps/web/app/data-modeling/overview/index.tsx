@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 
 import { useWorkspace } from "@/hooks/use-workspace";
 
-import { getModelingBootstrap } from "../service";
+import { getModelingBootstrap } from "@/service/data-modeling/bootstrap";
 import { PlanningIcon } from "../planning/components/icons";
 
 const MODELING_SECTIONS: Array<{

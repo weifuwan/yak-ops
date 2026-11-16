@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layers3, LoaderCircle, Plus } from "lucide-react";
 import { Button, Modal, PageHeader, Radio, RadioGroup, toast } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi } from "../../service";
+import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
 import DwLayerCard from "./dw-layer-card";
 import DwLayerDetail from "./dw-layer-detail";
 import DwLayerFormDialog from "./dw-layer-form-dialog";
@@ -47,13 +47,13 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
   const listQueryKey = ["modeling", "dw-layer", "list", projectCode];
   const listQuery = useQuery({
     queryKey: listQueryKey,
-    queryFn: () => modelingEntityApi.all<DwLayerRecord>(projectCode, "dwLayer"),
+    queryFn: () => dwLayerApi.all<DwLayerRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
 
   const detailQuery = useQuery({
     queryKey: ["modeling", "dw-layer", "detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<DwLayerRecord>(projectCode, "dwLayer", selectedId),
+    queryFn: () => dwLayerApi.getById<DwLayerRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId),
   });
 
@@ -98,7 +98,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
     if (!record.id || openingId) return;
     setOpeningId(record.id);
     try {
-      const detail = await modelingEntityApi.getById<DwLayerRecord>(projectCode, "dwLayer", record.id);
+      const detail = await dwLayerApi.getById<DwLayerRecord>(projectCode, record.id);
       setEditing(detail);
       setFormOpen(true);
     } catch {
@@ -125,10 +125,10 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
     setSaving(true);
     try {
       if (editing?.id) {
-        await modelingEntityApi.update(projectCode, "dwLayer", payload);
+        await dwLayerApi.update(projectCode, payload);
         toast.success("数仓分层已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "dwLayer", payload);
+        await dwLayerApi.create(projectCode, payload);
         toast.success("数仓分层已创建");
       }
       setFormOpen(false);
@@ -150,7 +150,7 @@ export function DataModelingDwLayerPage({ projectCode }: DataModelingDwLayerPage
     if (!pendingDelete?.id || deleting) return;
     setDeleting(true);
     try {
-      await modelingEntityApi.remove(projectCode, "dwLayer", pendingDelete.id);
+      await dwLayerApi.remove(projectCode, pendingDelete.id);
       toast.success("数仓分层已删除");
       if (selectedId === pendingDelete.id) setSelectedId("");
       setPendingDelete(undefined);

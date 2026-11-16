@@ -1,4 +1,4 @@
-import type { ModelingRecord } from "@/app/data-modeling/service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 
 export interface DataDomainRecord extends ModelingRecord {
   id?: string;

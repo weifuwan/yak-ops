@@ -1,4 +1,4 @@
-import type { ModelingRecord } from "../../service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 
 export interface DwLayerRecord extends ModelingRecord {
   id?: string;

@@ -1,4 +1,4 @@
-import type { ModelingRecord } from "@/app/data-modeling/service";
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { MART_TYPE_OPTIONS } from "../../select-options";
 
 export interface DataMartRecord extends ModelingRecord {

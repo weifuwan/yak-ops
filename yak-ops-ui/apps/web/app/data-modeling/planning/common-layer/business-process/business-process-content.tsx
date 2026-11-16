@@ -6,7 +6,9 @@ import {
   SelectTrigger, SelectValue, Table, toast, type TableColumns,
 } from "@yak-ops/yak-ui";
 
-import { modelingEntityApi, modelingQueryKeys } from "@/app/data-modeling/service";
+import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
+import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
+import { planningQueryKeys } from "../../query-keys";
 import type { DataDomainRecord } from "../data-domain/types";
 import { withSelectedOption } from "../../select-options";
 import { isSystemBusinessProcess } from "../data-domain/types";
@@ -74,8 +76,8 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
   const [deleting, setDeleting] = useState(false);
 
   const listQuery = useQuery({
-    queryKey: [...modelingQueryKeys.businessProcessPage(projectCode), appliedFilters, pageNo, PAGE_SIZE],
-    queryFn: () => modelingEntityApi.page<BusinessProcessRecord>(projectCode, "businessProcess", {
+    queryKey: [...planningQueryKeys.businessProcessPage(projectCode), appliedFilters, pageNo, PAGE_SIZE],
+    queryFn: () => businessProcessApi.page<BusinessProcessRecord>(projectCode, {
       ...appliedFilters,
       pageNo,
       pageSize: PAGE_SIZE,
@@ -84,20 +86,20 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
   });
 
   const domainQuery = useQuery({
-    queryKey: modelingQueryKeys.dataDomainAll(projectCode),
-    queryFn: () => modelingEntityApi.all<DataDomainRecord>(projectCode, "dataDomain"),
+    queryKey: planningQueryKeys.dataDomainAll(projectCode),
+    queryFn: () => dataDomainApi.all<DataDomainRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
 
   const processOptionsQuery = useQuery({
-    queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode),
-    queryFn: () => modelingEntityApi.all<BusinessProcessRecord>(projectCode, "businessProcess"),
+    queryKey: planningQueryKeys.businessProcessFilterOptions(projectCode),
+    queryFn: () => businessProcessApi.all<BusinessProcessRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
 
   const detailQuery = useQuery({
     queryKey: ["modeling", "business-process", "detail", projectCode, selectedId],
-    queryFn: () => modelingEntityApi.getById<BusinessProcessRecord>(projectCode, "businessProcess", selectedId),
+    queryFn: () => businessProcessApi.getById<BusinessProcessRecord>(projectCode, selectedId),
     enabled: Boolean(projectCode && selectedId),
   });
 
@@ -144,7 +146,7 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
     if (!record.id || openingId) return;
     setOpeningId(record.id);
     try {
-      const detail = await modelingEntityApi.getById<BusinessProcessRecord>(projectCode, "businessProcess", record.id);
+      const detail = await businessProcessApi.getById<BusinessProcessRecord>(projectCode, record.id);
       setEditing(detail);
       setFormOpen(true);
     } catch {
@@ -170,20 +172,20 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
     setSaving(true);
     try {
       if (editing?.id) {
-        await modelingEntityApi.update(projectCode, "businessProcess", payload);
+        await businessProcessApi.update(projectCode, payload);
         toast.success("业务过程已更新");
       } else {
-        await modelingEntityApi.create(projectCode, "businessProcess", payload);
+        await businessProcessApi.create(projectCode, payload);
         setPageNo(1);
         toast.success("业务过程已创建");
       }
       setFormOpen(false);
       setEditing(undefined);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataDomainBusinessProcesses(projectCode) }),
       ]);
       if (selectedId) {
         await queryClient.invalidateQueries({
@@ -201,14 +203,14 @@ export function DataModelingBusinessProcessPage({ projectCode }: Props) {
     if (!pendingDelete?.id || deleting || isSystemBusinessProcess(pendingDelete)) return;
     setDeleting(true);
     try {
-      await modelingEntityApi.remove(projectCode, "businessProcess", pendingDelete.id);
+      await businessProcessApi.remove(projectCode, pendingDelete.id);
       toast.success("业务过程已删除");
       setPendingDelete(undefined);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessPage(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessFilterOptions(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.businessProcessAll(projectCode) }),
-        queryClient.invalidateQueries({ queryKey: modelingQueryKeys.dataDomainBusinessProcesses(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessPage(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessFilterOptions(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.businessProcessAll(projectCode) }),
+        queryClient.invalidateQueries({ queryKey: planningQueryKeys.dataDomainBusinessProcesses(projectCode) }),
       ]);
     } catch {
       toast.warning("删除业务过程失败，请确认该业务过程没有被其他建模对象引用");
