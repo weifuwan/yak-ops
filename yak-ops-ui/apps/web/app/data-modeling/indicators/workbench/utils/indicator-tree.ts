@@ -610,7 +610,8 @@ export function collectExpandedKeys(nodes: IndicatorTreeNode[]): string[] {
   return result;
 }
 
-export type DerivativeIndicatorTreeInput = {
+export type WarehouseIndicatorTreeInput = {
+  kind: GroupedIndicatorKind;
   businessTypes: ModelingRecord[];
   dataDomains: ModelingRecord[];
   businessProcesses: ModelingRecord[];
@@ -622,9 +623,9 @@ export type DerivativeIndicatorTreeInput = {
   dwType: string;
 };
 
-export function buildDerivativeIndicatorTree(input: DerivativeIndicatorTreeInput): IndicatorTreeNode[] {
+export function buildWarehouseIndicatorTree(input: WarehouseIndicatorTreeInput): IndicatorTreeNode[] {
   const {
-    businessTypes, dataDomains, businessProcesses, dataMarts, subjectDomains,
+    kind, businessTypes, dataDomains, businessProcesses, dataMarts, subjectDomains,
     groupBy, scopeValue = "", dwType,
   } = input;
   const recordMap = new Map<string, ModelingRecord>();
@@ -648,9 +649,9 @@ export function buildDerivativeIndicatorTree(input: DerivativeIndicatorTreeInput
     return count;
   };
   const root: IndicatorTreeNode = {
-    key: "root:derivative-indicator",
+    key: kind === "composeIndicator" ? "root:composite-indicator" : "root:derivative-indicator",
     id: "root",
-    title: "派生指标",
+    title: kind === "composeIndicator" ? "复合指标" : "派生指标",
     kind: "group",
     nodeType: "root",
     children: [],
