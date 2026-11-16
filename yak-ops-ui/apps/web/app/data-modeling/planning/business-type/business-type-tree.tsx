@@ -78,7 +78,7 @@ export function BusinessTypeTree({
   onKeywordChange, onToggleExpanded, onRefresh, onRetry, onCreateRoot, onSelect,
   onCreateChild, onEdit, onDelete,
 }: Props) {
-  const treeRef = useRef<HTMLAsideElement | null>(null);
+  const treeRef = useRef<HTMLElement | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;

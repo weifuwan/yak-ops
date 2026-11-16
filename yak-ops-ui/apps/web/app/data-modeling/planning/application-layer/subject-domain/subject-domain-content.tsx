@@ -10,7 +10,12 @@ import { PlanningIcon } from "../../components/icons";
 import { SubjectDomainTree, filterTree, getExpandableKeys } from "./subject-domain-tree";
 import { SubjectDomainDetail } from "./subject-domain-detail";
 import { SubjectDomainFormDialog } from "../components/subject-domain-form-dialog";
-import { getSubjectDomainId, type SubjectDomainRecord, type SubjectDomainFormValues } from "./types";
+import {
+  getSubjectDomainId,
+  type SubjectDomainRecord,
+  type SubjectDomainFormValues,
+  type SubjectDomainTreeNode,
+} from "./types";
 import type { DataMartOption } from "../data-mart/types";
 
 interface Props { projectCode: string; }
