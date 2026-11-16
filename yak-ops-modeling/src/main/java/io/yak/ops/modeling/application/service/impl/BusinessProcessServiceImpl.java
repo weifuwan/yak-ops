@@ -208,26 +208,20 @@ public class BusinessProcessServiceImpl extends BaseServiceImpl implements Busin
 
     @Override
     public List<CascaderTreeVO> treeList(String busTypeId) {
-        List<BusinessProcessPO> processes = getFilteredBusinessProcessList(busTypeId);
-        if (CollectionUtils.isEmpty(processes)) {
-            return new ArrayList<>();
-        }
-        return buildCascaderTreeResult(processes);
-    }
+        // A business type without domain associations is intentionally treated as unfiltered:
+        // atomic indicators can still select any existing domain and its business processes.
+        Set<String> relatedDomainIds = StringUtils.isBlank(busTypeId)
+                ? null
+                : getDataDomainIdsByBusTypeId(busTypeId);
 
-    private List<BusinessProcessPO> getFilteredBusinessProcessList(String busTypeId) {
-        LambdaQueryWrapper<BusinessProcessPO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.isNotNull(BusinessProcessPO::getDataDomainId);
-        if (StringUtils.isBlank(busTypeId)) {
-            return businessProcessDao.queryList(wrapper);
+        LambdaQueryWrapper<BusinessProcessPO> processWrapper = new LambdaQueryWrapper<>();
+        processWrapper.isNotNull(BusinessProcessPO::getDataDomainId);
+        if (CollectionUtils.isNotEmpty(relatedDomainIds)) {
+            processWrapper.in(BusinessProcessPO::getDataDomainId, relatedDomainIds);
         }
-
-        Set<String> domainIds = getDataDomainIdsByBusTypeId(busTypeId);
-        if (CollectionUtils.isEmpty(domainIds)) {
-            return new ArrayList<>();
-        }
-        wrapper.in(BusinessProcessPO::getDataDomainId, domainIds);
-        return businessProcessDao.queryList(wrapper);
+        List<BusinessProcessPO> processes = businessProcessDao.queryList(processWrapper);
+        List<DataDomainPO> domains = getDataDomainList(relatedDomainIds);
+        return buildCascaderTreeResult(domains, processes);
     }
 
     private Set<String> getDataDomainIdsByBusTypeId(String busTypeId) {
@@ -239,12 +233,12 @@ public class BusinessProcessServiceImpl extends BaseServiceImpl implements Busin
                 .collect(Collectors.toSet());
     }
 
-    private List<CascaderTreeVO> buildCascaderTreeResult(List<BusinessProcessPO> processes) {
+    private List<CascaderTreeVO> buildCascaderTreeResult(
+            List<DataDomainPO> domains, List<BusinessProcessPO> processes) {
         Map<String, List<BusinessProcessPO>> processMap = processes.stream()
                 .filter(item -> StringUtils.isNotBlank(item.getDataDomainId()))
                 .collect(Collectors.groupingBy(BusinessProcessPO::getDataDomainId));
 
-        List<DataDomainPO> domains = getDataDomainList(processMap.keySet());
         List<CascaderTreeVO> nodes = new ArrayList<>();
         domains.forEach(domain -> {
             nodes.add(new CascaderTreeVO(domain.getId(), null, domain.getCnName(), domain.getId(), null));
@@ -260,11 +254,10 @@ public class BusinessProcessServiceImpl extends BaseServiceImpl implements Busin
     }
 
     private List<DataDomainPO> getDataDomainList(Set<String> dataDomainIds) {
-        if (CollectionUtils.isEmpty(dataDomainIds)) {
-            return new ArrayList<>();
-        }
         LambdaQueryWrapper<DataDomainPO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(DataDomainPO::getId, dataDomainIds);
+        if (CollectionUtils.isNotEmpty(dataDomainIds)) {
+            wrapper.in(DataDomainPO::getId, dataDomainIds);
+        }
         wrapper.orderByAsc(DataDomainPO::getEnShortName);
         return dataDomainDao.queryList(wrapper);
     }
