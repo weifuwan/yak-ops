@@ -15,7 +15,7 @@ interface Props { projectCode: string; }
 export function DictionaryStandardsPage({ projectCode }: Props) {
   const queryClient = useQueryClient();
   const splitRef = useRef<HTMLDivElement | null>(null);
-  const [leftWidth, setLeftWidth] = useState(280);
+  const [leftWidth, setLeftWidth] = useState(292);
   const [resizing, setResizing] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [pageNo, setPageNo] = useState(1);
@@ -45,7 +45,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
     if (!resizing) return;
     const onMove = (event: PointerEvent) => {
       const rect = splitRef.current?.getBoundingClientRect();
-      if (rect) setLeftWidth(Math.min(480, Math.max(220, event.clientX - rect.left)));
+      if (rect) setLeftWidth(Math.min(360, Math.max(260, event.clientX - rect.left)));
     };
     const onUp = () => setResizing(false);
     window.addEventListener("pointermove", onMove);
@@ -139,7 +139,7 @@ export function DictionaryStandardsPage({ projectCode }: Props) {
         onSelect={setSelectedId} onPageChange={setPageNo}
       />
       <div role="separator" aria-orientation="vertical" aria-label="调整命名词典列表宽度"
-        className={["relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
+        className={["relative z-10 w-px shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
         onPointerDown={(event) => { event.preventDefault(); setResizing(true); }}>
         <span className="absolute inset-y-0 -left-1 -right-1" />
       </div>
