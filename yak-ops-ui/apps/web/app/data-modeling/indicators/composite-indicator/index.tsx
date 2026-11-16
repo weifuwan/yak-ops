@@ -27,7 +27,7 @@ export function CompositeIndicatorPage(props: IndicatorPageProps) {
         emptyText={tree.treeKeyword ? "没有匹配的指标" : "暂无指标，点击上方 + 新建"}
         activeKind="composeIndicator" definition={COMPOSITE_INDICATOR_DEFINITION} treeControls={treeControls}
         visibleTree={tree.visibleTree} expandedKeys={tree.visibleExpandedKeys} selectedTreeKey={tree.selectedTreeKey}
-        loading={tree.treeQuery.isPending || tree.treeQuery.isFetching} error={tree.treeQuery.isError}
+        loading={tree.treeQuery.isFetching} initialLoading={tree.treeQuery.isPending} error={tree.treeQuery.isError}
         onRefresh={() => void tree.treeQuery.refetch()} onCreate={props.onCreate} onList={props.onList}
         onToggle={(key) => {
           tree.setSelectedTreeKey(key);
