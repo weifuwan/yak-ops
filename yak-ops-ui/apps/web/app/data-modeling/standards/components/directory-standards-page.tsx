@@ -17,7 +17,7 @@ import type {
 import {
   getDirectoryTypeLabel, getStandardResource,
   getStandardTitle, isDirectoryNode,
-} from "./types";
+} from "../types";
 import { StandardDirectoryFormDialog } from "./standard-directory-form-dialog";
 import { StandardRecordFormDialog } from "./standard-record-form-dialog";
 
