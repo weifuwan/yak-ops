@@ -1,18 +1,16 @@
+import type { ModelingResourceApi } from "../../shared/modeling-http";
 import { codeStandardApi } from "../code-standard";
 import { fieldStandardApi } from "../field-standard";
 import { unitStandardApi } from "../unit-standard";
 
 export type StandardRecordResource = "fieldStandard" | "codeStandard" | "unitStandard";
 
-export function getStandardRecordApi(resource: StandardRecordResource) {
-  switch (resource) {
-    case "fieldStandard":
-      return fieldStandardApi;
-    case "codeStandard":
-      return codeStandardApi;
-    case "unitStandard":
-      return unitStandardApi;
-    default:
-      return unitStandardApi;
-  }
+const STANDARD_RECORD_APIS: Record<StandardRecordResource, ModelingResourceApi> = {
+  fieldStandard: fieldStandardApi,
+  codeStandard: codeStandardApi,
+  unitStandard: unitStandardApi,
+};
+
+export function getStandardRecordApi(resource: StandardRecordResource): ModelingResourceApi {
+  return STANDARD_RECORD_APIS[resource];
 }

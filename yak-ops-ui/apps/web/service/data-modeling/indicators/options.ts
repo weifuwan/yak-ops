@@ -44,4 +44,7 @@ export async function getIndicatorOptionRecords(
     case "timePeriodCategory":
       return timePeriodCategoryApi.all<ModelingRecord>(projectCode);
   }
+    default:
+      throw new Error("Unsupported indicator option resource");
+  }
 }

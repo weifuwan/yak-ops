@@ -1,3 +1,4 @@
+import type { ModelingResourceApi } from "../shared/modeling-http";
 import { atomIndicatorApi } from "./atom-indicator";
 import { compositeIndicatorApi } from "./composite-indicator";
 import { derivativeIndicatorApi } from "./derivative-indicator";
@@ -26,19 +27,14 @@ export type IndicatorOptionResource =
   | "timePeriodCategory"
   | "codeDetail";
 
-export function getIndicatorApi(kind: IndicatorResourceKind) {
-  switch (kind) {
-    case "atomIndicator":
-      return atomIndicatorApi;
-    case "derivativeIndicator":
-      return derivativeIndicatorApi;
-    case "composeIndicator":
-      return compositeIndicatorApi;
-    case "modifier":
-      return modifierApi;
-    case "timePeriod":
-      return timePeriodApi;
-  }
-  return timePeriodApi;
-}
+const INDICATOR_APIS: Record<IndicatorResourceKind, ModelingResourceApi> = {
+  atomIndicator: atomIndicatorApi,
+  derivativeIndicator: derivativeIndicatorApi,
+  composeIndicator: compositeIndicatorApi,
+  modifier: modifierApi,
+  timePeriod: timePeriodApi,
+};
 
+export function getIndicatorApi(kind: IndicatorResourceKind): ModelingResourceApi {
+  return INDICATOR_APIS[kind];
+}
