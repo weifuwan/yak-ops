@@ -19,6 +19,7 @@ export interface NavigationMenuProps {
   onSelect?: (item: NavigationMenuItem) => void;
   ariaLabel?: string;
   className?: string;
+  showNestedIcons?: boolean;
 }
 
 const itemContainsActive = (item: NavigationMenuItem, activeKey?: string): boolean =>
@@ -74,6 +75,7 @@ export function NavigationMenu({
   onSelect,
   ariaLabel,
   className,
+  showNestedIcons = true,
 }: NavigationMenuProps) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => {
     const initial = new Set(defaultExpandedKeys);
@@ -114,7 +116,12 @@ export function NavigationMenu({
     const branchActive = hasChildren
       && Boolean(item.children?.some((child) => itemContainsActive(child, activeKey)));
     const active = item.key === activeKey;
-    const itemPadding = 14 + depth * 16;
+    const showIcon = depth === 0 || showNestedIcons;
+    const itemPadding = showNestedIcons
+      ? 14 + depth * 16
+      : depth === 0
+        ? 14
+        : 40 + (depth - 1) * 16;
     const baseClassName =
       "flex min-h-8 w-full cursor-pointer items-center gap-2.5 border-r-2 py-1.5 pr-3 text-left text-[13px] transition-colors duration-150";
 
@@ -137,13 +144,13 @@ export function NavigationMenu({
             )}
           >
             <span className="flex min-w-0 items-center gap-2.5">
-              {item.icon ? (
+              {showIcon && item.icon ? (
                 <span className={cn("flex size-4 shrink-0 items-center justify-center", branchActive ? "text-[var(--yak-color-primary)]" : "text-[#525b67]")}>
                   {item.icon}
                 </span>
-              ) : (
+              ) : showIcon ? (
                 <span className="size-4 shrink-0" aria-hidden="true" />
-              )}
+              ) : null}
               <span className="truncate">{item.label}</span>
             </span>
             <Chevron expanded={expanded} />
@@ -163,13 +170,13 @@ export function NavigationMenu({
               item.disabled && "cursor-not-allowed opacity-50",
             )}
           >
-            {item.icon ? (
+            {showIcon && item.icon ? (
               <span className={cn("flex size-4 shrink-0 items-center justify-center", active ? "text-[var(--yak-color-primary)]" : "text-[#525b67]")}>
                 {item.icon}
               </span>
-            ) : (
+            ) : showIcon ? (
               <span className="size-4 shrink-0" aria-hidden="true" />
-            )}
+            ) : null}
             <span className="truncate">{item.label}</span>
           </button>
         )}
