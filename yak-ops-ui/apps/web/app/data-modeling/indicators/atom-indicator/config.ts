@@ -36,7 +36,7 @@ export const ATOM_INDICATOR_DEFINITION: IndicatorDefinition = {
     { key: "busProcessId", label: "业务过程", section: "业务归属", required: true },
     { key: "calculateFunction", label: "计算函数", section: "计算逻辑", options: CALCULATE_FUNCTION_OPTIONS },
     { key: "decimalNumber", label: "小数位数", section: "计算逻辑", placeholder: "例如 0、2、4" },
-    { key: "unitId", label: "度量单位", section: "计算逻辑", optionsSource: "unitStandard" },
+    { key: "unitId", label: "度量单位", section: "计算逻辑" },
     { key: "removeDuplicates", label: "是否去重", section: "计算逻辑", options: [
       { value: "true", label: "是" }, { value: "false", label: "否" },
     ] },

@@ -1,6 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
 import {
-  Cascader,
   Field,
   FieldLabel,
   Input,
@@ -14,15 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
   Textarea,
-  type CascaderOption,
+  TreeSelect,
 } from "@yak-ops/yak-ui";
 
-import { businessProcessApi, type BusinessProcessCascaderNode } from "@/service/data-modeling/planning/common-layer/business-process";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { IndicatorSectionHeader } from "../../workbench/components/workspace/indicator-section-header";
 import type { IndicatorEditorFieldsProps, IndicatorFieldOption, IndicatorOptionResource } from "../../workbench/types";
 import { CALCULATE_FUNCTION_OPTIONS } from "../config";
 import { DW_TYPE_OPTIONS } from "../../workbench/config/indicator-options";
+import { useAtomIndicatorOwnerOptions } from "../hooks/use-atom-indicator-owner-options";
+import { useBusinessProcessCascader } from "../hooks/use-business-process-cascader";
+import { useMeasurementUnitTree } from "../hooks/use-measurement-unit-tree";
 import { fieldOptions, selectOptionLabel } from "../../workbench/utils/indicator-form";
 
 type Props = IndicatorEditorFieldsProps;
@@ -97,21 +97,6 @@ function resourceOptions(
   );
 }
 
-function toCascaderOptions(
-  nodes: BusinessProcessCascaderNode[],
-  depth = 0,
-): CascaderOption[] {
-  return nodes.map((node) => {
-    const children = node.children || [];
-    return {
-      value: node.value,
-      label: node.label,
-      selectable: depth > 0 && children.length === 0,
-      children: children.length ? toCascaderOptions(children, depth + 1) : undefined,
-    };
-  });
-}
-
 export function AtomIndicatorEditorFields({
   projectCode,
   values,
@@ -122,13 +107,17 @@ export function AtomIndicatorEditorFields({
   onChangeMany,
 }: Props) {
   const businessTypeOptions = resourceOptions("businessType", "业务分类", optionsByResource, "businessName");
-  const unitOptions = resourceOptions("unitStandard", "度量单位", optionsByResource);
-  const processQuery = useQuery({
-    queryKey: ["modeling", "atom-indicator-business-process-cascader", projectCode, values.busTypeId || ""],
-    queryFn: () => businessProcessApi.cascaderOption(projectCode, values.busTypeId || undefined),
-    enabled: Boolean(projectCode),
-  });
-  const processOptions = toCascaderOptions(processQuery.data || []);
+  const processQuery = useBusinessProcessCascader(projectCode, values.busTypeId);
+  const unitTreeQuery = useMeasurementUnitTree(projectCode);
+  const ownerQuery = useAtomIndicatorOwnerOptions(projectCode);
+  const ownerOptions: IndicatorFieldOption[] = (ownerQuery.data || []).map((user) => ({
+    value: user.userName,
+    label: user.userName,
+  }));
+
+  if (values.director && !ownerOptions.some((option) => option.value === values.director)) {
+    ownerOptions.unshift({ value: values.director, label: values.director });
+  }
 
   return (
     <div className="space-y-4">
@@ -161,7 +150,27 @@ export function AtomIndicatorEditorFields({
               <Textarea size="small" variant="outlined" rows={3} maxLength={500} value={values.businessCaliber || ""} placeholder="请输入业务口径" onValueChange={(value) => onChange("businessCaliber", String(value || ""))} />
             </FormRow>
             <FormRow label="负责人" required>
-              <Input size="small" variant="outlined" maxLength={32} value={values.director || ""} placeholder="请输入负责人" onChange={(event) => onChange("director", event.target.value)} />
+              {ownerQuery.isFetching || ownerOptions.length > 0 ? (
+                <OptionSelect
+                  value={values.director || ""}
+                  options={ownerOptions}
+                  placeholder="请选择负责人"
+                  loading={ownerQuery.isFetching}
+                  onChange={(value) => onChange("director", value)}
+                />
+              ) : (
+                <Input
+                  size="small"
+                  variant="outlined"
+                  maxLength={32}
+                  value={values.director || ""}
+                  placeholder="请输入负责人"
+                  onChange={(event) => onChange("director", event.target.value)}
+                />
+              )}
+              {!ownerQuery.isFetching && ownerOptions.length === 0 ? (
+                <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">当前账号无法获取用户列表，可手动填写负责人账号。</p>
+              ) : null}
             </FormRow>
             <FormRow label="描述">
               <Textarea size="small" variant="outlined" rows={3} maxLength={2048} value={values.remark || ""} placeholder="请输入描述" onValueChange={(value) => onChange("remark", String(value || ""))} />
@@ -187,25 +196,27 @@ export function AtomIndicatorEditorFields({
               />
             </FormRow>
             <FormRow label="业务过程" required>
-              <Cascader
-                items={processOptions}
-                value={values.domainId && values.busProcessId ? [values.domainId, values.busProcessId] : null}
-                columnLabels={["数据域", "业务过程"]}
-                placeholder={processQuery.isFetching ? "正在加载业务过程..." : "请选择数据域及业务过程"}
-                emptyText="暂无可选业务过程"
-                disabled={processQuery.isFetching}
-                size="small"
-                variant="outlined"
-                onValueChange={(path) => onChangeMany({
-                  domainId: path?.[0] || "",
-                  busProcessId: path?.[path.length - 1] || "",
-                })}
-              />
-              {processQuery.isError ? (
-                <p className="mt-1 text-[11px] text-[var(--yak-components-danger-text)]">业务过程加载失败，请刷新后重试。</p>
-              ) : (
-                <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">选择业务过程后，系统会自动带出所属数据域。</p>
-              )}
+              <div>
+                <Cascader
+                  items={processQuery.options}
+                  value={values.domainId && values.busProcessId ? [values.domainId, values.busProcessId] : null}
+                  columnLabels={["数据域", "业务过程"]}
+                  placeholder={processQuery.isFetching ? "正在加载业务过程..." : "请选择数据域及业务过程"}
+                  emptyText="暂无可选业务过程"
+                  disabled={processQuery.isFetching}
+                  size="small"
+                  variant="outlined"
+                  onValueChange={(path) => onChangeMany({
+                    domainId: path?.[0] || "",
+                    busProcessId: path?.[path.length - 1] || "",
+                  })}
+                />
+                {processQuery.isError ? (
+                  <p className="mt-1 text-[11px] text-[var(--yak-components-danger-text)]">业务过程加载失败，请刷新后重试。</p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">选择业务过程后，系统会自动带出所属数据域。</p>
+                )}
+              </div>
             </FormRow>
           </div>
         </div>
@@ -231,7 +242,22 @@ export function AtomIndicatorEditorFields({
               />
             </FormRow>
             <FormRow label="度量单位">
-              <OptionSelect value={values.unitId || ""} options={unitOptions} placeholder="请选择度量单位" loading={optionsLoading} onChange={(value) => onChange("unitId", value)} />
+              <div>
+                <TreeSelect
+                  items={unitTreeQuery.options}
+                  value={values.unitId || null}
+                  placeholder={unitTreeQuery.isFetching ? "正在加载度量单位..." : "请选择度量单位"}
+                  searchPlaceholder="搜索度量单位"
+                  emptyText="暂无度量单位，请先维护数据标准"
+                  disabled={unitTreeQuery.isFetching}
+                  size="small"
+                  variant="outlined"
+                  onValueChange={(value) => onChange("unitId", value || "")}
+                />
+                {unitTreeQuery.isError ? (
+                  <p className="mt-1 text-[11px] text-[var(--yak-components-danger-text)]">度量单位加载失败，请刷新后重试。</p>
+                ) : null}
+              </div>
             </FormRow>
             <FormRow label="是否去重">
               <RadioGroup

@@ -140,17 +140,14 @@ export function Cascader({
   const hasValue = Boolean(selectedLabel);
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(nextOpen) => setOpen(nextOpen)}
-    >
+    <Popover open={open} onOpenChange={setOpen}>
       <div className={cn("relative w-full", className)}>
         <PopoverTrigger
           type="button"
           disabled={disabled}
           aria-label={ariaLabel ?? placeholder}
           data-placeholder={hasValue ? undefined : ""}
-          className={selectTriggerVariants({ size, variant, className: "w-full" })}
+          className={cn(selectTriggerVariants({ size, variant }), "w-full")}
         >
           <span className={cn(
             "min-w-0 flex-1 truncate text-left",
