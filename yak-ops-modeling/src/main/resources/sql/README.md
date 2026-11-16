@@ -1,57 +1,75 @@
 # Modeling schema scripts
 
-The modeling schema is additive and repeatable. Each database-specific script is organized in two ordered sections:
+## Complete schema
 
-1. **DDL** creates the complete set of 22 warehouse-planning, dimension-metadata, data-standard and indicator tables, indexes and table comments.
-2. **DML** runs after all DDL and performs legacy-value normalization, atomic-indicator `dw_type` initialization, and project-scoped default-data seeding:
-   - Five conventional warehouse layers: ODS, DIM, DWS, DWD and ADS.
-   - Five unit-standard directories: currency, object quantity, ratio, ranking and time.
-   - One time-period root, nine time-period categories, and seven common time-period assets.
-
-Supported complete dialect scripts:
+The modeling module has one complete, repeatable schema script for each supported database dialect. Each script defines the same 22 logical tables and 62 indexes:
 
 - `modeling_mysql.sql`
 - `modeling_postgresql.sql`
 - `modeling_h2.sql`
 
-The standalone `20261114_add_atom_indicator_dw_type.sql` patch is no longer needed: `dw_type`, its index and the default-value normalization are maintained in each complete dialect script. The dimension-field precision column is named `field_precision` in the database to avoid the problematic identifier `precision`; the Java/API property remains `precision` to preserve the existing request/response contract.
+The scripts are organized in two ordered sections:
 
-All modeling tables use the `t_yak_ops_` prefix and include a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies this value from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
+1. **DDL** creates all modeling tables, indexes and table comments.
+2. **DML** normalizes warehouse-layer enum values, initializes atomic-indicator `dw_type`, and seeds default data for projects that already exist in `t_yak_ops_project`:
+   - Five conventional warehouse layers: ODS, DIM, DWS, DWD and ADS.
+   - Five unit-standard directories: currency, object quantity, ratio, ranking and time.
+   - One time-period root, nine time-period categories, and seven common time-period assets.
 
-All default-data statements read existing projects from `t_yak_ops_project`; they do not create projects. They use project-scoped `NOT EXISTS` checks and deterministic IDs so repeated schema initialization does not duplicate the default rows. The system-created ODS row remains the initialization marker for the five warehouse layers. The service layer retains lazy initialization as a fallback for projects created after application startup.
+All default-data statements are project-scoped and use deterministic IDs with `NOT EXISTS` checks. Re-running a complete schema script does not duplicate those defaults. Projects created later retain the service-layer lazy-initialization fallback.
 
-Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for the former `t_cockpit_` table names. When only the legacy table exists, it renames that table in place and normalizes its index names, preserving existing rows. If both old and new table names exist, initialization stops and requires an explicit data reconciliation; it never drops or merges either table automatically.
+All 22 modeling tables use the `t_yak_ops_` prefix and a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies the project code from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
-If a legacy table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
+The database column for dimension-field precision is `field_precision`; the Java/API property remains `precision`. The derived-indicator table stores warehouse ownership in `dw_type` and does not contain the legacy `dwh_id` column. Other modeling assets retain their own `dwh_id` fields where their current entities still use them.
 
-The three scripts contain the same 22 logical tables and 62 indexes. When another modeling table is added, update all dialect scripts, the DAO tenant allowlist and the schema preflight list together.
+The complete dialect scripts already include all modifier-scope indexes and the derived-indicator `dw_type` column. The six one-time patch scripts for modifier indexes and derived-indicator migration have therefore been retired. A clean rebuild must use only the matching complete schema script; do not apply the retired patches afterward. If existing modeling data must be preserved, do not run the reset scripts—design a separate data-preserving migration instead.
 
-Existing installations should apply the matching one-time modifier-scope index patch before deploying the modifier query changes:
+## Full modeling reset and rebuild
 
-- `20261116_add_modifier_scope_indexes_mysql.sql`
-- `20261116_add_modifier_scope_indexes_postgresql.sql`
-- `20261116_add_modifier_scope_indexes_h2.sql`
+The reset scripts below remove the 22 logical modeling tables under both their current `t_yak_ops_` names and their former `t_cockpit_` names. The legacy names are included because `SchemaDao.ensureModelingSchema()` can automatically rename a remaining `t_cockpit_` table back to its current name during schema initialization.
 
-The complete dialect scripts above also create these four indexes for fresh installations.
+**Destructive scope:** all modeling records for every project are deleted. Yak Ops base tables—including `t_yak_ops_project`, users, roles, permissions, workflow and datasource tables—are not dropped or modified by these reset scripts.
 
-## Manual reset scripts
-
-The following scripts drop all 22 modeling tables, including data belonging to every Yak Ops project:
+Available manual reset scripts:
 
 - `modeling_drop_mysql.sql`
 - `modeling_drop_postgresql.sql`
 - `modeling_drop_h2.sql`
 
-These scripts are destructive and are intentionally separate from the additive schema scripts above. Run the matching script manually only when a full modeling reset is intended and after backing up the target database. Never add them to application startup or normal schema initialization.
+Back up the target database before resetting. For a MySQL database, run the following from the repository root and replace the connection placeholders:
 
-## Derived-indicator warehouse-layer migration
+```bash
+mysql -h <host> -P <port> -u <user> -p <database> < yak-ops-modeling/src/main/resources/sql/modeling_drop_mysql.sql
+mysql -h <host> -P <port> -u <user> -p <database> < yak-ops-modeling/src/main/resources/sql/modeling_mysql.sql
+```
 
-For existing installations, apply exactly one matching script before deploying the derived-indicator service update:
+For PostgreSQL or H2, use the matching `modeling_drop_<dialect>.sql` and `modeling_<dialect>.sql` scripts. Do not run `yak-ops-dao/src/main/resources/sql/yak-ops_mysql.sql` for a modeling-only reset: that is the full Yak Ops baseline schema and contains destructive DDL for base tables.
 
-- `20261116_migrate_derivative_indicator_dw_type_mysql.sql`
-- `20261116_migrate_derivative_indicator_dw_type_postgresql.sql`
-- `20261116_migrate_derivative_indicator_dw_type_h2.sql`
+`YakOpsManager` invokes `SchemaDao.ensureModelingSchema()` after the Yak Ops base schema/version is available. That method executes the matching complete modeling schema script. It is safe for the complete script to run again after a manual rebuild; the reset scripts are manual-only and must never be wired into application startup.
 
-The migration adds `dw_type`, backfills it from the legacy `dwh_id` relation, and infers a layer only when exactly one ownership branch is populated. Unmapped, incomplete, conflicting, or unsupported legacy rows are returned by the final query for manual review. The migration intentionally retains the old `dwh_id` column until that review is complete. After verifying the migrated rows and taking a backup, remove the obsolete column manually with the dialect-appropriate `ALTER TABLE t_yak_ops_indicator_derivative DROP COLUMN dwh_id` statement.
+After rebuilding, verify that:
 
-Fresh installations use `dw_type` directly and do not create `dwh_id` on the derived-indicator table.
+1. All 22 modeling tables exist and each has `project_code`.
+2. The derived-indicator table has `dw_type` and no `dwh_id`.
+3. The modifier table has the four project-scoped indexes `idx_yak_indicator_modifier_5` through `idx_yak_indicator_modifier_8`.
+4. Each existing project has the five default warehouse layers, the five unit-standard directories, and the seeded time-period hierarchy/assets.
+5. Base tables and existing project/user/role data remain unchanged.
+
+Example MySQL checks:
+
+```sql
+SHOW COLUMNS FROM t_yak_ops_indicator_derivative LIKE 'dw_type';
+SHOW COLUMNS FROM t_yak_ops_indicator_derivative LIKE 'dwh_id';
+SHOW INDEX FROM t_yak_ops_indicator_modifier;
+SELECT project_code, COUNT(*) AS layer_count
+FROM t_yak_ops_dw_layer
+GROUP BY project_code;
+```
+
+## Schema compatibility
+
+`SchemaDao.ensureModelingSchema()` supports the current MySQL, PostgreSQL and H2 dialect scripts. For a normal upgrade where modeling data must be preserved, the DAO may rename a former `t_cockpit_` table in place when its corresponding `t_yak_ops_` table does not exist. If both names exist, initialization stops and requires explicit reconciliation; it never drops or merges either table automatically.
+
+If a legacy modeling table does not contain `project_code`, initialization stops rather than exposing unscoped rows to every workspace. Back up and explicitly assign those rows to a project before enabling the migrated module.
+
+When another modeling table is added, update all three dialect scripts, the DAO tenant allowlist, the schema preflight list, and all three reset scripts together.

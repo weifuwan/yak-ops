@@ -75,7 +75,7 @@ All 22 modeling tables use the `t_yak_ops_` prefix and must have a non-null `pro
 - When another modeling table is added, update the dialect scripts, DAO tenant allowlist and schema preflight list in the same change.
 - Never accept a project code from a DTO as an authority. The request path and project permission check are authoritative.
 
-## Database schema and migration
+## Database schema and reset
 
 The module owns three complete, additive schema scripts:
 
@@ -83,9 +83,13 @@ The module owns three complete, additive schema scripts:
 - `sql/modeling_postgresql.sql`
 - `sql/modeling_h2.sql`
 
-Each script defines the same 22 tables and 55 indexes, with the same logical column set. Table names, table comments and index names are aligned across dialects. All table and index DDL is kept before the initialization DML. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
+Each script defines the same 22 tables and 62 indexes, with the same logical column set. Table names, table comments and index names are aligned across dialects. All table and index DDL is kept before the initialization DML. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
 
-The DML section normalizes legacy warehouse-layer codes, initializes atomic-indicator `dw_type`, and seeds project-scoped defaults for warehouse layers, unit directories and time-period categories/assets. These statements are repeatable and run after all table and index definitions.
+The DML section normalizes legacy warehouse-layer codes, initializes atomic-indicator `dw_type`, and seeds project-scoped defaults for warehouse layers, unit directories and time-period categories/assets.
+
+For a modeling-only reset, use the matching `sql/modeling_drop_<dialect>.sql` script, then run the matching complete `sql/modeling_<dialect>.sql` script. The reset scripts remove only the 22 logical modeling tables (including their legacy `t_cockpit_` names) and preserve Yak Ops base tables such as projects, users, roles and permissions. They delete modeling data for every project and must be run manually after a backup; they are never part of application startup. See `src/main/resources/sql/README.md` for the exact rebuild procedure and verification checks.
+
+The derived-indicator table uses `dw_type` directly and no longer has the legacy `dwh_id` column. Its complete schema already includes the modifier-scope indexes and derived-indicator indexes; the retired one-time patch scripts are not part of a clean rebuild.
 
 Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for former `t_cockpit_` table names. When only a legacy table exists, it renames it in place and normalizes its index names, preserving rows. If both old and new table names exist, initialization stops and requires explicit data reconciliation. It never drops or merges either table automatically.
 
