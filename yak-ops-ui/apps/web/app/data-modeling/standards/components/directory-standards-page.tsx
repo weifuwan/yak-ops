@@ -1,219 +1,24 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Layers, LoaderCircle,
-  Pencil, Plus, PlusSquare, RefreshCw, Search, Trash2, X,
-} from "lucide-react";
-import {
-  Button, Input, Modal, Table, toast, type TableColumns,
-} from "@yak-ops/yak-ui";
+import { Button, Modal, toast, type TableColumns } from "@yak-ops/yak-ui";
 
 import { standardDirectoryApi } from "@/service/data-modeling/standards/shared/standard-directory";
 import { getStandardRecordApi } from "@/service/data-modeling/standards/shared/standard-record";
-import type {
-  CodeDetailRecord, CodeStandardRecord, FieldStandardRecord, StandardDirectoryRecord,
-  StandardModule, StandardTreeNode, UnitStandardRecord,
-} from "../types";
-import {
-  getDirectoryTypeLabel, getStandardResource,
-  getStandardTitle, isDirectoryNode,
-} from "../types";
+import type { StandardDirectoryRecord, StandardModule, StandardRecord, StandardTreeNode } from "../types";
+import { getDirectoryTypeLabel, getStandardResource, getStandardTitle, isDirectoryNode } from "../types";
+import { standardsQueryKeys } from "../query-keys";
+import { DirectoryStandardsTree, filterTree, findNodePath, getExpandableKeys } from "./standard-tree";
+import { DirectoryStandardsDetail } from "./standard-detail";
 import { StandardDirectoryFormDialog } from "./standard-directory-form-dialog";
 import { StandardRecordFormDialog } from "./standard-record-form-dialog";
 
 interface Props { projectCode: string; module: StandardModule; }
-interface ContextMenuState { x: number; y: number; node: StandardTreeNode; }
-type StandardRecord = FieldStandardRecord | CodeStandardRecord | UnitStandardRecord;
 type PendingDelete = {
-  id: string;
-  name: string;
+  id: string; name: string;
   resource: "standardDirectory" | "fieldStandard" | "codeStandard" | "unitStandard";
   directory: boolean;
 };
-
-const CARD = "mb-4 rounded-md border border-[#e7e9ee] bg-white p-4";
-const TITLE = "flex items-center gap-2 text-sm font-semibold text-[var(--yak-components-panel-text)]";
 const PAGE_SIZE = 10;
-
-function SectionTitle({ children }: { children: string }) {
-  return <h3 className={TITLE}><span className="h-4 w-1 rounded-sm bg-[var(--yak-color-primary)]" />{children}</h3>;
-}
-
-function display(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "-";
-  if (typeof value === "boolean") return value ? "是" : "否";
-  return String(value);
-}
-
-function DescriptionItem({
-  label, value, className = "", multiline = false,
-}: {
-  label: string; value: unknown; className?: string; multiline?: boolean;
-}) {
-  return (
-    <div className={"flex min-w-0 items-baseline " + className}>
-      <span className="shrink-0 text-xs leading-[22px] text-[rgba(128,128,128,1)]">{label}：</span>
-      <span className={"min-w-0 pl-3 text-xs leading-[22px] text-black " + (multiline ? "whitespace-pre-wrap break-words" : "break-words")}>
-        {display(value)}
-      </span>
-    </div>
-  );
-}
-
-function filterTree(nodes: StandardTreeNode[], keyword: string): StandardTreeNode[] {
-  const normalized = keyword.trim().toLocaleLowerCase();
-  if (!normalized) return nodes;
-  return nodes.reduce<StandardTreeNode[]>((result, node) => {
-    const children = filterTree(node.children || [], normalized);
-    if (node.title.toLocaleLowerCase().includes(normalized) || children.length) {
-      result.push({ ...node, children });
-    }
-    return result;
-  }, []);
-}
-
-function getExpandableKeys(nodes: StandardTreeNode[]): string[] {
-  return nodes.reduce<string[]>((keys, node) => {
-    if (node.children?.length) keys.push(node.key, ...getExpandableKeys(node.children));
-    return keys;
-  }, []);
-}
-
-function findNodePath(nodes: StandardTreeNode[], key: string, path: string[] = []): string[] {
-  for (const node of nodes) {
-    const next = [...path, node.title];
-    if (node.key === key) return next;
-    const found = findNodePath(node.children || [], key, next);
-    if (found.length) return found;
-  }
-  return [];
-}
-
-function TreeNodeRow({
-  node, depth, selectedKey, expandedKeys, onToggle, onSelect, onContextMenu,
-}: {
-  node: StandardTreeNode; depth: number; selectedKey: string; expandedKeys: Set<string>;
-  onToggle: (key: string) => void; onSelect: (node: StandardTreeNode) => void;
-  onContextMenu: (event: ReactMouseEvent, node: StandardTreeNode) => void;
-}) {
-  const hasChildren = Boolean(node.children?.length);
-  const expanded = expandedKeys.has(node.key);
-  const selected = selectedKey === node.key;
-  const directory = isDirectoryNode(node);
-  return (
-    <div>
-      <div
-        role="treeitem"
-        aria-selected={selected}
-        aria-expanded={hasChildren ? expanded : undefined}
-        onContextMenu={(event) => onContextMenu(event, node)}
-        onClick={() => onSelect(node)}
-        style={{ paddingLeft: 10 + depth * 18 }}
-        className={[
-          "flex min-h-8 cursor-pointer items-center gap-1 rounded-md pr-2 text-[13px] transition-colors",
-          selected
-            ? "bg-[var(--yak-color-primary-subtle)] font-medium text-[var(--yak-color-primary)]"
-            : "text-[#3a3d51] hover:bg-[var(--yak-color-hover)]",
-        ].join(" ")}
-      >
-        <button
-          type="button"
-          className="flex size-4 shrink-0 cursor-pointer items-center justify-center text-[#98a0aa]"
-          aria-label={hasChildren ? (expanded ? "收起" : "展开") : "无子级"}
-          onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(node.key); }}
-        >
-          {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
-        </button>
-        {node.type === "FOLDER"
-          ? (expanded ? <FolderOpen size={14} className="shrink-0 text-[#8b929e]" /> : <Folder size={14} className="shrink-0 text-[#8b929e]" />)
-          : node.type === "STANDARD_SET"
-            ? <Layers size={14} className="shrink-0 text-[#8b929e]" />
-            : <FileText size={14} className="shrink-0 text-[#8b929e]" />}
-        <span className="min-w-0 flex-1 truncate">{node.title}</span>
-        {node.type === "STANDARD_SET" ? <span className="text-[10px] text-[#98a0aa]">标准集</span> : null}
-        {!directory ? <span className="text-[10px] text-[#98a0aa]">{node.type === "FIELD_STANDARD" ? "字段" : node.type === "CODE_STANDARD" ? "代码" : node.type === "UNIT_STANDARD" ? "单位" : ""}</span> : null}
-      </div>
-      {hasChildren && expanded ? (
-        <div role="group">
-          {node.children?.map((child) => (
-            <TreeNodeRow key={child.key} node={child} depth={depth + 1}
-              selectedKey={selectedKey} expandedKeys={expandedKeys} onToggle={onToggle}
-              onSelect={onSelect} onContextMenu={onContextMenu} />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function CodeDetailsTable({ items }: { items: CodeDetailRecord[] }) {
-  const columns: TableColumns<CodeDetailRecord> = [
-    { key: "enShortName", title: "编码取值", dataIndex: "enShortName", width: 180 },
-    { key: "cnName", title: "中文名称", dataIndex: "cnName", width: 180 },
-    { key: "enName", title: "英文名称", dataIndex: "enName", width: 220 },
-    { key: "remark", title: "编码含义", dataIndex: "remark" },
-  ];
-  return (
-    <section className={CARD}>
-      <div className="mb-3 flex items-center justify-between">
-        <SectionTitle>代码明细</SectionTitle>
-        <span className="text-xs text-[var(--yak-components-muted-text)]">{items.length} 条</span>
-      </div>
-      <Table<CodeDetailRecord>
-        columns={columns} dataSource={items} rowKey={(item) => item.id || item.enShortName || ""}
-        bordered size="small" emptyText="暂无代码明细" pagination={items.length > PAGE_SIZE ? { pageSize: PAGE_SIZE } : false}
-      />
-    </section>
-  );
-}
-
-function StandardRecordDetails({
-  module, record, directoryName,
-}: {
-  module: StandardModule; record: StandardRecord; directoryName?: string;
-}) {
-  const field = record as FieldStandardRecord;
-  const code = record as CodeStandardRecord;
-  return (
-    <>
-      <section className={CARD}>
-        <div className="mb-3 flex items-center justify-between"><SectionTitle>基本信息</SectionTitle></div>
-        <div className="grid grid-cols-1 gap-x-8 gap-y-2 px-2 sm:grid-cols-2 xl:grid-cols-3">
-          {module === "FIELD" ? (
-            <>
-              <DescriptionItem label="标准编码" value={field.stdCode} />
-              <DescriptionItem label="中文名称" value={field.cnName} />
-              <DescriptionItem label="英文缩写" value={field.enShortName} />
-              <DescriptionItem label="英文名称" value={field.enName} />
-              <DescriptionItem label="数据类型" value={field.fieldDataType} />
-              <DescriptionItem label="字段长度" value={field.fieldLength} />
-              <DescriptionItem label="字段精度" value={field.fieldPrecision} />
-              <DescriptionItem label="允许为空" value={field.fieldCanNull} />
-              <DescriptionItem label="默认值" value={field.fieldDefaultValue} />
-              <DescriptionItem label="父级标准" value={field.parentStd} />
-              <DescriptionItem label="引用代码" value={field.reference} />
-              <DescriptionItem label="所属目录" value={directoryName} />
-              <DescriptionItem label="业务定义" value={field.businessDefinition} className="col-span-full" multiline />
-            </>
-          ) : (
-            <>
-              <DescriptionItem label="英文缩写" value={record.enShortName} />
-              <DescriptionItem label="英文名称" value={record.enName} />
-              <DescriptionItem label="中文名称" value={record.cnName} />
-              {module === "CODE" ? <DescriptionItem label="描述" value={code.remark} className="col-span-full" multiline /> : null}
-              <DescriptionItem label="所属目录" value={directoryName} />
-            </>
-          )}
-          <DescriptionItem label="创建人" value={record.createBy} />
-          <DescriptionItem label="创建时间" value={record.createTime} />
-          <DescriptionItem label="修改人" value={record.updateBy} />
-          <DescriptionItem label="修改时间" value={record.updateTime} />
-        </div>
-      </section>
-      {module === "CODE" ? <CodeDetailsTable items={code.detailList || []} /> : null}
-    </>
-  );
-}
 
 export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const queryClient = useQueryClient();
@@ -226,7 +31,6 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const [keyword, setKeyword] = useState("");
   const [selectedNode, setSelectedNode] = useState<StandardTreeNode>();
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>();
   const [directoryDialogOpen, setDirectoryDialogOpen] = useState(false);
   const [editingDirectory, setEditingDirectory] = useState<StandardDirectoryRecord>();
   const [directoryParentId, setDirectoryParentId] = useState<string>();
@@ -243,7 +47,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const [directoryPageNo, setDirectoryPageNo] = useState(1);
 
   const treeQuery = useQuery({
-    queryKey: ["modeling", "standards", "tree", projectCode, module],
+    queryKey: standardsQueryKeys.tree(projectCode, module),
     queryFn: () => standardDirectoryApi.tree(projectCode, module),
     enabled: Boolean(projectCode),
   });
@@ -283,7 +87,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     : undefined;
 
   const detailQuery = useQuery({
-    queryKey: ["modeling", "standards", "detail", projectCode, module, selectedNode?.type, selectedNode?.id],
+    queryKey: standardsQueryKeys.detail(projectCode, module, selectedNode?.type, selectedNode?.id),
     queryFn: () => selectedIsDirectory
       ? standardDirectoryApi.getById<StandardDirectoryRecord>(projectCode, selectedNode!.id)
       : recordApi.getById<StandardRecord>(projectCode, selectedNode!.id),
@@ -291,7 +95,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   });
 
   const directoryQuery = useQuery({
-    queryKey: ["modeling", "standards", "directories", projectCode, module, selectedNode?.id, directoryPageNo],
+    queryKey: standardsQueryKeys.directories(projectCode, module, selectedNode?.id, directoryPageNo),
     queryFn: () => standardDirectoryApi.page<StandardDirectoryRecord>(projectCode, {
       dirModule: module,
       parentId: selectedNode?.id,
@@ -302,7 +106,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   });
 
   const recordQuery = useQuery({
-    queryKey: ["modeling", "standards", "records", projectCode, module, selectedNode?.id, recordPageNo, recordKeyword],
+    queryKey: standardsQueryKeys.records(projectCode, module, selectedNode?.id, recordPageNo, recordKeyword),
     queryFn: () => recordApi.page<StandardRecord>(projectCode, {
       parentId: selectedNode?.id,
       pageNo: recordPageNo,
@@ -315,15 +119,15 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
   const refresh = async () => {
     await treeQuery.refetch();
     if (selectedNode?.id) await detailQuery.refetch();
-    await queryClient.invalidateQueries({ queryKey: ["modeling", "standards", "directories", projectCode, module] });
-    await queryClient.invalidateQueries({ queryKey: ["modeling", "standards", "records", projectCode, module] });
+    await queryClient.invalidateQueries({ queryKey: standardsQueryKeys.directoriesPrefix(projectCode, module) });
+    await queryClient.invalidateQueries({ queryKey: standardsQueryKeys.recordsPrefix(projectCode, module) });
   };
 
   const invalidateModule = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["modeling", "standards", "tree", projectCode, module] });
-    await queryClient.invalidateQueries({ queryKey: ["modeling", "standards", "detail", projectCode, module] });
-    await queryClient.invalidateQueries({ queryKey: ["modeling", "standards", "directories", projectCode, module] });
-    await queryClient.invalidateQueries({ queryKey: ["modeling", "standards", "records", projectCode, module] });
+    await queryClient.invalidateQueries({ queryKey: standardsQueryKeys.tree(projectCode, module) });
+    await queryClient.invalidateQueries({ queryKey: standardsQueryKeys.detailPrefix(projectCode, module) });
+    await queryClient.invalidateQueries({ queryKey: standardsQueryKeys.directoriesPrefix(projectCode, module) });
+    await queryClient.invalidateQueries({ queryKey: standardsQueryKeys.recordsPrefix(projectCode, module) });
   };
 
   const openCreateDirectory = (parentId?: string, dirType = "FOLDER") => {
@@ -331,7 +135,6 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     setDirectoryParentId(parentId);
     setInitialDirType(dirType);
     setDirectoryDialogOpen(true);
-    setContextMenu(undefined);
   };
 
   const openEditDirectory = async (id: string) => {
@@ -347,15 +150,13 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
       toast.warning("获取目录详情失败，请刷新后重试");
     } finally {
       setOpeningId("");
-      setContextMenu(undefined);
-    }
+      }
   };
 
   const openCreateRecord = (parentId?: string) => {
     setEditingRecord(undefined);
     setRecordParentId(parentId);
     setRecordDialogOpen(true);
-    setContextMenu(undefined);
   };
 
   const openEditRecord = async (id: string) => {
@@ -370,8 +171,7 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
       toast.warning("获取标准详情失败，请刷新后重试");
     } finally {
       setOpeningId("");
-      setContextMenu(undefined);
-    }
+      }
   };
 
   const saveDirectory = async (values: Record<string, unknown>) => {
@@ -498,317 +298,68 @@ export function DirectoryStandardsPage({ projectCode, module }: Props) {
     ? findNodePath(treeQuery.data || [], selectedNode.key)
     : [];
 
+
   return (
-    <div ref={splitRef}
-      className="relative flex h-full min-h-[620px] min-w-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white"
-      onClick={() => setContextMenu(undefined)}>
-      <aside className="flex min-h-0 shrink-0 flex-col overflow-hidden bg-white" style={{ width: leftWidth }}>
-          <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3">
-            <span className="truncate text-sm font-semibold text-[var(--yak-components-panel-text)]">{title}</span>
-            <div className="flex items-center gap-1">
-              <button type="button" title={"新建" + title + "目录"}
-                className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
-                onClick={() => openCreateDirectory()}>
-                <PlusSquare size={16} />
-              </button>
-              <button type="button" title="刷新"
-                className="flex size-7 cursor-pointer items-center justify-center rounded text-[var(--yak-components-muted-text)] hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-color-primary)]"
-                onClick={() => void refresh()}>
-                <RefreshCw size={15} className={treeQuery.isFetching ? "animate-spin" : ""} />
-              </button>
-            </div>
-          </div>
-          <div className="shrink-0 px-3 py-2">
-            <div className="relative">
-              <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />
-              <Input size="small" variant="outlined" value={keyword} className="pl-8 pr-8" placeholder="搜索"
-                onValueChange={(value) => setKeyword(String(value))} />
-              {keyword ? (
-                <button type="button" aria-label="清空搜索"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-[var(--yak-components-muted-text)]"
-                  onClick={() => setKeyword("")}>
-                  <X size={13} />
-                </button>
-              ) : null}
-            </div>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-            {treeQuery.isPending ? (
-              <div className="flex items-center justify-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
-                <LoaderCircle size={14} className="animate-spin" />正在加载目录...
-              </div>
-            ) : treeQuery.isError ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-xs text-[var(--yak-components-muted-text)]">
-                <span>目录加载失败</span>
-                <Button size="sm" variant="secondary" onClick={() => void treeQuery.refetch()}>重试</Button>
-              </div>
-            ) : treeRows.length ? (
-              <div role="tree" className="space-y-0.5">
-                {treeRows.map((node) => (
-                  <TreeNodeRow key={node.key} node={node} depth={0}
-                    selectedKey={selectedNode?.key || ""} expandedKeys={expandedKeys}
-                    onToggle={toggleExpanded} onSelect={setSelectedNode}
-                    onContextMenu={(event, item) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setContextMenu({ x: event.clientX, y: event.clientY, node: item });
-                    }} />
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-[var(--yak-components-muted-text)]">
-                {keyword ? "没有匹配的目录" : "暂无目录，点击上方按钮新建"}
-              </div>
-            )}
-          </div>
-        </aside>
-
-        <div role="separator" aria-orientation="vertical" aria-label={"调整" + title + "目录宽度"}
-          className={["relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
-          onPointerDown={(event) => { event.preventDefault(); setResizing(true); }}>
-          <span className="absolute inset-y-0 -left-1 -right-1" />
-        </div>
-
-        <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {!selectedNode ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center bg-white">
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Layers size={32} strokeWidth={1.3} className="text-[#c5cbd3]" />
-                <span className="text-sm text-[var(--yak-components-muted-text)]">请选择左侧目录或标准查看详情</span>
-              </div>
-            </div>
-          ) : detailQuery.isPending ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-xs text-[var(--yak-components-muted-text)]">
-              <LoaderCircle size={15} className="mr-2 animate-spin" />正在加载详情...
-            </div>
-          ) : detailQuery.isError || !selectedDetail ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-white text-xs text-[var(--yak-components-muted-text)]">
-              <span>详情加载失败</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => void detailQuery.refetch()}>重试</Button>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedNode(undefined)}>返回目录</Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-[var(--yak-components-panel-border)] bg-white px-5">
-                <div className="flex min-w-0 items-center gap-2">
-                  {selectedIsDirectory
-                    ? <FolderOpen size={20} className="shrink-0 text-[var(--yak-color-primary)]" />
-                    : <FileText size={20} className="shrink-0 text-[var(--yak-color-primary)]" />}
-                  <div className="min-w-0">
-                    <h1 className="truncate text-base font-semibold text-[var(--yak-components-panel-text)]">{selectedNode.title}</h1>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-[var(--yak-components-muted-text)]">
-                      <span>{title}</span>
-                      {breadcrumb.map((part, index) => (
-                        <span key={part + index} className="flex items-center gap-1">
-                          <ChevronRight size={11} />{part}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {selectedIsDirectory && selectedNode.type === "FOLDER" ? (
-                    <>
-                      {module === "FIELD" ? (
-                        <Button size="sm" variant="secondary" onClick={() => openCreateDirectory(selectedNode.id, "STANDARD_SET")}>新建标准集</Button>
-                      ) : null}
-                      <Button size="sm" variant="primary" onClick={() => openCreateRecord(selectedNode.id)}>
-                        <Plus size={13} />新建{module === "FIELD" ? "字段标准" : module === "CODE" ? "标准代码" : "度量单位"}
-                      </Button>
-                    </>
-                  ) : null}
-                  {selectedIsDirectory && selectedNode.type === "STANDARD_SET" ? (
-                    <Button size="sm" variant="primary" onClick={() => openCreateRecord(selectedNode.id)}>
-                      <Plus size={13} />新建字段标准
-                    </Button>
-                  ) : null}
-                  <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
-                    if (selectedIsDirectory) void openEditDirectory(selectedNode.id);
-                    else void openEditRecord(selectedNode.id);
-                  }}>
-                    <Pencil size={13} />编辑
-                  </Button>
-                </div>
-              </header>
-
-              <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6f6f6] p-4">
-              {selectedIsDirectory ? (
-                <>
-                  <section className={CARD}>
-                    <div className="mb-3 flex items-center justify-between"><SectionTitle>目录信息</SectionTitle></div>
-                    <div className="grid grid-cols-1 gap-x-8 gap-y-2 px-2 sm:grid-cols-2 xl:grid-cols-3">
-                      <DescriptionItem label="目录名称" value={selectedDirectory?.dirName} />
-                      <DescriptionItem label="目录类型" value={getDirectoryTypeLabel(selectedDirectory?.dirType)} />
-                      <DescriptionItem label="所属模块" value={title} />
-                      <DescriptionItem label="创建人" value={selectedDirectory?.createBy} />
-                      <DescriptionItem label="创建时间" value={selectedDirectory?.createTime} />
-                      <DescriptionItem label="修改人" value={selectedDirectory?.updateBy} />
-                      <DescriptionItem label="修改时间" value={selectedDirectory?.updateTime} />
-                    </div>
-                  </section>
-
-                  {selectedNode.type === "FOLDER" ? (
-                    <section className={CARD}>
-                      <div className="mb-3 flex items-center justify-between">
-                        <SectionTitle>子目录</SectionTitle>
-                        <Button size="sm" variant="secondary" onClick={() => openCreateDirectory(selectedNode.id)}>
-                          <Plus size={13} />新建子目录
-                        </Button>
-                      </div>
-                      <Table<StandardDirectoryRecord>
-                        columns={directoryColumns}
-                        dataSource={directoryQuery.data?.totalList || []}
-                        rowKey={(item) => item.id || ""}
-                        loading={directoryQuery.isPending || directoryQuery.isFetching}
-                        bordered size="small" emptyText="暂无子目录"
-                        pagination={(directoryQuery.data?.total || 0) > 0 ? {
-                          current: directoryPageNo, pageSize: PAGE_SIZE,
-                          total: directoryQuery.data?.total || 0,
-                          disabled: directoryQuery.isFetching, onChange: setDirectoryPageNo,
-                        } : false}
-                      />
-                    </section>
-                  ) : null}
-
-                  <section className={CARD}>
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <SectionTitle>{module === "FIELD" ? "字段标准列表" : module === "CODE" ? "标准代码列表" : "度量单位列表"}</SectionTitle>
-                      <div className="flex items-center gap-2">
-                        <Input size="small" variant="outlined" value={recordKeyword}
-                          placeholder={"搜索" + title} onChange={(event) => setRecordKeyword(event.target.value)} />
-                        <Button size="sm" variant="primary" onClick={() => openCreateRecord(selectedNode.id)}>
-                          <Plus size={13} />新增
-                        </Button>
-                      </div>
-                    </div>
-                    <Table<StandardRecord>
-                      columns={recordColumns}
-                      dataSource={recordQuery.data?.totalList || []}
-                      rowKey={(item) => item.id || ""}
-                      loading={recordQuery.isPending || recordQuery.isFetching}
-                      bordered size="small" emptyText={"暂无" + title}
-                      pagination={(recordQuery.data?.total || 0) > 0 ? {
-                        current: recordPageNo, pageSize: PAGE_SIZE,
-                        total: recordQuery.data?.total || 0,
-                        disabled: recordQuery.isFetching, onChange: setRecordPageNo,
-                      } : false}
-                    />
-                  </section>
-                </>
-              ) : (
-                <StandardRecordDetails
-                  module={module}
-                  record={selectedRecord!}
-                  directoryName={breadcrumb.length > 1 ? breadcrumb[breadcrumb.length - 2] : undefined}
-                />
-              )}
-              </div>
-            </>
-          )}
-        </section>
-
-      {contextMenu ? (
-        <div
-          className="fixed z-[100] min-w-[164px] rounded-md border border-[#e4e7ec] bg-white p-1 shadow-[0_8px_24px_rgba(16,24,40,0.14)]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {isDirectoryNode(contextMenu.node) ? (
-            <>
-              {contextMenu.node.type === "FOLDER" ? (
-                <>
-                  <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#344054] hover:bg-[#f5f7fa]"
-                    onClick={() => openCreateDirectory(contextMenu.node.id)}>
-                    <Plus size={13} />新建子目录
-                  </button>
-                  {module === "FIELD" ? (
-                    <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#344054] hover:bg-[#f5f7fa]"
-                      onClick={() => openCreateDirectory(contextMenu.node.id, "STANDARD_SET")}>
-                      <Layers size={13} />新建标准集
-                    </button>
-                  ) : null}
-                </>
-              ) : null}
-              <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#344054] hover:bg-[#f5f7fa]"
-                onClick={() => openCreateRecord(contextMenu.node.id)}>
-                <Plus size={13} />新建{module === "FIELD" ? "字段标准" : module === "CODE" ? "标准代码" : "度量单位"}
-              </button>
-              <div className="my-1 border-t border-[#eef0f3]" />
-              <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#344054] hover:bg-[#f5f7fa]"
-                onClick={() => void openEditDirectory(contextMenu.node.id)}>
-                <Pencil size={13} />编辑目录
-              </button>
-              <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#d92d20] hover:bg-[#fef3f2]"
-                onClick={() => {
-                  setPendingDelete({ id: contextMenu.node.id, name: contextMenu.node.title, resource: "standardDirectory", directory: true });
-                  setContextMenu(undefined);
-                }}>
-                <Trash2 size={13} />删除目录
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#344054] hover:bg-[#f5f7fa]"
-                onClick={() => void openEditRecord(contextMenu.node.id)}>
-                <Pencil size={13} />编辑
-              </button>
-              <button type="button" className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[#d92d20] hover:bg-[#fef3f2]"
-                onClick={() => {
-                  setPendingDelete({ id: contextMenu.node.id, name: contextMenu.node.title, resource, directory: false });
-                  setContextMenu(undefined);
-                }}>
-                <Trash2 size={13} />删除
-              </button>
-            </>
-          )}
-        </div>
-      ) : null}
-
+    <div ref={splitRef} className="relative flex h-full min-h-[620px] min-w-0 flex-1 overflow-hidden border-t border-[var(--yak-components-panel-border)] bg-white">
+      <DirectoryStandardsTree
+        width={leftWidth} title={title} module={module} treeRows={treeRows}
+        selectedNode={selectedNode} expandedKeys={expandedKeys} keyword={keyword}
+        loading={treeQuery.isPending} error={treeQuery.isError} refreshing={treeQuery.isFetching}
+        onKeywordChange={setKeyword} onToggleExpanded={toggleExpanded}
+        onRefresh={() => void refresh()} onRetry={() => void treeQuery.refetch()}
+        onCreateRoot={() => openCreateDirectory()} onSelect={setSelectedNode}
+        onCreateDirectory={(node) => openCreateDirectory(node.id)}
+        onCreateStandardSet={(node) => openCreateDirectory(node.id, "STANDARD_SET")}
+        onCreateRecord={(node) => openCreateRecord(node.id)}
+        onEditDirectory={(node) => void openEditDirectory(node.id)}
+        onEditRecord={(node) => void openEditRecord(node.id)}
+        onDeleteDirectory={(node) => setPendingDelete({ id: node.id, name: node.title, resource: "standardDirectory", directory: true })}
+        onDeleteRecord={(node) => setPendingDelete({ id: node.id, name: node.title, resource, directory: false })}
+      />
+      <div role="separator" aria-orientation="vertical" aria-label={"调整" + title + "目录宽度"}
+        className={["relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-[var(--yak-components-panel-border)] transition-colors hover:bg-[var(--yak-color-primary)]", resizing ? "bg-[var(--yak-color-primary)]" : ""].join(" ")}
+        onPointerDown={(event) => { event.preventDefault(); setResizing(true); }}>
+        <span className="absolute inset-y-0 -left-1 -right-1" />
+      </div>
+      <DirectoryStandardsDetail
+        module={module} title={title} selectedNode={selectedNode} selectedIsDirectory={selectedIsDirectory}
+        detailLoading={detailQuery.isPending} detailError={detailQuery.isError}
+        selectedDirectory={selectedDirectory} selectedRecord={selectedRecord} breadcrumb={breadcrumb}
+        directoryItems={directoryQuery.data?.totalList || []} directoryTotal={directoryQuery.data?.total || 0}
+        directoryLoading={directoryQuery.isPending || directoryQuery.isFetching}
+        directoryPageNo={directoryPageNo} onDirectoryPageChange={setDirectoryPageNo} directoryColumns={directoryColumns}
+        recordItems={recordQuery.data?.totalList || []} recordTotal={recordQuery.data?.total || 0}
+        recordLoading={recordQuery.isPending || recordQuery.isFetching}
+        recordPageNo={recordPageNo} onRecordPageChange={setRecordPageNo}
+        recordKeyword={recordKeyword}
+        onRecordKeywordChange={(value) => { setRecordKeyword(value); setRecordPageNo(1); }}
+        recordColumns={recordColumns} onRetry={() => void detailQuery.refetch()}
+        onBack={() => setSelectedNode(undefined)}
+        onCreateDirectory={(parentId) => openCreateDirectory(parentId)}
+        onCreateStandardSet={(parentId) => openCreateDirectory(parentId, "STANDARD_SET")}
+        onCreateRecord={(parentId) => openCreateRecord(parentId)}
+        onEditDirectory={(id) => void openEditDirectory(id)} onEditRecord={(id) => void openEditRecord(id)}
+      />
       <StandardDirectoryFormDialog
-        open={directoryDialogOpen}
-        module={module}
-        parentId={directoryParentId}
-        editing={editingDirectory}
-        initialDirType={initialDirType}
-        saving={saving}
-        onClose={() => {
-          if (!saving) {
-            setDirectoryDialogOpen(false);
-            setEditingDirectory(undefined);
-            setDirectoryParentId(undefined);
-          }
-        }}
+        open={directoryDialogOpen} module={module} parentId={directoryParentId}
+        editing={editingDirectory} initialDirType={initialDirType} saving={saving}
+        onClose={() => { if (!saving) { setDirectoryDialogOpen(false); setEditingDirectory(undefined); setDirectoryParentId(undefined); } }}
         onSubmit={(values) => void saveDirectory(values)}
       />
       <StandardRecordFormDialog
-        open={recordDialogOpen}
-        module={module}
-        parentId={recordParentId}
-        editing={editingRecord}
-        saving={saving}
-        onClose={() => {
-          if (!saving) {
-            setRecordDialogOpen(false);
-            setEditingRecord(undefined);
-            setRecordParentId(undefined);
-          }
-        }}
+        open={recordDialogOpen} module={module} parentId={recordParentId}
+        editing={editingRecord} saving={saving}
+        onClose={() => { if (!saving) { setRecordDialogOpen(false); setEditingRecord(undefined); setRecordParentId(undefined); } }}
         onSubmit={(values) => void saveRecord(values)}
       />
-      <Modal
-        open={Boolean(pendingDelete)} centered width={420}
+      <Modal open={Boolean(pendingDelete)} centered width={420}
         title={pendingDelete?.directory ? "删除目录" : "删除" + title}
         onClose={() => { if (!deleting) setPendingDelete(undefined); }}
         footer={<>
           <Button size="sm" variant="secondary" isDisabled={deleting} onClick={() => setPendingDelete(undefined)}>取消</Button>
           <Button size="sm" variant="danger" isPending={deleting} onClick={() => void confirmDelete()}>删除</Button>
-        </>}
-      >
-        <p className="text-sm leading-6 text-[var(--yak-components-muted-text)]">
-          确定删除“{pendingDelete?.name || "当前记录"}”吗？
-        </p>
+        </>}>
+        <p className="text-sm leading-6 text-[var(--yak-components-muted-text)]">确定删除“{pendingDelete?.name || "当前记录"}”吗？</p>
       </Modal>
     </div>
   );
