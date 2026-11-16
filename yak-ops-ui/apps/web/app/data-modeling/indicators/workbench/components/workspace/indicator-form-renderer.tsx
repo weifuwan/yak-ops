@@ -5,6 +5,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import { IndicatorSectionHeader } from "./indicator-section-header";
 import type {
   IndicatorDefinition,
   IndicatorEditorFieldsProps,
@@ -39,10 +40,7 @@ export function IndicatorFormRenderer({
     <>
       {sectionNames.map((section) => (
         <section key={section} className="bg-white p-4">
-          <div className="mb-3 flex items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-2">
-            <span aria-hidden="true" className="h-4 w-1 shrink-0 bg-[#5664ff]" />
-            <h3 className="m-0 text-sm font-semibold leading-7 text-[var(--yak-components-panel-text)]">{section}</h3>
-          </div>
+          <IndicatorSectionHeader title={section} />
           <div className="grid grid-cols-1 gap-y-3">
             {definition.fields.filter((field) => (field.section || "基本信息") === section).map((field) => {
               const options = fieldOptions(field, optionsByResource);
