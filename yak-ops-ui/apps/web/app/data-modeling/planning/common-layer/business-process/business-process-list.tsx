@@ -83,21 +83,21 @@ export function BusinessProcessList({
     { key: "director", title: "负责人", dataIndex: "director", width: 120 },
     { key: "remark", title: "备注" },
     {
-      key: "actions", title: "操作", width: 150, align: "center",
+      key: "actions", title: "操作", width: 200, align: "center",
       render: (_value, record) => (
         <div className="flex items-center justify-center gap-1 whitespace-nowrap">
-          <Button size="sm" variant="ghost" className="px-1 text-xs font-normal text-[var(--yak-color-primary)]" onClick={() => onView(record)}>
+          <Button size="sm" variant="ghost" className="shrink-0 px-1 text-xs font-normal text-[var(--yak-color-primary)]" onClick={() => onView(record)}>
             <Eye size={12} />查看
           </Button>
-          <span className="h-3 w-px bg-[#e4e7ec]" />
-          <Button size="sm" variant="ghost" className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
+          <span className="h-3 w-px shrink-0 bg-[#e4e7ec]" />
+          <Button size="sm" variant="ghost" className="shrink-0 px-1 text-xs font-normal text-[var(--yak-color-primary)]"
             isDisabled={Boolean(openingId)} onClick={() => onEdit(record)}>
             {openingId === record.id ? "加载中" : <><SquarePen size={12} />编辑</>}
           </Button>
           {!isSystemBusinessProcess(record) ? (
             <>
-              <span className="h-3 w-px bg-[#e4e7ec]" />
-              <Button size="sm" variant="ghost" className="px-1 text-xs font-normal text-[#d92d20]" onClick={() => onDelete(record)}>
+              <span className="h-3 w-px shrink-0 bg-[#e4e7ec]" />
+              <Button size="sm" variant="ghost" className="shrink-0 px-1 text-xs font-normal text-[#d92d20]" onClick={() => onDelete(record)}>
                 <Trash2 size={12} />删除
               </Button>
             </>
