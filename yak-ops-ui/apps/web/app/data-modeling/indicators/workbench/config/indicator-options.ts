@@ -14,9 +14,13 @@ export const ATOM_INDICATOR_TREE_DW_OPTIONS: IndicatorFieldOption[] = [
 export const DERIVATIVE_INDICATOR_TREE_DW_OPTIONS: IndicatorFieldOption[] = [
   { value: "PUBLIC_LAYER", label: "公共层" },
   { value: "APPLICATION_LAYER", label: "应用层" },
+  { value: "UNASSIGNED", label: "未选择" },
 ];
 
-export const COMPOSITE_INDICATOR_TREE_DW_OPTIONS = DERIVATIVE_INDICATOR_TREE_DW_OPTIONS;
+export const COMPOSITE_INDICATOR_TREE_DW_OPTIONS: IndicatorFieldOption[] = [
+  { value: "PUBLIC_LAYER", label: "公共层" },
+  { value: "APPLICATION_LAYER", label: "应用层" },
+];
 
 export const MODIFIER_TREE_DW_OPTIONS: IndicatorFieldOption[] = [
   { value: "PUBLIC_LAYER", label: "公共层" },

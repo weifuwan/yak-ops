@@ -24,13 +24,14 @@ export type IndicatorField = {
 };
 export type IndicatorColumn = { key: string; title: string; width?: number };
 export type IndicatorColumnFormat = "indicatorName" | "status" | "dwType" | "computeMode" | "modifierType" | "relation";
-export type IndicatorListFilterKey = "businessTypeId" | "domainId" | "categoryId";
+export type IndicatorListFilterKey = "businessTypeId" | "domainId" | "categoryId" | "martId" | "subjectId";
 export type IndicatorListFilter = {
   key: IndicatorListFilterKey;
   paramKey: string;
   label: string;
   optionsSource: IndicatorOptionResource;
   optionLabelField?: string;
+  dwType?: string;
 };
 export type IndicatorDefinition = {
   key: IndicatorKind;
@@ -55,7 +56,7 @@ export type IndicatorTab = {
   dirty?: boolean;
 };
 
-export type IndicatorTreeNodeType = "root" | "businessType" | "dataDomain" | "businessProcess" | "asset" | "group";
+export type IndicatorTreeNodeType = "root" | "businessType" | "dataDomain" | "businessProcess" | "dataMart" | "subjectDomain" | "asset" | "group";
 
 export type IndicatorTreeNode = {
   key: string;
@@ -68,7 +69,7 @@ export type IndicatorTreeNode = {
   children: IndicatorTreeNode[];
 };
 
-export type IndicatorGroupBy = "BUSINESS_TYPE" | "DATA_DOMAIN";
+export type IndicatorGroupBy = "BUSINESS_TYPE" | "DATA_DOMAIN" | "DATA_MART" | "SUBJECT_DOMAIN";
 export type ModifierScopeType = "BUSINESS_TYPE" | "DATA_DOMAIN";
 export type IndicatorDeleteTarget = { kind: IndicatorKind; record: ModelingRecord };
 export type IndicatorTreeContextMenuState = { x: number; y: number; record: ModelingRecord } | null;

@@ -7,7 +7,7 @@ type GroupedIndicatorKind = Extract<IndicatorKind, "derivativeIndicator" | "comp
 function findGroupNode(
   nodes: IndicatorTreeNode[],
   id: string,
-  nodeType: "businessType" | "dataDomain",
+  nodeType: "businessType" | "dataDomain" | "dataMart" | "subjectDomain",
 ): IndicatorTreeNode | undefined {
   for (const node of nodes) {
     if (node.kind === "group" && node.nodeType === nodeType && node.id === id) return node;
@@ -608,4 +608,390 @@ export function collectExpandedKeys(nodes: IndicatorTreeNode[]): string[] {
     }
   });
   return result;
+}
+
+export type DerivativeIndicatorTreeInput = {
+  businessTypes: ModelingRecord[];
+  dataDomains: ModelingRecord[];
+  businessProcesses: ModelingRecord[];
+  dataMarts: ModelingRecord[];
+  subjectDomains: ModelingRecord[];
+  records: ModelingRecord[];
+  groupBy: IndicatorGroupBy;
+  scopeValue?: string;
+  dwType: string;
+};
+
+export function buildDerivativeIndicatorTree(input: DerivativeIndicatorTreeInput): IndicatorTreeNode[] {
+  const {
+    businessTypes, dataDomains, businessProcesses, dataMarts, subjectDomains,
+    groupBy, scopeValue = "", dwType,
+  } = input;
+  const recordMap = new Map<string, ModelingRecord>();
+  input.records.forEach((record) => {
+    if (record.id) recordMap.set(String(record.id), record);
+  });
+  const records = Array.from(recordMap.values());
+  const assetNode = (record: ModelingRecord): IndicatorTreeNode => ({
+    key: "asset:" + String(record.id),
+    id: String(record.id),
+    title: recordName(record),
+    kind: "asset",
+    nodeType: "asset",
+    record,
+    children: [],
+  });
+  const countAssets = (node: IndicatorTreeNode): number => {
+    if (node.kind === "asset") return 1;
+    node.count = node.children.reduce((total, child) => total + countAssets(child), 0);
+    return node.count;
+  };
+  const root: IndicatorTreeNode = {
+    key: "root:derivative-indicator",
+    id: "root",
+    title: "派生指标",
+    kind: "group",
+    nodeType: "root",
+    children: [],
+  };
+
+  if (dwType === "UNASSIGNED") {
+    const unassigned = records.map(assetNode);
+    if (unassigned.length) {
+      root.children = [{
+        key: "group:unassigned-warehouse-layer",
+        id: "unassigned-warehouse-layer",
+        title: "未设置数仓分层",
+        kind: "group",
+        nodeType: "group",
+        count: unassigned.length,
+        children: unassigned,
+      }];
+    }
+    root.count = records.length;
+    return [root];
+  }
+
+  if (dwType === "PUBLIC_LAYER") {
+    const domainMap = new Map<string, ModelingRecord>();
+    dataDomains.forEach((record) => {
+      if (record.id) domainMap.set(String(record.id), record);
+    });
+    const processMap = new Map<string, ModelingRecord>();
+    businessProcesses.forEach((record) => {
+      if (record.id) processMap.set(String(record.id), record);
+    });
+
+    const buildDomainNode = (domainId: string, scopedRecords: ModelingRecord[], keyPrefix: string): IndicatorTreeNode => {
+      const domain = domainMap.get(domainId);
+      const domainProcesses = businessProcesses.filter((process) =>
+        String(process.dataDomainId || "") === domainId && Boolean(process.id),
+      );
+      const processIds = new Set(domainProcesses.map((process) => String(process.id)));
+      const children: IndicatorTreeNode[] = domainProcesses.map((process) => {
+        const processId = String(process.id);
+        const processRecords = scopedRecords.filter((record) => String(record.busProcessId || "") === processId);
+        return {
+          key: keyPrefix + ":process:" + processId,
+          id: processId,
+          title: recordName(process),
+          kind: "group",
+          nodeType: "businessProcess",
+          record: process,
+          count: processRecords.length,
+          children: processRecords.map(assetNode),
+        };
+      });
+      const unassignedProcessRecords = scopedRecords.filter((record) => {
+        const processId = String(record.busProcessId || "");
+        const process = processMap.get(processId);
+        return !process || String(process.dataDomainId || "") !== domainId || !processIds.has(processId);
+      });
+      if (unassignedProcessRecords.length) {
+        children.push({
+          key: keyPrefix + ":unassigned-process",
+          id: "unassigned-process",
+          title: "未关联业务过程",
+          kind: "group",
+          nodeType: "group",
+          count: unassignedProcessRecords.length,
+          children: unassignedProcessRecords.map(assetNode),
+        });
+      }
+      return {
+        key: keyPrefix + ":domain:" + domainId,
+        id: domainId,
+        title: domain ? recordName(domain) : "未关联数据域",
+        kind: "group",
+        nodeType: domain ? "dataDomain" : "group",
+        record: domain,
+        count: children.reduce((total, child) => total + (child.count || 0), 0),
+        children,
+      };
+    };
+
+    if (groupBy === "DATA_DOMAIN") {
+      root.children = dataDomains.filter((domain) => domain.id).map((domain) => {
+        const id = String(domain.id);
+        return buildDomainNode(id, records.filter((record) => String(record.domainId || "") === id), "data-domain:" + id);
+      });
+      const unassignedDomainRecords = records.filter((record) => {
+        const id = String(record.domainId || "");
+        return !id || !domainMap.has(id);
+      });
+      if (unassignedDomainRecords.length) {
+        root.children.push({
+          key: "data-domain:unassigned",
+          id: "unassigned-domain",
+          title: "未关联数据域",
+          kind: "group",
+          nodeType: "group",
+          count: unassignedDomainRecords.length,
+          children: unassignedDomainRecords.map(assetNode),
+        });
+      }
+    } else {
+      const businessTypeMap = new Map<string, ModelingRecord>();
+      businessTypes.forEach((record) => {
+        if (record.id) businessTypeMap.set(String(record.id), record);
+      });
+      const childrenByParent = new Map<string, ModelingRecord[]>();
+      businessTypes.forEach((record) => {
+        const id = String(record.id || "");
+        const parentId = String(record.parentId || "");
+        if (!id || !parentId || !businessTypeMap.has(parentId)) return;
+        const children = childrenByParent.get(parentId) || [];
+        children.push(record);
+        childrenByParent.set(parentId, children);
+      });
+      const visited = new Set<string>();
+      const buildBusinessTypeNode = (businessType: ModelingRecord): IndicatorTreeNode | null => {
+        const id = String(businessType.id || "");
+        if (!id || visited.has(id)) return null;
+        visited.add(id);
+        const directRecords = records.filter((record) => String(record.busTypeId || "") === id);
+        const childNodes = (childrenByParent.get(id) || [])
+          .map(buildBusinessTypeNode)
+          .filter((node): node is IndicatorTreeNode => Boolean(node));
+        const domainIds = Array.from(new Set(directRecords
+          .map((record) => String(record.domainId || ""))
+          .filter((domainId) => domainId && domainMap.has(domainId))));
+        const domainNodes = domainIds.map((domainId) => buildDomainNode(
+          domainId,
+          directRecords.filter((record) => String(record.domainId || "") === domainId),
+          "business-type:" + id,
+        ));
+        const unassignedDomainRecords = directRecords.filter((record) => {
+          const domainId = String(record.domainId || "");
+          return !domainId || !domainMap.has(domainId);
+        });
+        if (unassignedDomainRecords.length) {
+          domainNodes.push({
+            key: "business-type:" + id + ":unassigned-domain",
+            id: "unassigned-domain",
+            title: "未关联数据域",
+            kind: "group",
+            nodeType: "group",
+            count: unassignedDomainRecords.length,
+            children: unassignedDomainRecords.map(assetNode),
+          });
+        }
+        return {
+          key: "business-type:" + id,
+          id,
+          title: recordName(businessType),
+          kind: "group",
+          nodeType: "businessType",
+          record: businessType,
+          count: childNodes.reduce((total, child) => total + (child.count || 0), 0)
+            + domainNodes.reduce((total, child) => total + (child.count || 0), 0),
+          children: [...childNodes, ...domainNodes],
+        };
+      };
+      root.children = businessTypes.filter((record) => {
+        const parentId = String(record.parentId || "");
+        return record.id && (!parentId || !businessTypeMap.has(parentId));
+      }).map(buildBusinessTypeNode).filter((node): node is IndicatorTreeNode => Boolean(node));
+      businessTypes.forEach((record) => {
+        const id = String(record.id || "");
+        if (id && !visited.has(id)) {
+          const node = buildBusinessTypeNode(record);
+          if (node) root.children.push(node);
+        }
+      });
+      const unassignedBusinessTypeRecords = records.filter((record) => {
+        const id = String(record.busTypeId || "");
+        return !id || !businessTypeMap.has(id);
+      });
+      if (unassignedBusinessTypeRecords.length) {
+        const domainIds = Array.from(new Set(unassignedBusinessTypeRecords
+          .map((record) => String(record.domainId || ""))
+          .filter((domainId) => domainId && domainMap.has(domainId))));
+        const domainNodes = domainIds.map((domainId) => buildDomainNode(
+          domainId,
+          unassignedBusinessTypeRecords.filter((record) => String(record.domainId || "") === domainId),
+          "business-type:unassigned",
+        ));
+        const noDomain = unassignedBusinessTypeRecords.filter((record) => {
+          const domainId = String(record.domainId || "");
+          return !domainId || !domainMap.has(domainId);
+        });
+        if (noDomain.length) {
+          domainNodes.push({
+            key: "business-type:unassigned:unassigned-domain",
+            id: "unassigned-domain",
+            title: "未关联数据域",
+            kind: "group",
+            nodeType: "group",
+            count: noDomain.length,
+            children: noDomain.map(assetNode),
+          });
+        }
+        root.children.push({
+          key: "business-type:unassigned",
+          id: "unassigned-business-type",
+          title: "未关联业务分类",
+          kind: "group",
+          nodeType: "group",
+          count: domainNodes.reduce((total, child) => total + (child.count || 0), 0),
+          children: domainNodes,
+        });
+      }
+    }
+  } else if (dwType === "APPLICATION_LAYER") {
+    const martMap = new Map<string, ModelingRecord>();
+    dataMarts.forEach((record) => {
+      if (record.id) martMap.set(String(record.id), record);
+    });
+    const subjectMap = new Map<string, ModelingRecord>();
+    subjectDomains.forEach((record) => {
+      if (record.id) subjectMap.set(String(record.id), record);
+    });
+    const subjectChildren = new Map<string, ModelingRecord[]>();
+    subjectDomains.forEach((record) => {
+      const id = String(record.id || "");
+      const parentId = String(record.parentId || "");
+      if (!id || !parentId || !subjectMap.has(parentId)) return;
+      const parent = subjectMap.get(parentId);
+      if (String(parent?.dataMartId || "") !== String(record.dataMartId || "")) return;
+      const children = subjectChildren.get(parentId) || [];
+      children.push(record);
+      subjectChildren.set(parentId, children);
+    });
+    const visitedSubjects = new Set<string>();
+    const buildSubjectNode = (subject: ModelingRecord, martId: string): IndicatorTreeNode | null => {
+      const id = String(subject.id || "");
+      if (!id || visitedSubjects.has(id)) return null;
+      visitedSubjects.add(id);
+      const directRecords = records.filter((record) =>
+        String(record.subjectId || "") === id && String(record.martId || "") === martId,
+      );
+      const childNodes = (subjectChildren.get(id) || [])
+        .map((child) => buildSubjectNode(child, martId))
+        .filter((node): node is IndicatorTreeNode => Boolean(node));
+      return {
+        key: "subject-domain:" + id,
+        id,
+        title: recordName(subject),
+        kind: "group",
+        nodeType: "subjectDomain",
+        record: subject,
+        count: directRecords.length + childNodes.reduce((total, child) => total + (child.count || 0), 0),
+        children: [...childNodes, ...directRecords.map(assetNode)],
+      };
+    };
+    const martChildren = new Map<string, ModelingRecord[]>();
+    dataMarts.forEach((record) => {
+      const id = String(record.id || "");
+      const parentId = String(record.parentId || "");
+      if (!id || !parentId || !martMap.has(parentId)) return;
+      const children = martChildren.get(parentId) || [];
+      children.push(record);
+      martChildren.set(parentId, children);
+    });
+    const visitedMarts = new Set<string>();
+    const buildMartNode = (mart: ModelingRecord): IndicatorTreeNode | null => {
+      const id = String(mart.id || "");
+      if (!id || visitedMarts.has(id)) return null;
+      visitedMarts.add(id);
+      const martSubjects = subjectDomains.filter((subject) => {
+        if (String(subject.dataMartId || "") !== id) return false;
+        const parentId = String(subject.parentId || "");
+        return !parentId || !subjectMap.has(parentId)
+          || String(subjectMap.get(parentId)?.dataMartId || "") !== id;
+      });
+      const subjectNodes = martSubjects
+        .map((subject) => buildSubjectNode(subject, id))
+        .filter((node): node is IndicatorTreeNode => Boolean(node));
+      const unassignedSubjectRecords = records.filter((record) => {
+        if (String(record.martId || "") !== id) return false;
+        const subjectId = String(record.subjectId || "");
+        return !subjectId || !subjectMap.has(subjectId)
+          || String(subjectMap.get(subjectId)?.dataMartId || "") !== id;
+      });
+      if (unassignedSubjectRecords.length) {
+        subjectNodes.push({
+          key: "data-mart:" + id + ":unassigned-subject",
+          id: "unassigned-subject",
+          title: "未关联主题域",
+          kind: "group",
+          nodeType: "group",
+          count: unassignedSubjectRecords.length,
+          children: unassignedSubjectRecords.map(assetNode),
+        });
+      }
+      const childMarts = (martChildren.get(id) || [])
+        .map(buildMartNode)
+        .filter((node): node is IndicatorTreeNode => Boolean(node));
+      return {
+        key: "data-mart:" + id,
+        id,
+        title: recordName(mart),
+        kind: "group",
+        nodeType: "dataMart",
+        record: mart,
+        count: subjectNodes.reduce((total, child) => total + (child.count || 0), 0)
+          + childMarts.reduce((total, child) => total + (child.count || 0), 0),
+        children: [...childMarts, ...subjectNodes],
+      };
+    };
+    root.children = dataMarts.filter((mart) => {
+      const parentId = String(mart.parentId || "");
+      return mart.id && (!parentId || !martMap.has(parentId));
+    }).map(buildMartNode).filter((node): node is IndicatorTreeNode => Boolean(node));
+    dataMarts.forEach((mart) => {
+      const id = String(mart.id || "");
+      if (id && !visitedMarts.has(id)) {
+        const node = buildMartNode(mart);
+        if (node) root.children.push(node);
+      }
+    });
+    const unassignedMartRecords = records.filter((record) => {
+      const id = String(record.martId || "");
+      return !id || !martMap.has(id);
+    });
+    if (unassignedMartRecords.length) {
+      root.children.push({
+        key: "data-mart:unassigned",
+        id: "unassigned-mart",
+        title: "未关联数据集市",
+        kind: "group",
+        nodeType: "group",
+        count: unassignedMartRecords.length,
+        children: unassignedMartRecords.map(assetNode),
+      });
+    }
+  }
+
+  root.count = countAssets(root);
+  if (scopeValue) {
+    const nodeType = groupBy === "BUSINESS_TYPE" ? "businessType"
+      : groupBy === "DATA_DOMAIN" ? "dataDomain"
+      : groupBy === "DATA_MART" ? "dataMart"
+      : "subjectDomain";
+    const selectedNode = findGroupNode(root.children, scopeValue, nodeType);
+    root.children = selectedNode ? [selectedNode] : [];
+    root.count = selectedNode?.count || 0;
+  }
+  return [root];
 }

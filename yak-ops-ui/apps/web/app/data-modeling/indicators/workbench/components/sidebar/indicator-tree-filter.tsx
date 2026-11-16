@@ -1,11 +1,13 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input, Select, SelectContent, SelectItem, SelectItemIndicator, SelectItemText, SelectSearch, SelectTrigger, SelectValue } from "@yak-ops/yak-ui";
-import { Search } from "lucide-react";
+import { Database, Layers3, Search } from "lucide-react";
 
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
+import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
+import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorFieldOption, IndicatorGroupBy } from "../../types";
 
@@ -13,6 +15,7 @@ type IndicatorTreeFilterProps = {
   projectCode: string;
   dwType: string;
   dwTypeOptions: IndicatorFieldOption[];
+  groupingMode?: "DERIVATIVE";
   onDwTypeChange: (value: string) => void;
   scopeType: IndicatorGroupBy;
   onScopeTypeChange: (value: IndicatorGroupBy) => void;
@@ -22,12 +25,19 @@ type IndicatorTreeFilterProps = {
   onKeywordChange: (value: string) => void;
 };
 
-const SCOPE_OPTIONS: Array<{ value: IndicatorGroupBy; label: string }> = [
+const COMMON_SCOPE_OPTIONS: Array<{ value: IndicatorGroupBy; label: string }> = [
   { value: "DATA_DOMAIN", label: "数据域" },
   { value: "BUSINESS_TYPE", label: "业务分类" },
 ];
 
+const APPLICATION_SCOPE_OPTIONS: Array<{ value: IndicatorGroupBy; label: string }> = [
+  { value: "DATA_MART", label: "数据集市" },
+  { value: "SUBJECT_DOMAIN", label: "主题域" },
+];
+
 function ScopeIcon({ scope }: { scope: IndicatorGroupBy }) {
+  if (scope === "DATA_MART") return <Database size={15} className="text-[#3a3d51]" />;
+  if (scope === "SUBJECT_DOMAIN") return <Layers3 size={15} className="text-[#3a3d51]" />;
   return (
     <PlanningIcon
       name={scope === "BUSINESS_TYPE" ? "business-type" : "data-domain"}
@@ -41,6 +51,7 @@ export function IndicatorTreeFilter({
   projectCode,
   dwType,
   dwTypeOptions,
+  groupingMode,
   onDwTypeChange,
   scopeType,
   onScopeTypeChange,
@@ -50,24 +61,33 @@ export function IndicatorTreeFilter({
   onKeywordChange,
 }: IndicatorTreeFilterProps) {
   const [scopeKeyword, setScopeKeyword] = useState("");
+  const scopeTypeOptions = groupingMode === "DERIVATIVE" && dwType === "APPLICATION_LAYER"
+    ? APPLICATION_SCOPE_OPTIONS
+    : COMMON_SCOPE_OPTIONS;
+  const showScopeControls = !(groupingMode === "DERIVATIVE" && dwType === "UNASSIGNED");
+  const activeScope = scopeTypeOptions.find((option) => option.value === scopeType) || scopeTypeOptions[0] || COMMON_SCOPE_OPTIONS[0];
   const scopeOptionsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "indicator-tree-scope-options", projectCode, scopeType],
-    queryFn: () => scopeType === "BUSINESS_TYPE"
-      ? businessTypeApi.all<ModelingRecord>(projectCode)
-      : dataDomainApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode),
+    queryKey: ["modeling", "indicator-tree-scope-options", projectCode, groupingMode || "COMMON", dwType, scopeType],
+    queryFn: () => {
+      switch (scopeType) {
+        case "BUSINESS_TYPE": return businessTypeApi.all<ModelingRecord>(projectCode);
+        case "DATA_MART": return dataMartApi.all<ModelingRecord>(projectCode);
+        case "SUBJECT_DOMAIN": return subjectDomainApi.all<ModelingRecord>(projectCode);
+        default: return dataDomainApi.all<ModelingRecord>(projectCode);
+      }
+    },
+    enabled: Boolean(projectCode && showScopeControls),
   });
 
   const scopeOptions = useMemo(() => (scopeOptionsQuery.data || [])
     .map((record) => ({
       value: String(record.id || ""),
-      label: String(record.businessName || record.cnName || record.domainName || record.id || "未命名"),
+      label: String(record.businessName || record.cnName || record.martName || record.domainName || record.id || "未命名"),
     }))
     .filter((option) => option.value), [scopeOptionsQuery.data]);
   const visibleScopeOptions = scopeOptions.filter((option) =>
     option.label.toLocaleLowerCase().includes(scopeKeyword.trim().toLocaleLowerCase()),
   );
-  const activeScope = SCOPE_OPTIONS.find((option) => option.value === scopeType) || SCOPE_OPTIONS[0];
 
   const handleLayerKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -114,12 +134,13 @@ export function IndicatorTreeFilter({
         })}
       </div>
 
+      {showScopeControls ? (
       <div className="flex h-6 w-full min-w-0">
         <Select
           size="small"
-          value={scopeType}
+          value={activeScope.value}
           onValueChange={(value) => {
-            onScopeTypeChange(String(value || "DATA_DOMAIN") as IndicatorGroupBy);
+            onScopeTypeChange(String(value || scopeTypeOptions[0]?.value || "DATA_DOMAIN") as IndicatorGroupBy);
             onScopeValueChange("");
             setScopeKeyword("");
           }}
@@ -132,7 +153,7 @@ export function IndicatorTreeFilter({
             <SelectValue className="!inline-flex !h-6 !items-center !justify-center !leading-none">{() => <ScopeIcon scope={scopeType} />}</SelectValue>
           </SelectTrigger>
           <SelectContent className="!min-w-[148px]">
-            {SCOPE_OPTIONS.map((option) => (
+            {scopeTypeOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
                 <ScopeIcon scope={option.value} />
                 <SelectItemText>{option.label}</SelectItemText>
@@ -174,6 +195,7 @@ export function IndicatorTreeFilter({
           </SelectContent>
         </Select>
       </div>
+      ) : null}
 
       <div className="relative">
         <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]" />

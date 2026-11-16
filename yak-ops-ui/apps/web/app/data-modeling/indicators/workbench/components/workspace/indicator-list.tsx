@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button, Input, Select, SelectContent, SelectItem, SelectItemIndicator, SelectItemText,
@@ -30,6 +30,8 @@ const EMPTY_FILTERS: Record<IndicatorListFilterKey, string> = {
   businessTypeId: "",
   domainId: "",
   categoryId: "",
+  martId: "",
+  subjectId: "",
 };
 
 export function IndicatorList({
@@ -48,6 +50,14 @@ export function IndicatorList({
     status: "all",
     filters: { ...EMPTY_FILTERS },
   });
+  useEffect(() => {
+    if (definition.key !== "derivativeIndicator") return;
+    const emptyFilters = { ...EMPTY_FILTERS };
+    setFilters(emptyFilters);
+    setApplied((current) => ({ ...current, filters: emptyFilters }));
+    setPageNo(1);
+  }, [definition.key, dwType]);
+
   const [pageNo, setPageNo] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -68,7 +78,7 @@ export function IndicatorList({
         pageSize,
         keyword: applied.keyword || undefined,
       };
-      if (definition.filterByDwType) params.dwType = dwType;
+      if (definition.filterByDwType && dwType !== "UNASSIGNED") params.dwType = dwType;
       if (applied.status !== "all") params.submit = applied.status;
       (definition.listFilters || []).forEach((filter) => {
         const value = applied.filters[filter.key];
@@ -180,6 +190,8 @@ export function IndicatorList({
     }))
     .filter((option) => option.value);
 
+  const visibleListFilters = (definition.listFilters || []).filter((filter) => !filter.dwType || filter.dwType === dwType);
+
   const statusOptions: IndicatorFieldOption[] = [
     { value: "all", label: "全部状态" },
     { value: "true", label: "已提交" },
@@ -217,7 +229,7 @@ export function IndicatorList({
             </SelectContent>
           </Select>
         </div>
-        {(definition.listFilters || []).map((filter) => {
+        {visibleListFilters.map((filter) => {
           const options: IndicatorFieldOption[] = [
             { value: "all", label: filter.label },
             ...filterOptions(filter.optionsSource, filter.optionLabelField),
