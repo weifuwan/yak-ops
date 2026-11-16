@@ -1,0 +1,16 @@
+package io.yak.ops.modeling.api.dto.measurementunit;
+
+import io.yak.ops.modeling.api.dto.pagination.ModelingQueryDTO;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+/** Typed request model for MeasurementUnit. */
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class MeasurementUnitDTO extends ModelingQueryDTO {
+
+    private String enShortName;
+    private String enName;
+    private String cnName;
+    private String parentId;
+}
