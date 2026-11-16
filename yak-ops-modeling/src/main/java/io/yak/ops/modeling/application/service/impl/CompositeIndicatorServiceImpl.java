@@ -41,7 +41,7 @@ public class CompositeIndicatorServiceImpl
     @Override
     protected QueryWrapper<ComposeIndicatorPO> buildQueryWrapper(CompositeIndicatorDTO query) {
         QueryWrapper<ComposeIndicatorPO> wrapper = new QueryWrapper<ComposeIndicatorPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getDeriveId(), "derive_id");
         eqIfNotBlank(wrapper, query.getBusTypeId(), "bus_type_id");
         eqIfNotBlank(wrapper, query.getDomainId(), "domain_id");

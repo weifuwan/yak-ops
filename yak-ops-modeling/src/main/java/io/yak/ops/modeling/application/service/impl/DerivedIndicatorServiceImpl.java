@@ -44,7 +44,7 @@ public class DerivedIndicatorServiceImpl
     @Override
     protected QueryWrapper<DerivativeIndicatorPO> buildQueryWrapper(DerivedIndicatorDTO query) {
         QueryWrapper<DerivativeIndicatorPO> wrapper = new QueryWrapper<DerivativeIndicatorPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getAtomicId(), "atomic_id");
         eqIfNotBlank(wrapper, query.getTimePeriodId(), "time_period_id");
         eqIfNotBlank(wrapper, query.getBusTypeId(), "bus_type_id");

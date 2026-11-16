@@ -43,7 +43,7 @@ public class AtomIndicatorServiceImpl
     @Override
     protected QueryWrapper<AtomIndicatorPO> buildQueryWrapper(AtomIndicatorDTO query) {
         QueryWrapper<AtomIndicatorPO> wrapper = new QueryWrapper<AtomIndicatorPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfPresent(wrapper, query.getDwType(), "dw_type");
         eqIfNotBlank(wrapper, query.getBusTypeId(), "bus_type_id");
         eqIfNotBlank(wrapper, query.getDomainId(), "domain_id");

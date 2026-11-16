@@ -79,7 +79,7 @@ public class ModifierServiceImpl
     @Override
     protected QueryWrapper<ModifierPO> buildQueryWrapper(ModifierDTO query) {
         QueryWrapper<ModifierPO> wrapper = new QueryWrapper<ModifierPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getModifierType(), "modifier_type");
         eqIfNotBlank(wrapper, query.getDwhId(), "dwh_id");
         eqIfNotBlank(wrapper, query.getBusTypeId(), "bus_type_id");

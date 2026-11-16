@@ -53,7 +53,7 @@ public class TimePeriodServiceImpl
     @Override
     protected QueryWrapper<TimePeriodPO> buildQueryWrapper(TimePeriodDTO query) {
         QueryWrapper<TimePeriodPO> wrapper = new QueryWrapper<TimePeriodPO>();
-        addKeyword(wrapper, query.getKeyword(), "cn_name", "en_short_name", "en_name");
+        addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getCategoryId(), "category_id");
         eqIfPresent(wrapper, query.getSubmit(), "submit");
         return wrapper;
@@ -184,7 +184,11 @@ public class TimePeriodServiceImpl
 
     private QueryWrapper<TimePeriodCategoryPO> buildCategoryWrapper(TimePeriodCategoryDTO query) {
         QueryWrapper<TimePeriodCategoryPO> wrapper = new QueryWrapper<TimePeriodCategoryPO>();
-        addCategoryKeyword(wrapper, query.getKeyword());
+        String keyword = text(query.getKeyword());
+        if (!notBlank(keyword)) {
+            keyword = notBlank(query.getCnName()) ? query.getCnName() : query.getEnName();
+        }
+        addCategoryKeyword(wrapper, keyword);
         if (notBlank(query.getParentId())) {
             wrapper.eq("parent_id", query.getParentId());
         }
