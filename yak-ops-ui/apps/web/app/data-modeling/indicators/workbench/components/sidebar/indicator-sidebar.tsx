@@ -3,7 +3,6 @@ import { Button, Skeleton } from "@yak-ops/yak-ui";
 import { List, Plus, RefreshCw } from "lucide-react";
 
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import { IndicatorIcon, getIndicatorIconName } from "../../../icons";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTreeNode } from "../../types";
 import { IndicatorTreeRows } from "./indicator-tree";
 
@@ -63,7 +62,6 @@ export function IndicatorSidebar({
     <aside className="flex w-[292px] min-w-[260px] max-w-[360px] shrink-0 flex-col border-r border-[var(--yak-components-panel-border)] bg-white">
       <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
         <div className="flex items-center gap-2">
-          <IndicatorIcon name={getIndicatorIconName(activeKind)} size={16} />
           <span className="text-sm font-semibold">{definition.title}</span>
         </div>
         <div className="flex items-center gap-0.5">
