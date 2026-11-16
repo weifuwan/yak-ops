@@ -16,6 +16,7 @@ import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
+import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.modeling.api.dto.businessprocess.BusinessProcessDTO;
 import io.yak.ops.modeling.api.dto.datadomain.DataDomainDTO;
 import io.yak.ops.modeling.application.service.BusinessProcessService;
@@ -49,6 +50,9 @@ class DataDomainServiceImplTest {
 
     @Mock
     private DimensionTableDao dimensionTableDao;
+
+    @Mock
+    private ModifierDao modifierDao;
 
     @InjectMocks
     private DataDomainServiceImpl service;

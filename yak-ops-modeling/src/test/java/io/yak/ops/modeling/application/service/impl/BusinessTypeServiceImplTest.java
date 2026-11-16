@@ -11,6 +11,7 @@ import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
+import io.yak.ops.dao.repository.modeling.ModifierDao;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,9 @@ class BusinessTypeServiceImplTest {
 
     @Mock
     private DataMartDao dataMartDao;
+
+    @Mock
+    private ModifierDao modifierDao;
 
     @InjectMocks
     private BusinessTypeServiceImpl service;
