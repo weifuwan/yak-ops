@@ -1,4 +1,4 @@
-import { Button, Input } from "@yak-ops/yak-ui";
+import { Button } from "@yak-ops/yak-ui";
 
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -243,6 +243,18 @@ export function ConditionsEditor({
       onApplyTask={onApplyTask}
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}
+      validateParams={(value) => {
+        const normalized = normalizeConditionsTaskParams(value);
+        const groups = normalized.dependence.dependTaskList;
+        if (groups.length === 0) return "至少需要配置一个依赖条件组";
+        if (groups.some((group) => group.dependItemList.length === 0)) {
+          return "每个条件组至少需要配置一个依赖任务";
+        }
+        if (groups.some((group) => group.dependItemList.some((item) => item.depTaskCode <= 0))) {
+          return "请选择每个条件项对应的上游任务";
+        }
+        return null;
+      }}
     >
       {(formProps) => (
         <ConditionsForm

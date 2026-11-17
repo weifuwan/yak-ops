@@ -54,6 +54,7 @@ export function LogicTaskEditor({
   onDirtyChange,
   onBackToWorkflow,
   children,
+  validateParams,
 }: {
   workflowCode: number;
   task: WorkflowTaskRecord;
@@ -64,6 +65,7 @@ export function LogicTaskEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
   children: (props: LogicTaskFormProps) => ReactNode;
+  validateParams?: (params: LogicTaskParams) => string | null;
 }) {
   const queryClient = useQueryClient();
   const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
@@ -133,6 +135,11 @@ export function LogicTaskEditor({
     try {
       commonPatch = normalizeTaskCommonSettings(commonSettings);
       taskParams = parseTaskParams(taskParamsText);
+      const validationError = validateParams?.(taskParams);
+      if (validationError) {
+        toast.warning(validationError);
+        return false;
+      }
     } catch (error) {
       toast.warning(error instanceof Error ? error.message : "请检查节点配置");
       return false;
