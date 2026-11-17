@@ -2,6 +2,7 @@ package io.yak.ops.agent.service.impl;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import javax.annotation.PostConstruct;
 import io.yak.ops.agent.config.AgentConfiguration;
 import io.yak.ops.agent.llm.LlmClient;
 import io.yak.ops.agent.service.AgentChatService;
+import io.yak.ops.agent.service.AgentEventSink;
 import io.yak.ops.agent.service.ChatReply;
 import io.yak.ops.agent.tool.AgentToolContext;
 import io.yak.ops.agent.tool.AgentToolRegistry;
@@ -54,9 +56,19 @@ public class AgentChatServiceImpl implements AgentChatService {
 
     @Override
     public ChatReply chat(User user, long projectCode, String message) {
+        return chat(user, projectCode, message, Collections.emptyList(), AgentEventSink.NOOP);
+    }
+
+    @Override
+    public ChatReply chat(User user, long projectCode, String message,
+                          List<LlmClient.Message> history, AgentEventSink sink) {
         AgentToolContext context = new AgentToolContext(user, projectCode);
         List<LlmClient.Message> messages = new ArrayList<>();
         messages.add(LlmClient.Message.system(withProjectContext(projectCode)));
+        if (history != null && !history.isEmpty()) {
+            messages.addAll(history);
+        }
+        messages.add(LlmClient.Message.user(message));
 
         int promptTokens = 0;
         int completionTokens = 0;
@@ -81,8 +93,12 @@ public class AgentChatServiceImpl implements AgentChatService {
 
             messages.add(LlmClient.Message.assistant(result.getContent(), result.getToolCalls()));
             for (LlmClient.ToolCall call : result.getToolCalls()) {
+                sink.toolStarted(call.getName(), call.getArguments());
+                long toolStartedAt = System.currentTimeMillis();
                 String output = toolRegistry.invoke(call.getName(), context, call.getArguments());
-                steps.add(step(call.getName(), call.getArguments(), output));
+                long durationMs = System.currentTimeMillis() - toolStartedAt;
+                sink.toolFinished(call.getName(), truncate(output), durationMs);
+                steps.add(step(call.getName(), call.getArguments(), output, durationMs));
                 messages.add(LlmClient.Message.tool(call.getId(), output));
             }
         }
@@ -102,11 +118,12 @@ public class AgentChatServiceImpl implements AgentChatService {
                 + "。所有工具调用都使用该项目的权限范围，无需向用户询问项目编码。";
     }
 
-    private Map<String, Object> step(String tool, String arguments, String output) {
+    private Map<String, Object> step(String tool, String arguments, String output, long durationMs) {
         Map<String, Object> step = new LinkedHashMap<>();
         step.put("tool", tool);
         step.put("arguments", arguments);
         step.put("resultSummary", truncate(output));
+        step.put("durationMs", durationMs);
         return step;
     }
 
