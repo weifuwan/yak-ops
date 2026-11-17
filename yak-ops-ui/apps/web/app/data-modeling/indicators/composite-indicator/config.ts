@@ -1,6 +1,9 @@
 import type { IndicatorDefinition, IndicatorFieldOption } from "../workbench/types";
 
-export const COMPOSITE_INDICATOR_DW_MODEL_TYPES: string[] = ["SUMMARY", "APPLICATION"];
+export const COMPOSITE_DW_TYPE_OPTIONS: IndicatorFieldOption[] = [
+  { value: "PUBLIC_LAYER", label: "公共层" },
+  { value: "APPLICATION_LAYER", label: "应用层" },
+];
 
 export const COMPOSITE_COMPUTE_MODE_OPTIONS: IndicatorFieldOption[] = [
   { value: "0", label: "计算表达式" },
@@ -64,17 +67,7 @@ export const COMPOSITE_INDICATOR_DEFINITION: IndicatorDefinition = {
     { key: "computeExpr", label: "计算口径", section: "计算逻辑", multiline: true, placeholder: "请输入计算表达式" },
     { key: "deriveId", label: "派生指标", section: "计算逻辑", optionsSource: "derivativeIndicator" },
     { key: "compareType", label: "对比类型", section: "计算逻辑", options: COMPOSITE_COMPARE_TYPE_OPTIONS },
-    {
-      key: "dwhId",
-      label: "数仓分层",
-      section: "基本信息",
-      required: true,
-      optionsSource: "dwLayer",
-      optionLabelField: "cnName",
-      optionLabelPrefixField: "dwTypeName",
-      optionFilterField: "dwModelType",
-      includeOptionValues: COMPOSITE_INDICATOR_DW_MODEL_TYPES,
-    },
+    { key: "dwType", label: "数仓分类", section: "基本信息", required: true, options: COMPOSITE_DW_TYPE_OPTIONS },
     { key: "busTypeId", label: "业务分类", section: "基本信息", optionsSource: "businessType", optionLabelField: "businessName" },
     { key: "domainId", label: "数据域", section: "基本信息", optionsSource: "dataDomain" },
     { key: "busProcessId", label: "业务过程", section: "基本信息", optionsSource: "businessProcess" },

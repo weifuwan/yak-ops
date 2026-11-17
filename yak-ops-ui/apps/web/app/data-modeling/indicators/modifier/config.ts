@@ -1,9 +1,14 @@
-import type { IndicatorDefinition } from "../workbench/types";
+import type { IndicatorDefinition, IndicatorFieldOption } from "../workbench/types";
+
+export const MODIFIER_DW_TYPE_OPTIONS: IndicatorFieldOption[] = [
+  { value: "PUBLIC_LAYER", label: "公共层" },
+  { value: "APPLICATION_LAYER", label: "应用层" },
+];
 
 export const MODIFIER_DEFINITION: IndicatorDefinition = {
     key: "modifier",
     title: "修饰词",
-    description: "维护普通业务修饰词和维度枚举修饰词，支持关联数仓分层、业务分类、数据域及维度标准。",
+    description: "维护普通业务修饰词和维度枚举修饰词，支持关联数仓分类、业务分类、数据域及维度标准。",
     listFilters: [
       { key: "businessTypeId", paramKey: "busTypeId", label: "全部业务分类", optionsSource: "businessType", optionLabelField: "businessName" },
       { key: "domainId", paramKey: "domainId", label: "全部数据域", optionsSource: "dataDomain" },
@@ -21,7 +26,7 @@ export const MODIFIER_DEFINITION: IndicatorDefinition = {
       { key: "businessCaliber", label: "业务口径", section: "基本信息", required: true, multiline: true },
       { key: "director", label: "负责人", section: "基本信息", required: true },
       { key: "remark", label: "描述", section: "基本信息", multiline: true },
-      { key: "dwhId", label: "数仓分层", section: "业务归属", optionsSource: "dwLayer", excludeOptionValues: ["SOURCE_LAYER"], optionLabelPrefixField: "dwTypeName" },
+      { key: "dwType", label: "数仓分类", section: "业务归属", options: MODIFIER_DW_TYPE_OPTIONS },
       { key: "busTypeId", label: "业务分类", section: "业务归属", optionsSource: "businessType", optionLabelField: "businessName" },
       { key: "domainId", label: "数据域", section: "业务归属", optionsSource: "dataDomain" },
       { key: "dimensionTbId", label: "关联维度表", section: "维度枚举" },

@@ -23,7 +23,7 @@ import { fieldOptions, selectOptionLabel } from "../../workbench/utils/indicator
 import {
   COMPOSITE_COMPARE_TYPE_OPTIONS,
   COMPOSITE_COMPUTE_MODE_OPTIONS,
-  COMPOSITE_INDICATOR_DW_MODEL_TYPES,
+  COMPOSITE_DW_TYPE_OPTIONS,
   COMPOSITE_RATIO_FORMULA,
 } from "../config";
 import { useDerivativeBusinessProcessCascader } from "../../derivative-indicator/hooks/use-derivative-business-process-cascader";
@@ -55,14 +55,12 @@ function OptionSelect({
   placeholder,
   loading = false,
   disabled = false,
-  selectedLabel,
   onChange,
 }: {
   value: string;
   options: IndicatorFieldOption[];
   placeholder: string;
   loading?: boolean;
-  selectedLabel?: string;
   disabled?: boolean;
   onChange: (value: string) => void;
 }) {
@@ -75,9 +73,7 @@ function OptionSelect({
     >
       <SelectTrigger variant="outlined" className="w-full">
         <SelectValue placeholder={loading ? "正在加载选项..." : placeholder}>
-          {(selected) => selectedLabel && String(selected ?? "") === value
-            ? selectedLabel
-            : selectOptionLabel(options, selected, loading ? "正在加载选项..." : placeholder)}
+          {(selected) => selectOptionLabel(options, selected, loading ? "正在加载选项..." : placeholder)}
         </SelectValue>
       </SelectTrigger>
       <SelectContent emptyContent={loading ? "正在加载选项..." : options.length === 0 ? "暂无可选数据" : undefined}>
@@ -110,32 +106,7 @@ export function CompositeIndicatorEditorFields({
   onChange,
   onChangeMany,
 }: Props) {
-  const warehouseLayerOptions = fieldOptions({
-    key: "dwhId",
-    label: "数仓分层",
-    optionsSource: "dwLayer",
-    optionLabelField: "cnName",
-    optionLabelPrefixField: "dwTypeName",
-    optionFilterField: "dwModelType",
-    includeOptionValues: COMPOSITE_INDICATOR_DW_MODEL_TYPES,
-  }, optionsByResource);
-  const selectedWarehouseLayer = (optionsByResource.dwLayer || []).find(
-    (record) => String(record.id || "") === String(values.dwhId || ""),
-  );
-  const selectedDwType = String(selectedWarehouseLayer?.dwType || "");
-  const selectedDwModelType = String(selectedWarehouseLayer?.dwModelType || "");
-  const selectedWarehouseLayerLabel = selectedWarehouseLayer
-    ? [
-      selectedWarehouseLayer.dwTypeName,
-      selectedWarehouseLayer.cnName,
-    ].filter((item) => item !== undefined && item !== null && String(item).trim())
-      .join(" ") + (selectedWarehouseLayer.enShortName ? " (" + String(selectedWarehouseLayer.enShortName) + ")" : "")
-    : undefined;
-  const selectedWarehouseLayerIsSupported = (
-    selectedDwType === "PUBLIC_LAYER" && selectedDwModelType === "SUMMARY"
-  ) || (
-    selectedDwType === "APPLICATION_LAYER" && selectedDwModelType === "APPLICATION"
-  );
+  const selectedDwType = String(values.dwType || "");
   const businessTypeOptions = resourceOptions("businessType", "业务分类", optionsByResource, "businessName");
   const martOptions = resourceOptions("dataMart", "数据集市", optionsByResource, "martName");
   const subjectOptions = useMemo(
@@ -167,9 +138,9 @@ export function CompositeIndicatorEditorFields({
       : { computeMode: "0", deriveId: "", compareType: "" });
   };
 
-  const changeWarehouseLayer = (next: string) => {
+  const changeWarehouseType = (next: string) => {
     onChangeMany({
-      dwhId: next,
+      dwType: next,
       busTypeId: "",
       domainId: "",
       busProcessId: "",
@@ -247,18 +218,16 @@ export function CompositeIndicatorEditorFields({
         <div className="max-w-[1080px]">
           <IndicatorSectionHeader title="基本信息" />
           <div className="space-y-3">
-            <FormRow label="数仓分层" required>
+            <FormRow label="数仓分类" required>
               <OptionSelect
-                value={values.dwhId || ""}
-                options={warehouseLayerOptions}
-                placeholder="请选择数仓分层"
-                loading={optionsLoading}
-                selectedLabel={selectedWarehouseLayerLabel}
-                onChange={changeWarehouseLayer}
+                value={values.dwType || ""}
+                options={COMPOSITE_DW_TYPE_OPTIONS}
+                placeholder="请选择数仓分类"
+                onChange={changeWarehouseType}
               />
             </FormRow>
 
-            {selectedDwType === "PUBLIC_LAYER" && selectedDwModelType === "SUMMARY" ? (
+            {selectedDwType === "PUBLIC_LAYER" ? (
               <>
                 <FormRow label="业务分类">
                   <OptionSelect
@@ -293,7 +262,7 @@ export function CompositeIndicatorEditorFields({
               </>
             ) : null}
 
-            {selectedDwType === "APPLICATION_LAYER" && selectedDwModelType === "APPLICATION" ? (
+            {selectedDwType === "APPLICATION_LAYER" ? (
               <>
                 <FormRow label="数据集市" required>
                   <OptionSelect
@@ -317,15 +286,9 @@ export function CompositeIndicatorEditorFields({
               </>
             ) : null}
 
-            {!selectedWarehouseLayer ? (
+            {!selectedDwType ? (
               <p className="rounded bg-[var(--yak-color-hover)] px-3 py-2 text-[11px] text-[var(--yak-components-muted-text)]">
-                {optionsLoading ? "正在加载数仓分层..." : "请选择公共层汇总数据层或应用层应用数据层，再配置对应的业务归属。"}
-              </p>
-            ) : null}
-
-            {selectedWarehouseLayer && !selectedWarehouseLayerIsSupported ? (
-              <p className="rounded bg-[#fff7e8] px-3 py-2 text-[11px] text-[#9a6b22]">
-                复合指标仅支持公共层汇总数据层（DWS）和应用层应用数据层（ADS），请重新选择数仓分层。
+                请选择数仓分类，再配置对应的业务归属。
               </p>
             ) : null}
 

@@ -1,13 +1,10 @@
-import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import type { IndicatorOptionResource } from "../../workbench/types";
-
-type CompositeIndicatorOptions = Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
-
 export function validateCompositeIndicator(
   values: Record<string, string>,
-  optionsByResource: CompositeIndicatorOptions = {},
 ): string | undefined {
-  if (!String(values.dwhId || "").trim()) return "请选择数仓分层";
+  const dwType = String(values.dwType || "").trim();
+  if (dwType !== "PUBLIC_LAYER" && dwType !== "APPLICATION_LAYER") {
+    return "请选择数仓分类";
+  }
   if (!String(values.enShortName || "").trim()) return "请输入英文缩写";
   if (!String(values.cnName || "").trim()) return "请输入中文名称";
   if (!String(values.director || "").trim()) return "请输入负责人";
@@ -22,29 +19,15 @@ export function validateCompositeIndicator(
     return "请选择有效的计算模式";
   }
 
-  const warehouseLayers = optionsByResource.dwLayer;
-  if (!warehouseLayers) return "数仓分层选项尚未加载，请稍后重试";
-
-  const selectedLayer = warehouseLayers.find(
-    (layer) => String(layer.id || "") === String(values.dwhId || "").trim(),
-  );
-  if (!selectedLayer) return "所选数仓分层不存在，请重新选择";
-
-  const dwType = String(selectedLayer.dwType || "");
-  const dwModelType = String(selectedLayer.dwModelType || "");
-  if (dwType === "PUBLIC_LAYER" && dwModelType === "SUMMARY") {
+  if (dwType === "PUBLIC_LAYER") {
     if (!String(values.domainId || "").trim() || !String(values.busProcessId || "").trim()) {
       return "公共层必须选择数据域及业务过程";
     }
     return undefined;
   }
 
-  if (dwType === "APPLICATION_LAYER" && dwModelType === "APPLICATION") {
-    if (!String(values.martId || "").trim() || !String(values.subjectId || "").trim()) {
-      return "应用层必须选择数据集市及主题域";
-    }
-    return undefined;
+  if (!String(values.martId || "").trim() || !String(values.subjectId || "").trim()) {
+    return "应用层必须选择数据集市及主题域";
   }
-
-  return "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）";
+  return undefined;
 }
