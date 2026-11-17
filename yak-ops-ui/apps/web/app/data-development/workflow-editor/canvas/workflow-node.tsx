@@ -213,7 +213,7 @@ export function WorkflowTaskNode({
                         type="source"
                         position={Position.Right}
                         isConnectable={!data.readOnly}
-                        style={{ top: "50%", right: -9 }}
+                        style={{ top: "50%", right: data.taskType.toUpperCase() === "CONDITIONS" ? -21 : -9 }}
                         onClick={(event) => {
                           event.stopPropagation();
                           if (data.readOnly) return;
