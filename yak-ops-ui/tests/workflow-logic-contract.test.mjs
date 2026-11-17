@@ -6,7 +6,12 @@ import {
   getWorkflowBranchOutputs,
   resolveWorkflowSourceHandle,
 } from "../apps/web/app/data-development/workflow-editor/adapter/workflow-branch-adapter.ts";
-import { normalizeConditionsTaskParams } from "../apps/web/app/data-development/task-editor/logic/conditions/adapter.ts";
+import {
+  createConditionDependentItem,
+  getConditionWorkflowGraph,
+  normalizeConditionsTaskParams,
+  validateConditionsTaskParams,
+} from "../apps/web/app/data-development/task-editor/logic/conditions/adapter.ts";
 import {
   normalizeDependentTaskParams,
   createDependentItem,
@@ -41,7 +46,7 @@ test("CONDITIONS restores success and failed handles from taskParams", () => {
   );
 });
 
-test("CONDITIONS writes multiple targets to the backend branch arrays", () => {
+test("CONDITIONS writes multiple targets and never writes the runtime result", () => {
   const result = applyWorkflowBranchTargets(
     "CONDITIONS",
     {
@@ -58,7 +63,7 @@ test("CONDITIONS writes multiple targets to the backend branch arrays", () => {
 
   assert.deepEqual(result.conditionResult.successNode, [201, 202]);
   assert.deepEqual(result.conditionResult.failedNode, [203]);
-  assert.equal(result.conditionResult.conditionSuccess, false);
+  assert.equal("conditionSuccess" in result.conditionResult, false);
 });
 
 test("CONDITIONS rejects an incomplete branch graph", () => {
@@ -73,8 +78,16 @@ test("CONDITIONS rejects an incomplete branch graph", () => {
   );
 });
 
-test("CONDITIONS normalizes serialized parameters without changing the backend field names", () => {
+test("CONDITIONS creates only the two business fields for a dependency item", () => {
+  assert.deepEqual(createConditionDependentItem(), {
+    depTaskCode: 0,
+    status: "SUCCESS",
+  });
+});
+
+test("CONDITIONS normalizes legacy fields into the minimal parameter contract", () => {
   const normalized = normalizeConditionsTaskParams(JSON.stringify({
+    localParams: [],
     dependence: {
       relation: "OR",
       dependTaskList: [{
@@ -84,16 +97,78 @@ test("CONDITIONS normalizes serialized parameters without changing the backend f
           projectCode: 1,
           definitionCode: 10,
           depTaskCode: 20,
+          cycle: "day",
+          dateValue: "today",
+          dependResult: "SUCCESS",
+          parameterPassing: false,
           status: "SUCCESS",
         }],
       }],
     },
-    conditionResult: { successNode: [30], failedNode: [40] },
+    conditionResult: {
+      conditionSuccess: true,
+      successNode: ["30", 30],
+      failedNode: [40],
+    },
   }));
 
+  const item = normalized.dependence.dependTaskList[0].dependItemList[0];
   assert.equal(normalized.dependence.relation, "OR");
-  assert.equal(normalized.dependence.dependTaskList[0].dependItemList[0].depTaskCode, 20);
-  assert.deepEqual(normalized.conditionResult.successNode, [30]);
+  assert.deepEqual(item, { depTaskCode: 20, status: "SUCCESS" });
+  assert.deepEqual(normalized.conditionResult, {
+    successNode: [30],
+    failedNode: [40],
+  });
+  assert.equal("conditionSuccess" in normalized.conditionResult, false);
+});
+
+test("CONDITIONS validates dependency tasks against the current DAG predecessors", () => {
+  const params = {
+    dependence: {
+      relation: "AND",
+      dependTaskList: [{
+        relation: "OR",
+        dependItemList: [{ depTaskCode: 20, status: "SUCCESS" }],
+      }],
+    },
+    conditionResult: { successNode: [], failedNode: [] },
+  };
+
+  assert.equal(validateConditionsTaskParams(params, [20, 21]), null);
+  assert.match(validateConditionsTaskParams(params, [21]), /不是当前节点的上游任务/);
+  assert.match(
+    validateConditionsTaskParams({
+      ...params,
+      dependence: { ...params.dependence, dependTaskList: [] },
+    }, [20]),
+    /至少需要配置一个依赖条件组/,
+  );
+});
+
+test("CONDITIONS derives upstream choices and branch targets from current canvas edges", () => {
+  const nodes = [
+    { id: "10", data: { taskCode: 10, name: "上游 SQL", taskType: "SQL" } },
+    { id: "20", data: { taskCode: 20, name: "上游 Shell", taskType: "SHELL" } },
+    { id: "30", data: { taskCode: 30, name: "条件节点", taskType: "CONDITIONS" } },
+    { id: "40", data: { taskCode: 40, name: "成功下游", taskType: "JAVA" } },
+    { id: "50", data: { taskCode: 50, name: "失败下游", taskType: "PYTHON" } },
+    { id: "60", data: { taskCode: 60, name: "未识别下游", taskType: "SHELL" } },
+    { id: "70", data: { taskCode: 70, name: "无关节点", taskType: "SQL" } },
+  ];
+  const edges = [
+    { source: "10", target: "30" },
+    { source: "20", target: "30" },
+    { source: "30", sourceHandle: "success", target: "40" },
+    { source: "30", sourceHandle: "failed", target: "50" },
+    { source: "30", sourceHandle: "unknown", target: "60" },
+    { source: "70", target: "10" },
+  ];
+
+  const graph = getConditionWorkflowGraph(nodes, edges, "30");
+  assert.deepEqual(graph.upstreamTasks.map((item) => item.code), [10, 20]);
+  assert.deepEqual(graph.successTargets.map((item) => item.code), [40]);
+  assert.deepEqual(graph.failedTargets.map((item) => item.code), [50]);
+  assert.equal(graph.unassignedTargetCount, 1);
 });
 
 test("SWITCH restores Case and Default handles from taskParams", () => {
