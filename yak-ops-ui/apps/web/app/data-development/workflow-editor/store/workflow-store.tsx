@@ -379,6 +379,9 @@ export function createWorkflowStore(
               applicable,
               state.edges,
             ),
+            previewEdges: state.previewEdges
+              ? applyEdgeChanges(applicable, state.previewEdges)
+              : null,
           }));
         },
 
@@ -531,6 +534,9 @@ export function createWorkflowStore(
           let position = getDefaultPosition(state.nodes);
           let edges = state.edges;
           let edgeSequence = state.draftEdgeSequence;
+          const previewSourceHandle = state.previewEdges?.find(
+            (edge) => edge.id === (request.kind === "edge" ? request.edgeId : ""),
+          )?.sourceHandle;
 
           if (
             request.kind === "upstream" ||
@@ -638,6 +644,30 @@ export function createWorkflowStore(
             }
           }
 
+          const originalEdgeIds = new Set(state.edges.map((edge) => edge.id));
+          const nextEdgeIds = new Set(edges.map((edge) => edge.id));
+          const removedEdgeIds = new Set(
+            state.edges
+              .filter((edge) => !nextEdgeIds.has(edge.id))
+              .map((edge) => edge.id),
+          );
+          const addedEdges = edges.filter((edge) => !originalEdgeIds.has(edge.id));
+          const nextPreviewEdges = state.previewEdges
+            ? [
+                ...state.previewEdges.filter((edge) => !removedEdgeIds.has(edge.id)),
+                ...addedEdges.map((edge) => ({
+                  ...edge,
+                  sourceHandle:
+                    request.kind === "edge" &&
+                    previewSourceHandle &&
+                    edge.source === state.edges.find((item) => item.id === request.edgeId)?.source &&
+                    edge.target === node.id
+                      ? previewSourceHandle
+                      : edge.sourceHandle,
+                })),
+              ].map((edge) => ({ ...edge, selected: false }))
+            : null;
+
           set({
             nodes: [
               ...state.nodes.map((item) => ({
@@ -650,6 +680,7 @@ export function createWorkflowStore(
               ...edge,
               selected: false,
             })),
+            previewEdges: nextPreviewEdges,
             draftNodeSequence: sequence,
             draftEdgeSequence: edgeSequence,
             selectorRequest:
@@ -680,6 +711,15 @@ export function createWorkflowStore(
               })),
               { ...edge, selected: true },
             ],
+            previewEdges: state.previewEdges
+              ? [
+                  ...state.previewEdges.map((item) => ({
+                    ...item,
+                    selected: false,
+                  })),
+                  { ...edge, selected: true },
+                ]
+              : null,
             nodes: state.nodes.map((node) => ({
               ...node,
               selected: false,
@@ -703,6 +743,16 @@ export function createWorkflowStore(
                 !deleting.has(edge.source) &&
                 !deleting.has(edge.target),
             ),
+            previewEdges: state.previewEdges
+              ? state.previewEdges.filter(
+                  (edge) =>
+                    !deleting.has(edge.source) &&
+                    !deleting.has(edge.target),
+                )
+              : null,
+            previewNodeId: state.previewNodeId && deleting.has(state.previewNodeId)
+              ? null
+              : state.previewNodeId,
           }));
         },
 
@@ -713,6 +763,9 @@ export function createWorkflowStore(
             edges: state.edges.filter(
               (edge) => !deleting.has(edge.id),
             ),
+            previewEdges: state.previewEdges
+              ? state.previewEdges.filter((edge) => !deleting.has(edge.id))
+              : null,
           }));
         },
 
