@@ -5,6 +5,8 @@ import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 import { GenericTaskEditor } from "./generic-task-editor";
 import { JavaTaskEditor } from "./java-task-editor";
+import { ConditionsEditor } from "./logic/conditions";
+import { useWorkflowTaskOptions } from "./logic/shared/use-workflow-task-options";
 
 type TaskEditorProps = {
   workflowCode: number;
@@ -23,7 +25,9 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   const taskName = task.name || "未命名节点";
   const taskType = task.taskType || "UNKNOWN";
   const isJavaTask = taskType.toUpperCase() === "JAVA";
+  const isConditionsTask = taskType.toUpperCase() === "CONDITIONS";
   const isDraft = task.version <= 0 || task.id <= 0;
+  const workflowTasks = useWorkflowTaskOptions(workflowCode, task.code);
 
   const applyTask = (nextTask: WorkflowTaskRecord) => {
     const store = getWorkflowStore(workflowCode);
@@ -55,6 +59,17 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
           onApplyTask={applyTask}
           onDirtyChange={handleDirtyChange}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+        />
+      ) : isConditionsTask ? (
+        <ConditionsEditor
+          workflowCode={workflowCode}
+          task={task}
+          taskName={taskName}
+          readOnly={readOnly}
+          onApplyTask={applyTask}
+          onDirtyChange={handleDirtyChange}
+          onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+          workflowTasks={workflowTasks}
         />
       ) : (
         <GenericTaskEditor
