@@ -185,7 +185,7 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
     <div className="flex w-full shrink-0 flex-col gap-2 px-2.5 pb-2">
       <div
         role="radiogroup"
-        aria-label="数仓分层"
+        aria-label="数仓分类"
         className="flex h-6 w-full overflow-hidden rounded-[4px] border border-[#d7dce5] bg-white"
       >
         {dwTypeOptions.map((option, index) => {

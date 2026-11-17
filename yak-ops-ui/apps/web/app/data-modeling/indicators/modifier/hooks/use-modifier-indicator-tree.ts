@@ -20,7 +20,7 @@ export function useModifierIndicatorTree(projectCode: string, dwType: string, en
       const groupApi = modifierScopeType === "BUSINESS_TYPE" ? businessTypeApi : dataDomainApi;
       const [groups, modifiers] = await Promise.all([
         groupApi.all<ModelingRecord>(projectCode),
-        modifierApi.all<ModelingRecord>(projectCode, { dwType }),
+        modifierApi.all<ModelingRecord>(projectCode, dwType === "UNASSIGNED" ? { dwTypeUnassigned: true } : { dwType }),
       ]);
       return buildModifierTree(groups, modifiers, modifierScopeType, modifierScopeValue);
     },

@@ -19,7 +19,6 @@ export type IndicatorOptionResource =
   | "unitStandard"
   | "atomIndicator"
   | "timePeriod"
-  | "dwLayer"
   | "dataMart"
   | "subjectDomain"
   | "derivativeIndicator"

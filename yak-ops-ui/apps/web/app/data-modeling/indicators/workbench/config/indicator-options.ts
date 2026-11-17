@@ -25,7 +25,7 @@ export const COMPOSITE_INDICATOR_TREE_DW_OPTIONS: IndicatorFieldOption[] = [
 export const MODIFIER_TREE_DW_OPTIONS: IndicatorFieldOption[] = [
   { value: "PUBLIC_LAYER", label: "公共层" },
   { value: "APPLICATION_LAYER", label: "应用层" },
-  { value: "NONE_LAYER", label: "未分层" },
+  { value: "UNASSIGNED", label: "未选择" },
 ];
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
@@ -39,7 +39,6 @@ export const RELATION_FIELDS: Record<string, IndicatorOptionResource> = {
   busTypeId: "businessType",
   domainId: "dataDomain",
   busProcessId: "businessProcess",
-  dwhId: "dwLayer",
   martId: "dataMart",
   subjectId: "subjectDomain",
   codeId: "codeStandard",

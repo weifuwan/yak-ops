@@ -3,7 +3,6 @@ import { dataDomainApi } from "../planning/common-layer/data-domain";
 import { dataMartApi } from "../planning/application-layer/data-mart";
 import { subjectDomainApi } from "../planning/application-layer/subject-domain";
 import { businessTypeApi } from "../planning/business-type";
-import { dwLayerApi } from "../planning/dw-layer";
 import { codeStandardApi } from "../standards/code-standard";
 import { unitStandardApi } from "../standards/unit-standard";
 import { atomIndicatorApi } from "./atom-indicator";
@@ -30,8 +29,6 @@ export async function getIndicatorOptionRecords(
       return atomIndicatorApi.all<ModelingRecord>(projectCode);
     case "timePeriod":
       return timePeriodApi.all<ModelingRecord>(projectCode);
-    case "dwLayer":
-      return dwLayerApi.all<ModelingRecord>(projectCode);
     case "dataMart":
       return dataMartApi.all<ModelingRecord>(projectCode);
     case "subjectDomain":
