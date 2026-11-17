@@ -9,6 +9,7 @@ import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.dao.entity.DerivativeIndicatorPO;
 import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.SubjectDomainPO;
+import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
@@ -168,20 +169,22 @@ public class CompositeIndicatorServiceImpl
         }
 
         DwTypeEnum dwType = layer.getDwType();
-        if (dwType == DwTypeEnum.PUBLIC_LAYER) {
+        DwModelEnum dwModelType = layer.getDwModelType();
+        if (dwType == DwTypeEnum.PUBLIC_LAYER && dwModelType == DwModelEnum.SUMMARY) {
             dto.setMartId(null);
             dto.setSubjectId(null);
             validatePublicLayerOwnership(dto);
             return;
         }
-        if (dwType == DwTypeEnum.APPLICATION_LAYER) {
+        if (dwType == DwTypeEnum.APPLICATION_LAYER && dwModelType == DwModelEnum.APPLICATION) {
             dto.setBusTypeId(null);
             dto.setDomainId(null);
             dto.setBusProcessId(null);
             validateApplicationLayerOwnership(dto);
             return;
         }
-        throw new IllegalArgumentException("复合指标仅支持公共层或应用层，不能关联贴源层或未分层");
+        throw new IllegalArgumentException(
+                "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）");
     }
 
     private void validatePublicLayerOwnership(CompositeIndicatorDTO dto) {
