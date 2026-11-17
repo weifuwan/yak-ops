@@ -399,13 +399,13 @@ export function createWorkflowStore(
           set({ edgeStyle }),
 
         openSelector: (selectorRequest) =>
-          set({ selectorRequest, edgeSelectorRequest: null }),
+          set({ selectorRequest }),
 
         closeSelector: () =>
           set({ selectorRequest: null }),
 
         openEdgeSelector: (edgeSelectorRequest) =>
-          set({ selectorRequest: null, edgeSelectorRequest }),
+          set({ edgeSelectorRequest }),
 
         closeEdgeSelector: () =>
           set({ edgeSelectorRequest: null }),
@@ -696,12 +696,6 @@ export function createWorkflowStore(
             previewEdges: nextPreviewEdges,
             draftNodeSequence: sequence,
             draftEdgeSequence: edgeSequence,
-            selectorRequest: request.kind === "edge"
-              ? state.selectorRequest
-              : request.kind === "add" ? request : null,
-            edgeSelectorRequest: request.kind === "edge"
-              ? null
-              : state.edgeSelectorRequest,
           });
 
           return node.id;
