@@ -595,7 +595,7 @@ export function ShellTaskEditor({
                 type="button"
                 size="sm"
                 variant="ghost"
-                disabled={readOnly || !form.rawScript}
+                isDisabled={readOnly || !form.rawScript}
                 onClick={() => updateField("rawScript", "")}
                 className="!h-6 !px-2 text-[11px]"
               >
@@ -678,7 +678,7 @@ export function ShellTaskEditor({
                       type="button"
                       size="sm"
                       variant="secondary"
-                      disabled={readOnly}
+                      isDisabled={readOnly}
                       onClick={() =>
                         setForm((current) => ({
                           ...current,
@@ -816,7 +816,7 @@ export function ShellTaskEditor({
                                 size="sm"
                                 variant="ghost"
                                 isIconOnly
-                                disabled={readOnly}
+                                isDisabled={readOnly}
                                 aria-label="移除自定义参数"
                                 onClick={() =>
                                   updateField(
@@ -847,7 +847,7 @@ export function ShellTaskEditor({
                       type="button"
                       size="sm"
                       variant="secondary"
-                      disabled={readOnly}
+                      isDisabled={readOnly}
                       onClick={() => updateField("resourceList", [...form.resourceList, ""])}
                     >
                       <Plus size={13} />
@@ -904,7 +904,7 @@ export function ShellTaskEditor({
                             size="sm"
                             variant="ghost"
                             isIconOnly
-                            disabled={readOnly}
+                            isDisabled={readOnly}
                             aria-label="移除依赖资源"
                             onClick={() =>
                               updateField(
