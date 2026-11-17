@@ -1,3 +1,5 @@
+import React from "react";
+
 const EMPTY_IMAGE =
   "https://img.alicdn.com/imgextra/i4/O1CN017NgExC1MdM1GSlL3J_!!6000000001457-2-tps-720-720.png";
 
@@ -100,18 +102,18 @@ function ChevronDownIcon() {
 function StatisticCard({ item }: { item: StatisticItem }) {
   if (item.total) {
     return (
-      <div className="mb-4 block w-full rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
+      <div className="block w-full mb-4 rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
         <div className="flex h-6 flex-row">
-          <div className="min-w-0 flex-1 overflow-hidden pl-1.5 text-ellipsis text-xs font-black leading-6 text-[#333946]">
+          <div className="flex-1 min-w-0 overflow-hidden pl-1.5 text-xs font-black leading-6 text-[#333946] text-ellipsis">
             {item.title}
           </div>
 
-          <div className="min-w-[80px] max-w-[100px] flex-1 overflow-hidden text-xs font-black leading-6 text-[#303642]">
+          <div className="flex-1 min-w-[80px] max-w-[100px] overflow-hidden text-xs font-black leading-6 text-[#303642]">
             {item.values?.[0]?.num}
           </div>
         </div>
 
-        <div className="overflow-hidden whitespace-nowrap pl-1.5 text-ellipsis text-xs leading-6 text-[#9299A5]">
+        <div className="overflow-hidden pl-1.5 text-xs leading-6 text-[#9299A5] whitespace-nowrap text-ellipsis">
           {item.formula}
         </div>
       </div>
@@ -119,7 +121,7 @@ function StatisticCard({ item }: { item: StatisticItem }) {
   }
 
   return (
-    <div className="mb-4 flex w-full flex-row items-center rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
+    <div className="flex w-full flex-row items-center mb-4 rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
       <img
         src={item.image}
         alt=""
@@ -127,7 +129,7 @@ function StatisticCard({ item }: { item: StatisticItem }) {
       />
 
       <div
-        className="h-12 min-w-0 flex-1 overflow-hidden whitespace-nowrap px-1.5 text-ellipsis text-xs font-black leading-[48px] text-[#333946]"
+        className="h-12 min-w-0 flex-1 overflow-hidden px-1.5 text-xs font-black leading-[48px] text-[#333946] whitespace-nowrap text-ellipsis"
         title={item.title}
       >
         {item.title}
@@ -138,11 +140,11 @@ function StatisticCard({ item }: { item: StatisticItem }) {
           key={index}
           className="h-12 min-w-[80px] max-w-[100px] flex-1 overflow-hidden"
         >
-          <div className="h-6 overflow-hidden whitespace-nowrap text-ellipsis text-xs font-black leading-6 text-[#303642]">
+          <div className="h-6 overflow-hidden text-xs font-black leading-6 text-[#303642] whitespace-nowrap text-ellipsis">
             {value.num}
           </div>
 
-          <div className="h-6 overflow-hidden whitespace-nowrap text-ellipsis text-xs leading-6 text-[#9299A5]">
+          <div className="h-6 overflow-hidden text-xs leading-6 text-[#9299A5] whitespace-nowrap text-ellipsis">
             {value.unit}
           </div>
         </div>
@@ -239,7 +241,7 @@ function LatestPublishCard() {
           <div
             className="h-[240px] w-[320px] max-w-full shrink rounded-none bg-contain bg-center bg-no-repeat"
             style={{
-              backgroundImage: "url(" + EMPTY_IMAGE + ")",
+              backgroundImage: `url("${EMPTY_IMAGE}")`,
             }}
           />
 
