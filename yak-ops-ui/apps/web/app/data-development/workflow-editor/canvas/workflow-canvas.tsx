@@ -145,14 +145,11 @@ export function WorkflowCanvas({
   const setEdgeStyle = useWorkflowStore(
     (state) => state.setEdgeStyle,
   );
-  const openSelector = useWorkflowStore(
-    (state) => state.openSelector,
-  );
-  const selectorRequest = useWorkflowStore(
-    (state) => state.selectorRequest,
-  );
   const openEdgeSelector = useWorkflowStore(
     (state) => state.openEdgeSelector,
+  );
+  const edgeSelectorRequest = useWorkflowStore(
+    (state) => state.edgeSelectorRequest,
   );
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
@@ -903,10 +900,20 @@ export function WorkflowCanvas({
             title="新建节点"
             aria-label="新建节点"
             disabled={isWorkflowOnline}
-            aria-expanded={selectorRequest?.kind === "add"}
-            onClick={() => openSelector({ kind: "add" })}
-            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[selector-open=true]:bg-[var(--yak-color-primary-subtle)] data-[selector-open=true]:text-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-            data-selector-open={selectorRequest?.kind === "add" ? "true" : undefined}
+            aria-expanded={edgeSelectorRequest?.kind === "add-popover"}
+            data-workflow-edge-picker-trigger
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              openEdgeSelector({
+                kind: "add-popover",
+                anchor: {
+                  x: rect.right,
+                  y: rect.top + rect.height / 2,
+                },
+              });
+            }}
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[selector-open=true]:bg-[var(--yak-color-primary-subtle)] data-[selector-open=true]:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            data-selector-open={edgeSelectorRequest?.kind === "add-popover" ? "true" : undefined}
           >
             <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
               <circle cx="8" cy="8" r="7" fill="currentColor" />
