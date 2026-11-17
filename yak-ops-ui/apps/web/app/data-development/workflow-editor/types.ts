@@ -22,6 +22,7 @@ export type WorkflowEdgeSelectorRequest = {
 
 export type WorkflowPopoverSelectorRequest =
   | WorkflowEdgeSelectorRequest
+  | { kind: "add-popover"; anchor: XYPosition }
   | { kind: "upstream-popover"; nodeId: string; anchor: XYPosition }
   | {
       kind: "downstream-popover";
