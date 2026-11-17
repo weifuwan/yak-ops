@@ -1,17 +1,21 @@
-import { useCallback } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import { toast } from "@yak-ops/yak-ui";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 import { GenericTaskEditor } from "./generic-task-editor";
 import { JavaTaskEditor } from "./java-task-editor";
-import { ShellTaskEditor } from "./shell-task-editor";
 import { ConditionsEditor } from "./logic/conditions";
 import { SwitchEditor } from "./logic/switch";
 import { DependentEditor } from "./logic/dependent";
 import { SubWorkflowEditor } from "./logic/sub-workflow";
 import { remapSwitchCaseHandles } from "./logic/switch/adapter";
 import { useWorkflowConditionGraph } from "./logic/shared/use-workflow-condition-graph";
+
+const ShellTaskEditor = lazy(async () => {
+  const module = await import("./shell-task-editor");
+  return { default: module.ShellTaskEditor };
+});
 
 type TaskEditorProps = {
   workflowCode: number;
@@ -77,17 +81,25 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
       className="flex min-h-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
       {isShellTask ? (
-        <ShellTaskEditor
-          workflowCode={workflowCode}
-          task={task}
-          taskName={taskName}
-          isDraft={isDraft}
-          readOnly={readOnly}
-          canRun={readOnly && !isDraft}
-          onApplyTask={applyTask}
-          onDirtyChange={handleDirtyChange}
-          onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
-        />
+        <Suspense
+          fallback={
+            <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
+              正在加载 Shell 编辑器...
+            </div>
+          }
+        >
+          <ShellTaskEditor
+            workflowCode={workflowCode}
+            task={task}
+            taskName={taskName}
+            isDraft={isDraft}
+            readOnly={readOnly}
+            canRun={readOnly && !isDraft}
+            onApplyTask={applyTask}
+            onDirtyChange={handleDirtyChange}
+            onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+          />
+        </Suspense>
       ) : isJavaTask ? (
         <JavaTaskEditor
           workflowCode={workflowCode}
