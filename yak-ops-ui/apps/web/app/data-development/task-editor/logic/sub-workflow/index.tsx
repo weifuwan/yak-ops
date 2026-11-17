@@ -16,12 +16,10 @@ function SubWorkflowForm({
   onChange,
   disabled,
   workflows,
-  currentWorkflowCode,
   isLoading,
   isError,
 }: LogicTaskFormProps & {
   workflows: WorkflowDefinitionRecord[];
-  currentWorkflowCode: number;
   isLoading: boolean;
   isError: boolean;
 }) {
@@ -149,7 +147,6 @@ export function SubWorkflowEditor({
         <SubWorkflowForm
           {...formProps}
           workflows={workflows}
-          currentWorkflowCode={workflowCode}
           isLoading={workflowsQuery.isPending}
           isError={workflowsQuery.isError}
         />

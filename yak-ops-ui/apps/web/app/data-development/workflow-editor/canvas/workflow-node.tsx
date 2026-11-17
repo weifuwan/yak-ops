@@ -64,9 +64,6 @@ export function WorkflowTaskNode({
   const removeNodes = useWorkflowStore(
     (state) => state.removeNodes,
   );
-  const hasIncomingEdge = useWorkflowStore(
-    (state) => state.edges.some((edge) => edge.target === id),
-  );
   const outgoingEdges = useWorkflowStore(
     (state) => state.edges.filter((edge) => edge.source === id),
   );

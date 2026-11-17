@@ -89,12 +89,14 @@ function DependentItemEditor({
   projectCode,
   workflows,
   disabled,
+  idPrefix,
   onChange,
 }: {
   item: DependentItem;
   projectCode: number;
   workflows: WorkflowDefinitionRecord[];
   disabled: boolean;
+  idPrefix: string;
   onChange: (patch: Partial<DependentItem>) => void;
 }) {
   const tasksQuery = useQuery({
@@ -118,7 +120,7 @@ function DependentItemEditor({
     onChange({
       projectCode: workflow?.projectCode ?? projectCode,
       definitionCode: Number(value),
-      depTaskCode: item.dependentType === "DEPENDENT_ON_WORKFLOW" ? 0 : 0,
+      depTaskCode: 0,
     });
   };
 
@@ -126,7 +128,7 @@ function DependentItemEditor({
     const dependentType = value as DependentType;
     onChange({
       dependentType,
-      depTaskCode: dependentType === "DEPENDENT_ON_WORKFLOW" ? 0 : 0,
+      depTaskCode: 0,
     });
   };
 
@@ -141,7 +143,7 @@ function DependentItemEditor({
       <div className="grid grid-cols-2 gap-3">
         <LogicField label="依赖类型" required>
           <LogicSelect
-            id="dependent-type"
+            id={idPrefix + "-type"}
             value={item.dependentType}
             options={DEPENDENT_TYPE_OPTIONS}
             placeholder="选择依赖类型"
@@ -151,7 +153,7 @@ function DependentItemEditor({
         </LogicField>
         <LogicField label="依赖工作流" required>
           <LogicSelect
-            id="dependent-workflow"
+            id={idPrefix + "-workflow"}
             value={item.definitionCode > 0 ? String(item.definitionCode) : ""}
             options={workflows.map((workflow) => ({
               value: String(workflow.code),
@@ -165,7 +167,7 @@ function DependentItemEditor({
         {item.dependentType === "DEPENDENT_ON_TASK" ? (
           <LogicField label="依赖任务" required>
             <LogicSelect
-              id="dependent-task"
+              id={idPrefix + "-task"}
               value={item.depTaskCode !== 0 ? String(item.depTaskCode) : ""}
               options={taskOptions}
               placeholder={tasksQuery.isPending ? "正在加载任务..." : "选择任务"}
@@ -182,7 +184,7 @@ function DependentItemEditor({
         )}
         <LogicField label="依赖周期">
           <LogicSelect
-            id="dependent-cycle"
+            id={idPrefix + "-cycle"}
             value={item.cycle}
             options={CYCLE_OPTIONS}
             placeholder="选择周期"
@@ -192,7 +194,7 @@ function DependentItemEditor({
         </LogicField>
         <LogicField label="周期日期">
           <LogicSelect
-            id="dependent-date"
+            id={idPrefix + "-date"}
             value={item.dateValue}
             options={DATE_OPTIONS[item.cycle] ?? DATE_OPTIONS.day}
             placeholder="选择日期"
@@ -202,7 +204,7 @@ function DependentItemEditor({
         </LogicField>
         <LogicField label="期望结果">
           <LogicSelect
-            id="dependent-result"
+            id={idPrefix + "-result"}
             value={item.dependResult}
             options={RESULT_OPTIONS}
             placeholder="选择期望结果"
@@ -349,6 +351,7 @@ function DependentForm({
                       projectCode={projectCode}
                       workflows={workflows}
                       disabled={disabled}
+                      idPrefix={"dependent-" + groupIndex + "-" + itemIndex}
                       onChange={(patch) => updateItem(groupIndex, itemIndex, patch)}
                     />
                     <div className="flex justify-end">

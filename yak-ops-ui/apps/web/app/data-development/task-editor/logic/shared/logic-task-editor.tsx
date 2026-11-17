@@ -75,7 +75,13 @@ export function LogicTaskEditor({
   const [baselineCommonSettings, setBaselineCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
   const [taskParamsText, setTaskParamsText] = useState(() => formatTaskParams(task.taskParams));
   const [baselineTaskParamsText, setBaselineTaskParamsText] = useState(() => formatTaskParams(task.taskParams));
-  const [params, setParams] = useState<LogicTaskParams>(() => parseTaskParams(formatTaskParams(task.taskParams)));
+  const [params, setParams] = useState<LogicTaskParams>(() => {
+    try {
+      return parseTaskParams(formatTaskParams(task.taskParams));
+    } catch {
+      return {};
+    }
+  });
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
