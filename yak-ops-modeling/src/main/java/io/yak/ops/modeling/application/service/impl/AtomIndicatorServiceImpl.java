@@ -136,6 +136,7 @@ public class AtomIndicatorServiceImpl
     }
 
     private void normalize(AtomIndicatorDTO dto) {
+        dto.setDwType(DwTypeEnum.PUBLIC_LAYER);
         dto.setEnShortName(text(dto.getEnShortName()));
         dto.setEnName(optionalText(dto.getEnName()));
         dto.setCnName(text(dto.getCnName()));

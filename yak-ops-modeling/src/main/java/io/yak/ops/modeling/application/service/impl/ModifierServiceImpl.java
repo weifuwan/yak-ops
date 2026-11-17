@@ -2,12 +2,10 @@ package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
-import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.CodeDetailPO;
 import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.DerivativeIndicatorPO;
-import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
@@ -17,14 +15,9 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
-import io.yak.ops.dao.repository.modeling.DwLayerDao;
-import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
 import io.yak.ops.modeling.api.dto.modifier.ModifierDTO;
-import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.api.vo.modifier.ModifierVO;
-import io.yak.ops.modeling.application.service.DwLayerService;
 import io.yak.ops.modeling.application.service.ModifierService;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import javax.annotation.Resource;
@@ -36,10 +29,6 @@ public class ModifierServiceImpl
         extends AbstractVersionedModelingAssetService<ModifierPO, ModifierDTO, ModifierVO>
         implements ModifierService {
 
-    @Resource
-    private DwLayerDao dwLayerDao;
-    @Resource
-    private DwLayerService dwLayerService;
     @Resource
     private BusinessTypeDao businessTypeDao;
     @Resource
@@ -81,11 +70,10 @@ public class ModifierServiceImpl
         QueryWrapper<ModifierPO> wrapper = new QueryWrapper<ModifierPO>();
         addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
         eqIfNotBlank(wrapper, query.getModifierType(), "modifier_type");
-        eqIfNotBlank(wrapper, query.getDwhId(), "dwh_id");
         eqIfNotBlank(wrapper, query.getBusTypeId(), "bus_type_id");
         eqIfNotBlank(wrapper, query.getDomainId(), "domain_id");
         eqIfPresent(wrapper, query.getSubmit(), "submit");
-        applyWarehouseTypeFilter(wrapper, query.getDwType());
+        applyDwTypeFilter(wrapper, query);
         return wrapper;
     }
 
@@ -140,15 +128,11 @@ public class ModifierServiceImpl
         }
         dto.setModifierType(modifierType);
 
-        String dwhId = text(dto.getDwhId());
-        if (!dwhId.isEmpty()) {
-            DwLayerPO layer = dwLayerDao.queryById(dwhId);
-            if (layer == null) {
-                throw new IllegalArgumentException("所选数仓分层不存在或不属于当前项目");
-            }
-            if (layer.getDwType() == null || layer.getDwType() == DwTypeEnum.SOURCE_LAYER) {
-                throw new IllegalArgumentException("修饰词不允许关联 ODS 贴源层");
-            }
+        DwTypeEnum dwType = dto.getDwType();
+        if (dwType != null
+                && dwType != DwTypeEnum.PUBLIC_LAYER
+                && dwType != DwTypeEnum.APPLICATION_LAYER) {
+            throw new IllegalArgumentException("修饰词仅支持公共层或应用层，数仓分类可以不选择");
         }
 
         String busTypeId = text(dto.getBusTypeId());
@@ -227,33 +211,19 @@ public class ModifierServiceImpl
         }
     }
 
-    private void applyWarehouseTypeFilter(QueryWrapper<ModifierPO> wrapper, DwTypeEnum dwType) {
+    private void applyDwTypeFilter(QueryWrapper<ModifierPO> wrapper, ModifierDTO query) {
+        if (Boolean.TRUE.equals(query.getDwTypeUnassigned())) {
+            wrapper.and(scope -> scope.isNull("dw_type").or().eq("dw_type", ""));
+            return;
+        }
+
+        DwTypeEnum dwType = query.getDwType();
         if (dwType == null) {
             return;
         }
-        if (dwType == DwTypeEnum.SOURCE_LAYER) {
-            throw new IllegalArgumentException("修饰词不允许关联或筛选 ODS 贴源层");
+        if (dwType != DwTypeEnum.PUBLIC_LAYER && dwType != DwTypeEnum.APPLICATION_LAYER) {
+            throw new IllegalArgumentException("修饰词仅支持公共层或应用层");
         }
-        DwLayerDTO filter = new DwLayerDTO();
-        filter.setDwType(dwType);
-        List<DwLayerVO> layers = dwLayerService.all(filter);
-        List<String> layerIds = new ArrayList<String>();
-        for (DwLayerVO layer : layers) {
-            if (notBlank(layer.getId())) {
-                layerIds.add(layer.getId());
-            }
-        }
-        if (dwType == DwTypeEnum.NONE_LAYER) {
-            wrapper.and(scope -> {
-                scope.isNull("dwh_id").or().eq("dwh_id", "");
-                if (!layerIds.isEmpty()) {
-                    scope.or().in("dwh_id", layerIds);
-                }
-            });
-        } else if (layerIds.isEmpty()) {
-            wrapper.apply("1 = 0");
-        } else {
-            wrapper.in("dwh_id", layerIds);
-        }
+        wrapper.eq("dw_type", dwType);
     }
 }

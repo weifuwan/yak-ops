@@ -81,7 +81,7 @@ public class DerivedIndicatorServiceImpl
         eqIfNotBlank(wrapper, query.getAtomicId(), "atomic_id");
         eqIfNotBlank(wrapper, query.getTimePeriodId(), "time_period_id");
         if (Boolean.TRUE.equals(query.getDwTypeUnassigned())) {
-            wrapper.and(w -> w.isNull("dw_type").or().notIn("dw_type", "PUBLIC_LAYER", "APPLICATION_LAYER"));
+            wrapper.isNull("dw_type");
         } else {
             eqIfPresent(wrapper, query.getDwType(), "dw_type");
         }

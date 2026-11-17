@@ -7,16 +7,13 @@ import io.yak.ops.dao.entity.ComposeIndicatorPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.dao.entity.DerivativeIndicatorPO;
-import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.SubjectDomainPO;
-import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
-import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import io.yak.ops.modeling.api.dto.compositeindicator.CompositeIndicatorDTO;
 import io.yak.ops.modeling.api.vo.compositeindicator.CompositeIndicatorVO;
@@ -41,9 +38,6 @@ public class CompositeIndicatorServiceImpl
             "QUARTER_ON_LAST_QUARTER",
             "YEAR_ON_LAST_YEAR",
             "YEAR_ON_YEAR");
-
-    @Resource
-    private DwLayerDao dwLayerDao;
 
     @Resource
     private BusinessTypeDao businessTypeDao;
@@ -92,7 +86,7 @@ public class CompositeIndicatorServiceImpl
     protected QueryWrapper<ComposeIndicatorPO> buildQueryWrapper(CompositeIndicatorDTO query) {
         QueryWrapper<ComposeIndicatorPO> wrapper = new QueryWrapper<ComposeIndicatorPO>();
         addSearch(wrapper, query, "cn_name", "en_short_name", "en_name");
-        eqIfNotBlank(wrapper, query.getDwhId(), "dwh_id");
+        eqIfPresent(wrapper, query.getDwType(), "dw_type");
         eqIfNotBlank(wrapper, query.getMartId(), "mart_id");
         eqIfNotBlank(wrapper, query.getSubjectId(), "subject_id");
         eqIfNotBlank(wrapper, query.getDeriveId(), "derive_id");
@@ -106,7 +100,7 @@ public class CompositeIndicatorServiceImpl
     @Override
     protected void validate(CompositeIndicatorDTO dto) {
         normalize(dto);
-        requireFields(dto, "cnName", "enShortName", "director", "dwhId");
+        requireFields(dto, "cnName", "enShortName", "director", "dwType");
         validateUniqueFields(resourceKey(), dto, dto.getId());
         validateComputeMode(dto);
         validateWarehouseOwnership(dto);
@@ -135,7 +129,6 @@ public class CompositeIndicatorServiceImpl
         dto.setComputeExpr(optionalText(dto.getComputeExpr()));
         dto.setDeriveId(optionalText(dto.getDeriveId()));
         dto.setCompareType(optionalText(dto.getCompareType()));
-        dto.setDwhId(optionalText(dto.getDwhId()));
         dto.setMartId(optionalText(dto.getMartId()));
         dto.setSubjectId(optionalText(dto.getSubjectId()));
         dto.setBusTypeId(optionalText(dto.getBusTypeId()));
@@ -163,28 +156,21 @@ public class CompositeIndicatorServiceImpl
     }
 
     private void validateWarehouseOwnership(CompositeIndicatorDTO dto) {
-        DwLayerPO layer = dwLayerDao.queryById(dto.getDwhId());
-        if (layer == null) {
-            throw new IllegalArgumentException("所选数仓分层不存在或不属于当前项目");
-        }
-
-        DwTypeEnum dwType = layer.getDwType();
-        DwModelEnum dwModelType = layer.getDwModelType();
-        if (dwType == DwTypeEnum.PUBLIC_LAYER && dwModelType == DwModelEnum.SUMMARY) {
+        DwTypeEnum dwType = dto.getDwType();
+        if (dwType == DwTypeEnum.PUBLIC_LAYER) {
             dto.setMartId(null);
             dto.setSubjectId(null);
             validatePublicLayerOwnership(dto);
             return;
         }
-        if (dwType == DwTypeEnum.APPLICATION_LAYER && dwModelType == DwModelEnum.APPLICATION) {
+        if (dwType == DwTypeEnum.APPLICATION_LAYER) {
             dto.setBusTypeId(null);
             dto.setDomainId(null);
             dto.setBusProcessId(null);
             validateApplicationLayerOwnership(dto);
             return;
         }
-        throw new IllegalArgumentException(
-                "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）");
+        throw new IllegalArgumentException("复合指标仅支持公共层或应用层");
     }
 
     private void validatePublicLayerOwnership(CompositeIndicatorDTO dto) {
