@@ -286,7 +286,7 @@ export function WorkflowTaskNode({
                 })}
               </div>
             ) : (
-              <div className="rounded-lg bg-[#f7f8fa] px-2.5 py-2 text-[11px] text-[var(--yak-components-muted-text)]">
+              <div className="rounded-lg bg-[#f7f8fa] px-2.5 py-1 text-[11px] text-[var(--yak-components-muted-text)]">
                 {data.draft ? "未保存节点" : "工作流节点"}
               </div>
             )}
