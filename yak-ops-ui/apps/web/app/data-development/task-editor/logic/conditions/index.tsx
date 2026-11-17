@@ -31,14 +31,6 @@ const STATUS_OPTIONS = [
   { value: "PAUSE", label: "已暂停" },
 ];
 
-const STATUS_LABELS: Record<ConditionTaskStatus, string> = {
-  SUCCESS: "成功",
-  FAILURE: "失败",
-  FORCED_SUCCESS: "强制成功",
-  KILL: "已终止",
-  PAUSE: "已暂停",
-};
-
 function getTaskOptions(
   upstreamTasks: ConditionTaskOption[],
   selectedTaskCode: number,
