@@ -40,7 +40,6 @@ import { NodeEditorFrame } from "./node-editor-frame";
 import {
   buildShellTaskParams,
   parseShellTaskForm,
-  readShellTaskObject,
   type ShellLocalParam,
   type ShellTaskForm,
 } from "./shell-task-form";
