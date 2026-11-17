@@ -55,7 +55,7 @@ export default function AgentDrawer({ open, onClose }: AgentDrawerProps) {
       aria-hidden={!open}
       className={
         open
-          ? "fixed bottom-0 right-0 top-[42px] z-40 flex w-[420px] flex-col border-l border-[#e3e6ea] bg-white"
+          ? "fixed bottom-0 right-0 top-[42px] z-40 flex w-[440px] flex-col border-l border-[#e3e6ea] bg-white"
           : "hidden"
       }
     >

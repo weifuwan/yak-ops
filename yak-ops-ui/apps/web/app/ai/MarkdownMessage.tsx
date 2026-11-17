@@ -148,14 +148,14 @@ export function MarkdownMessage({ content }: { content: string }) {
       {blocks.map((block, blockIndex) => {
         if (block.type === "table") {
           return (
-            <div key={`t${blockIndex}`} className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-[12px]">
+            <div key={`t${blockIndex}`} className="max-w-full overflow-x-auto rounded border border-[#e6eaef]">
+              <table className="w-max min-w-full border-collapse text-[11.5px]">
                 <thead>
                   <tr className="bg-[#eef2f6]">
                     {block.header.map((cell, cellIndex) => (
                       <th
                         key={`h${cellIndex}`}
-                        className="border border-[#dfe4ea] px-2 py-1 text-left font-semibold text-[#3d4652]"
+                        className="whitespace-nowrap border border-[#dfe4ea] px-1.5 py-1 text-left font-semibold text-[#3d4652]"
                       >
                         {renderInline(cell, `h${cellIndex}`)}
                       </th>
@@ -166,7 +166,10 @@ export function MarkdownMessage({ content }: { content: string }) {
                   {block.rows.map((row, rowIndex) => (
                     <tr key={`r${rowIndex}`} className={rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"}>
                       {block.header.map((_, cellIndex) => (
-                        <td key={`d${cellIndex}`} className="border border-[#e6eaef] px-2 py-1 align-top text-[#1f2329]">
+                        <td
+                          key={`d${cellIndex}`}
+                          className="whitespace-nowrap border border-[#e6eaef] px-1.5 py-1 align-top text-[#1f2329]"
+                        >
                           {renderInline(row[cellIndex] ?? "", `r${rowIndex}c${cellIndex}`)}
                         </td>
                       ))}
