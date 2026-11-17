@@ -135,12 +135,12 @@ export function applyWorkflowBranchTargets(
     if (failedNode.length === 0) {
       throw new Error("CONDITIONS 必须至少连接一个失败分支");
     }
-    const conditionResult = asRecord(params.conditionResult);
+    const conditionResult = { ...asRecord(params.conditionResult) };
+    delete conditionResult.conditionSuccess;
     return {
       ...params,
       conditionResult: {
         ...conditionResult,
-        conditionSuccess: false,
         successNode,
         failedNode,
       },
