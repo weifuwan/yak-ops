@@ -202,14 +202,6 @@ function ConditionsForm({
       ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-[#eaecf0] bg-[#fbfcfe] p-3">
-        <div className="grid min-w-[1040px] grid-cols-[minmax(310px,1.2fr)_104px_236px_104px_minmax(260px,1fr)] items-stretch">
-          <div className="pb-2 text-[11px] font-semibold text-[#667085]">输入 · 条件组</div>
-          <div />
-          <div className="pb-2 text-center text-[11px] font-semibold text-[#667085]">判断 · CONDITIONS</div>
-          <div />
-          <div className="pb-2 text-[11px] font-semibold text-[#667085]">输出 · 执行分支</div>
-        </div>
-
         <div
           className="grid min-w-[1040px] grid-cols-[minmax(310px,1.2fr)_104px_236px_104px_minmax(260px,1fr)] items-stretch"
           style={{ gridTemplateRows: `repeat(${rowCount}, minmax(164px, auto))` }}
