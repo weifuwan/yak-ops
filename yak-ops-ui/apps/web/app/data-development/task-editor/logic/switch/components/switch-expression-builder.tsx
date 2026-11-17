@@ -25,7 +25,7 @@ const OPERATOR_OPTIONS = [
 ];
 
 function parseSimpleExpression(condition: string) {
-  const match = condition.match(/^\\s*(\\$\\{[^}]+\\})\\s*(===|!==|==|!=|>=|<=|>|<)\\s*(.*?)\\s*$/);
+  const match = condition.match(/^\s*(\$\{[^}]+\})\s*(===|!==|==|!=|>=|<=|>|<)\s*(.*?)\s*$/);
   if (!match) return null;
   return { variable: match[1], operator: match[2], rightValue: match[3] };
 }
