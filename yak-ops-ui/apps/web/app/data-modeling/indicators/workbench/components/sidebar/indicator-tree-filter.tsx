@@ -1,10 +1,22 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Input, Select, SelectContent, SelectItem, SelectItemIndicator, SelectItemText, SelectSearch, SelectTrigger, SelectValue } from "@yak-ops/yak-ui";
+import {
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectSearch,
+  SelectTrigger,
+  SelectValue,
+  TreeSelect,
+  type TreeSelectOption,
+} from "@yak-ops/yak-ui";
 import { Database, Layers3, Search } from "lucide-react";
 
 import { PlanningIcon } from "../../../../planning/components/icons";
-import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
+import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
 import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
@@ -16,6 +28,7 @@ type IndicatorTreeFilterProps<ScopeType extends IndicatorGroupBy = IndicatorGrou
   dwType: string;
   dwTypeOptions: IndicatorFieldOption[];
   groupingMode?: "WAREHOUSE";
+  businessTypeTreeSelect?: boolean;
   onDwTypeChange: (value: string) => void;
   scopeType: ScopeType;
   onScopeTypeChange: (value: ScopeType) => void;
@@ -38,13 +51,27 @@ const APPLICATION_SCOPE_OPTIONS: Array<{ value: IndicatorGroupBy; label: string 
 function ScopeIcon({ scope }: { scope: IndicatorGroupBy }) {
   if (scope === "DATA_MART") return <Database size={15} className="text-[#3a3d51]" />;
   if (scope === "SUBJECT_DOMAIN") return <Layers3 size={15} className="text-[#3a3d51]" />;
-  return (
-    <PlanningIcon
-      name={scope === "BUSINESS_TYPE" ? "business-type" : "data-domain"}
-      size={15}
-      className="text-[#3a3d51]"
-    />
-  );
+  if (scope === "BUSINESS_TYPE") {
+    return <PlanningIcon name="business-type" size={15} className="text-[#3a3d51]" />;
+  }
+  return <PlanningIcon name="data-domain" size={15} className="text-[#3a3d51]" />;
+}
+
+function mapBusinessTypeTreeOption(node: BusinessTypeTreeNode): TreeSelectOption | null {
+  const value = String(node.value || node.key || "");
+  if (!value) return null;
+
+  const children = (node.children || [])
+    .map(mapBusinessTypeTreeOption)
+    .filter((option): option is TreeSelectOption => option !== null);
+
+  return {
+    value,
+    label: String(node.title || value),
+    icon: <PlanningIcon name="business-type" size={13} className="text-[#3a3d51]" />,
+    searchText: [node.key, node.value, node.parentId].filter(Boolean).join(" "),
+    children: children.length ? children : undefined,
+  };
 }
 
 export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = IndicatorGroupBy>({
@@ -52,6 +79,7 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
   dwType,
   dwTypeOptions,
   groupingMode,
+  businessTypeTreeSelect = false,
   onDwTypeChange,
   scopeType,
   onScopeTypeChange,
@@ -66,11 +94,22 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
     : COMMON_SCOPE_OPTIONS;
   const showScopeControls = !(groupingMode === "WAREHOUSE" && dwType === "UNASSIGNED");
   const activeScope = scopeTypeOptions.find((option) => option.value === scopeType) || scopeTypeOptions[0] || COMMON_SCOPE_OPTIONS[0];
-  const scopeOptionsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "indicator-tree-scope-options", projectCode, groupingMode || "COMMON", dwType, scopeType],
+  const scopeOptionsQuery = useQuery<ModelingRecord[] | BusinessTypeTreeNode[]>({
+    queryKey: [
+      "modeling",
+      "indicator-tree-scope-options",
+      projectCode,
+      groupingMode || "COMMON",
+      dwType,
+      scopeType,
+      businessTypeTreeSelect ? "TREE" : "FLAT",
+    ],
     queryFn: () => {
       switch (scopeType) {
-        case "BUSINESS_TYPE": return businessTypeApi.all<ModelingRecord>(projectCode);
+        case "BUSINESS_TYPE":
+          return businessTypeTreeSelect
+            ? businessTypeApi.tree(projectCode)
+            : businessTypeApi.all<ModelingRecord>(projectCode);
         case "DATA_MART": return dataMartApi.all<ModelingRecord>(projectCode);
         case "SUBJECT_DOMAIN": return subjectDomainApi.all<ModelingRecord>(projectCode);
         default: return dataDomainApi.all<ModelingRecord>(projectCode);
@@ -79,12 +118,23 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
     enabled: Boolean(projectCode && showScopeControls),
   });
 
-  const scopeOptions = useMemo(() => (scopeOptionsQuery.data || [])
-    .map((record) => ({
-      value: String(record.id || ""),
-      label: String(record.businessName || record.cnName || record.martName || record.domainName || record.id || "未命名"),
-    }))
-    .filter((option) => option.value), [scopeOptionsQuery.data]);
+  const isBusinessTypeTree = businessTypeTreeSelect && scopeType === "BUSINESS_TYPE";
+  const businessTypeTreeOptions = useMemo(() => {
+    if (!isBusinessTypeTree) return [];
+    return ((scopeOptionsQuery.data || []) as BusinessTypeTreeNode[])
+      .map(mapBusinessTypeTreeOption)
+      .filter((option): option is TreeSelectOption => option !== null);
+  }, [isBusinessTypeTree, scopeOptionsQuery.data]);
+
+  const scopeOptions = useMemo(() => {
+    if (isBusinessTypeTree) return [];
+    return ((scopeOptionsQuery.data || []) as ModelingRecord[])
+      .map((record) => ({
+        value: String(record.id || ""),
+        label: String(record.businessName || record.cnName || record.martName || record.domainName || record.id || "未命名"),
+      }))
+      .filter((option) => option.value);
+  }, [isBusinessTypeTree, scopeOptionsQuery.data]);
   const visibleScopeOptions = scopeOptions.filter((option) =>
     option.label.toLocaleLowerCase().includes(scopeKeyword.trim().toLocaleLowerCase()),
   );
@@ -163,37 +213,54 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
           </SelectContent>
         </Select>
 
-        <Select
-          size="small"
-          value={scopeValue || undefined}
-          onValueChange={(value) => onScopeValueChange(String(value || ""))}
-        >
-          <SelectTrigger
-            aria-label={`选择${activeScope.label}`}
+        {isBusinessTypeTree ? (
+          <TreeSelect
+            ariaLabel="选择业务分类"
+            items={businessTypeTreeOptions}
+            value={scopeValue || null}
+            placeholder={scopeOptionsQuery.isPending && !scopeOptionsQuery.data ? "正在加载..." : "请选择业务分类"}
+            searchPlaceholder="搜索业务分类"
+            emptyText={scopeOptionsQuery.isError ? "加载失败，请刷新重试" : "暂无业务分类"}
+            disabled={scopeOptionsQuery.isPending && !scopeOptionsQuery.data}
+            size="small"
             variant="outlined"
-            className="!h-6 !min-w-0 !flex-1 !rounded-l-none !border-l-0 !px-2 [&>span:last-child>svg]:!size-3"
+            className="!w-0 !min-w-0 !flex-1 [&>button]:!h-6 [&>button]:!min-h-6 [&>button]:!rounded-l-none [&>button]:!rounded-r-[4px] [&>button]:!border-l-0 [&>button]:!px-2 [&>button]:!gap-1 [&>button]:!text-[11px] [&>button>span:last-child>svg]:!size-3"
+            popupClassName="!min-w-[240px]"
+            onValueChange={(value) => onScopeValueChange(value || "")}
+          />
+        ) : (
+          <Select
+            size="small"
+            value={scopeValue || undefined}
+            onValueChange={(value) => onScopeValueChange(String(value || ""))}
           >
-            <SelectValue placeholder={scopeOptionsQuery.isFetching ? "正在加载..." : `请选择${activeScope.label}`} />
-          </SelectTrigger>
-          <SelectContent
-            header={
-              <SelectSearch
-                size="small"
-                value={scopeKeyword}
-                placeholder={`搜索${activeScope.label}`}
-                onChange={(event) => setScopeKeyword(event.target.value)}
-              />
-            }
-            emptyContent={scopeOptionsQuery.isError ? "加载失败，请刷新重试" : visibleScopeOptions.length === 0 ? `没有匹配的${activeScope.label}` : undefined}
-          >
-            {visibleScopeOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
-                <SelectItemText>{option.label}</SelectItemText>
-                <SelectItemIndicator />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              aria-label={`选择${activeScope.label}`}
+              variant="outlined"
+              className="!h-6 !min-w-0 !flex-1 !rounded-l-none !border-l-0 !px-2 [&>span:last-child>svg]:!size-3"
+            >
+              <SelectValue placeholder={scopeOptionsQuery.isFetching ? "正在加载..." : `请选择${activeScope.label}`} />
+            </SelectTrigger>
+            <SelectContent
+              header={
+                <SelectSearch
+                  size="small"
+                  value={scopeKeyword}
+                  placeholder={`搜索${activeScope.label}`}
+                  onChange={(event) => setScopeKeyword(event.target.value)}
+                />
+              }
+              emptyContent={scopeOptionsQuery.isError ? "加载失败，请刷新重试" : visibleScopeOptions.length === 0 ? `没有匹配的${activeScope.label}` : undefined}
+            >
+              {visibleScopeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
+                  <SelectItemText>{option.label}</SelectItemText>
+                  <SelectItemIndicator />
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       ) : null}
 

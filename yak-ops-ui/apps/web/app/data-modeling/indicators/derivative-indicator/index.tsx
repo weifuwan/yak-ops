@@ -16,6 +16,7 @@ export function DerivativeIndicatorPage(props: IndicatorPageProps) {
   const treeControls = (
     <IndicatorTreeFilter
       projectCode={props.projectCode}
+      businessTypeTreeSelect
       dwType={treeDwType}
       dwTypeOptions={DERIVATIVE_INDICATOR_TREE_DW_OPTIONS}
       groupingMode="WAREHOUSE"

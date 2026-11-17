@@ -16,6 +16,7 @@ export function AtomIndicatorPage(props: IndicatorPageProps) {
   const treeControls = (
     <IndicatorTreeFilter
       projectCode={props.projectCode}
+      businessTypeTreeSelect
       dwType={treeDwType}
       dwTypeOptions={ATOM_INDICATOR_TREE_DW_OPTIONS}
       onDwTypeChange={props.onDwTypeChange}

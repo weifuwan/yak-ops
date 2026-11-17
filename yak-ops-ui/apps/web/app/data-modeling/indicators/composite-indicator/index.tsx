@@ -16,6 +16,7 @@ export function CompositeIndicatorPage(props: IndicatorPageProps) {
   const treeControls = (
     <IndicatorTreeFilter
       projectCode={props.projectCode}
+      businessTypeTreeSelect
       dwType={treeDwType}
       dwTypeOptions={COMPOSITE_INDICATOR_TREE_DW_OPTIONS}
       onDwTypeChange={props.onDwTypeChange}
