@@ -78,6 +78,40 @@ test("CONDITIONS rejects an incomplete branch graph", () => {
   );
 });
 
+test("CONDITIONS rejects unknown handles and duplicate targets across branches", () => {
+  const params = {
+    dependence: { relation: "AND", dependTaskList: [] },
+    conditionResult: {},
+  };
+
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "CONDITIONS",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "success", target: "201" },
+        { source: "100", sourceHandle: "failed", target: "202" },
+        { source: "100", sourceHandle: "source", target: "203" },
+      ],
+    ),
+    /未识别的分支连线/,
+  );
+
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "CONDITIONS",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "success", target: "201" },
+        { source: "100", sourceHandle: "failed", target: "201" },
+      ],
+    ),
+    /不能重复连接/,
+  );
+});
+
 test("CONDITIONS creates only the two business fields for a dependency item", () => {
   assert.deepEqual(createConditionDependentItem(), {
     depTaskCode: 0,
