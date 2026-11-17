@@ -12,6 +12,7 @@ import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.dao.entity.DerivativeIndicatorPO;
 import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.SubjectDomainPO;
+import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
@@ -111,6 +112,7 @@ class CompositeIndicatorServiceImplTest {
     void shouldRequireBusinessProcessForPublicLayer() {
         DwLayerPO layer = new DwLayerPO();
         layer.setDwType(DwTypeEnum.PUBLIC_LAYER);
+        layer.setDwModelType(DwModelEnum.SUMMARY);
         when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
         CompositeIndicatorDTO dto = baseDto();
         dto.setDomainId(null);
@@ -126,6 +128,7 @@ class CompositeIndicatorServiceImplTest {
     void shouldRejectBusinessProcessOutsideSelectedDomain() {
         DwLayerPO layer = new DwLayerPO();
         layer.setDwType(DwTypeEnum.PUBLIC_LAYER);
+        layer.setDwModelType(DwModelEnum.SUMMARY);
         when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
         when(dataDomainDao.queryById("domain-id")).thenReturn(new DataDomainPO());
         BusinessProcessPO process = new BusinessProcessPO();
@@ -144,6 +147,7 @@ class CompositeIndicatorServiceImplTest {
     void shouldValidateApplicationOwnershipAndClearPublicFields() {
         DwLayerPO layer = new DwLayerPO();
         layer.setDwType(DwTypeEnum.APPLICATION_LAYER);
+        layer.setDwModelType(DwModelEnum.APPLICATION);
         when(dwLayerDao.queryById("application-layer")).thenReturn(layer);
         when(dataMartDao.queryById("mart-id")).thenReturn(new DataMartPO());
         SubjectDomainPO subject = new SubjectDomainPO();
@@ -169,6 +173,7 @@ class CompositeIndicatorServiceImplTest {
     void shouldRejectSubjectDomainFromAnotherDataMart() {
         DwLayerPO layer = new DwLayerPO();
         layer.setDwType(DwTypeEnum.APPLICATION_LAYER);
+        layer.setDwModelType(DwModelEnum.APPLICATION);
         when(dwLayerDao.queryById("application-layer")).thenReturn(layer);
         when(dataMartDao.queryById("mart-id")).thenReturn(new DataMartPO());
         SubjectDomainPO subject = new SubjectDomainPO();
@@ -187,15 +192,38 @@ class CompositeIndicatorServiceImplTest {
     }
 
     @Test
-    void shouldRejectSourceAndUnlayeredWarehouseLayers() {
+    void shouldRejectSourceWarehouseLayer() {
+        assertUnsupportedLayer(DwTypeEnum.SOURCE_LAYER, DwModelEnum.SOURCE);
+    }
+
+    @Test
+    void shouldRejectUnlayeredWarehouseLayer() {
+        assertUnsupportedLayer(DwTypeEnum.NONE_LAYER, null);
+    }
+
+    @Test
+    void shouldRejectPublicDimensionAndDetailModels() {
+        assertUnsupportedLayer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM);
+        assertUnsupportedLayer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL);
+    }
+
+    @Test
+    void shouldRejectApplicationLayerWithNonApplicationModel() {
+        assertUnsupportedLayer(DwTypeEnum.APPLICATION_LAYER, DwModelEnum.SUMMARY);
+    }
+
+    private void assertUnsupportedLayer(DwTypeEnum dwType, DwModelEnum dwModelType) {
         DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(DwTypeEnum.SOURCE_LAYER);
+        layer.setDwType(dwType);
+        layer.setDwModelType(dwModelType);
         when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class, () -> service.validate(baseDto()));
 
-        assertEquals("复合指标仅支持公共层或应用层，不能关联贴源层或未分层", exception.getMessage());
+        assertEquals(
+                "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）",
+                exception.getMessage());
     }
 
     private CompositeIndicatorDTO baseDto() {
@@ -214,6 +242,7 @@ class CompositeIndicatorServiceImplTest {
     private void stubPublicLayer() {
         DwLayerPO layer = new DwLayerPO();
         layer.setDwType(DwTypeEnum.PUBLIC_LAYER);
+        layer.setDwModelType(DwModelEnum.SUMMARY);
         when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
         when(dataDomainDao.queryById("domain-id")).thenReturn(new DataDomainPO());
         BusinessProcessPO process = new BusinessProcessPO();
