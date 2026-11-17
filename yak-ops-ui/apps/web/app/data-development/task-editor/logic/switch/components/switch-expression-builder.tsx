@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { SquareX } from "lucide-react";
 import {
   Button,
   Input,
@@ -10,8 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@yak-ops/yak-ui";
-
-import { SquareX } from "lucide-react";
 
 import type { SwitchVariableOption } from "../adapter";
 
@@ -138,20 +137,20 @@ export function SwitchExpressionBuilder({
                     className="!h-7 !w-full !border-0 !bg-transparent !px-1 !shadow-none focus-visible:!ring-0"
                   >
                     <SelectValue placeholder="选择变量">
-                    {(selectedValue) => {
-                      const option = variables.find((item) => item.value === selectedValue);
-                      if (!option) return getVariableName(String(selectedValue ?? ""));
-                      const color = getVariableColor(option);
-                      return (
-                        <span className="flex min-w-0 items-center gap-1.5">
-                          <SquareX size={13} strokeWidth={1.8} className="shrink-0" style={{ color }} />
-                          <span className="min-w-0 truncate" style={{ color }}>
-                            {getVariableName(option.value)}
+                      {(selectedValue) => {
+                        const option = variables.find((item) => item.value === selectedValue);
+                        if (!option) return getVariableName(String(selectedValue ?? ""));
+                        const color = getVariableColor(option);
+                        return (
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <SquareX size={13} strokeWidth={1.8} className="shrink-0" style={{ color }} />
+                            <span className="min-w-0 truncate" style={{ color }}>
+                              {getVariableName(option.value)}
+                            </span>
                           </span>
-                        </span>
-                      );
-                    }}
-                  </SelectValue>
+                        );
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {variables.map((option) => (
