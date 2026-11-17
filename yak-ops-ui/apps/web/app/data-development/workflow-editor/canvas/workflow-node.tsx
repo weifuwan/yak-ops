@@ -206,11 +206,6 @@ export function WorkflowTaskNode({
               ? "border-[var(--yak-color-primary)]"
               : "border-transparent",
         ].join(" ")}
-        style={
-          selected || data.focused
-            ? { borderRightColor: "transparent" }
-            : undefined
-        }
       >
         <div
           className={[
