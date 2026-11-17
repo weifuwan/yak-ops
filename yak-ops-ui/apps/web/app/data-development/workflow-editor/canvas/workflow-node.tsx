@@ -16,6 +16,9 @@ import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { useWorkflowStore } from "../store/workflow-store";
 import type { WorkflowNodeData } from "../types";
 
+// CONDITIONS is the visual baseline for all right-side branch connectors.
+const BRANCH_HANDLE_RIGHT_OFFSET = -21;
+
 function ActionButton({
   label,
   danger = false,
@@ -219,7 +222,7 @@ export function WorkflowTaskNode({
                         isConnectable={!data.readOnly}
                         aria-label={output.label + "分支连接点"}
                         title={output.label + "分支"}
-                        style={{ top: "50%", right: data.taskType.toUpperCase() === "CONDITIONS" ? -21 : -9 }}
+                        style={{ top: "50%", right: BRANCH_HANDLE_RIGHT_OFFSET }}
                         onClick={(event) => {
                           event.stopPropagation();
                           if (data.readOnly) return;
