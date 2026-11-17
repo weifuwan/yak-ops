@@ -144,10 +144,11 @@ test("canvas toolbar plus opens an anchored root picker while top toolbar alone 
 
 
 test("floating workflow node picker uses larger Dify-style icons and a wider responsive panel", () => {
-  assert.match(workflowSelector, /group flex h-9 w-full[\\s\\S]*?px-3/);
-  assert.match(workflowSelector, /mr-2\\.5 flex size-6 shrink-0/);
-  assert.match(workflowSelector, /size=\\{variant === "popover" \\? 20 : 16\\}/);
-  assert.match(workflowSelector, /const panelWidth = Math\\.min\\(340, window\\.innerWidth - 24\\)/);
-  assert.match(workflowSelector, /w-\\[340px\\] max-w-\\[calc\\(100vw-24px\\)\\]/);
-  assert.match(workflowSelector, /width: panelWidth/);
+  assert.ok(workflowSelector.includes("group flex h-9 w-full"));
+  assert.ok(workflowSelector.includes("px-3 text-left text-xs"));
+  assert.ok(workflowSelector.includes("mr-2.5 flex size-6 shrink-0"));
+  assert.ok(workflowSelector.includes('size={variant === "popover" ? 20 : 16}'));
+  assert.ok(workflowSelector.includes("const panelWidth = Math.min(340, window.innerWidth - 24)"));
+  assert.ok(workflowSelector.includes("w-[340px] max-w-[calc(100vw-24px)]"));
+  assert.ok(workflowSelector.includes("width: panelWidth"));
 });
