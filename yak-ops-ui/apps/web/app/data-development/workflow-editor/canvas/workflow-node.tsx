@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import {
-  FolderOpen,
+  MoreHorizontal,
+  Play,
   Plus,
-  Trash2,
 } from "lucide-react";
 import {
   Handle,
@@ -90,7 +90,12 @@ export function WorkflowTaskNode({
     toast.warning("节点配置尚未初始化，请重新添加节点");
   };
 
-  const controlsVisibility = selected
+  const runDisabled = !data.readOnly || data.draft || data.taskCode === null;
+  const runDisabledReason = !data.readOnly
+    ? "请先发布工作流"
+    : "未保存节点暂不支持运行";
+
+  const controlsVisibility = selected || data.menuOpen
     ? "visible pointer-events-auto opacity-100"
     : "invisible pointer-events-none opacity-0 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 focus-within:visible focus-within:pointer-events-auto focus-within:opacity-100";
 
@@ -107,34 +112,34 @@ export function WorkflowTaskNode({
         ].join(" ")}
       >
         <div
-          className="nodrag nopan nowheel flex h-7 items-center rounded-lg border border-[var(--yak-components-border)] bg-white/95 px-0.5 text-[var(--yak-components-muted-text)] shadow-md backdrop-blur-[5px]"
+          className="nodrag nopan nowheel flex h-7 items-center gap-0.5 rounded-lg border border-[#D0D5DD] bg-white px-0.5 text-[var(--yak-components-muted-text)] shadow-[0_2px_8px_rgba(16,24,40,0.12)]"
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
           <ActionButton
-            label="新建上游"
-            icon={<Plus size={13} />}
-            disabled={data.readOnly}
-            onClick={() =>
-              openSelector({
-                kind: "upstream",
-                nodeId: id,
-              })
-            }
+            label={runDisabled ? runDisabledReason : "运行节点"}
+            icon={<Play size={13} />}
+            disabled={runDisabled}
+            onClick={() => data.onRun?.()}
           />
-          <ActionButton
-            label="打开节点"
-            icon={<FolderOpen size={13} />}
-            onClick={openCurrentTask}
-          />
-          <ActionButton
-            danger
-            label="删除"
-            icon={<Trash2 size={13} />}
-            disabled={data.readOnly}
-            onClick={() => removeNodes([id])}
-          />
+          <button
+            type="button"
+            aria-label="更多操作"
+            title="更多操作"
+            aria-haspopup="menu"
+            aria-expanded={Boolean(data.menuOpen)}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              const rect = event.currentTarget.getBoundingClientRect();
+              data.onOpenMenu?.({ x: rect.left, y: rect.bottom });
+            }}
+            className="nodrag nopan flex size-6 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-muted-text)] transition-colors hover:bg-[#F2F4F7] hover:text-[var(--yak-components-panel-text)]"
+          >
+            <MoreHorizontal size={15} strokeWidth={1.8} />
+          </button>
         </div>
       </div>
 
