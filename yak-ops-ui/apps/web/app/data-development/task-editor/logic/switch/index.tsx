@@ -60,14 +60,12 @@ export function SwitchEditor({
   }, [getWorkflowStore, nodeId, task.taskParams, workflowCode]);
 
   useEffect(() => {
-    if (activeTabId !== taskTabId) {
-      getWorkflowStore(workflowCode)?.getState().clearSwitchPreview(nodeId);
-      return;
-    }
-    if (latestPreviewParamsRef.current) {
+    // Keep the draft preview while the workflow tab is active so the user can
+    // inspect the updated ports and connections without applying the task yet.
+    if (activeTabId === taskTabId && latestPreviewParamsRef.current) {
       updateCanvasPreview(latestPreviewParamsRef.current);
     }
-  }, [activeTabId, getWorkflowStore, nodeId, taskTabId, updateCanvasPreview, workflowCode]);
+  }, [activeTabId, taskTabId, updateCanvasPreview]);
 
   useEffect(() => () => {
     getWorkflowStore(workflowCode)?.getState().clearSwitchPreview(nodeId);
