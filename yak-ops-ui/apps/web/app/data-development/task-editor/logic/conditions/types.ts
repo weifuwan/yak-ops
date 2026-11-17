@@ -7,15 +7,14 @@ export type ConditionTaskStatus =
   | "KILL"
   | "PAUSE";
 
+export type ConditionTaskOption = {
+  code: number;
+  name: string;
+  taskType: string;
+};
+
 export type ConditionDependentItem = {
-  dependentType: "DEPENDENT_ON_TASK";
-  projectCode: number;
-  definitionCode: number;
   depTaskCode: number;
-  cycle: string;
-  dateValue: string;
-  dependResult: "SUCCESS";
-  parameterPassing: boolean;
   status: ConditionTaskStatus;
 };
 
@@ -24,15 +23,23 @@ export type ConditionDependentGroup = {
   dependItemList: ConditionDependentItem[];
 };
 
-export type ConditionsTaskParams = {
+export type ConditionResult = {
+  successNode: number[];
+  failedNode: number[];
+};
+
+export type ConditionsTaskParams = Record<string, unknown> & {
   localParams?: unknown[];
   dependence: {
     relation: ConditionRelation;
     dependTaskList: ConditionDependentGroup[];
   };
-  conditionResult: {
-    conditionSuccess: boolean;
-    successNode: number[];
-    failedNode: number[];
-  };
+  conditionResult: ConditionResult;
+};
+
+export type ConditionWorkflowGraph = {
+  upstreamTasks: ConditionTaskOption[];
+  successTargets: ConditionTaskOption[];
+  failedTargets: ConditionTaskOption[];
+  unassignedTargetCount: number;
 };
