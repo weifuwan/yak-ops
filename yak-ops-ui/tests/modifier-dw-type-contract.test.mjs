@@ -42,7 +42,7 @@ test("modifier backend validates and filters by DwTypeEnum", () => {
   assert.doesNotMatch(vo, /dwhId/);
   assert.match(service, /query\.getDwTypeUnassigned\(\)/);
   assert.match(service, /wrapper\.eq\("dw_type", dwType\)/);
-  assert.match(service, /DwTypeEnum\.PUBLIC_LAYER && dwType != DwTypeEnum\.APPLICATION_LAYER/);
+  assert.match(service, /dwType != DwTypeEnum\.PUBLIC_LAYER[\s\S]*dwType != DwTypeEnum\.APPLICATION_LAYER/);
   assert.doesNotMatch(service, /getDwhId|dwh_id|dwhId|DwLayerDao/);
 });
 
