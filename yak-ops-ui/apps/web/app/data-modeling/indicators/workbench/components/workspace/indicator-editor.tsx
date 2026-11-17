@@ -5,7 +5,7 @@ import { Save, Send, X } from "lucide-react";
 
 import { getIndicatorApi } from "@/service/data-modeling/indicators";
 import type { ModelingRecord, ModelingVersionRecord } from "@/service/data-modeling/shared/types";
-import type { IndicatorEditorFieldsProps, IndicatorOptionResource } from "../../types";
+import type { IndicatorEditorFieldsProps, IndicatorOptionResource, IndicatorValidation } from "../../types";
 import type { IndicatorDefinition, IndicatorKind, IndicatorTab } from "../../types";
 import { initialFormValues, readFormValue } from "../../utils/indicator-form";
 import { IndicatorPanelRail } from "../panels/indicator-panel-rail";
@@ -19,8 +19,8 @@ type IndicatorEditorProps = {
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
   optionsLoading: boolean;
   renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
-  validateBeforeSave?: (values: Record<string, string>) => string | undefined;
-  validateBeforeSubmit?: (values: Record<string, string>) => string | undefined;
+  validateBeforeSave?: IndicatorValidation;
+  validateBeforeSubmit?: IndicatorValidation;
   onSaved: (kind: IndicatorKind, tabKey: string, record: ModelingRecord) => void;
   onDraftChange: (kind: IndicatorKind, tabKey: string, values: Record<string, string>) => void;
 };
@@ -81,7 +81,7 @@ export function IndicatorEditor({
       setError("请填写" + missing.label);
       return;
     }
-    const validationMessage = validateBeforeSave?.(values);
+    const validationMessage = validateBeforeSave?.(values, optionsByResource);
     if (validationMessage) {
       setError(validationMessage);
       return;
@@ -123,7 +123,7 @@ export function IndicatorEditor({
 
   const submit = async () => {
     if (!recordId || dirty || submitting) return;
-    const validationMessage = validateBeforeSubmit?.(values);
+    const validationMessage = validateBeforeSubmit?.(values, optionsByResource);
     if (validationMessage) {
       setError(validationMessage);
       return;

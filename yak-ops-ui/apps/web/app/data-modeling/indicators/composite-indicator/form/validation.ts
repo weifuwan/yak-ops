@@ -1,4 +1,12 @@
-export function validateCompositeIndicator(values: Record<string, string>): string | undefined {
+import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import type { IndicatorOptionResource } from "../../workbench/types";
+
+type CompositeIndicatorOptions = Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+
+export function validateCompositeIndicator(
+  values: Record<string, string>,
+  optionsByResource: CompositeIndicatorOptions = {},
+): string | undefined {
   if (!String(values.dwhId || "").trim()) return "请选择数仓分层";
   if (!String(values.enShortName || "").trim()) return "请输入英文缩写";
   if (!String(values.cnName || "").trim()) return "请输入中文名称";
@@ -14,25 +22,28 @@ export function validateCompositeIndicator(values: Record<string, string>): stri
     return "请选择有效的计算模式";
   }
 
-  const hasPublicOwnership = Boolean(
-    String(values.busTypeId || "").trim()
-    || String(values.domainId || "").trim()
-    || String(values.busProcessId || "").trim(),
-  );
-  const hasApplicationOwnership = Boolean(
-    String(values.martId || "").trim()
-    || String(values.subjectId || "").trim(),
-  );
+  const warehouseLayers = optionsByResource.dwLayer;
+  if (!warehouseLayers) return "数仓分层选项尚未加载，请稍后重试";
 
-  if (hasPublicOwnership && (!String(values.domainId || "").trim() || !String(values.busProcessId || "").trim())) {
-    return "公共层必须选择数据域及业务过程";
-  }
-  if (hasApplicationOwnership && (!String(values.martId || "").trim() || !String(values.subjectId || "").trim())) {
-    return "应用层必须选择数据集市及主题域";
-  }
-  if (!hasPublicOwnership && !hasApplicationOwnership) {
-    return "请配置所选数仓分层对应的业务归属";
+  const selectedLayer = warehouseLayers.find(
+    (layer) => String(layer.id || "") === String(values.dwhId || "").trim(),
+  );
+  if (!selectedLayer) return "所选数仓分层不存在，请重新选择";
+
+  const dwType = String(selectedLayer.dwType || "");
+  if (dwType === "PUBLIC_LAYER") {
+    if (!String(values.domainId || "").trim() || !String(values.busProcessId || "").trim()) {
+      return "公共层必须选择数据域及业务过程";
+    }
+    return undefined;
   }
 
-  return undefined;
+  if (dwType === "APPLICATION_LAYER") {
+    if (!String(values.martId || "").trim() || !String(values.subjectId || "").trim()) {
+      return "应用层必须选择数据集市及主题域";
+    }
+    return undefined;
+  }
+
+  return "复合指标仅支持公共层和应用层";
 }

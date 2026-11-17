@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { validateCompositeIndicator } from "../apps/web/app/data-modeling/indicators/composite-indicator/form/validation.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -63,4 +64,65 @@ test("composite list filters switch with the selected warehouse layer", () => {
   assert.match(config, /dwType: "PUBLIC_LAYER"/);
   assert.match(config, /dwType: "APPLICATION_LAYER"/);
   assert.match(list, /definition\.key !== "derivativeIndicator" && definition\.key !== "composeIndicator"/);
+});
+
+const validPublicValues = {
+  dwhId: "public-layer",
+  enShortName: "composite_metric",
+  cnName: "复合指标",
+  director: "admin",
+  computeMode: "0",
+  computeExpr: "@sales + @orders",
+  domainId: "domain-id",
+  busProcessId: "process-id",
+};
+const validationLayers = {
+  dwLayer: [
+    { id: "public-layer", dwType: "PUBLIC_LAYER" },
+    { id: "application-layer", dwType: "APPLICATION_LAYER" },
+    { id: "source-layer", dwType: "SOURCE_LAYER" },
+  ],
+};
+
+test("composite ownership validation follows the selected warehouse layer type", () => {
+  assert.equal(validateCompositeIndicator({ ...validPublicValues, busTypeId: "" }, validationLayers), undefined);
+  assert.equal(
+    validateCompositeIndicator({
+      ...validPublicValues,
+      domainId: "",
+      busProcessId: "",
+      martId: "mart-id",
+      subjectId: "subject-id",
+    }, validationLayers),
+    "公共层必须选择数据域及业务过程",
+  );
+
+  const validApplicationValues = {
+    ...validPublicValues,
+    dwhId: "application-layer",
+    domainId: "",
+    busProcessId: "",
+    martId: "mart-id",
+    subjectId: "subject-id",
+  };
+  assert.equal(validateCompositeIndicator(validApplicationValues, validationLayers), undefined);
+  assert.equal(
+    validateCompositeIndicator({ ...validApplicationValues, subjectId: "" }, validationLayers),
+    "应用层必须选择数据集市及主题域",
+  );
+});
+
+test("composite ownership validation rejects unsupported or unresolved warehouse layers", () => {
+  assert.equal(
+    validateCompositeIndicator({ ...validPublicValues, dwhId: "source-layer" }, validationLayers),
+    "复合指标仅支持公共层和应用层",
+  );
+  assert.equal(
+    validateCompositeIndicator(validPublicValues, {}),
+    "数仓分层选项尚未加载，请稍后重试",
+  );
+  assert.equal(
+    validateCompositeIndicator({ ...validPublicValues, dwhId: "missing-layer" }, validationLayers),
+    "所选数仓分层不存在，请重新选择",
+  );
 });

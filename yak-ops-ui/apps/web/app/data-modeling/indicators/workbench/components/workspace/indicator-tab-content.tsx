@@ -6,6 +6,7 @@ import type {
   IndicatorEditorFieldsProps,
   IndicatorKind,
   IndicatorTab,
+  IndicatorValidation,
 } from "../../types";
 import { useIndicatorResources } from "../../hooks/use-indicator-resources";
 import { IndicatorEditor } from "./indicator-editor";
@@ -24,8 +25,8 @@ export type IndicatorTabContentProps = {
 type Props = IndicatorTabContentProps & {
   definition: IndicatorDefinition;
   renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
-  validateBeforeSave?: (values: Record<string, string>) => string | undefined;
-  validateBeforeSubmit?: (values: Record<string, string>) => string | undefined;
+  validateBeforeSave?: IndicatorValidation;
+  validateBeforeSubmit?: IndicatorValidation;
 };
 
 export function IndicatorTabContent({

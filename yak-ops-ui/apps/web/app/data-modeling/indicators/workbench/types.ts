@@ -3,6 +3,10 @@ import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorOptionResource as IndicatorOptionResourceType, IndicatorResourceKind } from "@/service/data-modeling/indicators";
 
 export type IndicatorOptionResource = IndicatorOptionResourceType;
+export type IndicatorValidation = (
+  values: Record<string, string>,
+  optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>,
+) => string | undefined;
 
 export type IndicatorKind = IndicatorResourceKind;
 export type IndicatorMode = "create" | "edit" | "list";
