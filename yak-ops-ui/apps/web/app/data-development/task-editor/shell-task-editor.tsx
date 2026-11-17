@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as monaco from "monaco-editor";
+import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
+import "monaco-editor/esm/vs/editor/browser/controller/coreCommands.js";
+import "monaco-editor/esm/vs/editor/contrib/find/browser/findController.js";
+import "monaco-editor/esm/vs/editor/contrib/contextmenu/contextmenu.js";
+import "monaco-editor/esm/vs/editor/contrib/bracketMatching/bracketMatching.js";
+import "monaco-editor/esm/vs/editor/contrib/clipboard/clipboard.js";
+import "monaco-editor/esm/vs/basic-languages/shell/shell.contribution.js";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 
 import {
@@ -157,7 +163,6 @@ function ShellScriptEditor({
       cursorBlinking: "smooth",
       smoothScrolling: true,
       contextmenu: true,
-      bracketPairColorization: { enabled: true },
       padding: { top: 12, bottom: 12 },
       ariaLabel: "Shell 脚本编辑器",
       overviewRulerBorder: false,
