@@ -359,7 +359,7 @@ function ConditionsForm({
                     relation: dependence.relation === "AND" ? "OR" : "AND",
                   },
                 })}
-                className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d0d5dd] bg-white px-2 py-0.5 text-[9px] font-semibold text-[#475467] shadow-sm transition-colors hover:border-[#a5b4fc] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
+                className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full border border-[#d0d5dd] bg-white px-2 py-0.5 text-[9px] font-semibold text-[#475467] shadow-sm transition-colors hover:border-[#a5b4fc] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {dependence.relation}
               </button>
