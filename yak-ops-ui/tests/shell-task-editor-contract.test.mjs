@@ -78,8 +78,9 @@ test("Shell form serializes only the existing backend fields and preserves other
 });
 
 test("Shell editor uses Monaco and is routed separately from the generic JSON editor", () => {
-  assert.match(editorSource, /from "monaco-editor"/);
+  assert.match(editorSource, /from "monaco-editor\/esm\/vs\/editor\/editor\.api\.js"/);
   assert.match(editorSource, /editor\.create/);
+  assert.match(editorSource, /shell\.contribution\.js/);
   assert.match(editorSource, /language: "shell"/);
   assert.match(editorSource, /localParams/);
   assert.match(editorSource, /resourceList/);
