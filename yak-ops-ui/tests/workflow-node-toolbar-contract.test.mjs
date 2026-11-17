@@ -94,3 +94,10 @@ test("workflow branch handles use transparent plus cutouts and clear the selecte
   assert.doesNotMatch(workflowNode, /after:absolute after:(?:left|right)-1\.5/);
   assert.doesNotMatch(workflowNode, /<Plus size=\{10\}/);
 });
+
+test("workflow branch handle circle has an inset SVG viewport to avoid edge clipping", () => {
+  assert.match(workflowNode, /viewBox="0 0 18 18"/);
+  assert.match(workflowNode, /className="relative size-\[18px\]"/);
+  assert.match(workflowNode, /cx="9"\s+cy="9"\s+r="8"/);
+  assert.match(workflowNode, /width="18"\s+height="18"/);
+});
