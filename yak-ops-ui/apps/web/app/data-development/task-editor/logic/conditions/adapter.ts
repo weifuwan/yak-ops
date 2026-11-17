@@ -108,6 +108,45 @@ export function normalizeConditionsTaskParams(value: unknown): ConditionsTaskPar
   };
 }
 
+const CONDITION_STATUS_LABELS: Record<ConditionTaskStatus, string> = {
+  SUCCESS: "成功",
+  FAILURE: "失败",
+  FORCED_SUCCESS: "强制成功",
+  KILL: "已终止",
+  PAUSE: "已暂停",
+};
+
+export function buildConditionLogicExpression(
+  value: unknown,
+  upstreamTasks: ConditionTaskOption[],
+): string | null {
+  const normalized = normalizeConditionsTaskParams(value);
+  const groups = normalized.dependence.dependTaskList;
+  if (groups.length === 0) return null;
+
+  const taskNames = new Map(
+    upstreamTasks.map((task) => [task.code, task.name] as const),
+  );
+
+  const groupExpressions = groups.map((group) => {
+    if (group.dependItemList.length === 0) return null;
+
+    const terms = group.dependItemList.map((item) => {
+      const taskName = taskNames.get(item.depTaskCode);
+      const statusLabel = CONDITION_STATUS_LABELS[item.status];
+      if (!taskName || !statusLabel) return null;
+      return taskName + " = " + statusLabel;
+    });
+
+    if (terms.some((term) => term === null)) return null;
+    const expression = (terms as string[]).join(" " + group.relation + " ");
+    return groups.length > 1 ? "(" + expression + ")" : expression;
+  });
+
+  if (groupExpressions.some((expression) => expression === null)) return null;
+  return (groupExpressions as string[]).join(" " + normalized.dependence.relation + " ");
+}
+
 export function validateConditionsTaskParams(
   value: unknown,
   upstreamTaskCodes: number[],
