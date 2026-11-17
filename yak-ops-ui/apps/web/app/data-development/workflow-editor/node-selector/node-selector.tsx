@@ -81,13 +81,16 @@ function TaskTypeItem({
       }}
       onClick={onSelect}
       className={variant === "popover"
-        ? "group flex h-8 w-full cursor-grab items-center rounded-md border border-transparent bg-white px-2 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:bg-[#F3F5F9] active:cursor-grabbing"
+        ? "group flex h-9 w-full cursor-grab items-center rounded-md border border-transparent bg-white px-3 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:bg-[#F3F5F9] active:cursor-grabbing"
         : "group flex h-7 w-full cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"}
     >
       <span className={variant === "popover"
-        ? "mr-2 flex size-5 shrink-0 items-center justify-center"
+        ? "mr-2.5 flex size-6 shrink-0 items-center justify-center"
         : "mr-2 flex size-4 shrink-0 items-center justify-center"}>
-        <TaskTypeBadgeIcon taskType={task.taskType} />
+        <TaskTypeBadgeIcon
+          taskType={task.taskType}
+          size={variant === "popover" ? 20 : 16}
+        />
       </span>
       <span className="min-w-0 truncate leading-4">
         {task.taskType}
@@ -326,7 +329,7 @@ function WorkflowNodePicker({
   if (isPopover) {
     if (!portalRoot || !("anchor" in request)) return null;
 
-    const panelWidth = 300;
+    const panelWidth = Math.min(340, window.innerWidth - 24);
     const panelHeight = Math.max(240, Math.min(520, window.innerHeight - 24));
     const preferredLeft = request.anchor.x + 14;
     const left = preferredLeft + panelWidth <= window.innerWidth - 12
@@ -353,8 +356,8 @@ function WorkflowNodePicker({
                 ? "新建节点"
                 : "插入节点"
         }
-        className="fixed z-[1200] flex w-[300px] flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]"
-        style={{ left, top, height: panelHeight }}
+        className="fixed z-[1200] flex w-[340px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]"
+        style={{ left, top, height: panelHeight, width: panelWidth }}
       >
         <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#EEF0F3] px-3">
           <div className="flex h-full items-center gap-5">
