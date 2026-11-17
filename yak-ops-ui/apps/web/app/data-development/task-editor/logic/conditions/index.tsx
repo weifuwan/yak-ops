@@ -332,27 +332,25 @@ function ConditionsForm({
               <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
             </div>
           ) : groups.length > 1 ? (
-            <>
+            groups.map((_group, groupIndex) => (
               <div
-                className="pointer-events-none relative"
-                style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
+                key={"conditions-input-link-" + groupIndex}
+                className="pointer-events-none relative flex items-center justify-center"
+                style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
               >
-                <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
-                <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                {groupIndex === 0 ? (
+                  <span className="absolute left-1/2 top-1/2 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+                ) : groupIndex === groups.length - 1 ? (
+                  <span className="absolute left-1/2 top-0 bottom-1/2 border-l border-dashed border-[#aeb7c4]" />
+                ) : (
+                  <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+                )}
+                <span className="relative z-10 rounded-full border border-[#d0d5dd] bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#475467]">
+                  {dependence.relation}
+                </span>
               </div>
-              {groups.map((_group, groupIndex) => (
-                <div
-                  key={"conditions-input-link-" + groupIndex}
-                  className="pointer-events-none relative flex items-center justify-center"
-                  style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
-                >
-                  <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
-                  <span className="relative z-10 rounded-full border border-[#d0d5dd] bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#475467]">
-                    {dependence.relation}
-                  </span>
-                </div>
-              ))}
-            </>
+            ))
           ) : null}
 
           <div
@@ -389,7 +387,6 @@ function ConditionsForm({
             style={{ gridColumn: 4, gridRow: `1 / span ${rowCount}` }}
           >
             <span className="absolute left-0 top-1/2 h-0 w-1/2 border-t border-dashed border-[#aeb7c4]" />
-            <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
           </div>
           {Array.from({ length: rowCount }, (_item, rowIndex) => (
             <div
