@@ -41,6 +41,7 @@ test("warehouse layer selection controls public and application ownership fields
   assert.match(config, /includeOptionValues: COMPOSITE_INDICATOR_DW_MODEL_TYPES/);
   assert.match(form, /optionFilterField: "dwModelType"/);
   assert.match(form, /includeOptionValues: COMPOSITE_INDICATOR_DW_MODEL_TYPES/);
+  assert.match(form, /selectedLabel=\{selectedWarehouseLayerLabel\}/);
   assert.match(form, /selectedDwType === "PUBLIC_LAYER"/);
   assert.match(form, /selectedDwType === "APPLICATION_LAYER"/);
   assert.match(form, /domainId: path\?\.\[0\]/);
@@ -86,6 +87,7 @@ const validationLayers = {
     { id: "application-layer", dwType: "APPLICATION_LAYER", dwModelType: "APPLICATION" },
     { id: "detail-layer", dwType: "PUBLIC_LAYER", dwModelType: "DETAIL" },
     { id: "dimension-layer", dwType: "PUBLIC_LAYER", dwModelType: "DIMENSION_DIM" },
+    { id: "application-invalid-layer", dwType: "APPLICATION_LAYER", dwModelType: "SUMMARY" },
     { id: "source-layer", dwType: "SOURCE_LAYER", dwModelType: "SOURCE" },
     { id: "unassigned-layer", dwType: "NONE_LAYER", dwModelType: null },
   ],
@@ -120,7 +122,13 @@ test("composite ownership validation follows the selected warehouse layer type",
 });
 
 test("composite ownership validation rejects unsupported layer and model combinations", () => {
-  for (const dwhId of ["detail-layer", "dimension-layer", "source-layer", "unassigned-layer"]) {
+  for (const dwhId of [
+    "detail-layer",
+    "dimension-layer",
+    "application-invalid-layer",
+    "source-layer",
+    "unassigned-layer",
+  ]) {
     assert.equal(
       validateCompositeIndicator({ ...validPublicValues, dwhId }, validationLayers),
       "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）",
