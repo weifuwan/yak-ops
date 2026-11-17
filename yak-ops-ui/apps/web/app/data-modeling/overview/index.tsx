@@ -1,4 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from "@yak-ops/yak-ui";
 
 const EMPTY_IMAGE =
   "https://img.alicdn.com/imgextra/i4/O1CN017NgExC1MdM1GSlL3J_!!6000000001457-2-tps-720-720.png";
@@ -78,24 +86,6 @@ function InfoIcon() {
   );
 }
 
-function ChevronDownIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
 /**
  * 数据统计卡片
  */
@@ -157,13 +147,15 @@ function StatisticCard({ item }: { item: StatisticItem }) {
  * 数据概览
  */
 function DataOverviewCard() {
+  const [workspaceFilter, setWorkspaceFilter] = useState("all");
+
   return (
     <div className="mb-4 w-full overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
       {/* Header */}
       <div className="flex min-h-5 w-full flex-row items-center">
         <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
           数据概览
-          <span className="cursor-help text-[#FE2C55]">
+          <span className="cursor-help text-[var(--yak-color-primary)]">
             <InfoIcon />
           </span>
         </div>
@@ -171,12 +163,12 @@ function DataOverviewCard() {
         <div className="flex h-5 shrink-0 items-center gap-1 leading-5">
           <button
             type="button"
-            className="cursor-pointer border-0 bg-transparent p-0 text-xs text-[#FE2C55] hover:opacity-80"
+            className="cursor-pointer border-0 bg-transparent p-0 text-xs text-[var(--yak-color-primary)] hover:opacity-80"
           >
             查看数据详情
           </button>
 
-          <span className="cursor-help text-[#FE2C55]">
+          <span className="cursor-help text-[var(--yak-color-primary)]">
             <InfoIcon />
           </span>
         </div>
@@ -193,18 +185,28 @@ function DataOverviewCard() {
             工作空间：
           </label>
 
-          <div className="relative h-8 w-3/4">
-            <select
-              id="overview-workspace"
-              defaultValue="all"
-              className="h-8 w-full cursor-pointer appearance-none rounded border border-[#E5E7EB] bg-white pl-2.5 pr-8 text-xs text-[#333] outline-none transition-colors hover:border-[#B8BDC8] focus:border-[#FE2C55]"
+          <div className="h-8 w-3/4">
+            <Select
+              size="small"
+              value={workspaceFilter}
+              onValueChange={(value) => setWorkspaceFilter(String(value ?? "all"))}
             >
-              <option value="all">全部</option>
-            </select>
-
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#777E8B]">
-              <ChevronDownIcon />
-            </span>
+              <SelectTrigger
+                id="overview-workspace"
+                aria-label="工作空间"
+                variant="outlined"
+                className="!h-8 w-full !rounded-[4px] !px-2.5"
+              >
+                <SelectValue placeholder="全部">
+                  {(value) => (value === "all" ? "全部" : String(value ?? "全部"))}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <SelectItemText>全部</SelectItemText>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -229,7 +231,7 @@ function LatestPublishCard() {
       <div className="flex min-h-5 w-full items-center">
         <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
           最新发布
-          <span className="cursor-help text-[#FE2C55]">
+          <span className="cursor-help text-[var(--yak-color-primary)]">
             <InfoIcon />
           </span>
         </div>
