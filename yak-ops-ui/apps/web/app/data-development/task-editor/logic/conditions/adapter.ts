@@ -1,7 +1,6 @@
 import type {
   ConditionDependentGroup,
   ConditionDependentItem,
-  ConditionRelation,
   ConditionTaskOption,
   ConditionTaskStatus,
   ConditionWorkflowGraph,
@@ -192,8 +191,4 @@ export function getConditionWorkflowGraph(
       (edge) => edge.sourceHandle !== "success" && edge.sourceHandle !== "failed",
     ).length,
   };
-}
-
-export function normalizeConditionRelation(value: unknown): ConditionRelation {
-  return value === "OR" ? "OR" : "AND";
 }
