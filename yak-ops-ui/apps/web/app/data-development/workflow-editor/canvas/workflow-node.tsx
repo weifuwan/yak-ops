@@ -188,7 +188,7 @@ export function WorkflowTaskNode({
 
           <div className="px-3 pb-2">
             {branchOutputs.length > 0 ? (
-              <div className="space-y-0.5">
+              <div>
                 {branchOutputs.map((output) => {
                   const labelClass =
                     output.kind === "success"
