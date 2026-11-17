@@ -41,7 +41,7 @@ test("workflow node toolbar uses a bordered Dify-style play and more control", (
 
 test("workflow canvas wires the node toolbar to supported node actions", () => {
   assert.match(workflowCanvas, /onRun: \(\) =>\s*requestNodeRun\(/);
-  assert.match(workflowCanvas, /onOpenMenu: \(\{ x, y \}\) => setContextMenu\(\{ node, x, y \}\)/);
+  assert.match(workflowCanvas, /onOpenMenu: \(\{ x, y \}(?:: \{ x: number; y: number \})?\)\s*=>\s*setContextMenu\(\{ node, x, y \}\)/);
   assert.match(
     workflowCanvas,
     /onClick=\{\(\) =>\s*openSelector\(\{\s*kind: "upstream",\s*nodeId: contextMenu\.node\.id,\s*\}\)\}/,
