@@ -42,18 +42,28 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
       toast.error("工作流画布尚未就绪，请稍后再保存节点配置");
       return false;
     }
-    if (!store.getState().updateTaskDefinition(nodeId, nextTask)) {
+    const currentState = store.getState();
+    const switchPreviewEdges =
+      taskType.toUpperCase() === "SWITCH" &&
+      currentState.previewNodeId === nodeId
+        ? currentState.previewEdges
+        : null;
+    if (!currentState.updateTaskDefinition(nodeId, nextTask)) {
       toast.error("节点已从当前工作流移除，请重新打开节点");
       return false;
     }
     if (taskType.toUpperCase() === "SWITCH") {
-      const remappedEdges = remapSwitchCaseHandles(
+      const remappedEdges = switchPreviewEdges ?? remapSwitchCaseHandles(
         nodeId,
         task.taskParams,
         nextTask.taskParams,
         store.getState().edges,
       );
-      store.setState({ edges: remappedEdges });
+      store.setState({
+        edges: remappedEdges,
+        previewEdges: null,
+        previewNodeId: null,
+      });
     }
     updateTaskTab("task:" + workflowCode + ":" + task.code, nextTask);
     return true;
