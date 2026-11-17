@@ -369,14 +369,6 @@ function ConditionsForm({
             style={{ gridColumn: 3, gridRow: `1 / span ${rowCount}` }}
           >
             <div className="w-full rounded-xl border border-[#c7d2fe] bg-[#f5f6ff] p-3 shadow-[0_3px_10px_rgba(58,61,81,0.07)]">
-              <div className="mb-3 flex items-center justify-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-[#e7eaff] text-[#3a3d51]">
-                  <AlertCircle size={18} />
-                </span>
-                <div>
-                  <div className="text-xs font-semibold text-[#344054]">CONDITIONS</div>
-                </div>
-              </div>
               <div className="rounded-md border border-[#e4e7ec] bg-white p-2.5">
                 <div className="mb-1.5 text-[10px] font-medium text-[#98A2B3]">逻辑表达式</div>
                 {expression ? (
