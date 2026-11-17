@@ -86,7 +86,7 @@ export function SwitchForm({
         <Button
           size="sm"
           variant="secondary"
-          className="!h-9 !w-full !justify-center !border-0 !bg-[#F2F4F7] !text-[#475467] hover:!bg-[#EAECF0]"
+          className="!h-9 !w-full !justify-center !border-0 !bg-[#F2F4F7] !text-[#475467] !outline-none !outline-offset-0 focus-visible:!outline-none [&[data-focused]]:!outline-none hover:!bg-[#EAECF0]"
           isDisabled={disabled}
           onClick={() => updateCases([
             ...cases,
