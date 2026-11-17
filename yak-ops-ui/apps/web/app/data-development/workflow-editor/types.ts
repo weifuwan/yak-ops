@@ -38,6 +38,9 @@ export type WorkflowNodeData = {
   task?: WorkflowTaskRecord;
   focused?: boolean;
   readOnly?: boolean;
+  menuOpen?: boolean;
+  onRun?: () => void;
+  onOpenMenu?: (position: { x: number; y: number }) => void;
   branchOutputs?: WorkflowBranchOutput[];
   branchOutputsPreview?: WorkflowBranchOutput[];
 };
