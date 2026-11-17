@@ -193,14 +193,7 @@ export function SwitchExpressionBuilder({
         </div>
       )}
 
-      <div className="mt-1 flex min-h-6 items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-[11px] leading-4 text-[#98A2B3]">
-          {selectedVariable
-            ? [selectedVariable.source, selectedVariable.dataType].filter(Boolean).join(" · ")
-            : variables.length > 0
-              ? "可选择系统、项目、全局及上游 OUT 参数"
-              : "暂无可选变量，可直接输入运行时变量表达式"}
-        </span>
+      <div className="mt-1 flex min-h-6 items-center justify-end">
         <Button
           size="sm"
           variant="ghost"
