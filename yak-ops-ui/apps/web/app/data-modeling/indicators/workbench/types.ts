@@ -24,6 +24,8 @@ export type IndicatorField = {
   optionsSource?: IndicatorOptionResource;
   optionLabelField?: string;
   optionLabelPrefixField?: string;
+  optionFilterField?: string;
+  includeOptionValues?: string[];
   excludeOptionValues?: string[];
 };
 export type IndicatorColumn = { key: string; title: string; width?: number };
