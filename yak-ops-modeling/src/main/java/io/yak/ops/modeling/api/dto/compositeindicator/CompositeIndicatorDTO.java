@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.yak.ops.modeling.api.dto.pagination.ModelingQueryDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 
 /** Typed request model for CompositeIndicator. */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -11,7 +12,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CompositeIndicatorDTO extends ModelingQueryDTO {
 
-    private String dwhId;
+    private DwTypeEnum dwType;
     private String martId;
     private String subjectId;
     private String busTypeId;

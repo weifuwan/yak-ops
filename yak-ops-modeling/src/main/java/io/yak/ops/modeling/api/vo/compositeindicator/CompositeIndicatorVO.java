@@ -3,13 +3,14 @@ package io.yak.ops.modeling.api.vo.compositeindicator;
 import io.yak.ops.modeling.api.vo.ModelingBaseVO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 
 /** Typed response model for CompositeIndicator. */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CompositeIndicatorVO extends ModelingBaseVO {
 
-    private String dwhId;
+    private DwTypeEnum dwType;
     private String martId;
     private String subjectId;
     private String busTypeId;

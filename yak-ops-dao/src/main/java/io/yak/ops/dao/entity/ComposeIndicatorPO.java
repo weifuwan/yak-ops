@@ -3,13 +3,14 @@ package io.yak.ops.dao.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 
 /** Modeling asset persistence entity. */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("t_yak_ops_indicator_compose")
 public class ComposeIndicatorPO extends ModelingBasePO {
-    private String dwhId;
+    private DwTypeEnum dwType;
             private String martId;
             private String subjectId;
             private String busTypeId;

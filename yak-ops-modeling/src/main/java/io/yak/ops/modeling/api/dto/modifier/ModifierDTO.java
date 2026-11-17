@@ -20,7 +20,6 @@ public class ModifierDTO extends ModelingQueryDTO {
     private String businessCaliber;
     private String remark;
     private Boolean submit;
-    private String dwhId;
     private String martId;
     private String subjectId;
     private String busTypeId;
@@ -30,4 +29,6 @@ public class ModifierDTO extends ModelingQueryDTO {
     private String codeId;
     private String codeDetailId;
     private DwTypeEnum dwType;
+    /** Query-only filter for assets without a warehouse classification. */
+    private Boolean dwTypeUnassigned;
 }

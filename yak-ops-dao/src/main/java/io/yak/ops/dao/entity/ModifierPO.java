@@ -3,6 +3,7 @@ package io.yak.ops.dao.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import io.yak.ops.dao.entity.enums.DwTypeEnum;
 
 /** Modeling asset persistence entity. */
 @Data
@@ -17,7 +18,7 @@ public class ModifierPO extends ModelingBasePO {
             private String businessCaliber;
             private String remark;
             private Boolean submit;
-            private String dwhId;
+            private DwTypeEnum dwType;
             private String martId;
             private String subjectId;
             private String busTypeId;
