@@ -322,7 +322,7 @@ function ConditionsForm({
               className="pointer-events-none relative"
               style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
             >
-              <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+              <span className="conditions-flow-track absolute left-0 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
             </div>
           ) : groups.length > 1 ? (
             groups.map((_group, groupIndex) => (
@@ -331,7 +331,7 @@ function ConditionsForm({
                 className="pointer-events-none relative flex items-center justify-center"
                 style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
               >
-                <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                <span className="conditions-flow-track absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
                 {groupIndex === 0 ? (
                   <span className="absolute left-1/2 top-1/2 bottom-0 border-l border-dashed border-[#aeb7c4]" />
                 ) : groupIndex === groups.length - 1 ? (
@@ -347,7 +347,7 @@ function ConditionsForm({
               className="relative"
               style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
             >
-              <span className="pointer-events-none absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+              <span className="conditions-flow-track pointer-events-none absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
               <button
                 type="button"
                 disabled={disabled}
@@ -400,7 +400,7 @@ function ConditionsForm({
             className="pointer-events-none relative"
             style={{ gridColumn: 4, gridRow: `1 / span ${rowCount}` }}
           >
-            <span className="absolute left-0 top-1/2 h-0 w-1/2 border-t border-dashed border-[#aeb7c4]" />
+            <span className="conditions-flow-track absolute left-0 top-1/2 h-0 w-1/2 border-t border-dashed border-[#aeb7c4]" />
           </div>
           {Array.from({ length: rowCount }, (_item, rowIndex) => (
             <div
@@ -410,12 +410,12 @@ function ConditionsForm({
             >
               {rowIndex === 0 ? (
                 <>
-                  <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                  <span className="conditions-flow-track absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
                   <span className="absolute left-1/2 top-1/2 bottom-0 border-l border-dashed border-[#aeb7c4]" />
                 </>
               ) : rowIndex === rowCount - 1 ? (
                 <>
-                  <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                  <span className="conditions-flow-track absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
                   <span className="absolute left-1/2 top-0 bottom-1/2 border-l border-dashed border-[#aeb7c4]" />
                 </>
               ) : (
