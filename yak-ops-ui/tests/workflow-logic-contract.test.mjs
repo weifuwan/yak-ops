@@ -379,7 +379,7 @@ test("SWITCH validates the Default edge for Default-only configurations", () => 
 
   assert.throws(
     () => applyWorkflowBranchTargets("SWITCH", params, "100", []),
-    /Default 分支必须且只能连接一个下游节点/,
+    /Default 分支\s+必须且只能连接一个下游节点/,
   );
   assert.throws(
     () => applyWorkflowBranchTargets(
@@ -391,7 +391,7 @@ test("SWITCH validates the Default edge for Default-only configurations", () => 
         { source: "100", sourceHandle: "default", target: "204" },
       ],
     ),
-    /Default 分支必须且只能连接一个下游节点/,
+    /Default 分支\s+必须且只能连接一个下游节点/,
   );
   assert.throws(
     () => applyWorkflowBranchTargets(
