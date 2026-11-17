@@ -57,7 +57,8 @@ export function useWorkflowInteractions() {
         return false;
       }
 
-      const edges = store.getState().edges;
+      const state = store.getState();
+      const edges = state.previewEdges ?? state.edges;
       const duplicate = edges.some(
         (edge) =>
           edge.source === source &&
