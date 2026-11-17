@@ -37,6 +37,7 @@ public class YakOpsManager {
             validateCurrentVersion();
             schemaDao.ensureUserPreferenceSchema();
             schemaDao.ensureModelingSchema();
+            schemaDao.ensureAgentSchema();
             log.info("Database schema is already initialized at version {}", SchemaUtils.getSoftVersion());
             return;
         }
@@ -54,6 +55,7 @@ public class YakOpsManager {
         validateCurrentVersion();
         schemaDao.ensureUserPreferenceSchema();
         schemaDao.ensureModelingSchema();
+        schemaDao.ensureAgentSchema();
         log.info("Database schema initialization finished");
     }
 
