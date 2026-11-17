@@ -39,6 +39,7 @@ export type WorkflowNodeData = {
   focused?: boolean;
   readOnly?: boolean;
   branchOutputs?: WorkflowBranchOutput[];
+  branchOutputsPreview?: WorkflowBranchOutput[];
 };
 
 export type WorkflowEdgeData = {
