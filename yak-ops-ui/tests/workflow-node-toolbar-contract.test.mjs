@@ -44,7 +44,7 @@ test("workflow canvas wires the node toolbar to supported node actions", () => {
   assert.match(workflowCanvas, /onOpenMenu: \(\{ x, y \}(?:: \{ x: number; y: number \})?\)\s*=>\s*setContextMenu\(\{ node, x, y \}\)/);
   assert.match(
     workflowCanvas,
-    /onClick=\{\(\) =>\s*openSelector\(\{\s*kind: "upstream",\s*nodeId: contextMenu\.node\.id,\s*\}\)\}/,
+    /onClick=\{\(\)\s*=>\s*openSelector\(\{\s*kind: "upstream",\s*nodeId: contextMenu\.node\.id,\s*\}\)\}/,
   );
 
   for (const label of [
