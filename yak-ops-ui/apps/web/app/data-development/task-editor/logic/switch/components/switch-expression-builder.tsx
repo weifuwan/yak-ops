@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "@yak-ops/yak-ui";
 
+import { SquareX } from "lucide-react";
+
 import type { SwitchVariableOption } from "../adapter";
 
 const OPERATOR_OPTIONS = [
@@ -34,6 +36,17 @@ function getVariableName(value: string) {
   return value.startsWith("${") && value.endsWith("}")
     ? value.slice(2, -1)
     : value;
+}
+
+function getVariableColor(option?: SwitchVariableOption) {
+  if (option?.source === "系统" || option?.source === "全局") return "#F79009";
+  if (option?.source === "项目") return "#8B5CF6";
+  return "#2563EB";
+}
+
+function getVariableMetaLabel(option: SwitchVariableOption) {
+  const source = option.source === "系统" ? "" : option.source;
+  return [source, option.dataType].filter(Boolean).join(" · ");
 }
 
 export function SwitchExpressionBuilder({
@@ -124,15 +137,39 @@ export function SwitchExpressionBuilder({
                     variant="outlined"
                     className="!h-7 !w-full !border-0 !bg-transparent !px-1 !shadow-none focus-visible:!ring-0"
                   >
-                    <SelectValue placeholder="选择变量" />
+                    <SelectValue placeholder="选择变量">
+                    {(selectedValue) => {
+                      const option = variables.find((item) => item.value === selectedValue);
+                      if (!option) return getVariableName(String(selectedValue ?? ""));
+                      const color = getVariableColor(option);
+                      return (
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <SquareX size={13} strokeWidth={1.8} className="shrink-0" style={{ color }} />
+                          <span className="min-w-0 truncate" style={{ color }}>
+                            {getVariableName(option.value)}
+                          </span>
+                        </span>
+                      );
+                    }}
+                  </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {variables.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="data-highlighted:bg-[#F2F4F7] data-selected:bg-[#F2F4F7]"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <SquareX
+                            size={13}
+                            strokeWidth={1.8}
+                            className="shrink-0"
+                            style={{ color: getVariableColor(option) }}
+                          />
                           <SelectItemText>{getVariableName(option.value)}</SelectItemText>
                           <span className="shrink-0 text-[10px] text-[#98A2B3]">
-                            {[option.source, option.dataType].filter(Boolean).join(" · ")}
+                            {getVariableMetaLabel(option)}
                           </span>
                         </div>
                         <SelectItemIndicator />
