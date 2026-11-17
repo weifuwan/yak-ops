@@ -539,6 +539,7 @@ export function createWorkflowStore(
                     edgeSequence,
                     request.nodeId,
                     node.id,
+                    request.sourceHandle ?? "source",
                   ),
             ];
           }
