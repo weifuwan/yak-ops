@@ -588,7 +588,7 @@ export function ShellTaskEditor({
             <div className="flex min-w-0 items-center gap-2">
               <FileCode2 size={14} className="shrink-0 text-[#5b6b82]" />
               <span className="text-xs font-semibold text-[#303846]">Shell 脚本</span>
-              <span className="rounded bg-[#eef2f7] px-1.5 py-0.5 text-[10px] text-[#687385]">Bash</span>
+              <span className="rounded bg-[#eef2f7] px-1.5 py-0.5 text-[10px] text-[#687385]">Shell</span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-[#8b93a1]">
               <span className="hidden sm:inline-flex items-center gap-1">
