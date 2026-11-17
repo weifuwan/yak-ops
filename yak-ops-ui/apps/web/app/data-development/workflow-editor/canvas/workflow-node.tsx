@@ -18,18 +18,6 @@ import type { WorkflowNodeData } from "../types";
 // CONDITIONS is the visual baseline for all right-side branch connectors.
 const BRANCH_HANDLE_RIGHT_OFFSET = -21;
 
-function HandleOutlineGap({ visible }: { visible: boolean }) {
-  if (!visible) return null;
-
-  return (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[22px] w-1 -translate-x-1/2 -translate-y-1/2 bg-white"
-      style={{ clipPath: "inset(0 50% 0 0)" }}
-    />
-  );
-}
-
 function AddHandleButton({ visibility }: { visibility: string }) {
   const maskId = "workflow-handle-plus-" + useId().replace(/:/g, "");
 
@@ -213,11 +201,16 @@ export function WorkflowTaskNode({
         className={[
           "relative flex rounded-2xl border transition-[border-color,box-shadow] duration-200",
           data.focused
-            ? "border-[var(--yak-color-primary)] shadow-[0_0_0_3px_rgba(49,94,251,0.14)]"
+            ? "border-[var(--yak-color-primary)] shadow-[0_4px_12px_rgba(49,94,251,0.14)]"
             : selected
               ? "border-[var(--yak-color-primary)]"
               : "border-transparent",
         ].join(" ")}
+        style={
+          selected || data.focused
+            ? { borderRightColor: "transparent" }
+            : undefined
+        }
       >
         <div
           className={[
@@ -285,7 +278,6 @@ export function WorkflowTaskNode({
                           "before:absolute before:-inset-1",
                         ].join(" ")}
                       >
-                        <HandleOutlineGap visible={selected || data.focused} />
                         <AddHandleButton visibility={addButtonVisibility} />
                       </Handle>
                     </div>
@@ -322,7 +314,6 @@ export function WorkflowTaskNode({
             "before:absolute before:-inset-1",
           ].join(" ")}
         >
-          <HandleOutlineGap visible={selected || data.focused} />
           <AddHandleButton visibility={addButtonVisibility} />
         </Handle>
       ) : null}
