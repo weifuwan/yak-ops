@@ -68,10 +68,10 @@ export function WorkflowTaskNode({
     (state) => state.removeNodes,
   );
   const outgoingEdges = useWorkflowStore(
-    (state) => state.edges.filter((edge) => edge.source === id),
+    (state) => (state.previewEdges ?? state.edges).filter((edge) => edge.source === id),
   );
   const hasOutgoingEdge = outgoingEdges.length > 0;
-  const branchOutputs = data.branchOutputs ?? [];
+  const branchOutputs = data.branchOutputsPreview ?? data.branchOutputs ?? [];
   const { openTask } = useDataDevelopmentWorkbench();
 
   const openCurrentTask = () => {
