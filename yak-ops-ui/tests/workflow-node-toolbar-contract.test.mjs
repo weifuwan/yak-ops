@@ -135,5 +135,7 @@ test("canvas toolbar plus opens an anchored root picker while top toolbar alone 
   assert.doesNotMatch(workflowCanvas, /openSelector/);
   assert.ok(workflowSelector.includes('request.kind === "add-popover"'));
   assert.ok(workflowSelector.includes('? { kind: "add" }'));
+  assert.ok(workflowSelector.includes('request.kind === "downstream-popover"'));
+  assert.ok(workflowSelector.includes('? "downstream"'));
   assert.ok(workflowToolbar.includes('onClick={() => openSelector({ kind: "add" })}'));
 });
