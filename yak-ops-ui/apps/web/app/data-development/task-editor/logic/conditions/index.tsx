@@ -235,7 +235,7 @@ function ConditionsForm({
         {upstreamTasks.length === 0 ? (
           <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-dashed border-[#d0d5dd] px-3 py-2">
             <span className="text-xs text-[#667085]">当前节点尚未连接上游任务</span>
-            <Button size="sm" variant="ghost" isDisabled={disabled} onClick={onBackToWorkflow}>
+            <Button size="sm" variant="ghost" onClick={onBackToWorkflow}>
               返回画布
             </Button>
           </div>
