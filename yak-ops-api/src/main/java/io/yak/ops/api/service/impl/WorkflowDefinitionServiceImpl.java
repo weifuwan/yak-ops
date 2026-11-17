@@ -1543,10 +1543,12 @@ public class WorkflowDefinitionServiceImpl extends BaseServiceImpl implements Wo
             }
 
             // Update depend task list in result
-            for (SwitchResultVo vo : result.getDependTaskList()) {
-                Long original = vo.getNextNode();
-                if (original != null && taskCodeMap.containsKey(original)) {
-                    vo.setNextNode(taskCodeMap.get(original));
+            if (CollectionUtils.isNotEmpty(result.getDependTaskList())) {
+                for (SwitchResultVo vo : result.getDependTaskList()) {
+                    Long original = vo.getNextNode();
+                    if (original != null && taskCodeMap.containsKey(original)) {
+                        vo.setNextNode(taskCodeMap.get(original));
+                    }
                 }
             }
         }

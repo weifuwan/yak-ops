@@ -348,6 +348,65 @@ test("SWITCH writes one target per Case and Default", () => {
   assert.equal(validateSwitchTaskParams(result), null);
 });
 
+test("SWITCH supports a Default-only configuration", () => {
+  const params = {
+    switchResult: {
+      dependTaskList: [],
+      nextNode: 203,
+    },
+  };
+
+  assert.deepEqual(
+    getWorkflowBranchOutputs("SWITCH", params).map((item) => item.id),
+    ["default"],
+  );
+  assert.equal(resolveWorkflowSourceHandle("SWITCH", params, 203), "default");
+  assert.equal(validateSwitchTaskParams(params), null);
+
+  const result = applyWorkflowBranchTargets(
+    "SWITCH",
+    { switchResult: { dependTaskList: [], nextNode: null } },
+    "100",
+    [{ source: "100", sourceHandle: "default", target: "203" }],
+  );
+
+  assert.deepEqual(result.switchResult.dependTaskList, []);
+  assert.equal(result.switchResult.nextNode, 203);
+});
+
+test("SWITCH validates the Default edge for Default-only configurations", () => {
+  const params = { switchResult: { dependTaskList: [], nextNode: null } };
+
+  assert.throws(
+    () => applyWorkflowBranchTargets("SWITCH", params, "100", []),
+    /Default 分支必须且只能连接一个下游节点/,
+  );
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "SWITCH",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "default", target: "203" },
+        { source: "100", sourceHandle: "default", target: "204" },
+      ],
+    ),
+    /Default 分支必须且只能连接一个下游节点/,
+  );
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "SWITCH",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "default", target: "203" },
+        { source: "100", sourceHandle: "unknown", target: "204" },
+      ],
+    ),
+    /未识别的分支连线/,
+  );
+});
+
 test("SWITCH remaps connected edges when Case expressions are reordered", () => {
   const previous = {
     switchResult: {
@@ -379,14 +438,31 @@ test("SWITCH remaps connected edges when Case expressions are reordered", () => 
   assert.equal(remapped.find((edge) => edge.target === "203").sourceHandle, "default");
 });
 
-test("SWITCH variable selector includes workflow and task input parameters", () => {
+test("SWITCH variable selector includes runtime system, project, workflow, and task parameters", () => {
   const options = getSwitchVariableOptions(
-    JSON.stringify([{ prop: "bizDate", type: "DATE", direct: "IN" }]),
+    JSON.stringify([
+      { prop: "bizDate", type: "DATE", direct: "IN" },
+      { prop: "shared", type: "VARCHAR", direct: "IN" },
+    ]),
     {
-      localParams: [{ prop: "amount", type: "INTEGER", direct: "IN" }],
+      localParams: [
+        { prop: "amount", type: "INTEGER", direct: "IN" },
+        { prop: "shared", type: "VARCHAR", direct: "IN" },
+      ],
     },
+    [
+      { paramName: "projectRegion", paramDataType: "VARCHAR" },
+      { paramName: "shared", paramDataType: "VARCHAR" },
+    ],
   );
-  assert.deepEqual(options.map((item) => item.value), ["${bizDate}", "${amount}"]);
+  const byValue = new Map(options.map((item) => [item.value, item.label]));
+
+  assert.equal(byValue.get("${system.biz.date}"), "system.biz.date（系统）");
+  assert.equal(byValue.get("${system.project.code}"), "system.project.code（系统）");
+  assert.equal(byValue.get("${projectRegion}"), "projectRegion（项目）");
+  assert.equal(byValue.get("${bizDate}"), "bizDate（全局）");
+  assert.equal(byValue.get("${amount}"), "amount（节点）");
+  assert.equal(byValue.get("${shared}"), "shared（节点）");
 });
 
 test("SWITCH rejects missing expressions and duplicate cases", () => {

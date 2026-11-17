@@ -1518,6 +1518,29 @@ public class WorkflowDefinitionServiceTest extends BaseServiceTestTool {
     }
 
     @Test
+    void testReplaceTaskCodeForSwitchTaskParams_handlesNullDependTaskList() throws Exception {
+        SwitchParameters.SwitchResult switchResult = new SwitchParameters.SwitchResult();
+        switchResult.setNextNode(200L);
+        switchResult.setDependTaskList(null);
+
+        SwitchParameters params = new SwitchParameters();
+        params.setSwitchResult(switchResult);
+
+        TaskDefinitionLog taskDef = new TaskDefinitionLog();
+        taskDef.setTaskParams(JSONUtils.toJsonString(params));
+
+        invokePrivateMethod(
+                "replaceTaskCodeForSwitchTaskParams",
+                taskDef,
+                Collections.singletonMap(200L, 2000L));
+
+        SwitchParameters updated = JSONUtils.parseObject(taskDef.getTaskParams(), SwitchParameters.class);
+        assert updated != null;
+        assertThat(updated.getSwitchResult().getNextNode()).isEqualTo(2000L);
+        assertThat(updated.getSwitchResult().getDependTaskList()).isNull();
+    }
+
+    @Test
     void testReplaceTaskCodeForSwitchTaskParams_throwsOnInvalidJson() {
         TaskDefinitionLog taskDef = new TaskDefinitionLog();
         taskDef.setTaskParams("{ broken json }");
