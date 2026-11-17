@@ -9,9 +9,6 @@ import {
   Position,
   type NodeProps,
 } from "reactflow";
-import { toast } from "@yak-ops/yak-ui";
-
-import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { useWorkflowStore } from "../store/workflow-store";
 import type { WorkflowNodeData } from "../types";
@@ -64,32 +61,11 @@ export function WorkflowTaskNode({
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );
-  const removeNodes = useWorkflowStore(
-    (state) => state.removeNodes,
-  );
   const outgoingEdges = useWorkflowStore(
     (state) => (state.previewEdges ?? state.edges).filter((edge) => edge.source === id),
   );
   const hasOutgoingEdge = outgoingEdges.length > 0;
   const branchOutputs = data.branchOutputsPreview ?? data.branchOutputs ?? [];
-  const { openTask } = useDataDevelopmentWorkbench();
-
-  const openCurrentTask = () => {
-    if (!data.workflowCode) {
-      toast.info("打开节点", {
-        description: "当前节点缺少工作流信息。",
-      });
-      return;
-    }
-
-    if (data.task) {
-      openTask(data.workflowCode, data.task, id);
-      return;
-    }
-
-    toast.warning("节点配置尚未初始化，请重新添加节点");
-  };
-
   const runDisabled = !data.readOnly || data.draft || data.taskCode === null;
   const runDisabledReason = !data.readOnly
     ? "请先发布工作流"
