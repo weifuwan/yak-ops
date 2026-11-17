@@ -131,7 +131,10 @@ function ConditionsForm({
 }) {
   const normalized = normalizeConditionsTaskParams(params);
   const dependence = normalized.dependence;
-  const groups = dependence.dependTaskList;
+  // Render one initial input node without mutating taskParams until the user edits it.
+  const groups: ConditionDependentGroup[] = dependence.dependTaskList.length > 0
+    ? dependence.dependTaskList
+    : [{ relation: "AND", dependItemList: [createConditionDependentItem()] }];
   const expression = buildConditionLogicExpression(normalized, upstreamTasks);
 
   const updateGroups = (dependTaskList: ConditionDependentGroup[]) => {
@@ -274,7 +277,8 @@ function ConditionsForm({
                     <Button
                       size="sm"
                       variant="ghost"
-                      isDisabled={disabled}
+                      isDisabled={disabled || groups.length <= 1}
+                      title={groups.length <= 1 ? "至少保留一个条件组" : "删除条件组"}
                       aria-label={"删除条件组 " + (groupIndex + 1)}
                       onClick={() => updateGroups(groups.filter((_item, index) => index !== groupIndex))}
                     >
