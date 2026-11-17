@@ -1,11 +1,22 @@
 import type {
   ConditionDependentGroup,
   ConditionDependentItem,
+  ConditionRelation,
+  ConditionTaskOption,
   ConditionTaskStatus,
+  ConditionWorkflowGraph,
   ConditionsTaskParams,
 } from "./types";
 
 type JsonRecord = Record<string, unknown>;
+
+const CONDITION_TASK_STATUSES: ConditionTaskStatus[] = [
+  "SUCCESS",
+  "FAILURE",
+  "FORCED_SUCCESS",
+  "KILL",
+  "PAUSE",
+];
 
 function asRecord(value: unknown): JsonRecord {
   if (typeof value === "string") {
@@ -23,20 +34,22 @@ function asRecord(value: unknown): JsonRecord {
     : {};
 }
 
-export function createConditionDependentItem(
-  projectCode: number,
-  workflowCode: number,
-  taskCode = 0,
-): ConditionDependentItem {
+function normalizeTaskCodes(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value
+    .map(Number)
+    .filter((code) => Number.isSafeInteger(code) && code > 0))];
+}
+
+function normalizeStatus(value: unknown): ConditionTaskStatus {
+  return CONDITION_TASK_STATUSES.includes(value as ConditionTaskStatus)
+    ? value as ConditionTaskStatus
+    : "SUCCESS";
+}
+
+export function createConditionDependentItem(taskCode = 0): ConditionDependentItem {
   return {
-    dependentType: "DEPENDENT_ON_TASK",
-    projectCode,
-    definitionCode: workflowCode,
     depTaskCode: taskCode,
-    cycle: "day",
-    dateValue: "today",
-    dependResult: "SUCCESS",
-    parameterPassing: false,
     status: "SUCCESS",
   };
 }
@@ -61,28 +74,126 @@ export function normalizeConditionsTaskParams(value: unknown): ConditionsTaskPar
           relation: group.relation === "OR" ? "OR" : "AND",
           dependItemList: items.map((condition) => {
             const current = asRecord(condition);
-            const status = String(current.status ?? "SUCCESS") as ConditionTaskStatus;
+            const depTaskCode = Number(current.depTaskCode ?? 0);
             return {
-              ...createConditionDependentItem(
-                Number(current.projectCode ?? 0),
-                Number(current.definitionCode ?? 0),
-                Number(current.depTaskCode ?? 0),
-              ),
-              ...current,
-              status,
-            } as ConditionDependentItem;
+              depTaskCode: Number.isSafeInteger(depTaskCode) && depTaskCode > 0
+                ? depTaskCode
+                : 0,
+              status: normalizeStatus(current.status),
+            };
           }),
-        } as ConditionDependentGroup;
+        } satisfies ConditionDependentGroup;
       }),
     },
     conditionResult: {
-      conditionSuccess: Boolean(conditionResult.conditionSuccess),
-      successNode: Array.isArray(conditionResult.successNode)
-        ? conditionResult.successNode.map(Number)
-        : [],
-      failedNode: Array.isArray(conditionResult.failedNode)
-        ? conditionResult.failedNode.map(Number)
-        : [],
+      successNode: normalizeTaskCodes(conditionResult.successNode),
+      failedNode: normalizeTaskCodes(conditionResult.failedNode),
     },
   };
+}
+
+export function validateConditionsTaskParams(
+  value: unknown,
+  upstreamTaskCodes: number[],
+): string | null {
+  const normalized = normalizeConditionsTaskParams(value);
+  const groups = normalized.dependence.dependTaskList;
+  if (groups.length === 0) return "至少需要配置一个依赖条件组";
+  if (groups.some((group) => group.dependItemList.length === 0)) {
+    return "每个条件组至少需要配置一个依赖任务";
+  }
+
+  const upstreamCodes = new Set(upstreamTaskCodes);
+  for (const [groupIndex, group] of groups.entries()) {
+    const selectedCodes = new Set<number>();
+    for (const item of group.dependItemList) {
+      if (!Number.isSafeInteger(item.depTaskCode) || item.depTaskCode <= 0) {
+        return "请选择条件组 " + (groupIndex + 1) + " 中的上游任务";
+      }
+      if (!upstreamCodes.has(item.depTaskCode)) {
+        return "条件组 " + (groupIndex + 1) + " 中的依赖任务已不是当前节点的上游任务，请重新选择";
+      }
+      if (selectedCodes.has(item.depTaskCode)) {
+        return "同一个条件组不能重复选择相同的上游任务";
+      }
+      selectedCodes.add(item.depTaskCode);
+    }
+  }
+
+  return null;
+}
+
+type ConditionGraphNodeLike = {
+  id: string;
+  data?: {
+    taskCode?: number | null;
+    name?: string;
+    taskType?: string;
+    task?: Partial<ConditionTaskOption> | null;
+  };
+};
+
+type ConditionGraphEdgeLike = {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+};
+
+function toTaskOption(node: ConditionGraphNodeLike | undefined): ConditionTaskOption | null {
+  if (!node) return null;
+  const code = Number(node.data?.task?.code ?? node.data?.taskCode);
+  if (!Number.isSafeInteger(code) || code <= 0) return null;
+  return {
+    code,
+    name: String(node.data?.task?.name ?? node.data?.name ?? "任务 #" + code),
+    taskType: String(node.data?.task?.taskType ?? node.data?.taskType ?? "UNKNOWN"),
+  };
+}
+
+function uniqueTaskOptions(
+  nodeIds: string[],
+  nodesById: Map<string, ConditionGraphNodeLike>,
+): ConditionTaskOption[] {
+  const seen = new Set<number>();
+  return nodeIds.flatMap((nodeId) => {
+    const option = toTaskOption(nodesById.get(nodeId));
+    if (!option || seen.has(option.code)) return [];
+    seen.add(option.code);
+    return [option];
+  });
+}
+
+export function getConditionWorkflowGraph(
+  nodes: ConditionGraphNodeLike[],
+  edges: ConditionGraphEdgeLike[],
+  currentNodeId: string,
+): ConditionWorkflowGraph {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const incoming = edges
+    .filter((edge) => edge.target === currentNodeId)
+    .map((edge) => edge.source);
+  const outgoing = edges.filter((edge) => edge.source === currentNodeId);
+
+  return {
+    upstreamTasks: uniqueTaskOptions(incoming, nodesById),
+    successTargets: uniqueTaskOptions(
+      outgoing
+        .filter((edge) => edge.sourceHandle === "success")
+        .map((edge) => edge.target),
+      nodesById,
+    ),
+    failedTargets: uniqueTaskOptions(
+      outgoing
+        .filter((edge) => edge.sourceHandle === "failed")
+        .map((edge) => edge.target),
+      nodesById,
+    ),
+    unassignedTargetCount: outgoing.filter(
+      (edge) => edge.sourceHandle !== "success" && edge.sourceHandle !== "failed",
+    ).length,
+  };
+}
+
+export function normalizeConditionRelation(value: unknown): ConditionRelation {
+  return value === "OR" ? "OR" : "AND";
 }
