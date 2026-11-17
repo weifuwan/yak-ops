@@ -257,7 +257,7 @@ function LatestPublishCard() {
 /**
  * 数据建模首页
  */
-export default function DataModelingOverviewPage() {
+export function DataModelingOverviewPage() {
   return (
     <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-white text-[#10121A]">
       {/* 上半部分：主视觉 */}
@@ -283,3 +283,5 @@ export default function DataModelingOverviewPage() {
     </main>
   );
 }
+
+export default DataModelingOverviewPage;
