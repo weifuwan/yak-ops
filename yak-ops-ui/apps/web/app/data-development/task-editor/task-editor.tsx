@@ -10,7 +10,7 @@ import { SwitchEditor } from "./logic/switch";
 import { DependentEditor } from "./logic/dependent";
 import { SubWorkflowEditor } from "./logic/sub-workflow";
 import { remapSwitchCaseHandles } from "./logic/switch/adapter";
-import { useWorkflowTaskOptions } from "./logic/shared/use-workflow-task-options";
+import { useWorkflowConditionGraph } from "./logic/shared/use-workflow-condition-graph";
 
 type TaskEditorProps = {
   workflowCode: number;
@@ -34,7 +34,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   const isDependentTask = taskType.toUpperCase() === "DEPENDENT";
   const isSubWorkflowTask = taskType.toUpperCase() === "SUB_WORKFLOW";
   const isDraft = task.version <= 0 || task.id <= 0;
-  const workflowTasks = useWorkflowTaskOptions(workflowCode, task.code);
+  const conditionGraph = useWorkflowConditionGraph(workflowCode, nodeId, isConditionsTask);
 
   const applyTask = (nextTask: WorkflowTaskRecord) => {
     const store = getWorkflowStore(workflowCode);
@@ -86,7 +86,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
           onApplyTask={applyTask}
           onDirtyChange={handleDirtyChange}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
-          workflowTasks={workflowTasks}
+          {...conditionGraph}
         />
       ) : isSwitchTask ? (
         <SwitchEditor
