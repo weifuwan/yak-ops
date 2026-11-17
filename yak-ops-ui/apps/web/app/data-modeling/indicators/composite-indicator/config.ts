@@ -1,5 +1,7 @@
 import type { IndicatorDefinition, IndicatorFieldOption } from "../workbench/types";
 
+export const COMPOSITE_INDICATOR_DW_MODEL_TYPES: string[] = ["SUMMARY", "APPLICATION"];
+
 export const COMPOSITE_COMPUTE_MODE_OPTIONS: IndicatorFieldOption[] = [
   { value: "0", label: "计算表达式" },
   { value: "1", label: "同环比" },
@@ -70,7 +72,8 @@ export const COMPOSITE_INDICATOR_DEFINITION: IndicatorDefinition = {
       optionsSource: "dwLayer",
       optionLabelField: "cnName",
       optionLabelPrefixField: "dwTypeName",
-      excludeOptionValues: ["SOURCE_LAYER", "NONE_LAYER"],
+      optionFilterField: "dwModelType",
+      includeOptionValues: COMPOSITE_INDICATOR_DW_MODEL_TYPES,
     },
     { key: "busTypeId", label: "业务分类", section: "基本信息", optionsSource: "businessType", optionLabelField: "businessName" },
     { key: "domainId", label: "数据域", section: "基本信息", optionsSource: "dataDomain" },
