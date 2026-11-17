@@ -260,6 +260,40 @@ export function WorkflowTaskNode({
       {branchOutputs.length === 0 ? (
         <Handle
           id="source"
+          type="source"
+          position={Position.Right}
+          isConnectable={!data.readOnly}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (data.readOnly) return;
+            openSelector({
+              kind: "downstream",
+              nodeId: id,
+              sourceHandle: "source",
+            });
+          }}
+          className={[
+            "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+            "!top-4 !-right-[9px] !translate-y-0",
+            "before:absolute before:-inset-1",
+            "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
+            hasOutgoingEdge ? "after:opacity-100" : "after:opacity-0",
+          ].join(" ")}
+        >
+          <span
+            aria-hidden="true"
+            className={[
+              "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+              "bg-[var(--yak-color-primary)] text-white shadow-sm",
+              "transition-[opacity,transform] duration-150 ease-out",
+              "group-hover/handle:scale-125",
+              addButtonVisibility,
+            ].join(" ")}
+          >
+            <Plus size={10} strokeWidth={2.5} />
+          </span>
+        </Handle>
+      ) : null}
     </div>
   );
 }
