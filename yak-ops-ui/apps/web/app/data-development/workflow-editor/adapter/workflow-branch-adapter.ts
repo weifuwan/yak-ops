@@ -122,7 +122,12 @@ export function applyWorkflowBranchTargets(
     .map((edge) => Number(edge.target))
     .filter((code) => Number.isSafeInteger(code) && code > 0);
 
-  if (outgoing.some((edge) => edge.sourceHandle === "unassigned")) {
+  if (type === "CONDITIONS" && outgoing.some(
+    (edge) => edge.sourceHandle !== "success" && edge.sourceHandle !== "failed",
+  )) {
+    throw new Error("CONDITIONS 存在未识别的分支连线，请从成功或失败端口重新连接");
+  }
+  if (type === "SWITCH" && outgoing.some((edge) => edge.sourceHandle === "unassigned")) {
     throw new Error("逻辑节点存在未识别的分支连线，请重新连接后再保存");
   }
 
@@ -134,6 +139,9 @@ export function applyWorkflowBranchTargets(
     }
     if (failedNode.length === 0) {
       throw new Error("CONDITIONS 必须至少连接一个失败分支");
+    }
+    if (new Set([...successNode, ...failedNode]).size !== successNode.length + failedNode.length) {
+      throw new Error("同一个下游节点不能重复连接到多个 CONDITIONS 分支");
     }
     const conditionResult = { ...asRecord(params.conditionResult) };
     delete conditionResult.conditionSuccess;
