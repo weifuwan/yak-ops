@@ -228,9 +228,6 @@ function ConditionsForm({
               <section className="group w-full rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-md bg-[#eef2ff] text-[10px] font-semibold text-[#3a3d51]">
-                      {groupIndex + 1}
-                    </span>
                     <span className="text-xs font-semibold text-[#344054]">条件组 {groupIndex + 1}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
