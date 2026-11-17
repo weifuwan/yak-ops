@@ -116,7 +116,7 @@ test("workflow node connector plus opens a local downstream picker without touch
   assert.match(workflowSelector, /if \(isPopover\) closeSelector\(\)/);
   assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
   assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
-  const insertionStart = workflowStore.indexOf("insertNodeFromSelector:");
+  const insertionStart = workflowStore.indexOf("insertNodeFromSelector: (taskType");
   const insertionEnd = workflowStore.indexOf("addConnection:", insertionStart);
   const insertion = workflowStore.slice(insertionStart, insertionEnd);
   assert.doesNotMatch(insertion, /selectorRequest\s*:/);
