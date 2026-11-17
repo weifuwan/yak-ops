@@ -456,6 +456,63 @@ test("SWITCH remaps connected edges when Case expressions are reordered", () => 
   assert.equal(remapped.find((edge) => edge.target === "203").sourceHandle, "default");
 });
 
+test("SWITCH keeps new preview connections attached to the same Case across subsequent edits", () => {
+  const original = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 100", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: null,
+    },
+  };
+  const firstPreview = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 50", nextNode: 202 },
+        { condition: "${amount} > 10", nextNode: null },
+        { condition: "${amount} >= 100", nextNode: 201 },
+      ],
+      nextNode: null,
+    },
+  };
+  const secondPreview = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} > 10", nextNode: null },
+        { condition: "${amount} >= 100", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: null,
+    },
+  };
+  const originalEdges = [
+    { id: "a", source: "100", sourceHandle: "case-0", target: "201" },
+    { id: "b", source: "100", sourceHandle: "case-1", target: "202" },
+  ];
+
+  const firstEdges = remapSwitchCaseHandles(
+    "100",
+    original,
+    firstPreview,
+    originalEdges,
+  );
+  const withNewConnection = [
+    ...firstEdges,
+    { id: "c", source: "100", sourceHandle: "case-1", target: "203" },
+  ];
+  const secondEdges = remapSwitchCaseHandles(
+    "100",
+    firstPreview,
+    secondPreview,
+    withNewConnection,
+  );
+
+  assert.equal(secondEdges.find((edge) => edge.target === "201").sourceHandle, "case-1");
+  assert.equal(secondEdges.find((edge) => edge.target === "202").sourceHandle, "case-2");
+  assert.equal(secondEdges.find((edge) => edge.target === "203").sourceHandle, "case-0");
+});
+
 test("SWITCH keeps a connected Case edge when its expression changes", () => {
   const previous = {
     switchResult: {
