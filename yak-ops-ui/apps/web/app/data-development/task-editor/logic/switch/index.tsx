@@ -42,21 +42,32 @@ export function SwitchEditor({
   const latestPreviewParamsRef = useRef<unknown>(null);
 
   const updateCanvasPreview = useCallback((params: unknown) => {
-    latestPreviewParamsRef.current = params;
     const store = getWorkflowStore(workflowCode);
-    if (!store) return;
+    if (!store) {
+      latestPreviewParamsRef.current = params;
+      return;
+    }
     const state = store.getState();
     const node = state.nodes.find((item) => item.id === nodeId);
-    if (!node) return;
+    if (!node) {
+      latestPreviewParamsRef.current = params;
+      return;
+    }
 
+    const previousParams = latestPreviewParamsRef.current ?? task.taskParams;
+    const currentEdges =
+      state.previewNodeId === nodeId && state.previewEdges
+        ? state.previewEdges
+        : state.edges;
     const includeUnassigned = (node.data.branchOutputs ?? []).some(
       (output) => output.id === "unassigned",
     );
     state.setSwitchPreview(
       nodeId,
       getWorkflowBranchOutputs("SWITCH", params, includeUnassigned),
-      remapSwitchCaseHandles(nodeId, task.taskParams, params, state.edges),
+      remapSwitchCaseHandles(nodeId, previousParams, params, currentEdges),
     );
+    latestPreviewParamsRef.current = params;
   }, [getWorkflowStore, nodeId, task.taskParams, workflowCode]);
 
   useEffect(() => {
