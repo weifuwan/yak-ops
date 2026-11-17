@@ -49,7 +49,7 @@ export default function TopBar({
             src="/logo.png"
             alt="Yak Ops"
             draggable={false}
-            className="h-7 w-auto max-w-[112px] shrink-0 select-none object-contain brightness-0 invert"
+            className="h-7 w-auto max-w-[121px] shrink-0 select-none object-contain brightness-0 invert"
           />
           {moduleNavigation?.length ? (
             <span className="min-w-0 truncate text-[13px] font-semibold text-white/90">

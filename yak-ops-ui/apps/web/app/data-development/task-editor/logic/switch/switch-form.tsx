@@ -98,9 +98,9 @@ export function SwitchForm({
         </Button>
       </div>
 
-      <div className="mx-3 my-3 h-px bg-[#E4E7EC]" />
+      <div className="my-3 h-px bg-[#E4E7EC]" />
 
-      <section className="px-3 py-1">
+      <section className="py-1">
         <div className="text-[13px] font-semibold leading-4 text-[#344054]">
           ELSE
         </div>
