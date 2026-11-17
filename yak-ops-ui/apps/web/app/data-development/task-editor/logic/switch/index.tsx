@@ -39,9 +39,9 @@ export function SwitchEditor({
 }) {
   const { activeTabId, getWorkflowStore } = useDataDevelopmentWorkbench();
   const taskTabId = "task:" + workflowCode + ":" + task.code;
-  const latestPreviewParamsRef = useRef<Record<string, unknown> | null>(null);
+  const latestPreviewParamsRef = useRef<unknown>(null);
 
-  const updateCanvasPreview = useCallback((params: Record<string, unknown>) => {
+  const updateCanvasPreview = useCallback((params: unknown) => {
     latestPreviewParamsRef.current = params;
     const store = getWorkflowStore(workflowCode);
     if (!store) return;
@@ -60,9 +60,14 @@ export function SwitchEditor({
   }, [getWorkflowStore, nodeId, task.taskParams, workflowCode]);
 
   useEffect(() => {
+    // A refreshed or externally updated task is the new preview baseline.
+    latestPreviewParamsRef.current = task.taskParams;
+  }, [task.taskParams]);
+
+  useEffect(() => {
     // Keep the draft preview while the workflow tab is active so the user can
     // inspect the updated ports and connections without applying the task yet.
-    if (activeTabId === taskTabId && latestPreviewParamsRef.current) {
+    if (activeTabId === taskTabId && latestPreviewParamsRef.current !== null) {
       updateCanvasPreview(latestPreviewParamsRef.current);
     }
   }, [activeTabId, taskTabId, updateCanvasPreview]);
