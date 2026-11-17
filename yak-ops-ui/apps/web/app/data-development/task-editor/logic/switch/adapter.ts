@@ -86,19 +86,45 @@ function parseList(value: unknown): unknown[] {
   }
 }
 
+const SYSTEM_VARIABLES = [
+  "system.biz.curdate",
+  "system.biz.date",
+  "system.datetime",
+  "system.task.execute.path",
+  "system.task.instance.id",
+  "system.task.definition.name",
+  "system.task.definition.code",
+  "system.workflow.instance.id",
+  "system.workflow.definition.name",
+  "system.workflow.definition.code",
+  "system.project.name",
+  "system.project.code",
+];
+
 export function getSwitchVariableOptions(
   globalParams: unknown,
   taskParams: unknown,
+  projectParams: unknown = [],
 ): SwitchVariableOption[] {
   const localParams = asRecord(taskParams).localParams;
   const entries = [
-    ...parseList(globalParams).map((item) => ({ value: item, source: "全局" })),
-    ...parseList(localParams).map((item) => ({ value: item, source: "节点" })),
+    ...SYSTEM_VARIABLES.map((prop) => ({ prop, source: "系统" })),
+    ...parseList(projectParams).map((item) => {
+      const property = asRecord(item);
+      return { prop: property.paramName ?? property.prop, source: "项目" };
+    }),
+    ...parseList(globalParams).map((item) => ({
+      prop: asRecord(item).prop,
+      source: "全局",
+    })),
+    ...parseList(localParams).map((item) => ({
+      prop: asRecord(item).prop,
+      source: "节点",
+    })),
   ];
   const options = new Map<string, SwitchVariableOption>();
   for (const entry of entries) {
-    const property = asRecord(entry.value);
-    const prop = String(property.prop ?? "").trim();
+    const prop = String(entry.prop ?? "").trim();
     if (!prop) continue;
     options.set(prop, {
       value: "${" + prop + "}",

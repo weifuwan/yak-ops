@@ -16,6 +16,7 @@ import {
   validateSwitchTaskParams,
   type SwitchVariableOption,
 } from "./adapter";
+import { listProjectParameters } from "@/service/project/parameter";
 import type { SwitchCase } from "./types";
 
 const OPERATOR_OPTIONS = [
@@ -131,7 +132,7 @@ function SwitchExpressionBuilder({
       )}
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] text-[#98A2B3]">
-          {variables.length > 0 ? "变量来源：工作流全局参数、当前节点输入参数" : "未找到可选变量，也可以直接输入变量表达式"}
+          {variables.length > 0 ? "变量来源：系统内置、项目参数、工作流全局参数、当前节点参数；启动参数等动态变量可在高级表达式中输入" : "未找到可选变量，也可以直接输入运行时变量表达式"}
         </span>
         <Button
           size="sm"
@@ -303,12 +304,23 @@ export function SwitchEditor({
     queryFn: () => getWorkflowDefinition(workflowCode),
     staleTime: 60_000,
   });
+  const projectParametersQuery = useQuery({
+    queryKey: ["workflow-switch-project-parameters", task.projectCode],
+    queryFn: ({ signal }) => listProjectParameters(task.projectCode, signal),
+    enabled: Number.isSafeInteger(task.projectCode) && task.projectCode > 0,
+    staleTime: 60_000,
+  });
   const variables = useMemo(
     () => getSwitchVariableOptions(
       workflowQuery.data?.workflowDefinition.globalParams,
       task.taskParams,
+      projectParametersQuery.data?.totalList,
     ),
-    [task.taskParams, workflowQuery.data?.workflowDefinition.globalParams],
+    [
+      projectParametersQuery.data?.totalList,
+      task.taskParams,
+      workflowQuery.data?.workflowDefinition.globalParams,
+    ],
   );
 
   return (
