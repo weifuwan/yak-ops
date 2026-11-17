@@ -23,6 +23,7 @@ import { fieldOptions, selectOptionLabel } from "../../workbench/utils/indicator
 import {
   COMPOSITE_COMPARE_TYPE_OPTIONS,
   COMPOSITE_COMPUTE_MODE_OPTIONS,
+  COMPOSITE_INDICATOR_DW_MODEL_TYPES,
   COMPOSITE_RATIO_FORMULA,
 } from "../config";
 import { useDerivativeBusinessProcessCascader } from "../../derivative-indicator/hooks/use-derivative-business-process-cascader";
@@ -111,12 +112,19 @@ export function CompositeIndicatorEditorFields({
     optionsSource: "dwLayer",
     optionLabelField: "cnName",
     optionLabelPrefixField: "dwTypeName",
-    excludeOptionValues: ["SOURCE_LAYER", "NONE_LAYER"],
+    optionFilterField: "dwModelType",
+    includeOptionValues: COMPOSITE_INDICATOR_DW_MODEL_TYPES,
   }, optionsByResource);
   const selectedWarehouseLayer = (optionsByResource.dwLayer || []).find(
     (record) => String(record.id || "") === String(values.dwhId || ""),
   );
   const selectedDwType = String(selectedWarehouseLayer?.dwType || "");
+  const selectedDwModelType = String(selectedWarehouseLayer?.dwModelType || "");
+  const selectedWarehouseLayerIsSupported = (
+    selectedDwType === "PUBLIC_LAYER" && selectedDwModelType === "SUMMARY"
+  ) || (
+    selectedDwType === "APPLICATION_LAYER" && selectedDwModelType === "APPLICATION"
+  );
   const businessTypeOptions = resourceOptions("businessType", "业务分类", optionsByResource, "businessName");
   const martOptions = resourceOptions("dataMart", "数据集市", optionsByResource, "martName");
   const subjectOptions = useMemo(
@@ -238,7 +246,7 @@ export function CompositeIndicatorEditorFields({
               />
             </FormRow>
 
-            {selectedDwType === "PUBLIC_LAYER" ? (
+            {selectedDwType === "PUBLIC_LAYER" && selectedDwModelType === "SUMMARY" ? (
               <>
                 <FormRow label="业务分类">
                   <OptionSelect
@@ -273,7 +281,7 @@ export function CompositeIndicatorEditorFields({
               </>
             ) : null}
 
-            {selectedDwType === "APPLICATION_LAYER" ? (
+            {selectedDwType === "APPLICATION_LAYER" && selectedDwModelType === "APPLICATION" ? (
               <>
                 <FormRow label="数据集市" required>
                   <OptionSelect
@@ -297,15 +305,15 @@ export function CompositeIndicatorEditorFields({
               </>
             ) : null}
 
-            {!selectedDwType ? (
+            {!selectedWarehouseLayer ? (
               <p className="rounded bg-[var(--yak-color-hover)] px-3 py-2 text-[11px] text-[var(--yak-components-muted-text)]">
-                {optionsLoading ? "正在加载数仓分层..." : "请选择公共层或应用层的数仓分层，再配置对应的业务归属。"}
+                {optionsLoading ? "正在加载数仓分层..." : "请选择公共层汇总数据层或应用层应用数据层，再配置对应的业务归属。"}
               </p>
             ) : null}
 
-            {selectedDwType && selectedDwType !== "PUBLIC_LAYER" && selectedDwType !== "APPLICATION_LAYER" ? (
+            {selectedWarehouseLayer && !selectedWarehouseLayerIsSupported ? (
               <p className="rounded bg-[#fff7e8] px-3 py-2 text-[11px] text-[#9a6b22]">
-                复合指标仅支持公共层和应用层，请重新选择数仓分层。
+                复合指标仅支持公共层汇总数据层（DWS）和应用层应用数据层（ADS），请重新选择数仓分层。
               </p>
             ) : null}
 
