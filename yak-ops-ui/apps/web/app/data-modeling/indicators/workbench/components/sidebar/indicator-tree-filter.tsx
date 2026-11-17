@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Input,
@@ -22,6 +22,7 @@ import { dataMartApi } from "@/service/data-modeling/planning/application-layer/
 import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import type { IndicatorFieldOption, IndicatorGroupBy } from "../../types";
+import { buildIndicatorScopeOptions } from "../../utils/indicator-scope-options";
 
 type IndicatorTreeFilterProps<ScopeType extends IndicatorGroupBy = IndicatorGroupBy> = {
   projectCode: string;
@@ -72,6 +73,18 @@ function mapBusinessTypeTreeOption(node: BusinessTypeTreeNode): TreeSelectOption
     searchText: [node.key, node.value, node.parentId].filter(Boolean).join(" "),
     children: children.length ? children : undefined,
   };
+}
+
+function findBusinessTypeTreeOption(
+  options: readonly TreeSelectOption[],
+  value: string,
+): TreeSelectOption | undefined {
+  for (const option of options) {
+    if (option.value === value) return option;
+    const child = findBusinessTypeTreeOption(option.children || [], value);
+    if (child) return child;
+  }
+  return undefined;
 }
 
 export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = IndicatorGroupBy>({
@@ -128,13 +141,29 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
 
   const scopeOptions = useMemo(() => {
     if (isBusinessTypeTree) return [];
-    return ((scopeOptionsQuery.data || []) as ModelingRecord[])
-      .map((record) => ({
-        value: String(record.id || ""),
-        label: String(record.businessName || record.cnName || record.martName || record.domainName || record.id || "未命名"),
-      }))
-      .filter((option) => option.value);
-  }, [isBusinessTypeTree, scopeOptionsQuery.data]);
+    return buildIndicatorScopeOptions(
+      (scopeOptionsQuery.data || []) as ModelingRecord[],
+      scopeType,
+    );
+  }, [isBusinessTypeTree, scopeOptionsQuery.data, scopeType]);
+
+  const selectedScopeOption = scopeOptions.find((option) => option.value === scopeValue);
+  const selectedBusinessTypeOption = findBusinessTypeTreeOption(businessTypeTreeOptions, scopeValue);
+  const selectedScopeValue = isBusinessTypeTree
+    ? selectedBusinessTypeOption?.value || ""
+    : selectedScopeOption?.value || "";
+
+  useEffect(() => {
+    if (!scopeValue || !scopeOptionsQuery.isSuccess) return;
+    if (!selectedScopeValue) onScopeValueChange("");
+  }, [onScopeValueChange, scopeOptionsQuery.isSuccess, scopeValue, selectedScopeValue]);
+
+  const scopeSelectPlaceholder = scopeOptionsQuery.isError
+    ? "加载失败，请刷新重试"
+    : scopeOptionsQuery.isPending && !scopeOptionsQuery.data
+      ? "正在加载..."
+      : `请选择${activeScope.label}`;
+
   const visibleScopeOptions = scopeOptions.filter((option) =>
     option.label.toLocaleLowerCase().includes(scopeKeyword.trim().toLocaleLowerCase()),
   );
@@ -217,8 +246,8 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
           <TreeSelect
             ariaLabel="选择业务分类"
             items={businessTypeTreeOptions}
-            value={scopeValue || null}
-            placeholder={scopeOptionsQuery.isPending && !scopeOptionsQuery.data ? "正在加载..." : "请选择业务分类"}
+            value={selectedScopeValue || null}
+            placeholder={scopeSelectPlaceholder}
             searchPlaceholder="搜索业务分类"
             emptyText={scopeOptionsQuery.isError ? "加载失败，请刷新重试" : "暂无业务分类"}
             disabled={scopeOptionsQuery.isPending && !scopeOptionsQuery.data}
@@ -231,7 +260,7 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
         ) : (
           <Select
             size="small"
-            value={scopeValue || undefined}
+            value={selectedScopeValue || undefined}
             onValueChange={(value) => onScopeValueChange(String(value || ""))}
           >
             <SelectTrigger
@@ -239,7 +268,9 @@ export function IndicatorTreeFilter<ScopeType extends IndicatorGroupBy = Indicat
               variant="outlined"
               className="!h-6 !min-w-0 !flex-1 !rounded-l-none !border-l-0 !px-2 [&>span:last-child>svg]:!size-3"
             >
-              <SelectValue placeholder={scopeOptionsQuery.isFetching ? "正在加载..." : `请选择${activeScope.label}`} />
+              <SelectValue placeholder={scopeSelectPlaceholder}>
+                {(value) => scopeOptions.find((option) => option.value === String(value ?? ""))?.label || scopeSelectPlaceholder}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent
               header={

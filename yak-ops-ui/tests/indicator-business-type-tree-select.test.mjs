@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { buildIndicatorScopeOptions } from "../apps/web/app/data-modeling/indicators/workbench/utils/indicator-scope-options.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -42,4 +43,49 @@ test("other scope types retain the existing flat select behavior", () => {
   assert.match(filter, /dataDomainApi\.all<ModelingRecord>\(projectCode\)/);
   assert.match(filter, /dataMartApi\.all<ModelingRecord>\(projectCode\)/);
   assert.match(filter, /subjectDomainApi\.all<ModelingRecord>\(projectCode\)/);
+});
+
+test("flat scope selects render the matching Chinese label instead of the stored ID", () => {
+  const id = "61e73dc9b25c470b8f66320b";
+
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id, cnName: "客户数据域" }], "DATA_DOMAIN"),
+    [{ value: id, label: "客户数据域" }],
+  );
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id, martName: "交易集市" }], "DATA_MART"),
+    [{ value: id, label: "交易集市" }],
+  );
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id, domainName: "用户主题域" }], "SUBJECT_DOMAIN"),
+    [{ value: id, label: "用户主题域" }],
+  );
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id, businessName: "交易业务" }], "BUSINESS_TYPE"),
+    [{ value: id, label: "交易业务" }],
+  );
+});
+
+test("scope selectors explicitly resolve labels and never expose an unmatched ID", () => {
+  assert.match(filter, /<SelectValue placeholder=\{scopeSelectPlaceholder\}>/);
+  assert.match(filter, /scopeOptions\.find\(\(option\) => option\.value === String\(value \?\? ""\)\)\?\.label \|\| scopeSelectPlaceholder/);
+  assert.match(filter, /value=\{selectedScopeValue \|\| undefined\}/);
+  assert.match(filter, /value=\{selectedScopeValue \|\| null\}/);
+  assert.match(filter, /if \(!scopeValue \|\| !scopeOptionsQuery\.isSuccess\) return;/);
+});
+
+test("scope labels use the correct name field for each directory type and avoid ID fallback", () => {
+  const id = "opaque-id";
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id, cnName: "客户域", domainName: "customer" }], "DATA_DOMAIN"),
+    [{ value: id, label: "客户域" }],
+  );
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id, domainName: "用户主题域" }], "SUBJECT_DOMAIN"),
+    [{ value: id, label: "用户主题域" }],
+  );
+  assert.deepEqual(
+    buildIndicatorScopeOptions([{ id }], "DATA_DOMAIN"),
+    [{ value: id, label: "未命名" }],
+  );
 });
