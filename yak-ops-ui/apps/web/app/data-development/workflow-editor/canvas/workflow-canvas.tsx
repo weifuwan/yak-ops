@@ -615,13 +615,12 @@ export function WorkflowCanvas({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={isWorkflowOnline}
-                  onClick={() => {
-                    setContextMenu(null);
+                  onClick={() =>
                     openSelector({
                       kind: "upstream",
                       nodeId: contextMenu.node.id,
-                    });
-                  }}
+                    })
+                  }
                 >
                   <Plus size={14} aria-hidden="true" />
                   新建上游
