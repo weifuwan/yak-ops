@@ -18,6 +18,7 @@ import { temporal, type TemporalState } from "zundo";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 
+import { getWorkflowBranchOutputs } from "../adapter/workflow-branch-adapter";
 import type {
   WorkflowCanvasEdge,
   WorkflowCanvasNode,
@@ -85,12 +86,15 @@ function edgeId(
   sequence: number,
   source: string,
   target: string,
+  sourceHandle: string,
 ) {
   return (
     "draft-edge:" +
     sequence +
     ":" +
     source +
+    ":" +
+    sourceHandle +
     ":" +
     target
   );
@@ -100,12 +104,13 @@ function createDraftEdge(
   sequence: number,
   source: string,
   target: string,
+  sourceHandle = "source",
 ): WorkflowCanvasEdge {
   return {
-    id: edgeId(sequence, source, target),
+    id: edgeId(sequence, source, target, sourceHandle),
     type: "workflowEdge",
     source,
-    sourceHandle: "source",
+    sourceHandle,
     target,
     targetHandle: "target",
     data: {
@@ -143,6 +148,28 @@ function defaultTaskParams(taskType: string): Record<string, unknown> {
         isModulePath: false,
         resourceList: [],
         localParams: [],
+      };
+    case "CONDITIONS":
+      return {
+        localParams: [],
+        dependence: {
+          relation: "AND",
+          dependTaskList: [],
+        },
+        conditionResult: {
+          conditionSuccess: false,
+          successNode: [],
+          failedNode: [],
+        },
+      };
+    case "SWITCH":
+      return {
+        localParams: [],
+        switchResult: {
+          dependTaskList: [{ condition: "", nextNode: null }],
+          nextNode: null,
+        },
+        nextBranch: null,
       };
     case "SHELL":
       return {
@@ -227,6 +254,7 @@ function createDraftNode(
       name,
       draft: true,
       task,
+      branchOutputs: getWorkflowBranchOutputs(taskType, task.taskParams),
     },
   };
 }
@@ -412,6 +440,12 @@ export function createWorkflowStore(
                       taskType: task.taskType,
                       name: task.name,
                       task,
+                      branchOutputs: [
+                        ...getWorkflowBranchOutputs(task.taskType, task.taskParams),
+                        ...((node.data.branchOutputs ?? []).some((output) => output.id === "unassigned")
+                          ? [{ id: "unassigned", label: "未配置", kind: "unassigned" as const }]
+                          : []),
+                      ],
                     },
                   }
                 : node,
@@ -522,6 +556,7 @@ export function createWorkflowStore(
                 edgeSequence,
                 currentEdge.source,
                 node.id,
+                currentEdge.sourceHandle ?? "source",
               );
               edgeSequence += 1;
               const after = createDraftEdge(
@@ -564,6 +599,7 @@ export function createWorkflowStore(
             sequence,
             connection.source,
             connection.target,
+            connection.sourceHandle ?? "source",
           );
 
           set((state) => ({

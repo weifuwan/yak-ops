@@ -12,8 +12,22 @@ export type WorkflowEdgeStyle = "bezier" | "step" | "smoothstep";
 export type WorkflowSelectorRequest =
   | { kind: "add" }
   | { kind: "upstream"; nodeId: string }
-  | { kind: "downstream"; nodeId: string }
+  | { kind: "downstream"; nodeId: string; sourceHandle?: string }
   | { kind: "edge"; edgeId: string };
+
+export type WorkflowBranchOutputKind =
+  | "success"
+  | "failed"
+  | "switch-case"
+  | "default"
+  | "unassigned";
+
+export type WorkflowBranchOutput = {
+  id: string;
+  label: string;
+  kind: WorkflowBranchOutputKind;
+  caseIndex?: number;
+};
 
 export type WorkflowNodeData = {
   workflowCode?: number;
@@ -24,6 +38,7 @@ export type WorkflowNodeData = {
   task?: WorkflowTaskRecord;
   focused?: boolean;
   readOnly?: boolean;
+  branchOutputs?: WorkflowBranchOutput[];
 };
 
 export type WorkflowEdgeData = {
