@@ -912,7 +912,7 @@ export function WorkflowCanvas({
                 },
               });
             }}
-            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[selector-open=true]:bg-[var(--yak-color-primary-subtle)] data-[selector-open=true]:text-[var(--yak-components-panel-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[selector-open=true]:bg-[var(--yak-color-primary-subtle)] data-[selector-open=true]:text-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
             data-selector-open={edgeSelectorRequest?.kind === "add-popover" ? "true" : undefined}
           >
             <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
