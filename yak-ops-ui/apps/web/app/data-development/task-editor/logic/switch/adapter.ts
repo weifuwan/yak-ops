@@ -58,7 +58,7 @@ export function validateSwitchTaskParams(value: unknown): string | null {
   if (cases.some((item) => !item.condition.trim())) {
     return "请为每个 Case 配置判断表达式";
   }
-  if (cases.some((item) => /(?:===|!==|==|!=|>=|<=|>|<|&&|\\|\\|)\\s*$/.test(item.condition.trim()))) {
+  if (cases.some((item) => /(?:===|!==|==|!=|>=|<=|>|<|&&|\|\|)\s*$/.test(item.condition.trim()))) {
     return "存在未填写完整的判断表达式，请补充右侧操作数";
   }
   const expressions = cases.map((item) => item.condition.trim());
