@@ -190,6 +190,9 @@ export function WorkflowTaskNode({
             {branchOutputs.length > 0 ? (
               <div>
                 {branchOutputs.map((output) => {
+                  const connected = outgoingEdges.some(
+                    (edge) => edge.sourceHandle === output.id,
+                  );
                   const labelClass =
                     output.kind === "success"
                       ? "text-[#16A34A]"
@@ -198,12 +201,49 @@ export function WorkflowTaskNode({
                         : output.kind === "unassigned"
                           ? "text-[#D97706]"
                           : "text-[#475467]";
+
                   return (
                     <div
                       key={output.id}
-                      className="flex h-[22px] items-center justify-end pr-1 text-[10px] font-medium"
+                      className="relative flex h-[22px] items-center justify-end pr-1 text-[10px] font-medium"
                     >
                       <span className={labelClass}>{output.label}</span>
+                      <Handle
+                        id={output.id}
+                        type="source"
+                        position={Position.Right}
+                        isConnectable={!data.readOnly}
+                        style={{ top: "50%", right: -9 }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (data.readOnly) return;
+                          openSelector({
+                            kind: "downstream",
+                            nodeId: id,
+                            sourceHandle: output.id,
+                          });
+                        }}
+                        className={[
+                          "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+                          "!translate-y-0",
+                          "before:absolute before:-inset-1",
+                          "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
+                          connected ? "after:opacity-100" : "after:opacity-40",
+                        ].join(" ")}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={[
+                            "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+                            "bg-[var(--yak-color-primary)] text-white shadow-sm",
+                            "transition-[opacity,transform] duration-150 ease-out",
+                            "group-hover/handle:scale-125",
+                            addButtonVisibility,
+                          ].join(" ")}
+                        >
+                          <Plus size={10} strokeWidth={2.5} />
+                        </span>
+                      </Handle>
                     </div>
                   );
                 })}
@@ -217,54 +257,44 @@ export function WorkflowTaskNode({
         </div>
       </div>
 
-      {branchOutputs.length > 0 ? (
-        branchOutputs.map((output, index) => {
-          const connected = outgoingEdges.some(
-            (edge) => edge.sourceHandle === output.id,
-          );
-          return (
-            <Handle
-              key={output.id}
-              id={output.id}
-              type="source"
-              position={Position.Right}
-              isConnectable={!data.readOnly}
-              style={{ top: 52 + index * 22, right: -9 }}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (data.readOnly) return;
-                openSelector({
-                  kind: "downstream",
-                  nodeId: id,
-                  sourceHandle: output.id,
-                });
-              }}
-              className={[
-                "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
-                "!translate-y-0",
-                "before:absolute before:-inset-1",
-                "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-                connected ? "after:opacity-100" : "after:opacity-40",
-              ].join(" ")}
-            >
-              <span
-                aria-hidden="true"
-                className={[
-                  "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-                  "bg-[var(--yak-color-primary)] text-white shadow-sm",
-                  "transition-[opacity,transform] duration-150 ease-out",
-                  "group-hover/handle:scale-125",
-                  addButtonVisibility,
-                ].join(" ")}
-              >
-                <Plus size={10} strokeWidth={2.5} />
-              </span>
-            </Handle>
-          );
-        })
-      ) : (
+      {branchOutputs.length === 0 ? (
         <Handle
           id="source"
+          type="source"
+          position={Position.Right}
+          isConnectable={!data.readOnly}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (data.readOnly) return;
+            openSelector({
+              kind: "downstream",
+              nodeId: id,
+              sourceHandle: "source",
+            });
+          }}
+          className={[
+            "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+            "!top-4 !-right-[9px] !translate-y-0",
+            "before:absolute before:-inset-1",
+            "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
+            hasOutgoingEdge ? "after:opacity-100" : "after:opacity-0",
+          ].join(" ")}
+        >
+          <span
+            aria-hidden="true"
+            className={[
+              "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+              "bg-[var(--yak-color-primary)] text-white shadow-sm",
+              "transition-[opacity,transform] duration-150 ease-out",
+              "group-hover/handle:scale-125",
+              addButtonVisibility,
+            ].join(" ")}
+          >
+            <Plus size={10} strokeWidth={2.5} />
+          </span>
+        </Handle>
+      ) : null}
+
           type="source"
           position={Position.Right}
           isConnectable={!data.readOnly}
