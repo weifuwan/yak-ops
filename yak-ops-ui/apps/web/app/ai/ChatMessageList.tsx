@@ -1,5 +1,6 @@
 import { AlertCircle, Loader2, Wrench } from "lucide-react";
 
+import { MarkdownMessage } from "./MarkdownMessage";
 import type { ChatItem } from "./useAgentChat";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -33,8 +34,8 @@ export function ChatMessageList({ items }: { items: ChatItem[] }) {
         if (item.kind === "assistant") {
           return (
             <div key={item.id} className="flex justify-start">
-              <div className="max-w-[92%] whitespace-pre-wrap rounded-xl rounded-bl-sm border border-[#e8ebef] bg-[#f7f8fa] px-3 py-2 text-[13px] leading-relaxed text-[#1f2329]">
-                {item.content}
+              <div className="max-w-[92%] rounded-xl rounded-bl-sm border border-[#e8ebef] bg-[#f7f8fa] px-3 py-2">
+                <MarkdownMessage content={item.content} />
               </div>
             </div>
           );
