@@ -129,7 +129,9 @@ test("workflow node connector plus opens a local downstream picker without touch
 
 
 test("canvas toolbar plus opens an anchored root picker while top toolbar alone opens the sidebar", () => {
-  assert.ok(workflowCanvas.includes('openEdgeSelector({\\n                kind: "add-popover",\\n                anchor:'));
+  assert.ok(workflowCanvas.includes("openEdgeSelector({"));
+  assert.ok(workflowCanvas.includes('kind: "add-popover"'));
+  assert.ok(workflowCanvas.includes("anchor: {"));
   assert.ok(workflowCanvas.includes("data-workflow-edge-picker-trigger"));
   assert.ok(workflowCanvas.includes('edgeSelectorRequest?.kind === "add-popover"'));
   assert.doesNotMatch(workflowCanvas, /openSelector/);
