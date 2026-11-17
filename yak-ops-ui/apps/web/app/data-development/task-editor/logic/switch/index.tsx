@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -7,9 +7,13 @@ import {
 } from "@/service/workflow/definition";
 import { listProjectParameters } from "@/service/project/parameter";
 
+import { useDataDevelopmentWorkbench } from "../../../workbench-context";
+import { getWorkflowBranchOutputs } from "../../../workflow-editor/adapter/workflow-branch-adapter";
+
 import { LogicTaskEditor } from "../shared/logic-task-editor";
 import {
   getSwitchVariableOptions,
+  remapSwitchCaseHandles,
   validateSwitchTaskParams,
 } from "./adapter";
 import { SwitchForm } from "./switch-form";
@@ -17,6 +21,7 @@ import { SwitchForm } from "./switch-form";
 export function SwitchEditor({
   workflowCode,
   task,
+  nodeId,
   taskName,
   readOnly,
   onApplyTask,
@@ -25,12 +30,49 @@ export function SwitchEditor({
 }: {
   workflowCode: number;
   task: WorkflowTaskRecord;
+  nodeId: string;
   taskName: string;
   readOnly: boolean;
   onApplyTask: (task: WorkflowTaskRecord) => boolean;
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
+  const { activeTabId, getWorkflowStore } = useDataDevelopmentWorkbench();
+  const taskTabId = "task:" + workflowCode + ":" + task.code;
+  const latestPreviewParamsRef = useRef<Record<string, unknown> | null>(null);
+
+  const updateCanvasPreview = useCallback((params: Record<string, unknown>) => {
+    latestPreviewParamsRef.current = params;
+    const store = getWorkflowStore(workflowCode);
+    if (!store) return;
+    const state = store.getState();
+    const node = state.nodes.find((item) => item.id === nodeId);
+    if (!node) return;
+
+    const includeUnassigned = (node.data.branchOutputs ?? []).some(
+      (output) => output.id === "unassigned",
+    );
+    state.setSwitchPreview(
+      nodeId,
+      getWorkflowBranchOutputs("SWITCH", params, includeUnassigned),
+      remapSwitchCaseHandles(nodeId, task.taskParams, params, state.edges),
+    );
+  }, [getWorkflowStore, nodeId, task.taskParams, workflowCode]);
+
+  useEffect(() => {
+    if (activeTabId !== taskTabId) {
+      getWorkflowStore(workflowCode)?.getState().clearSwitchPreview(nodeId);
+      return;
+    }
+    if (latestPreviewParamsRef.current) {
+      updateCanvasPreview(latestPreviewParamsRef.current);
+    }
+  }, [activeTabId, getWorkflowStore, nodeId, taskTabId, updateCanvasPreview, workflowCode]);
+
+  useEffect(() => () => {
+    getWorkflowStore(workflowCode)?.getState().clearSwitchPreview(nodeId);
+  }, [getWorkflowStore, nodeId, workflowCode]);
+
   const workflowQuery = useQuery({
     queryKey: ["workflow-switch-variables", workflowCode],
     queryFn: () => getWorkflowDefinition(workflowCode),
@@ -72,6 +114,7 @@ export function SwitchEditor({
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}
       validateParams={validateSwitchTaskParams}
+      onParamsChange={updateCanvasPreview}
     >
       {(formProps) => <SwitchForm {...formProps} variables={variables} />}
     </LogicTaskEditor>
