@@ -7,6 +7,7 @@ import io.yak.ops.agent.dao.mapper.AgentSessionMapper;
 import io.yak.ops.agent.dao.repository.AgentSessionDao;
 import io.yak.ops.dao.repository.BaseDao;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -16,6 +17,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.NonNull;
 
 @Repository
+@ConditionalOnProperty(prefix = "yak.agent", name = "enabled", havingValue = "true")
 public class AgentSessionDaoImpl extends BaseDao<AgentSession, AgentSessionMapper> implements AgentSessionDao {
 
     public AgentSessionDaoImpl(@NonNull AgentSessionMapper agentSessionMapper) {

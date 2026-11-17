@@ -9,6 +9,7 @@ import io.yak.ops.agent.dao.mapper.AgentMessageMapper;
 import io.yak.ops.agent.dao.repository.AgentMessageDao;
 import io.yak.ops.dao.repository.BaseDao;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -18,6 +19,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.NonNull;
 
 @Repository
+@ConditionalOnProperty(prefix = "yak.agent", name = "enabled", havingValue = "true")
 public class AgentMessageDaoImpl extends BaseDao<AgentMessage, AgentMessageMapper> implements AgentMessageDao {
 
     public AgentMessageDaoImpl(@NonNull AgentMessageMapper agentMessageMapper) {
