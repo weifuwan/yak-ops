@@ -45,6 +45,9 @@ jobs:
       - name: Indicator business category tree selector contract tests
         working-directory: yak-ops-ui
         run: npm run test:indicator-business-type-tree
+      - name: Dimension modeling tree contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:dimension-modeling-tree
       - name: Planning tree visual contract tests
         working-directory: yak-ops-ui
         run: npm run test:planning-tree
