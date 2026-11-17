@@ -91,6 +91,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
         <SwitchEditor
           workflowCode={workflowCode}
           task={task}
+          nodeId={nodeId}
           taskName={taskName}
           readOnly={readOnly}
           onApplyTask={applyTask}
