@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
-import "monaco-editor/esm/vs/editor/browser/controller/coreCommands.js";
-import "monaco-editor/esm/vs/editor/contrib/find/browser/findController.js";
-import "monaco-editor/esm/vs/editor/contrib/contextmenu/contextmenu.js";
-import "monaco-editor/esm/vs/editor/contrib/bracketMatching/bracketMatching.js";
-import "monaco-editor/esm/vs/editor/contrib/clipboard/clipboard.js";
-import "monaco-editor/esm/vs/basic-languages/shell/shell.contribution.js";
-import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import * as monaco from "monaco-editor/editor/editor.api.js";
+import "monaco-editor/editor/browser/controller/coreCommands.js";
+import "monaco-editor/editor/contrib/find/browser/findController.js";
+import "monaco-editor/editor/contrib/contextmenu/contextmenu.js";
+import "monaco-editor/editor/contrib/bracketMatching/bracketMatching.js";
+import "monaco-editor/editor/contrib/clipboard/clipboard.js";
+import "monaco-editor/basic-languages/shell/shell.contribution.js";
+import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 
 import {
   Button,
