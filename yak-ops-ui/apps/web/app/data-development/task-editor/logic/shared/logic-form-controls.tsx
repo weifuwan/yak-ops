@@ -64,17 +64,17 @@ export function LogicField({
   description?: string;
 }) {
   return (
-    <label className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-3">
+    <div className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-3">
       <span className="pt-1.5 text-xs text-[#475467]">
         {label}{required ? <span className="ml-1 text-[#DC6B5D]">*</span> : null}
       </span>
-      <span className="min-w-0">
+      <div className="min-w-0">
         {children}
         {description ? (
           <span className="mt-1 block text-[11px] leading-4 text-[#98A2B3]">{description}</span>
         ) : null}
-      </span>
-    </label>
+      </div>
+    </div>
   );
 }
 

@@ -229,7 +229,7 @@ export function WorkflowTaskNode({
               type="source"
               position={Position.Right}
               isConnectable={!data.readOnly}
-              style={{ top: 59 + index * 22, right: -9 }}
+              style={{ top: 52 + index * 22, right: -9 }}
               onClick={(event) => {
                 event.stopPropagation();
                 if (data.readOnly) return;
