@@ -183,9 +183,6 @@ export function WorkflowTaskNode({
               <div className="truncate text-[13px] font-semibold uppercase text-[var(--yak-components-panel-text)]">
                 {data.name}
               </div>
-              <div className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-wide text-[var(--yak-components-muted-text)]">
-                {data.taskType || "TASK"}
-              </div>
             </div>
           </div>
 
