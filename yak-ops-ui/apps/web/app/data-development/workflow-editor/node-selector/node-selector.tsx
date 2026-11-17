@@ -407,11 +407,13 @@ function WorkflowNodePicker({
           <div className="flex min-w-0 items-center">
             <span className="truncate text-[var(--yak-color-primary)]">
               {selectorTitle(
-                request.kind === "edge"
+                request.kind === "edge" || request.kind === "add-popover"
                   ? "add"
                   : request.kind === "upstream-popover"
                     ? "upstream"
-                    : request.kind,
+                    : request.kind === "downstream-popover"
+                      ? "downstream"
+                      : request.kind,
               )}
             </span>
           </div>
