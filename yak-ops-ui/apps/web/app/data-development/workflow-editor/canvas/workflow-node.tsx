@@ -200,19 +200,25 @@ export function WorkflowTaskNode({
                         ? "text-[#DC6B5D]"
                         : output.kind === "unassigned"
                           ? "text-[#D97706]"
-                          : "text-[#475467]";
+                          : output.kind === "switch-case"
+                            ? "text-[#4338CA]"
+                            : output.kind === "default"
+                              ? "text-[#667085]"
+                              : "text-[#475467]";
 
                   return (
                     <div
                       key={output.id}
                       className="relative flex h-[22px] items-center justify-end pr-7 text-[10px] font-medium"
                     >
-                      <span className={labelClass}>{output.label}</span>
+                      <span className={"min-w-0 truncate " + labelClass} title={output.label}>{output.label}</span>
                       <Handle
                         id={output.id}
                         type="source"
                         position={Position.Right}
                         isConnectable={!data.readOnly}
+                        aria-label={output.label + "分支连接点"}
+                        title={output.label + "分支"}
                         style={{ top: "50%", right: data.taskType.toUpperCase() === "CONDITIONS" ? -21 : -9 }}
                         onClick={(event) => {
                           event.stopPropagation();
