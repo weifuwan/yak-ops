@@ -29,7 +29,7 @@ test("modifier form stores an optional warehouse classification enum, not a conc
 
 test("modifier tree's unassigned filter queries NULL classifications", () => {
   assert.match(treeOptions, /value: "UNASSIGNED", label: "未选择"/);
-  assert.match(treeHook, /dwTypeUnassigned: true/);
+  assert.match(treeHook, /dwTypeUnassigned: "true"/);
 });
 
 test("modifier backend validates and filters by DwTypeEnum", () => {
