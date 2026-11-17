@@ -55,12 +55,14 @@ function OptionSelect({
   placeholder,
   loading = false,
   disabled = false,
+  selectedLabel,
   onChange,
 }: {
   value: string;
   options: IndicatorFieldOption[];
   placeholder: string;
   loading?: boolean;
+  selectedLabel?: string;
   disabled?: boolean;
   onChange: (value: string) => void;
 }) {
@@ -73,7 +75,9 @@ function OptionSelect({
     >
       <SelectTrigger variant="outlined" className="w-full">
         <SelectValue placeholder={loading ? "正在加载选项..." : placeholder}>
-          {(selected) => selectOptionLabel(options, selected, loading ? "正在加载选项..." : placeholder)}
+          {(selected) => selectedLabel && String(selected ?? "") === value
+            ? selectedLabel
+            : selectOptionLabel(options, selected, loading ? "正在加载选项..." : placeholder)}
         </SelectValue>
       </SelectTrigger>
       <SelectContent emptyContent={loading ? "正在加载选项..." : options.length === 0 ? "暂无可选数据" : undefined}>
@@ -120,6 +124,13 @@ export function CompositeIndicatorEditorFields({
   );
   const selectedDwType = String(selectedWarehouseLayer?.dwType || "");
   const selectedDwModelType = String(selectedWarehouseLayer?.dwModelType || "");
+  const selectedWarehouseLayerLabel = selectedWarehouseLayer
+    ? [
+      selectedWarehouseLayer.dwTypeName,
+      selectedWarehouseLayer.cnName,
+    ].filter((item) => item !== undefined && item !== null && String(item).trim())
+      .join(" ") + (selectedWarehouseLayer.enShortName ? " (" + String(selectedWarehouseLayer.enShortName) + ")" : "")
+    : undefined;
   const selectedWarehouseLayerIsSupported = (
     selectedDwType === "PUBLIC_LAYER" && selectedDwModelType === "SUMMARY"
   ) || (
@@ -242,6 +253,7 @@ export function CompositeIndicatorEditorFields({
                 options={warehouseLayerOptions}
                 placeholder="请选择数仓分层"
                 loading={optionsLoading}
+                selectedLabel={selectedWarehouseLayerLabel}
                 onChange={changeWarehouseLayer}
               />
             </FormRow>
