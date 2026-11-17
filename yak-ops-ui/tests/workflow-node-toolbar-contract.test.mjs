@@ -14,6 +14,22 @@ const workflowTypes = readFileSync(
   new URL("../apps/web/app/data-development/workflow-editor/types.ts", import.meta.url),
   "utf8",
 );
+const workflowEdge = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/canvas/workflow-edge.tsx", import.meta.url),
+  "utf8",
+);
+const workflowSelector = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/node-selector/node-selector.tsx", import.meta.url),
+  "utf8",
+);
+const workflowStore = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/store/workflow-store.tsx", import.meta.url),
+  "utf8",
+);
+const workflowEditor = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/workflow-editor.tsx", import.meta.url),
+  "utf8",
+);
 
 test("workflow node toolbar uses a bordered Dify-style play and more control", () => {
   assert.match(workflowNode, /border-\[#D0D5DD\] bg-white/);
@@ -47,4 +63,18 @@ test("toolbar callbacks and open state are transient workflow node data", () => 
   assert.match(workflowTypes, /menuOpen\?: boolean/);
   assert.match(workflowTypes, /onRun\?: \(\) => void/);
   assert.match(workflowTypes, /onOpenMenu\?: \(position: \{ x: number; y: number \}\) => void/);
+});
+
+
+test("edge plus opens an anchored Dify-style picker without replacing the left selector", () => {
+  assert.match(workflowEdge, /openEdgeSelector/);
+  assert.match(workflowEdge, /data-workflow-edge-picker-trigger/);
+  assert.match(workflowEdge, /anchor:\s*\{\s*x:\s*rect\.right,\s*y:\s*rect\.top \+ rect\.height \/ 2/s);
+  assert.match(workflowSelector, /createPortal/);
+  assert.match(workflowSelector, /role="dialog"/);
+  assert.match(workflowSelector, /搜索节点类型/);
+  assert.match(workflowStore, /edgeSelectorRequest/);
+  assert.match(workflowStore, /openEdgeSelector/);
+  assert.match(workflowStore, /requestOverride/);
+  assert.match(workflowEditor, /WorkflowEdgeNodeSelector/);
 });

@@ -27,6 +27,8 @@ import type {
   WorkflowInteractionMode,
   WorkflowEdgeStyle,
   WorkflowSelectorRequest,
+  WorkflowEdgeSelectorRequest,
+  WorkflowNodeInsertionRequest,
 } from "../types";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -43,6 +45,7 @@ export type WorkflowEditorState = {
   interactionMode: WorkflowInteractionMode;
   edgeStyle: WorkflowEdgeStyle;
   selectorRequest: WorkflowSelectorRequest | null;
+  edgeSelectorRequest: WorkflowEdgeSelectorRequest | null;
   draftNodeSequence: number;
   draftEdgeSequence: number;
 
@@ -60,6 +63,8 @@ export type WorkflowEditorState = {
     request: WorkflowSelectorRequest,
   ) => void;
   closeSelector: () => void;
+  openEdgeSelector: (request: WorkflowEdgeSelectorRequest) => void;
+  closeEdgeSelector: () => void;
   addDroppedNode: (
     taskType: string,
     position: XYPosition,
@@ -78,6 +83,7 @@ export type WorkflowEditorState = {
     taskType: string,
     taskCode: number,
     projectCode: number,
+    requestOverride?: WorkflowNodeInsertionRequest,
   ) => string;
   addConnection: (connection: Connection) => string | null;
   removeNodes: (ids: string[]) => void;
@@ -351,6 +357,7 @@ export function createWorkflowStore(
         interactionMode: "pointer",
         edgeStyle: "bezier",
         selectorRequest: null,
+        edgeSelectorRequest: null,
         draftNodeSequence: 0,
         draftEdgeSequence: 0,
 
@@ -392,10 +399,16 @@ export function createWorkflowStore(
           set({ edgeStyle }),
 
         openSelector: (selectorRequest) =>
-          set({ selectorRequest }),
+          set({ selectorRequest, edgeSelectorRequest: null }),
 
         closeSelector: () =>
           set({ selectorRequest: null }),
+
+        openEdgeSelector: (edgeSelectorRequest) =>
+          set({ edgeSelectorRequest }),
+
+        closeEdgeSelector: () =>
+          set({ edgeSelectorRequest: null }),
 
         addDroppedNode: (taskType, position, taskCode, projectCode) => {
           const state = get();
@@ -526,10 +539,10 @@ export function createWorkflowStore(
             previewNodeId: state.previewNodeId === nodeId ? null : state.previewNodeId,
           })),
 
-        insertNodeFromSelector: (taskType, taskCode, projectCode) => {
+        insertNodeFromSelector: (taskType, taskCode, projectCode, requestOverride) => {
           const state = get();
           const request =
-            state.selectorRequest ?? ({ kind: "add" } as const);
+            requestOverride ?? state.selectorRequest ?? ({ kind: "add" } as const);
           const sequence = state.draftNodeSequence + 1;
           let position = getDefaultPosition(state.nodes);
           let edges = state.edges;
@@ -683,8 +696,12 @@ export function createWorkflowStore(
             previewEdges: nextPreviewEdges,
             draftNodeSequence: sequence,
             draftEdgeSequence: edgeSequence,
-            selectorRequest:
-              request.kind === "add" ? request : null,
+            selectorRequest: request.kind === "edge"
+              ? state.selectorRequest
+              : request.kind === "add" ? request : null,
+            edgeSelectorRequest: request.kind === "edge"
+              ? null
+              : state.edgeSelectorRequest,
           });
 
           return node.id;

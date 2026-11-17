@@ -19,7 +19,10 @@ import { applyWorkflowBranchTargets } from "./adapter/workflow-branch-adapter";
 import { WorkflowCanvas } from "./canvas/workflow-canvas";
 import type { CanvasPanelKey } from "./canvas/canvas-side-panel";
 import { layoutWorkflowGraph } from "./layout/elk-layout";
-import { WorkflowNodeSelector } from "./node-selector/node-selector";
+import {
+  WorkflowEdgeNodeSelector,
+  WorkflowNodeSelector,
+} from "./node-selector/node-selector";
 import {
   WorkflowStoreProvider,
   useWorkflowStore,
@@ -131,6 +134,7 @@ function WorkflowEditorShell({
   isRefreshingSpec: boolean;
 }) {
   const selectorOpen = useWorkflowStore((state) => Boolean(state.selectorRequest));
+  const edgeSelectorOpen = useWorkflowStore((state) => Boolean(state.edgeSelectorRequest));
   const storeApi = useWorkflowStoreApi();
   const queryClient = useQueryClient();
   const {
@@ -305,6 +309,7 @@ function WorkflowEditorShell({
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {selectorOpen && !workflowIsOnline ? <WorkflowNodeSelector /> : null}
+        {edgeSelectorOpen && !workflowIsOnline ? <WorkflowEdgeNodeSelector /> : null}
         <WorkflowCanvas
           workflowCode={workflowCode}
           selectedTaskCode={selectedTaskCode}

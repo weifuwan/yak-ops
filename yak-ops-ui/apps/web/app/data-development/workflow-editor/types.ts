@@ -12,8 +12,17 @@ export type WorkflowEdgeStyle = "bezier" | "step" | "smoothstep";
 export type WorkflowSelectorRequest =
   | { kind: "add" }
   | { kind: "upstream"; nodeId: string }
-  | { kind: "downstream"; nodeId: string; sourceHandle?: string }
-  | { kind: "edge"; edgeId: string };
+  | { kind: "downstream"; nodeId: string; sourceHandle?: string };
+
+export type WorkflowEdgeSelectorRequest = {
+  kind: "edge";
+  edgeId: string;
+  anchor: XYPosition;
+};
+
+export type WorkflowNodeInsertionRequest =
+  | WorkflowSelectorRequest
+  | WorkflowEdgeSelectorRequest;
 
 export type WorkflowBranchOutputKind =
   | "success"
