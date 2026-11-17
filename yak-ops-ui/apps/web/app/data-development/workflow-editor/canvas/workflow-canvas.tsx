@@ -605,7 +605,7 @@ export function WorkflowCanvas({
                 side="bottom"
                 align="start"
                 sideOffset={0}
-                className="w-[216px] rounded-md p-1"
+                className="w-[240px] rounded-xl p-1.5"
               >
                 <DropdownMenuItem
                   onClick={() => openNode(contextMenu.node)}
