@@ -157,33 +157,45 @@ export function applyWorkflowBranchTargets(
 
   const switchResult = asRecord(params.switchResult);
   const cases = asArray(switchResult.dependTaskList);
-  if (cases.length === 0) {
-    throw new Error("SWITCH 至少需要配置一个 Case");
+  const validHandles = new Set([
+    ...cases.map((_item, index) => "case-" + index),
+    "default",
+  ]);
+  if (outgoing.some((edge) => !validHandles.has(edge.sourceHandle ?? "source"))) {
+    throw new Error("SWITCH 存在未识别的分支连线，请从 Case 或 Default 端口重新连接");
   }
+
+  const targetFor = (handle: string, label: string): number => {
+    const branchEdges = outgoing.filter((edge) => edge.sourceHandle === handle);
+    if (branchEdges.length !== 1) {
+      throw new Error(label + " 必须且只能连接一个下游节点");
+    }
+    const target = Number(branchEdges[0].target);
+    if (!Number.isSafeInteger(target) || target <= 0) {
+      throw new Error(label + " 连接的下游节点无效，请重新连接");
+    }
+    return target;
+  };
 
   const dependTaskList = cases.map((item, index) => {
     const condition = String(asRecord(item).condition ?? "").trim();
     if (!condition) {
       throw new Error("SWITCH 的 Case " + (index + 1) + " 尚未配置判断表达式");
     }
-    const targets = targetsFor("case-" + index);
-    if (targets.length !== 1) {
-      throw new Error("SWITCH 的 Case " + (index + 1) + " 必须且只能连接一个下游节点");
-    }
-    return { ...asRecord(item), condition, nextNode: targets[0] };
+    return {
+      ...asRecord(item),
+      condition,
+      nextNode: targetFor("case-" + index, "SWITCH 的 Case " + (index + 1)),
+    };
   });
-
-  const defaultTargets = targetsFor("default");
-  if (defaultTargets.length !== 1) {
-    throw new Error("SWITCH 的 Default 分支必须且只能连接一个下游节点");
-  }
+  const defaultNode = targetFor("default", "SWITCH 的 Default 分支");
 
   return {
     ...params,
     switchResult: {
       ...switchResult,
       dependTaskList,
-      nextNode: defaultTargets[0],
+      nextNode: defaultNode,
     },
   };
 }

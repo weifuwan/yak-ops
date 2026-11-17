@@ -62,7 +62,6 @@ export function normalizeSwitchTaskParams(value: unknown): SwitchTaskParams {
 export function validateSwitchTaskParams(value: unknown): string | null {
   const normalized = normalizeSwitchTaskParams(value);
   const cases = normalized.switchResult.dependTaskList;
-  if (cases.length === 0) return "SWITCH 至少需要配置一个 Case";
   if (cases.some((item) => !item.condition.trim())) {
     return "请为每个 Case 配置判断表达式";
   }

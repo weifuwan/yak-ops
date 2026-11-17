@@ -200,7 +200,7 @@ function SwitchForm({
         <div className="space-y-2">
           {cases.length === 0 ? (
             <div className="rounded-md border border-dashed border-[#d0d5dd] bg-[#f9fafb] px-3 py-6 text-center text-xs text-[#667085]">
-              暂无 Case，请添加一个条件分支
+              当前没有 Case，将直接执行 Default 分支；也可以添加 Case
             </div>
           ) : null}
           {cases.map((item, index) => (
@@ -262,7 +262,7 @@ function SwitchForm({
 
       <LogicSection
         title="默认分支"
-        description="当所有 Case 表达式均不满足时，执行 Default 分支。"
+        description="当没有 Case 命中（或未配置 Case）时，执行 Default 分支。"
       >
         <div className="flex items-center justify-between rounded-md border border-[#e4e7ec] bg-[#f9fafb] px-3 py-3">
           <div>
