@@ -280,7 +280,7 @@ export function WorkflowTaskNode({
                           });
                         }}
                         className={[
-                          "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+                          "group/handle !z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
                           "!translate-y-0",
                           "before:absolute before:-inset-1",
                         ].join(" ")}
@@ -317,7 +317,7 @@ export function WorkflowTaskNode({
             });
           }}
           className={[
-            "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+            "group/handle !z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
             "!top-4 !-right-[9px] !translate-y-0",
             "before:absolute before:-inset-1",
           ].join(" ")}
