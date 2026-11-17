@@ -1,6 +1,7 @@
 import type {
   ConditionDependentGroup,
   ConditionDependentItem,
+  ConditionLocalParam,
   ConditionTaskOption,
   ConditionTaskStatus,
   ConditionWorkflowGraph,
@@ -33,6 +34,22 @@ function asRecord(value: unknown): JsonRecord {
     : {};
 }
 
+function normalizeLocalParams(value: unknown): ConditionLocalParam[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const property = asRecord(item);
+    return {
+      prop: String(property.prop ?? ""),
+      direct: property.direct === "OUT" ? "OUT" : "IN",
+      type: String(property.type ?? "VARCHAR"),
+      value: property.value === null || property.value === undefined
+        ? ""
+        : String(property.value),
+      sensitive: Boolean(property.sensitive),
+    };
+  });
+}
+
 function normalizeTaskCodes(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value
@@ -63,7 +80,7 @@ export function normalizeConditionsTaskParams(value: unknown): ConditionsTaskPar
 
   return {
     ...params,
-    localParams: Array.isArray(params.localParams) ? params.localParams : [],
+    localParams: normalizeLocalParams(params.localParams),
     dependence: {
       relation: dependence.relation === "OR" ? "OR" : "AND",
       dependTaskList: groups.map((item) => {
