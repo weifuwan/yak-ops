@@ -263,7 +263,14 @@ export function DataModelingOverviewPage() {
   return (
     <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-[#F6F6F6] text-[#10121A]">
       {/* 上半部分：主视觉 */}
-      <section className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 border-b border-[#EDF0F4] bg-[#F6F6F6]" />
+      <section
+        aria-hidden="true"
+        className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 border-b border-[#EDF0F4] bg-[#F6F6F6] bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage:
+            'url("https://img.alicdn.com/imgextra/i4/O1CN01d9iDld1SKva5mO2VE_!!6000000002229-55-tps-1920-500.svg")',
+        }}
+      />
 
       {/* 下半部分：数据概览 */}
       <section className="min-h-[420px] w-full flex-1 bg-[#F6F6F6] pb-4 pt-6">
