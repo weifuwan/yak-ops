@@ -34,10 +34,11 @@ function getTaskOptions(
   upstreamTasks: ConditionTaskOption[],
   selectedTaskCode: number,
 ) {
-  const options = upstreamTasks.map((task) => ({
-    value: String(task.code),
-    label: task.name + "（" + task.taskType + "）",
-  }));
+  const options: Array<{ value: string; label: string; disabled?: boolean }> =
+    upstreamTasks.map((task) => ({
+      value: String(task.code),
+      label: task.name + "（" + task.taskType + "）",
+    }));
   if (
     selectedTaskCode > 0 &&
     !upstreamTasks.some((task) => task.code === selectedTaskCode)
