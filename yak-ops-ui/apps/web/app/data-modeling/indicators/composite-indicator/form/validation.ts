@@ -31,19 +31,20 @@ export function validateCompositeIndicator(
   if (!selectedLayer) return "所选数仓分层不存在，请重新选择";
 
   const dwType = String(selectedLayer.dwType || "");
-  if (dwType === "PUBLIC_LAYER") {
+  const dwModelType = String(selectedLayer.dwModelType || "");
+  if (dwType === "PUBLIC_LAYER" && dwModelType === "SUMMARY") {
     if (!String(values.domainId || "").trim() || !String(values.busProcessId || "").trim()) {
       return "公共层必须选择数据域及业务过程";
     }
     return undefined;
   }
 
-  if (dwType === "APPLICATION_LAYER") {
+  if (dwType === "APPLICATION_LAYER" && dwModelType === "APPLICATION") {
     if (!String(values.martId || "").trim() || !String(values.subjectId || "").trim()) {
       return "应用层必须选择数据集市及主题域";
     }
     return undefined;
   }
 
-  return "复合指标仅支持公共层和应用层";
+  return "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）";
 }
