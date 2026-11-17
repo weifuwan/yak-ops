@@ -1,8 +1,7 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import {
   MoreHorizontal,
   Play,
-  Plus,
 } from "lucide-react";
 import {
   Handle,
@@ -18,6 +17,64 @@ import type { WorkflowNodeData } from "../types";
 
 // CONDITIONS is the visual baseline for all right-side branch connectors.
 const BRANCH_HANDLE_RIGHT_OFFSET = -21;
+
+function HandleOutlineGap({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[22px] w-1 -translate-x-1/2 -translate-y-1/2 bg-white"
+      style={{ clipPath: "inset(0 50% 0 0)" }}
+    />
+  );
+}
+
+function AddHandleButton({ visibility }: { visibility: string }) {
+  const maskId = "workflow-handle-plus-" + useId().replace(/:/g, "");
+
+  return (
+    <span
+      aria-hidden="true"
+      className={[
+        "pointer-events-none absolute left-1/2 top-1/2 z-10 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center",
+        "transition-[opacity,transform] duration-150 ease-out",
+        "group-hover/handle:scale-125",
+        visibility,
+      ].join(" ")}
+    >
+      <span className="absolute inset-0 rounded-full bg-white" />
+      <svg viewBox="0 0 16 16" className="relative size-4" focusable="false">
+        <defs>
+          <mask
+            id={maskId}
+            maskUnits="userSpaceOnUse"
+            maskContentUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width="16"
+            height="16"
+          >
+            <rect width="16" height="16" fill="#fff" />
+            <path
+              d="M8 4.5v7M4.5 8h7"
+              stroke="#000"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </mask>
+        </defs>
+        <circle
+          cx="8"
+          cy="8"
+          r="8"
+          fill="var(--yak-color-primary)"
+          mask={"url(#" + maskId + ")"}
+        />
+      </svg>
+    </span>
+  );
+}
 
 function ActionButton({
   label,
@@ -64,10 +121,6 @@ export function WorkflowTaskNode({
   const openSelector = useWorkflowStore(
     (state) => state.openSelector,
   );
-  const outgoingEdges = useWorkflowStore(
-    (state) => (state.previewEdges ?? state.edges).filter((edge) => edge.source === id),
-  );
-  const hasOutgoingEdge = outgoingEdges.length > 0;
   const branchOutputs = data.branchOutputsPreview ?? data.branchOutputs ?? [];
   const { openTask } = useDataDevelopmentWorkbench();
 
@@ -146,11 +199,9 @@ export function WorkflowTaskNode({
         position={Position.Left}
         isConnectable={!data.readOnly}
         className={[
-          "!z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+          "!z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
           "!top-4 !-left-[9px] !translate-y-0",
           "before:absolute before:-inset-1",
-          "after:absolute after:left-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-          "after:opacity-100",
         ].join(" ")}
       />
 
@@ -192,9 +243,6 @@ export function WorkflowTaskNode({
             {branchOutputs.length > 0 ? (
               <div>
                 {branchOutputs.map((output) => {
-                  const connected = outgoingEdges.some(
-                    (edge) => edge.sourceHandle === output.id,
-                  );
                   const labelClass =
                     output.kind === "success"
                       ? "text-[#16A34A]"
@@ -235,22 +283,10 @@ export function WorkflowTaskNode({
                           "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
                           "!translate-y-0",
                           "before:absolute before:-inset-1",
-                          "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-                          connected ? "after:opacity-100" : "after:opacity-40",
                         ].join(" ")}
                       >
-                        <span
-                          aria-hidden="true"
-                          className={[
-                            "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-                            "bg-[var(--yak-color-primary)] text-white shadow-sm",
-                            "transition-[opacity,transform] duration-150 ease-out",
-                            "group-hover/handle:scale-125",
-                            addButtonVisibility,
-                          ].join(" ")}
-                        >
-                          <Plus size={10} strokeWidth={2.5} />
-                        </span>
+                        <HandleOutlineGap visible={selected || data.focused} />
+                        <AddHandleButton visibility={addButtonVisibility} />
                       </Handle>
                     </div>
                   );
@@ -284,22 +320,10 @@ export function WorkflowTaskNode({
             "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
             "!top-4 !-right-[9px] !translate-y-0",
             "before:absolute before:-inset-1",
-            "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-            hasOutgoingEdge ? "after:opacity-100" : "after:opacity-0",
           ].join(" ")}
         >
-          <span
-            aria-hidden="true"
-            className={[
-              "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-              "bg-[var(--yak-color-primary)] text-white shadow-sm",
-              "transition-[opacity,transform] duration-150 ease-out",
-              "group-hover/handle:scale-125",
-              addButtonVisibility,
-            ].join(" ")}
-          >
-            <Plus size={10} strokeWidth={2.5} />
-          </span>
+          <HandleOutlineGap visible={selected || data.focused} />
+          <AddHandleButton visibility={addButtonVisibility} />
         </Handle>
       ) : null}
     </div>
