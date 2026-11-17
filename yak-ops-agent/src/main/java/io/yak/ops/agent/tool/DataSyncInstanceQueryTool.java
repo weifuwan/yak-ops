@@ -40,9 +40,10 @@ public class DataSyncInstanceQueryTool implements AgentTool {
 
     @Override
     public String description() {
-        return "查询数据同步任务的执行实例（状态、起止时间、关联工作流实例）。"
+        return "查询数据同步任务的执行实例（状态、起止时间、耗时、任务编码）。"
                 + "用于回答：某个同步任务为什么失败、现在有哪些实例在运行、最近一次执行结果、任务执行了多久等问题。"
-                + "实例 ID（taskInstanceId）可直接用于 query_task_log 查日志。";
+                + "返回字段：taskInstanceId（实例 ID，字符串，可直接用于 query_task_log）、taskCode（任务编码，可用于按任务过滤）、"
+                + "taskName、status、startTime、endTime、durationSeconds、workflowInstanceId。";
     }
 
     @Override
@@ -80,10 +81,12 @@ public class DataSyncInstanceQueryTool implements AgentTool {
         for (DataSyncInstanceVO instance : page.getTotalList()) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("taskInstanceId", instance.getId());
+            item.put("taskCode", instance.getDefinitionId());
             item.put("taskName", instance.getTaskName());
             item.put("status", instance.getStatus() == null ? null : instance.getStatus().name());
             item.put("startTime", format(instance.getStartTime()));
             item.put("endTime", format(instance.getEndTime()));
+            item.put("durationSeconds", durationSeconds(instance.getStartTime(), instance.getEndTime()));
             item.put("workflowInstanceId", instance.getWorkflowInstanceId());
             instances.add(item);
         }
@@ -128,6 +131,13 @@ public class DataSyncInstanceQueryTool implements AgentTool {
 
     private String format(java.util.Date date) {
         return date == null ? null : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date);
+    }
+
+    private Long durationSeconds(java.util.Date startTime, java.util.Date endTime) {
+        if (startTime == null || endTime == null) {
+            return null;
+        }
+        return Math.max(0L, (endTime.getTime() - startTime.getTime()) / 1000L);
     }
 
     private Map<String, Object> property(String type, String description, String extraKey, Object extraValue) {
