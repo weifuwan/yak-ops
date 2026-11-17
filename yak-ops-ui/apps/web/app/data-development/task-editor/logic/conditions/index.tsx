@@ -339,7 +339,6 @@ function ConditionsForm({
                 style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
               >
                 <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
-                <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
                 {groupIndex === 0 ? (
                   <span className="absolute left-1/2 top-1/2 bottom-0 border-l border-dashed border-[#aeb7c4]" />
                 ) : groupIndex === groups.length - 1 ? (
@@ -352,6 +351,14 @@ function ConditionsForm({
                 </span>
               </div>
             ))
+          ) : null}
+          {groups.length > 1 ? (
+            <div
+              className="pointer-events-none relative"
+              style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
+            >
+              <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+            </div>
           ) : null}
 
           <div
