@@ -88,10 +88,15 @@ export function SwitchForm({
           variant="secondary"
           className="!h-9 !w-full !justify-center !border-0 !bg-[#F2F4F7] !text-[#475467] !outline-none !outline-offset-0 focus-visible:!outline-none [&[data-focused]]:!outline-none hover:!bg-[#EAECF0]"
           isDisabled={disabled}
-          onClick={() => updateCases([
-            ...cases,
-            { condition: "", nextNode: null },
-          ])}
+          onClick={(event) => {
+            // The full-width ELIF button moves down when a Case is inserted.
+            // Blur it before the list reflows so its old focus outline cannot flash.
+            event.currentTarget.blur();
+            updateCases([
+              ...cases,
+              { condition: "", nextNode: null },
+            ]);
+          }}
         >
           <Plus size={14} />
           ELIF
