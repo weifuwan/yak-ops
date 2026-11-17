@@ -7,6 +7,7 @@ import {
   resolveWorkflowSourceHandle,
 } from "../apps/web/app/data-development/workflow-editor/adapter/workflow-branch-adapter.ts";
 import {
+  buildConditionLogicExpression,
   createConditionDependentItem,
   getConditionWorkflowGraph,
   normalizeConditionsTaskParams,
@@ -167,6 +168,89 @@ test("CONDITIONS normalizes legacy fields into the minimal parameter contract", 
     failedNode: [40],
   });
   assert.equal("conditionSuccess" in normalized.conditionResult, false);
+});
+
+test("CONDITIONS builds a live expression for a single condition group", () => {
+  const params = {
+    dependence: {
+      relation: "OR",
+      dependTaskList: [{
+        relation: "AND",
+        dependItemList: [
+          { depTaskCode: 10, status: "SUCCESS" },
+          { depTaskCode: 20, status: "FAILURE" },
+        ],
+      }],
+    },
+  };
+  const tasks = [
+    { code: 10, name: "上游 SQL", taskType: "SQL" },
+    { code: 20, name: "上游 JAVA", taskType: "JAVA" },
+  ];
+
+  assert.equal(
+    buildConditionLogicExpression(params, tasks),
+    "上游 SQL = 成功 AND 上游 JAVA = 失败",
+  );
+});
+
+test("CONDITIONS groups expressions and applies the outer relation", () => {
+  const params = {
+    dependence: {
+      relation: "OR",
+      dependTaskList: [
+        {
+          relation: "AND",
+          dependItemList: [
+            { depTaskCode: 10, status: "SUCCESS" },
+            { depTaskCode: 20, status: "FORCED_SUCCESS" },
+          ],
+        },
+        {
+          relation: "OR",
+          dependItemList: [
+            { depTaskCode: 30, status: "FAILURE" },
+            { depTaskCode: 40, status: "PAUSE" },
+          ],
+        },
+      ],
+    },
+  };
+  const tasks = [
+    { code: 10, name: "任务 A", taskType: "SQL" },
+    { code: 20, name: "任务 B", taskType: "JAVA" },
+    { code: 30, name: "任务 C", taskType: "SHELL" },
+    { code: 40, name: "任务 D", taskType: "PYTHON" },
+  ];
+
+  assert.equal(
+    buildConditionLogicExpression(params, tasks),
+    "(任务 A = 成功 AND 任务 B = 强制成功) OR (任务 C = 失败 OR 任务 D = 已暂停)",
+  );
+});
+
+test("CONDITIONS expression preview stays empty until every task and status is resolvable", () => {
+  const params = {
+    dependence: {
+      relation: "AND",
+      dependTaskList: [{
+        relation: "AND",
+        dependItemList: [{ depTaskCode: 0, status: "SUCCESS" }],
+      }],
+    },
+  };
+
+  assert.equal(buildConditionLogicExpression(params, []), null);
+  assert.equal(
+    buildConditionLogicExpression(params, [{ code: 10, name: "任务 A", taskType: "SQL" }]),
+    null,
+  );
+  assert.equal(
+    buildConditionLogicExpression({
+      dependence: { relation: "AND", dependTaskList: [{ relation: "OR", dependItemList: [] }] },
+    }, []),
+    null,
+  );
 });
 
 test("CONDITIONS validates dependency tasks against the current DAG predecessors", () => {
