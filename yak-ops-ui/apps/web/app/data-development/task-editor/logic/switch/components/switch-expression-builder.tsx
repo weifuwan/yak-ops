@@ -142,7 +142,7 @@ export function SwitchExpressionBuilder({
                         if (!option) return getVariableName(String(selectedValue ?? ""));
                         const color = getVariableColor(option);
                         return (
-                          <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-[4px] border border-[#E4E7EC] bg-white px-1.5 py-0.5">
                             <SquareX size={13} strokeWidth={1.8} className="shrink-0" style={{ color }} />
                             <span className="min-w-0 truncate" style={{ color }}>
                               {getVariableName(option.value)}
