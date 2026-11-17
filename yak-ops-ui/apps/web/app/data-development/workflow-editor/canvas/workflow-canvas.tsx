@@ -194,6 +194,21 @@ export function WorkflowCanvas({
   const [nodeNameValue, setNodeNameValue] = useState("");
   const [nodeNameError, setNodeNameError] = useState<string | null>(null);
 
+  function requestNodeRun(
+    node: WorkflowCanvasNode,
+    taskDependType: WorkflowTaskDependType,
+    title: string,
+    scopeDescription: string,
+  ) {
+    setContextMenu(null);
+    setPendingRun({
+      node,
+      taskDependType,
+      title,
+      scopeDescription,
+    });
+  }
+
   const {
     handleConnect,
     handleNodesDelete,
@@ -220,9 +235,18 @@ export function WorkflowCanvas({
           ...node.data,
           focused: node.id === focusedNodeId,
           readOnly: isWorkflowOnline,
+          menuOpen: contextMenu?.node.id === node.id,
+          onRun: () =>
+            requestNodeRun(
+              node,
+              "TASK_ONLY",
+              "运行该节点",
+              "仅执行当前节点。",
+            ),
+          onOpenMenu: ({ x, y }) => setContextMenu({ node, x, y }),
         },
       })),
-    [nodes, focusedNodeId, isWorkflowOnline],
+    [nodes, focusedNodeId, isWorkflowOnline, contextMenu],
   );
   const renderEdges = useMemo(
     () =>
@@ -337,21 +361,6 @@ export function WorkflowCanvas({
     } finally {
       setRemovalPending(false);
     }
-  };
-
-  const requestNodeRun = (
-    node: WorkflowCanvasNode,
-    taskDependType: WorkflowTaskDependType,
-    title: string,
-    scopeDescription: string,
-  ) => {
-    setContextMenu(null);
-    setPendingRun({
-      node,
-      taskDependType,
-      title,
-      scopeDescription,
-    });
   };
 
   const confirmNodeRun = async () => {
@@ -605,6 +614,21 @@ export function WorkflowCanvas({
                   打开节点
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  disabled={isWorkflowOnline}
+                  onClick={() => {
+                    setContextMenu(null);
+                    openSelector({
+                      kind: "upstream",
+                      nodeId: contextMenu.node.id,
+                    });
+                  }}
+                >
+                  <Plus size={14} aria-hidden="true" />
+                  新建上游
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  tone="danger"
                   disabled={
                     !contextMenu.node.data.draft &&
                     (isWorkflowOnline ||
