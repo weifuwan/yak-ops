@@ -1,275 +1,283 @@
-import type { ReactNode } from "react";
-import {
-  ArrowRight,
-  BookOpen,
-  Boxes,
-  ChartNoAxesCombined,
-  Database,
-  Layers,
-  RefreshCw,
-  Table2,
-} from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { Button, Card, CardContent, PageHeader } from "@yak-ops/yak-ui";
-import { Link } from "react-router-dom";
+const EMPTY_IMAGE =
+  "https://img.alicdn.com/imgextra/i4/O1CN017NgExC1MdM1GSlL3J_!!6000000001457-2-tps-720-720.png";
 
-import { useWorkspace } from "@/hooks/use-workspace";
-
-import { getModelingBootstrap } from "@/service/data-modeling/bootstrap";
-import { PlanningIcon } from "../planning/components/icons";
-
-const MODELING_SECTIONS: Array<{
-  title: string;
-  description: string;
-  path: string;
-  icon: ReactNode;
-  capabilities: string[];
-}> = [
-  {
-    title: "数仓规划",
-    description: "建立统一的业务分类、数仓分层和主题组织体系。",
-    path: "/data-modeling/planning/business-type",
-    icon: <PlanningIcon name="dw-layer" size={18} />,
-    capabilities: ["业务分类", "数仓分层", "数据域", "业务过程", "数据集市", "主题域"],
-  },
-  {
-    title: "维度建模",
-    description: "管理维度建模与逆向建模，逐步完善模型设计能力。",
-    path: "/data-modeling/models/positive",
-    icon: <Table2 size={18} strokeWidth={1.8} />,
-    capabilities: ["维度建模", "逆向建模", "字段设计", "分区配置", "版本管理"],
-  },
-  {
-    title: "数据标准",
-    description: "统一字段标准、标准代码、度量单位和命名词典。",
-    path: "/data-modeling/standards/fields",
-    icon: <BookOpen size={18} strokeWidth={1.8} />,
-    capabilities: ["字段标准", "标准代码", "度量单位", "命名词典"],
-  },
-  {
-    title: "数据指标",
-    description: "沉淀可复用的原子指标、派生指标和复合指标。",
-    path: "/data-modeling/indicators/compose",
-    icon: <ChartNoAxesCombined size={18} strokeWidth={1.8} />,
-    capabilities: ["原子指标", "派生指标", "复合指标", "修饰词", "时间周期"],
-  },
-];
-
-const OVERVIEW_METRICS: Array<{
-  title: string;
+type StatisticValue = {
+  num: string;
   unit: string;
-  icon: ReactNode;
-}> = [
-  { title: "维度表模型", unit: "模型数量", icon: <Table2 size={19} /> },
-  { title: "明细表模型", unit: "模型数量", icon: <Database size={19} /> },
-  { title: "汇总表模型", unit: "模型数量", icon: <Layers size={19} /> },
-  { title: "应用表模型", unit: "模型数量", icon: <Boxes size={19} /> },
-  { title: "原子指标", unit: "指标数量", icon: <ChartNoAxesCombined size={19} /> },
-  { title: "派生指标 & 复合指标", unit: "指标数量", icon: <ChartNoAxesCombined size={19} /> },
+};
+
+type StatisticItem = {
+  title: string;
+  image?: string;
+  values?: StatisticValue[];
+  total?: boolean;
+  formula?: string;
+};
+
+const STATISTICS: StatisticItem[] = [
+  {
+    title: "维度表模型",
+    image:
+      "https://img.alicdn.com/imgextra/i3/O1CN01bYykXi1ZHuHGBhaDL_!!6000000003170-2-tps-228-228.png",
+    values: [{ num: "0", unit: "模型数量" }],
+  },
+  {
+    title: "明细表模型",
+    image:
+      "https://img.alicdn.com/imgextra/i2/O1CN01l2o2g71MLUN0kZXpq_!!6000000001418-2-tps-228-228.png",
+    values: [{ num: "2", unit: "模型数量" }],
+  },
+  {
+    title: "汇总表模型",
+    image:
+      "https://img.alicdn.com/imgextra/i3/O1CN01RHb33F1ySm4GYFQiu_!!6000000006578-2-tps-228-228.png",
+    values: [{ num: "0", unit: "模型数量" }],
+  },
+  {
+    title: "应用表模型",
+    image:
+      "https://img.alicdn.com/imgextra/i2/O1CN018Lu3ns1kR1wLd4FXZ_!!6000000004679-2-tps-228-228.png",
+    values: [{ num: "0", unit: "模型数量" }],
+  },
+  {
+    title: "派生指标&复合指标",
+    image:
+      "https://img.alicdn.com/imgextra/i4/O1CN016myXwp1W58NunKeT1_!!6000000002736-2-tps-228-228.png",
+    values: [
+      { num: "3", unit: "指标数量" },
+      { num: "1", unit: "向上取整" },
+    ],
+  },
+  {
+    title: "合计",
+    total: true,
+    values: [{ num: "3", unit: "" }],
+    formula: "对象数量：模型数量+向上取整(指标数量/10)",
+  },
 ];
 
-function ModelingModuleCard({
-  section,
-}: {
-  section: (typeof MODELING_SECTIONS)[number];
-}) {
+function InfoIcon() {
   return (
-    <Link
-      to={section.path}
-      className="group flex min-h-[108px] items-start gap-3 rounded-lg border border-[var(--yak-components-panel-border)] bg-white/90 p-4 outline-none transition-all hover:-translate-y-0.5 hover:border-[var(--yak-color-primary)] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)]"
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]">
-        {section.icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-[var(--yak-components-panel-text)]">
-            {section.title}
-          </span>
-          <ArrowRight
-            size={15}
-            aria-hidden="true"
-            className="shrink-0 text-[var(--yak-components-muted-text)] transition-transform group-hover:translate-x-0.5"
-          />
-        </div>
-        <p className="mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-          {section.description}
-        </p>
-        <p className="mt-2 truncate text-[10px] leading-4 text-[var(--yak-components-muted-text)]">
-          {section.capabilities.slice(0, 3).join(" · ")}
-        </p>
-      </div>
-    </Link>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <path d="M12 8h.01" />
+    </svg>
   );
 }
 
-export function DataModelingOverviewPage() {
-  const { currentWorkspace } = useWorkspace();
-  const bootstrapQuery = useQuery({
-    queryKey: ["data-modeling", "bootstrap", currentWorkspace?.id],
-    queryFn: () => getModelingBootstrap(currentWorkspace!.id),
-    enabled: Boolean(currentWorkspace?.id),
-  });
-
+function ChevronDownIcon() {
   return (
-    <div className="min-h-full bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      <PageHeader
-        title="建模总览"
-        bordered
-        className="bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
-        extra={
-          <Button
-            size="sm"
-            variant="secondary"
-            isDisabled={bootstrapQuery.isFetching}
-            onClick={() => void bootstrapQuery.refetch()}
-          >
-            <RefreshCw
-              size={14}
-              aria-hidden="true"
-              className={bootstrapQuery.isFetching ? "animate-spin" : ""}
-            />
-            刷新
-          </Button>
-        }
-      />
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
 
-      <div className="space-y-4 px-6 pb-8 pt-5 max-md:px-4">
-        {bootstrapQuery.isError ? (
-          <div
-            role="alert"
-            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"
-          >
-            <span>建模模块初始化信息加载失败，请检查后端服务或当前工作空间权限。</span>
-            <Button size="sm" variant="secondary" onClick={() => void bootstrapQuery.refetch()}>
-              重试
-            </Button>
+/**
+ * 数据统计卡片
+ */
+function StatisticCard({ item }: { item: StatisticItem }) {
+  if (item.total) {
+    return (
+      <div className="mb-4 block w-full rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
+        <div className="flex h-6 flex-row">
+          <div className="min-w-0 flex-1 overflow-hidden pl-1.5 text-ellipsis text-xs font-black leading-6 text-[#333946]">
+            {item.title}
           </div>
-        ) : null}
 
-        <section className="relative isolate overflow-hidden rounded-xl border border-[var(--yak-components-panel-border)] bg-gradient-to-br from-[#f4f7ff] via-white to-[#fff7f8]">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(#b8c7e8_0.7px,transparent_0.7px)] [background-size:18px_18px]"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full bg-[var(--yak-color-primary)] opacity-[0.045] blur-3xl"
-          />
-          <div className="relative grid grid-cols-1 gap-7 p-5 md:p-7 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] xl:items-center xl:gap-10 xl:px-9 xl:py-8">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {MODELING_SECTIONS.map((section) => (
-                <ModelingModuleCard key={section.path} section={section} />
-              ))}
-            </div>
-
-            <div className="max-w-xl xl:pl-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--yak-components-panel-border)] bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-[var(--yak-components-muted-text)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--yak-color-primary)]" />
-                DATA MODELING WORKSPACE
-              </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--yak-components-panel-text)] md:text-4xl">
-                智能数据建模
-              </h1>
-              <p className="mt-4 max-w-lg text-sm leading-7 text-[var(--yak-components-muted-text)]">
-                全链路数据治理的第一步。围绕数仓规划、维度建模、数据标准和数据指标，
-                以统一的业务视角组织数据资产，让数据定义更清晰、模型设计更规范、指标沉淀更高效。
-              </p>
-              <Link
-                to="/data-modeling/planning/business-type"
-                className="mt-5 inline-flex items-center gap-2 rounded-md bg-[var(--yak-color-primary)] px-4 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)] focus-visible:ring-offset-2"
-              >
-                开始建模
-                <ArrowRight size={14} aria-hidden="true" />
-              </Link>
-            </div>
+          <div className="min-w-[80px] max-w-[100px] flex-1 overflow-hidden text-xs font-black leading-6 text-[#303642]">
+            {item.values?.[0]?.num}
           </div>
-        </section>
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,0.92fr)]">
-          <Card className="h-full">
-            <CardContent className="p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-base font-semibold">数据概览</div>
-                  <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-                    当前工作空间内的模型与指标资产
-                  </p>
-                </div>
-                <span className="rounded-full border border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-2.5 py-1 text-[10px] text-[var(--yak-components-muted-text)]">
-                  统计接口待接入
-                </span>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                {OVERVIEW_METRICS.map((metric) => (
-                  <div
-                    key={metric.title}
-                    className="flex min-h-[94px] items-center gap-3 rounded-md border border-[var(--yak-components-panel-border)] bg-white p-3 transition-shadow hover:shadow-sm"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--yak-color-hover)] text-[var(--yak-color-primary)]">
-                      {metric.icon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-semibold text-[var(--yak-components-panel-text)]">
-                        {metric.title}
-                      </div>
-                      <div className="mt-1 flex items-baseline gap-2">
-                        <span className="text-2xl font-semibold tabular-nums text-[var(--yak-components-panel-text)]">
-                          —
-                        </span>
-                        <span className="text-[11px] text-[var(--yak-components-muted-text)]">
-                          {metric.unit}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="h-full">
-            <CardContent className="flex h-full min-h-[300px] flex-col p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-base font-semibold">最新发布</div>
-                  <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-                    最近发布的模型与指标
-                  </p>
-                </div>
-                <BookOpen
-                  size={18}
-                  aria-hidden="true"
-                  className="text-[var(--yak-components-muted-text)]"
-                />
-              </div>
-              <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--yak-color-hover)] text-[var(--yak-components-muted-text)]">
-                  <BookOpen size={22} strokeWidth={1.6} />
-                </div>
-                <div className="mt-3 text-sm font-medium">发布记录暂未接入</div>
-                <p className="mt-1 max-w-[240px] text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                  后续接入模型与指标发布流程后，将在这里展示最新发布内容。
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {bootstrapQuery.data ? (
-          <div className="flex items-center gap-2 text-[11px] text-[var(--yak-components-muted-text)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            服务连接正常 · {bootstrapQuery.data.moduleName} · 项目 {bootstrapQuery.data.projectCode}
+        <div className="overflow-hidden whitespace-nowrap pl-1.5 text-ellipsis text-xs leading-6 text-[#9299A5]">
+          {item.formula}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 flex w-full flex-row items-center rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
+      <img
+        src={item.image}
+        alt=""
+        className="h-12 w-12 shrink-0 object-contain"
+      />
+
+      <div
+        className="h-12 min-w-0 flex-1 overflow-hidden whitespace-nowrap px-1.5 text-ellipsis text-xs font-black leading-[48px] text-[#333946]"
+        title={item.title}
+      >
+        {item.title}
+      </div>
+
+      {item.values?.map((value, index) => (
+        <div
+          key={index}
+          className="h-12 min-w-[80px] max-w-[100px] flex-1 overflow-hidden"
+        >
+          <div className="h-6 overflow-hidden whitespace-nowrap text-ellipsis text-xs font-black leading-6 text-[#303642]">
+            {value.num}
           </div>
-        ) : bootstrapQuery.isLoading ? (
-          <div className="text-[11px] text-[var(--yak-components-muted-text)]">
-            正在检查建模服务连接…
+
+          <div className="h-6 overflow-hidden whitespace-nowrap text-ellipsis text-xs leading-6 text-[#9299A5]">
+            {value.unit}
           </div>
-        ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 数据概览
+ */
+function DataOverviewCard() {
+  return (
+    <div className="mb-4 w-full overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
+      {/* Header */}
+      <div className="flex min-h-5 w-full flex-row items-center">
+        <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
+          数据概览
+          <span className="cursor-help text-[#FE2C55]">
+            <InfoIcon />
+          </span>
+        </div>
+
+        <div className="flex h-5 shrink-0 items-center gap-1 leading-5">
+          <button
+            type="button"
+            className="cursor-pointer border-0 bg-transparent p-0 text-xs text-[#FE2C55] hover:opacity-80"
+          >
+            查看数据详情
+          </button>
+
+          <span className="cursor-help text-[#FE2C55]">
+            <InfoIcon />
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative mt-2 w-full">
+        {/* 工作空间筛选 */}
+        <div className="mb-2 flex h-8 w-[300px] max-w-full items-center text-xs">
+          <label
+            htmlFor="overview-workspace"
+            className="w-1/4 shrink-0 whitespace-nowrap text-[#555B68]"
+          >
+            工作空间：
+          </label>
+
+          <div className="relative h-8 w-3/4">
+            <select
+              id="overview-workspace"
+              defaultValue="all"
+              className="h-8 w-full cursor-pointer appearance-none rounded border border-[#E5E7EB] bg-white pl-2.5 pr-8 text-xs text-[#333] outline-none transition-colors hover:border-[#B8BDC8] focus:border-[#FE2C55]"
+            >
+              <option value="all">全部</option>
+            </select>
+
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#777E8B]">
+              <ChevronDownIcon />
+            </span>
+          </div>
+        </div>
+
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-2 gap-x-4 min-[1500px]:grid-cols-3">
+          {STATISTICS.map((item) => (
+            <StatisticCard key={item.title} item={item} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-export default DataModelingOverviewPage;
+/**
+ * 最新发布
+ */
+function LatestPublishCard() {
+  return (
+    <div className="mb-4 w-full overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
+      {/* Header */}
+      <div className="flex min-h-5 w-full items-center">
+        <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
+          最新发布
+          <span className="cursor-help text-[#FE2C55]">
+            <InfoIcon />
+          </span>
+        </div>
+      </div>
+
+      {/* Empty State */}
+      <div className="relative mt-2 w-full">
+        <div className="flex h-[250px] w-full flex-col items-center justify-center overflow-hidden">
+          <div
+            className="h-[240px] w-[320px] max-w-full shrink rounded-none bg-contain bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url(" + EMPTY_IMAGE + ")",
+            }}
+          />
+
+          <div className="mt-2 shrink-0 px-6 text-center text-xs leading-6 text-[#777E8B]">
+            暂无数据
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 数据建模首页
+ */
+export default function DataModelingOverviewPage() {
+  return (
+    <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-white text-[#10121A]">
+      {/* 上半部分：主视觉 */}
+      <section className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 border-b border-[#EDF0F4] bg-[#F3F7FB]" />
+
+      {/* 下半部分：数据概览 */}
+      <section className="min-h-[420px] w-full flex-1 bg-white pb-4 pt-6">
+        <div className="mx-auto w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px]">
+          {/* 24 栏响应式布局 */}
+          <div className="-mx-2 grid grid-cols-[repeat(24,minmax(0,1fr))]">
+            {/* 左侧：数据概览 */}
+            <div className="col-span-[24] px-2 min-[1200px]:col-span-[17] min-[1500px]:col-span-[16]">
+              <DataOverviewCard />
+            </div>
+
+            {/* 右侧：最新发布 */}
+            <div className="col-span-[24] px-2 min-[1200px]:col-span-[7] min-[1500px]:col-span-[8]">
+              <LatestPublishCard />
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
