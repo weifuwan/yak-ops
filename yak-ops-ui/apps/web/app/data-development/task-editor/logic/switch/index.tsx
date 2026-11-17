@@ -11,6 +11,7 @@ import {
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
 import { LogicSection, LogicSelect } from "../shared/logic-form-controls";
 import {
+  getSwitchCaseWarnings,
   getSwitchVariableOptions,
   normalizeSwitchTaskParams,
   validateSwitchTaskParams,
@@ -52,6 +53,12 @@ function SwitchExpressionBuilder({
   const [operator, setOperator] = useState(parsed?.operator ?? ">=");
   const [rightValue, setRightValue] = useState(parsed?.rightValue ?? "");
   const [advanced, setAdvanced] = useState(Boolean(condition.trim() && !parsed));
+  const selectedVariable = variables.find((option) => option.value === variable);
+  const rightValuePlaceholder = /INT|LONG|DECIMAL|FLOAT|DOUBLE|NUMBER/.test(selectedVariable?.dataType ?? "")
+    ? "例如 1000"
+    : /DATE|TIME/.test(selectedVariable?.dataType ?? "")
+      ? '例如 "2026-11-17"'
+      : '例如 "VIP"（字符串请加引号）';
 
   useEffect(() => {
     const next = parseSimpleExpression(condition);
@@ -123,7 +130,7 @@ function SwitchExpressionBuilder({
             size="small"
             variant="outlined"
             value={rightValue}
-            placeholder="常量 / 变量"
+            placeholder={rightValuePlaceholder}
             disabled={disabled}
             onChange={(event) => emit(variable, operator, event.target.value)}
             aria-label="表达式右值"
@@ -132,7 +139,8 @@ function SwitchExpressionBuilder({
       )}
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] text-[#98A2B3]">
-          {variables.length > 0 ? "变量来源：系统内置、项目参数、工作流全局参数、当前节点参数；启动参数等动态变量可在高级表达式中输入" : "未找到可选变量，也可以直接输入运行时变量表达式"}
+          {selectedVariable?.dataType ? "变量类型：" + selectedVariable.dataType + " · " : ""}
+          {variables.length > 0 ? "支持系统、项目、全局参数及上游 OUT 参数" : "未找到可选变量，也可以直接输入运行时变量表达式"}
         </span>
         <Button
           size="sm"
@@ -156,6 +164,9 @@ function SwitchForm({
   const normalized = useMemo(() => normalizeSwitchTaskParams(params), [params]);
   const result = normalized.switchResult;
   const cases = result.dependTaskList;
+  const warningsByCase = new Map(
+    getSwitchCaseWarnings(normalized).map((warning) => [warning.caseIndex, warning]),
+  );
 
   const updateCases = (nextCases: SwitchCase[]) => {
     onChange({
@@ -205,7 +216,10 @@ function SwitchForm({
             </div>
           ) : null}
           {cases.map((item, index) => (
-            <section key={index} className="rounded-md border border-[#e4e7ec] bg-[#fcfcfd] p-3">
+            <section
+              key={item.nextNode ? "case-node-" + item.nextNode : "case-index-" + index}
+              className="rounded-md border border-[#e4e7ec] bg-[#fcfcfd] p-3"
+            >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="flex size-5 items-center justify-center rounded bg-[#eef2ff] text-[10px] font-semibold text-[#4338ca]">
@@ -249,6 +263,11 @@ function SwitchForm({
                 disabled={disabled}
                 onChange={(condition) => updateCase(index, { condition })}
               />
+              {warningsByCase.has(index) ? (
+                <div className="mt-2 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2.5 py-2 text-[11px] leading-4 text-[#9a3412]">
+                  {warningsByCase.get(index)?.message}
+                </div>
+              ) : null}
               <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[#98A2B3]">
                 <span>对应画布输出端口：Case {index + 1}</span>
                 <span>支持比较运算与 JavaScript 布尔表达式</span>
@@ -257,7 +276,7 @@ function SwitchForm({
           ))}
         </div>
         <p className="mt-3 text-[11px] leading-4 text-[#98A2B3]">
-          常用运算符：==、!=、&gt;、&gt;=、&lt;、&lt;=、&&、||。字符串请使用引号。表达式将在任务运行时由后端解析执行。
+          常用运算符：==、!=、&gt;、&gt;=、&lt;、&lt;=、&&、||。字符串请使用引号；简单数值区间会提示前序 Case 覆盖风险，复杂表达式仍以运行时结果为准。
         </p>
       </LogicSection>
 
@@ -315,10 +334,16 @@ export function SwitchEditor({
       workflowQuery.data?.workflowDefinition.globalParams,
       task.taskParams,
       projectParametersQuery.data?.totalList,
+      workflowQuery.data?.taskDefinitionList,
+      workflowQuery.data?.workflowTaskRelationList,
+      task.code,
     ),
     [
       projectParametersQuery.data?.totalList,
+      task.code,
       task.taskParams,
+      workflowQuery.data?.taskDefinitionList,
+      workflowQuery.data?.workflowTaskRelationList,
       workflowQuery.data?.workflowDefinition.globalParams,
     ],
   );
