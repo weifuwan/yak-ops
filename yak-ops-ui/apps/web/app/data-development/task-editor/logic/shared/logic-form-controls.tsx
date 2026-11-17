@@ -12,6 +12,7 @@ import {
 export type LogicSelectOption = {
   value: string;
   label: string;
+  disabled?: boolean;
 };
 
 export function LogicSelect({
@@ -42,7 +43,7 @@ export function LogicSelect({
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
             <SelectItemText>{option.label}</SelectItemText>
             <SelectItemIndicator />
           </SelectItem>
