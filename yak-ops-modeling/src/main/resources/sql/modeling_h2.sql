@@ -375,7 +375,7 @@ CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_1 ON t_yak_ops_indicator_m
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_2 ON t_yak_ops_indicator_modifier (modifier_type);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_3 ON t_yak_ops_indicator_modifier (code_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_4 ON t_yak_ops_indicator_modifier (code_detail_id);
-CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_5 ON t_yak_ops_indicator_modifier (project_code, dwh_id);
+CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_5 ON t_yak_ops_indicator_modifier (project_code, dw_type);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_6 ON t_yak_ops_indicator_modifier (project_code, bus_type_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_7 ON t_yak_ops_indicator_modifier (project_code, domain_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_modifier_8 ON t_yak_ops_indicator_modifier (project_code, dimension_tb_id, dimension_fd_id);
