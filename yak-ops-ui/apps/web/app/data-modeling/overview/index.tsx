@@ -261,12 +261,12 @@ function LatestPublishCard() {
  */
 export function DataModelingOverviewPage() {
   return (
-    <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-white text-[#10121A]">
+    <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-[#F6F6F6] text-[#10121A]">
       {/* 上半部分：主视觉 */}
-      <section className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 border-b border-[#EDF0F4] bg-[#F3F7FB]" />
+      <section className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 border-b border-[#EDF0F4] bg-[#F6F6F6]" />
 
       {/* 下半部分：数据概览 */}
-      <section className="min-h-[420px] w-full flex-1 bg-white pb-4 pt-6">
+      <section className="min-h-[420px] w-full flex-1 bg-[#F6F6F6] pb-4 pt-6">
         <div className="mx-auto w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px]">
           {/* 24 栏响应式布局 */}
           <div className="-mx-2 grid grid-cols-[repeat(24,minmax(0,1fr))]">
