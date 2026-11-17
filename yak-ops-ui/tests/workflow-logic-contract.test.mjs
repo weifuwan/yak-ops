@@ -121,7 +121,13 @@ test("CONDITIONS creates only the two business fields for a dependency item", ()
 
 test("CONDITIONS normalizes legacy fields into the minimal parameter contract", () => {
   const normalized = normalizeConditionsTaskParams(JSON.stringify({
-    localParams: [],
+    localParams: [{
+      prop: "bizDate",
+      direct: "IN",
+      type: "DATE",
+      value: "${system.biz.date}",
+      sensitive: false,
+    }],
     dependence: {
       relation: "OR",
       dependTaskList: [{
@@ -148,6 +154,13 @@ test("CONDITIONS normalizes legacy fields into the minimal parameter contract", 
 
   const item = normalized.dependence.dependTaskList[0].dependItemList[0];
   assert.equal(normalized.dependence.relation, "OR");
+  assert.deepEqual(normalized.localParams, [{
+    prop: "bizDate",
+    direct: "IN",
+    type: "DATE",
+    value: "${system.biz.date}",
+    sensitive: false,
+  }]);
   assert.deepEqual(item, { depTaskCode: 20, status: "SUCCESS" });
   assert.deepEqual(normalized.conditionResult, {
     successNode: [30],
