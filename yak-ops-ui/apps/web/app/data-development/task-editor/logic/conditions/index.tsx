@@ -445,7 +445,6 @@ function ConditionsForm({
       </div>
     </div>
   );
-  );
 }
 
 export function ConditionsEditor({
