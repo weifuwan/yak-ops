@@ -251,7 +251,7 @@ function ConditionsForm({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                      className="pointer-events-none scale-95 opacity-0 transition-[opacity,transform] duration-200 ease-in-out group-hover:pointer-events-auto group-hover:scale-100 group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:scale-100 focus-visible:opacity-100"
                       isDisabled={disabled || groups.length <= 1}
                       title={groups.length <= 1 ? "至少保留一个条件组" : "删除条件组"}
                       aria-label={"删除条件组 " + (groupIndex + 1)}
