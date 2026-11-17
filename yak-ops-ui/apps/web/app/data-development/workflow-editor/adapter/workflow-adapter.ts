@@ -6,6 +6,10 @@ import {
   WORKFLOW_NODE_HEIGHT,
   WORKFLOW_NODE_WIDTH,
 } from "../constants";
+import {
+  getWorkflowBranchOutputs,
+  resolveWorkflowSourceHandle,
+} from "./workflow-branch-adapter";
 import type {
   WorkflowCanvasEdge,
   WorkflowCanvasNode,
@@ -80,6 +84,7 @@ export function workflowDagToGraph(
   );
 
   const nodeIds = new Set(nodes.map((node) => node.id));
+  const taskByCode = new Map(dag.taskDefinitionList.map((task) => [task.code, task]));
   const edges: WorkflowCanvasEdge[] = dag.workflowTaskRelationList
     .filter(
       (relation) =>
@@ -88,18 +93,43 @@ export function workflowDagToGraph(
         nodeIds.has(String(relation.preTaskCode)) &&
         nodeIds.has(String(relation.postTaskCode)),
     )
-    .map((relation) => ({
-      id: "relation:" + relation.preTaskCode + ":" + relation.postTaskCode,
-      type: "workflowEdge",
-      source: String(relation.preTaskCode),
-      sourceHandle: "source",
-      target: String(relation.postTaskCode),
-      targetHandle: "target",
-      data: { backend: true, relation },
-    }));
+    .map((relation) => {
+      const sourceTask = taskByCode.get(relation.preTaskCode);
+      const sourceHandle = sourceTask
+        ? resolveWorkflowSourceHandle(
+            sourceTask.taskType,
+            sourceTask.taskParams,
+            relation.postTaskCode,
+          )
+        : "source";
+      return {
+        id: "relation:" + relation.preTaskCode + ":" + relation.postTaskCode,
+        type: "workflowEdge",
+        source: String(relation.preTaskCode),
+        sourceHandle,
+        target: String(relation.postTaskCode),
+        targetHandle: "target",
+        data: { backend: true, relation },
+      };
+    });
+
+  const unassignedSources = new Set(
+    edges.filter((edge) => edge.sourceHandle === "unassigned").map((edge) => edge.source),
+  );
+  const nodesWithBranchOutputs = nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      branchOutputs: getWorkflowBranchOutputs(
+        node.data.taskType,
+        node.data.task?.taskParams,
+        unassignedSources.has(node.id),
+      ),
+    },
+  }));
 
   return {
-    nodes,
+    nodes: nodesWithBranchOutputs,
     edges,
     preservePositions:
       nodes.length > 0 &&

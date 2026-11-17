@@ -15,6 +15,7 @@ import {
 
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 import { workflowDagToGraph } from "./adapter/workflow-adapter";
+import { applyWorkflowBranchTargets } from "./adapter/workflow-branch-adapter";
 import { WorkflowCanvas } from "./canvas/workflow-canvas";
 import type { CanvasPanelKey } from "./canvas/canvas-side-panel";
 import { layoutWorkflowGraph } from "./layout/elk-layout";
@@ -209,6 +210,12 @@ function WorkflowEditorShell({
         }
         return {
           ...taskPayload,
+          taskParams: applyWorkflowBranchTargets(
+            node.data.taskType,
+            taskPayload.taskParams,
+            node.id,
+            state.edges,
+          ),
           code: node.data.taskCode,
           name: node.data.name,
           taskType: node.data.taskType,

@@ -111,8 +111,10 @@ export function applyWorkflowBranchTargets(
   edges: WorkflowBranchEdgeLike[],
 ): JsonRecord {
   const type = taskType.toUpperCase();
+  if (type !== "CONDITIONS" && type !== "SWITCH") {
+    return asRecord(taskParams);
+  }
   const params = parseTaskParams(taskParams);
-  if (type !== "CONDITIONS" && type !== "SWITCH") return params;
 
   const outgoing = edges.filter((edge) => edge.source === nodeId);
   const targetsFor = (handle: string) => outgoing
