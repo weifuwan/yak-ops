@@ -85,12 +85,14 @@ test("edge plus opens an anchored Dify-style picker without replacing the left s
   assert.match(workflowEditor, /WorkflowEdgeNodeSelector/);
 });
 
-test("workflow branch handles use transparent plus cutouts and clear the selected border", () => {
+test("workflow branch handles use transparent plus cutouts without a white outline strip", () => {
   assert.match(workflowNode, /function AddHandleButton/);
   assert.match(workflowNode, /<mask/);
   assert.match(workflowNode, /!z-\[10\] !size-4/);
   assert.match(workflowNode, /stroke="#000"/);
-  assert.match(workflowNode, /<HandleOutlineGap visible=\{selected \|\| data\.focused\}/);
+  assert.doesNotMatch(workflowNode, /HandleOutlineGap/);
+  assert.match(workflowNode, /borderRightColor: "transparent"/);
+  assert.match(workflowNode, /shadow-\[0_4px_12px_rgba\(49,94,251,0\.14\)\]/);
   assert.doesNotMatch(workflowNode, /after:absolute after:(?:left|right)-1\.5/);
   assert.doesNotMatch(workflowNode, /<Plus size=\{10\}/);
 });
