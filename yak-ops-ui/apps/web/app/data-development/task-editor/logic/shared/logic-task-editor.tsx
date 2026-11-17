@@ -136,34 +136,35 @@ export function LogicTaskEditor({
   };
 
   const handleSave = async () => {
-    let commonPatch: ReturnType<typeof normalizeTaskCommonSettings>;
-    let taskParams: LogicTaskParams;
-    try {
-      commonPatch = normalizeTaskCommonSettings(commonSettings);
-      taskParams = parseTaskParams(taskParamsText);
-      const validationError = await validateParams?.(taskParams);
-      if (validationError) {
-        toast.warning(validationError);
-        return false;
-      }
-    } catch (error) {
-      toast.warning(error instanceof Error ? error.message : "请检查节点配置");
-      return false;
-    }
-
-    const taskGroupError = getTaskGroupValidationError(commonSettings, {
-      projectCode,
-      taskGroups,
-      isPending: taskGroupsQuery.isPending,
-      isError: taskGroupsQuery.isError,
-    });
-    if (taskGroupError) {
-      toast.warning(taskGroupError);
-      return false;
-    }
-
+    if (saving) return false;
     setSaving(true);
     try {
+      let commonPatch: ReturnType<typeof normalizeTaskCommonSettings>;
+      let taskParams: LogicTaskParams;
+      try {
+        commonPatch = normalizeTaskCommonSettings(commonSettings);
+        taskParams = parseTaskParams(taskParamsText);
+        const validationError = await validateParams?.(taskParams);
+        if (validationError) {
+          toast.warning(validationError);
+          return false;
+        }
+      } catch (error) {
+        toast.warning(error instanceof Error ? error.message : "请检查节点配置");
+        return false;
+      }
+
+      const taskGroupError = getTaskGroupValidationError(commonSettings, {
+        projectCode,
+        taskGroups,
+        isPending: taskGroupsQuery.isPending,
+        isError: taskGroupsQuery.isError,
+      });
+      if (taskGroupError) {
+        toast.warning(taskGroupError);
+        return false;
+      }
+
       const nextTask = { ...currentTask, ...commonPatch, taskParams };
       if (!onApplyTask(nextTask)) return false;
       setCurrentTask(nextTask);

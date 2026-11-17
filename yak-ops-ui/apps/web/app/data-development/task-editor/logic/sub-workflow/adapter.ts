@@ -1,6 +1,11 @@
-import { getWorkflowDefinition } from "@/service/workflow/definition";
-
 type JsonRecord = Record<string, unknown>;
+
+export type SubWorkflowDagLike = {
+  taskDefinitionList?: Array<{
+    taskType: string;
+    taskParams?: unknown;
+  }>;
+};
 
 function asRecord(value: unknown): JsonRecord {
   if (typeof value === "string") {
@@ -34,9 +39,10 @@ export function normalizeSubWorkflowTaskParams(value: unknown): {
  * SUB_WORKFLOW task. Existing nested sub-workflow references are traversed
  * through the same workflow DAG API used by the editor.
  */
-export async function hasSubWorkflowCycle(
+export async function hasWorkflowReferenceCycle(
   currentWorkflowCode: number,
   selectedWorkflowCode: number,
+  loadWorkflow: (workflowCode: number) => Promise<SubWorkflowDagLike>,
 ): Promise<boolean> {
   if (currentWorkflowCode <= 0 || selectedWorkflowCode <= 0) return false;
   if (currentWorkflowCode === selectedWorkflowCode) return true;
@@ -52,7 +58,7 @@ export async function hasSubWorkflowCycle(
 
     visited.add(workflowCode);
     path.add(workflowCode);
-    const dag = await getWorkflowDefinition(workflowCode);
+    const dag = await loadWorkflow(workflowCode);
     const childCodes = (dag.taskDefinitionList ?? [])
       .filter((task) => task.taskType.toUpperCase() === "SUB_WORKFLOW")
       .map((task) => normalizeSubWorkflowTaskParams(task.taskParams).workflowDefinitionCode)

@@ -1,19 +1,155 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button, Input } from "@yak-ops/yak-ui";
 
-import type { WorkflowTaskRecord } from "@/service/workflow/definition";
+import {
+  getWorkflowDefinition,
+  type WorkflowTaskRecord,
+} from "@/service/workflow/definition";
 
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
-import { LogicSection } from "../shared/logic-form-controls";
-import { normalizeSwitchTaskParams, validateSwitchTaskParams } from "./adapter";
+import { LogicField, LogicSection, LogicSelect } from "../shared/logic-form-controls";
+import {
+  getSwitchVariableOptions,
+  normalizeSwitchTaskParams,
+  validateSwitchTaskParams,
+  type SwitchVariableOption,
+} from "./adapter";
 import type { SwitchCase } from "./types";
+
+const OPERATOR_OPTIONS = [
+  { value: "==", label: "等于 ==" },
+  { value: "!=", label: "不等于 !=" },
+  { value: ">", label: "大于 >" },
+  { value: ">=", label: "大于等于 >=" },
+  { value: "<", label: "小于 <" },
+  { value: "<=", label: "小于等于 <=" },
+];
+
+function parseSimpleExpression(condition: string) {
+  const match = condition.match(/^\\s*(\\$\\{[^}]+\\})\\s*(===|!==|==|!=|>=|<=|>|<)\\s*(.*?)\\s*$/);
+  if (!match) return null;
+  return { variable: match[1], operator: match[2], rightValue: match[3] };
+}
+
+function SwitchExpressionBuilder({
+  condition,
+  variables,
+  disabled,
+  onChange,
+}: {
+  condition: string;
+  variables: SwitchVariableOption[];
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const parsed = useMemo(() => parseSimpleExpression(condition), [condition]);
+  const [variable, setVariable] = useState(parsed?.variable ?? variables[0]?.value ?? "");
+  const [operator, setOperator] = useState(parsed?.operator ?? ">=");
+  const [rightValue, setRightValue] = useState(parsed?.rightValue ?? "");
+  const [advanced, setAdvanced] = useState(Boolean(condition.trim() && !parsed));
+
+  useEffect(() => {
+    const next = parseSimpleExpression(condition);
+    if (next) {
+      setVariable(next.variable);
+      setOperator(next.operator);
+      setRightValue(next.rightValue);
+      setAdvanced(false);
+    } else if (!condition.trim()) {
+      setVariable(variables[0]?.value ?? "");
+      setOperator(">=");
+      setRightValue("");
+      setAdvanced(false);
+    } else {
+      setAdvanced(true);
+    }
+  }, [condition, variables]);
+
+  const emit = (nextVariable: string, nextOperator: string, nextRightValue: string) => {
+    setVariable(nextVariable);
+    setOperator(nextOperator);
+    setRightValue(nextRightValue);
+    onChange(nextVariable + " " + nextOperator + " " + nextRightValue);
+  };
+
+  return (
+    <div className="space-y-2">
+      {advanced ? (
+        <Input
+          size="small"
+          variant="outlined"
+          value={condition}
+          placeholder="例如：${amount} >= 100"
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label="高级表达式"
+        />
+      ) : (
+        <div className="grid grid-cols-[minmax(0,1fr)_124px_minmax(0,1fr)] gap-2">
+          {variables.length > 0 ? (
+            <LogicSelect
+              id="switch-expression-variable"
+              value={variable}
+              options={variables}
+              placeholder="选择变量"
+              disabled={disabled}
+              onChange={(value) => emit(value, operator, rightValue)}
+            />
+          ) : (
+            <Input
+              size="small"
+              variant="outlined"
+              value={variable}
+              placeholder="${variable}"
+              disabled={disabled}
+              onChange={(event) => emit(event.target.value, operator, rightValue)}
+              aria-label="表达式变量"
+            />
+          )}
+          <LogicSelect
+            id="switch-expression-operator"
+            value={operator}
+            options={OPERATOR_OPTIONS}
+            placeholder="运算符"
+            disabled={disabled}
+            onChange={(value) => emit(variable, value, rightValue)}
+          />
+          <Input
+            size="small"
+            variant="outlined"
+            value={rightValue}
+            placeholder="常量 / 变量"
+            disabled={disabled}
+            onChange={(event) => emit(variable, operator, event.target.value)}
+            aria-label="表达式右值"
+          />
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] text-[#98A2B3]">
+          {variables.length > 0 ? "变量来源：工作流全局参数、当前节点输入参数" : "未找到可选变量，也可以直接输入变量表达式"}
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          isDisabled={disabled}
+          onClick={() => setAdvanced((value) => !value)}
+        >
+          {advanced ? "简易构建" : "高级表达式"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function SwitchForm({
   params,
   onChange,
   disabled,
-}: LogicTaskFormProps) {
+  variables,
+}: LogicTaskFormProps & { variables: SwitchVariableOption[] }) {
   const normalized = useMemo(() => normalizeSwitchTaskParams(params), [params]);
   const result = normalized.switchResult;
   const cases = result.dependTaskList;
@@ -104,18 +240,15 @@ function SwitchForm({
                   </Button>
                 </div>
               </div>
-              <Input
-                size="small"
-                variant="outlined"
-                value={item.condition}
-                placeholder="例如：${amount} >= 100"
+              <SwitchExpressionBuilder
+                condition={item.condition}
+                variables={variables}
                 disabled={disabled}
-                onChange={(event) => updateCase(index, { condition: event.target.value })}
-                aria-label={"Case " + (index + 1) + " 判断表达式"}
+                onChange={(condition) => updateCase(index, { condition })}
               />
               <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[#98A2B3]">
                 <span>对应画布输出端口：Case {index + 1}</span>
-                <span>支持变量与 JavaScript 布尔表达式</span>
+                <span>支持比较运算与 JavaScript 布尔表达式</span>
               </div>
             </section>
           ))}
@@ -163,6 +296,19 @@ export function SwitchEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
+  const workflowQuery = useQuery({
+    queryKey: ["workflow-switch-variables", workflowCode],
+    queryFn: () => getWorkflowDefinition(workflowCode),
+    staleTime: 60_000,
+  });
+  const variables = useMemo(
+    () => getSwitchVariableOptions(
+      workflowQuery.data?.workflowDefinition.globalParams,
+      task.taskParams,
+    ),
+    [task.taskParams, workflowQuery.data?.workflowDefinition.globalParams],
+  );
+
   return (
     <LogicTaskEditor
       workflowCode={workflowCode}
@@ -175,7 +321,7 @@ export function SwitchEditor({
       onBackToWorkflow={onBackToWorkflow}
       validateParams={validateSwitchTaskParams}
     >
-      {(formProps) => <SwitchForm {...formProps} />}
+      {(formProps) => <SwitchForm {...formProps} variables={variables} />}
     </LogicTaskEditor>
   );
 }

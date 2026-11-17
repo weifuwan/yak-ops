@@ -9,7 +9,8 @@ import {
 
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
 import { LogicField, LogicSection, LogicSelect } from "../shared/logic-form-controls";
-import { hasSubWorkflowCycle, normalizeSubWorkflowTaskParams } from "./adapter";
+import { normalizeSubWorkflowTaskParams } from "./adapter";
+import { hasSubWorkflowCycle } from "./service";
 
 function SubWorkflowForm({
   params,

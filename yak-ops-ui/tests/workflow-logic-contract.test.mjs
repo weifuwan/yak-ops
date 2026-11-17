@@ -15,10 +15,14 @@ import {
   validateDependentTaskParams,
 } from "../apps/web/app/data-development/task-editor/logic/dependent/adapter.ts";
 import {
-  normalizeSwitchTaskParams,
+  getSwitchVariableOptions,
   remapSwitchCaseHandles,
   validateSwitchTaskParams,
 } from "../apps/web/app/data-development/task-editor/logic/switch/adapter.ts";
+import {
+  hasWorkflowReferenceCycle,
+  normalizeSubWorkflowTaskParams,
+} from "../apps/web/app/data-development/task-editor/logic/sub-workflow/adapter.ts";
 
 test("CONDITIONS restores success and failed handles from taskParams", () => {
   const params = {
@@ -171,6 +175,16 @@ test("SWITCH remaps connected edges when Case expressions are reordered", () => 
   assert.equal(remapped.find((edge) => edge.target === "203").sourceHandle, "default");
 });
 
+test("SWITCH variable selector includes workflow and task input parameters", () => {
+  const options = getSwitchVariableOptions(
+    JSON.stringify([{ prop: "bizDate", type: "DATE", direct: "IN" }]),
+    {
+      localParams: [{ prop: "amount", type: "INTEGER", direct: "IN" }],
+    },
+  );
+  assert.deepEqual(options.map((item) => item.value), ["${bizDate}", "${amount}"]);
+});
+
 test("SWITCH rejects missing expressions and duplicate cases", () => {
   assert.match(
     validateSwitchTaskParams({ switchResult: { dependTaskList: [{ condition: "" }] } }),
@@ -248,6 +262,27 @@ test("DEPENDENT validates selected workflows and task codes", () => {
     dependence: { ...valid.dependence, checkInterval: 0 },
   };
   assert.match(validateDependentTaskParams(invalidInterval), /检查间隔/);
+});
+
+test("SUB_WORKFLOW detects direct and transitive circular references", async () => {
+  const graphs = new Map([
+    [200, { taskDefinitionList: [{ taskType: "SUB_WORKFLOW", taskParams: { workflowDefinitionCode: 300 } }] }],
+    [300, { taskDefinitionList: [{ taskType: "SUB_WORKFLOW", taskParams: { workflowDefinitionCode: 100 } }] }],
+    [400, { taskDefinitionList: [] }],
+  ]);
+  const loadWorkflow = async (code) => {
+    const dag = graphs.get(code);
+    if (!dag) throw new Error("missing workflow " + code);
+    return dag;
+  };
+
+  assert.equal(await hasWorkflowReferenceCycle(100, 200, loadWorkflow), true);
+  assert.equal(await hasWorkflowReferenceCycle(100, 400, loadWorkflow), false);
+  assert.equal(await hasWorkflowReferenceCycle(100, 100, loadWorkflow), true);
+  assert.equal(
+    normalizeSubWorkflowTaskParams('{"workflowDefinitionCode":200}').workflowDefinitionCode,
+    200,
+  );
 });
 
 test("Non-logic task parameters pass through branch serialization unchanged", () => {
