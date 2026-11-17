@@ -225,7 +225,7 @@ function ConditionsForm({
               className="flex min-w-0 items-center py-2"
               style={{ gridColumn: 1, gridRow: row }}
             >
-              <section className="w-full rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="group w-full rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="flex size-6 items-center justify-center rounded-md bg-[#eef2ff] text-[10px] font-semibold text-[#3a3d51]">
@@ -251,6 +251,7 @@ function ConditionsForm({
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                       isDisabled={disabled || groups.length <= 1}
                       title={groups.length <= 1 ? "至少保留一个条件组" : "删除条件组"}
                       aria-label={"删除条件组 " + (groupIndex + 1)}
