@@ -20,6 +20,7 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 
 import { getWorkflowBranchOutputs } from "../adapter/workflow-branch-adapter";
 import type {
+  WorkflowBranchOutput,
   WorkflowCanvasEdge,
   WorkflowCanvasNode,
   WorkflowGraph,
@@ -37,6 +38,8 @@ type WorkflowHistoryState = Pick<
 export type WorkflowEditorState = {
   nodes: WorkflowCanvasNode[];
   edges: WorkflowCanvasEdge[];
+  previewEdges: WorkflowCanvasEdge[] | null;
+  previewNodeId: string | null;
   interactionMode: WorkflowInteractionMode;
   edgeStyle: WorkflowEdgeStyle;
   selectorRequest: WorkflowSelectorRequest | null;
@@ -65,6 +68,12 @@ export type WorkflowEditorState = {
   ) => { id: string; name: string };
   renameDraftNode: (nodeId: string, name: string) => boolean;
   updateTaskDefinition: (nodeId: string, task: WorkflowTaskRecord) => boolean;
+  setSwitchPreview: (
+    nodeId: string,
+    branchOutputs: WorkflowBranchOutput[],
+    edges: WorkflowCanvasEdge[],
+  ) => void;
+  clearSwitchPreview: (nodeId: string) => void;
   insertNodeFromSelector: (
     taskType: string,
     taskCode: number,
@@ -297,6 +306,10 @@ function graphHistorySnapshot(
   return {
     nodes: state.nodes.map((node) => ({
       ...node,
+      data: {
+        ...node.data,
+        branchOutputsPreview: undefined,
+      },
       selected: false,
       dragging: false,
     })),
@@ -333,6 +346,8 @@ export function createWorkflowStore(
       (set, get) => ({
         nodes: initialGraph.nodes,
         edges: initialGraph.edges,
+        previewEdges: null,
+        previewNodeId: null,
         interactionMode: "pointer",
         edgeStyle: "bezier",
         selectorRequest: null,
@@ -461,13 +476,52 @@ export function createWorkflowStore(
                           ? [{ id: "unassigned", label: "未配置", kind: "unassigned" as const }]
                           : []),
                       ],
+                      branchOutputsPreview: undefined,
                     },
                   }
                 : node,
             ),
+            previewEdges: state.previewNodeId === nodeId ? null : state.previewEdges,
+            previewNodeId: state.previewNodeId === nodeId ? null : state.previewNodeId,
           }));
           return true;
         },
+
+        setSwitchPreview: (nodeId, branchOutputs, previewEdges) => {
+          if (!get().nodes.some((node) => node.id === nodeId)) return;
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      branchOutputsPreview: branchOutputs,
+                    },
+                  }
+                : node,
+            ),
+            previewEdges,
+            previewNodeId: nodeId,
+          }));
+        },
+
+        clearSwitchPreview: (nodeId) =>
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      branchOutputsPreview: undefined,
+                    },
+                  }
+                : node,
+            ),
+            previewEdges: state.previewNodeId === nodeId ? null : state.previewEdges,
+            previewNodeId: state.previewNodeId === nodeId ? null : state.previewNodeId,
+          })),
 
         insertNodeFromSelector: (taskType, taskCode, projectCode) => {
           const state = get();
@@ -666,6 +720,8 @@ export function createWorkflowStore(
           set({
             nodes: graph.nodes,
             edges: graph.edges,
+            previewEdges: null,
+            previewNodeId: null,
           }),
 
         selectTaskCode: (taskCode) => {
