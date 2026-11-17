@@ -323,6 +323,23 @@ test("SWITCH restores Case and Default handles from taskParams", () => {
   );
 });
 
+test("SWITCH exposes every configured Case plus Default, including six or more Cases", () => {
+  const params = {
+    switchResult: {
+      dependTaskList: Array.from({ length: 6 }, (_item, index) => ({
+        condition: "${amount} >= " + (100 - index * 10),
+        nextNode: 201 + index,
+      })),
+      nextNode: 207,
+    },
+  };
+
+  assert.deepEqual(
+    getWorkflowBranchOutputs("SWITCH", params).map((item) => item.id),
+    ["case-0", "case-1", "case-2", "case-3", "case-4", "case-5", "default"],
+  );
+});
+
 test("SWITCH writes one target per Case and Default", () => {
   const result = applyWorkflowBranchTargets(
     "SWITCH",
