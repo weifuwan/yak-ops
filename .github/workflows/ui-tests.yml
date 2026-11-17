@@ -51,6 +51,9 @@ jobs:
       - name: Planning tree visual contract tests
         working-directory: yak-ops-ui
         run: npm run test:planning-tree
+      - name: Workflow logic node branch contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:workflow-logic
       - name: Data modeling overview visual contract tests
         working-directory: yak-ops-ui
         run: npm run test:modeling-overview
