@@ -171,6 +171,17 @@ function defaultTaskParams(taskType: string): Record<string, unknown> {
         },
         nextBranch: null,
       };
+    case "DEPENDENT":
+      return {
+        localParams: [],
+        dependence: {
+          relation: "AND",
+          dependTaskList: [],
+          checkInterval: 60,
+          failurePolicy: "DEPENDENT_FAILURE_FAILURE",
+          failureWaitingTime: 30,
+        },
+      };
     case "SHELL":
       return {
         rawScript: "",

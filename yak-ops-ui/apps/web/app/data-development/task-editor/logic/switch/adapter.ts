@@ -5,6 +5,16 @@ import type { SwitchCase, SwitchTaskParams } from "./types";
 type JsonRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): JsonRecord {
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed as JsonRecord
+        : {};
+    } catch {
+      return {};
+    }
+  }
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as JsonRecord
     : {};
