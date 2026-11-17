@@ -87,11 +87,15 @@ export function normalizeDependentTaskParams(value: unknown): DependentTaskParam
           }),
         } as DependentGroup;
       }),
-      checkInterval: Math.max(1, Number(dependence.checkInterval ?? 60) || 60),
+      checkInterval: Number.isFinite(Number(dependence.checkInterval ?? 60))
+        ? Number(dependence.checkInterval ?? 60)
+        : 60,
       failurePolicy: dependence.failurePolicy === "DEPENDENT_FAILURE_WAITING"
         ? "DEPENDENT_FAILURE_WAITING"
         : "DEPENDENT_FAILURE_FAILURE",
-      failureWaitingTime: Math.max(0, Number(dependence.failureWaitingTime ?? 30) || 0),
+      failureWaitingTime: Number.isFinite(Number(dependence.failureWaitingTime ?? 30))
+        ? Number(dependence.failureWaitingTime ?? 30)
+        : 30,
     },
   };
 }

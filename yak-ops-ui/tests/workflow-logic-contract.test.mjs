@@ -242,6 +242,12 @@ test("DEPENDENT validates selected workflows and task codes", () => {
     },
   };
   assert.match(validateDependentTaskParams(invalid), /请选择依赖任务/);
+
+  const invalidInterval = {
+    ...valid,
+    dependence: { ...valid.dependence, checkInterval: 0 },
+  };
+  assert.match(validateDependentTaskParams(invalidInterval), /检查间隔/);
 });
 
 test("Non-logic task parameters pass through branch serialization unchanged", () => {
