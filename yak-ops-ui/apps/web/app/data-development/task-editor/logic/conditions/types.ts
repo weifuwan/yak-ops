@@ -13,6 +13,14 @@ export type ConditionTaskOption = {
   taskType: string;
 };
 
+export type ConditionLocalParam = {
+  prop: string;
+  direct: "IN" | "OUT";
+  type: string;
+  value: string;
+  sensitive: boolean;
+};
+
 export type ConditionDependentItem = {
   depTaskCode: number;
   status: ConditionTaskStatus;
@@ -29,7 +37,7 @@ export type ConditionResult = {
 };
 
 export type ConditionsTaskParams = Record<string, unknown> & {
-  localParams?: unknown[];
+  localParams: ConditionLocalParam[];
   dependence: {
     relation: ConditionRelation;
     dependTaskList: ConditionDependentGroup[];
