@@ -243,7 +243,8 @@ export function WorkflowCanvas({
               "运行该节点",
               "仅执行当前节点。",
             ),
-          onOpenMenu: ({ x, y }) => setContextMenu({ node, x, y }),
+          onOpenMenu: ({ x, y }: { x: number; y: number }) =>
+            setContextMenu({ node, x, y }),
         },
       })),
     [nodes, focusedNodeId, isWorkflowOnline, contextMenu],

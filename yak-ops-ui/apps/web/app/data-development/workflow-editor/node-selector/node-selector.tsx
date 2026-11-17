@@ -84,7 +84,9 @@ function TaskTypeItem({
         ? "group flex h-8 w-full cursor-grab items-center rounded-md border border-transparent bg-white px-2 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:bg-[#F3F5F9] active:cursor-grabbing"
         : "group flex h-7 w-full cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"}
     >
-      <span className="mr-2 flex size-5 shrink-0 items-center justify-center">
+      <span className={variant === "popover"
+        ? "mr-2 flex size-5 shrink-0 items-center justify-center"
+        : "mr-2 flex size-4 shrink-0 items-center justify-center"}>
         <TaskTypeBadgeIcon taskType={task.taskType} />
       </span>
       <span className="min-w-0 truncate leading-4">
@@ -287,7 +289,7 @@ function WorkflowNodePicker({
 
             {!isCollapsed ? (
               <div className="pt-1">
-                <div className="grid gap-0.5">
+                <div className={isPopover ? "grid gap-0.5" : "grid gap-1"}>
                   {tasks.map((task) => (
                     <TaskTypeItem
                       key={task.taskCategory + ":" + task.taskType}
@@ -380,7 +382,7 @@ function WorkflowNodePicker({
         <div className="relative mb-1 flex h-6 items-center pr-12 font-bold leading-6">
           <div className="flex min-w-0 items-center">
             <span className="truncate text-[var(--yak-color-primary)]">
-              {selectorTitle(request.kind)}
+              {selectorTitle(request.kind === "edge" ? "add" : request.kind)}
             </span>
           </div>
 
