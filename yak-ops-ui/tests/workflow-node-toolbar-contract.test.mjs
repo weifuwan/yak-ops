@@ -76,12 +76,17 @@ test("edge plus opens an anchored Dify-style picker without replacing the left s
   assert.match(workflowSelector, /搜索节点类型/);
   assert.match(workflowSelector, /kind === "upstream-popover"/);
   assert.match(workflowSelector, /kind: "upstream", nodeId: request\.nodeId/);
+  assert.match(workflowSelector, /kind === "downstream-popover"/);
+  assert.match(workflowSelector, /kind: "downstream",\s*nodeId: request\.nodeId,\s*sourceHandle: request\.sourceHandle/s);
   assert.match(workflowSelector, /"anchor" in request/);
   assert.match(workflowStore, /edgeSelectorRequest/);
   assert.match(workflowStore, /openEdgeSelector/);
   assert.match(workflowStore, /WorkflowPopoverSelectorRequest/);
-  assert.match(workflowStore, /selectorRequest: null, edgeSelectorRequest/);
+  assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
+  assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
   assert.match(workflowStore, /requestOverride/);
+  assert.match(workflowNode, /openEdgeSelector\(\{\s*kind: "downstream-popover"/);
+  assert.match(workflowNode, /data-workflow-edge-picker-trigger/);
   assert.match(workflowEditor, /WorkflowEdgeNodeSelector/);
 });
 
@@ -102,4 +107,18 @@ test("workflow branch handle circle has an inset SVG viewport to avoid edge clip
   assert.match(workflowNode, /className="relative size-\[18px\]"/);
   assert.match(workflowNode, /cx="9"\s+cy="9"\s+r="8"/);
   assert.match(workflowNode, /width="18"\s+height="18"/);
+});
+
+
+test("workflow node connector plus opens a local downstream picker without touching the left sidebar", () => {
+  assert.match(workflowTypes, /kind: "downstream-popover"/);
+  assert.match(workflowNode, /kind: "downstream-popover"[\s\S]*?anchor:/);
+  assert.match(workflowSelector, /if \(isPopover\) closeSelector\(\)/);
+  assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
+  assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
+  const insertionStart = workflowStore.indexOf("insertNodeFromSelector:");
+  const insertionEnd = workflowStore.indexOf("addConnection:", insertionStart);
+  const insertion = workflowStore.slice(insertionStart, insertionEnd);
+  assert.doesNotMatch(insertion, /selectorRequest\s*:/);
+  assert.doesNotMatch(insertion, /edgeSelectorRequest\s*:/);
 });
