@@ -182,6 +182,11 @@ function defaultTaskParams(taskType: string): Record<string, unknown> {
           failureWaitingTime: 30,
         },
       };
+    case "SUB_WORKFLOW":
+      return {
+        localParams: [],
+        workflowDefinitionCode: 0,
+      };
     case "SHELL":
       return {
         rawScript: "",

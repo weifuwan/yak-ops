@@ -65,7 +65,7 @@ export function LogicTaskEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
   children: (props: LogicTaskFormProps) => ReactNode;
-  validateParams?: (params: LogicTaskParams) => string | null;
+  validateParams?: (params: LogicTaskParams) => string | null | Promise<string | null>;
 }) {
   const queryClient = useQueryClient();
   const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
@@ -135,7 +135,7 @@ export function LogicTaskEditor({
     try {
       commonPatch = normalizeTaskCommonSettings(commonSettings);
       taskParams = parseTaskParams(taskParamsText);
-      const validationError = validateParams?.(taskParams);
+      const validationError = await validateParams?.(taskParams);
       if (validationError) {
         toast.warning(validationError);
         return false;
