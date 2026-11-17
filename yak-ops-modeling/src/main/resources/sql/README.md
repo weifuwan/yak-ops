@@ -20,9 +20,9 @@ All default-data statements are project-scoped and use deterministic IDs with `N
 
 All 22 modeling tables use the `t_yak_ops_` prefix and a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies the project code from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
-The database column for dimension-field precision is `field_precision`; the Java/API property remains `precision`. The derived-indicator table stores warehouse ownership in `dw_type` and does not contain the legacy `dwh_id` column. Other modeling assets retain their own `dwh_id` fields where their current entities still use them.
+The database column for dimension-field precision is `field_precision`; the Java/API property remains `precision`. All four indicator-asset tables (modifier, atomic, derivative and composite) store warehouse classification in `dw_type`; they do not reference a concrete warehouse-layer row. Only the dimension-model table retains `dwh_id`, because a dimension table must reference its actual warehouse-layer definition.
 
-The complete dialect scripts already include all modifier-scope indexes and the derived-indicator `dw_type` column. The six one-time patch scripts for modifier indexes and derived-indicator migration have therefore been retired. A clean rebuild must use only the matching complete schema script; do not apply the retired patches afterward. If existing modeling data must be preserved, do not run the reset scripts—design a separate data-preserving migration instead.
+The complete dialect scripts already include all modifier-scope indexes and the `dw_type` columns and indexes for indicator assets. The six one-time patch scripts for modifier indexes and derived-indicator migration have therefore been retired. A clean rebuild must use only the matching complete schema script; do not apply the retired patches afterward. If existing modeling data must be preserved, do not run the reset scripts—design a separate data-preserving migration instead.
 
 ## Full modeling reset and rebuild
 
@@ -50,7 +50,7 @@ For PostgreSQL or H2, use the matching `modeling_drop_<dialect>.sql` and `modeli
 After rebuilding, verify that:
 
 1. All 22 modeling tables exist and each has `project_code`.
-2. The derived-indicator table has `dw_type` and no `dwh_id`.
+2. The modifier, atomic, derivative and composite indicator tables have `dw_type` and no `dwh_id`; the dimension-model table retains `dwh_id`.
 3. The modifier table has the four project-scoped indexes `idx_yak_indicator_modifier_5` through `idx_yak_indicator_modifier_8`.
 4. Each existing project has the five default warehouse layers, the five unit-standard directories, and the seeded time-period hierarchy/assets.
 5. Base tables and existing project/user/role data remain unchanged.
@@ -73,8 +73,11 @@ WHERE table_schema = DATABASE()
     't_yak_ops_time_period', 't_yak_ops_version_management'
   );
 
+SHOW COLUMNS FROM t_yak_ops_indicator_modifier LIKE 'dw_type';
+SHOW COLUMNS FROM t_yak_ops_indicator_compose LIKE 'dw_type';
+SHOW COLUMNS FROM t_yak_ops_indicator_atom LIKE 'dw_type';
 SHOW COLUMNS FROM t_yak_ops_indicator_derivative LIKE 'dw_type';
-SHOW COLUMNS FROM t_yak_ops_indicator_derivative LIKE 'dwh_id';
+SHOW COLUMNS FROM t_yak_ops_dimension_table LIKE 'dwh_id';
 SHOW INDEX FROM t_yak_ops_indicator_modifier;
 SELECT project_code, COUNT(*) AS layer_count
 FROM t_yak_ops_dw_layer

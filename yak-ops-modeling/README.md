@@ -89,7 +89,7 @@ The DML section normalizes legacy warehouse-layer codes, initializes atomic-indi
 
 For a modeling-only reset, use the matching `sql/modeling_drop_<dialect>.sql` script, then run the matching complete `sql/modeling_<dialect>.sql` script. The reset scripts remove only the 22 logical modeling tables (including their legacy `t_cockpit_` names) and preserve Yak Ops base tables such as projects, users, roles and permissions. They delete modeling data for every project and must be run manually after a backup; they are never part of application startup. See `src/main/resources/sql/README.md` for the exact rebuild procedure and verification checks.
 
-The derived-indicator table uses `dw_type` directly and no longer has the legacy `dwh_id` column. Its complete schema already includes the modifier-scope indexes and derived-indicator indexes; the retired one-time patch scripts are not part of a clean rebuild.
+All four indicator-asset tables (modifier, atomic, derivative and composite) use `dw_type` directly and do not reference concrete warehouse-layer IDs. The dimension-model table intentionally retains `dwh_id`. The complete schema includes the corresponding classification indexes; the retired one-time patch scripts are not part of a clean rebuild.
 
 Before applying the normalized schema, `SchemaDao.ensureModelingSchema()` checks for former `t_cockpit_` table names. When only a legacy table exists, it renames it in place and normalizes its index names, preserving rows. If both old and new table names exist, initialization stops and requires explicit data reconciliation. It never drops or merges either table automatically.
 

@@ -263,7 +263,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_atom (
   bus_type_id varchar(32) NULL,
   domain_id varchar(32) NULL,
   bus_process_id varchar(32) NULL,
-  dw_type varchar(32) NULL DEFAULT 'PUBLIC_LAYER',
+  dw_type varchar(32) NOT NULL DEFAULT 'PUBLIC_LAYER',
   calculate_function varchar(500) NULL,
   decimal_number integer NULL,
   unit_id varchar(32) NULL,
@@ -318,7 +318,7 @@ CREATE INDEX IF NOT EXISTS idx_yak_indicator_derivative_8 ON t_yak_ops_indicator
 CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_compose (
   id varchar(32) NOT NULL,
   project_code bigint NOT NULL,
-  dwh_id varchar(32) NULL,
+  dw_type varchar(32) NOT NULL,
   mart_id varchar(32) NULL,
   subject_id varchar(32) NULL,
   bus_type_id varchar(32) NULL,
@@ -340,7 +340,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_compose (
   update_by varchar(100) NULL,
   PRIMARY KEY (id)
 );
-CREATE INDEX IF NOT EXISTS idx_yak_indicator_compose_1 ON t_yak_ops_indicator_compose (project_code);
+CREATE INDEX IF NOT EXISTS idx_yak_indicator_compose_1 ON t_yak_ops_indicator_compose (project_code, dw_type);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_compose_2 ON t_yak_ops_indicator_compose (derive_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_compose_3 ON t_yak_ops_indicator_compose (bus_type_id);
 CREATE INDEX IF NOT EXISTS idx_yak_indicator_compose_4 ON t_yak_ops_indicator_compose (domain_id);
@@ -356,7 +356,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_indicator_modifier (
   business_caliber varchar(500) NULL,
   remark varchar(2048) NULL,
   submit boolean NULL,
-  dwh_id varchar(32) NULL,
+  dw_type varchar(32) NULL,
   mart_id varchar(32) NULL,
   subject_id varchar(32) NULL,
   bus_type_id varchar(32) NULL,
