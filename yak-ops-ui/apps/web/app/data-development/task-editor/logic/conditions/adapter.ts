@@ -184,7 +184,7 @@ export function getConditionWorkflowGraph(
   edges: ConditionGraphEdgeLike[],
   currentNodeId: string,
 ): ConditionWorkflowGraph {
-  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const nodesById = new Map(nodes.map((node) => [node.id, node] as const));
   const incoming = edges
     .filter((edge) => edge.target === currentNodeId)
     .map((edge) => edge.source);
