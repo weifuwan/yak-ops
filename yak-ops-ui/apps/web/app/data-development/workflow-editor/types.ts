@@ -20,9 +20,13 @@ export type WorkflowEdgeSelectorRequest = {
   anchor: XYPosition;
 };
 
+export type WorkflowPopoverSelectorRequest =
+  | WorkflowEdgeSelectorRequest
+  | { kind: "upstream"; nodeId: string; anchor: XYPosition };
+
 export type WorkflowNodeInsertionRequest =
   | WorkflowSelectorRequest
-  | WorkflowEdgeSelectorRequest;
+  | WorkflowPopoverSelectorRequest;
 
 export type WorkflowBranchOutputKind =
   | "success"

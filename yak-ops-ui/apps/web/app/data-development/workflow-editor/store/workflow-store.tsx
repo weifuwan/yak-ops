@@ -27,7 +27,7 @@ import type {
   WorkflowInteractionMode,
   WorkflowEdgeStyle,
   WorkflowSelectorRequest,
-  WorkflowEdgeSelectorRequest,
+  WorkflowPopoverSelectorRequest,
   WorkflowNodeInsertionRequest,
 } from "../types";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
@@ -45,7 +45,7 @@ export type WorkflowEditorState = {
   interactionMode: WorkflowInteractionMode;
   edgeStyle: WorkflowEdgeStyle;
   selectorRequest: WorkflowSelectorRequest | null;
-  edgeSelectorRequest: WorkflowEdgeSelectorRequest | null;
+  edgeSelectorRequest: WorkflowPopoverSelectorRequest | null;
   draftNodeSequence: number;
   draftEdgeSequence: number;
 
@@ -63,7 +63,7 @@ export type WorkflowEditorState = {
     request: WorkflowSelectorRequest,
   ) => void;
   closeSelector: () => void;
-  openEdgeSelector: (request: WorkflowEdgeSelectorRequest) => void;
+  openEdgeSelector: (request: WorkflowPopoverSelectorRequest) => void;
   closeEdgeSelector: () => void;
   addDroppedNode: (
     taskType: string,
@@ -405,7 +405,7 @@ export function createWorkflowStore(
           set({ selectorRequest: null }),
 
         openEdgeSelector: (edgeSelectorRequest) =>
-          set({ edgeSelectorRequest }),
+          set({ selectorRequest: null, edgeSelectorRequest }),
 
         closeEdgeSelector: () =>
           set({ edgeSelectorRequest: null }),

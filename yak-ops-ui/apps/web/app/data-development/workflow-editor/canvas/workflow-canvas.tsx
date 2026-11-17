@@ -145,11 +145,8 @@ export function WorkflowCanvas({
   const setEdgeStyle = useWorkflowStore(
     (state) => state.setEdgeStyle,
   );
-  const openSelector = useWorkflowStore(
-    (state) => state.openSelector,
-  );
-  const selectorRequest = useWorkflowStore(
-    (state) => state.selectorRequest,
+  const openEdgeSelector = useWorkflowStore(
+    (state) => state.openEdgeSelector,
   );
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
@@ -616,12 +613,22 @@ export function WorkflowCanvas({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={isWorkflowOnline}
-                  onClick={() =>
-                    openSelector({
+                  onClick={() => {
+                    const node = contextMenu.node;
+                    const anchor = instance?.flowToScreenPosition({
+                      x: node.position.x + (node.width ?? 240) + 16,
+                      y: node.position.y + (node.height ?? 96) / 2,
+                    }) ?? {
+                      x: contextMenu.x + 260,
+                      y: contextMenu.y + 48,
+                    };
+                    setContextMenu(null);
+                    openEdgeSelector({
                       kind: "upstream",
-                      nodeId: contextMenu.node.id,
-                    })
-                  }
+                      nodeId: node.id,
+                      anchor,
+                    });
+                  }}
                 >
                   <Plus size={14} aria-hidden="true" />
                   新建上游

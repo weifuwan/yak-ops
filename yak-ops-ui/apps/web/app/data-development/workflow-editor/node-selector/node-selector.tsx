@@ -125,7 +125,9 @@ function WorkflowNodePicker({
   );
   const requestKey = request?.kind === "edge"
     ? "edge:" + request.edgeId
-    : request?.kind ?? "closed";
+    : request?.kind === "upstream"
+      ? "upstream:" + request.nodeId
+      : request?.kind ?? "closed";
 
   useEffect(() => {
     if (!isPopover) return;
@@ -204,7 +206,7 @@ function WorkflowNodePicker({
     try {
       const taskCode = await generateWorkflowTaskCode();
       const insertionRequest: WorkflowNodeInsertionRequest | undefined =
-        isPopover && request?.kind === "edge" ? request : undefined;
+        isPopover && request ? request : undefined;
       insertNode(
         task.taskType,
         taskCode,
@@ -308,7 +310,7 @@ function WorkflowNodePicker({
   );
 
   if (isPopover) {
-    if (request.kind !== "edge" || !portalRoot) return null;
+    if (!portalRoot || !("anchor" in request)) return null;
 
     const panelWidth = 300;
     const panelHeight = Math.max(240, Math.min(520, window.innerHeight - 24));
@@ -328,7 +330,7 @@ function WorkflowNodePicker({
       <div
         ref={panelRef}
         role="dialog"
-        aria-label="插入节点"
+        aria-label={request.kind === "upstream" ? "新建上游" : "插入节点"}
         className="fixed z-[1200] flex w-[300px] flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]"
         style={{ left, top, height: panelHeight }}
       >
