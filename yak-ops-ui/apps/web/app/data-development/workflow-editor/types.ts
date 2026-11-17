@@ -22,11 +22,11 @@ export type WorkflowEdgeSelectorRequest = {
 
 export type WorkflowPopoverSelectorRequest =
   | WorkflowEdgeSelectorRequest
-  | { kind: "upstream"; nodeId: string; anchor: XYPosition };
+  | { kind: "upstream-popover"; nodeId: string; anchor: XYPosition };
 
 export type WorkflowNodeInsertionRequest =
   | WorkflowSelectorRequest
-  | WorkflowPopoverSelectorRequest;
+  | WorkflowEdgeSelectorRequest;
 
 export type WorkflowBranchOutputKind =
   | "success"

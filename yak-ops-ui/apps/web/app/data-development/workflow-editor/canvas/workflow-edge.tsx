@@ -27,7 +27,9 @@ export function WorkflowEdge({
     (state) => state.openEdgeSelector,
   );
   const edgeSelectorOpen = useWorkflowStore(
-    (state) => state.edgeSelectorRequest?.edgeId === id,
+    (state) =>
+      state.edgeSelectorRequest?.kind === "edge" &&
+      state.edgeSelectorRequest.edgeId === id,
   );
   const edgeStyle = useWorkflowStore(
     (state) => state.edgeStyle,

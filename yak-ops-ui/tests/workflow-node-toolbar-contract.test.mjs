@@ -44,7 +44,7 @@ test("workflow canvas wires the node toolbar to supported node actions", () => {
   assert.match(workflowCanvas, /onOpenMenu: \(\{ x, y \}(?:: \{ x: number; y: number \})?\)\s*=>\s*setContextMenu\(\{ node, x, y \}\)/);
   assert.match(
     workflowCanvas,
-    /openEdgeSelector\(\{\s*kind: "upstream",\s*nodeId: node\.id,\s*anchor,/,
+    /openEdgeSelector\(\{\s*kind: "upstream-popover",\s*nodeId: node\.id,\s*anchor,/,
   );
   assert.match(workflowCanvas, /flowToScreenPosition/);
 
@@ -74,7 +74,8 @@ test("edge plus opens an anchored Dify-style picker without replacing the left s
   assert.match(workflowSelector, /createPortal/);
   assert.match(workflowSelector, /role="dialog"/);
   assert.match(workflowSelector, /搜索节点类型/);
-  assert.match(workflowSelector, /isPopover && request \? request : undefined/);
+  assert.match(workflowSelector, /kind === "upstream-popover"/);
+  assert.match(workflowSelector, /kind: "upstream", nodeId: request\.nodeId/);
   assert.match(workflowSelector, /"anchor" in request/);
   assert.match(workflowStore, /edgeSelectorRequest/);
   assert.match(workflowStore, /openEdgeSelector/);

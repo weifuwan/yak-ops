@@ -145,6 +145,12 @@ export function WorkflowCanvas({
   const setEdgeStyle = useWorkflowStore(
     (state) => state.setEdgeStyle,
   );
+  const openSelector = useWorkflowStore(
+    (state) => state.openSelector,
+  );
+  const selectorRequest = useWorkflowStore(
+    (state) => state.selectorRequest,
+  );
   const openEdgeSelector = useWorkflowStore(
     (state) => state.openEdgeSelector,
   );
@@ -624,7 +630,7 @@ export function WorkflowCanvas({
                     };
                     setContextMenu(null);
                     openEdgeSelector({
-                      kind: "upstream",
+                      kind: "upstream-popover",
                       nodeId: node.id,
                       anchor,
                     });

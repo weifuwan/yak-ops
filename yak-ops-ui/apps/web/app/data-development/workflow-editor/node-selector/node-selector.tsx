@@ -125,7 +125,7 @@ function WorkflowNodePicker({
   );
   const requestKey = request?.kind === "edge"
     ? "edge:" + request.edgeId
-    : request?.kind === "upstream"
+    : request?.kind === "upstream-popover"
       ? "upstream:" + request.nodeId
       : request?.kind ?? "closed";
 
@@ -206,7 +206,11 @@ function WorkflowNodePicker({
     try {
       const taskCode = await generateWorkflowTaskCode();
       const insertionRequest: WorkflowNodeInsertionRequest | undefined =
-        isPopover && request ? request : undefined;
+        isPopover && request
+          ? request.kind === "upstream-popover"
+            ? { kind: "upstream", nodeId: request.nodeId }
+            : request
+          : undefined;
       insertNode(
         task.taskType,
         taskCode,
@@ -330,7 +334,7 @@ function WorkflowNodePicker({
       <div
         ref={panelRef}
         role="dialog"
-        aria-label={request.kind === "upstream" ? "新建上游" : "插入节点"}
+        aria-label={request.kind === "upstream-popover" ? "新建上游" : "插入节点"}
         className="fixed z-[1200] flex w-[300px] flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]"
         style={{ left, top, height: panelHeight }}
       >
@@ -384,7 +388,13 @@ function WorkflowNodePicker({
         <div className="relative mb-1 flex h-6 items-center pr-12 font-bold leading-6">
           <div className="flex min-w-0 items-center">
             <span className="truncate text-[var(--yak-color-primary)]">
-              {selectorTitle(request.kind === "edge" ? "add" : request.kind)}
+              {selectorTitle(
+                request.kind === "edge"
+                  ? "add"
+                  : request.kind === "upstream-popover"
+                    ? "upstream"
+                    : request.kind,
+              )}
             </span>
           </div>
 
