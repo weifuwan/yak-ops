@@ -157,7 +157,6 @@ function defaultTaskParams(taskType: string): Record<string, unknown> {
           dependTaskList: [],
         },
         conditionResult: {
-          conditionSuccess: false,
           successNode: [],
           failedNode: [],
         },
@@ -746,15 +745,7 @@ export function useWorkflowStoreApi() {
 
 export function useWorkflowStore<T>(
   selector: (state: WorkflowEditorState) => T,
-) {
-  return useStore(useWorkflowStoreApi(), selector);
-}
-
-export function useWorkflowHistory<T>(
-  selector: (
-    state: TemporalState<WorkflowHistoryState>,
-  ) => T,
-) {
+): T {
   const store = useWorkflowStoreApi();
-  return useStore(store.temporal, selector);
+  return useStore(store, selector);
 }
