@@ -121,13 +121,11 @@ function ConditionsForm({
   params,
   onChange,
   disabled,
-  onBackToWorkflow,
 }: LogicTaskFormProps & {
   upstreamTasks: ConditionTaskOption[];
   successTargets: ConditionTaskOption[];
   failedTargets: ConditionTaskOption[];
   unassignedTargetCount: number;
-  onBackToWorkflow: () => void;
 }) {
   const normalized = normalizeConditionsTaskParams(params);
   const dependence = normalized.dependence;
@@ -175,12 +173,6 @@ function ConditionsForm({
     ]);
   };
 
-  const expressionPlaceholder = groups.length === 0
-    ? "添加条件组后显示判断表达式"
-    : upstreamTasks.length === 0
-      ? "连接上游任务后显示判断表达式"
-      : "请完成所有判断条件";
-
   const rowCount = Math.max(groups.length, 2);
   const groupRows = groups.length === 1
     ? [{ group: groups[0], groupIndex: 0, row: `1 / span ${rowCount}` }]
@@ -195,7 +187,6 @@ function ConditionsForm({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-xs font-semibold text-[#344054]">CONDITIONS 判断流程</div>
-          <div className="mt-0.5 text-[11px] text-[#98A2B3]">左侧输入 · 中间判断 · 右侧输出</div>
         </div>
         <Button size="sm" variant="secondary" isDisabled={disabled} onClick={addGroup}>
           <Plus size={13} />
@@ -203,14 +194,6 @@ function ConditionsForm({
         </Button>
       </div>
 
-      {upstreamTasks.length === 0 ? (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-[#d0d5dd] px-3 py-2">
-          <span className="text-xs text-[#667085]">当前节点尚未连接上游任务</span>
-          <Button size="sm" variant="ghost" onClick={onBackToWorkflow}>
-            返回画布
-          </Button>
-        </div>
-      ) : null}
       {unassignedTargetCount > 0 ? (
         <div className="flex items-center gap-2 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2.5 py-2 text-[11px] text-[#9a3412]">
           <AlertCircle size={14} className="shrink-0" />
@@ -238,7 +221,6 @@ function ConditionsForm({
             >
               <div className="flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[#d0d5dd] bg-white px-3 text-center">
                 <span className="text-xs font-medium text-[#667085]">还没有输入条件</span>
-                <span className="mt-1 text-[11px] text-[#98A2B3]">新增条件组，选择上游任务和期望状态</span>
                 <Button className="mt-2" size="sm" variant="secondary" isDisabled={disabled} onClick={addGroup}>
                   <Plus size={12} />
                   添加第一个条件组
@@ -294,7 +276,6 @@ function ConditionsForm({
                       .map((other) => other.depTaskCode);
                     return (
                       <div key={"conditions-item-" + groupIndex + "-" + itemIndex} className="rounded-md bg-[#f8f9fb] p-2">
-                        <div className="mb-1 text-[10px] text-[#98A2B3]">判断条件 {itemIndex + 1}</div>
                         <div className="grid grid-cols-[minmax(0,1fr)_minmax(100px,0.72fr)_28px] items-center gap-1.5 max-sm:grid-cols-1">
                           <LogicSelect
                             id={"conditions-task-" + groupIndex + "-" + itemIndex}
@@ -385,7 +366,6 @@ function ConditionsForm({
                 </span>
                 <div>
                   <div className="text-xs font-semibold text-[#344054]">CONDITIONS</div>
-                  <div className="text-[10px] text-[#98A2B3]">条件判断节点</div>
                 </div>
               </div>
               <div className="rounded-md border border-[#e4e7ec] bg-white p-2.5">
@@ -393,7 +373,7 @@ function ConditionsForm({
                 {expression ? (
                   <code className="block break-words text-[10px] leading-5 text-[#344054]">{expression}</code>
                 ) : (
-                  <span className="text-[10px] leading-5 text-[#98A2B3]">{expressionPlaceholder}</span>
+                  <span className="text-[10px] leading-5 text-[#98A2B3]">—</span>
                 )}
               </div>
               <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-[#667085]">
@@ -502,7 +482,6 @@ export function ConditionsEditor({
           successTargets={successTargets}
           failedTargets={failedTargets}
           unassignedTargetCount={unassignedTargetCount}
-          onBackToWorkflow={onBackToWorkflow}
         />
       )}
     </LogicTaskEditor>
