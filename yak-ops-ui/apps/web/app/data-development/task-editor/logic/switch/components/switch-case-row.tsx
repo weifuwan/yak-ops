@@ -33,7 +33,7 @@ export function SwitchCaseRow({
   }, [condition]);
 
   return (
-    <div className="group flex gap-3 rounded-lg px-3 py-2.5 transition-colors duration-150 hover:bg-[#F9FAFB]">
+    <div className="group flex gap-3 px-3 py-3 transition-colors duration-150 hover:bg-[#F9FAFB]">
       <div className="w-12 shrink-0 pt-1">
         <div className="text-[13px] font-semibold leading-4 text-[#344054]">
           {index === 0 ? "IF" : "ELIF"}
