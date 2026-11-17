@@ -205,7 +205,7 @@ export function WorkflowTaskNode({
                   return (
                     <div
                       key={output.id}
-                      className="relative flex h-[22px] items-center justify-end pr-1 text-[10px] font-medium"
+                      className="relative flex h-[22px] items-center justify-end pr-7 text-[10px] font-medium"
                     >
                       <span className={labelClass}>{output.label}</span>
                       <Handle
