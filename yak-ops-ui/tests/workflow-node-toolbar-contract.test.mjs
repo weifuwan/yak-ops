@@ -84,3 +84,12 @@ test("edge plus opens an anchored Dify-style picker without replacing the left s
   assert.match(workflowStore, /requestOverride/);
   assert.match(workflowEditor, /WorkflowEdgeNodeSelector/);
 });
+
+test("workflow branch handles use transparent plus cutouts and clear the selected border", () => {
+  assert.match(workflowNode, /function AddHandleButton/);
+  assert.match(workflowNode, /<mask/);
+  assert.match(workflowNode, /stroke="#000"/);
+  assert.match(workflowNode, /<HandleOutlineGap visible=\{selected \|\| data\.focused\}/);
+  assert.doesNotMatch(workflowNode, /after:absolute after:(?:left|right)-1\.5/);
+  assert.doesNotMatch(workflowNode, /<Plus size=\{10\}/);
+});
