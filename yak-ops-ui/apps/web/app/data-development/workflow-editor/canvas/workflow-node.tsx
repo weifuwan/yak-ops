@@ -44,7 +44,7 @@ function AddHandleButton({ visibility }: { visibility: string }) {
       ].join(" ")}
     >
       <span className="absolute inset-0 rounded-full bg-white" />
-      <svg viewBox="0 0 16 16" className="relative size-4" focusable="false">
+      <svg viewBox="0 0 18 18" className="relative size-[18px]" focusable="false">
         <defs>
           <mask
             id={maskId}
@@ -52,12 +52,12 @@ function AddHandleButton({ visibility }: { visibility: string }) {
             maskContentUnits="userSpaceOnUse"
             x="0"
             y="0"
-            width="16"
-            height="16"
+            width="18"
+            height="18"
           >
-            <rect width="16" height="16" fill="#fff" />
+            <rect width="18" height="18" fill="#fff" />
             <path
-              d="M8 4.5v7M4.5 8h7"
+              d="M9 5v8M5 9h8"
               stroke="#000"
               strokeWidth="2"
               strokeLinecap="round"
@@ -65,8 +65,8 @@ function AddHandleButton({ visibility }: { visibility: string }) {
           </mask>
         </defs>
         <circle
-          cx="8"
-          cy="8"
+          cx="9"
+          cy="9"
           r="8"
           fill="var(--yak-color-primary)"
           mask={"url(#" + maskId + ")"}
