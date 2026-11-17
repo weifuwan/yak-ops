@@ -127,7 +127,9 @@ function WorkflowNodePicker({
     ? "edge:" + request.edgeId
     : request?.kind === "upstream-popover"
       ? "upstream:" + request.nodeId
-      : request?.kind ?? "closed";
+      : request?.kind === "downstream-popover"
+        ? "downstream:" + request.nodeId + ":" + (request.sourceHandle ?? "source")
+        : request?.kind ?? "closed";
 
   useEffect(() => {
     if (!isPopover) return;
@@ -209,7 +211,13 @@ function WorkflowNodePicker({
         isPopover && request
           ? request.kind === "upstream-popover"
             ? { kind: "upstream", nodeId: request.nodeId }
-            : request
+            : request.kind === "downstream-popover"
+              ? {
+                  kind: "downstream",
+                  nodeId: request.nodeId,
+                  sourceHandle: request.sourceHandle,
+                }
+              : request
           : undefined;
       insertNode(
         task.taskType,
@@ -217,7 +225,7 @@ function WorkflowNodePicker({
         Number(projectCode),
         insertionRequest,
       );
-      closeSelector();
+      if (isPopover) closeSelector();
     } catch (error) {
       toast.error("创建节点失败", {
         description: error instanceof Error ? error.message : "请稍后重试。",
@@ -334,7 +342,13 @@ function WorkflowNodePicker({
       <div
         ref={panelRef}
         role="dialog"
-        aria-label={request.kind === "upstream-popover" ? "新建上游" : "插入节点"}
+        aria-label={
+          request.kind === "upstream-popover"
+            ? "新建上游"
+            : request.kind === "downstream-popover"
+              ? "新建下游"
+              : "插入节点"
+        }
         className="fixed z-[1200] flex w-[300px] flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]"
         style={{ left, top, height: panelHeight }}
       >
