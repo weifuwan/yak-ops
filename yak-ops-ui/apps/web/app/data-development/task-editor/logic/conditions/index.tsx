@@ -86,7 +86,7 @@ function BranchTargetSummary({
       };
 
   return (
-    <div className={"min-w-0 rounded-md border px-3 py-2 " + tone.border + " " + tone.background}>
+    <div className={"w-full min-w-0 rounded-md border px-3 py-2 " + tone.border + " " + tone.background}>
       <div className="flex items-center gap-2">
         <Icon size={14} className={tone.title} />
         <span className={"text-xs font-semibold " + tone.title}>{title}</span>
@@ -202,7 +202,7 @@ function ConditionsForm({
       ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-[#eaecf0] bg-[#fbfcfe] p-3">
-        <div className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch">
+        <div className="grid min-w-[1040px] grid-cols-[minmax(310px,1.2fr)_104px_236px_104px_minmax(260px,1fr)] items-stretch">
           <div className="pb-2 text-[11px] font-semibold text-[#667085]">输入 · 条件组</div>
           <div />
           <div className="pb-2 text-center text-[11px] font-semibold text-[#667085]">判断 · CONDITIONS</div>
@@ -211,7 +211,7 @@ function ConditionsForm({
         </div>
 
         <div
-          className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch"
+          className="grid min-w-[1040px] grid-cols-[minmax(310px,1.2fr)_104px_236px_104px_minmax(260px,1fr)] items-stretch"
           style={{ gridTemplateRows: `repeat(${rowCount}, minmax(164px, auto))` }}
         >
           {groups.length === 0 ? (
