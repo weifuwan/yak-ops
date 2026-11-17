@@ -208,6 +208,12 @@ function ConditionsForm({
           </Button>
         </div>
       ) : null}
+      {unassignedTargetCount > 0 ? (
+        <div className="flex items-center gap-2 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2.5 py-2 text-[11px] text-[#9a3412]">
+          <AlertCircle size={14} className="shrink-0" />
+          {unassignedTargetCount} 条连线未归属成功或失败分支
+        </div>
+      ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-[#eaecf0] bg-[#fbfcfe] p-3">
         <div className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch">
@@ -435,17 +441,6 @@ function ConditionsForm({
           >
             <BranchTargetSummary title="失败分支" targets={failedTargets} kind="failed" />
           </div>
-          {unassignedTargetCount > 0 ? (
-            <div
-              className="flex items-center"
-              style={{ gridColumn: 5, gridRow: `1 / span ${rowCount}` }}
-            >
-              <div className="absolute bottom-2 right-3 flex items-center gap-1.5 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2 py-1.5 text-[10px] text-[#9a3412]">
-                <AlertCircle size={12} className="shrink-0" />
-                {unassignedTargetCount} 条未归属分支
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
     </div>
