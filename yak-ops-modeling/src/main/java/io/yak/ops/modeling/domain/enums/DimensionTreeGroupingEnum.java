@@ -1,7 +1,9 @@
 package io.yak.ops.modeling.domain.enums;
 
-/** The two grouping dimensions supported by the legacy dimension tree. */
+/** Supported directory grouping modes for the dimension modeling tree. */
 public enum DimensionTreeGroupingEnum {
     BUSINESS_TYPE,
-    DATA_DOMAIN
+    DATA_DOMAIN,
+    DATA_MART,
+    SUBJECT_DOMAIN
 }

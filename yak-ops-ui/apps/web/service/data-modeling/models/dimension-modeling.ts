@@ -9,7 +9,11 @@ export type DimensionWarehouseType =
   | "APPLICATION_LAYER"
   | "NONE_LAYER";
 
-export type DimensionTreeGrouping = "BUSINESS_TYPE" | "DATA_DOMAIN";
+export type DimensionTreeGrouping =
+  | "BUSINESS_TYPE"
+  | "DATA_DOMAIN"
+  | "DATA_MART"
+  | "SUBJECT_DOMAIN";
 
 export type DimensionTreeNode = {
   key: string;
@@ -19,6 +23,7 @@ export type DimensionTreeNode = {
   total?: number;
   leaf: boolean;
   updateTime?: string;
+  searchText?: string;
   children?: DimensionTreeNode[];
 };
 

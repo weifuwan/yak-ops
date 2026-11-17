@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@yak-ops/yak-ui";
 import { Layers3 } from "lucide-react";
 
@@ -22,6 +22,10 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
   const [tabs, setTabs] = useState<DimensionTab[]>([]);
   const [activeTabKey, setActiveTabKey] = useState("");
   const [selectedTreeKey, setSelectedTreeKey] = useState("");
+
+  useEffect(() => {
+    setSelectedTreeKey("");
+  }, [projectCode, tree.dwType, tree.groupBy, tree.scopeValue, tree.keyword]);
 
   const openTab = (mode: DimensionTab["mode"], record?: DimensionTableRecord, tabDwType: string = tree.dwType) => {
     const existing = tabs.find((tab) => {
@@ -99,24 +103,25 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
             setSelectedTreeKey("");
           }}
           groupBy={tree.groupBy}
-          onGroupByChange={(value) => {
-            tree.setGroupBy(value);
-            tree.setScopeValue("");
-          }}
+          onGroupByChange={tree.setGroupBy}
           scopeValue={tree.scopeValue}
           onScopeValueChange={tree.setScopeValue}
           keyword={tree.keyword}
           onKeywordChange={tree.setKeyword}
-          root={tree.root}
-          expandedKeys={tree.expandedKeys}
+          root={tree.visibleRoot}
+          expandedKeys={tree.visibleExpandedKeys}
           selectedTreeKey={selectedTreeKey}
           loading={tree.treeQuery.isFetching}
           initialLoading={tree.treeQuery.isPending && tree.treeQuery.isFetching}
           error={tree.treeQuery.isError}
+          emptyText={tree.keyword ? "没有匹配的维度表" : "暂无维度表，点击上方 + 新建"}
           onRefresh={() => void tree.treeQuery.refetch()}
           onCreate={() => openTab("create")}
           onList={() => openTab("list")}
-          onToggle={tree.toggleExpanded}
+          onToggle={(key) => {
+            setSelectedTreeKey(key);
+            tree.toggleExpanded(key);
+          }}
           onSelect={(node) => {
             setSelectedTreeKey(node.key);
             void openEdit(node);

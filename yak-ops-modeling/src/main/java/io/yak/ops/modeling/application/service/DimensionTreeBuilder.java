@@ -15,19 +15,18 @@ import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.modeling.domain.enums.DimensionTreeGroupingEnum;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
-import io.yak.ops.modeling.application.service.*;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.function.Function;
 
 /**
- * Builds the warehouse-layer-aware dimension tree.
+ * Builds the warehouse-layer-aware dimension tree from project-scoped modeling records.
  *
- * <p>The original data_modal tree grouped source/public models by business type or
- * data domain, and application models by mart/subject domain. This implementation
- * keeps that payload and grouping while querying through Yak Ops project-scoped
- * services and DAO.
+ * <p>Source and public layers are grouped by business type or data domain. Application
+ * layers are grouped by data mart or subject domain. Scope selection retains the selected
+ * node and its descendants while preserving the ancestor path in the visible tree.
  */
 @Component
 public class DimensionTreeBuilder {
@@ -48,6 +47,9 @@ public class DimensionTreeBuilder {
             throw new IllegalArgumentException("数仓分层类型不能为空");
         }
 
+        DimensionTreeGroupingEnum grouping = grouping(dto);
+        validateGrouping(dto.getDwhType(), grouping);
+
         List<DimensionTablePO> tables = queryTables(dto);
         List<DimensionTreeNodeVO> nodes = new ArrayList<>();
         if (isApplicationLayer(dto)) {
@@ -62,6 +64,11 @@ public class DimensionTreeBuilder {
         }
 
         List<DimensionTreeNodeVO> roots = assemble(nodes);
+        String selectedId = selectedScopeId(dto, grouping);
+        if (notBlank(selectedId)) {
+            roots.removeIf(node -> !retainPathToSelection(node, selectedId, scopeNodeType(grouping)));
+        }
+
         DimensionTreeNodeVO root = node(ROOT_KEY, "维度建模", null, "ROOT_NODE", false, null, null);
         root.setChildren(roots);
         for (DimensionTreeNodeVO child : roots) {
@@ -84,10 +91,28 @@ public class DimensionTreeBuilder {
         }
         if (notBlank(dto.getDwhId())) wrapper.eq("dwh_id", dto.getDwhId());
         if (notBlank(dto.getDomainId())) wrapper.eq("domain_id", dto.getDomainId());
-        if (notBlank(dto.getMartId())) wrapper.eq("mart_id", dto.getMartId());
-        if (notBlank(dto.getSubjectId())) wrapper.eq("subject_id", dto.getSubjectId());
+        if (notBlank(dto.getBusTypeId())) {
+            wrapper.in("bus_type_id", collectDescendantIds(
+                    dto.getBusTypeId(),
+                    businessTypeService.all(),
+                    BusinessTypeVO::getId,
+                    BusinessTypeVO::getParentId));
+        }
+        if (notBlank(dto.getMartId())) {
+            wrapper.in("mart_id", collectDescendantIds(
+                    dto.getMartId(),
+                    dataMartService.all(),
+                    DataMartVO::getId,
+                    DataMartVO::getParentId));
+        }
+        if (notBlank(dto.getSubjectId())) {
+            wrapper.in("subject_id", collectDescendantIds(
+                    dto.getSubjectId(),
+                    subjectDomainService.all(),
+                    SubjectDomainVO::getId,
+                    SubjectDomainVO::getParentId));
+        }
         if (notBlank(dto.getDimId())) wrapper.eq("dim_id", dto.getDimId());
-        if (notBlank(dto.getBusTypeId())) wrapper.eq("bus_type_id", dto.getBusTypeId());
         if (notBlank(dto.getBusProcessId())) wrapper.eq("bus_process_id", dto.getBusProcessId());
         if (notBlank(dto.getUpdateBy())) wrapper.eq("update_by", dto.getUpdateBy());
         if (notBlank(dto.getDirector())) wrapper.eq("director", dto.getDirector());
@@ -98,11 +123,33 @@ public class DimensionTreeBuilder {
         return dimensionTableDao.queryList(wrapper.orderByAsc("cn_name"));
     }
 
+    private <T> Set<String> collectDescendantIds(
+            String selectedId,
+            List<T> records,
+            Function<T, String> idGetter,
+            Function<T, String> parentGetter) {
+        Set<String> ids = new LinkedHashSet<>();
+        ids.add(selectedId);
+        if (records == null || records.isEmpty()) return ids;
+
+        boolean changed;
+        do {
+            changed = false;
+            for (T record : records) {
+                String id = idGetter.apply(record);
+                String parentId = parentGetter.apply(record);
+                if (notBlank(id) && ids.contains(parentId) && ids.add(id)) {
+                    changed = true;
+                }
+            }
+        } while (changed);
+        return ids;
+    }
+
     private void buildBusinessGroupedNodes(List<DimensionTreeNodeVO> nodes,
-                                  List<DimensionTablePO> tables,
-                                  DimensionTableDTO dto) {
-        DimensionTreeGroupingEnum grouping = grouping(dto);
-        if (grouping == DimensionTreeGroupingEnum.DATA_DOMAIN) {
+                                           List<DimensionTablePO> tables,
+                                           DimensionTableDTO dto) {
+        if (grouping(dto) == DimensionTreeGroupingEnum.DATA_DOMAIN) {
             addDataDomains(nodes, dto.getDomainId());
             for (DimensionTablePO table : tables) {
                 addDimensionLeaf(nodes, table, table.getDomainId());
@@ -112,7 +159,9 @@ public class DimensionTreeBuilder {
 
         addBusinessTypes(nodes);
         boolean hasUnclassified = tables.stream().anyMatch(item -> !notBlank(item.getBusTypeId()));
-        if (hasUnclassified) addNode(nodes, node(VIRTUAL_KEY, "未分类", null, "BUSINESS_TYPE", false, null, null));
+        if (hasUnclassified) {
+            addNode(nodes, node(VIRTUAL_KEY, "未分类", null, "BUSINESS_TYPE", false, null, null));
+        }
         for (DimensionTablePO table : tables) {
             String parentId = notBlank(table.getBusTypeId()) ? table.getBusTypeId() : VIRTUAL_KEY;
             addDimensionLeaf(nodes, table, parentId);
@@ -223,7 +272,9 @@ public class DimensionTreeBuilder {
         boolean hasUnclassified = tables.stream()
                 .anyMatch(item -> !notBlank(item.getMartId()) && !notBlank(item.getSubjectId()))
                 || marts.values().stream().anyMatch(item -> !notBlank(item.getBusinessTypeId()) && !notBlank(item.getParentId()));
-        if (hasUnclassified) addNode(nodes, node(VIRTUAL_KEY, "未分类", null, "BUSINESS_TYPE", false, null, null));
+        if (hasUnclassified) {
+            addNode(nodes, node(VIRTUAL_KEY, "未分类", null, "BUSINESS_TYPE", false, null, null));
+        }
 
         for (DataMartVO mart : marts.values()) {
             String parentId = notBlank(mart.getParentId()) ? mart.getParentId()
@@ -265,8 +316,10 @@ public class DimensionTreeBuilder {
     }
 
     private void addTableNode(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId, String type) {
-        addNode(nodes, node(table.getId() + "-DIM", table.getCnName(), parentId,
-                type, true, table.getUpdateTime(), null));
+        DimensionTreeNodeVO tableNode = node(table.getId() + "-DIM", table.getCnName(), parentId,
+                type, true, table.getUpdateTime(), null);
+        tableNode.setSearchText(table.getTableName());
+        addNode(nodes, tableNode);
     }
 
     private List<DimensionTreeNodeVO> assemble(List<DimensionTreeNodeVO> nodes) {
@@ -279,6 +332,55 @@ public class DimensionTreeBuilder {
             else parent.getChildren().add(item);
         }
         return roots;
+    }
+
+    private boolean retainPathToSelection(
+            DimensionTreeNodeVO current,
+            String selectedId,
+            String selectedType) {
+        if (selectedId.equals(current.getKey()) && selectedType.equals(current.getType())) {
+            return true;
+        }
+
+        List<DimensionTreeNodeVO> visibleChildren = new ArrayList<>();
+        for (DimensionTreeNodeVO child : current.getChildren()) {
+            if (retainPathToSelection(child, selectedId, selectedType)) {
+                visibleChildren.add(child);
+            }
+        }
+        current.setChildren(visibleChildren);
+        return !visibleChildren.isEmpty();
+    }
+
+    private String selectedScopeId(DimensionTableDTO dto, DimensionTreeGroupingEnum grouping) {
+        switch (grouping) {
+            case BUSINESS_TYPE: return dto.getBusTypeId();
+            case DATA_DOMAIN: return dto.getDomainId();
+            case DATA_MART: return dto.getMartId();
+            case SUBJECT_DOMAIN: return dto.getSubjectId();
+            default: return null;
+        }
+    }
+
+    private String scopeNodeType(DimensionTreeGroupingEnum grouping) {
+        switch (grouping) {
+            case BUSINESS_TYPE: return "BUSINESS_TYPE";
+            case DATA_DOMAIN: return "DATA_DOMAIN";
+            case DATA_MART: return "MART";
+            case SUBJECT_DOMAIN: return "SUBJECT";
+            default: return "";
+        }
+    }
+
+    private void validateGrouping(DwTypeEnum dwType, DimensionTreeGroupingEnum grouping) {
+        boolean applicationGrouping = grouping == DimensionTreeGroupingEnum.DATA_MART
+                || grouping == DimensionTreeGroupingEnum.SUBJECT_DOMAIN;
+        if (dwType == DwTypeEnum.APPLICATION_LAYER && !applicationGrouping) {
+            throw new IllegalArgumentException("应用层目录仅支持按数据集市或主题域分组");
+        }
+        if (dwType != DwTypeEnum.APPLICATION_LAYER && applicationGrouping) {
+            throw new IllegalArgumentException("当前数仓分层仅支持按业务分类或数据域分组");
+        }
     }
 
     private void calculateTotals(List<DimensionTreeNodeVO> nodes) {
@@ -313,16 +415,18 @@ public class DimensionTreeBuilder {
     }
 
     private DimensionTreeGroupingEnum grouping(DimensionTableDTO dto) {
-        return dto.getSelectOption() == null
-                ? DimensionTreeGroupingEnum.BUSINESS_TYPE : dto.getSelectOption();
+        if (dto.getSelectOption() != null) return dto.getSelectOption();
+        return dto.getDwhType() == DwTypeEnum.APPLICATION_LAYER
+                ? DimensionTreeGroupingEnum.DATA_MART
+                : DimensionTreeGroupingEnum.BUSINESS_TYPE;
     }
 
     private boolean isApplicationLayer(DimensionTableDTO dto) {
-        return dto.getDwhType() == io.yak.ops.dao.entity.enums.DwTypeEnum.APPLICATION_LAYER;
+        return dto.getDwhType() == DwTypeEnum.APPLICATION_LAYER;
     }
 
     private boolean isPublicLayer(DimensionTableDTO dto) {
-        return dto.getDwhType() == io.yak.ops.dao.entity.enums.DwTypeEnum.PUBLIC_LAYER;
+        return dto.getDwhType() == DwTypeEnum.PUBLIC_LAYER;
     }
 
     private boolean notBlank(String value) {

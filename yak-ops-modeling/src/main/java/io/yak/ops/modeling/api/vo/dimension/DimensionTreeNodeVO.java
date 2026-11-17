@@ -16,5 +16,6 @@ public class DimensionTreeNodeVO {
     private Integer total;
     private boolean leaf;
     private Date updateTime;
+    private String searchText;
     private List<DimensionTreeNodeVO> children = new ArrayList<>();
 }

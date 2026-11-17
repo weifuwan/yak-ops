@@ -1,5 +1,6 @@
 import type {
   DimensionTableRecord,
+  DimensionTreeGrouping,
   DimensionTreeNode,
 } from "@/service/data-modeling/models/dimension-modeling";
 
@@ -18,8 +19,8 @@ export type DimensionSidebarProps = {
   projectCode: string;
   dwType: string;
   onDwTypeChange: (value: string) => void;
-  groupBy: "BUSINESS_TYPE" | "DATA_DOMAIN";
-  onGroupByChange: (value: "BUSINESS_TYPE" | "DATA_DOMAIN") => void;
+  groupBy: DimensionTreeGrouping;
+  onGroupByChange: (value: DimensionTreeGrouping) => void;
   scopeValue: string;
   onScopeValueChange: (value: string) => void;
   keyword: string;
@@ -30,6 +31,7 @@ export type DimensionSidebarProps = {
   loading: boolean;
   initialLoading: boolean;
   error: boolean;
+  emptyText: string;
   onRefresh: () => void;
   onCreate: () => void;
   onList: () => void;

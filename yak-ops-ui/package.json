@@ -26,7 +26,8 @@
     "test:derivative-indicator": "node --experimental-strip-types --test tests/derivative-indicator-form-contract.test.mjs",
     "test:composite-indicator": "node --experimental-strip-types --test tests/composite-indicator-form-contract.test.mjs",
     "test:modifier-indicator": "node --experimental-strip-types --test tests/modifier-dw-type-contract.test.mjs",
-    "test:indicator-business-type-tree": "node --experimental-strip-types --test tests/indicator-business-type-tree-select.test.mjs"
+    "test:indicator-business-type-tree": "node --experimental-strip-types --test tests/indicator-business-type-tree-select.test.mjs",
+    "test:dimension-modeling-tree": "node --experimental-strip-types --test tests/dimension-modeling-tree-contract.test.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
