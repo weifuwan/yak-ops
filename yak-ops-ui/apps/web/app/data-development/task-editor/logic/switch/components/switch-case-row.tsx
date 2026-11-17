@@ -54,15 +54,16 @@ export function SwitchCaseRow({
                 onChange={onConditionChange}
               />
             ) : (
-              <button
-                type="button"
-                disabled={disabled}
+              <Button
+                size="sm"
+                variant="outline"
+                className="!h-7 !gap-1.5 !border-[#E4E7EC] !bg-white !px-2.5 !text-xs !font-medium !text-[#475467] shadow-sm hover:!bg-[#F9FAFB] hover:!text-[#344054]"
+                isDisabled={disabled}
                 onClick={() => setEditing(true)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-dashed border-[#D0D5DD] bg-transparent px-2.5 text-xs font-medium text-[#667085] transition-colors hover:border-[#98A2B3] hover:bg-white hover:text-[#344054] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Plus size={13} />
-                添加判断条件
-              </button>
+                <Plus size={14} />
+                添加条件
+              </Button>
             )}
           </div>
 
