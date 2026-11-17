@@ -82,11 +82,11 @@ export function SwitchForm({
         </div>
       </div>
 
-      <div className="px-3 pt-2">
+      <div className="pt-2">
         <Button
           size="sm"
           variant="secondary"
-          className="!h-9 !w-full !justify-center !border !border-[#E4E7EC] !bg-[#F2F4F7] !text-[#475467] hover:!bg-[#EAECF0]"
+          className="!h-9 !w-full !justify-center !border-0 !bg-[#F2F4F7] !text-[#475467] hover:!bg-[#EAECF0]"
           isDisabled={disabled}
           onClick={() => updateCases([
             ...cases,
