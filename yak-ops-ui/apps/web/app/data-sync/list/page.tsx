@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button, Modal, PageHeader, toast } from "@yak-ops/yak-ui";
 import { CreateSyncTaskDialog } from "../create/dialog";
+import { usePageAgentContext } from "@/app/ai/agent-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
@@ -27,6 +28,7 @@ export function DataSyncPage() {
   const location = useLocation();
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  usePageAgentContext({ type: "data_sync_list", label: "数据同步列表" });
   const scope =
     currentUser?.id && currentWorkspace?.id ? currentUser.id + ":" + currentWorkspace.id : "";
   const filters = useTaskListFilters();

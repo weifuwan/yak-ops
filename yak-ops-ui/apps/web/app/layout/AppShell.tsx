@@ -7,6 +7,8 @@ import { useLocation } from "react-router-dom";
 
 import "./app-layout.css";
 
+import AgentDrawer from "../ai/AgentDrawer";
+import { AgentContextProvider } from "../ai/agent-context";
 import ProductLauncher from "./ProductLauncher";
 import TopBar from "./TopBar";
 import type { ProductModuleNavigationItem } from "./navigation";
@@ -27,6 +29,7 @@ export default function AppShell({
 }: AppShellProps) {
   const location = useLocation();
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
 
   useEffect(() => {
     setLauncherOpen(false);
@@ -44,22 +47,28 @@ export default function AppShell({
   }, [launcherOpen]);
 
   return (
-    <div className="yak-app-shell-enter flex h-dvh flex-col overflow-hidden bg-white text-[#161823]">
-      <TopBar
-        launcherOpen={launcherOpen}
-        onToggleLauncher={() => setLauncherOpen((open) => !open)}
-        productLabel={productLabel}
-        productPath={productPath}
-        moduleNavigation={moduleNavigation}
-        activeModuleId={activeModuleId}
-      />
+    <AgentContextProvider>
+      <div className="yak-app-shell-enter flex h-dvh flex-col overflow-hidden bg-white text-[#161823]">
+        <TopBar
+          launcherOpen={launcherOpen}
+          onToggleLauncher={() => setLauncherOpen((open) => !open)}
+          agentOpen={agentOpen}
+          onToggleAgent={() => setAgentOpen((open) => !open)}
+          productLabel={productLabel}
+          productPath={productPath}
+          moduleNavigation={moduleNavigation}
+          activeModuleId={activeModuleId}
+        />
 
-      <div className="flex min-h-0 flex-1">{children}</div>
+        <div className="flex min-h-0 flex-1">{children}</div>
 
-      <ProductLauncher
-        open={launcherOpen}
-        onClose={() => setLauncherOpen(false)}
-      />
-    </div>
+        <ProductLauncher
+          open={launcherOpen}
+          onClose={() => setLauncherOpen(false)}
+        />
+
+        <AgentDrawer open={agentOpen} onClose={() => setAgentOpen(false)} />
+      </div>
+    </AgentContextProvider>
   );
 }

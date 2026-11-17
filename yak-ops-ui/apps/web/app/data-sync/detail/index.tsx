@@ -2,6 +2,7 @@ import { Button, PageHeader, Spinner } from "@yak-ops/yak-ui";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
+import { usePageAgentContext } from "@/app/ai/agent-context";
 import { ScheduleDialog } from "@/app/schedule/dialog/schedule-dialog";
 import { useTaskSchedules } from "@/app/schedule/use-task-schedules";
 import { canManageTaskDefinition } from "@/service/data-sync/execution";
@@ -22,6 +23,9 @@ export function DataSyncTaskDetailPage() {
   const navigate = useNavigate();
   const scope = useDetailScope();
   const { task, taskLoading, dataSources, updatedBy } = useTaskInformation(taskId, scope);
+  usePageAgentContext(
+    task && taskId ? { type: "data_sync_detail", id: taskId, label: task.name } : null,
+  );
   const realtime = task?.syncType === "REALTIME";
   const supportsScheduling = task?.syncType === "OFFLINE" && !task?.archived;
   const [scheduleOpen, setScheduleOpen] = useState(false);
