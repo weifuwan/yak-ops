@@ -338,18 +338,31 @@ function ConditionsForm({
                 ) : (
                   <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
                 )}
-                <span className="relative z-10 rounded-full border border-[#d0d5dd] bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#475467]">
-                  {dependence.relation}
-                </span>
               </div>
             ))
           ) : null}
           {groups.length > 1 ? (
             <div
-              className="pointer-events-none relative"
+              className="relative"
               style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
             >
-              <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+              <span className="pointer-events-none absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+              <button
+                type="button"
+                disabled={disabled}
+                aria-label={`组间关系：${dependence.relation === "AND" ? "全部满足（AND）" : "满足其一（OR）"}，点击切换`}
+                title={`组间关系：${dependence.relation === "AND" ? "全部满足（AND）" : "满足其一（OR）"}，点击切换`}
+                onClick={() => onChange({
+                  ...normalized,
+                  dependence: {
+                    ...dependence,
+                    relation: dependence.relation === "AND" ? "OR" : "AND",
+                  },
+                })}
+                className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d0d5dd] bg-white px-2 py-0.5 text-[9px] font-semibold text-[#475467] shadow-sm transition-colors hover:border-[#a5b4fc] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {dependence.relation}
+              </button>
             </div>
           ) : null}
 
