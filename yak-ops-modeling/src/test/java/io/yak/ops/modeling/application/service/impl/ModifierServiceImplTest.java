@@ -89,7 +89,7 @@ class ModifierServiceImplTest {
     void shouldAllowUnselectedWarehouseClassification() {
         when(modelingAssetDao.insert(eq("modifier"), any(ModifierPO.class))).thenReturn(1);
 
-        String id = service.create(simpleModifier());
+        String id = service.create(simpleModifier(), "alice");
 
         assertNotNull(id);
         verify(modelingAssetDao).insert(eq("modifier"), any(ModifierPO.class));
