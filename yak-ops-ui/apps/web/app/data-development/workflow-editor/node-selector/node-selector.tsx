@@ -217,7 +217,9 @@ function WorkflowNodePicker({
                   nodeId: request.nodeId,
                   sourceHandle: request.sourceHandle,
                 }
-              : request
+              : request.kind === "add-popover"
+                ? { kind: "add" }
+                : request
           : undefined;
       insertNode(
         task.taskType,
@@ -347,7 +349,9 @@ function WorkflowNodePicker({
             ? "新建上游"
             : request.kind === "downstream-popover"
               ? "新建下游"
-              : "插入节点"
+              : request.kind === "add-popover"
+                ? "新建节点"
+                : "插入节点"
         }
         className="fixed z-[1200] flex w-[300px] flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]"
         style={{ left, top, height: panelHeight }}
