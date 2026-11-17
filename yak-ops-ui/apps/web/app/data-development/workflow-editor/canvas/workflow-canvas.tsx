@@ -124,6 +124,9 @@ export function WorkflowCanvas({
   const edges = useWorkflowStore(
     (state) => state.edges,
   );
+  const previewEdges = useWorkflowStore(
+    (state) => state.previewEdges,
+  );
   const interactionMode = useWorkflowStore(
     (state) => state.interactionMode,
   );
@@ -223,7 +226,7 @@ export function WorkflowCanvas({
   );
   const renderEdges = useMemo(
     () =>
-      edges.map((edge) => ({
+      (previewEdges ?? edges).map((edge) => ({
         ...edge,
         data: {
           backend: edge.data?.backend ?? false,
@@ -231,7 +234,7 @@ export function WorkflowCanvas({
           relation: edge.data?.relation,
         },
       })),
-    [edges, hoveredEdgeId],
+    [edges, previewEdges, hoveredEdgeId],
   );
 
   useEffect(() => {
