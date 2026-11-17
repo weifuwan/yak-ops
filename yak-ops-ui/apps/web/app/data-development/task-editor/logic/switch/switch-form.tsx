@@ -55,30 +55,32 @@ export function SwitchForm({
 
   return (
     <div className="p-1">
-      <div className="divide-y divide-[#EAECF0]">
-        {cases.map((item, index) => (
-          <SwitchCaseRow
-            key={item.nextNode ? "case-node-" + item.nextNode : "case-index-" + index}
-            index={index}
-            total={cases.length}
-            condition={item.condition}
-            variables={variables}
-            disabled={disabled}
-            warning={warningsByCase.get(index)}
-            onConditionChange={(condition) => updateCase(index, condition)}
-            onMove={(direction) => moveCase(index, direction)}
-            onRemove={() => updateCases(
-              cases.filter((_candidate, itemIndex) => itemIndex !== index),
-            )}
-          />
-        ))}
-      </div>
+      <div className="overflow-hidden rounded-xl border border-[#EAECF0] bg-[#FBFCFE]">
+        <div className="divide-y divide-[#EAECF0]">
+          {cases.map((item, index) => (
+            <SwitchCaseRow
+              key={item.nextNode ? "case-node-" + item.nextNode : "case-index-" + index}
+              index={index}
+              total={cases.length}
+              condition={item.condition}
+              variables={variables}
+              disabled={disabled}
+              warning={warningsByCase.get(index)}
+              onConditionChange={(condition) => updateCase(index, condition)}
+              onMove={(direction) => moveCase(index, direction)}
+              onRemove={() => updateCases(
+                cases.filter((_candidate, itemIndex) => itemIndex !== index),
+              )}
+            />
+          ))}
 
-      {cases.length === 0 ? (
-        <div className="px-3 py-3 text-xs leading-5 text-[#98A2B3]">
-          当前还没有条件分支。添加 IF 后，可以继续添加多个 ELIF 分支。
+          {cases.length === 0 ? (
+            <div className="px-3 py-3 text-xs leading-5 text-[#98A2B3]">
+              当前还没有条件分支。添加 IF 后，可以继续添加多个 ELIF 分支。
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
 
       <div className="px-3 pt-2">
         <Button
@@ -102,9 +104,6 @@ export function SwitchForm({
         <div className="text-[13px] font-semibold leading-4 text-[#344054]">
           ELSE
         </div>
-        <p className="mt-1 text-xs leading-5 text-[#98A2B3]">
-          当所有 Case 均未命中时，执行 Default 分支。
-        </p>
         <div className="mt-2 flex items-center gap-2">
           <span className="inline-flex h-6 items-center rounded-md bg-[#F2F4F7] px-2 text-[11px] font-medium text-[#475467]">
             Default
