@@ -94,9 +94,13 @@ export function resolveWorkflowSourceHandle(
     const cases = asArray(result.dependTaskList);
     const matches = cases.flatMap((item, index) => {
       const nextNode = Number(asRecord(item).nextNode);
-      return nextNode === targetTaskCode ? ["case-" + index] : [];
+      return Number.isSafeInteger(nextNode) && nextNode > 0 && nextNode === targetTaskCode
+        ? ["case-" + index]
+        : [];
     });
-    const defaultMatches = Number(result.nextNode) === targetTaskCode;
+    const defaultNode = Number(result.nextNode);
+    const defaultMatches =
+      Number.isSafeInteger(defaultNode) && defaultNode > 0 && defaultNode === targetTaskCode;
     if (matches.length + Number(defaultMatches) !== 1) return "unassigned";
     return defaultMatches ? "default" : matches[0];
   }
@@ -189,6 +193,10 @@ export function applyWorkflowBranchTargets(
     };
   });
   const defaultNode = targetFor("default", "SWITCH 的 Default 分支");
+  const branchTargets = [...dependTaskList.map((item) => item.nextNode), defaultNode];
+  if (new Set(branchTargets).size !== branchTargets.length) {
+    throw new Error("SWITCH 的不同 Case 和 Default 不能连接到同一个下游节点");
+  }
 
   return {
     ...params,
