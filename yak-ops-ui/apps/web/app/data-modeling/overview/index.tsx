@@ -150,7 +150,7 @@ function DataOverviewCard() {
   const [workspaceFilter, setWorkspaceFilter] = useState("all");
 
   return (
-    <div className="mb-4 w-full overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
       {/* Header */}
       <div className="flex min-h-5 w-full flex-row items-center">
         <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
@@ -226,7 +226,7 @@ function DataOverviewCard() {
  */
 function LatestPublishCard() {
   return (
-    <div className="mb-4 w-full overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
       {/* Header */}
       <div className="flex min-h-5 w-full items-center">
         <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
@@ -271,12 +271,12 @@ export function DataModelingOverviewPage() {
           {/* 24 栏响应式布局 */}
           <div className="-mx-2 grid grid-cols-[repeat(24,minmax(0,1fr))]">
             {/* 左侧：数据概览 */}
-            <div className="col-span-[24] px-2 min-[1200px]:col-span-[17] min-[1500px]:col-span-[16]">
+            <div className="col-span-[24] flex px-2 min-[1200px]:col-span-[17] min-[1500px]:col-span-[16]">
               <DataOverviewCard />
             </div>
 
             {/* 右侧：最新发布 */}
-            <div className="col-span-[24] px-2 min-[1200px]:col-span-[7] min-[1500px]:col-span-[8]">
+            <div className="col-span-[24] flex px-2 min-[1200px]:col-span-[7] min-[1500px]:col-span-[8]">
               <LatestPublishCard />
             </div>
           </div>
