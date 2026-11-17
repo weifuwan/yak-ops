@@ -30,6 +30,10 @@ const workflowEditor = readFileSync(
   new URL("../apps/web/app/data-development/workflow-editor/workflow-editor.tsx", import.meta.url),
   "utf8",
 );
+const workflowToolbar = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/toolbar/workflow-toolbar.tsx", import.meta.url),
+  "utf8",
+);
 
 test("workflow node toolbar uses a bordered Dify-style play and more control", () => {
   assert.match(workflowNode, /border-\[#D0D5DD\] bg-white/);
@@ -121,4 +125,14 @@ test("workflow node connector plus opens a local downstream picker without touch
   const insertion = workflowStore.slice(insertionStart, insertionEnd);
   assert.doesNotMatch(insertion, /selectorRequest\s*:/);
   assert.doesNotMatch(insertion, /edgeSelectorRequest\s*:/);
+});
+
+
+test("canvas toolbar plus opens an anchored root picker while top toolbar alone opens the sidebar", () => {
+  assert.match(workflowCanvas, /openEdgeSelector\\(\\{\\s*kind: "add-popover",\\s*anchor:/);
+  assert.match(workflowCanvas, /data-workflow-edge-picker-trigger/);
+  assert.match(workflowCanvas, /edgeSelectorRequest\\?\\.kind === "add-popover"/);
+  assert.doesNotMatch(workflowCanvas, /openSelector/);
+  assert.match(workflowSelector, /request.kind === "add-popover"[\\s\\S]*?\\{ kind: "add" \\}/);
+  assert.match(workflowToolbar, /onClick=\\{\\(\\) => openSelector\\(\\{ kind: "add" \\}\\)\\}/);
 });
