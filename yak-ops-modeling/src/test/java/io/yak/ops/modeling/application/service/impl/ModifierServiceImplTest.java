@@ -13,7 +13,6 @@ import io.yak.ops.dao.entity.CodeDetailPO;
 import io.yak.ops.dao.entity.CodeStandardPO;
 import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
-import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.ModifierPO;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
@@ -22,10 +21,8 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
-import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
 import io.yak.ops.modeling.api.dto.modifier.ModifierDTO;
-import io.yak.ops.modeling.application.service.DwLayerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,25 +38,14 @@ class ModifierServiceImplTest {
 
     @Mock
     private ModelingAssetDao modelingAssetDao;
-
-    @Mock
-    private DwLayerDao dwLayerDao;
-
-    @Mock
-    private DwLayerService dwLayerService;
-
     @Mock
     private BusinessTypeDao businessTypeDao;
-
     @Mock
     private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
-
     @Mock
     private DataDomainDao dataDomainDao;
-
     @Mock
     private DimensionTableDao dimensionTableDao;
-
     @Mock
     private DimensionTableFieldDao dimensionTableFieldDao;
 
@@ -67,29 +53,43 @@ class ModifierServiceImplTest {
     private ModifierServiceImpl service;
 
     @Test
-    void shouldRejectOdsLayerWhenCreatingModifier() {
-        DwLayerPO ods = new DwLayerPO();
-        ods.setDwType(DwTypeEnum.SOURCE_LAYER);
-        when(dwLayerDao.queryById("ods-layer")).thenReturn(ods);
-
+    void shouldRejectSourceLayerClassificationWhenCreatingModifier() {
         ModifierDTO dto = simpleModifier();
-        dto.setDwhId("ods-layer");
+        dto.setDwType(DwTypeEnum.SOURCE_LAYER);
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto, "alice"));
         verify(modelingAssetDao, never()).insert(eq("modifier"), any(ModifierPO.class));
     }
 
     @Test
-    void shouldAllowPublicLayerWhenCreatingModifier() {
-        DwLayerPO publicLayer = new DwLayerPO();
-        publicLayer.setDwType(DwTypeEnum.PUBLIC_LAYER);
-        when(dwLayerDao.queryById("public-layer")).thenReturn(publicLayer);
+    void shouldAllowPublicLayerClassificationWhenCreatingModifier() {
         when(modelingAssetDao.insert(eq("modifier"), any(ModifierPO.class))).thenReturn(1);
-
         ModifierDTO dto = simpleModifier();
-        dto.setDwhId("public-layer");
+        dto.setDwType(DwTypeEnum.PUBLIC_LAYER);
 
         String id = service.create(dto, "alice");
+
+        assertNotNull(id);
+        verify(modelingAssetDao).insert(eq("modifier"), any(ModifierPO.class));
+    }
+
+    @Test
+    void shouldAllowApplicationLayerClassificationWhenCreatingModifier() {
+        when(modelingAssetDao.insert(eq("modifier"), any(ModifierPO.class))).thenReturn(1);
+        ModifierDTO dto = simpleModifier();
+        dto.setDwType(DwTypeEnum.APPLICATION_LAYER);
+
+        String id = service.create(dto, "alice");
+
+        assertNotNull(id);
+        verify(modelingAssetDao).insert(eq("modifier"), any(ModifierPO.class));
+    }
+
+    @Test
+    void shouldAllowUnselectedWarehouseClassification() {
+        when(modelingAssetDao.insert(eq("modifier"), any(ModifierPO.class))).thenReturn(1);
+
+        String id = service.create(simpleModifier());
 
         assertNotNull(id);
         verify(modelingAssetDao).insert(eq("modifier"), any(ModifierPO.class));
@@ -137,7 +137,7 @@ class ModifierServiceImplTest {
     }
 
     @Test
-    void shouldRejectOdsLayerWhenSubmittingExistingModifier() {
+    void shouldRejectSourceLayerClassificationWhenSubmittingExistingModifier() {
         ModifierPO modifier = new ModifierPO();
         modifier.setId("modifier-id");
         modifier.setModifierType("SIMPLE");
@@ -145,12 +145,8 @@ class ModifierServiceImplTest {
         modifier.setCnName("普通修饰词");
         modifier.setBusinessCaliber("业务限定");
         modifier.setDirector("owner");
-        modifier.setDwhId("ods-layer");
-        DwLayerPO ods = new DwLayerPO();
-        ods.setDwType(DwTypeEnum.SOURCE_LAYER);
-
+        modifier.setDwType(DwTypeEnum.SOURCE_LAYER);
         when(modelingAssetDao.queryById("modifier", "modifier-id")).thenReturn(modifier);
-        when(dwLayerDao.queryById("ods-layer")).thenReturn(ods);
 
         assertThrows(IllegalArgumentException.class, () -> service.submit("modifier-id", "alice"));
         verify(modelingAssetDao, never()).updateById(eq("modifier"), any(ModifierPO.class));

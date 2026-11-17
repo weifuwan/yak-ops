@@ -14,10 +14,8 @@ import static org.mockito.Mockito.when;
 import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
-import io.yak.ops.dao.repository.modeling.ComposeIndicatorDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DwLayerDao;
-import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.modeling.api.dto.dwlayer.DwLayerDTO;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -37,12 +35,6 @@ class DwLayerServiceImplTest {
 
     @Mock
     private DimensionTableDao dimensionTableDao;
-
-    @Mock
-    private ComposeIndicatorDao composeIndicatorDao;
-
-    @Mock
-    private ModifierDao modifierDao;
 
     @InjectMocks
     private DwLayerServiceImpl service;
@@ -165,28 +157,24 @@ class DwLayerServiceImplTest {
     }
 
     @Test
-    void shouldRejectDeleteWhenAnyWarehouseAssetReferencesLayer() {
+    void shouldRejectDeleteWhenDimensionModelReferencesLayer() {
         when(dwLayerDao.queryById(LAYER_ID)).thenReturn(new DwLayerPO());
         when(dimensionTableDao.queryCount(any())).thenReturn(1L);
-        when(composeIndicatorDao.queryCount(any())).thenReturn(3L);
-        when(modifierDao.queryCount(any())).thenReturn(4L);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> service.delete(LAYER_ID));
 
         assertTrue(exception.getMessage().contains("维度模型 1 条"));
-        assertTrue(exception.getMessage().contains("复合指标 3 条"));
-        assertTrue(exception.getMessage().contains("指标修饰词 4 条"));
+        assertFalse(exception.getMessage().contains("复合指标"));
+        assertFalse(exception.getMessage().contains("指标修饰词"));
         verify(dwLayerDao, never()).deleteById(LAYER_ID);
     }
 
     @Test
-    void shouldDeleteLayerWhenNoReferencesExist() {
+    void shouldDeleteLayerWhenNoDimensionModelReferencesExist() {
         when(dwLayerDao.queryById(LAYER_ID)).thenReturn(new DwLayerPO());
         when(dimensionTableDao.queryCount(any())).thenReturn(0L);
-        when(composeIndicatorDao.queryCount(any())).thenReturn(0L);
-        when(modifierDao.queryCount(any())).thenReturn(0L);
         when(dwLayerDao.deleteById(LAYER_ID)).thenReturn(true);
 
         assertEquals(LAYER_ID, service.delete(LAYER_ID));

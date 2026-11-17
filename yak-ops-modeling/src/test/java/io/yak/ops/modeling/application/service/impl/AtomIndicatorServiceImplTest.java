@@ -166,6 +166,25 @@ class AtomIndicatorServiceImplTest {
     }
 
     @Test
+    void shouldForcePublicClassificationEvenWhenAnotherTypeIsProvided() {
+        when(dataDomainDao.queryById(DOMAIN_ID)).thenReturn(new DataDomainPO());
+        BusinessProcessPO process = new BusinessProcessPO();
+        process.setDataDomainId(DOMAIN_ID);
+        when(businessProcessDao.queryById(PROCESS_ID)).thenReturn(process);
+        when(modelingAssetDao.queryCount(eq("atom-indicator"), any())).thenReturn(0L);
+        when(modelingAssetDao.insert(eq("atom-indicator"), any(AtomIndicatorPO.class))).thenReturn(1);
+
+        AtomIndicatorDTO dto = validDto();
+        dto.setDwType(DwTypeEnum.APPLICATION_LAYER);
+
+        service.create(dto, "alice");
+
+        ArgumentCaptor<AtomIndicatorPO> captor = ArgumentCaptor.forClass(AtomIndicatorPO.class);
+        verify(modelingAssetDao).insert(eq("atom-indicator"), captor.capture());
+        assertEquals(DwTypeEnum.PUBLIC_LAYER, captor.getValue().getDwType());
+    }
+
+    @Test
     void shouldRejectNegativeDecimalNumber() {
         AtomIndicatorDTO dto = validDto();
         dto.setDecimalNumber(Integer.valueOf(-1));

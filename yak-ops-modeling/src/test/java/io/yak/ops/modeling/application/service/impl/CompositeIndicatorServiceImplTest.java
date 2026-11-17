@@ -10,16 +10,13 @@ import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.dao.entity.DerivativeIndicatorPO;
-import io.yak.ops.dao.entity.DwLayerPO;
 import io.yak.ops.dao.entity.SubjectDomainPO;
-import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
 import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
-import io.yak.ops.dao.repository.modeling.DwLayerDao;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
 import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import io.yak.ops.modeling.api.dto.compositeindicator.CompositeIndicatorDTO;
@@ -34,8 +31,6 @@ class CompositeIndicatorServiceImplTest {
 
     @Mock
     private ModelingAssetDao modelingAssetDao;
-    @Mock
-    private DwLayerDao dwLayerDao;
     @Mock
     private BusinessTypeDao businessTypeDao;
     @Mock
@@ -54,7 +49,7 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldValidateExpressionModeAndClearComparisonFields() {
-        stubPublicLayer();
+        stubPublicOwnership();
         CompositeIndicatorDTO dto = baseDto();
         dto.setComputeMode("0");
         dto.setComputeExpr("@sales + @orders");
@@ -69,7 +64,7 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldValidateRatioModeAndClearExpression() {
-        stubPublicLayer();
+        stubPublicOwnership();
         when(modelingAssetDao.queryById("derivative-indicator", "derived-id"))
                 .thenReturn(new DerivativeIndicatorPO());
         CompositeIndicatorDTO dto = baseDto();
@@ -109,11 +104,7 @@ class CompositeIndicatorServiceImplTest {
     }
 
     @Test
-    void shouldRequireBusinessProcessForPublicLayer() {
-        DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(DwTypeEnum.PUBLIC_LAYER);
-        layer.setDwModelType(DwModelEnum.SUMMARY);
-        when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
+    void shouldRequireBusinessProcessForPublicClassification() {
         CompositeIndicatorDTO dto = baseDto();
         dto.setDomainId(null);
         dto.setBusProcessId(null);
@@ -126,10 +117,6 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldRejectBusinessProcessOutsideSelectedDomain() {
-        DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(DwTypeEnum.PUBLIC_LAYER);
-        layer.setDwModelType(DwModelEnum.SUMMARY);
-        when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
         when(dataDomainDao.queryById("domain-id")).thenReturn(new DataDomainPO());
         BusinessProcessPO process = new BusinessProcessPO();
         process.setDataDomainId("another-domain");
@@ -145,17 +132,13 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldValidateApplicationOwnershipAndClearPublicFields() {
-        DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(DwTypeEnum.APPLICATION_LAYER);
-        layer.setDwModelType(DwModelEnum.APPLICATION);
-        when(dwLayerDao.queryById("application-layer")).thenReturn(layer);
         when(dataMartDao.queryById("mart-id")).thenReturn(new DataMartPO());
         SubjectDomainPO subject = new SubjectDomainPO();
         subject.setDataMartId("mart-id");
         when(subjectDomainDao.queryById("subject-id")).thenReturn(subject);
 
         CompositeIndicatorDTO dto = baseDto();
-        dto.setDwhId("application-layer");
+        dto.setDwType(DwTypeEnum.APPLICATION_LAYER);
         dto.setMartId("mart-id");
         dto.setSubjectId("subject-id");
         dto.setBusTypeId("stale-business-type");
@@ -171,17 +154,13 @@ class CompositeIndicatorServiceImplTest {
 
     @Test
     void shouldRejectSubjectDomainFromAnotherDataMart() {
-        DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(DwTypeEnum.APPLICATION_LAYER);
-        layer.setDwModelType(DwModelEnum.APPLICATION);
-        when(dwLayerDao.queryById("application-layer")).thenReturn(layer);
         when(dataMartDao.queryById("mart-id")).thenReturn(new DataMartPO());
         SubjectDomainPO subject = new SubjectDomainPO();
         subject.setDataMartId("another-mart");
         when(subjectDomainDao.queryById("subject-id")).thenReturn(subject);
 
         CompositeIndicatorDTO dto = baseDto();
-        dto.setDwhId("application-layer");
+        dto.setDwType(DwTypeEnum.APPLICATION_LAYER);
         dto.setMartId("mart-id");
         dto.setSubjectId("subject-id");
 
@@ -192,43 +171,36 @@ class CompositeIndicatorServiceImplTest {
     }
 
     @Test
-    void shouldRejectSourceWarehouseLayer() {
-        assertUnsupportedLayer(DwTypeEnum.SOURCE_LAYER, DwModelEnum.SOURCE);
+    void shouldRejectSourceLayerClassification() {
+        assertUnsupportedClassification(DwTypeEnum.SOURCE_LAYER);
     }
 
     @Test
-    void shouldRejectUnlayeredWarehouseLayer() {
-        assertUnsupportedLayer(DwTypeEnum.NONE_LAYER, null);
+    void shouldRejectUnassignedLayerClassification() {
+        assertUnsupportedClassification(DwTypeEnum.NONE_LAYER);
     }
 
     @Test
-    void shouldRejectPublicDimensionAndDetailModels() {
-        assertUnsupportedLayer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM);
-        assertUnsupportedLayer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL);
+    void shouldRequireWarehouseClassification() {
+        CompositeIndicatorDTO dto = baseDto();
+        dto.setDwType(null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.validate(dto));
     }
 
-    @Test
-    void shouldRejectApplicationLayerWithNonApplicationModel() {
-        assertUnsupportedLayer(DwTypeEnum.APPLICATION_LAYER, DwModelEnum.SUMMARY);
-    }
-
-    private void assertUnsupportedLayer(DwTypeEnum dwType, DwModelEnum dwModelType) {
-        DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(dwType);
-        layer.setDwModelType(dwModelType);
-        when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
+    private void assertUnsupportedClassification(DwTypeEnum dwType) {
+        CompositeIndicatorDTO dto = baseDto();
+        dto.setDwType(dwType);
 
         IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class, () -> service.validate(baseDto()));
+                IllegalArgumentException.class, () -> service.validate(dto));
 
-        assertEquals(
-                "复合指标仅支持公共层汇总数据层（DWS）或应用层应用数据层（ADS）",
-                exception.getMessage());
+        assertEquals("复合指标仅支持公共层或应用层", exception.getMessage());
     }
 
     private CompositeIndicatorDTO baseDto() {
         CompositeIndicatorDTO dto = new CompositeIndicatorDTO();
-        dto.setDwhId("public-layer");
+        dto.setDwType(DwTypeEnum.PUBLIC_LAYER);
         dto.setComputeMode("0");
         dto.setComputeExpr("metric_a + metric_b");
         dto.setEnShortName("composite_metric");
@@ -239,11 +211,7 @@ class CompositeIndicatorServiceImplTest {
         return dto;
     }
 
-    private void stubPublicLayer() {
-        DwLayerPO layer = new DwLayerPO();
-        layer.setDwType(DwTypeEnum.PUBLIC_LAYER);
-        layer.setDwModelType(DwModelEnum.SUMMARY);
-        when(dwLayerDao.queryById("public-layer")).thenReturn(layer);
+    private void stubPublicOwnership() {
         when(dataDomainDao.queryById("domain-id")).thenReturn(new DataDomainPO());
         BusinessProcessPO process = new BusinessProcessPO();
         process.setDataDomainId("domain-id");
