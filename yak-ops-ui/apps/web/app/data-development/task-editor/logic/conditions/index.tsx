@@ -58,41 +58,6 @@ function getTaskOptions(
   return options;
 }
 
-function RelationConnector({
-  relation,
-  disabled,
-  onToggle,
-}: {
-  relation: ConditionRelation;
-  disabled: boolean;
-  onToggle: () => void;
-}) {
-  const nextRelation = relation === "AND" ? "OR" : "AND";
-
-  return (
-    <div
-      className="flex items-center justify-center gap-2 py-1"
-      role="group"
-      aria-label="条件组之间的逻辑关系"
-    >
-      <span className="h-px w-8 bg-[#e4e7ec]" />
-      <span className="text-[10px] text-[#98A2B3]">组间</span>
-      <Button
-        size="sm"
-        variant="secondary"
-        className="h-6 min-w-12 px-2 text-[10px] font-semibold"
-        isDisabled={disabled}
-        title={"点击切换为 " + nextRelation}
-        aria-label={"当前组间关系为 " + relation + "，点击切换为 " + nextRelation}
-        onClick={onToggle}
-      >
-        {relation}
-      </Button>
-      <span className="h-px w-8 bg-[#e4e7ec]" />
-    </div>
-  );
-}
-
 function BranchTargetSummary({
   title,
   targets,
@@ -207,24 +172,28 @@ function ConditionsForm({
     ]);
   };
 
-  const toggleGroupRelation = () => onChange({
-    ...normalized,
-    dependence: {
-      ...dependence,
-      relation: dependence.relation === "AND" ? "OR" : "AND",
-    },
-  });
-
   const expressionPlaceholder = groups.length === 0
     ? "添加条件组后显示判断表达式"
     : upstreamTasks.length === 0
       ? "连接上游任务后显示判断表达式"
       : "请完成所有判断条件";
 
+  const rowCount = Math.max(groups.length, 2);
+  const groupRows = groups.length === 1
+    ? [{ group: groups[0], groupIndex: 0, row: `1 / span ${rowCount}` }]
+    : groups.map((group, groupIndex) => ({
+        group,
+        groupIndex,
+        row: String(groupIndex + 1),
+      }));
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs font-semibold text-[#344054]">条件判断流程</div>
+        <div>
+          <div className="text-xs font-semibold text-[#344054]">CONDITIONS 判断流程</div>
+          <div className="mt-0.5 text-[11px] text-[#98A2B3]">左侧输入 · 中间判断 · 右侧输出</div>
+        </div>
         <Button size="sm" variant="secondary" isDisabled={disabled} onClick={addGroup}>
           <Plus size={13} />
           新增条件组
@@ -240,165 +209,247 @@ function ConditionsForm({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-[minmax(260px,1.25fr)_36px_minmax(190px,0.85fr)_36px_minmax(190px,0.85fr)] items-stretch gap-1 max-xl:grid-cols-1">
-        <div className="min-w-0 space-y-2">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-[#667085]">条件输入</span>
-            <span className="text-[10px] text-[#98A2B3]">{groups.length} 个条件组</span>
-          </div>
+      <div className="overflow-x-auto rounded-xl border border-[#eaecf0] bg-[#fbfcfe] p-3">
+        <div className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch">
+          <div className="pb-2 text-[11px] font-semibold text-[#667085]">输入 · 条件组</div>
+          <div />
+          <div className="pb-2 text-center text-[11px] font-semibold text-[#667085]">判断 · CONDITIONS</div>
+          <div />
+          <div className="pb-2 text-[11px] font-semibold text-[#667085]">输出 · 执行分支</div>
+        </div>
+
+        <div
+          className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch"
+          style={{ gridTemplateRows: `repeat(${rowCount}, minmax(164px, auto))` }}
+        >
           {groups.length === 0 ? (
-            <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-[#d0d5dd] bg-[#fcfcfd] px-3 text-center text-xs text-[#98A2B3]">
-              点击“新增条件组”开始配置
-            </div>
-          ) : groups.map((group, groupIndex) => (
-            <section
-              key={"conditions-group-" + groupIndex}
-              className="relative rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+            <div
+              className="flex items-center py-2"
+              style={{ gridColumn: 1, gridRow: `1 / span ${rowCount}` }}
             >
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-6 items-center justify-center rounded-md bg-[#eef2ff] text-[10px] font-semibold text-[#3a3d51]">
-                    {groupIndex + 1}
-                  </span>
-                  <span className="text-xs font-semibold text-[#344054]">条件组 {groupIndex + 1}</span>
+              <div className="flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[#d0d5dd] bg-white px-3 text-center">
+                <span className="text-xs font-medium text-[#667085]">还没有输入条件</span>
+                <span className="mt-1 text-[11px] text-[#98A2B3]">新增条件组，选择上游任务和期望状态</span>
+                <Button className="mt-2" size="sm" variant="secondary" isDisabled={disabled} onClick={addGroup}>
+                  <Plus size={12} />
+                  添加第一个条件组
+                </Button>
+              </div>
+            </div>
+          ) : groupRows.map(({ group, groupIndex, row }) => (
+            <div
+              key={"conditions-input-" + groupIndex}
+              className="flex min-w-0 items-center py-2"
+              style={{ gridColumn: 1, gridRow: row }}
+            >
+              <section className="w-full rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-6 items-center justify-center rounded-md bg-[#eef2ff] text-[10px] font-semibold text-[#3a3d51]">
+                      {groupIndex + 1}
+                    </span>
+                    <span className="text-xs font-semibold text-[#344054]">条件组 {groupIndex + 1}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {group.dependItemList.length > 1 ? (
+                      <div className="w-[142px]">
+                        <LogicSelect
+                          id={"conditions-group-relation-" + groupIndex}
+                          value={group.relation}
+                          options={RELATION_OPTIONS}
+                          placeholder="组内关系"
+                          disabled={disabled}
+                          onChange={(value) => updateGroup(groupIndex, {
+                            relation: value as ConditionRelation,
+                          })}
+                        />
+                      </div>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={disabled}
+                      aria-label={"删除条件组 " + (groupIndex + 1)}
+                      onClick={() => updateGroups(groups.filter((_item, index) => index !== groupIndex))}
+                    >
+                      <Trash2 size={13} />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {group.dependItemList.length > 1 ? (
-                    <div className="w-[142px]">
-                      <LogicSelect
-                        id={"conditions-group-relation-" + groupIndex}
-                        value={group.relation}
-                        options={RELATION_OPTIONS}
-                        placeholder="组内关系"
-                        disabled={disabled}
-                        onChange={(value) => updateGroup(groupIndex, {
-                          relation: value as ConditionRelation,
-                        })}
-                      />
-                    </div>
-                  ) : null}
+
+                <div className="space-y-2">
+                  {group.dependItemList.map((item, itemIndex) => {
+                    const occupiedTaskCodes = group.dependItemList
+                      .filter((_other, index) => index !== itemIndex)
+                      .map((other) => other.depTaskCode);
+                    return (
+                      <div key={"conditions-item-" + groupIndex + "-" + itemIndex} className="rounded-md bg-[#f8f9fb] p-2">
+                        <div className="mb-1 text-[10px] text-[#98A2B3]">判断条件 {itemIndex + 1}</div>
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(100px,0.72fr)_28px] items-center gap-1.5 max-sm:grid-cols-1">
+                          <LogicSelect
+                            id={"conditions-task-" + groupIndex + "-" + itemIndex}
+                            value={item.depTaskCode > 0 ? String(item.depTaskCode) : ""}
+                            options={getTaskOptions(upstreamTasks, item.depTaskCode, occupiedTaskCodes)}
+                            placeholder={upstreamTasks.length ? "选择上游任务" : "暂无上游任务"}
+                            disabled={disabled || upstreamTasks.length === 0}
+                            onChange={(value) => updateItem(groupIndex, itemIndex, { depTaskCode: Number(value) })}
+                          />
+                          <LogicSelect
+                            id={"conditions-status-" + groupIndex + "-" + itemIndex}
+                            value={item.status}
+                            options={STATUS_OPTIONS}
+                            placeholder="执行状态"
+                            disabled={disabled}
+                            onChange={(value) => updateItem(groupIndex, itemIndex, { status: value as ConditionTaskStatus })}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            isDisabled={disabled}
+                            aria-label={"删除判断条件 " + (itemIndex + 1)}
+                            onClick={() => updateGroup(groupIndex, {
+                              dependItemList: group.dependItemList.filter((_other, index) => index !== itemIndex),
+                            })}
+                          >
+                            <Trash2 size={12} />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                   <Button
                     size="sm"
                     variant="ghost"
                     isDisabled={disabled}
-                    aria-label={"删除条件组 " + (groupIndex + 1)}
-                    onClick={() => updateGroups(groups.filter((_item, index) => index !== groupIndex))}
+                    onClick={() => updateGroup(groupIndex, {
+                      dependItemList: [...group.dependItemList, createConditionDependentItem()],
+                    })}
                   >
-                    <Trash2 size={13} />
+                    <Plus size={12} />
+                    添加判断条件
                   </Button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                {group.dependItemList.map((item, itemIndex) => {
-                  const occupiedTaskCodes = group.dependItemList
-                    .filter((_other, index) => index !== itemIndex)
-                    .map((other) => other.depTaskCode);
-                  return (
-                    <div key={"conditions-item-" + groupIndex + "-" + itemIndex} className="rounded-md bg-[#f8f9fb] p-2">
-                      <div className="mb-1 text-[10px] text-[#98A2B3]">判断条件 {itemIndex + 1}</div>
-                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(100px,0.72fr)_28px] items-center gap-1.5 max-sm:grid-cols-1">
-                        <LogicSelect
-                          id={"conditions-task-" + groupIndex + "-" + itemIndex}
-                          value={item.depTaskCode > 0 ? String(item.depTaskCode) : ""}
-                          options={getTaskOptions(upstreamTasks, item.depTaskCode, occupiedTaskCodes)}
-                          placeholder={upstreamTasks.length ? "选择上游任务" : "暂无上游任务"}
-                          disabled={disabled || upstreamTasks.length === 0}
-                          onChange={(value) => updateItem(groupIndex, itemIndex, { depTaskCode: Number(value) })}
-                        />
-                        <LogicSelect
-                          id={"conditions-status-" + groupIndex + "-" + itemIndex}
-                          value={item.status}
-                          options={STATUS_OPTIONS}
-                          placeholder="执行状态"
-                          disabled={disabled}
-                          onChange={(value) => updateItem(groupIndex, itemIndex, { status: value as ConditionTaskStatus })}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          isDisabled={disabled}
-                          aria-label={"删除判断条件 " + (itemIndex + 1)}
-                          onClick={() => updateGroup(groupIndex, {
-                            dependItemList: group.dependItemList.filter((_other, index) => index !== itemIndex),
-                          })}
-                        >
-                          <Trash2 size={12} />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  isDisabled={disabled}
-                  onClick={() => updateGroup(groupIndex, {
-                    dependItemList: [...group.dependItemList, createConditionDependentItem()],
-                  })}
-                >
-                  <Plus size={12} />
-                  添加判断条件
-                </Button>
-              </div>
-            </section>
+              </section>
+            </div>
           ))}
-        </div>
 
-        <div className="hidden items-center justify-center xl:flex">
-          <div className="relative h-full w-full">
-            <div className="absolute left-0 top-1/2 w-full border-t border-dashed border-[#aeb7c4]" />
-            {groups.length > 1 ? (
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d0d5dd] bg-white px-1.5 py-1 text-[9px] font-semibold text-[#475467]">
-                {dependence.relation}
-              </span>
-            ) : null}
-          </div>
-        </div>
+          {groups.length === 1 ? (
+            <div
+              className="pointer-events-none relative"
+              style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
+            >
+              <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+            </div>
+          ) : groups.length > 1 ? (
+            <>
+              <div
+                className="pointer-events-none relative"
+                style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
+              >
+                <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+                <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+              </div>
+              {groups.map((_group, groupIndex) => (
+                <div
+                  key={"conditions-input-link-" + groupIndex}
+                  className="pointer-events-none relative flex items-center justify-center"
+                  style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
+                >
+                  <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                  <span className="relative z-10 rounded-full border border-[#d0d5dd] bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#475467]">
+                    {dependence.relation}
+                  </span>
+                </div>
+              ))}
+            </>
+          ) : null}
 
-        <div className="flex min-w-0 flex-col justify-center">
-          <div className="mb-1 text-center text-[11px] font-semibold text-[#667085]">条件判断</div>
-          <div className="rounded-xl border border-[#c7d2fe] bg-[#f5f6ff] p-3 shadow-[0_3px_10px_rgba(58,61,81,0.07)]">
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-[#e7eaff] text-[#3a3d51]">
-                <AlertCircle size={17} />
-              </span>
-              <div>
-                <div className="text-xs font-semibold text-[#344054]">CONDITIONS</div>
-                <div className="text-[10px] text-[#98A2B3]">条件判断节点</div>
+          <div
+            className="flex min-w-0 items-center py-3"
+            style={{ gridColumn: 3, gridRow: `1 / span ${rowCount}` }}
+          >
+            <div className="w-full rounded-xl border border-[#c7d2fe] bg-[#f5f6ff] p-3 shadow-[0_3px_10px_rgba(58,61,81,0.07)]">
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-[#e7eaff] text-[#3a3d51]">
+                  <AlertCircle size={18} />
+                </span>
+                <div>
+                  <div className="text-xs font-semibold text-[#344054]">CONDITIONS</div>
+                  <div className="text-[10px] text-[#98A2B3]">条件判断节点</div>
+                </div>
+              </div>
+              <div className="rounded-md border border-[#e4e7ec] bg-white p-2.5">
+                <div className="mb-1.5 text-[10px] font-medium text-[#98A2B3]">逻辑表达式</div>
+                {expression ? (
+                  <code className="block break-words text-[10px] leading-5 text-[#344054]">{expression}</code>
+                ) : (
+                  <span className="text-[10px] leading-5 text-[#98A2B3]">{expressionPlaceholder}</span>
+                )}
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-[#667085]">
+                <span>{groups.length} 个条件组</span>
+                <span className="text-[#d0d5dd]">·</span>
+                <span>{groups.reduce((sum, group) => sum + group.dependItemList.length, 0)} 条判断</span>
               </div>
             </div>
-            <div className="rounded-md border border-[#e4e7ec] bg-white p-2">
-              <div className="mb-1 text-[10px] text-[#98A2B3]">逻辑表达式</div>
-              {expression ? (
-                <code className="block break-words text-[10px] leading-5 text-[#344054]">{expression}</code>
+          </div>
+
+          <div
+            className="pointer-events-none relative"
+            style={{ gridColumn: 4, gridRow: `1 / span ${rowCount}` }}
+          >
+            <span className="absolute left-0 top-1/2 h-0 w-1/2 border-t border-dashed border-[#aeb7c4]" />
+            <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+          </div>
+          {Array.from({ length: rowCount }, (_item, rowIndex) => (
+            <div
+              key={"conditions-output-link-" + rowIndex}
+              className="pointer-events-none relative"
+              style={{ gridColumn: 4, gridRow: rowIndex + 1 }}
+            >
+              {rowIndex === 0 ? (
+                <>
+                  <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                  <span className="absolute left-1/2 top-1/2 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+                </>
+              ) : rowIndex === rowCount - 1 ? (
+                <>
+                  <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                  <span className="absolute left-1/2 top-0 bottom-1/2 border-l border-dashed border-[#aeb7c4]" />
+                </>
               ) : (
-                <span className="text-[10px] text-[#98A2B3]">{expressionPlaceholder}</span>
+                <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
               )}
             </div>
-            <div className="mt-2 text-center text-[10px] text-[#667085]">
-              {groups.length} 个条件组 · {groups.reduce((sum, group) => sum + group.dependItemList.length, 0)} 条判断
-            </div>
+          ))}
+
+          <div
+            className="flex min-w-0 items-center py-2"
+            style={{ gridColumn: 5, gridRow: 1 }}
+          >
+            <BranchTargetSummary title="成功分支" targets={successTargets} kind="success" />
           </div>
-        </div>
-
-        <div className="hidden items-center justify-center xl:flex">
-          <div className="w-full border-t border-dashed border-[#aeb7c4]" />
-        </div>
-
-        <div className="flex min-w-0 flex-col justify-center gap-3">
-          <div className="mb-1 text-[11px] font-semibold text-[#667085]">执行结果</div>
-          <BranchTargetSummary title="成功分支" targets={successTargets} kind="success" />
-          <BranchTargetSummary title="失败分支" targets={failedTargets} kind="failed" />
+          <div
+            className="flex min-w-0 items-center py-2"
+            style={{ gridColumn: 5, gridRow: rowCount }}
+          >
+            <BranchTargetSummary title="失败分支" targets={failedTargets} kind="failed" />
+          </div>
           {unassignedTargetCount > 0 ? (
-            <div className="flex items-center gap-2 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2.5 py-2 text-[11px] text-[#9a3412]">
-              <AlertCircle size={14} className="shrink-0" />
-              {unassignedTargetCount} 条连线未归属分支
+            <div
+              className="flex items-center"
+              style={{ gridColumn: 5, gridRow: `1 / span ${rowCount}` }}
+            >
+              <div className="absolute bottom-2 right-3 flex items-center gap-1.5 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2 py-1.5 text-[10px] text-[#9a3412]">
+                <AlertCircle size={12} className="shrink-0" />
+                {unassignedTargetCount} 条未归属分支
+              </div>
             </div>
           ) : null}
         </div>
       </div>
     </div>
+  );
   );
 }
 
