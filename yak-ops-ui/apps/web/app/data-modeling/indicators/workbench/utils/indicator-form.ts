@@ -47,9 +47,17 @@ export function fieldOptions(
   if (field.options) return field.options;
   if (!field.optionsSource) return [];
   const labelField = field.optionLabelField || "cnName";
+  const filterField = field.optionFilterField || "dwType";
+  const includedValues = field.includeOptionValues
+    ? new Set(field.includeOptionValues)
+    : undefined;
   const excludedValues = new Set(field.excludeOptionValues || []);
   return (optionsByResource[field.optionsSource] || [])
-    .filter((record) => !excludedValues.has(String(record.dwType ?? "")))
+    .filter((record) => {
+      const filterValue = String(record[filterField] ?? "");
+      if (includedValues && !includedValues.has(filterValue)) return false;
+      return !excludedValues.has(filterValue);
+    })
     .map((record) => {
       const label = record[labelField] ?? record.cnName ?? record.businessName ?? record.id;
       const prefix = field.optionLabelPrefixField ? record[field.optionLabelPrefixField] : undefined;
