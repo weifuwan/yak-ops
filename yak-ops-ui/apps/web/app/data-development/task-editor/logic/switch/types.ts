@@ -3,8 +3,17 @@ export type SwitchCase = {
   nextNode: number | null;
 };
 
+export type SwitchLocalParam = {
+  prop: string;
+  direct?: string;
+  type?: string;
+  value?: string | null;
+  sensitive?: boolean;
+  [key: string]: unknown;
+};
+
 export type SwitchTaskParams = {
-  localParams?: unknown[];
+  localParams?: SwitchLocalParam[];
   nextBranch?: number | null;
   switchResult: {
     dependTaskList: SwitchCase[];

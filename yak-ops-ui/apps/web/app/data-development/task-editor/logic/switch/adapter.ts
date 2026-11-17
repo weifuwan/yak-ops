@@ -1,6 +1,6 @@
 import type { WorkflowCanvasEdge } from "../../../workflow-editor/types";
 
-import type { SwitchCase, SwitchTaskParams } from "./types";
+import type { SwitchCase, SwitchLocalParam, SwitchTaskParams } from "./types";
 
 export type SwitchVariableOption = {
   value: string;
@@ -32,7 +32,15 @@ export function normalizeSwitchTaskParams(value: unknown): SwitchTaskParams {
 
   return {
     ...params,
-    localParams: Array.isArray(params.localParams) ? params.localParams : [],
+    localParams: Array.isArray(params.localParams)
+      ? params.localParams.map((item) => {
+          const current = asRecord(item);
+          return {
+            ...current,
+            prop: String(current.prop ?? ""),
+          } as SwitchLocalParam;
+        })
+      : [],
     switchResult: {
       ...result,
       dependTaskList: cases.map((item) => {
