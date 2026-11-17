@@ -43,7 +43,10 @@ function getWorkflowGraphSignature(
       id: node.id,
       type: node.type,
       position: node.position,
-      data: node.data,
+      data: {
+        ...node.data,
+        branchOutputsPreview: undefined,
+      },
       sourcePosition: node.sourcePosition,
       targetPosition: node.targetPosition,
     })),
