@@ -106,8 +106,8 @@ export function WorkflowTaskNode({
   data,
   selected,
 }: NodeProps<WorkflowNodeData>) {
-  const openSelector = useWorkflowStore(
-    (state) => state.openSelector,
+  const openEdgeSelector = useWorkflowStore(
+    (state) => state.openEdgeSelector,
   );
   const branchOutputs = data.branchOutputsPreview ?? data.branchOutputs ?? [];
   const { openTask } = useDataDevelopmentWorkbench();
@@ -258,13 +258,19 @@ export function WorkflowTaskNode({
                         aria-label={output.label + "分支连接点"}
                         title={output.label + "分支"}
                         style={{ top: "50%", right: BRANCH_HANDLE_RIGHT_OFFSET }}
+                        data-workflow-edge-picker-trigger
                         onClick={(event) => {
                           event.stopPropagation();
                           if (data.readOnly) return;
-                          openSelector({
-                            kind: "downstream",
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          openEdgeSelector({
+                            kind: "downstream-popover",
                             nodeId: id,
                             sourceHandle: output.id,
+                            anchor: {
+                              x: rect.right,
+                              y: rect.top + rect.height / 2,
+                            },
                           });
                         }}
                         className={[
@@ -294,13 +300,19 @@ export function WorkflowTaskNode({
           type="source"
           position={Position.Right}
           isConnectable={!data.readOnly}
+          data-workflow-edge-picker-trigger
           onClick={(event) => {
             event.stopPropagation();
             if (data.readOnly) return;
-            openSelector({
-              kind: "downstream",
+            const rect = event.currentTarget.getBoundingClientRect();
+            openEdgeSelector({
+              kind: "downstream-popover",
               nodeId: id,
               sourceHandle: "source",
+              anchor: {
+                x: rect.right,
+                y: rect.top + rect.height / 2,
+              },
             });
           }}
           className={[
