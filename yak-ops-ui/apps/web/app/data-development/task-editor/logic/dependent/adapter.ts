@@ -1,9 +1,7 @@
 import type {
   DependResult,
-  DependentFailurePolicy,
   DependentGroup,
   DependentItem,
-  DependentRelation,
   DependentTaskParams,
 } from "./types";
 

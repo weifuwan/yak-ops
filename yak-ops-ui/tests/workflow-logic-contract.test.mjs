@@ -6,9 +6,7 @@ import {
   getWorkflowBranchOutputs,
   resolveWorkflowSourceHandle,
 } from "../apps/web/app/data-development/workflow-editor/adapter/workflow-branch-adapter.ts";
-import {
-  normalizeConditionsTaskParams,
-} from "../apps/web/app/data-development/task-editor/logic/conditions/adapter.ts";
+import { normalizeConditionsTaskParams } from "../apps/web/app/data-development/task-editor/logic/conditions/adapter.ts";
 import {
   normalizeDependentTaskParams,
   createDependentItem,

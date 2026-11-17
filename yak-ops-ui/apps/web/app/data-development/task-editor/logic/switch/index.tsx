@@ -9,7 +9,7 @@ import {
 } from "@/service/workflow/definition";
 
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
-import { LogicField, LogicSection, LogicSelect } from "../shared/logic-form-controls";
+import { LogicSection, LogicSelect } from "../shared/logic-form-controls";
 import {
   getSwitchVariableOptions,
   normalizeSwitchTaskParams,
@@ -20,7 +20,9 @@ import type { SwitchCase } from "./types";
 
 const OPERATOR_OPTIONS = [
   { value: "==", label: "等于 ==" },
+  { value: "===", label: "严格等于 ===" },
   { value: "!=", label: "不等于 !=" },
+  { value: "!==", label: "严格不等于 !==" },
   { value: ">", label: "大于 >" },
   { value: ">=", label: "大于等于 >=" },
   { value: "<", label: "小于 <" },
@@ -88,7 +90,7 @@ function SwitchExpressionBuilder({
         />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)_124px_minmax(0,1fr)] gap-2">
-          {variables.length > 0 ? (
+          {variables.some((option) => option.value === variable) ? (
             <LogicSelect
               id="switch-expression-variable"
               value={variable}
