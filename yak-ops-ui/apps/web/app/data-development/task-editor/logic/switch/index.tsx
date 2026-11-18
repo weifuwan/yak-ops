@@ -11,6 +11,7 @@ import { useDataDevelopmentWorkbench } from "../../../workbench-context";
 import { getWorkflowBranchOutputs } from "../../../workflow-editor/adapter/workflow-branch-adapter";
 
 import { LogicTaskEditor } from "../shared/logic-task-editor";
+import { useSwitchRunConfig } from "./components/switch-run-config-panel";
 import {
   getSwitchVariableOptions,
   remapSwitchCaseHandles,
@@ -37,6 +38,7 @@ export function SwitchEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
+  const runConfig = useSwitchRunConfig(task, readOnly);
   const { activeTabId, getWorkflowStore } = useDataDevelopmentWorkbench();
   const taskTabId = "task:" + workflowCode + ":" + task.code;
   const latestPreviewParamsRef = useRef<unknown>(null);
@@ -124,6 +126,7 @@ export function SwitchEditor({
       taskName={taskName}
       taskType="SWITCH"
       readOnly={readOnly}
+      runConfig={runConfig}
       onApplyTask={onApplyTask}
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}
