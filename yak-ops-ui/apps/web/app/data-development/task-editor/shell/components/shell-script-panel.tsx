@@ -32,8 +32,8 @@ export function ShellScriptPanel({
             type="button"
             size="sm"
             variant="ghost"
-            isDisabled={readOnly || !form.rawScript}
-            onClick={() => updateField("rawScript", "")}
+            isDisabled={readOnly || !rawScript}
+            onClick={() => onChange("")}
             className="!h-6 !px-2 text-[11px]"
           >
             清空脚本
@@ -44,9 +44,9 @@ export function ShellScriptPanel({
       <div className="flex min-h-[250px] flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1">
           <ShellScriptEditor
-            value={form.rawScript}
+            value={rawScript}
             readOnly={readOnly}
-            onChange={(value) => updateField("rawScript", value)}
+            onChange={onChange}
           />
         </div>
         <div className="flex h-6 shrink-0 items-center justify-between border-t border-[#f0f1f3] bg-white px-3 text-[10px] text-[#98a1ad]">

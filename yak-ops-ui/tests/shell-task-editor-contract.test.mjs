@@ -15,6 +15,10 @@ const scriptEditorSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/components/shell-script-editor.tsx", import.meta.url),
   "utf8",
 );
+const scriptPanelSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-script-panel.tsx", import.meta.url),
+  "utf8",
+);
 const configPanelSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/components/shell-config-panel.tsx", import.meta.url),
   "utf8",
@@ -130,4 +134,12 @@ test("Shell config panel uses its declared activeTab props for navigation", () =
   assert.equal(configPanelSource.includes('onClick={() => onActiveTabChange("parameters")}'), true);
   assert.equal(configPanelSource.includes('aria-pressed={activeTab === "resources"}'), true);
   assert.equal(configPanelSource.includes('onClick={() => onActiveTabChange("resources")}'), true);
+});
+
+test("Shell script panel uses its declared rawScript and onChange props", () => {
+  assert.equal(scriptPanelSource.includes("form.rawScript"), false);
+  assert.equal(scriptPanelSource.includes("updateField("), false);
+  assert.equal(scriptPanelSource.includes("value={rawScript}"), true);
+  assert.equal(scriptPanelSource.includes("onChange={onChange}"), true);
+  assert.equal(scriptPanelSource.includes('onChange("")'), true);
 });
