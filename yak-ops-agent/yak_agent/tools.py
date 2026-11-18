@@ -179,8 +179,16 @@ def build_auth(settings: Settings) -> YakAuth:
     )
 
 
-def build_tools(settings: Settings, auth: YakAuth | None = None) -> list[FunctionTool]:
-    """Materialize the registry as AgentScope tools bound to the given settings."""
+def build_tools(
+    settings: Settings,
+    auth: YakAuth | None = None,
+    workspace: Any | None = None,
+) -> list[FunctionTool]:
+    """Materialize the registry as AgentScope tools bound to the given settings.
+
+    `workspace` (a SessionWorkspace) enables the persistent PTC working
+    directory and the read_workspace_file/list_workspace_files tools.
+    """
     if not settings.project_code:
         raise YakApiError("YAK_OPS_PROJECT_CODE is not configured; refusing to build tools with an undefined project")
     auth = auth or build_auth(settings)
@@ -207,15 +215,34 @@ def build_tools(settings: Settings, auth: YakAuth | None = None) -> list[Functio
         from yak_agent import executor as _executor
 
         def run_analysis_script(code: str, timeout_seconds: int = 60) -> str:
-            """Write and run a Python analysis script against the read-only yak-ops SDK. Use for log root-cause analysis (page the FULL log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB.
+            """Write and run a Python analysis script against the read-only yak-ops SDK. Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
 
             Args:
                 code: Python 3 script body. `import yak_agent_sdk as sdk` then call its functions; print the conclusion.
                 timeout_seconds: Wall-clock limit, 5-300.
             """
-            return _executor.format_result(_executor.run_analysis(code, timeout_seconds))
+            workdir = workspace.root if workspace is not None else None
+            return _executor.format_result(_executor.run_analysis(code, timeout_seconds, workdir=workdir, workspace=workspace))
 
         tools.append(FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False))
+
+        if workspace is not None:
+            def read_workspace_file(path: str, start_line: int = 1, end_line: int | None = None) -> str:
+                """Read a file from the session workspace (scripts, offloaded outputs, intermediate data). Line numbers are prefixed. Use to retrieve the full version of an offloaded output.
+
+                Args:
+                    path: Path relative to the workspace root, e.g. `script-stdout.txt`.
+                    start_line: First line to read, 1-based.
+                    end_line: Last line to read (inclusive); omit to read to the end.
+                """
+                return truncate(workspace.read_file(path, start_line, end_line))
+
+            def list_workspace_files() -> str:
+                """List the files stored in the session workspace with sizes."""
+                return workspace.list_files()
+
+            tools.append(FunctionTool(read_workspace_file, is_read_only=True, is_concurrency_safe=True))
+            tools.append(FunctionTool(list_workspace_files, is_read_only=True, is_concurrency_safe=True))
     except Exception:  # noqa: BLE001 - PTC is an enhancement; absence keeps form 1
         pass
 

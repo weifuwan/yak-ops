@@ -39,8 +39,19 @@ def _truncate(text: str) -> str:
     return text[: _MAX_OUTPUT_CHARS // 2] + "\n...(truncated)...\n" + text[-_MAX_OUTPUT_CHARS // 2 :]
 
 
-def run_analysis(code: str, timeout_seconds: int = _DEFAULT_TIMEOUT) -> dict[str, Any]:
-    """Execute one analysis script and return {stdout, stderr, exitCode, durationMs}."""
+def run_analysis(
+    code: str,
+    timeout_seconds: int = _DEFAULT_TIMEOUT,
+    workdir: Path | None = None,
+    workspace: Any | None = None,
+) -> dict[str, Any]:
+    """Execute one analysis script and return {stdout, stderr, exitCode, durationMs}.
+
+    `workdir` (a persistent session workspace dir) replaces the ephemeral temp
+    directory so scripts can leave files for follow-up rounds. `workspace` is a
+    SessionWorkspace: when stdout is truncated the full output is offloaded
+    there and the truncation notice carries its path.
+    """
     started = time.monotonic()
     timeout = max(5, min(_HARD_TIMEOUT_CAP, int(timeout_seconds)))
 
@@ -55,7 +66,10 @@ def run_analysis(code: str, timeout_seconds: int = _DEFAULT_TIMEOUT) -> dict[str
         audit.record_tool_call("run_analysis_script", {"code_len": len(code)}, False, 0, rejection)
         return result
 
-    workdir = Path(tempfile.mkdtemp(prefix="yak-ptc-"))
+    keep = workdir is not None
+    workdir = (workdir or Path(tempfile.mkdtemp(prefix="yak-ptc-")))
+    workdir = Path(workdir).resolve()  # subprocess cwd + script path must both be absolute
+    workdir.mkdir(parents=True, exist_ok=True)
     try:
         write_sdk(workdir, _AGENT_ROOT)
         (workdir / "analysis.py").write_text(code, encoding="utf-8")
@@ -69,8 +83,12 @@ def run_analysis(code: str, timeout_seconds: int = _DEFAULT_TIMEOUT) -> dict[str
                 errors="replace",
                 timeout=timeout,
             )
+            stdout = _truncate(proc.stdout)
+            if workspace is not None and len(proc.stdout) > len(stdout):
+                rel = workspace.offload("script-stdout", proc.stdout)
+                stdout += f"\n(FULL stdout offloaded to workspace file: {rel}; read it with read_workspace_file)"
             result = {
-                "stdout": _truncate(proc.stdout),
+                "stdout": stdout,
                 "stderr": _truncate(proc.stderr),
                 "exitCode": proc.returncode,
                 "durationMs": int((time.monotonic() - started) * 1000),
@@ -96,12 +114,13 @@ def run_analysis(code: str, timeout_seconds: int = _DEFAULT_TIMEOUT) -> dict[str
             )
             return result
     finally:
-        try:
-            import shutil
+        if not keep:
+            try:
+                import shutil
 
-            shutil.rmtree(workdir, ignore_errors=True)
-        except Exception:  # noqa: BLE001
-            pass
+                shutil.rmtree(workdir, ignore_errors=True)
+            except Exception:  # noqa: BLE001
+                pass
 
 
 def format_result(result: dict[str, Any]) -> str:

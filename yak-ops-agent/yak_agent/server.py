@@ -52,6 +52,7 @@ from agentscope.state import AgentState
 
 from yak_agent.app import build_agent
 from yak_agent.config import Settings
+from yak_agent.workspace import SessionWorkspace
 
 _SESSION_DIR = Path(os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions"))
 _FORWARD_EVENTS = {
@@ -64,6 +65,7 @@ _FORWARD_EVENTS = {
 class Session:
     sid: str
     agent: Any
+    workspace: SessionWorkspace
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     confirm_future: asyncio.Future | None = None
     pending_event: RequireUserConfirmEvent | None = None
@@ -115,8 +117,9 @@ def _load_session(sid: str) -> Session:
         state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
     except Exception as ex:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"session state unreadable: {ex}") from ex
-    agent = build_agent(settings, state=state)
-    session = Session(sid=sid, agent=agent)
+    workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
+    agent = build_agent(settings, state=state, workspace=workspace)
+    session = Session(sid=sid, agent=agent, workspace=workspace)
     _sessions[sid] = session
     return session
 
@@ -194,7 +197,8 @@ async def health() -> dict[str, str]:
 @app.post("/agent/sessions")
 async def create_session() -> dict[str, str]:
     sid = uuid.uuid4().hex
-    session = Session(sid=sid, agent=build_agent(_get_settings()))
+    workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
+    session = Session(sid=sid, agent=build_agent(_get_settings(), workspace=workspace), workspace=workspace)
     _sessions[sid] = session
     _persist(session)
     return {"sessionId": sid}
