@@ -1,7 +1,7 @@
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 import type { NodeLocalParam } from "../common/node-resource-params/types";
 
-
+export type ShellTaskForm = {
   rawScript: string;
   resourceList: string[];
   localParams: NodeLocalParam[];
