@@ -39,6 +39,36 @@ const routerSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/task-editor.tsx", import.meta.url),
   "utf8",
 );
+const nodeEditorFrameSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/node-editor-frame.tsx", import.meta.url),
+  "utf8",
+);
+const javaEditorSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/java-task-editor.tsx", import.meta.url),
+  "utf8",
+);
+
+test("Java and Shell share the left-aligned node configuration sidebar", () => {
+  assert.match(editorSource, /<NodeEditorFrame/);
+  assert.match(javaEditorSource, /<NodeEditorFrame/);
+
+  const workspaceStart = nodeEditorFrameSource.indexOf(
+    'className="flex min-h-0 flex-1 overflow-hidden"',
+  );
+  assert.notEqual(workspaceStart, -1);
+  const workspaceLayout = nodeEditorFrameSource.slice(workspaceStart);
+  const asideIndex = workspaceLayout.indexOf("<aside");
+  const navIndex = workspaceLayout.indexOf("<nav");
+  const panelIndex = workspaceLayout.indexOf("<section");
+  const resizerIndex = workspaceLayout.indexOf("<PanelResizer");
+  const editorIndex = workspaceLayout.indexOf("<main");
+
+  assert.ok(asideIndex >= 0 && asideIndex < editorIndex);
+  assert.ok(navIndex > asideIndex && navIndex < panelIndex);
+  assert.ok(panelIndex < resizerIndex && resizerIndex < editorIndex);
+  assert.match(workspaceLayout, /resizeDirection="right"/);
+  assert.match(workspaceLayout, /border-r/);
+});
 
 test("Shell form reads the DolphinScheduler rawScript, resourceList and localParams contract", () => {
   const form = parseShellTaskForm(JSON.stringify({
