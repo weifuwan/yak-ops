@@ -327,7 +327,7 @@ export function JavaTaskEditor({
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
   const [javaRunConfig, setJavaRunConfig] = useState<JavaRunConfig>(initialJavaRunConfig);
-  const [baselineJavaRunConfig, setBaselineCommonSettings] = useState<JavaRunConfig>(initialJavaRunConfig);
+  const [baselineJavaRunConfig, setBaselineJavaRunConfig] = useState<JavaRunConfig>(initialJavaRunConfig);
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
@@ -340,7 +340,7 @@ export function JavaTaskEditor({
     setForm(initialForm);
     setBaselineForm(initialForm);
     setJavaRunConfig(initialJavaRunConfig);
-    setBaselineCommonSettings(initialJavaRunConfig);
+    setBaselineJavaRunConfig(initialJavaRunConfig);
     setCurrentTask(task);
   }, [initialForm, initialJavaRunConfig, task]);
 
@@ -382,16 +382,16 @@ export function JavaTaskEditor({
   };
 
   const jsonText = useMemo(() => {
-    let commonFields: Record<string, unknown>;
+    let runConfigFields: Record<string, unknown>;
     try {
-      commonFields = normalizeJavaRunConfig(javaRunConfig);
+      runConfigFields = normalizeJavaRunConfig(javaRunConfig);
     } catch {
-      commonFields = javaRunConfig;
+      runConfigFields = javaRunConfig;
     }
     return JSON.stringify({
       taskType: "JAVA",
       taskParams: buildJavaTaskParams(form),
-      ...commonFields,
+      ...runConfigFields,
     }, null, 2);
   }, [form, javaRunConfig]);
 
@@ -408,11 +408,11 @@ export function JavaTaskEditor({
   const handleSave = async (): Promise<boolean> => {
     if (!currentTask || readOnly) return false;
 
-    let commonPatch;
+    let runConfigPatch;
     try {
-      commonPatch = normalizeJavaRunConfig(javaRunConfig);
+      runConfigPatch = normalizeJavaRunConfig(javaRunConfig);
     } catch (error) {
-      toast.warning(error instanceof Error ? error.message : "请检查节点通用配置");
+      toast.warning(error instanceof Error ? error.message : "请检查 Java 运行配置");
       return false;
     }
     const taskGroupError = getJavaTaskGroupValidationError(javaRunConfig, {
@@ -426,11 +426,11 @@ export function JavaTaskEditor({
     setSaving(true);
     try {
       const taskParams = buildJavaTaskParams(form);
-      const nextTask = { ...currentTask, taskParams, ...commonPatch };
+      const nextTask = { ...currentTask, taskParams, ...runConfigPatch };
       if (!onApplyTask(nextTask)) return false;
       setCurrentTask(nextTask);
       setBaselineForm(form);
-      setBaselineCommonSettings(javaRunConfig);
+      setBaselineJavaRunConfig(javaRunConfig);
       toast.success("Java 节点配置已应用，请保存工作流");
       return true;
     } catch {
@@ -518,13 +518,13 @@ export function JavaTaskEditor({
             );
             if (!latestTask) throw new Error("节点不存在或已被删除");
             const nextForm = parseJavaTaskForm(latestTask.taskParams);
-            const nextCommonSettings = parseJavaRunConfig(latestTask);
+            const nextJavaRunConfig = parseJavaRunConfig(latestTask);
             if (!onApplyTask(latestTask)) return;
             setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
-            setJavaRunConfig(nextCommonSettings);
-            setBaselineCommonSettings(nextCommonSettings);
+            setJavaRunConfig(nextJavaRunConfig);
+            setBaselineJavaRunConfig(nextJavaRunConfig);
           }),
         );
       }
