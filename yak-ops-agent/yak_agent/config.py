@@ -59,7 +59,7 @@ class Settings:
     reply_token_budget: int = 25000
 
     @classmethod
-    def load(cls) -> "Settings":
+    def load(cls) -> Settings:
         file_vars = _load_env_file()
 
         def get(key: str, default: str = "") -> str:

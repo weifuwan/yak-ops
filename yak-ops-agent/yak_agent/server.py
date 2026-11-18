@@ -124,7 +124,7 @@ def _service_token() -> str:
     return os.environ.get("YAK_AGENT_SERVICE_TOKEN", "").strip()
 
 
-def _service_guard(request: "Request") -> None:
+def _service_guard(request: Request) -> None:
     """Service-level access control (layer 1 of the two-layer auth).
 
     With YAK_AGENT_SERVICE_TOKEN set, callers must present
@@ -142,7 +142,7 @@ def _service_guard(request: "Request") -> None:
         raise HTTPException(status_code=401, detail="unauthorized: set YAK_AGENT_SERVICE_TOKEN for non-local callers")
 
 
-def _identity(request: "Request", settings: Settings) -> tuple[str, YakAuth]:
+def _identity(request: Request, settings: Settings) -> tuple[str, YakAuth]:
     """Resolve (owner key, session auth) from the frontend headers.
 
     X-Yak-Session-Id carries the caller's yak-ops sessionId cookie. The owner
@@ -281,7 +281,7 @@ async def _run_turn(session: Session, text: str) -> None:
                 reply_id=paused.reply_id,
                 confirm_results=[
                     ConfirmResult(confirmed=bool(flag), tool_call=tc)
-                    for flag, tc in zip(flags, paused.tool_calls)
+                    for flag, tc in zip(flags, paused.tool_calls, strict=False)
                 ],
             )
         success = True
@@ -300,7 +300,7 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/agent/sessions")
-async def create_session(request: "Request") -> dict[str, str]:
+async def create_session(request: Request) -> dict[str, str]:
     caller, auth = _identity(request, _get_settings())
     # Platform-side verification (same interceptor semantics as the original
     # backend): the sessionId must be valid and the configured project must be
@@ -322,7 +322,7 @@ async def create_session(request: "Request") -> dict[str, str]:
 
 
 @app.get("/agent/sessions")
-async def list_sessions(request: "Request") -> list[dict[str, Any]]:
+async def list_sessions(request: Request) -> list[dict[str, Any]]:
     caller, _ = _identity(request, _get_settings())
     items = []
     if _SESSION_DIR.exists():
@@ -344,7 +344,7 @@ async def list_sessions(request: "Request") -> list[dict[str, Any]]:
 
 
 @app.post("/agent/sessions/{sid}/messages")
-async def send_message(sid: str, body: MessageBody, request: "Request") -> EventSourceResponse:
+async def send_message(sid: str, body: MessageBody, request: Request) -> EventSourceResponse:
     caller, auth = _identity(request, _get_settings())
     session = _load_session(sid, caller)
     _refresh_session_auth(session, auth)
@@ -368,7 +368,7 @@ async def send_message(sid: str, body: MessageBody, request: "Request") -> Event
 
 
 @app.post("/agent/sessions/{sid}/confirm")
-async def confirm(sid: str, body: ConfirmBody, request: "Request") -> dict[str, bool]:
+async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bool]:
     caller, auth = _identity(request, _get_settings())
     session = _load_session(sid, caller)
     _refresh_session_auth(session, auth)
@@ -385,7 +385,7 @@ async def confirm(sid: str, body: ConfirmBody, request: "Request") -> dict[str, 
 
 
 @app.delete("/agent/sessions/{sid}")
-async def delete_session(sid: str, request: "Request") -> dict[str, bool]:
+async def delete_session(sid: str, request: Request) -> dict[str, bool]:
     caller, auth = _identity(request, _get_settings())
     session = _load_session(sid, caller)  # ownership check before removal
     _refresh_session_auth(session, auth)

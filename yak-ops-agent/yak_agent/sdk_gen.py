@@ -9,7 +9,6 @@ hard-disabled inside analysis scripts at import time.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
@@ -124,15 +123,15 @@ def generate_sdk(agent_root: Path, auth: Any = None) -> str:
     """
     operations = [op for op in _load_operations() if op.get("risk") == "readonly"]
     if auth is not None:
-        creds = dict(
-            base_url=auth.base_url,
-            session_id=auth.session_id,
-            token=auth.token,
-            username=auth.username,
-            password=auth.password,
-        )
+        creds = {
+            "base_url": auth.base_url,
+            "session_id": auth.session_id,
+            "token": auth.token,
+            "username": auth.username,
+            "password": auth.password,
+        }
     else:
-        creds = dict(base_url="", session_id="", token="", username="", password="")
+        creds = {"base_url": "", "session_id": "", "token": "", "username": "", "password": ""}
     body = _TEMPLATE_HEADER.format(agent_root=str(agent_root), **creds)
     body += (
         "\n\ndef _post(method, path, body):\n"
