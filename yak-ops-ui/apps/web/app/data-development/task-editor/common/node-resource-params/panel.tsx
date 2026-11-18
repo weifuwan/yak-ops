@@ -82,7 +82,6 @@ export function NodeResourceParamsPanel({
   onRetryResources,
   disabled = false,
   resourceExtra,
-  localParamsDescription,
 }: {
   idPrefix?: string;
   resourceList?: string[];
@@ -95,7 +94,6 @@ export function NodeResourceParamsPanel({
   onRetryResources?: () => void;
   disabled?: boolean;
   resourceExtra?: ReactNode;
-  localParamsDescription?: ReactNode;
 }) {
   const resources = resourceList ?? [];
   const hasResources = resourceList !== undefined && Boolean(onResourceListChange);
@@ -114,7 +112,6 @@ export function NodeResourceParamsPanel({
           contentClassName="space-y-3 pt-3"
         >
           <div className="space-y-3">
-            <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">选择资源管理中的文件，作为当前节点运行时需要引用的依赖资源。</p>
             {resourceError ? (
               <div className="flex items-center justify-between rounded-md border border-[#f2d6d6] bg-[#fffafa] px-3 py-2">
                 <span className="text-xs text-[#b54747]">资源列表加载失败</span>
@@ -168,11 +165,9 @@ export function NodeResourceParamsPanel({
         contentClassName="space-y-3 pt-3"
       >
         <div className="space-y-3">
-          {localParamsDescription ?? <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">配置当前节点的输入、输出参数及敏感属性。</p>}
           {!localParams.length ? (
             <div className="flex min-h-[88px] flex-col items-center justify-center gap-1 rounded-md border border-dashed border-[#dfe4eb] bg-[#fcfdff] text-center">
               <span className="text-xs text-[#687385]">暂无本地参数</span>
-              <span className="text-[11px] text-[#98a1ad]">添加 IN 参数供当前节点引用，或添加 OUT 参数向下游节点传递结果</span>
             </div>
           ) : (
             <div className="overflow-x-auto">
