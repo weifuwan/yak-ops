@@ -65,7 +65,11 @@ export const verifyTenantCode = (tenantCode: string): Promise<boolean> =>
   HttpUtils.getData<boolean>(TENANT_API + "/verify-code?" + queryString({ tenantCode }));
 
 export const createTenant = (payload: TenantSavePayload): Promise<TenantRecord> =>
-  HttpUtils.postData<TenantRecord>(TENANT_API + "?" + queryString(payload));
+  HttpUtils.postData<TenantRecord>(TENANT_API + "?" + queryString({
+    tenantCode: payload.tenantCode,
+    queueId: payload.queueId,
+    description: payload.description,
+  }));
 
 export const updateTenant = (id: number, payload: TenantSavePayload): Promise<boolean> =>
   HttpUtils.putData<boolean>(TENANT_API + "/" + id + "?" + queryString(payload));
