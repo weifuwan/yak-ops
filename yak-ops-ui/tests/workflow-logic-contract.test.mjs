@@ -817,6 +817,23 @@ const switchRunConfigSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/logic/switch/components/switch-run-config-panel.tsx", import.meta.url),
   "utf8",
 );
+const loadingIndicatorSource = readFileSync(
+  new URL("../apps/web/app/components/loading-indicator.tsx", import.meta.url),
+  "utf8",
+);
+const appLoadingSource = readFileSync(
+  new URL("../apps/web/app/router/AppLoading.tsx", import.meta.url),
+  "utf8",
+);
+const taskEditorSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/task-editor.tsx", import.meta.url),
+  "utf8",
+);
+const workflowEditorSource = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/workflow-editor.tsx", import.meta.url),
+  "utf8",
+);
+
 
 test("CONDITIONS and SWITCH expose only the compact Master logic run configuration", () => {
   for (const source of [conditionsRunConfigSource, switchRunConfigSource]) {
@@ -852,4 +869,15 @@ test("CONDITIONS and SWITCH expose only the compact Master logic run configurati
     assert.match(source, /\{settings\.timeoutFlag === "OPEN" \? \(/);
     assert.match(source, /超时后仅发送告警，不会主动中断逻辑节点/);
   }
+});
+
+test("workflow and Shell tab loading states reuse the shared Yak loading indicator", () => {
+  assert.match(loadingIndicatorSource, /YakMarkIcon/);
+  assert.match(loadingIndicatorSource, /yak-loading-shimmer/);
+  assert.match(appLoadingSource, /LoadingIndicator/);
+  assert.match(taskEditorSource, /LoadingIndicator/);
+  assert.match(workflowEditorSource, /LoadingIndicator/);
+
+  assert.doesNotMatch(taskEditorSource, /正在加载 Shell 编辑器\.\.\./);
+  assert.doesNotMatch(workflowEditorSource, /正在加载工作流…/);
 });
