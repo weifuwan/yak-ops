@@ -1,5 +1,6 @@
 package io.yak.ops.plugin.datasource.api.datasource;
 
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
@@ -82,6 +83,12 @@ public interface DataSourceProcessor {
      */
     // todo: Change to return a ConnectionWrapper
     Connection getConnection(ConnectionParam connectionParam) throws SQLException, IOException;
+
+    /** Open a connection in the requested database namespace when the datasource supports it. */
+    default Connection getConnection(ConnectionParam connectionParam, CatalogPath path)
+            throws SQLException, IOException {
+        return getConnection(connectionParam);
+    }
 
     /**
      * test connection
