@@ -31,9 +31,9 @@ export interface AuditQuery {
   modelName?: string;
 }
 
-const qs = (params: Record<string, string | number | undefined>) => {
+const qs = (params: object) => {
   const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
+  Object.entries(params as Record<string, string | number | undefined>).forEach(([key, value]) => {
     if (value !== undefined && value !== "") search.set(key, String(value));
   });
   return search.toString();
