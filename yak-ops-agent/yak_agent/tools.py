@@ -215,7 +215,7 @@ def build_tools(
         from yak_agent import executor as _executor
 
         def run_analysis_script(code: str, timeout_seconds: int = 60) -> str:
-            """Write and run a Python analysis script against the read-only yak-ops SDK. Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
+            """Write and run a Python analysis script inside the cocoon sandbox (network allowed only for the read-only yak-ops SDK; host mounts are read-only). Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
 
             Args:
                 code: Python 3 script body. `import yak_agent_sdk as sdk` then call its functions; print the conclusion.
