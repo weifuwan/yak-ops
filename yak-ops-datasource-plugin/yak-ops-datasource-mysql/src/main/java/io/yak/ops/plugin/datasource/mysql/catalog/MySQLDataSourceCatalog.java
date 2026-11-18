@@ -210,11 +210,11 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
             statement.setInt(3, Math.max(1, Math.min(limit, 200)));
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
-                    String database = result.getString("TABLE_SCHEMA");
+                    String objectDatabase = result.getString("TABLE_SCHEMA");
                     String name = result.getString("TABLE_NAME");
                     CatalogObjectType type = "VIEW".equalsIgnoreCase(result.getString("TABLE_TYPE"))
                             ? CatalogObjectType.VIEW : CatalogObjectType.TABLE;
-                    CatalogPath path = new CatalogPath(null, database, null, name, type);
+                    CatalogPath path = new CatalogPath(null, objectDatabase, null, name, type);
                     objects.add(new CatalogObject(name, type, result.getString("TABLE_COMMENT"),
                             path, true, Collections.<String>emptyList()));
                 }
