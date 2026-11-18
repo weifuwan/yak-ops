@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Database, KeyRound, Table2 } from "lucide-react";
 
 import {
+  getDataSourceCatalogCapabilities,
   getDataSourceCatalogObject,
   listDataSourceCatalogColumns,
   listDataSourceCatalogIndexes,
@@ -29,6 +30,11 @@ export function TableDetailView({
     objectName: tableName,
     objectType: objectType as CatalogObjectType,
   };
+  const capabilitiesQuery = useQuery({
+    queryKey: ["data-catalog", "capabilities", dataSourceId],
+    queryFn: ({ signal }) => getDataSourceCatalogCapabilities(dataSourceId, signal),
+  });
+  const supportsIndexes = capabilitiesQuery.data?.features.includes("INDEXES") ?? false;
   const metadataQuery = useQuery({
     queryKey: ["data-catalog", "object", dataSourceId, database, schema, tableName, objectType],
     queryFn: ({ signal }) => getDataSourceCatalogObject(dataSourceId, path, signal),
@@ -40,6 +46,7 @@ export function TableDetailView({
   const indexesQuery = useQuery({
     queryKey: ["data-catalog", "indexes", dataSourceId, database, schema, tableName],
     queryFn: ({ signal }) => listDataSourceCatalogIndexes(dataSourceId, path, signal),
+    enabled: supportsIndexes,
   });
 
   const metadata = metadataQuery.data;
@@ -112,7 +119,13 @@ export function TableDetailView({
 
         <div className="border-t border-[#ececec]">
           <div className="px-4 py-3 text-[12px] font-medium text-[#424a55]">索引</div>
-          {indexesQuery.isLoading ? (
+          {capabilitiesQuery.isLoading ? (
+            <div className="px-4 pb-4 text-[11px] text-[#8b919b]">读取元数据能力...</div>
+          ) : capabilitiesQuery.isError ? (
+            <div className="px-4 pb-4 text-[11px] text-[#c15b52]">无法读取索引能力</div>
+          ) : !supportsIndexes ? (
+            <div className="px-4 pb-4 text-[11px] text-[#8b919b]">当前数据源暂不支持索引元数据</div>
+          ) : indexesQuery.isLoading ? (
             <div className="px-4 pb-4 text-[11px] text-[#8b919b]">加载索引...</div>
           ) : indexesQuery.isError ? (
             <div className="px-4 pb-4 text-[11px] text-[#c15b52]">索引加载失败</div>
