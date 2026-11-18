@@ -17,9 +17,31 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-# PEP 8 / Google-style engineering practices: errors, pyflakes, warnings,
-# bugbear, simplification, pyupgrade, comprehensions.
-select = ["E", "F", "W", "B", "SIM", "UP", "C4"]
+# Modeled after DataHub's Python setup: ruff is the single tool for
+# formatting and linting (replaces black/isort/flake8).
+# Line-length findings (E501/E111/E114/E117) are handled by `ruff format`,
+# not the linter — the formatter is the single executor of layout.
+select = ["E", "F", "W", "B", "I", "C90", "SIM", "UP", "C4"]
+ignore = [
+    "E501",  # handled by formatter
+    "E111",  # handled by formatter
+    "E114",  # handled by formatter
+    "E117",  # handled by formatter
+    "SIM102", # collapsible-if — readability varies, revisit later
+    "SIM105", # try-except-pass — the audit module's silence is intentional
+    "SIM117", # nested-with — readability varies
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
+[tool.ruff.lint.isort]
+known-first-party = ["yak_agent"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.17.5",
+]
 
 [build-system]
 requires = ["setuptools>=77"]

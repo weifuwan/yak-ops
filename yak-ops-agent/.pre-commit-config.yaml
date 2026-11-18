@@ -1,0 +1,20 @@
+# Modeled after DataHub's pre-commit setup: ruff check (auto-fix) runs before
+# each commit, ruff format before each push. Install once per clone:
+#   .venv/Scripts/python -m pip install -e ".[dev]" && .venv/Scripts/python -m pre_commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (auto-fix)
+        entry: python -m ruff check yak_agent smoke --fix
+        language: system
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: ruff-format
+        name: ruff format
+        entry: python -m ruff format yak_agent smoke
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

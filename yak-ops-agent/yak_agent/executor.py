@@ -72,9 +72,22 @@ def _minimal_env() -> dict[str, str]:
     Without credentials the generated SDK refuses to authenticate, which makes
     the unsafe tier compute-only by construction.
     """
-    keep = {"PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "TEMP", "TMP",
-            "APPDATA", "LOCALAPPDATA", "COMSPEC", "WINDIR", "PYTHONIOENCODING",
-            "PYTHONUTF8", "HOME", "USERPROFILE"}
+    keep = {
+        "PATH",
+        "PATHEXT",
+        "SYSTEMROOT",
+        "SYSTEMDRIVE",
+        "TEMP",
+        "TMP",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "COMSPEC",
+        "WINDIR",
+        "PYTHONIOENCODING",
+        "PYTHONUTF8",
+        "HOME",
+        "USERPROFILE",
+    }
     env = {k: v for k, v in os.environ.items() if k in keep}
     env["PYTHONIOENCODING"] = "utf-8"
     return env
@@ -83,7 +96,9 @@ def _minimal_env() -> dict[str, str]:
 def _truncate(text: str) -> str:
     if len(text) <= _MAX_OUTPUT_CHARS:
         return text
-    return text[: _MAX_OUTPUT_CHARS // 2] + "\n...(truncated)...\n" + text[-_MAX_OUTPUT_CHARS // 2 :]
+    return (
+        text[: _MAX_OUTPUT_CHARS // 2] + "\n...(truncated)...\n" + text[-_MAX_OUTPUT_CHARS // 2 :]
+    )
 
 
 def _run_cocoon(script: Path, workdir: Path, timeout: int) -> tuple[str, str, int]:
@@ -143,7 +158,9 @@ def _get_proxy(allowed_netloc: str) -> str:
             pass
 
         def _blocked(self) -> None:
-            self.send_error(403, "blocked: analysis scripts can only reach the configured yak-ops API host")
+            self.send_error(
+                403, "blocked: analysis scripts can only reach the configured yak-ops API host"
+            )
 
         def _forward(self) -> None:
             parsed = urlparse(self.path)
@@ -158,21 +175,35 @@ def _get_proxy(allowed_netloc: str) -> str:
             body = self.rfile.read(length) if length else None
             # drop accept-encoding (httpx decompresses) and hop-by-hop headers
             headers = {
-                k: v for k, v in self.headers.items()
-                if k.lower() not in (
-                    "host", "proxy-connection", "content-length",
-                    "accept-encoding", "connection", "keep-alive",
+                k: v
+                for k, v in self.headers.items()
+                if k.lower()
+                not in (
+                    "host",
+                    "proxy-connection",
+                    "content-length",
+                    "accept-encoding",
+                    "connection",
+                    "keep-alive",
                 )
             }
             try:
-                resp = httpx.request(self.command, target, headers=headers, content=body, timeout=60.0)
+                resp = httpx.request(
+                    self.command, target, headers=headers, content=body, timeout=60.0
+                )
             except Exception as ex:  # noqa: BLE001
                 self.send_error(502, f"upstream error: {ex}")
                 return
             self.send_response(resp.status_code)
             for k, v in resp.headers.items():
                 # content is already decompressed by httpx — drop encoding marks
-                if k.lower() in ("content-length", "transfer-encoding", "connection", "keep-alive", "content-encoding"):
+                if k.lower() in (
+                    "content-length",
+                    "transfer-encoding",
+                    "connection",
+                    "keep-alive",
+                    "content-encoding",
+                ):
                     continue
                 self.send_header(k, v)
             self.send_header("Content-Length", str(len(resp.content)))
@@ -236,7 +267,13 @@ def run_analysis(
             "durationMs": int((time.monotonic() - started) * 1000),
             "backend": "disabled",
         }
-        audit.record_tool_call("run_analysis_script", {"code_len": len(code)}, False, result["durationMs"], "PTC disabled")
+        audit.record_tool_call(
+            "run_analysis_script",
+            {"code_len": len(code)},
+            False,
+            result["durationMs"],
+            "PTC disabled",
+        )
         return result
 
     keep = workdir is not None
@@ -253,18 +290,18 @@ def run_analysis(
             proxy_url = _get_proxy(urlparse(auth.base_url).netloc)
             write_sdk(workdir, _AGENT_ROOT, auth)
             preamble = (
-                f"import sys; sys.path.insert(0, r\"{workdir}\"); sys.path.insert(0, r\"{_AGENT_ROOT}\")\n"
+                f'import sys; sys.path.insert(0, r"{workdir}"); sys.path.insert(0, r"{_AGENT_ROOT}")\n'
                 f"import os as _os\n"
-                f"_os.environ[\"HTTP_PROXY\"] = {proxy_url!r}\n"
-                f"_os.environ[\"HTTPS_PROXY\"] = {proxy_url!r}\n"
-                f"_os.environ[\"NO_PROXY\"] = \"\"\n"
+                f'_os.environ["HTTP_PROXY"] = {proxy_url!r}\n'
+                f'_os.environ["HTTPS_PROXY"] = {proxy_url!r}\n'
+                f'_os.environ["NO_PROXY"] = ""\n'
             )
         else:
             # Unsafe tier is compute-only: no SDK, no path into the agent
             # package — otherwise Settings.load() would read the host .env and
             # hand credentials to the script. No proxy either: no network use
             # is expected from a compute-only script.
-            preamble = f"import sys; sys.path.insert(0, r\"{workdir}\")\n"
+            preamble = f'import sys; sys.path.insert(0, r"{workdir}")\n'
         script = workdir / "analysis.py"
         script.write_text(preamble + code, encoding="utf-8")
 
@@ -276,7 +313,10 @@ def run_analysis(
         truncated = stdout != _truncate(stdout)
         if workspace is not None and truncated:
             rel = workspace.offload("script-stdout", stdout)
-            stdout = _truncate(stdout) + f"\n(FULL stdout offloaded to workspace file: {rel}; read it with read_workspace_file)"
+            stdout = (
+                _truncate(stdout)
+                + f"\n(FULL stdout offloaded to workspace file: {rel}; read it with read_workspace_file)"
+            )
 
         result = {
             "stdout": stdout,

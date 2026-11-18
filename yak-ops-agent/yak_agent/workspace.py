@@ -72,7 +72,11 @@ class SessionWorkspace:
     def list_files(self) -> str:
         """List workspace files with sizes."""
         entries = sorted(
-            ((p.relative_to(self.root), p.stat().st_size) for p in self.root.rglob("*") if p.is_file()),
+            (
+                (p.relative_to(self.root), p.stat().st_size)
+                for p in self.root.rglob("*")
+                if p.is_file()
+            ),
             key=lambda item: str(item[0]),
         )
         if not entries:

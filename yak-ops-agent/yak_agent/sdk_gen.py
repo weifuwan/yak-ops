@@ -87,25 +87,34 @@ def _function_source(op: dict[str, Any]) -> str:
             body_lines.append(f'    path = path.replace("{{{wire}}}", str({name}))')
     if op["method"].upper() == "GET":
         if (op.get("response") or {}).get("raw"):
-            body_lines.append("    params = None" if not query else f"    params = {{{', '.join(query)}}}")
+            body_lines.append(
+                "    params = None" if not query else f"    params = {{{', '.join(query)}}}"
+            )
             body_lines.append("    return yak_download(_AUTH, path, params)")
         else:
-            body_lines.append(f"    params = {{{', '.join(query)}}}" if query else "    params = None")
-            body_lines.append("    params = {k: v for k, v in params.items() if v is not None} if params else None")
+            body_lines.append(
+                f"    params = {{{', '.join(query)}}}" if query else "    params = None"
+            )
+            body_lines.append(
+                "    params = {k: v for k, v in params.items() if v is not None} if params else None"
+            )
             body_lines.append("    return yak_get(_AUTH, path, params)")
     else:
         body_lines.append(f"    body = {{{', '.join(body)}}}" if body else "    body = {}")
         body_lines.append("    body = {k: v for k, v in body.items() if v is not None}")
         body_lines.append(f'    return _post("{op["method"].upper()}", path, body)')
     if path.startswith("/projects/{project_code}"):
-        path_expr = 'f"/projects/{PROJECT}' + path[len("/projects/{project_code}"):] + '"'
+        path_expr = 'f"/projects/{PROJECT}' + path[len("/projects/{project_code}") :] + '"'
     else:
         path_expr = f'"{path}"'
     doc = (op.get("summary", "") + "\n\n" + op.get("description", "")).strip()
-    doc_lines = "".join(f"    {line}\n" for line in doc.splitlines()) or "    Generated from the operation registry.\n"
+    doc_lines = (
+        "".join(f"    {line}\n" for line in doc.splitlines())
+        or "    Generated from the operation registry.\n"
+    )
     src = f"""
 
-def {op['id']}({', '.join(signature) or ''}):
+def {op["id"]}({", ".join(signature) or ""}):
     \"\"\"{doc_lines}    \"\"\"
     path = {path_expr}
 {chr(10).join(body_lines)}
@@ -137,9 +146,9 @@ def generate_sdk(agent_root: Path, auth: Any = None) -> str:
         "\n\ndef _post(method, path, body):\n"
         "    # The only POST reachable from analysis scripts is the side-effect-free\n"
         "    # preview validation; every other mutation is rejected at import scope.\n"
-        "    if method == \"POST\" and path.endswith(\"/tasks/preview\"):\n"
+        '    if method == "POST" and path.endswith("/tasks/preview"):\n'
         "        return _raw_yak_write(_AUTH, method, path, body)\n"
-        "    raise RuntimeError(\"write operations are disabled in analysis scripts\")\n"
+        '    raise RuntimeError("write operations are disabled in analysis scripts")\n'
     )
     for op in operations:
         body += _function_source(op)

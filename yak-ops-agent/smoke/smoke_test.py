@@ -66,7 +66,7 @@ async def _run_once(agent, question: str) -> tuple[bool, str, float]:
 
     after = stats_snapshot()
     calls = after["calls"] - before["calls"]
-    errors = after["errors"][len(before["errors"]):]
+    errors = after["errors"][len(before["errors"]) :]
     ok, reason = _judge(calls, errors, answer, prior_calls=after["calls"])
     detail = answer if ok else f"[{reason}] {answer}"
     return ok, detail, elapsed
@@ -89,8 +89,10 @@ async def main_async(repeat: int) -> int:
         print(f"       {preview}{'...' if len(answer) > 300 else ''}")
         fatal = _fatal_check(answer)
         if fatal:
-            print(f"\nSMOKE ABORTED on question {index + 1}: setup problem detected ('{fatal}'). "
-                  "Fix .env (credentials / backend URL / project code / model quota) and rerun.")
+            print(
+                f"\nSMOKE ABORTED on question {index + 1}: setup problem detected ('{fatal}'). "
+                "Fix .env (credentials / backend URL / project code / model quota) and rerun."
+            )
             return 1
 
     if repeat > 1:
@@ -106,8 +108,10 @@ async def main_async(repeat: int) -> int:
                 print(f"  probe run {run} FAIL ({elapsed:.1f}s): {preview}")
                 fatal = _fatal_check(answer)
                 if fatal:
-                    print(f"\nPROBE ABORTED at run {run}: model API problem detected ('{fatal}'). "
-                          f"Partial stability: {hits}/{run - 1} completed runs.")
+                    print(
+                        f"\nPROBE ABORTED at run {run}: model API problem detected ('{fatal}'). "
+                        f"Partial stability: {hits}/{run - 1} completed runs."
+                    )
                     failures += 1
                     aborted = True
                     break
@@ -123,7 +127,9 @@ async def main_async(repeat: int) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repeat", type=int, default=1, help="repeat probe times for stability check")
+    parser.add_argument(
+        "--repeat", type=int, default=1, help="repeat probe times for stability check"
+    )
     args = parser.parse_args()
     sys.exit(asyncio.run(main_async(args.repeat)))
 

@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from agentscope.tool import FunctionTool
 
 from yak_agent import audit
@@ -42,10 +41,7 @@ def _load_operations() -> list[dict[str, Any]]:
 
 def _visible_params(op: dict[str, Any]) -> list[dict[str, Any]]:
     """Params the model may supply (no host injections, no constants)."""
-    return [
-        p for p in op.get("params") or []
-        if not p.get("inject") and "const" not in p
-    ]
+    return [p for p in op.get("params") or [] if not p.get("inject") and "const" not in p]
 
 
 def _build_schema(op: dict[str, Any]) -> dict[str, Any]:
@@ -84,7 +80,8 @@ def _render_path(op: dict[str, Any], settings: Settings, values: dict[str, Any])
 
 
 def _split_params(
-    op: dict[str, Any], values: dict[str, Any],
+    op: dict[str, Any],
+    values: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Route model-provided values into query/body slots, applying rules."""
     query: dict[str, Any] = {}
@@ -106,7 +103,9 @@ def _split_params(
                 else:
                     continue
         if p.get("enum") and value not in p["enum"]:
-            raise YakApiError(f"invalid value '{value}' for '{name}'. Allowed: {', '.join(p['enum'])}")
+            raise YakApiError(
+                f"invalid value '{value}' for '{name}'. Allowed: {', '.join(p['enum'])}"
+            )
         if p.get("json"):
             try:
                 value = json.loads(value)
@@ -127,15 +126,16 @@ def _split_params(
 
 
 def _execute(
-    op: dict[str, Any], settings: Settings, auth: YakAuth, values: dict[str, Any],
+    op: dict[str, Any],
+    settings: Settings,
+    auth: YakAuth,
+    values: dict[str, Any],
 ) -> str:
     started = time.monotonic()
     ok = False
     error: str | None = None
     # Never persist free-form JSON params (may carry data-source credentials).
-    audit_params = {
-        k: ("<json omitted>" if k.endswith("_json") else v) for k, v in values.items()
-    }
+    audit_params = {k: ("<json omitted>" if k.endswith("_json") else v) for k, v in values.items()}
     try:
         path = _render_path(op, settings, values)
         query, body = _split_params(op, values)
@@ -143,11 +143,17 @@ def _execute(
         method = op["method"].upper()
         raw = bool((op.get("response") or {}).get("raw"))
         if method == "GET":
-            data = yak_download(auth, path, query or None) if raw else yak_get(auth, path, query or None)
+            data = (
+                yak_download(auth, path, query or None)
+                if raw
+                else yak_get(auth, path, query or None)
+            )
             if raw:
                 data = {"log": data, "bytes": len(data or "")}
         else:
-            data = yak_write(auth, method, path, body if body or method != "DELETE" else None, query or None)
+            data = yak_write(
+                auth, method, path, body if body or method != "DELETE" else None, query or None
+            )
 
         response_cfg = op.get("response") or {}
         if isinstance(data, dict) and response_cfg.get("truncate_field"):
@@ -165,7 +171,11 @@ def _execute(
         raise
     finally:
         audit.record_tool_call(
-            op["id"], audit_params, ok, int((time.monotonic() - started) * 1000), error,
+            op["id"],
+            audit_params,
+            ok,
+            int((time.monotonic() - started) * 1000),
+            error,
         )
 
 
@@ -203,7 +213,9 @@ def build_tools(
     directory and the read_workspace_file/list_workspace_files tools.
     """
     if not settings.project_code:
-        raise YakApiError("YAK_OPS_PROJECT_CODE is not configured; refusing to build tools with an undefined project")
+        raise YakApiError(
+            "YAK_OPS_PROJECT_CODE is not configured; refusing to build tools with an undefined project"
+        )
     auth = auth or build_auth(settings)
 
     tools: list[FunctionTool] = []
@@ -216,14 +228,16 @@ def build_tools(
         def runner(_op: dict[str, Any] = op, **kwargs: Any) -> str:
             return _execute(_op, settings, auth, kwargs)
 
-        tools.append(FunctionTool(
-            runner,
-            name=op["id"],
-            description=f"[{op.get('domain', '')}] {op['summary']}\n\n{op.get('description', '').strip()}",
-            input_schema=_build_schema(op),
-            is_read_only=readonly,
-            is_concurrency_safe=readonly,
-        ))
+        tools.append(
+            FunctionTool(
+                runner,
+                name=op["id"],
+                description=f"[{op.get('domain', '')}] {op['summary']}\n\n{op.get('description', '').strip()}",
+                input_schema=_build_schema(op),
+                is_read_only=readonly,
+                is_concurrency_safe=readonly,
+            )
+        )
 
     # PTC tool: only registered when a sandboxed backend is available (cocoon,
     # a default dependency) or the operator explicitly allowed the unsafe
@@ -241,16 +255,27 @@ def build_tools(
                 timeout_seconds: Wall-clock limit, 5-300.
             """
             workdir = workspace.root if workspace is not None else None
-            return _executor.format_result(_executor.run_analysis(
-                code, timeout_seconds, workdir=workdir, workspace=workspace,
-                allow_unsafe=settings.ptc_allow_unsafe, auth=auth,
-            ))
+            return _executor.format_result(
+                _executor.run_analysis(
+                    code,
+                    timeout_seconds,
+                    workdir=workdir,
+                    workspace=workspace,
+                    allow_unsafe=settings.ptc_allow_unsafe,
+                    auth=auth,
+                )
+            )
 
         if ptc_ready:
-            tools.append(FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False))
+            tools.append(
+                FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False)
+            )
 
         if workspace is not None:
-            def read_workspace_file(path: str, start_line: int = 1, end_line: int | None = None) -> str:
+
+            def read_workspace_file(
+                path: str, start_line: int = 1, end_line: int | None = None
+            ) -> str:
                 """Read a file from the session workspace (scripts, offloaded outputs, intermediate data). Line numbers are prefixed. Use to retrieve the full version of an offloaded output.
 
                 Args:
@@ -264,8 +289,12 @@ def build_tools(
                 """List the files stored in the session workspace with sizes."""
                 return workspace.list_files()
 
-            tools.append(FunctionTool(read_workspace_file, is_read_only=True, is_concurrency_safe=True))
-            tools.append(FunctionTool(list_workspace_files, is_read_only=True, is_concurrency_safe=True))
+            tools.append(
+                FunctionTool(read_workspace_file, is_read_only=True, is_concurrency_safe=True)
+            )
+            tools.append(
+                FunctionTool(list_workspace_files, is_read_only=True, is_concurrency_safe=True)
+            )
     except Exception:  # noqa: BLE001 - PTC is an enhancement; absence keeps form 1
         pass
 

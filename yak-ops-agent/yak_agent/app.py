@@ -14,9 +14,9 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 from agentscope.agent import Agent, ContextConfig, ReActConfig
 from agentscope.credential import OpenAICredential
@@ -133,7 +133,10 @@ async def _ask(
                 delta = getattr(event, "delta", "")
                 if delta:
                     text_parts.append(delta)
-            elif isinstance(event, RequireUserConfirmEvent) or event.type == EventType.REQUIRE_USER_CONFIRM:
+            elif (
+                isinstance(event, RequireUserConfirmEvent)
+                or event.type == EventType.REQUIRE_USER_CONFIRM
+            ):
                 paused = event
                 break
         if paused is None:
@@ -144,7 +147,9 @@ async def _ask(
 
 def main() -> None:
     settings = Settings.load()
-    workspace = SessionWorkspace(Path(__file__).resolve().parent.parent / "sessions" / "default" / "workspace")
+    workspace = SessionWorkspace(
+        Path(__file__).resolve().parent.parent / "sessions" / "default" / "workspace"
+    )
     agent = build_agent(settings, workspace=workspace)
 
     if len(sys.argv) > 1:  # one-shot mode: writes are denied by default
@@ -161,7 +166,10 @@ def main() -> None:
         if not question:
             continue
         try:
-            print(asyncio.run(_ask(agent, question, confirm_handler=cli_confirm)) or "（模型未返回文本）")
+            print(
+                asyncio.run(_ask(agent, question, confirm_handler=cli_confirm))
+                or "（模型未返回文本）"
+            )
         except Exception as ex:  # keep the loop alive; surface the error honestly
             print(f"出错了：{ex}")
 

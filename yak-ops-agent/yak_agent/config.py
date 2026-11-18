@@ -72,7 +72,8 @@ class Settings:
         ]
         if missing:
             raise SystemExit(
-                "Missing required settings: " + ", ".join(missing)
+                "Missing required settings: "
+                + ", ".join(missing)
                 + ". Copy .env.example to .env and fill the values "
                 "(YAK_OPS_PROJECT_CODE is the project snowflake ID, visible in the project URL)."
             )
@@ -94,6 +95,7 @@ class Settings:
             yak_ops_username=username,
             yak_ops_password=password,
             project_code=int(project_code),
-            ptc_allow_unsafe=os.environ.get('YAK_AGENT_PTC_ALLOW_UNSAFE', '').strip().lower() in ('1', 'true', 'yes'),
-            reply_token_budget=int(os.environ.get('YAK_AGENT_REPLY_TOKEN_BUDGET', '25000')),
+            ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
+            in ("1", "true", "yes"),
+            reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
         )

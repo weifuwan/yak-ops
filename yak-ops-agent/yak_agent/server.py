@@ -29,6 +29,7 @@ Run:  python -m yak_agent.server            (defaults 127.0.0.1:8090)
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import uuid
@@ -37,10 +38,6 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
-from sse_starlette.sse import EventSourceResponse
-
 from agentscope.event import (
     ConfirmResult,
     EventType,
@@ -49,16 +46,19 @@ from agentscope.event import (
 )
 from agentscope.message import UserMsg
 from agentscope.state import AgentState
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
-import hashlib
-
-from yak_agent.app import build_agent
 from yak_agent import audit
+from yak_agent.app import build_agent
 from yak_agent.config import Settings
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakApiError, YakAuth, yak_get
 
-_SESSION_DIR = Path(os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions"))
+_SESSION_DIR = Path(
+    os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions")
+)
 _FORWARD_EVENTS = {
     EventType.TOOL_CALL_START: "tool_start",
     EventType.TOOL_RESULT_END: "tool_result",
@@ -135,11 +135,16 @@ def _service_guard(request: Request) -> None:
     token = _service_token()
     if token:
         if request.headers.get("Authorization", "") != f"Bearer {token}":
-            raise HTTPException(status_code=401, detail="unauthorized: missing or invalid service token")
+            raise HTTPException(
+                status_code=401, detail="unauthorized: missing or invalid service token"
+            )
         return
     client_host = request.client.host if request.client else "?"
     if client_host not in ("127.0.0.1", "::1", "localhost"):
-        raise HTTPException(status_code=401, detail="unauthorized: set YAK_AGENT_SERVICE_TOKEN for non-local callers")
+        raise HTTPException(
+            status_code=401,
+            detail="unauthorized: set YAK_AGENT_SERVICE_TOKEN for non-local callers",
+        )
 
 
 def _identity(request: Request, settings: Settings) -> tuple[str, YakAuth]:
@@ -157,7 +162,9 @@ def _identity(request: Request, settings: Settings) -> tuple[str, YakAuth]:
     """
     _service_guard(request)
     session_id = request.headers.get("X-Yak-Session-Id", "").strip()
-    auth = YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id) if session_id else None
+    auth = (
+        YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id) if session_id else None
+    )
     if session_id:
         return "session:" + hashlib.sha256(session_id.encode()).hexdigest()[:12], auth
     return "local", auth or YakAuth(
@@ -176,11 +183,17 @@ def _verify_session_project(auth: YakAuth, project_code: int) -> None:
         data = yak_get(auth, "/projects", {"pageNo": 1, "pageSize": 100})
     except YakApiError as ex:
         if ex.status_code == 401:
-            raise HTTPException(status_code=401, detail="yak-ops session invalid or expired; re-login and retry") from ex
-        raise HTTPException(status_code=502, detail=f"yak-ops session verification failed: {ex}") from ex
+            raise HTTPException(
+                status_code=401, detail="yak-ops session invalid or expired; re-login and retry"
+            ) from ex
+        raise HTTPException(
+            status_code=502, detail=f"yak-ops session verification failed: {ex}"
+        ) from ex
     codes = {str(item.get("code")) for item in ((data or {}).get("totalList") or [])}
     if str(project_code) not in codes:
-        raise HTTPException(status_code=403, detail="the configured project is not granted to this user")
+        raise HTTPException(
+            status_code=403, detail="the configured project is not granted to this user"
+        )
 
 
 def _refresh_session_auth(session: Session, auth: YakAuth | None) -> None:
@@ -237,16 +250,20 @@ async def _forward(session: Session, event: Any) -> None:
         return
     mapped = _FORWARD_EVENTS.get(event.type)
     if mapped == "tool_start":
-        await session.queue.put({
-            "type": "tool_start",
-            "tool": getattr(event, "tool_call_name", ""),
-            "toolCallId": getattr(event, "tool_call_id", ""),
-        })
+        await session.queue.put(
+            {
+                "type": "tool_start",
+                "tool": getattr(event, "tool_call_name", ""),
+                "toolCallId": getattr(event, "tool_call_id", ""),
+            }
+        )
     elif mapped == "tool_result":
-        await session.queue.put({
-            "type": "tool_result",
-            "toolCallId": getattr(event, "tool_call_id", ""),
-        })
+        await session.queue.put(
+            {
+                "type": "tool_result",
+                "toolCallId": getattr(event, "tool_call_id", ""),
+            }
+        )
 
 
 async def _run_turn(session: Session, text: str) -> None:
@@ -263,14 +280,16 @@ async def _run_turn(session: Session, text: str) -> None:
             if paused is None:
                 break
             session.pending_event = paused
-            await session.queue.put({
-                "type": "confirm_required",
-                "replyId": paused.reply_id,
-                "toolCalls": [
-                    {"id": tc.id, "name": tc.name, "input": getattr(tc, "input", "")}
-                    for tc in paused.tool_calls
-                ],
-            })
+            await session.queue.put(
+                {
+                    "type": "confirm_required",
+                    "replyId": paused.reply_id,
+                    "toolCalls": [
+                        {"id": tc.id, "name": tc.name, "input": getattr(tc, "input", "")}
+                        for tc in paused.tool_calls
+                    ],
+                }
+            )
             loop = asyncio.get_running_loop()
             session.confirm_future = loop.create_future()
             approved = await session.confirm_future
@@ -326,7 +345,9 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
     caller, _ = _identity(request, _get_settings())
     items = []
     if _SESSION_DIR.exists():
-        for path in sorted(_SESSION_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        for path in sorted(
+            _SESSION_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+        ):
             owner = "local"
             meta = _meta_path(path.stem)
             if meta.exists():
@@ -336,10 +357,12 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
                     owner = "local"
             if owner != caller:
                 continue  # session ownership: callers only see their own sessions
-            items.append({
-                "sessionId": path.stem,
-                "updatedAt": path.stat().st_mtime,
-            })
+            items.append(
+                {
+                    "sessionId": path.stem,
+                    "updatedAt": path.stat().st_mtime,
+                }
+            )
     return items
 
 
@@ -378,7 +401,9 @@ async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bo
     audit.record_tool_call(
         "session_confirm",
         {"session": sid, "caller": caller, "approved": approved},
-        True, 0, None,
+        True,
+        0,
+        None,
     )
     session.confirm_future.set_result(body.approved)
     return {"accepted": True}

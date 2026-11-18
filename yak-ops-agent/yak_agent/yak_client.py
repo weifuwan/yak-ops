@@ -122,11 +122,16 @@ class YakAuth:
             self._session_id = ""
 
     def _login(self) -> str:
-        body = urllib.parse.urlencode({"userName": self.username, "userPassword": self.password}).encode()
+        body = urllib.parse.urlencode(
+            {"userName": self.username, "userPassword": self.password}
+        ).encode()
         request = urllib.request.Request(
             f"{self.base_url}/login",
             data=body,
-            headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
             method="POST",
         )
         try:
@@ -159,7 +164,9 @@ class YakAuth:
         return session_id
 
 
-def _request(auth: YakAuth, method: str, url: str, body: bytes | None = None, content_type: str | None = None) -> str:
+def _request(
+    auth: YakAuth, method: str, url: str, body: bytes | None = None, content_type: str | None = None
+) -> str:
     headers = auth.headers()
     if content_type:
         headers["Content-Type"] = content_type
@@ -169,7 +176,9 @@ def _request(auth: YakAuth, method: str, url: str, body: bytes | None = None, co
             return response.read().decode("utf-8")
     except urllib.error.HTTPError as ex:
         detail = ex.read().decode("utf-8", errors="replace")[:500]
-        raise YakApiError(f"HTTP {ex.code} on {urllib.parse.urlparse(url).path}: {detail}", status_code=ex.code) from ex
+        raise YakApiError(
+            f"HTTP {ex.code} on {urllib.parse.urlparse(url).path}: {detail}", status_code=ex.code
+        ) from ex
     except urllib.error.URLError as ex:
         raise YakApiError(f"cannot reach yak-ops at {auth.base_url}: {ex.reason}") from ex
 
@@ -214,7 +223,9 @@ def _get_envelope_data(auth: YakAuth, path: str, params: dict[str, Any] | None) 
     if not isinstance(envelope, dict) or "code" not in envelope:
         raise YakApiError(f"unexpected response shape from {path}: {truncate(body, 300)}")
     if envelope.get("code") != 0:
-        raise YakApiError(f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}")
+        raise YakApiError(
+            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}"
+        )
     return envelope.get("data")
 
 
@@ -299,5 +310,7 @@ def _write_envelope_data(
     if not isinstance(envelope, dict) or "code" not in envelope:
         raise YakApiError(f"unexpected response shape from {path}: {truncate(raw, 300)}")
     if envelope.get("code") != 0:
-        raise YakApiError(f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}")
+        raise YakApiError(
+            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}"
+        )
     return envelope.get("data")
