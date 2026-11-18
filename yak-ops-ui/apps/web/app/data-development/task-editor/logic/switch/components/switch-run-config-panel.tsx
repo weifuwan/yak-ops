@@ -17,37 +17,25 @@ import type { LogicTaskRunConfigController } from "../../shared/logic-task-run-c
 
 export type SwitchTaskPriority = "HIGHEST" | "HIGH" | "MEDIUM" | "LOW" | "LOWEST";
 export type SwitchTaskTimeoutFlag = "OPEN" | "CLOSE";
-export type SwitchTaskTimeoutStrategy = "WARN" | "FAILED" | "WARNFAILED";
-export type SwitchTaskExecuteType = "BATCH" | "STREAM";
-
 export type SwitchRunConfig = {
+  // Preserve an existing internal routing value; this is not user-configurable for Master logic tasks.
   workerGroup: string;
-  environmentCode: string;
   taskPriority: SwitchTaskPriority;
   failRetryTimes: string;
   failRetryInterval: string;
   timeoutFlag: SwitchTaskTimeoutFlag;
-  timeoutNotifyStrategy: SwitchTaskTimeoutStrategy;
   timeout: string;
   delayTime: string;
   taskGroupId: number;
   taskGroupPriority: string;
-  cpuQuota: string;
-  memoryMax: string;
-  taskExecuteType: SwitchTaskExecuteType;
+};
+
 };
 
 const TASK_PRIORITIES: Array<{ value: SwitchTaskPriority; label: string }> = [
   { value: "HIGHEST", label: "最高" }, { value: "HIGH", label: "高" },
   { value: "MEDIUM", label: "中" }, { value: "LOW", label: "低" },
   { value: "LOWEST", label: "最低" },
-];
-const TIMEOUT_STRATEGIES: Array<{ value: SwitchTaskTimeoutStrategy; label: string }> = [
-  { value: "WARN", label: "仅告警" }, { value: "FAILED", label: "超时失败" },
-  { value: "WARNFAILED", label: "告警并失败" },
-];
-const EXECUTE_TYPES: Array<{ value: SwitchTaskExecuteType; label: string }> = [
-  { value: "BATCH", label: "批处理" }, { value: "STREAM", label: "流式处理" },
 ];
 const FIELD_CLASS = "grid grid-cols-[116px_minmax(0,1fr)] items-center gap-3 max-md:grid-cols-1";
 const FIELD_LABEL_CLASS = "text-xs text-[#687385]";
@@ -59,24 +47,17 @@ function numberText(value: number | null | undefined, fallback: number) {
 export function parseSwitchRunConfig(task?: WorkflowTaskRecord): SwitchRunConfig {
   const taskPriority = TASK_PRIORITIES.some(item => item.value === task?.taskPriority)
     ? task!.taskPriority as SwitchTaskPriority : "MEDIUM";
-  const timeoutFlag = task?.timeoutFlag === "OPEN" ? "OPEN" : "CLOSE";
-  const timeoutNotifyStrategy = TIMEOUT_STRATEGIES.some(item => item.value === task?.timeoutNotifyStrategy)
-    ? task!.timeoutNotifyStrategy as SwitchTaskTimeoutStrategy : "WARNFAILED";
   return {
+    // Keep the stored workerGroup for compatibility with existing task definitions.
     workerGroup: task?.workerGroup?.trim() || "default",
-    environmentCode: numberText(task?.environmentCode, -1),
     taskPriority,
     failRetryTimes: numberText(task?.failRetryTimes, 0),
     failRetryInterval: numberText(task?.failRetryInterval, 1),
-    timeoutFlag,
-    timeoutNotifyStrategy,
+    timeoutFlag: task?.timeoutFlag === "OPEN" ? "OPEN" : "CLOSE",
     timeout: numberText(task?.timeout, 0),
     delayTime: numberText(task?.delayTime, 0),
     taskGroupId: task?.taskGroupId && task.taskGroupId > 0 ? task.taskGroupId : 0,
     taskGroupPriority: numberText(task?.taskGroupPriority, 0),
-    cpuQuota: numberText(task?.cpuQuota, -1),
-    memoryMax: numberText(task?.memoryMax, -1),
-    taskExecuteType: task?.taskExecuteType === "STREAM" ? "STREAM" : "BATCH",
   };
 }
 
@@ -90,22 +71,27 @@ function parseInteger(value: string, label: string, minimum: number) {
 
 export function normalizeSwitchRunConfig(settings: SwitchRunConfig): WorkflowTaskCommonSettingsPatch {
   const taskGroupId = parseInteger(String(settings.taskGroupId), "TaskGroup", 0);
+  const failRetryTimes = parseInteger(settings.failRetryTimes, "失败重试次数", 0);
   return {
+    // Keep the existing Worker Group value, but do not expose Worker selection for Master logic tasks.
     workerGroup: settings.workerGroup.trim() || "default",
-    environmentCode: parseInteger(settings.environmentCode || "-1", "Environment Code", -1),
+    // These fields remain in the existing API contract and are fixed for Master logic tasks.
+    environmentCode: -1,
     taskPriority: settings.taskPriority,
-    failRetryTimes: parseInteger(settings.failRetryTimes, "失败重试次数", 0),
-    failRetryInterval: parseInteger(settings.failRetryInterval, "重试间隔", 1),
+    failRetryTimes,
+    failRetryInterval: failRetryTimes > 0
+      ? parseInteger(settings.failRetryInterval, "重试间隔", 1)
+      : 1,
     timeoutFlag: settings.timeoutFlag,
-    timeoutNotifyStrategy: settings.timeoutNotifyStrategy,
-    timeout: parseInteger(settings.timeout, "超时时间", 0),
+    timeoutNotifyStrategy: settings.timeoutFlag === "OPEN" ? "WARN" : null,
+    timeout: parseInteger(settings.timeout, "超时时间", settings.timeoutFlag === "OPEN" ? 1 : 0),
     delayTime: parseInteger(settings.delayTime, "延迟执行时间", 0),
     taskGroupId,
     taskGroupPriority: taskGroupId > 0
       ? parseInteger(settings.taskGroupPriority, "组内优先级", 0) : 0,
-    cpuQuota: parseInteger(settings.cpuQuota, "CPU 配额", -1),
-    memoryMax: parseInteger(settings.memoryMax, "最大内存", -1),
-    taskExecuteType: settings.taskExecuteType,
+    cpuQuota: -1,
+    memoryMax: -1,
+    taskExecuteType: "BATCH",
   };
 }
 
@@ -217,19 +203,19 @@ export function SwitchRunConfigPanel({
       {!compact && description ? <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">{description}</p> : null}
 
       <CollapseSection
-        id={id + "-resources"}
-        title="执行资源"
+        id={id + "-scheduling"}
+        title="调度配置"
         triggerClassName="!h-8 rounded-sm px-3"
         contentClassName="space-y-3 pt-3"
       >
         <div className={fieldGridClass}>
-          <SettingField label="Worker Group">
-            <Input size="small" variant="outlined" value={settings.workerGroup} disabled={disabled}
-              onChange={event => update("workerGroup", event.target.value)} placeholder="default" className="w-full min-w-0" />
+          <SettingField label="任务优先级">
+            <SettingsSelect value={settings.taskPriority} options={TASK_PRIORITIES} disabled={disabled}
+              onChange={value => update("taskPriority", value as SwitchTaskPriority)} />
           </SettingField>
-          <SettingField label="Environment Code">
-            <Input size="small" variant="outlined" type="number" value={settings.environmentCode} disabled={disabled}
-              onChange={event => update("environmentCode", event.target.value)} placeholder="-1" className="w-full min-w-0" />
+          <SettingField label="延迟执行（分钟）">
+            <Input size="small" variant="outlined" type="number" min={0} step={1} value={settings.delayTime}
+              disabled={disabled} onChange={event => update("delayTime", event.target.value)} className="w-full min-w-0" />
           </SettingField>
           <SettingField label="TaskGroup">
             <div className="space-y-1">
@@ -247,18 +233,20 @@ export function SwitchRunConfigPanel({
               ) : null}
             </div>
           </SettingField>
-          <SettingField label="组内优先级">
-            <Input size="small" variant="outlined" type="number" min={0} step={1}
-              value={settings.taskGroupPriority} disabled={disabled || settings.taskGroupId <= 0}
-              onChange={event => update("taskGroupPriority", event.target.value)} placeholder="0" className="w-full min-w-0" />
-          </SettingField>
+          {settings.taskGroupId > 0 ? (
+            <SettingField label="组内优先级">
+              <Input size="small" variant="outlined" type="number" min={0} step={1}
+                value={settings.taskGroupPriority} disabled={disabled}
+                onChange={event => update("taskGroupPriority", event.target.value)} placeholder="0" className="w-full min-w-0" />
+            </SettingField>
+          ) : null}
         </div>
         <div className={"flex flex-wrap items-center gap-2 text-[11px] text-[var(--yak-components-muted-text)] " + (compact ? "justify-end" : "justify-between")}>
           {!compact ? (
             <span>
               {selectedTaskGroup
                 ? "当前并发容量：" + (selectedTaskGroup.useSize ?? 0) + "/" + selectedTaskGroup.groupSize
-                : "可在任务组管理中创建和维护并发资源组"}
+                : "TaskGroup 用于限制同组逻辑节点的并发执行数量"}
             </span>
           ) : null}
           <div className="flex items-center gap-1">
@@ -271,16 +259,12 @@ export function SwitchRunConfigPanel({
       </CollapseSection>
 
       <CollapseSection
-        id={id + "-strategy"}
-        title="执行策略"
+        id={id + "-retries"}
+        title="失败重试"
         triggerClassName="!h-8 rounded-sm px-3"
         contentClassName="space-y-3 pt-3"
       >
         <div className={fieldGridClass}>
-          <SettingField label="任务优先级">
-            <SettingsSelect value={settings.taskPriority} options={TASK_PRIORITIES} disabled={disabled}
-              onChange={value => update("taskPriority", value as SwitchTaskPriority)} />
-          </SettingField>
           <SettingField label="最大重试次数">
             <SliderInput
               label="最大重试次数"
@@ -293,74 +277,48 @@ export function SwitchRunConfigPanel({
               onValueChange={value => update("failRetryTimes", String(value))}
             />
           </SettingField>
-          <SettingField label="重试间隔">
-            <SliderInput
-              label="重试间隔"
-              value={Math.max(1, Number(settings.failRetryInterval) || 1)}
-              min={1}
-              max={60}
-              step={1}
-              unit="分钟"
-              disabled={disabled}
-              onValueChange={value => update("failRetryInterval", String(value))}
-            />
-          </SettingField>
-          <SettingField label="延迟执行（分钟）">
-            <Input size="small" variant="outlined" type="number" min={0} step={1} value={settings.delayTime}
-              disabled={disabled} onChange={event => update("delayTime", event.target.value)} className="w-full min-w-0" />
-          </SettingField>
+          {Number(settings.failRetryTimes) > 0 ? (
+            <SettingField label="重试间隔">
+              <SliderInput
+                label="重试间隔"
+                value={Math.max(1, Number(settings.failRetryInterval) || 1)}
+                min={1}
+                max={60}
+                step={1}
+                unit="分钟"
+                disabled={disabled}
+                onValueChange={value => update("failRetryInterval", String(value))}
+              />
+            </SettingField>
+          ) : null}
         </div>
       </CollapseSection>
 
       <CollapseSection
-        id={id + "-timeout"}
-        title="超时设置"
+        id={id + "-timeout-alert"}
+        title="超时告警"
         triggerClassName="!h-8 rounded-sm px-3"
         contentClassName="space-y-3 pt-3"
       >
         <div className={fieldGridClass}>
-          <SettingField label="超时控制">
+          <SettingField label="超时告警">
             <SettingsSelect value={settings.timeoutFlag} options={[{ value: "CLOSE", label: "关闭" }, { value: "OPEN", label: "开启" }]}
               disabled={disabled} onChange={value => update("timeoutFlag", value as SwitchTaskTimeoutFlag)} />
           </SettingField>
-          <SettingField label="超时时间（分钟）">
-            <Input size="small" variant="outlined" type="number" min={0} step={1} value={settings.timeout}
-              disabled={disabled || settings.timeoutFlag === "CLOSE"} onChange={event => update("timeout", event.target.value)} className="w-full min-w-0" />
-          </SettingField>
-          <SettingField label="超时处理策略">
-            <SettingsSelect value={settings.timeoutNotifyStrategy} options={TIMEOUT_STRATEGIES}
-              disabled={disabled || settings.timeoutFlag === "CLOSE"}
-              onChange={value => update("timeoutNotifyStrategy", value as SwitchTaskTimeoutStrategy)} />
-          </SettingField>
-          <SettingField label="执行类型">
-            <SettingsSelect value={settings.taskExecuteType} options={EXECUTE_TYPES} disabled={disabled}
-              onChange={value => update("taskExecuteType", value as SwitchTaskExecuteType)} />
-          </SettingField>
+          {settings.timeoutFlag === "OPEN" ? (
+            <SettingField label="超时时间（分钟）">
+              <Input size="small" variant="outlined" type="number" min={1} step={1} value={settings.timeout}
+                disabled={disabled} onChange={event => update("timeout", event.target.value)} className="w-full min-w-0" />
+            </SettingField>
+          ) : null}
         </div>
-      </CollapseSection>
-
-      <CollapseSection
-        id={id + "-limits"}
-        title="资源限制"
-        triggerClassName="!h-8 rounded-sm px-3"
-        contentClassName="space-y-3 pt-3"
-      >
-        <div className={fieldGridClass}>
-          <SettingField label="CPU 配额">
-            <Input size="small" variant="outlined" type="number" min={-1} step={1} value={settings.cpuQuota}
-              disabled={disabled} onChange={event => update("cpuQuota", event.target.value)} className="w-full min-w-0" />
-          </SettingField>
-          <SettingField label="最大内存">
-            <Input size="small" variant="outlined" type="number" min={-1} step={1} value={settings.memoryMax}
-              disabled={disabled} onChange={event => update("memoryMax", event.target.value)} className="w-full min-w-0" />
-          </SettingField>
-        </div>
-        {!compact ? (
+        {settings.timeoutFlag === "OPEN" ? (
           <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-            CPU 配额和最大内存填写 -1 表示不限制；Environment Code 填 -1 表示使用默认环境。
+            超时后仅发送告警，不会主动中断逻辑节点；请在工作流告警配置中设置告警接收组。
           </p>
         ) : null}
       </CollapseSection>
+
 
       {!compact || footer ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--yak-components-panel-border)] pt-3">
