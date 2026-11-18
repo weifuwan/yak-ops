@@ -12,7 +12,7 @@ export function AuditDetailView({ record }: { record: AuditRecord }) {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col bg-white">
       <div className="flex shrink-0 items-center gap-2 border-b border-[#ececec] px-5 py-4">
         <ClipboardList size={17} className="text-[#5e6b82]" />
         <div className="text-[15px] font-medium text-[#24272c]">操作详情</div>
