@@ -177,7 +177,7 @@ export function NodeEditorFrame({
   const activeTitle = PANEL_ITEMS.find((item) => item.key === activePanel)?.label;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
       <header className="flex h-9 shrink-0 items-center gap-1 border-b border-[#e5e7eb] bg-white px-2">
         <ToolbarButton
           label="运行"
@@ -252,7 +252,7 @@ export function NodeEditorFrame({
                 onResize={setPanelWidth}
               />
               <section
-                className="flex h-full min-h-0 max-w-[calc(100vw-100px)] flex-col border-l border-[#e5e7eb] bg-white"
+                className="flex h-full min-h-0 max-w-[calc(100vw-100px)] shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
                 style={{ width: panelWidth }}
               >
                 <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-3">
