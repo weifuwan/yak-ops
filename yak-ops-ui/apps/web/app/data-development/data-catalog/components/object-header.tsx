@@ -103,7 +103,14 @@ export function ObjectHeader({
         <h1 className="min-w-0 truncate text-[17px] font-semibold leading-6 text-[#24272c]">
           {objectName}
         </h1>
-        <span className="shrink-0 rounded-[4px] border border-[#e5e8ed] bg-[#f7f8fa] px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-[#667085]">
+        <span
+          className={[
+            "shrink-0 rounded-[4px] border px-1.5 py-0.5 text-[10px] font-medium tracking-wide",
+            resolvedType === "TABLE"
+              ? "border-[#ccebdc] bg-[#effaf4] text-[#188354]"
+              : "border-[#e5e8ed] bg-[#f7f8fa] text-[#667085]",
+          ].join(" ")}
+        >
           {resolvedType}
         </span>
         {isError ? (
