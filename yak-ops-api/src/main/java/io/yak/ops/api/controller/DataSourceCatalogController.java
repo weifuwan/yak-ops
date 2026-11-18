@@ -45,7 +45,7 @@ public class DataSourceCatalogController extends BaseController {
     public Result<CatalogCapabilities> capabilities(
                                                     @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                                     @PathVariable("projectCode") long projectCode,
-            @PathVariable("datasourceId") Integer datasourceId) {
+                                                    @PathVariable("datasourceId") Integer datasourceId) {
         return Result.success(catalogService.getCapabilities(loginUser, projectCode, datasourceId));
     }
 
@@ -64,7 +64,7 @@ public class DataSourceCatalogController extends BaseController {
                                                   @RequestParam(value = "objectType", required = false) CatalogObjectType objectType,
                                                   @RequestParam(value = "keyword", required = false) String keyword,
                                                   @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
-            @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
+                                                  @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
         checkPageParams(pageNo, pageSize);
         CatalogPath path = new CatalogPath(catalog, database, schema, objectName, objectType);
         return Result.success(catalogService.getChildren(
@@ -79,7 +79,7 @@ public class DataSourceCatalogController extends BaseController {
                                                   @PathVariable("projectCode") long projectCode,
                                                   @PathVariable("datasourceId") Integer datasourceId,
                                                   @RequestParam("keyword") String keyword,
-            @RequestParam(value = "limit", defaultValue = "100") Integer limit) {
+                                                  @RequestParam(value = "limit", defaultValue = "100") Integer limit) {
         return Result.success(catalogService.search(loginUser, projectCode, datasourceId, keyword, limit));
     }
 
@@ -94,7 +94,7 @@ public class DataSourceCatalogController extends BaseController {
                                         @RequestParam(value = "database", required = false) String database,
                                         @RequestParam(value = "schema", required = false) String schema,
                                         @RequestParam("objectName") String objectName,
-            @RequestParam("objectType") CatalogObjectType objectType) {
+                                        @RequestParam("objectType") CatalogObjectType objectType) {
         return Result.success(catalogService.getObject(loginUser, projectCode, datasourceId,
                 new CatalogPath(catalog, database, schema, objectName, objectType)));
     }
@@ -110,7 +110,7 @@ public class DataSourceCatalogController extends BaseController {
                                                          @RequestParam(value = "database", required = false) String database,
                                                          @RequestParam(value = "schema", required = false) String schema,
                                                          @RequestParam("objectName") String objectName,
-            @RequestParam("objectType") CatalogObjectType objectType) {
+                                                         @RequestParam("objectType") CatalogObjectType objectType) {
         return Result.success(catalogService.getColumns(loginUser, projectCode, datasourceId,
                 new CatalogPath(catalog, database, schema, objectName, objectType)));
     }
@@ -126,7 +126,7 @@ public class DataSourceCatalogController extends BaseController {
                                               @RequestParam(value = "database", required = false) String database,
                                               @RequestParam(value = "schema", required = false) String schema,
                                               @RequestParam("objectName") String objectName,
-            @RequestParam(value = "objectType", required = false) CatalogObjectType objectType) {
+                                              @RequestParam(value = "objectType", required = false) CatalogObjectType objectType) {
         return Result.success(catalogService.getIndexes(loginUser, projectCode, datasourceId,
                 new CatalogPath(catalog, database, schema, objectName, objectType)));
     }
