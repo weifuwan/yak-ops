@@ -1,5 +1,5 @@
 import { NodeEditorFrame } from "../node-editor-frame";
-import { TaskCommonSettingsSection } from "../task-common-settings-section";
+import { ShellRunConfigPanel } from "./components/shell-run-config-panel";
 
 import { ShellEditorWorkspace } from "./components/shell-editor-workspace";
 import { useShellTaskEditor } from "./use-shell-task-editor";
@@ -44,10 +44,10 @@ export function ShellTaskEditor({
       onRefresh={() => void editor.handleRefresh()}
       onBack={onBackToWorkflow}
       runConfig={
-        <TaskCommonSettingsSection
+        <ShellRunConfigPanel
           id="shell-run-config"
-          settings={editor.commonSettings}
-          onChange={editor.setCommonSettings}
+          settings={editor.shellRunConfig}
+          onChange={editor.setShellRunConfig}
           disabled={readOnly}
           compact
         />
