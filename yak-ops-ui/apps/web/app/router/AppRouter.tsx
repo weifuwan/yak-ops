@@ -16,6 +16,8 @@ import SubjectDomainPage from "@/app/data-modeling/planning/application-layer/su
 import DimensionModelingPage from "@/app/data-modeling/models/dimension-modeling";
 import ReverseModelingPage from "@/app/data-modeling/models/reverse-modeling";
 import { ResourceManagementPage } from "@/app/resources/page";
+import { WorkerGroupsPage } from "@/app/resources/worker-groups/page";
+import { EnvironmentsPage } from "@/app/resources/environments/page";
 import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
 import { TaskGroupQueuePage } from "@/app/resources/task-group-queue/page";
 import { DataSourcePage } from "@/app/datasource/list/page";
@@ -62,6 +64,8 @@ const AUTHENTICATED_PATHS = new Set([
   "/data-development",
   "/data-modeling",
   "/resources",
+  "/resources/worker-groups",
+  "/resources/environments",
   "/resources/task-groups",
   "/resources/task-group-queue",
   "/data-source",
@@ -308,6 +312,8 @@ export default function AppRouter() {
           }
         >
           <Route path="/resources" element={<ResourceManagementPage />} />
+          <Route path="/resources/worker-groups" element={<WorkerGroupsPage />} />
+          <Route path="/resources/environments" element={<EnvironmentsPage />} />
           <Route path="/resources/task-groups" element={<TaskGroupConfigurationPage />} />
           <Route path="/resources/task-group-queue" element={<TaskGroupQueuePage />} />
         </Route>
