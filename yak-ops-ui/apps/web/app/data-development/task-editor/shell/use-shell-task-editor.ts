@@ -13,7 +13,7 @@ import {
   buildShellTaskParams,
   parseShellTaskForm,
 } from "./adapter";
-import { buildResourceTreeOptions } from "./resource-adapter";
+import { buildResourceTreeOptions } from "../common/node-resource-params/resource-adapter";
 import {
   getShellTaskGroupValidationError,
   normalizeShellRunConfig,
@@ -21,13 +21,7 @@ import {
   useShellTaskGroups,
   type ShellRunConfig,
 } from "./components/shell-run-config-panel";
-import type {
-  ShellConfigTab,
-  ShellEditorView,
-  ShellLocalParam,
-  ShellTaskEditorProps,
-  ShellTaskForm,
-} from "./types";
+import type { ShellEditorView, ShellTaskEditorProps, ShellTaskForm } from "./types";
 
 export function useShellTaskEditor({
   workflowCode,
@@ -51,7 +45,6 @@ export function useShellTaskEditor({
   const [baselineShellRunConfig, setBaselineShellRunConfig] = useState<ShellRunConfig>(initialShellRunConfig);
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<ShellEditorView>("form");
-  const [activeConfigTab, setActiveConfigTab] = useState<ShellConfigTab>("parameters");
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [stopping, setStopping] = useState(false);
@@ -84,19 +77,7 @@ export function useShellTaskEditor({
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const updateLocalParam = (
-    index: number,
-    patch: Partial<ShellLocalParam>,
-  ) => {
-    setForm((current) => ({
-      ...current,
-      localParams: current.localParams.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
-    }));
-  };
-
-  const jsonText = useMemo(() => {
+(() => {
     let runConfigFields: Record<string, unknown>;
     try {
       runConfigFields = normalizeShellRunConfig(shellRunConfig);
@@ -280,8 +261,6 @@ export function useShellTaskEditor({
     setShellRunConfig,
     activeView,
     setActiveView,
-    activeConfigTab,
-    setActiveConfigTab,
     saving,
     running,
     stopping,
@@ -296,6 +275,5 @@ export function useShellTaskEditor({
     handleStop,
     handleRefresh,
     updateField,
-    updateLocalParam,
   };
 }

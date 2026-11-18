@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Textarea, toast } from "@yak-ops/yak-ui";
+import { listWorkflowResources } from "@/service/resources";
 
 import {
   getWorkflowDefinition,
@@ -8,6 +9,13 @@ import {
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 
+import { NodeResourceParamsPanel } from "../../common/node-resource-params";
+import {
+  buildNodeResourceList,
+  normalizeNodeLocalParams,
+  normalizeNodeResourceList,
+} from "../../common/node-resource-params/adapter";
+import { buildResourceTreeOptions } from "../../common/node-resource-params/resource-adapter";
 import { NodeEditorFrame } from "../../node-editor-frame";
 import type { LogicTaskRunConfigController } from "./logic-task-run-config";
 
@@ -120,6 +128,42 @@ export function LogicTaskEditor({
     onParamsChange?.(next);
   };
 
+  const paramsTextIsValid = useMemo(() => {
+    try {
+      parseTaskParams(taskParamsText);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [taskParamsText]);
+  const supportsResourceList = paramsTextIsValid && Array.isArray(params.resourceList);
+  const resourceQuery = useQuery({
+    queryKey: ["data-development", "logic-task-resources", workflowCode, task.code],
+    queryFn: ({ signal }) => listWorkflowResources(signal),
+    enabled: supportsResourceList,
+    staleTime: 60_000,
+  });
+  const resourceTree = useMemo(
+    () => buildResourceTreeOptions(resourceQuery.data ?? []),
+    [resourceQuery.data],
+  );
+  const resourceParams = paramsTextIsValid ? (
+    <NodeResourceParamsPanel
+      idPrefix={taskType.toLowerCase() + "-" + task.code}
+      resourceList={supportsResourceList ? normalizeNodeResourceList(params.resourceList) : undefined}
+      onResourceListChange={supportsResourceList
+        ? (resourceList) => updateParams({ ...params, resourceList: buildNodeResourceList(resourceList) })
+        : undefined}
+      localParams={normalizeNodeLocalParams(params.localParams)}
+      onLocalParamsChange={(localParams) => updateParams({ ...params, localParams })}
+      resourceTree={resourceTree}
+      resourceLoading={resourceQuery.isPending}
+      resourceError={resourceQuery.isError}
+      onRetryResources={() => void resourceQuery.refetch()}
+      disabled={readOnly}
+    />
+  ) : undefined;
+
   const handleSave = async () => {
     if (saving) return false;
     setSaving(true);
@@ -202,7 +246,7 @@ export function LogicTaskEditor({
       saving={saving}
       running={false}
       stopping={false}
-      refreshing={refreshing}
+      refreshing={refreshing || resourceQuery.isFetching}
       lastWorkflowInstanceId={null}
       canRun={false}
       readOnly={readOnly}
@@ -212,6 +256,7 @@ export function LogicTaskEditor({
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
       runConfig={runConfig.content}
+      resourceParams={resourceParams}
     >
       {activeView === "json" ? (
         <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-components-panel-bg)] p-4">

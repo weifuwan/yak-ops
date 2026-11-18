@@ -12,41 +12,29 @@ import {
   Field,
   FieldLabel,
   Input,
-  PasswordInput,
   Segmented,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectTrigger,
-  SelectValue,
-  Switch,
   Textarea,
-  TreeSelect,
-  type TreeSelectOption,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
   toast,
 } from "@yak-ops/yak-ui";
-import { Info, Plus, Trash2 } from "lucide-react";
+import { Info } from "lucide-react";
 
 import {
   getWorkflowDefinition,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
-import {
-  listWorkflowResources,
-  type WorkflowResourceNode,
-} from "@/service/resources";
+import { listWorkflowResources } from "@/service/resources";
 import {
   startWorkflowInstance,
   stopWorkflowInstance,
 } from "@/service/workflow/execution";
 
-import { ResourceTreeIcon } from "../../resources/components/resource-file-icon";
+import { NodeResourceParamsPanel } from "./common/node-resource-params";
+import { buildResourceTreeOptions, flattenResourceFiles } from "./common/node-resource-params/resource-adapter";
+import type { NodeLocalParam } from "./common/node-resource-params/types";
 import { NodeEditorFrame } from "./node-editor-frame";
 import {
   getJavaTaskGroupValidationError,
@@ -59,13 +47,7 @@ import {
 
 type JavaRunType = "FAT_JAR" | "NORMAL_JAR";
 
-type JavaLocalParam = {
-  prop: string;
-  direct: "IN" | "OUT";
-  type: string;
-  value: string;
-  sensitive: boolean;
-};
+type JavaLocalParam = NodeLocalParam;
 
 type JavaTaskForm = {
   runType: JavaRunType;
@@ -87,19 +69,7 @@ const runTypeOptions = [
   { value: "NORMAL_JAR", label: "普通 JAR" },
 ] as const;
 
-const javaLocalParamTypeOptions = [
-  { value: "VARCHAR", label: "VARCHAR" },
-  { value: "INTEGER", label: "INTEGER" },
-  { value: "LONG", label: "LONG" },
-  { value: "FLOAT", label: "FLOAT" },
-  { value: "DOUBLE", label: "DOUBLE" },
-  { value: "DATE", label: "DATE" },
-  { value: "TIME", label: "TIME" },
-  { value: "TIMESTAMP", label: "TIMESTAMP" },
-  { value: "BOOLEAN", label: "BOOLEAN" },
-  { value: "LIST", label: "LIST" },
-  { value: "FILE", label: "FILE" },
-] as const;
+
 
 const jvmArgTemplates = [
   {
@@ -202,67 +172,7 @@ function buildJavaTaskParams(form: JavaTaskForm) {
   };
 }
 
-function getResourceNodeName(node: WorkflowResourceNode) {
-  if (node.name) return node.name;
 
-  const pathParts = (node.fullName || node.currentDir || "")
-    .split(/[\\/]/)
-    .filter(Boolean);
-
-  return pathParts[pathParts.length - 1] || "未命名资源";
-}
-
-function isResourceDirectory(node: WorkflowResourceNode) {
-  return Boolean(
-    node.isDirctory ??
-      node.dirctory ??
-      node.isDirectory ??
-      (node.children && node.children.length > 0),
-  );
-}
-
-function buildResourceTreeOptions(
-  nodes: WorkflowResourceNode[],
-  parentPath = "",
-): TreeSelectOption[] {
-  return nodes.map((node, index) => {
-    const label = getResourceNodeName(node);
-    const value =
-      node.fullName ||
-      node.currentDir ||
-      [parentPath, label, index].filter(Boolean).join("/");
-    const directory = isResourceDirectory(node);
-    const children = node.children ?? [];
-
-    return {
-      label,
-      value,
-      selectable: !directory,
-      searchText: [node.fullName, node.currentDir].filter(Boolean).join(" "),
-      icon: <ResourceTreeIcon name={label} directory={directory} size={16} />,
-      children: buildResourceTreeOptions(children, value),
-    };
-  });
-}
-
-function flattenResourceFiles(nodes: WorkflowResourceNode[]): string[] {
-  const paths: string[] = [];
-
-  const visit = (node: WorkflowResourceNode) => {
-    const children = node.children ?? [];
-    if (children.length > 0 || isResourceDirectory(node)) {
-      children.forEach(visit);
-      return;
-    }
-
-    if (node.fullName) paths.push(node.fullName);
-  };
-
-  nodes.forEach(visit);
-  return Array.from(new Set(paths)).sort((a, b) => a.localeCompare(b));
-}
-
-function JavaField({
   label,
   labelAddon,
   children,
@@ -369,19 +279,7 @@ export function JavaTaskEditor({
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const updateLocalParam = (
-    index: number,
-    patch: Partial<JavaLocalParam>,
-  ) => {
-    setForm((current) => ({
-      ...current,
-      localParams: current.localParams.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
-    }));
-  };
-
-  const jsonText = useMemo(() => {
+(() => {
     let runConfigFields: Record<string, unknown>;
     try {
       runConfigFields = normalizeJavaRunConfig(javaRunConfig);
@@ -563,6 +461,31 @@ export function JavaTaskEditor({
       onSave={() => void handleSave()}
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
+      resourceParams={
+        <NodeResourceParamsPanel
+          idPrefix={"java-" + currentTask.code}
+          resourceList={form.resourceList}
+          onResourceListChange={(resourceList) => updateField("resourceList", resourceList)}
+          localParams={form.localParams}
+          onLocalParamsChange={(localParams) => updateField("localParams", localParams)}
+          resourceTree={resourceTree}
+          resourceLoading={resourceQuery.isPending}
+          resourceError={resourceQuery.isError}
+          onRetryResources={() => void resourceQuery.refetch()}
+          disabled={readOnly}
+          resourceExtra={
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]">
+              <Checkbox
+                checked={form.isModulePath}
+                disabled={readOnly}
+                onCheckedChange={(checked) => updateField("isModulePath", checked === true)}
+                aria-label="使用 Java Module Path"
+              />
+              <span>使用 Java Module Path</span>
+            </label>
+          }
+        />
+      }
       runConfig={
         <JavaRunConfigPanel
           id="java-run-config"
@@ -790,347 +713,7 @@ export function JavaTaskEditor({
               </JavaField>
             </CollapseSection>
 
-            <CollapseSection
-              id="java-resources"
-              title="依赖资源"
-              extra={
-                <span className="text-xs font-normal text-[var(--yak-components-muted-text)]">
-                  {form.resourceList.filter((item) => item.trim()).length} 项
-                </span>
-              }
-              triggerClassName="!h-8 rounded-sm px-3"
-              contentClassName="space-y-3 pt-3"
-            >
-              {form.resourceList.length > 0 ? (
-                <div className="space-y-2">
-                  {form.resourceList.map((resource, index) => (
-                    <JavaField
-                      key={index}
-                      label={"依赖资源 " + (index + 1)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <TreeSelect
-                          items={resourceTree}
-                          value={resource || null}
-                          onValueChange={(value) =>
-                            updateField(
-                              "resourceList",
-                              form.resourceList.map((item, itemIndex) =>
-                                itemIndex === index ? value ?? "" : item,
-                              ),
-                            )
-                          }
-                          size="small"
-                          variant="outlined"
-                          placeholder="请选择依赖资源"
-                          searchPlaceholder="搜索文件名称或路径"
-                          emptyText={
-                            resourceQuery.isPending
-                              ? "正在加载资源..."
-                              : "暂无匹配的资源"
-                          }
-                          ariaLabel={"依赖资源 " + (index + 1)}
-                          clearable
-                          className="min-w-0 flex-1"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          isIconOnly
-                          aria-label="移除依赖资源"
-                          onClick={() =>
-                            updateField(
-                              "resourceList",
-                              form.resourceList.filter(
-                                (_item, itemIndex) => itemIndex !== index,
-                              ),
-                            )
-                          }
-                          className="shrink-0 text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-field-error)]"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </JavaField>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-2 text-center text-xs text-[var(--yak-components-muted-text)]">
-                  暂无依赖资源
-                </div>
-              )}
 
-              <div className="flex items-center justify-between border-t border-[var(--yak-components-panel-border)] pt-3">
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]">
-                  <Checkbox
-                    checked={form.isModulePath}
-                    onCheckedChange={(checked) =>
-                      updateField("isModulePath", checked === true)
-                    }
-                    aria-label="使用 Java Module Path"
-                  />
-                  <span>使用 Java Module Path</span>
-                </label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() =>
-                    updateField("resourceList", [...form.resourceList, ""])
-                  }
-                >
-                  <Plus size={13} />
-                  添加依赖资源
-                </Button>
-              </div>
-            </CollapseSection>
-
-            <CollapseSection
-              id="java-local-params"
-              title="本地参数"
-              extra={
-                <span className="text-xs font-normal text-[var(--yak-components-muted-text)]">
-                  {form.localParams.length} 项
-                </span>
-              }
-              triggerClassName="!h-8 rounded-sm px-3"
-              contentClassName="space-y-3 pt-3"
-            >
-              {form.localParams.length === 0 ? (
-                <div className="py-2 text-center text-xs text-[var(--yak-components-muted-text)]">
-                  暂无本地参数
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <div className="min-w-[760px]">
-                    <div className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_64px_40px] items-center gap-2 border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-color-hover)] px-2 py-2 text-xs text-[var(--yak-components-muted-text)]">
-                      <span>参数名称</span>
-                      <span>方向</span>
-                      <span>类型</span>
-                      <span>参数值</span>
-                      <span>敏感</span>
-                      <span />
-                    </div>
-                    <div className="space-y-2 pt-2">
-                      {form.localParams.map((item, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-[minmax(0,1.2fr)_112px_140px_minmax(0,1.5fr)_64px_40px] items-center gap-2"
-                        >
-                          <Input
-                            size="small"
-                            variant="outlined"
-                            value={item.prop}
-                            onChange={(event) =>
-                              updateLocalParam(index, {
-                                prop: event.target.value,
-                              })
-                            }
-                            placeholder="参数名称"
-                            aria-label="参数名称"
-                          />
-                          <Select<string>
-                            size="small"
-                            items={{ IN: "输入 IN", OUT: "输出 OUT" }}
-                            value={item.direct}
-                            onValueChange={(value) => {
-                              if (value === "IN" || value === "OUT") {
-                                updateLocalParam(index, { direct: value });
-                              }
-                            }}
-                          >
-                            <SelectTrigger
-                              variant="outlined"
-                              className="w-full"
-                              aria-label="参数方向"
-                            >
-                              <SelectValue placeholder="选择方向" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="IN">
-                                <SelectItemText>输入 IN</SelectItemText>
-                                <SelectItemIndicator />
-                              </SelectItem>
-                              <SelectItem value="OUT">
-                                <SelectItemText>输出 OUT</SelectItemText>
-                                <SelectItemIndicator />
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select<string>
-                            size="small"
-                            items={Object.fromEntries(
-                              javaLocalParamTypeOptions.map((option) => [
-                                option.value,
-                                option.label,
-                              ]),
-                            )}
-                            value={item.type}
-                            onValueChange={(value) => {
-                              if (value) updateLocalParam(index, { type: value });
-                            }}
-                          >
-                            <SelectTrigger
-                              variant="outlined"
-                              className="w-full"
-                              aria-label="参数类型"
-                            >
-                              <SelectValue placeholder="选择类型" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {javaLocalParamTypeOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  <SelectItemText>{option.label}</SelectItemText>
-                                  <SelectItemIndicator />
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {item.type === "BOOLEAN" ? (
-                            <Select<string>
-                              size="small"
-                              items={{ true: "true", false: "false" }}
-                              value={
-                                item.value === "true" || item.value === "false"
-                                  ? item.value
-                                  : null
-                              }
-                              onValueChange={(value) => {
-                                if (value === "true" || value === "false") {
-                                  updateLocalParam(index, { value });
-                                }
-                              }}
-                            >
-                              <SelectTrigger
-                                variant="outlined"
-                                className="w-full"
-                                aria-label="布尔参数值"
-                              >
-                                <SelectValue placeholder="请选择 true / false" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="true">
-                                  <SelectItemText>true</SelectItemText>
-                                  <SelectItemIndicator />
-                                </SelectItem>
-                                <SelectItem value="false">
-                                  <SelectItemText>false</SelectItemText>
-                                  <SelectItemIndicator />
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : item.sensitive ? (
-                            <PasswordInput
-                              size="small"
-                              variant="outlined"
-                              value={item.value}
-                              onChange={(event) =>
-                                updateLocalParam(index, { value: event.target.value })
-                              }
-                              placeholder={
-                                item.type === "DATE" ? "YYYY-MM-DD"
-                                  : item.type === "TIME" ? "HH:mm:ss"
-                                  : item.type === "TIMESTAMP" ? "YYYY-MM-DD HH:mm:ss"
-                                  : item.type === "LIST" ? 'JSON 数组，例如 ["a","b"]'
-                                  : "参数值"
-                              }
-                              aria-label="参数值"
-                            />
-                          ) : (
-                            <Input
-                              size="small"
-                              variant="outlined"
-                              type={
-                                ["INTEGER", "LONG", "FLOAT", "DOUBLE"].includes(item.type)
-                                  ? "number"
-                                  : item.type === "DATE"
-                                    ? "date"
-                                    : item.type === "TIME"
-                                      ? "time"
-                                      : "text"
-                              }
-                              step={
-                                item.type === "INTEGER" || item.type === "LONG" || item.type === "TIME"
-                                  ? 1
-                                  : "any"
-                              }
-                              value={item.value}
-                              onChange={(event) =>
-                                updateLocalParam(index, { value: event.target.value })
-                              }
-                              placeholder={
-                                item.type === "INTEGER" ? "请输入整数"
-                                  : item.type === "LONG" ? "请输入长整数"
-                                  : item.type === "FLOAT" || item.type === "DOUBLE" ? "请输入数字"
-                                  : item.type === "DATE" ? "YYYY-MM-DD"
-                                  : item.type === "TIME" ? "HH:mm:ss"
-                                  : item.type === "TIMESTAMP" ? "YYYY-MM-DD HH:mm:ss"
-                                  : item.type === "LIST" ? 'JSON 数组，例如 ["a","b"]'
-                                  : item.type === "FILE" ? "请输入文件路径"
-                                  : "参数值"
-                              }
-                              aria-label="参数值"
-                            />
-                          )}
-                          <div className="flex items-center justify-center">
-                            <Switch
-                              size="small"
-                              checked={item.sensitive}
-                              aria-label={"敏感参数 " + (item.prop || index + 1)}
-                              onCheckedChange={(checked) =>
-                                updateLocalParam(index, { sensitive: checked })
-                              }
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            isIconOnly
-                            aria-label="移除本地参数"
-                            onClick={() =>
-                              updateField(
-                                "localParams",
-                                form.localParams.filter(
-                                  (_param, itemIndex) => itemIndex !== index,
-                                ),
-                              )
-                            }
-                            className="text-[var(--yak-components-muted-text)] hover:text-[var(--yak-components-field-error)]"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end border-t border-[var(--yak-components-panel-border)] pt-3">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() =>
-                    updateField("localParams", [
-                      ...form.localParams,
-                      {
-                        prop: "",
-                        direct: "IN",
-                        type: "VARCHAR",
-                        value: "",
-                        sensitive: false,
-                      },
-                    ])
-                  }
-                >
-                  <Plus size={13} />
-                  添加参数
-                </Button>
-              </div>
-            </CollapseSection>
 
           </div>
         </div>
