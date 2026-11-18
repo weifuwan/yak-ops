@@ -33,7 +33,7 @@ export function TableDetailView({
   const columns = columnsQuery.data ?? [];
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col bg-white">
       <div className="shrink-0 border-b border-[#ececec] px-5 py-4">
         <div className="flex items-center gap-2">
           <Table2 size={17} className="text-[#5e6b82]" />
