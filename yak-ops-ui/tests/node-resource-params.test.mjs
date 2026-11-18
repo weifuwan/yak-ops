@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -30,4 +31,16 @@ test("local parameter adapter preserves metadata and normalizes values", () => {
     normalizeNodeLocalParams([{ prop: "id" }]),
     [{ prop: "id", direct: "IN", type: "VARCHAR", value: "", sensitive: false }],
   );
+});
+
+test("resource and parameter panel stays focused on controls without explanatory copy", () => {
+  const panelSource = readFileSync(
+    new URL("../apps/web/app/data-development/task-editor/common/node-resource-params/panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(panelSource, /选择资源管理中的文件/);
+  assert.doesNotMatch(panelSource, /配置当前节点的输入、输出参数及敏感属性/);
+  assert.doesNotMatch(panelSource, /添加 IN 参数供当前节点引用/);
+  assert.doesNotMatch(panelSource, /localParamsDescription/);
 });
