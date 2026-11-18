@@ -234,46 +234,25 @@ export function NodeEditorFrame({
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="flex h-full min-h-0 shrink-0 bg-white">
-          <nav
-            aria-label="节点配置"
-            className="flex h-full w-9 shrink-0 flex-col border-r border-[#e5e7eb] bg-white"
-          >
-            {PANEL_ITEMS.map((item) => {
-              const selected = activePanel === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-pressed={selected}
-                  onClick={() =>
-                    setActivePanel((current) => (current === item.key ? null : item.key))
-                  }
-                  className={[
-                    "relative flex w-full shrink-0 cursor-pointer items-center justify-center border-b border-[#e5e7eb] px-0 py-2 text-xs leading-[18px] transition-colors first:border-t first:border-[#e5e7eb] hover:bg-[#f7f9fc] hover:text-[#315efb]",
-                    selected ? "bg-white text-[#315efb]" : "bg-white text-[#7c8796]",
-                  ].join(" ")}
-                >
-                  {selected ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-y-0 left-0 z-[1] w-0.5 bg-[#315efb]"
-                    />
-                  ) : null}
-                  <span className="[writing-mode:vertical-rl] [text-orientation:upright] [word-break:keep-all] whitespace-nowrap tracking-[2px]">
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          <fieldset disabled={readOnly} className="contents">
+            {children}
+          </fieldset>
+        </main>
 
+        <aside className="flex h-full min-h-0 shrink-0 bg-white">
           {activePanel ? (
             <>
+              <PanelResizer
+                width={panelWidth}
+                minWidth={MIN_PANEL_WIDTH}
+                maxWidth={MAX_PANEL_WIDTH}
+                resizeDirection="left"
+                ariaLabel="调整节点配置面板宽度"
+                onResize={setPanelWidth}
+              />
               <section
-                className="flex h-full min-h-0 max-w-[calc(100vw-100px)] flex-col border-r border-[#e5e7eb] bg-white"
+                className="flex h-full min-h-0 max-w-[calc(100vw-100px)] flex-col border-l border-[#e5e7eb] bg-white"
                 style={{ width: panelWidth }}
               >
                 <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-3">
@@ -301,23 +280,44 @@ export function NodeEditorFrame({
                   )}
                 </div>
               </section>
-              <PanelResizer
-                width={panelWidth}
-                minWidth={MIN_PANEL_WIDTH}
-                maxWidth={MAX_PANEL_WIDTH}
-                resizeDirection="right"
-                ariaLabel="调整节点配置面板宽度"
-                onResize={setPanelWidth}
-              />
             </>
           ) : null}
-        </aside>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-          <fieldset disabled={readOnly} className="contents">
-            {children}
-          </fieldset>
-        </main>
+          <nav
+            aria-label="节点配置"
+            className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
+          >
+            {PANEL_ITEMS.map((item) => {
+              const selected = activePanel === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  title={item.label}
+                  aria-label={item.label}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setActivePanel((current) => (current === item.key ? null : item.key))
+                  }
+                  className={[
+                    "relative flex w-full shrink-0 cursor-pointer items-center justify-center border-b border-[#e5e7eb] px-0 py-2 text-xs leading-[18px] transition-colors first:border-t first:border-[#e5e7eb] hover:bg-[#f7f9fc] hover:text-[#315efb]",
+                    selected ? "bg-white text-[#315efb]" : "bg-white text-[#7c8796]",
+                  ].join(" ")}
+                >
+                  {selected ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-0 right-0 z-[1] w-0.5 bg-[#315efb]"
+                    />
+                  ) : null}
+                  <span className="[writing-mode:vertical-rl] [text-orientation:upright] [word-break:keep-all] whitespace-nowrap tracking-[2px]">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
       </div>
     </div>
   );
