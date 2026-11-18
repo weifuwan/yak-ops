@@ -15,12 +15,12 @@ import {
 } from "./adapter";
 import { buildResourceTreeOptions } from "./resource-adapter";
 import {
-  getTaskGroupValidationError,
-  normalizeTaskCommonSettings,
-  parseTaskCommonSettings,
-  useTaskGroups,
-  type TaskCommonSettings,
-} from "../task-common-settings-section";
+  getShellTaskGroupValidationError,
+  normalizeShellRunConfig,
+  parseShellRunConfig,
+  useShellTaskGroups,
+  type ShellRunConfig,
+} from "./components/shell-run-config-panel";
 import type {
   ShellConfigTab,
   ShellEditorView,
@@ -39,16 +39,16 @@ export function useShellTaskEditor({
   onDirtyChange,
 }: ShellTaskEditorProps) {
   const queryClient = useQueryClient();
-  const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
+  const { projectCode, taskGroups, taskGroupsQuery } = useShellTaskGroups();
   const initialForm = useMemo(
     () => parseShellTaskForm(task?.taskParams),
     [task?.taskParams],
   );
-  const initialCommonSettings = useMemo(() => parseTaskCommonSettings(task), [task]);
+  const initialShellRunConfig = useMemo(() => parseShellRunConfig(task), [task]);
   const [form, setForm] = useState<ShellTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<ShellTaskForm>(initialForm);
-  const [commonSettings, setCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
-  const [baselineCommonSettings, setBaselineCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
+  const [shellRunConfig, setShellRunConfig] = useState<ShellRunConfig>(initialShellRunConfig);
+  const [baselineShellRunConfig, setBaselineCommonSettings] = useState<ShellRunConfig>(initialShellRunConfig);
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<ShellEditorView>("form");
   const [activeConfigTab, setActiveConfigTab] = useState<ShellConfigTab>("parameters");
@@ -61,10 +61,10 @@ export function useShellTaskEditor({
   useEffect(() => {
     setForm(initialForm);
     setBaselineForm(initialForm);
-    setCommonSettings(initialCommonSettings);
-    setBaselineCommonSettings(initialCommonSettings);
+    setShellRunConfig(initialShellRunConfig);
+    setBaselineCommonSettings(initialShellRunConfig);
     setCurrentTask(task);
-  }, [initialForm, initialCommonSettings, task]);
+  }, [initialForm, initialShellRunConfig, task]);
 
   const resourceQuery = useQuery({
     queryKey: ["data-development", "shell-task-resources"],
@@ -99,9 +99,9 @@ export function useShellTaskEditor({
   const jsonText = useMemo(() => {
     let commonFields: Record<string, unknown>;
     try {
-      commonFields = normalizeTaskCommonSettings(commonSettings);
+      commonFields = normalizeShellRunConfig(shellRunConfig);
     } catch {
-      commonFields = commonSettings;
+      commonFields = shellRunConfig;
     }
 
     return JSON.stringify({
@@ -109,11 +109,11 @@ export function useShellTaskEditor({
       taskParams: buildShellTaskParams(form, currentTask.taskParams),
       ...commonFields,
     }, null, 2);
-  }, [commonSettings, currentTask.taskParams, form]);
+  }, [shellRunConfig, currentTask.taskParams, form]);
 
   const isDirty =
     JSON.stringify(form) !== JSON.stringify(baselineForm) ||
-    JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings);
+    JSON.stringify(shellRunConfig) !== JSON.stringify(baselineShellRunConfig);
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -139,13 +139,13 @@ export function useShellTaskEditor({
 
     let commonPatch;
     try {
-      commonPatch = normalizeTaskCommonSettings(commonSettings);
+      commonPatch = normalizeShellRunConfig(shellRunConfig);
     } catch (error) {
       toast.warning(error instanceof Error ? error.message : "请检查节点通用配置");
       return false;
     }
 
-    const taskGroupError = getTaskGroupValidationError(commonSettings, {
+    const taskGroupError = getShellTaskGroupValidationError(shellRunConfig, {
       projectCode,
       taskGroups,
       isPending: taskGroupsQuery.isPending,
@@ -163,7 +163,7 @@ export function useShellTaskEditor({
       if (!onApplyTask(nextTask)) return false;
       setCurrentTask(nextTask);
       setBaselineForm(form);
-      setBaselineCommonSettings(commonSettings);
+      setBaselineCommonSettings(shellRunConfig);
       toast.success("Shell 节点配置已应用，请保存工作流");
       return true;
     } catch {
@@ -247,13 +247,13 @@ export function useShellTaskEditor({
             if (!latestTask) throw new Error("节点不存在或已被删除");
 
             const nextForm = parseShellTaskForm(latestTask.taskParams);
-            const nextCommonSettings = parseTaskCommonSettings(latestTask);
+            const nextCommonSettings = parseShellRunConfig(latestTask);
             if (!onApplyTask(latestTask)) return;
 
             setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
-            setCommonSettings(nextCommonSettings);
+            setShellRunConfig(nextCommonSettings);
             setBaselineCommonSettings(nextCommonSettings);
           }),
         );
@@ -276,8 +276,8 @@ export function useShellTaskEditor({
   return {
     currentTask,
     form,
-    commonSettings,
-    setCommonSettings,
+    shellRunConfig,
+    setShellRunConfig,
     activeView,
     setActiveView,
     activeConfigTab,
