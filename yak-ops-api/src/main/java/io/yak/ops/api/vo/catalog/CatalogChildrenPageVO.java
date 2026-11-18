@@ -6,6 +6,7 @@ import java.util.List;
 
 /** Paginated child nodes for lazy-loaded catalog tree branches. */
 public class CatalogChildrenPageVO {
+
     private final List<CatalogTreeNodeVO> items;
     private final long total;
     private final int pageNo;
