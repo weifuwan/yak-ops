@@ -166,6 +166,16 @@ test("Node configuration sidebar keeps pointer capture and keyboard resizing", (
   assert.match(panelResizerSource, /ArrowRight/);
 });
 
+test("Shell editor respects the available width when the right sidebar opens", () => {
+  assert.ok(routerSource.includes("min-h-0 min-w-0 flex-1 flex-col"));
+  assert.ok(nodeEditorFrameSource.includes("min-h-0 min-w-0 flex-1 flex-col"));
+  assert.ok(nodeEditorFrameSource.includes("max-w-[calc(100vw-100px)] shrink-0"));
+  assert.ok(shellWorkspaceSource.includes("min-h-0 min-w-0 flex-1 flex-col"));
+  assert.ok(scriptPanelSource.includes("min-h-[250px] min-w-0 flex-1 flex-col"));
+  assert.ok(scriptPanelSource.includes("min-h-0 min-w-0 flex-1"));
+  assert.ok(scriptEditorSource.includes("min-h-[240px] min-w-0 w-full"));
+});
+
 test("Shell script and parameter panels support vertical resizing", () => {
   assert.match(shellWorkspaceSource, /new ResizeObserver/);
   assert.match(shellWorkspaceSource, /PanelHeightResizer/);
