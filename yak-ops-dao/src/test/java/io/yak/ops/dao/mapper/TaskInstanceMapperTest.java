@@ -79,6 +79,56 @@ public class TaskInstanceMapperTest extends BaseDaoTest {
         return taskInstance;
     }
 
+    private TaskInstance insertDataSyncTaskInstance(long taskCode, TaskExecutionStatus state, Flag flag) {
+        TaskInstance taskInstance = new TaskInstance();
+        taskInstance.setFlag(flag);
+        taskInstance.setName("data-sync-" + taskCode);
+        taskInstance.setState(state);
+        taskInstance.setSubmitTime(new Date());
+        taskInstance.setFirstSubmitTime(new Date());
+        taskInstance.setWorkflowInstanceId(1);
+        taskInstance.setProjectCode(1L);
+        taskInstance.setTaskType("DATA_SYNC");
+        taskInstance.setTaskCode(taskCode);
+        taskInstance.setTaskDefinitionVersion(1);
+        taskInstanceMapper.insert(taskInstance);
+        return taskInstance;
+    }
+
+    @Test
+    public void testQueryLatestByTaskCodesAppliesStateFilterAfterSelectingLatestValidInstance() {
+        long taskCode = 990001L;
+        TaskInstance earlierRunning = insertDataSyncTaskInstance(
+                taskCode, TaskExecutionStatus.RUNNING_EXECUTION, Flag.YES);
+        TaskInstance latestStopped = insertDataSyncTaskInstance(
+                taskCode, TaskExecutionStatus.KILL, Flag.YES);
+        TaskInstance invalidRunning = insertDataSyncTaskInstance(
+                taskCode, TaskExecutionStatus.RUNNING_EXECUTION, Flag.NO);
+
+        try {
+            int[] activeStates = {
+                    TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
+                    TaskExecutionStatus.DISPATCH.getCode(),
+                    TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
+                    TaskExecutionStatus.DELAY_EXECUTION.getCode(),
+                    TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()
+            };
+            List<TaskInstance> activeInstances = taskInstanceMapper.queryLatestByTaskCodes(
+                    1L, "DATA_SYNC", Collections.singletonList(taskCode), activeStates);
+            List<TaskInstance> latestInstances = taskInstanceMapper.queryLatestByTaskCodes(
+                    1L, "DATA_SYNC", Collections.singletonList(taskCode), null);
+
+            Assertions.assertTrue(activeInstances.isEmpty());
+            Assertions.assertEquals(1, latestInstances.size());
+            Assertions.assertEquals(latestStopped.getId(), latestInstances.get(0).getId());
+            Assertions.assertNotEquals(earlierRunning.getId(), latestInstances.get(0).getId());
+        } finally {
+            taskInstanceMapper.deleteById(invalidRunning.getId());
+            taskInstanceMapper.deleteById(latestStopped.getId());
+            taskInstanceMapper.deleteById(earlierRunning.getId());
+        }
+    }
+
     /**
      * test update
      */
