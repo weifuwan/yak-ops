@@ -151,7 +151,8 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     releaseState?: string,
   ) => {
     const workflowTab = tabs.find(
-      (tab) => tab.kind === "workflow" && tab.workflowCode === workflowCode,
+      (tab): tab is Extract<WorkflowWorkbenchTab, { kind: "workflow" }> =>
+        tab.kind === "workflow" && tab.workflowCode === workflowCode,
     );
     openTab(toTaskTab(
       workflowCode,
