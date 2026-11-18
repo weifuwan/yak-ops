@@ -150,7 +150,7 @@ test("Shell editor uses Monaco 0.57 public ESM entry points and registers the Sh
   assert.match(scriptEditorSource, /monaco-editor\/editor\/editor\.worker\?worker/);
   assert.match(scriptEditorSource, /getWorker: \(\) => new EditorWorker\(\)/);
   assert.match(scriptEditorSource, /editor\.create/);
-  assert.match(scriptEditorSource, /automaticLayout:\\s*true/);
+  assert.ok(scriptEditorSource.includes("automaticLayout: true"));
   assert.doesNotMatch(scriptEditorSource, /monaco-editor\/editor\/(?:browser\/controller|contrib)\//);
   assert.doesNotMatch(scriptEditorSource, /monaco-editor\/basic-languages\//);
   assert.doesNotMatch(scriptEditorSource, /monaco-editor\/esm\/vs\//);
@@ -159,7 +159,7 @@ test("Shell editor uses Monaco 0.57 public ESM entry points and registers the Sh
 
 test("Node configuration sidebar keeps pointer capture and keyboard resizing", () => {
   assert.match(panelResizerSource, /setPointerCapture/);
-  assert.match(panelResizerSource, /onLostPointerCapture={handlePointerEnd}/);
+  assert.ok(panelResizerSource.includes("onLostPointerCapture={handlePointerEnd}"));
   assert.match(panelResizerSource, /pointer-events-auto/);
   assert.match(panelResizerSource, /ArrowLeft/);
   assert.match(panelResizerSource, /ArrowRight/);
@@ -170,10 +170,10 @@ test("Shell script and parameter panels support vertical resizing", () => {
   assert.match(shellWorkspaceSource, /PanelHeightResizer/);
   assert.match(shellWorkspaceSource, /maxConfigPanelHeight/);
   assert.match(shellWorkspaceSource, /height={visibleConfigPanelHeight}/);
-  assert.match(configPanelSource, /style=\\{\\{ height, flexBasis: height \\}\\}/);
+  assert.ok(configPanelSource.includes("style={{ height, flexBasis: height }}"));
   assert.match(panelHeightResizerSource, /aria-orientation="horizontal"/);
   assert.match(panelHeightResizerSource, /setPointerCapture/);
-  assert.match(panelHeightResizerSource, /onLostPointerCapture={handlePointerEnd}/);
+  assert.ok(panelHeightResizerSource.includes("onLostPointerCapture={handlePointerEnd}"));
   assert.match(panelHeightResizerSource, /ArrowUp/);
   assert.match(panelHeightResizerSource, /ArrowDown/);
 });
