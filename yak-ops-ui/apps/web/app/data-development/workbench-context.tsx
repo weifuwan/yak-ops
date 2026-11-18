@@ -46,6 +46,8 @@ export type WorkflowWorkbenchTab =
       dataSourceId: string;
       dataSourceName: string;
       database: string;
+      schema?: string;
+      objectType?: string;
       tableName: string;
       title: string;
     }
@@ -70,6 +72,8 @@ type DataDevelopmentWorkbenchContextValue = {
     dataSourceName: string,
     database: string,
     tableName: string,
+    schema?: string,
+    objectType?: string,
   ) => void;
   openAuditRecord: (record: AuditRecord, title?: string) => void;
   updateTaskTab: (id: string, task: WorkflowTaskRecord) => void;
@@ -170,6 +174,8 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     dataSourceName: string,
     database: string,
     tableName: string,
+    schema?: string,
+    objectType = "TABLE",
   ) =>
     openTab({
       id:
@@ -178,11 +184,17 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
         ":" +
         database +
         ":" +
+        (schema ?? "") +
+        ":" +
+        objectType +
+        ":" +
         tableName,
       kind: "catalog-table",
       dataSourceId: String(dataSourceId),
       dataSourceName,
       database,
+      schema,
+      objectType,
       tableName,
       title: tableName,
     });
