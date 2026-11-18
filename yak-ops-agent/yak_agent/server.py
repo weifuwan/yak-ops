@@ -56,7 +56,7 @@ from yak_agent.app import build_agent
 from yak_agent import audit
 from yak_agent.config import Settings
 from yak_agent.workspace import SessionWorkspace
-from yak_agent.yak_client import YakAuth
+from yak_agent.yak_client import YakApiError, YakAuth, yak_get
 
 _SESSION_DIR = Path(os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions"))
 _FORWARD_EVENTS = {
@@ -145,18 +145,19 @@ def _service_guard(request: "Request") -> None:
 def _identity(request: "Request", settings: Settings) -> tuple[str, YakAuth]:
     """Resolve (owner key, session auth) from the frontend headers.
 
-    X-Yak-Session-Id carries the caller's yak-ops sessionId cookie (per-user
-    identity — tools then run inside that user's permission boundary);
-    X-Yak-User-Id is the stable ownership key that survives re-login. Without
-    headers the service credentials are used (CLI / single-tenant mode).
+    X-Yak-Session-Id carries the caller's yak-ops sessionId cookie. The owner
+    key is derived from the sessionId itself — **no user id is accepted from
+    the frontend**; the real identity is verified by the platform when the
+    session is validated (see _verify_session_project) and lives on the
+    platform side, which is also what makes the audit trail traceable.
+
     Layer 1 (service guard) runs first: service token or loopback-only.
+    Without the header the service credentials are used (CLI / single-tenant
+    mode).
     """
     _service_guard(request)
     session_id = request.headers.get("X-Yak-Session-Id", "").strip()
-    user_id = request.headers.get("X-Yak-User-Id", "").strip()
     auth = YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id) if session_id else None
-    if user_id:
-        return f"user:{user_id}", auth
     if session_id:
         return "session:" + hashlib.sha256(session_id.encode()).hexdigest()[:12], auth
     return "local", auth or YakAuth(
@@ -164,6 +165,22 @@ def _identity(request: "Request", settings: Settings) -> tuple[str, YakAuth]:
         username=settings.yak_ops_username,
         password=settings.yak_ops_password,
     )
+
+
+def _verify_session_project(auth: YakAuth, project_code: int) -> None:
+    """Platform-side session and project-permission check — the same
+    interceptor semantics as the original backend: the sessionId is validated
+    by the platform on this call, and the configured project must be granted
+    to the session's user, otherwise the session is refused."""
+    try:
+        data = yak_get(auth, "/projects", {"pageNo": 1, "pageSize": 100})
+    except YakApiError as ex:
+        if ex.status_code == 401:
+            raise HTTPException(status_code=401, detail="yak-ops session invalid or expired; re-login and retry") from ex
+        raise HTTPException(status_code=502, detail=f"yak-ops session verification failed: {ex}") from ex
+    codes = {str(item.get("code")) for item in ((data or {}).get("totalList") or [])}
+    if str(project_code) not in codes:
+        raise HTTPException(status_code=403, detail="the configured project is not granted to this user")
 
 
 def _refresh_session_auth(session: Session, auth: YakAuth | None) -> None:
@@ -285,6 +302,11 @@ async def health() -> dict[str, str]:
 @app.post("/agent/sessions")
 async def create_session(request: "Request") -> dict[str, str]:
     caller, auth = _identity(request, _get_settings())
+    # Platform-side verification (same interceptor semantics as the original
+    # backend): the sessionId must be valid and the configured project must be
+    # granted to its user. 401/403 propagate to the frontend.
+    if auth is not None and auth.session_id:
+        _verify_session_project(auth, _get_settings().project_code)
     sid = uuid.uuid4().hex
     workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
     session = Session(

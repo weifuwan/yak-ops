@@ -105,7 +105,7 @@ python -m venv .venv
 **鉴权两层**：
 
 1. **服务层**（保护 agent 服务本身）：配置 `YAK_AGENT_SERVICE_TOKEN` 后所有端点要求 `Authorization: Bearer <token>`；未配置时仅接受 loopback 调用，非本机来源 401。
-2. **用户层**（数据权限边界）：前端登录 yak-ops 后动态传入用户凭证——`X-Yak-Session-Id`（登录换得的 sessionId cookie 值，agent 不持密码，过期由前端重新登录传新值）+ `X-Yak-User-Id`（稳定归属键，跨重新登录不变）。**工具调用与 PTC 脚本都以该用户身份执行**（权限继承用户，平台负责校验）；会话归属按 `X-Yak-User-Id` 隔离（403 on mismatch）；确认动作的调用方写入审计。不传用户头 = 单租户本地模式（使用服务端凭据）。
+2. **用户层**（数据权限边界，与原后端同一套登录认证）：前端登录 yak-ops 后把登录态动态传入——`X-Yak-Session-Id`（登录换得的 sessionId cookie 值，agent 不持密码，过期时创建会话返回 401 由前端重新登录）。**会话创建时服务端用该 sessionId 向平台反查并校验**（平台 interceptor 语义：会话有效性 + 配置项目是否授予该用户，401/403 透传），之后**所有工具调用与 PTC 脚本都以该用户身份执行**（平台逐请求认证）。归属键由 sessionId 派生（不接受前端自报的用户 id）；确认动作的调用方（会话标识）写入审计。不传头 = 单租户本地模式（服务端凭据）。
 
 SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`（工具调用）、`confirm_required`（写操作待确认，含 `toolCalls[]`）、`done`、`error`。**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。
 
