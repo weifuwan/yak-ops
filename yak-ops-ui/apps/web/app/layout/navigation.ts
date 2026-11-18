@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowRightLeft,
   Bell,
+  Building2,
   Boxes,
   Database,
   GitBranch,
@@ -302,6 +303,11 @@ export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
 ];
 
 export const MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
+  {
+    label: "租户管理",
+    path: "/management/tenants",
+    icon: Building2,
+  },
   {
     label: "用户管理",
     path: "/management/users",
