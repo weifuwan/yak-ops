@@ -227,6 +227,33 @@ def yak_write(
     return data
 
 
+def yak_download(auth: YakAuth, path: str, params: dict[str, Any] | None = None) -> str:
+    """GET a raw endpoint (e.g. /log/download-log) and return the body as text.
+
+    No envelope parsing — download endpoints return bare file content.
+    Accounted like any other call; the full body is returned to the caller
+    (it lives in the script's scope, never in the model context).
+    """
+    try:
+        url = f"{auth.base_url}{path}"
+        query = _to_query(params)
+        if query:
+            url = f"{url}?{query}"
+        try:
+            body = _request(auth, "GET", url)
+        except YakApiError as ex:
+            if ex.status_code == 401 and not auth.token:
+                auth.refresh_session()
+                body = _request(auth, "GET", url)
+            else:
+                raise
+    except YakApiError as ex:
+        _record_error(f"{path}: {ex}")
+        raise
+    _record_success()
+    return body
+
+
 def _write_envelope_data(
     auth: YakAuth,
     method: str,

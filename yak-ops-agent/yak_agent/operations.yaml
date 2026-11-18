@@ -104,13 +104,28 @@ operations:
     risk: readonly
     method: GET
     path: /log/detail
-    summary: 查询任务实例执行日志（尾部）
-    description: 读取任务实例执行日志的尾部若干行，用于定位失败原因。日志很长时优先看 ERROR/Exception 关键行。
+    summary: 查询任务实例执行日志（分页读取）
+    description: |
+      按行分页读取任务实例执行日志（skipLineNum 从 0 开始 + limit）。小范围查看用本接口；
+      需要全量日志做根因分析时改用 download_task_log 一次性拿完整文件。
     params:
       - { name: task_instance_id, type: integer, required: true, description: 任务实例 ID，来自 list_sync_instances（taskInstanceId）, location: query, as: taskInstanceId }
-      - { name: skip_line_num, type: integer, required: false, description: 跳过行数（内部固定 0）, location: query, as: skipLineNum, const: 0 }
-      - { name: limit, type: integer, required: false, description: 返回尾部行数，1-1000, location: query, min: 1, max: 1000, default: 200 }
+      - { name: skip_line_num, type: integer, required: false, description: 跳过的行数，从 0 开始，用于翻页拉取全量日志, location: query, as: skipLineNum, min: 0, default: 0 }
+      - { name: limit, type: integer, required: false, description: 本次返回的行数，1-1000, location: query, min: 1, max: 1000, default: 200 }
     response: { truncate_field: message }
+
+  - id: download_task_log
+    domain: task-log
+    risk: readonly
+    method: GET
+    path: /log/download-log
+    summary: 下载任务实例的完整日志文件（一次拿全量）
+    description: |
+      返回任务实例的完整日志文本（非分页）。根因分析优先用本接口拉全量，
+      再在脚本内 grep ERROR/Exception/Caused by 定位根因。
+    params:
+      - { name: task_instance_id, type: integer, required: true, description: 任务实例 ID，来自 list_sync_instances（taskInstanceId）, location: query, as: taskInstanceId }
+    response: { raw: true, truncate: 16000 }
 
   # ---------------- write (human confirmation required) ----------------
 

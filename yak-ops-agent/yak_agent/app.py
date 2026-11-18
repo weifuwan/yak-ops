@@ -44,7 +44,8 @@ SYSTEM_PROMPT = """你是 yak-ops 平台的数据同步助手，覆盖数据同�
 4. 破坏性操作（删除任务、停止实例、强制成功）必须先说明影响，并建议较温和的替代（如下线而非删除、停止而非删除）。
 5. 新建任务默认离线（OFFLINE），需要发布（publish）后才可被执行。
 6. 数据不足以回答时如实说明，并给出下一步建议。
-7. 排障类问题（失败原因、挂起、耗时异常）可先查看技能 `data-sync-troubleshooting` 获取排查步骤与常见根因模式。"""
+7. 排障类问题（失败原因、挂起、耗时异常）可先查看技能 `data-sync-troubleshooting` 获取排查步骤与常见根因模式。
+8. 日志根因分析、跨实例聚合统计等大数据量分析：优先用 `run_analysis_script` 写脚本处理（脚本里分页拉全量日志并 grep `Caused by` 链，只 print 结论），不要把大段原始日志读进对话。简单状态查询仍用直接工具。"""
 
 
 def build_agent(settings: Settings, state: Any | None = None) -> Agent:

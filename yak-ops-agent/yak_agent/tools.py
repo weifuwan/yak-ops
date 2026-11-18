@@ -24,7 +24,7 @@ from agentscope.tool import FunctionTool
 
 from yak_agent import audit
 from yak_agent.config import Settings
-from yak_agent.yak_client import YakApiError, YakAuth, truncate, yak_get, yak_write
+from yak_agent.yak_client import YakApiError, YakAuth, truncate, yak_download, yak_get, yak_write
 
 _REGISTRY_PATH = Path(__file__).with_name("operations.yaml")
 _MAX_PAYLOAD_CHARS = 16_000
@@ -141,8 +141,11 @@ def _execute(
         query, body = _split_params(op, values)
 
         method = op["method"].upper()
+        raw = bool((op.get("response") or {}).get("raw"))
         if method == "GET":
-            data = yak_get(auth, path, query or None)
+            data = yak_download(auth, path, query or None) if raw else yak_get(auth, path, query or None)
+            if raw:
+                data = {"log": data, "bytes": len(data or "")}
         else:
             data = yak_write(auth, method, path, body if body or method != "DELETE" else None, query or None)
 
@@ -197,4 +200,23 @@ def build_tools(settings: Settings, auth: YakAuth | None = None) -> list[Functio
             is_read_only=readonly,
             is_concurrency_safe=readonly,
         ))
+
+    # PTC tool: only registered when a backend is usable. The generated SDK is
+    # read-only, so the tool itself is read-only (read-only fast path applies).
+    try:
+        from yak_agent import executor as _executor
+
+        def run_analysis_script(code: str, timeout_seconds: int = 60) -> str:
+            """Write and run a Python analysis script against the read-only yak-ops SDK. Use for log root-cause analysis (page the FULL log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB.
+
+            Args:
+                code: Python 3 script body. `import yak_agent_sdk as sdk` then call its functions; print the conclusion.
+                timeout_seconds: Wall-clock limit, 5-300.
+            """
+            return _executor.format_result(_executor.run_analysis(code, timeout_seconds))
+
+        tools.append(FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False))
+    except Exception:  # noqa: BLE001 - PTC is an enhancement; absence keeps form 1
+        pass
+
     return tools
