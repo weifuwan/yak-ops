@@ -65,7 +65,7 @@ test("Java and Shell share the right-aligned node configuration sidebar", () => 
   assert.match(javaEditorSource, /<NodeEditorFrame/);
 
   const workspaceStart = nodeEditorFrameSource.indexOf(
-    'className="flex min-h-0 flex-1 overflow-hidden"',
+    'className="flex min-h-0 min-w-0 flex-1 overflow-hidden"',
   );
   assert.notEqual(workspaceStart, -1);
   const workspaceLayout = nodeEditorFrameSource.slice(workspaceStart);
