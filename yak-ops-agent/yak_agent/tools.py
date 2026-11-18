@@ -14,6 +14,7 @@ Risk levels map to the permission system:
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -21,6 +22,7 @@ import yaml
 
 from agentscope.tool import FunctionTool
 
+from yak_agent import audit
 from yak_agent.config import Settings
 from yak_agent.yak_client import YakApiError, YakAuth, truncate, yak_get, yak_write
 
@@ -127,24 +129,41 @@ def _split_params(
 def _execute(
     op: dict[str, Any], settings: Settings, auth: YakAuth, values: dict[str, Any],
 ) -> str:
-    path = _render_path(op, settings, values)
-    query, body = _split_params(op, values)
+    started = time.monotonic()
+    ok = False
+    error: str | None = None
+    # Never persist free-form JSON params (may carry data-source credentials).
+    audit_params = {
+        k: ("<json omitted>" if k.endswith("_json") else v) for k, v in values.items()
+    }
+    try:
+        path = _render_path(op, settings, values)
+        query, body = _split_params(op, values)
 
-    method = op["method"].upper()
-    if method == "GET":
-        data = yak_get(auth, path, query or None)
-    else:
-        data = yak_write(auth, method, path, body if body or method != "DELETE" else None, query or None)
+        method = op["method"].upper()
+        if method == "GET":
+            data = yak_get(auth, path, query or None)
+        else:
+            data = yak_write(auth, method, path, body if body or method != "DELETE" else None, query or None)
 
-    response_cfg = op.get("response") or {}
-    if isinstance(data, dict) and response_cfg.get("truncate_field"):
-        field = response_cfg["truncate_field"]
-        if isinstance(data.get(field), str):
-            data = {**data, field: truncate(data[field])}
-    return truncate(
-        json.dumps(data, ensure_ascii=False, default=str),
-        int(response_cfg.get("truncate", _MAX_PAYLOAD_CHARS)),
-    )
+        response_cfg = op.get("response") or {}
+        if isinstance(data, dict) and response_cfg.get("truncate_field"):
+            field = response_cfg["truncate_field"]
+            if isinstance(data.get(field), str):
+                data = {**data, field: truncate(data[field])}
+        payload = truncate(
+            json.dumps(data, ensure_ascii=False, default=str),
+            int(response_cfg.get("truncate", _MAX_PAYLOAD_CHARS)),
+        )
+        ok = True
+        return payload
+    except Exception as ex:
+        error = f"{type(ex).__name__}: {ex}"
+        raise
+    finally:
+        audit.record_tool_call(
+            op["id"], audit_params, ok, int((time.monotonic() - started) * 1000), error,
+        )
 
 
 def build_auth(settings: Settings) -> YakAuth:

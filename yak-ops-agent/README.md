@@ -10,6 +10,14 @@
 - 安全模型：读工具自动执行（只读快路径）；写工具一律走 **HITL 人工确认**（`RequireUserConfirmEvent`），非交互模式默认拒绝写操作；
 - PTC 对齐：`ContextConfig.tool_result_limit` 与客户端 16KB 截断保证中间结果不撑爆上下文。
 
+## 内置能力
+
+| 能力 | 说明 |
+| --- | --- |
+| **Skill（技能）** | `yak_agent/skills/data-sync-troubleshooting/SKILL.md`：数据同步排障知识（状态语义、排查步骤、常见根因、耗时口径、高危红线），模型按需加载 |
+| **审计留痕** | 每次工具调用落 JSONL（`logs/audit/YYYY-MM-DD.jsonl`，`YAK_AGENT_AUDIT_DIR` 可改）：时间、工具、脱敏参数、成功与否、耗时——`parameters_json` 类参数只记占位符，不落盘数据源凭据 |
+| **短期记忆** | Agent 内部 context：同一会话内后续问题复用已取数据（省 token） |
+
 ## 工具（数据同步，7 读 + 7 写）
 
 | 读工具（自动执行） | REST 端点 |
@@ -73,9 +81,26 @@ python -m venv .venv
 .venv/Scripts/python -m yak_agent.app
 # 单问（非交互，写操作自动拒绝）
 .venv/Scripts/python -m yak_agent.app "现在有哪些同步实例在运行？"
+# HTTP 服务（给前端消费；默认 127.0.0.1:8090）
+.venv/Scripts/python -m yak_agent.server
 # 只读冒烟（5 个 Golden 问题 + 冷启动稳定性探针）
 .venv/Scripts/python smoke/smoke_test.py --repeat 10
 ```
+
+## HTTP 接口（前端对接）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/agent/sessions` | 创建会话 → `{sessionId}` |
+| POST | `/agent/sessions/{sid}/messages` | 发消息（body `{message}`）→ **SSE 事件流** |
+| POST | `/agent/sessions/{sid}/confirm` | 确认/拒绝挂起的写操作（body `{approved: bool 或 [bool...]}`） |
+| GET | `/agent/sessions` | 列出已持久化会话 |
+| DELETE | `/agent/sessions/{sid}` | 删除会话 |
+| GET | `/health` | 存活检查 |
+
+SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`（工具调用）、`confirm_required`（写操作待确认，含 `toolCalls[]`）、`done`、`error`。**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。
+
+会话按轮持久化（`AgentState` 序列化，`YAK_AGENT_SESSION_DIR` 可配），服务重启后按会话 ID 懒加载恢复。服务端口与绑定地址：`YAK_AGENT_PORT` / `YAK_AGENT_HOST`。
 
 ## 已知边界
 

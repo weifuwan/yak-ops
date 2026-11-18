@@ -14,7 +14,8 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from typing import Callable
+from pathlib import Path
+from typing import Any, Callable
 
 from agentscope.agent import Agent, ContextConfig, ReActConfig
 from agentscope.credential import OpenAICredential
@@ -26,10 +27,13 @@ from agentscope.event import (
 )
 from agentscope.message import UserMsg
 from agentscope.model import OpenAIChatModel
+from agentscope.skill import LocalSkillLoader
 from agentscope.tool import Toolkit
 
 from yak_agent.config import Settings
 from yak_agent.tools import build_tools
+
+_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 
 SYSTEM_PROMPT = """你是 yak-ops 平台的数据同步助手，覆盖数据同步页面的完整功能：查询（概览/任务定义/执行实例/日志）、创建、修改、发布/下线、删除任务，以及停止执行实例、强制成功。
 
@@ -39,10 +43,11 @@ SYSTEM_PROMPT = """你是 yak-ops 平台的数据同步助手，覆盖数据同�
 3. 变更类操作遵循「先查后写」：先 list_sync_tasks / get_sync_task 拿到参数模板与 revision，用 preview_sync_task 验证通过后再提交；update/publish 必须带上任务当前的 revision（乐观锁）。
 4. 破坏性操作（删除任务、停止实例、强制成功）必须先说明影响，并建议较温和的替代（如下线而非删除、停止而非删除）。
 5. 新建任务默认离线（OFFLINE），需要发布（publish）后才可被执行。
-6. 数据不足以回答时如实说明，并给出下一步建议。"""
+6. 数据不足以回答时如实说明，并给出下一步建议。
+7. 排障类问题（失败原因、挂起、耗时异常）可先查看技能 `data-sync-troubleshooting` 获取排查步骤与常见根因模式。"""
 
 
-def build_agent(settings: Settings) -> Agent:
+def build_agent(settings: Settings, state: Any | None = None) -> Agent:
     """Assemble the data-sync copilot from open-box AgentScope components."""
     model = OpenAIChatModel(
         credential=OpenAICredential(api_key=settings.llm_api_key, base_url=settings.llm_base_url),
@@ -52,7 +57,11 @@ def build_agent(settings: Settings) -> Agent:
         name="yak_agent",
         system_prompt=SYSTEM_PROMPT,
         model=model,
-        toolkit=Toolkit(tools=build_tools(settings)),
+        toolkit=Toolkit(
+            tools=build_tools(settings),
+            skills_or_loaders=[LocalSkillLoader(directory=str(_SKILLS_DIR), scan_subdir=True)],
+        ),
+        state=state,
         react_config=ReActConfig(max_iters=12),
         context_config=ContextConfig(tool_result_limit=1000),
     )
