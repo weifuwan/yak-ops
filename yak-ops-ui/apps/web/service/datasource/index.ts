@@ -250,11 +250,11 @@ export const previewDataSourceTable = async (
 const catalogAPI = (id: DataSourceId) => API() + "/" + encodeURIComponent(id) + "/catalog";
 
 const catalogPathParams = (path: CatalogPath): Record<string, string | number | undefined> => ({
-  catalog: path.catalog,
-  database: path.database,
-  schema: path.schema,
-  objectName: path.objectName,
-  objectType: path.objectType,
+  catalog: path.catalog || undefined,
+  database: path.database || undefined,
+  schema: path.schema || undefined,
+  objectName: path.objectName || undefined,
+  objectType: path.objectType || undefined,
 });
 
 export const getDataSourceCatalogCapabilities = (
