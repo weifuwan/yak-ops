@@ -29,13 +29,13 @@ const STATISTICS: StatisticItem[] = [
     title: "维度表模型",
     image:
       "https://img.alicdn.com/imgextra/i3/O1CN01bYykXi1ZHuHGBhaDL_!!6000000003170-2-tps-228-228.png",
-    values: [{ num: "0", unit: "模型数量" }],
+    values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "明细表模型",
     image:
       "https://img.alicdn.com/imgextra/i2/O1CN01l2o2g71MLUN0kZXpq_!!6000000001418-2-tps-228-228.png",
-    values: [{ num: "2", unit: "模型数量" }],
+    values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "汇总表模型",
@@ -61,8 +61,8 @@ const STATISTICS: StatisticItem[] = [
   {
     title: "合计",
     total: true,
-    values: [{ num: "3", unit: "" }],
-    formula: "对象数量：模型数量+向上取整(指标数量/10)",
+    values: [{ num: "—", unit: "" }],
+    formula: "统计接口待接入",
   },
 ];
 
