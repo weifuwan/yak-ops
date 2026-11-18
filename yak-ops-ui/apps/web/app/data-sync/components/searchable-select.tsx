@@ -27,6 +27,7 @@ interface DataSyncSearchableSelectProps {
   ariaLabel?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  triggerClassName?: string;
   disabled?: boolean;
   refreshing?: boolean;
   footer?: ReactNode;
@@ -42,6 +43,7 @@ export function DataSyncSearchableSelect({
   ariaLabel,
   searchPlaceholder = "请输入关键字",
   emptyText = "暂无选项",
+  triggerClassName,
   disabled = false,
   refreshing = false,
   footer,
@@ -83,7 +85,7 @@ export function DataSyncSearchableSelect({
         if (nextValue) onValueChange(String(nextValue));
       }}
     >
-      <SelectTrigger variant="outlined" aria-label={ariaLabel}>
+      <SelectTrigger variant="outlined" aria-label={ariaLabel} className={triggerClassName}>
         <span className="flex min-w-0 items-center gap-2">
           {selectedOption?.icon ? (
             <span className="flex size-4 shrink-0 items-center justify-center">
