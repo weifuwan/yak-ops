@@ -37,6 +37,7 @@ import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.WorkflowInstanceSummaryDto;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
@@ -352,6 +353,34 @@ class DataSyncServiceImplTest {
 
         assertEquals(Status.REQUEST_PARAMS_NOT_VALID_ERROR.getCode(), error.getCode());
         verifyNoInteractions(workflowDefinitionService, dataSourceDao);
+    }
+
+    @Test
+    void updateRejectsRunningWorkflowEvenWhenDefinitionIsOffline() {
+        TaskDefinition task = taskDefinition(99L);
+        task.setVersion(4);
+        WorkflowDefinition workflow = workflow(101L, 99L);
+        WorkflowTaskRelation relation = relation(101L, 99L);
+        when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
+        when(workflowTaskRelationDao.queryByTaskCode(99L)).thenReturn(Collections.singletonList(relation));
+        when(workflowTaskRelationDao.queryByWorkflowDefinitionCode(101L))
+                .thenReturn(Collections.singletonList(relation));
+        when(workflowDefinitionDao.queryByCode(101L)).thenReturn(Optional.of(workflow));
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(eq(101L), any(int[].class)))
+                .thenReturn(Collections.singletonList(new WorkflowInstanceSummaryDto()));
+
+        DataSyncTaskRequest request = new DataSyncTaskRequest();
+        request.setName("changed_sync");
+        request.setRemark("updated");
+        request.setExpectedRevision(4);
+        request.setParameters(validParameters());
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.updateTask(testUser(), PROJECT_CODE, 99L, request));
+
+        assertEquals(Status.WORKFLOW_INSTANCE_EXIST.getCode(), error.getCode());
+        verify(taskDefinitionDao, never()).compareAndSetDataSyncRevision(eq(PROJECT_CODE), eq(99L), eq(4));
+        verifyNoInteractions(workflowDefinitionService);
     }
 
     @Test
