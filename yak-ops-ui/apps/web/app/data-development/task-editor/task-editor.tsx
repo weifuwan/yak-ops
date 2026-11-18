@@ -78,7 +78,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   return (
     <section
       aria-label={taskName + " 节点内容"}
-      className="flex min-h-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
       {isShellTask ? (
         <Suspense
