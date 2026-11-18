@@ -81,7 +81,9 @@ export function ObjectHeader({
       : primaryKeys.length > 0
         ? primaryKeys.join(", ")
         : "—";
-  const breadcrumbItems = [dataSourceName, database, schema, objectName].filter(\n    (item): item is string => Boolean(item),\n  );
+  const breadcrumbItems = [dataSourceName, database, schema, objectName].filter(
+    (item): item is string => Boolean(item),
+  );
 
   return (
     <header className="shrink-0 border-b border-[#e8eaee] bg-white px-5 pb-4 pt-4">
