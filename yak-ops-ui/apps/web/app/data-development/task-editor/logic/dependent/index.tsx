@@ -9,6 +9,7 @@ import {
 } from "@/service/workflow/definition";
 
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
+import { useGenericLogicTaskRunConfig } from "../shared/use-generic-logic-run-config";
 import { LogicField, LogicSection, LogicSelect } from "../shared/logic-form-controls";
 import {
   createDependentItem,
@@ -460,6 +461,7 @@ export function DependentEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
+  const runConfig = useGenericLogicTaskRunConfig(task, readOnly);
   return (
     <LogicTaskEditor
       workflowCode={workflowCode}
@@ -467,6 +469,7 @@ export function DependentEditor({
       taskName={taskName}
       taskType="DEPENDENT"
       readOnly={readOnly}
+      runConfig={runConfig}
       onApplyTask={onApplyTask}
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}
