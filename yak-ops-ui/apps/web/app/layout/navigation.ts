@@ -10,7 +10,9 @@ import {
   LayoutGrid,
   Layers,
   ListOrdered,
+  Server,
   Settings,
+  Settings2,
   Table2,
   Users,
   Wrench,
@@ -261,6 +263,16 @@ export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     path: "/resources",
     icon: FolderOpen,
     end: true,
+  },
+  {
+    label: "Worker 分组",
+    path: "/resources/worker-groups",
+    icon: Server,
+  },
+  {
+    label: "环境管理",
+    path: "/resources/environments",
+    icon: Settings2,
   },
   {
     label: "任务组配置",
