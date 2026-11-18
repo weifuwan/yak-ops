@@ -126,7 +126,7 @@ public class DataSourceCatalogController extends BaseController {
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam("objectName") String objectName,
-            @RequestParam("objectType", required = false) CatalogObjectType objectType) {
+            @RequestParam(value = "objectType", required = false) CatalogObjectType objectType) {
         return Result.success(catalogService.getIndexes(loginUser, projectCode, datasourceId,
                 new CatalogPath(catalog, database, schema, objectName, objectType)));
     }
