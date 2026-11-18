@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .env
+!.env.example
 .pytest_cache/
 logs/
 sessions/
