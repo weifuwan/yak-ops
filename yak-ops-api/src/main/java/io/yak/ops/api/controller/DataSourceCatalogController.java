@@ -45,90 +45,89 @@ public class DataSourceCatalogController extends BaseController {
     public Result<CatalogCapabilities> capabilities(
                                                     @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                                     @PathVariable("projectCode") long projectCode,
-                                                    @PathVariable("datasourceId") Integer datasourceId) {
-                                                    return Result.success(catalogService.getCapabilities(loginUser, projectCode, datasourceId));
-                                                    }
-                                                    
-                                                    @GetMapping("/children")
-                                                    @ResponseStatus(HttpStatus.OK)
-                                                    @Operation(summary = "catalogChildren", description = "Get direct children of a catalog tree node")
-                                                    public Result<CatalogChildrenPageVO> children(
-                                                                                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                                                  @PathVariable("projectCode") long projectCode,
-                                                                                                  @PathVariable("datasourceId") Integer datasourceId,
-                                                                                                  @RequestParam(value = "nodeType", defaultValue = "DATASOURCE") CatalogNodeType nodeType,
-                                                                                                  @RequestParam(value = "catalog", required = false) String catalog,
-                                                                                                  @RequestParam(value = "database", required = false) String database,
-                                                                                                  @RequestParam(value = "schema", required = false) String schema,
-                                                                                                  @RequestParam(value = "objectName", required = false) String objectName,
-                                                                                                  @RequestParam(value = "objectType", required = false) CatalogObjectType objectType,
-                                                                                                  @RequestParam(value = "keyword", required = false) String keyword,
-                                                                                                  @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
-                                                                                                  @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
-                                                                                                  checkPageParams(pageNo, pageSize);
-                                                                                                  CatalogPath path = new CatalogPath(catalog, database, schema, objectName, objectType);
-                                                                                                  return Result.success(catalogService.getChildren(
-                                                                                                  loginUser, projectCode, datasourceId, nodeType, path, keyword, pageNo, pageSize));
-                                                                                                  }
-                                                                                                  
-                                                                                                  @GetMapping("/search")
-                                                                                                  @ResponseStatus(HttpStatus.OK)
-                                                                                                  @Operation(summary = "catalogSearch", description = "Search datasource tables and views")
-                                                                                                  public Result<List<CatalogTreeNodeVO>> search(
-                                                                                                                                                @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                                                                                                @PathVariable("projectCode") long projectCode,
-                                                                                                                                                @PathVariable("datasourceId") Integer datasourceId,
-                                                                                                                                                @RequestParam("keyword") String keyword,
-                                                                                                                                                @RequestParam(value = "limit", defaultValue = "100") Integer limit) {
-                                                                                                                                                return Result.success(catalogService.search(loginUser, projectCode, datasourceId, keyword, limit));
-                                                                                                                                                }
-                                                                                                                                                
-                                                                                                                                                @GetMapping("/object")
-                                                                                                                                                @ResponseStatus(HttpStatus.OK)
-                                                                                                                                                @Operation(summary = "catalogObject", description = "Get database object details")
-                                                                                                                                                public Result<CatalogObject> object(
-                                                                                                                                                                                    @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                                                                                                                                    @PathVariable("projectCode") long projectCode,
-                                                                                                                                                                                    @PathVariable("datasourceId") Integer datasourceId,
-                                                                                                                                                                                    @RequestParam(value = "catalog", required = false) String catalog,
-                                                                                                                                                                                    @RequestParam(value = "database", required = false) String database,
-                                                                                                                                                                                    @RequestParam(value = "schema", required = false) String schema,
-                                                                                                                                                                                    @RequestParam("objectName") String objectName,
-                                                                                                                                                                                    @RequestParam("objectType") CatalogObjectType objectType) {
-                                                                                                                                                                                    return Result.success(catalogService.getObject(loginUser, projectCode, datasourceId,
-                                                                                                                                                                                    new CatalogPath(catalog, database, schema, objectName, objectType)));
-                                                                                                                                                                                    }
-                                                                                                                                                                                    
-                                                                                                                                                                                    @GetMapping("/columns")
-                                                                                                                                                                                    @ResponseStatus(HttpStatus.OK)
-                                                                                                                                                                                    @Operation(summary = "catalogColumns", description = "Get columns for a database object")
-                                                                                                                                                                                    public Result<List<DataSourceCatalogColumn>> columns(
-                                                                                                                                                                                                                                         @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                                                                                                                                                                                         @PathVariable("projectCode") long projectCode,
-                                                                                                                                                                                                                                         @PathVariable("datasourceId") Integer datasourceId,
-                                                                                                                                                                                                                                         @RequestParam(value = "catalog", required = false) String catalog,
-                                                                                                                                                                                                                                         @RequestParam(value = "database", required = false) String database,
-                                                                                                                                                                                                                                         @RequestParam(value = "schema", required = false) String schema,
-                                                                                                                                                                                                                                         @RequestParam("objectName") String objectName,
-                                                                                                                                                                                                                                         @RequestParam("objectType") CatalogObjectType objectType) {
-                                                                                                                                                                                                                                         return Result.success(catalogService.getColumns(loginUser, projectCode, datasourceId,
-                                                                                                                                                                                                                                         new CatalogPath(catalog, database, schema, objectName, objectType)));
-                                                                                                                                                                                                                                         }
-                                                                                                                                                                                                                                         
-                                                                                                                                                                                                                                         @GetMapping("/indexes")
-                                                                                                                                                                                                                                         @ResponseStatus(HttpStatus.OK)
-                                                                                                                                                                                                                                         @Operation(summary = "catalogIndexes", description = "Get indexes for a database object")
-                                                                                                                                                                                                                                         public Result<List<CatalogIndex>> indexes(
-                                                                                                                                                                                                                                                                                   @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                                                                                                                                                                                                                                   @PathVariable("projectCode") long projectCode,
-                                                                                                                                                                                                                                                                                   @PathVariable("datasourceId") Integer datasourceId,
-                                                                                                                                                                                                                                                                                   @RequestParam(value = "catalog", required = false) String catalog,
-                                                                                                                                                                                                                                                                                   @RequestParam(value = "database", required = false) String database,
-                                                                                                                                                                                                                                                                                   @RequestParam(value = "schema", required = false) String schema,
-                                                                                                                                                                                                                                                                                   @RequestParam("objectName") String objectName,
-                                                                                                                                                                                                                                                                                   @RequestParam(value = "objectType", required = false) CatalogObjectType objectType) {
-                                                                                                                                                                                                                                                                                   return Result.success(catalogService.getIndexes(loginUser, projectCode, datasourceId,
-                                                                                                                                                                                                                                                                                   new CatalogPath(catalog, database, schema, objectName, objectType)));
-                                                                                                                                                                                                                                                                                   }
-                                                                                                                                                                                                                                                                                   }
-                                                                                                                                                                                                                                                                                   
+            @PathVariable("datasourceId") Integer datasourceId) {
+        return Result.success(catalogService.getCapabilities(loginUser, projectCode, datasourceId));
+    }
+
+    @GetMapping("/children")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "catalogChildren", description = "Get direct children of a catalog tree node")
+    public Result<CatalogChildrenPageVO> children(
+                                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                  @PathVariable("projectCode") long projectCode,
+                                                  @PathVariable("datasourceId") Integer datasourceId,
+                                                  @RequestParam(value = "nodeType", defaultValue = "DATASOURCE") CatalogNodeType nodeType,
+                                                  @RequestParam(value = "catalog", required = false) String catalog,
+                                                  @RequestParam(value = "database", required = false) String database,
+                                                  @RequestParam(value = "schema", required = false) String schema,
+                                                  @RequestParam(value = "objectName", required = false) String objectName,
+                                                  @RequestParam(value = "objectType", required = false) CatalogObjectType objectType,
+                                                  @RequestParam(value = "keyword", required = false) String keyword,
+                                                  @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "100") Integer pageSize) {
+        checkPageParams(pageNo, pageSize);
+        CatalogPath path = new CatalogPath(catalog, database, schema, objectName, objectType);
+        return Result.success(catalogService.getChildren(
+                loginUser, projectCode, datasourceId, nodeType, path, keyword, pageNo, pageSize));
+    }
+
+    @GetMapping("/search")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "catalogSearch", description = "Search datasource tables and views")
+    public Result<List<CatalogTreeNodeVO>> search(
+                                                  @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                  @PathVariable("projectCode") long projectCode,
+                                                  @PathVariable("datasourceId") Integer datasourceId,
+                                                  @RequestParam("keyword") String keyword,
+            @RequestParam(value = "limit", defaultValue = "100") Integer limit) {
+        return Result.success(catalogService.search(loginUser, projectCode, datasourceId, keyword, limit));
+    }
+
+    @GetMapping("/object")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "catalogObject", description = "Get database object details")
+    public Result<CatalogObject> object(
+                                        @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                        @PathVariable("projectCode") long projectCode,
+                                        @PathVariable("datasourceId") Integer datasourceId,
+                                        @RequestParam(value = "catalog", required = false) String catalog,
+                                        @RequestParam(value = "database", required = false) String database,
+                                        @RequestParam(value = "schema", required = false) String schema,
+                                        @RequestParam("objectName") String objectName,
+            @RequestParam("objectType") CatalogObjectType objectType) {
+        return Result.success(catalogService.getObject(loginUser, projectCode, datasourceId,
+                new CatalogPath(catalog, database, schema, objectName, objectType)));
+    }
+
+    @GetMapping("/columns")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "catalogColumns", description = "Get columns for a database object")
+    public Result<List<DataSourceCatalogColumn>> columns(
+                                                         @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                         @PathVariable("projectCode") long projectCode,
+                                                         @PathVariable("datasourceId") Integer datasourceId,
+                                                         @RequestParam(value = "catalog", required = false) String catalog,
+                                                         @RequestParam(value = "database", required = false) String database,
+                                                         @RequestParam(value = "schema", required = false) String schema,
+                                                         @RequestParam("objectName") String objectName,
+            @RequestParam("objectType") CatalogObjectType objectType) {
+        return Result.success(catalogService.getColumns(loginUser, projectCode, datasourceId,
+                new CatalogPath(catalog, database, schema, objectName, objectType)));
+    }
+
+    @GetMapping("/indexes")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "catalogIndexes", description = "Get indexes for a database object")
+    public Result<List<CatalogIndex>> indexes(
+                                              @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                              @PathVariable("projectCode") long projectCode,
+                                              @PathVariable("datasourceId") Integer datasourceId,
+                                              @RequestParam(value = "catalog", required = false) String catalog,
+                                              @RequestParam(value = "database", required = false) String database,
+                                              @RequestParam(value = "schema", required = false) String schema,
+                                              @RequestParam("objectName") String objectName,
+            @RequestParam(value = "objectType", required = false) CatalogObjectType objectType) {
+        return Result.success(catalogService.getIndexes(loginUser, projectCode, datasourceId,
+                new CatalogPath(catalog, database, schema, objectName, objectType)));
+    }
+}
