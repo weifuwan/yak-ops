@@ -121,7 +121,7 @@ export function ColumnsTab({
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="搜索字段名、类型或备注"
             aria-label="搜索字段"
-            className="!h-8 w-full !rounded-[4px] pl-8 pr-8 text-[11px]"
+            className="!h-6 w-full !rounded-[4px] pl-8 pr-8 text-[11px]"
           />
           {keyword ? (
             <button
@@ -135,7 +135,7 @@ export function ColumnsTab({
           ) : null}
         </div>
         <div className="text-[11px] text-[#8a919b]">
-          {isLoading ? "正在读取字段..." : `显示 ${visibleColumns.length} / ${columns.length} 个字段`}
+         
         </div>
       </div>
 

@@ -343,7 +343,7 @@ export function DataCatalogPanel({ width }: { width: number }) {
           <SelectTrigger
             variant="outlined"
             aria-label="选择数据源"
-            className="!h-8 w-full !rounded-[4px] !px-2.5"
+            className="!h-6 w-full !rounded-[4px] !px-2.5"
           >
             <SelectValue placeholder="选择数据源">
               {(value) => {
@@ -382,7 +382,7 @@ export function DataCatalogPanel({ width }: { width: number }) {
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="搜索表、视图..."
-            className="!h-8 w-full !rounded-[4px] pl-8 pr-8 text-[11px]"
+            className="!h-6 w-full !rounded-[4px] pl-8 pr-8 text-[11px]"
           />
           {keyword ? (
             <button
