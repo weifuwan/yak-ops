@@ -5,11 +5,11 @@ import {
   Columns3,
   Database,
   Eye,
-  Folder,
-  FolderTree,
+  Hash,
   ListTree,
   Search,
   Table2,
+  Zap,
 } from "lucide-react";
 import { PanelHeader } from "@yak-ops/yak-ui";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -22,31 +22,60 @@ import {
   type CatalogTreeNode,
   type DataSourceRecord,
 } from "@/service/datasource";
+import { ResourceTreeIcon } from "../../resources/components/resource-file-icon";
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 
-function CatalogNodeIcon({ node }: { node: CatalogTreeNode }) {
-  const className = "shrink-0 text-[#788391]";
+function CatalogNodeIcon({
+  node,
+  expanded = false,
+}: {
+  node: CatalogTreeNode;
+  expanded?: boolean;
+}) {
+  const className = "shrink-0";
   switch (node.nodeType) {
     case "DATASOURCE":
     case "DATABASE":
     case "CATALOG":
-      return <Database size={14} className={className} />;
-    case "TABLE":
-      return <Table2 size={14} className="shrink-0 text-[#15966f]" />;
-    case "VIEW":
-    case "MATERIALIZED_VIEW":
-      return <Eye size={14} className="shrink-0 text-[#4786c8]" />;
-    case "COLUMN":
-      return <Columns3 size={13} className={className} />;
-    case "INDEX":
-      return <ListTree size={13} className={className} />;
-    case "FUNCTION":
-    case "PROCEDURE":
-      return <Code2 size={13} className={className} />;
+      return <Database size={14} className="shrink-0 text-[#788391]" />;
     case "SCHEMA":
-      return <FolderTree size={14} className={className} />;
+    case "TABLE_GROUP":
+    case "VIEW_GROUP":
+    case "MATERIALIZED_VIEW_GROUP":
+    case "FUNCTION_GROUP":
+    case "PROCEDURE_GROUP":
+    case "TRIGGER_GROUP":
+    case "SEQUENCE_GROUP":
+    case "COLUMN_GROUP":
+    case "INDEX_GROUP":
+      return (
+        <ResourceTreeIcon
+          name={node.name}
+          directory
+          expanded={expanded}
+          size={16}
+        />
+      );
+    case "TABLE":
+      return <Table2 size={14} className={className + " text-[#15966f]"} />;
+    case "VIEW":
+      return <Eye size={14} className={className + " text-[#4786c8]"} />;
+    case "MATERIALIZED_VIEW":
+      return <Eye size={14} className={className + " text-[#0f9f8f]"} />;
+    case "COLUMN":
+      return <Columns3 size={13} className={className + " text-[#718096]"} />;
+    case "INDEX":
+      return <ListTree size={13} className={className + " text-[#c18a2d]"} />;
+    case "FUNCTION":
+      return <Code2 size={13} className={className + " text-[#8b5cf6]"} />;
+    case "PROCEDURE":
+      return <Code2 size={13} className={className + " text-[#6366f1]"} />;
+    case "TRIGGER":
+      return <Zap size={13} className={className + " text-[#d97706]"} />;
+    case "SEQUENCE":
+      return <Hash size={13} className={className + " text-[#0891b2]"} />;
     default:
-      return <Folder size={14} className={className} />;
+      return <Database size={14} className="shrink-0 text-[#788391]" />;
   }
 }
 
@@ -107,7 +136,7 @@ function CatalogTreeNodeView({
           }}
           className="flex h-[29px] min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left"
         >
-          <CatalogNodeIcon node={node} />
+          <CatalogNodeIcon node={node} expanded={expanded} />
           <span className="min-w-0 flex-1 truncate text-[11px] text-[#3f4752]">
             {node.name}
           </span>
