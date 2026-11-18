@@ -5,10 +5,22 @@ import test from "node:test";
 import {
   buildShellTaskParams,
   parseShellTaskForm,
-} from "../apps/web/app/data-development/task-editor/shell-task-form.ts";
+} from "../apps/web/app/data-development/task-editor/shell/adapter.ts";
 
 const editorSource = readFileSync(
-  new URL("../apps/web/app/data-development/task-editor/shell-task-editor.tsx", import.meta.url),
+  new URL("../apps/web/app/data-development/task-editor/shell/index.tsx", import.meta.url),
+  "utf8",
+);
+const scriptEditorSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-script-editor.tsx", import.meta.url),
+  "utf8",
+);
+const configPanelSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-config-panel.tsx", import.meta.url),
+  "utf8",
+);
+const hookSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/use-shell-task-editor.ts", import.meta.url),
   "utf8",
 );
 const routerSource = readFileSync(
@@ -77,24 +89,30 @@ test("Shell form serializes only the existing backend fields and preserves other
   assert.equal("workingDirectory" in params, false);
 });
 
-test("Shell editor uses Monaco 0.57 public ESM entry points and is routed separately", () => {
-  assert.match(editorSource, /from "monaco-editor\/editor"/);
-  assert.match(editorSource, /monaco-editor\/features\/register\.all/);
-  assert.match(editorSource, /monaco-editor\/languages\/definitions\/shell\/register/);
-  assert.match(editorSource, /monaco-editor\/editor\/editor\.worker\?worker/);
-  assert.match(editorSource, /getWorker: \(\) => new EditorWorker\(\)/);
-  assert.match(editorSource, /editor\.create/);
-  assert.doesNotMatch(editorSource, /monaco-editor\/editor\/(?:browser\/controller|contrib)\//);
-  assert.doesNotMatch(editorSource, /monaco-editor\/basic-languages\//);
-  assert.doesNotMatch(editorSource, /monaco-editor\/esm\/vs\//);
-  assert.match(editorSource, /language: "shell"/);
-  assert.match(editorSource, /localParams/);
-  assert.match(editorSource, /resourceList/);
-  assert.match(routerSource, /ShellTaskEditor/);
-  assert.match(routerSource, /isShellTask/);
+test("Shell editor uses Monaco 0.57 public ESM entry points and registers the Shell language", () => {
+  assert.match(scriptEditorSource, /from "monaco-editor\/editor"/);
+  assert.match(scriptEditorSource, /monaco-editor\/features\/register\.all/);
+  assert.match(scriptEditorSource, /monaco-editor\/languages\/definitions\/shell\/register/);
+  assert.match(scriptEditorSource, /monaco-editor\/editor\/editor\.worker\?worker/);
+  assert.match(scriptEditorSource, /getWorker: \(\) => new EditorWorker\(\)/);
+  assert.match(scriptEditorSource, /editor\.create/);
+  assert.doesNotMatch(scriptEditorSource, /monaco-editor\/editor\/(?:browser\/controller|contrib)\//);
+  assert.doesNotMatch(scriptEditorSource, /monaco-editor\/basic-languages\//);
+  assert.doesNotMatch(scriptEditorSource, /monaco-editor\/esm\/vs\//);
+  assert.match(scriptEditorSource, /language: "shell"/);
 });
 
-test("Shell editor exposes named local-parameter and setValue syntax hints", () => {
-  assert.match(editorSource, /paramName/);
-  assert.match(editorSource, /setValue/);
+test("Shell editor follows the directory-based task editor structure", () => {
+  assert.match(routerSource, /import\("\.\/shell"\)/);
+  assert.match(editorSource, /export function ShellTaskEditor/);
+  assert.match(editorSource, /useShellTaskEditor/);
+  assert.match(editorSource, /ShellEditorWorkspace/);
+  assert.match(hookSource, /handleSave/);
+  assert.match(hookSource, /handleRun/);
+  assert.match(hookSource, /handleRefresh/);
+});
+
+test("Shell editor keeps named local-parameter and setValue syntax hints", () => {
+  assert.match(configPanelSource, /paramName/);
+  assert.match(configPanelSource, /setValue/);
 });

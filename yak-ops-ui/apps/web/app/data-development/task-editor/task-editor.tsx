@@ -13,7 +13,7 @@ import { remapSwitchCaseHandles } from "./logic/switch/adapter";
 import { useWorkflowConditionGraph } from "./logic/shared/use-workflow-condition-graph";
 
 const ShellTaskEditor = lazy(async () => {
-  const module = await import("./shell-task-editor");
+  const module = await import("./shell");
   return { default: module.ShellTaskEditor };
 });
 

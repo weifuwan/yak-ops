@@ -1,16 +1,4 @@
-export type ShellLocalParam = {
-  prop: string;
-  direct: "IN" | "OUT";
-  type: string;
-  value: string;
-  sensitive: boolean;
-};
-
-export type ShellTaskForm = {
-  rawScript: string;
-  resourceList: string[];
-  localParams: ShellLocalParam[];
-};
+import type { ShellLocalParam, ShellTaskForm } from "./types";
 
 export function readShellTaskObject(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
