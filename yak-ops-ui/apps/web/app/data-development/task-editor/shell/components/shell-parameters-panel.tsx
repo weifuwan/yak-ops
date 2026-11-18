@@ -53,19 +53,10 @@ export function ShellParametersPanel({
             variant="secondary"
             isDisabled={readOnly}
             onClick={() =>
-              setForm((current) => ({
-                ...current,
-                localParams: [
-                  ...current.localParams,
-                  {
-                    prop: "",
-                    direct: "IN",
-                    type: "VARCHAR",
-                    value: "",
-                    sensitive: false,
-                  },
-                ],
-              }))
+              updateField("localParams", [
+                ...form.localParams,
+                createShellLocalParam(),
+              ])
             }
           >
             <Plus size={13} />
@@ -140,7 +131,7 @@ export function ShellParametersPanel({
                     <Select<string>
                       size="small"
                       items={Object.fromEntries(
-                        shellParamTypeOptions.map((option) => [
+                        SHELL_PARAM_TYPE_OPTIONS.map((option) => [
                           option.value,
                           option.label,
                         ]),
@@ -159,7 +150,7 @@ export function ShellParametersPanel({
                         <SelectValue placeholder="选择类型" />
                       </SelectTrigger>
                       <SelectContent>
-                        {shellParamTypeOptions.map((option) => (
+                        {SHELL_PARAM_TYPE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             <SelectItemText>{option.label}</SelectItemText>
                             <SelectItemIndicator />

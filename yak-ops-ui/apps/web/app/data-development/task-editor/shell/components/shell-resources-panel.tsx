@@ -46,14 +46,14 @@ export function ShellResourcesPanel({
           </Button>
         </div>
       
-        {resourceQuery.isError ? (
+        {resourceError ? (
           <div className="flex items-center justify-between rounded-md border border-[#f2d6d6] bg-[#fffafa] px-3 py-2">
             <span className="text-xs text-[#b54747]">资源列表加载失败</span>
             <Button
               type="button"
               size="sm"
               variant="ghost"
-              onClick={() => void resourceQuery.refetch()}
+              onClick={() => void onRetryResources()}
             >
               <RefreshCw size={12} />
               重试
@@ -81,7 +81,7 @@ export function ShellResourcesPanel({
                   placeholder="请选择依赖资源"
                   searchPlaceholder="搜索文件名称或路径"
                   emptyText={
-                    resourceQuery.isPending
+                    resourceLoading
                       ? "正在加载资源..."
                       : "暂无匹配的资源"
                   }

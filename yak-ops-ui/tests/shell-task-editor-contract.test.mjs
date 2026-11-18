@@ -27,6 +27,14 @@ const parametersPanelSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/components/shell-parameters-panel.tsx", import.meta.url),
   "utf8",
 );
+const parametersPanelSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-parameters-panel.tsx", import.meta.url),
+  "utf8",
+);
+const resourcesPanelSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-resources-panel.tsx", import.meta.url),
+  "utf8",
+);
 const hookSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/use-shell-task-editor.ts", import.meta.url),
   "utf8",
@@ -142,4 +150,19 @@ test("Shell script panel uses its declared rawScript and onChange props", () => 
   assert.equal(scriptPanelSource.includes("value={rawScript}"), true);
   assert.equal(scriptPanelSource.includes("onChange={onChange}"), true);
   assert.equal(scriptPanelSource.includes('onChange("")'), true);
+});
+
+test("Shell parameters panel uses declared props and shared parameter constants", () => {
+  assert.equal(parametersPanelSource.includes("setForm("), false);
+  assert.equal(parametersPanelSource.includes("shellParamTypeOptions"), false);
+  assert.equal(parametersPanelSource.includes("updateField(\"localParams\""), true);
+  assert.equal(parametersPanelSource.includes("createShellLocalParam()"), true);
+  assert.equal(parametersPanelSource.includes("SHELL_PARAM_TYPE_OPTIONS"), true);
+});
+
+test("Shell resources panel uses declared loading, error and retry props", () => {
+  assert.equal(resourcesPanelSource.includes("resourceQuery."), false);
+  assert.equal(resourcesPanelSource.includes("resourceError"), true);
+  assert.equal(resourcesPanelSource.includes("resourceLoading"), true);
+  assert.equal(resourcesPanelSource.includes("onRetryResources()"), true);
 });
