@@ -431,6 +431,8 @@ export function DataDevelopmentWorkbench() {
                   dataSourceId={tab.dataSourceId}
                   dataSourceName={tab.dataSourceName}
                   database={tab.database}
+                  schema={tab.schema}
+                  objectType={tab.objectType}
                   tableName={tab.tableName}
                 />
               </div>
