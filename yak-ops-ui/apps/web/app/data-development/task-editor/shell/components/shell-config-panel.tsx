@@ -12,6 +12,7 @@ import { ShellResourcesPanel } from "./shell-resources-panel";
 
 export function ShellConfigPanel({
   form,
+  height,
   readOnly,
   activeTab,
   onActiveTabChange,
@@ -23,6 +24,7 @@ export function ShellConfigPanel({
   onRetryResources,
 }: {
   form: ShellTaskForm;
+  height: number;
   readOnly: boolean;
   activeTab: ShellConfigTab;
   onActiveTabChange: (tab: ShellConfigTab) => void;
@@ -34,7 +36,10 @@ export function ShellConfigPanel({
   onRetryResources: () => void;
 }) {
   return (
-    <section className="flex h-[286px] max-h-[38vh] min-h-[220px] shrink-0 flex-col border-t border-[#e5e7eb] bg-white">
+    <section
+      className="flex min-h-[220px] shrink-0 flex-col bg-white"
+      style={{ height, flexBasis: height }}
+    >
       <nav className="flex h-9 shrink-0 items-center gap-1 border-b border-[#edf0f3] bg-[#fbfcfe] px-3">
         <button
           type="button"
