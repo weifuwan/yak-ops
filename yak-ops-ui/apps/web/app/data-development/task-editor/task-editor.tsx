@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback } from "react";
 import { toast } from "@yak-ops/yak-ui";
-import { LoadingIndicator } from "@/components/loading-indicator";
+import { LoadingIndicator } from "@/app/components/loading-indicator";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 import { useDataDevelopmentWorkbench } from "../workbench-context";
