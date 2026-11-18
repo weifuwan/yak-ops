@@ -77,7 +77,7 @@ export function useShellTaskEditor({
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-(() => {
+  const jsonText = useMemo(() => {
     let runConfigFields: Record<string, unknown>;
     try {
       runConfigFields = normalizeShellRunConfig(shellRunConfig);
