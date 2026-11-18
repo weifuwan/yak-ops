@@ -83,17 +83,10 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
         if (level != NamespaceLevel.DATABASE) {
             throw new UnsupportedOperationException("MySQL exposes databases without a separate schema level");
         }
-        List<CatalogNamespace> namespaces = new ArrayList<>();
-        try (ResultSet result = connection.getMetaData().getCatalogs()) {
-            while (result.next()) {
-                String database = result.getString("TABLE_CAT");
-                CatalogPath path = new CatalogPath(null, database, null, null, null);
-                namespaces.add(new CatalogNamespace(database, NamespaceLevel.DATABASE, path, true));
-            }
-            return namespaces;
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to list MySQL databases", e);
-        }
+        String database = requireConfiguredDatabase(connection, null);
+        CatalogPath path = new CatalogPath(null, database, null, null, null);
+        return Collections.singletonList(
+                new CatalogNamespace(database, NamespaceLevel.DATABASE, path, true));
     }
 
     @Override
@@ -102,6 +95,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
         if (path == null || path.getDatabase() == null) {
             throw new IllegalArgumentException("A database is required to list MySQL objects");
         }
+        requireConfiguredDatabase(connection, path.getDatabase());
         CatalogObjectType type = query.getObjectType();
         if (type != null && type != CatalogObjectType.TABLE && type != CatalogObjectType.VIEW) {
             return new CatalogPage<>(Collections.<CatalogObject>emptyList(), 0);
@@ -181,6 +175,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public List<CatalogIndex> listIndexes(Connection connection, CatalogPath path) {
+        requireConfiguredDatabase(connection, path == null ? null : path.getDatabase());
         Map<String, List<String>> columns = new LinkedHashMap<>();
         Map<String, Boolean> unique = new LinkedHashMap<>();
         try (ResultSet result = connection.getMetaData().getIndexInfo(
@@ -204,13 +199,15 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<CatalogObject> searchObjects(Connection connection, String keyword, int limit) {
         if (!hasKeyword(keyword)) return Collections.emptyList();
+        String database = requireConfiguredDatabase(connection, null);
         String sql = "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COMMENT"
-                + " FROM information_schema.TABLES WHERE TABLE_NAME LIKE ?"
-                + " AND TABLE_TYPE IN ('BASE TABLE', 'VIEW') ORDER BY TABLE_SCHEMA, TABLE_NAME LIMIT ?";
+                + " FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME LIKE ?"
+                + " AND TABLE_TYPE IN ('BASE TABLE', 'VIEW') ORDER BY TABLE_NAME LIMIT ?";
         List<CatalogObject> objects = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, "%" + keyword.trim() + "%");
-            statement.setInt(2, Math.max(1, Math.min(limit, 200)));
+            statement.setString(1, database);
+            statement.setString(2, "%" + keyword.trim() + "%");
+            statement.setInt(3, Math.max(1, Math.min(limit, 200)));
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     String database = result.getString("TABLE_SCHEMA");
@@ -235,6 +232,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public int countTables(Connection connection, String database, String keyword) {
+        database = requireConfiguredDatabase(connection, database);
         String filter = hasKeyword(keyword)
                 ? TABLE_FILTER + " AND INSTR(t.TABLE_NAME, ?) > 0"
                 : TABLE_FILTER;
@@ -255,6 +253,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceCatalogTable> listTables(
             Connection connection, String database, String keyword, int offset, int limit) {
+        database = requireConfiguredDatabase(connection, database);
         String keywordFilter = hasKeyword(keyword) ? " AND INSTR(t.TABLE_NAME, ?) > 0" : "";
         String sql = "SELECT t.TABLE_NAME, t.TABLE_TYPE, t.TABLE_COMMENT,"
                 + " GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ',') AS PRIMARY_KEYS"
@@ -287,6 +286,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceCatalogTable> getTables(
             Connection connection, String database, List<String> tableNames) {
+        database = requireConfiguredDatabase(connection, database);
         if (tableNames == null || tableNames.isEmpty()) {
             return Collections.emptyList();
         }
@@ -320,6 +320,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceCatalogColumn> listColumns(
             Connection connection, String database, String tableName) {
+        database = requireConfiguredDatabase(connection, database);
         try {
             DatabaseMetaData metadata = connection.getMetaData();
             Set<String> primaryKeys = new HashSet<>();
@@ -348,6 +349,22 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
             return columns;
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to load MySQL column metadata", e);
+        }
+    }
+
+    private static String requireConfiguredDatabase(Connection connection, String requestedDatabase) {
+        try {
+            String configuredDatabase = connection.getCatalog();
+            if (configuredDatabase == null || configuredDatabase.trim().isEmpty()) {
+                throw new IllegalStateException("The MySQL datasource has no configured database");
+            }
+            if (requestedDatabase != null && !configuredDatabase.equals(requestedDatabase)) {
+                throw new IllegalArgumentException("Catalog database '" + requestedDatabase
+                        + "' is outside the configured datasource database '" + configuredDatabase + "'");
+            }
+            return configuredDatabase;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to resolve configured MySQL database", e);
         }
     }
 

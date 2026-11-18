@@ -127,21 +127,11 @@ public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {
             return getConnection(connectionParam);
         }
         PostgreSQLConnectionParam source = (PostgreSQLConnectionParam) connectionParam;
-        if (path.getDatabase().equalsIgnoreCase(source.getDatabase())) {
-            return getConnection(connectionParam);
+        if (source.getDatabase() == null || !path.getDatabase().equals(source.getDatabase())) {
+            throw new IllegalArgumentException("Catalog database '" + path.getDatabase()
+                    + "' is outside the configured datasource database '" + source.getDatabase() + "'");
         }
-        PostgreSQLConnectionParam target = new PostgreSQLConnectionParam();
-        target.setUser(source.getUser());
-        target.setPassword(source.getPassword());
-        target.setAddress(source.getAddress());
-        target.setDatabase(path.getDatabase());
-        target.setJdbcUrl(source.getAddress() + "/" + path.getDatabase());
-        target.setDriverLocation(source.getDriverLocation());
-        target.setDriverClassName(source.getDriverClassName());
-        target.setValidationQuery(source.getValidationQuery());
-        target.setCompatibleMode(source.getCompatibleMode());
-        target.setOther(source.getOther());
-        return getConnection(target);
+        return getConnection(connectionParam);
     }
 
     @Override

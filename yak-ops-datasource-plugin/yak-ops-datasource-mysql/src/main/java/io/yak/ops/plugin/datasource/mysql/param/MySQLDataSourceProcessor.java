@@ -3,6 +3,7 @@ package io.yak.ops.plugin.datasource.mysql.param;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
@@ -141,6 +142,20 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
                 .properties(buildJdbcProperties(mysqlConnectionParam))
                 .build()
                 .getConnection();
+    }
+
+    @Override
+    public Connection getConnection(ConnectionParam connectionParam, CatalogPath path) throws SQLException {
+        if (path == null || path.getDatabase() == null
+                || !(connectionParam instanceof MySQLConnectionParam)) {
+            return getConnection(connectionParam);
+        }
+        MySQLConnectionParam source = (MySQLConnectionParam) connectionParam;
+        if (source.getDatabase() == null || !path.getDatabase().equals(source.getDatabase())) {
+            throw new IllegalArgumentException("Catalog database '" + path.getDatabase()
+                    + "' is outside the configured datasource database '" + source.getDatabase() + "'");
+        }
+        return getConnection(connectionParam);
     }
 
     private Properties buildJdbcProperties(MySQLConnectionParam mysqlConnectionParam) {

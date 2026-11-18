@@ -59,29 +59,30 @@ public class PostgreSQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public List<CatalogNamespace> listNamespaces(Connection connection, CatalogPath parentPath, NamespaceLevel level) {
-        String sql;
-        if (level == NamespaceLevel.DATABASE) {
-            sql = "SELECT datname FROM pg_database WHERE datallowconn = TRUE"
-                    + " AND datistemplate = FALSE ORDER BY datname";
-        } else if (level == NamespaceLevel.SCHEMA) {
-            sql = "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name";
-        } else {
+        if (level != NamespaceLevel.DATABASE && level != NamespaceLevel.SCHEMA) {
             throw new UnsupportedOperationException("PostgreSQL does not expose a catalog namespace level");
         }
+        String configuredDatabase = requireConfiguredDatabase(
+                connection, level == NamespaceLevel.SCHEMA && parentPath != null
+                        ? parentPath.getDatabase() : null);
+        if (level == NamespaceLevel.DATABASE) {
+            CatalogPath path = new CatalogPath(null, configuredDatabase, null, null, null);
+            return Collections.singletonList(
+                    new CatalogNamespace(configuredDatabase, NamespaceLevel.DATABASE, path, true));
+        }
+
+        String sql = "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name";
         List<CatalogNamespace> namespaces = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement(sql);
              ResultSet result = statement.executeQuery()) {
             while (result.next()) {
                 String name = result.getString(1);
-                CatalogPath path = level == NamespaceLevel.DATABASE
-                        ? new CatalogPath(null, name, null, null, null)
-                        : new CatalogPath(null, parentPath == null ? connection.getCatalog() : parentPath.getDatabase(),
-                                name, null, null);
-                namespaces.add(new CatalogNamespace(name, level, path, true));
+                CatalogPath path = new CatalogPath(null, configuredDatabase, name, null, null);
+                namespaces.add(new CatalogNamespace(name, NamespaceLevel.SCHEMA, path, true));
             }
             return namespaces;
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to list PostgreSQL namespaces", e);
+            throw new IllegalStateException("Failed to list PostgreSQL schemas", e);
         }
     }
 
@@ -91,6 +92,7 @@ public class PostgreSQLDataSourceCatalog implements DataSourceCatalog {
         if (path == null || path.getSchema() == null) {
             throw new IllegalArgumentException("A schema is required to list PostgreSQL objects");
         }
+        requireConfiguredDatabase(connection, path.getDatabase());
         CatalogObjectType type = query.getObjectType();
         if (type != null && type != CatalogObjectType.TABLE && type != CatalogObjectType.VIEW
                 && type != CatalogObjectType.MATERIALIZED_VIEW) {
@@ -162,6 +164,7 @@ public class PostgreSQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public List<DataSourceCatalogColumn> listColumns(Connection connection, CatalogPath path) {
+        requireConfiguredDatabase(connection, path == null ? null : path.getDatabase());
         try {
             DatabaseMetaData metadata = connection.getMetaData();
             List<String> primaryKeys = new ArrayList<>();
@@ -188,6 +191,7 @@ public class PostgreSQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public List<CatalogIndex> listIndexes(Connection connection, CatalogPath path) {
+        requireConfiguredDatabase(connection, path == null ? null : path.getDatabase());
         Map<String, List<String>> columns = new LinkedHashMap<>();
         Map<String, Boolean> unique = new LinkedHashMap<>();
         try (ResultSet result = connection.getMetaData().getIndexInfo(
@@ -206,6 +210,22 @@ public class PostgreSQLDataSourceCatalog implements DataSourceCatalog {
         columns.forEach((name, values) -> indexes.add(new CatalogIndex(
                 name, values, Boolean.TRUE.equals(unique.get(name)), name.toLowerCase().endsWith("_pkey"))));
         return indexes;
+    }
+
+    private static String requireConfiguredDatabase(Connection connection, String requestedDatabase) {
+        try {
+            String configuredDatabase = connection.getCatalog();
+            if (configuredDatabase == null || configuredDatabase.trim().isEmpty()) {
+                throw new IllegalStateException("The PostgreSQL datasource has no configured database");
+            }
+            if (requestedDatabase != null && !configuredDatabase.equals(requestedDatabase)) {
+                throw new IllegalArgumentException("Catalog database '" + requestedDatabase
+                        + "' is outside the configured datasource database '" + configuredDatabase + "'");
+            }
+            return configuredDatabase;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to resolve configured PostgreSQL database", e);
+        }
     }
 
     @Override

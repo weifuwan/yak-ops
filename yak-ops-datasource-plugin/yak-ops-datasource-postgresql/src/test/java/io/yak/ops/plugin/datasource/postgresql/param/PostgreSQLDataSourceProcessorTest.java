@@ -3,6 +3,7 @@ package io.yak.ops.plugin.datasource.postgresql.param;
 import static io.yak.ops.plugin.datasource.api.constants.DataSourceConstants.ORG_POSTGRESQL_DRIVER;
 import static io.yak.ops.plugin.datasource.api.constants.DataSourceConstants.POSTGRESQL_VALIDATION_QUERY;
 
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
 import io.yak.ops.spi.enums.DbType;
 
@@ -53,6 +54,16 @@ public class PostgreSQLDataSourceProcessorTest {
                 .createConnectionParams(connectionJson);
         Assertions.assertNotNull(connectionParams);
         Assertions.assertEquals("root", connectionParams.getUser());
+    }
+
+    @Test
+    public void testCatalogConnectionCannotSwitchAwayFromConfiguredDatabase() {
+        PostgreSQLConnectionParam connectionParam = new PostgreSQLConnectionParam();
+        connectionParam.setDatabase("chat2db_demo");
+        CatalogPath path = new CatalogPath(null, "another_database", "public", null, null);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> postgreSqlDatasourceProcessor.getConnection(connectionParam, path));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.yak.ops.plugin.datasource.mysql.param;
 
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
 import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
 import io.yak.ops.spi.enums.DbType;
@@ -50,6 +51,16 @@ public class MySQLDataSourceProcessorTest {
                 .createConnectionParams(connectionJson);
         Assertions.assertNotNull(connectionJson);
         Assertions.assertEquals("root", connectionParams.getUser());
+    }
+
+    @Test
+    public void testCatalogConnectionCannotSwitchAwayFromConfiguredDatabase() {
+        MySQLConnectionParam connectionParam = new MySQLConnectionParam();
+        connectionParam.setDatabase("yak_e2e_target");
+        CatalogPath path = new CatalogPath(null, "another_database", null, null, null);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> mysqlDatasourceProcessor.getConnection(connectionParam, path));
     }
 
     @Test
