@@ -8,7 +8,6 @@ import {
   Folder,
   FolderTree,
   ListTree,
-  RefreshCw,
   Search,
   Table2,
 } from "lucide-react";
@@ -52,14 +51,12 @@ function CatalogNodeIcon({ node }: { node: CatalogTreeNode }) {
 
 function CatalogTreeNodeView({
   datasourceId,
-  datasourceName,
   node,
   depth,
   onOpenObject,
   defaultExpanded = false,
 }: {
   datasourceId: string;
-  datasourceName: string;
   node: CatalogTreeNode;
   depth: number;
   onOpenObject: (node: CatalogTreeNode) => void;
@@ -140,7 +137,6 @@ function CatalogTreeNodeView({
             <CatalogTreeNodeView
               key={child.id}
               datasourceId={datasourceId}
-              datasourceName={datasourceName}
               node={child}
               depth={depth + 1}
               onOpenObject={onOpenObject}
@@ -289,7 +285,6 @@ export function DataCatalogPanel({ width }: { width: number }) {
           <CatalogTreeNodeView
             key={selectedSourceId}
             datasourceId={selectedSourceId}
-            datasourceName={selectedSource.name || "数据源"}
             node={rootNode}
             depth={0}
             defaultExpanded
