@@ -13,7 +13,17 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
-import { PanelHeader } from "@yak-ops/yak-ui";
+import {
+  Input,
+  PanelHeader,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from "@yak-ops/yak-ui";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import {
@@ -267,33 +277,71 @@ export function DataCatalogPanel({ width }: { width: number }) {
     >
       <PanelHeader title="数据目录" />
       <div className="space-y-2 border-b border-[#ececec] px-3 py-2">
-        <div className="relative">
-          <Database size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#89919c]" />
-          <select
-            value={selectedSourceId}
-            onChange={(event) => {
-              setSelectedSourceId(event.target.value);
-              setKeyword("");
-            }}
-            className="h-8 w-full cursor-pointer appearance-none rounded-[4px] border border-[#dcdfe5] bg-white pl-8 pr-7 text-[11px] text-[#30343a] outline-none focus:border-[#9bb6ff]"
+        <Select
+          size="small"
+          items={sources.map((source) => ({
+            value: source.id,
+            label: `${source.name} · ${source.dbType?.toUpperCase() || "数据库"}`,
+          }))}
+          value={selectedSourceId || null}
+          onValueChange={(value) => {
+            setSelectedSourceId(String(value ?? ""));
+            setKeyword("");
+          }}
+        >
+          <SelectTrigger
+            variant="outlined"
+            aria-label="选择数据源"
+            className="!h-8 w-full !rounded-[4px] !px-2.5"
           >
-            <option value="">选择数据源</option>
+            <SelectValue placeholder="选择数据源">
+              {(value) => {
+                const source = sources.find((item) => item.id === value);
+                return source ? (
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Database size={13} className="shrink-0 text-[var(--yak-components-muted-text)]" />
+                    <span className="truncate">
+                      {source.name} · {source.dbType?.toUpperCase() || "数据库"}
+                    </span>
+                  </span>
+                ) : null;
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
             {sources.map((source) => (
-              <option key={source.id} value={source.id}>{source.name} · {source.dbType || "数据库"}</option>
+              <SelectItem key={source.id} value={source.id}>
+                <SelectItemText>
+                  {source.name} · {source.dbType?.toUpperCase() || "数据库"}
+                </SelectItemText>
+                <SelectItemIndicator />
+              </SelectItem>
             ))}
-          </select>
-          <ChevronRight size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 text-[#89919c]" />
-        </div>
-        <div className="flex h-8 items-center gap-2 rounded-[4px] border border-[#dcdfe5] bg-white px-2 text-[#8a8f98]">
-          <Search size={13} />
-          <input
+          </SelectContent>
+        </Select>
+        <div className="relative">
+          <Search
+            size={13}
+            className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-muted-text)]"
+          />
+          <Input
+            size="small"
+            variant="outlined"
+            aria-label="搜索表和视图"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="搜索表、视图..."
-            className="min-w-0 flex-1 bg-transparent text-[11px] text-[#30343a] outline-none placeholder:text-[#a5aab2]"
+            className="!h-8 w-full !rounded-[4px] pl-8 pr-8 text-[11px]"
           />
           {keyword ? (
-            <button type="button" onClick={() => setKeyword("")} className="cursor-pointer text-[#9299a3] hover:text-[#424a55]">×</button>
+            <button
+              type="button"
+              aria-label="清除搜索"
+              onClick={() => setKeyword("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-[#9299a3] hover:text-[#424a55]"
+            >
+              ×
+            </button>
           ) : null}
         </div>
       </div>
