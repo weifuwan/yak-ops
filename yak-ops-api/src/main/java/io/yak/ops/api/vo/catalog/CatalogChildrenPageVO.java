@@ -21,9 +21,23 @@ public class CatalogChildrenPageVO {
         this.hasMore = (long) pageNo * pageSize < this.total;
     }
 
-    public List<CatalogTreeNodeVO> getItems() { return items; }
-    public long getTotal() { return total; }
-    public int getPageNo() { return pageNo; }
-    public int getPageSize() { return pageSize; }
-    public boolean isHasMore() { return hasMore; }
+    public List<CatalogTreeNodeVO> getItems() {
+        return items;
+    }
+
+    public long getTotal() {
+        return total;
+    }
+
+    public int getPageNo() {
+        return pageNo;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public boolean isHasMore() {
+        return hasMore;
+    }
 }
