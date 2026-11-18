@@ -60,7 +60,8 @@ test("Shell workspace is dedicated to the Monaco script editor", () => {
   assert.match(shellWorkspace, /ShellScriptPanel/);
   assert.doesNotMatch(shellWorkspace, /ShellConfigPanel|PanelHeightResizer/);
   assert.doesNotMatch(shellHook, /activeConfigTab|updateLocalParam/);
-  assert.match(shellEditor, /localParamsDescription/);
+  assert.match(shellEditor, /NodeResourceParamsPanel/);
+  assert.doesNotMatch(shellEditor, /localParamsDescription/);
 });
 
 test("Switch variable suggestions use the current draft task params", () => {
