@@ -4,10 +4,15 @@ import {
   Badge,
   Button,
   Combobox,
+  ComboboxChip,
+  ComboboxChipRemove,
+  ComboboxChips,
   ComboboxContent,
   ComboboxInput,
+  ComboboxInputGroup,
   ComboboxItem,
   ComboboxItemIndicator,
+  ComboboxValue,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -22,7 +27,7 @@ import {
   toast,
   type TableColumns,
 } from "@yak-ops/yak-ui";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -399,17 +404,52 @@ export function EnvironmentsPage() {
                     }
                   }}
                 >
-                  <ComboboxInput
-                    variant="outlined"
-                    aria-label="Worker 分组"
-                    placeholder={
-                      workerGroupsQuery.isPending
-                        ? "正在加载 Worker 分组..."
-                        : availableWorkerGroups.length > 0
-                          ? "选择 Worker 分组"
-                          : "暂无可用 Worker 分组"
-                    }
-                  />
+                  <ComboboxInputGroup className="min-h-7 w-full rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] px-2 transition-[border-color,background-color] duration-150 focus-within:border-[var(--yak-components-input-border-focus)] focus-within:bg-[var(--yak-components-input-bg-focus)] data-disabled:cursor-not-allowed data-disabled:bg-[var(--yak-components-input-bg-disabled)]">
+                    <ComboboxValue>
+                      {(selectedValues: string[]) => (
+                        <ComboboxChips
+                          aria-label={selectedValues.length > 0 ? "已选择的 Worker 分组" : undefined}
+                          className="flex min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5"
+                        >
+                          {selectedValues.map((item) => (
+                            <ComboboxChip
+                              key={item}
+                              aria-label={item}
+                              aria-description="按 Backspace 或 Delete 可移除"
+                              className="inline-flex max-w-[calc(100%-8px)] items-center gap-0.5 rounded-[4px] bg-[var(--yak-color-hover)] px-1.5 py-0.5 text-[11px] leading-4 text-[var(--yak-components-panel-text)]"
+                            >
+                              <span className="min-w-0 truncate">{item}</span>
+                              <ComboboxChipRemove
+                                aria-label={\`移除 \${item}\`}
+                                className="flex size-3.5 shrink-0 items-center justify-center rounded-[3px] text-[var(--yak-components-muted-text)] hover:bg-black/5 hover:text-[var(--yak-components-panel-text)]"
+                              >
+                                <X size={11} strokeWidth={1.8} />
+                              </ComboboxChipRemove>
+                            </ComboboxChip>
+                          ))}
+                          <ComboboxInput
+                            variant="outlined"
+                            aria-label="Worker 分组"
+                            aria-description={
+                              selectedValues.length > 0
+                                ? \`已选择 \${selectedValues.length} 个 Worker 分组，可使用 Backspace 或 Delete 移除\`
+                                : undefined
+                            }
+                            placeholder={
+                              selectedValues.length > 0
+                                ? ""
+                                : workerGroupsQuery.isPending
+                                  ? "正在加载 Worker 分组..."
+                                  : availableWorkerGroups.length > 0
+                                    ? "选择 Worker 分组"
+                                    : "暂无可用 Worker 分组"
+                            }
+                            className="min-w-[72px] flex-1 border-0! bg-transparent! px-0! shadow-none! focus:bg-transparent! focus:shadow-none!"
+                          />
+                        </ComboboxChips>
+                      )}
+                    </ComboboxValue>
+                  </ComboboxInputGroup>
                   <ComboboxContent emptyText="没有匹配的 Worker 分组">
                     {(item: string) => (
                       <ComboboxItem key={item} value={item}>
