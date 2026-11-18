@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import { toast } from "@yak-ops/yak-ui";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -11,6 +11,11 @@ import { DependentEditor } from "./logic/dependent";
 import { SubWorkflowEditor } from "./logic/sub-workflow";
 import { remapSwitchCaseHandles } from "./logic/switch/adapter";
 import { useWorkflowConditionGraph } from "./logic/shared/use-workflow-condition-graph";
+
+const ShellTaskEditor = lazy(async () => {
+  const module = await import("./shell");
+  return { default: module.ShellTaskEditor };
+});
 
 type TaskEditorProps = {
   workflowCode: number;
@@ -29,6 +34,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   const taskName = task.name || "未命名节点";
   const taskType = task.taskType || "UNKNOWN";
   const isJavaTask = taskType.toUpperCase() === "JAVA";
+  const isShellTask = taskType.toUpperCase() === "SHELL";
   const isConditionsTask = taskType.toUpperCase() === "CONDITIONS";
   const isSwitchTask = taskType.toUpperCase() === "SWITCH";
   const isDependentTask = taskType.toUpperCase() === "DEPENDENT";
@@ -42,19 +48,28 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
       toast.error("工作流画布尚未就绪，请稍后再保存节点配置");
       return false;
     }
+    const currentState = store.getState();
+    const switchPreviewEdges =
+      taskType.toUpperCase() === "SWITCH" &&
+      currentState.previewNodeId === nodeId
+        ? currentState.previewEdges
+        : null;
+    if (!currentState.updateTaskDefinition(nodeId, nextTask)) {
+      toast.error("节点已从当前工作流移除，请重新打开节点");
+      return false;
+    }
     if (taskType.toUpperCase() === "SWITCH") {
-      const state = store.getState();
-      const remappedEdges = remapSwitchCaseHandles(
+      const remappedEdges = switchPreviewEdges ?? remapSwitchCaseHandles(
         nodeId,
         task.taskParams,
         nextTask.taskParams,
-        state.edges,
+        store.getState().edges,
       );
-      store.setState({ edges: remappedEdges });
-    }
-    if (!store.getState().updateTaskDefinition(nodeId, nextTask)) {
-      toast.error("节点已从当前工作流移除，请重新打开节点");
-      return false;
+      store.setState({
+        edges: remappedEdges,
+        previewEdges: null,
+        previewNodeId: null,
+      });
     }
     updateTaskTab("task:" + workflowCode + ":" + task.code, nextTask);
     return true;
@@ -63,9 +78,29 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   return (
     <section
       aria-label={taskName + " 节点内容"}
-      className="flex min-h-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
-      {isJavaTask ? (
+      {isShellTask ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
+              正在加载 Shell 编辑器...
+            </div>
+          }
+        >
+          <ShellTaskEditor
+            workflowCode={workflowCode}
+            task={task}
+            taskName={taskName}
+            isDraft={isDraft}
+            readOnly={readOnly}
+            canRun={readOnly && !isDraft}
+            onApplyTask={applyTask}
+            onDirtyChange={handleDirtyChange}
+            onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+          />
+        </Suspense>
+      ) : isJavaTask ? (
         <JavaTaskEditor
           workflowCode={workflowCode}
           task={task}
@@ -92,6 +127,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
         <SwitchEditor
           workflowCode={workflowCode}
           task={task}
+          nodeId={nodeId}
           taskName={taskName}
           readOnly={readOnly}
           onApplyTask={applyTask}

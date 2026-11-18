@@ -1,8 +1,7 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import {
-  FolderOpen,
-  Plus,
-  Trash2,
+  MoreHorizontal,
+  Play,
 } from "lucide-react";
 import {
   Handle,
@@ -15,6 +14,55 @@ import { useDataDevelopmentWorkbench } from "../../workbench-context";
 import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { useWorkflowStore } from "../store/workflow-store";
 import type { WorkflowNodeData } from "../types";
+
+// CONDITIONS is the visual baseline for all right-side branch connectors.
+const BRANCH_HANDLE_RIGHT_OFFSET = -21;
+
+function AddHandleButton({ visibility }: { visibility: string }) {
+  const maskId = "workflow-handle-plus-" + useId().replace(/:/g, "");
+
+  return (
+    <span
+      aria-hidden="true"
+      className={[
+        "pointer-events-none absolute left-1/2 top-1/2 z-10 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center",
+        "transition-[opacity,transform] duration-150 ease-out",
+        "group-hover/handle:scale-125",
+        visibility,
+      ].join(" ")}
+    >
+      <span className="absolute inset-0 rounded-full bg-white" />
+      <svg viewBox="0 0 18 18" className="relative size-[18px]" focusable="false">
+        <defs>
+          <mask
+            id={maskId}
+            maskUnits="userSpaceOnUse"
+            maskContentUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width="18"
+            height="18"
+          >
+            <rect width="18" height="18" fill="#fff" />
+            <path
+              d="M9 5v8M5 9h8"
+              stroke="#000"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </mask>
+        </defs>
+        <circle
+          cx="9"
+          cy="9"
+          r="8"
+          fill="var(--yak-color-primary)"
+          mask={"url(#" + maskId + ")"}
+        />
+      </svg>
+    </span>
+  );
+}
 
 function ActionButton({
   label,
@@ -58,17 +106,10 @@ export function WorkflowTaskNode({
   data,
   selected,
 }: NodeProps<WorkflowNodeData>) {
-  const openSelector = useWorkflowStore(
-    (state) => state.openSelector,
+  const openEdgeSelector = useWorkflowStore(
+    (state) => state.openEdgeSelector,
   );
-  const removeNodes = useWorkflowStore(
-    (state) => state.removeNodes,
-  );
-  const outgoingEdges = useWorkflowStore(
-    (state) => state.edges.filter((edge) => edge.source === id),
-  );
-  const hasOutgoingEdge = outgoingEdges.length > 0;
-  const branchOutputs = data.branchOutputs ?? [];
+  const branchOutputs = data.branchOutputsPreview ?? data.branchOutputs ?? [];
   const { openTask } = useDataDevelopmentWorkbench();
 
   const openCurrentTask = () => {
@@ -87,7 +128,12 @@ export function WorkflowTaskNode({
     toast.warning("节点配置尚未初始化，请重新添加节点");
   };
 
-  const controlsVisibility = selected
+  const runDisabled = !data.readOnly || data.draft || data.taskCode === null;
+  const runDisabledReason = !data.readOnly
+    ? "请先发布工作流"
+    : "未保存节点暂不支持运行";
+
+  const controlsVisibility = selected || data.menuOpen
     ? "visible pointer-events-auto opacity-100"
     : "invisible pointer-events-none opacity-0 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 focus-within:visible focus-within:pointer-events-auto focus-within:opacity-100";
 
@@ -104,34 +150,34 @@ export function WorkflowTaskNode({
         ].join(" ")}
       >
         <div
-          className="nodrag nopan nowheel flex h-7 items-center rounded-lg border border-[var(--yak-components-border)] bg-white/95 px-0.5 text-[var(--yak-components-muted-text)] shadow-md backdrop-blur-[5px]"
+          className="nodrag nopan nowheel flex h-7 items-center gap-0.5 rounded-lg border border-[#D0D5DD] bg-white px-0.5 text-[var(--yak-components-muted-text)] shadow-[0_2px_8px_rgba(16,24,40,0.12)]"
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
           <ActionButton
-            label="新建上游"
-            icon={<Plus size={13} />}
-            disabled={data.readOnly}
-            onClick={() =>
-              openSelector({
-                kind: "upstream",
-                nodeId: id,
-              })
-            }
+            label={runDisabled ? runDisabledReason : "运行节点"}
+            icon={<Play size={13} />}
+            disabled={runDisabled}
+            onClick={() => data.onRun?.()}
           />
-          <ActionButton
-            label="打开节点"
-            icon={<FolderOpen size={13} />}
-            onClick={openCurrentTask}
-          />
-          <ActionButton
-            danger
-            label="删除"
-            icon={<Trash2 size={13} />}
-            disabled={data.readOnly}
-            onClick={() => removeNodes([id])}
-          />
+          <button
+            type="button"
+            aria-label="更多操作"
+            title="更多操作"
+            aria-haspopup="menu"
+            aria-expanded={Boolean(data.menuOpen)}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              const rect = event.currentTarget.getBoundingClientRect();
+              data.onOpenMenu?.({ x: rect.left, y: rect.bottom });
+            }}
+            className="nodrag nopan flex size-6 cursor-pointer items-center justify-center rounded-md text-[var(--yak-components-muted-text)] transition-colors hover:bg-[#F2F4F7] hover:text-[var(--yak-components-panel-text)]"
+          >
+            <MoreHorizontal size={15} strokeWidth={1.8} />
+          </button>
         </div>
       </div>
 
@@ -141,11 +187,9 @@ export function WorkflowTaskNode({
         position={Position.Left}
         isConnectable={!data.readOnly}
         className={[
-          "!z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+          "!z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
           "!top-4 !-left-[9px] !translate-y-0",
           "before:absolute before:-inset-1",
-          "after:absolute after:left-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-          "after:opacity-100",
         ].join(" ")}
       />
 
@@ -157,7 +201,7 @@ export function WorkflowTaskNode({
         className={[
           "relative flex rounded-2xl border transition-[border-color,box-shadow] duration-200",
           data.focused
-            ? "border-[var(--yak-color-primary)] shadow-[0_0_0_3px_rgba(49,94,251,0.14)]"
+            ? "border-[var(--yak-color-primary)] shadow-[0_4px_12px_rgba(49,94,251,0.14)]"
             : selected
               ? "border-[var(--yak-color-primary)]"
               : "border-transparent",
@@ -180,9 +224,6 @@ export function WorkflowTaskNode({
               <div className="truncate text-[13px] font-semibold uppercase text-[var(--yak-components-panel-text)]">
                 {data.name}
               </div>
-              <div className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-wide text-[var(--yak-components-muted-text)]">
-                {data.taskType || "TASK"}
-              </div>
             </div>
           </div>
 
@@ -197,19 +238,55 @@ export function WorkflowTaskNode({
                         ? "text-[#DC6B5D]"
                         : output.kind === "unassigned"
                           ? "text-[#D97706]"
-                          : "text-[#475467]";
+                          : output.kind === "switch-case"
+                            ? "text-[#4338CA]"
+                            : output.kind === "default"
+                              ? "text-[#667085]"
+                              : "text-[#475467]";
+
                   return (
                     <div
                       key={output.id}
-                      className="flex h-[22px] items-center justify-end pr-1 text-[10px] font-medium"
+                      className="relative flex h-[22px] items-center justify-end pr-7 text-[10px] font-medium"
                     >
-                      <span className={labelClass}>{output.label}</span>
+                      <span className={"min-w-0 truncate " + labelClass} title={output.label}>{output.label}</span>
+                      <Handle
+                        id={output.id}
+                        type="source"
+                        position={Position.Right}
+                        isConnectable={!data.readOnly}
+                        aria-label={output.label + "分支连接点"}
+                        title={output.label + "分支"}
+                        style={{ top: "50%", right: BRANCH_HANDLE_RIGHT_OFFSET }}
+                        data-workflow-edge-picker-trigger
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (data.readOnly) return;
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          openEdgeSelector({
+                            kind: "downstream-popover",
+                            nodeId: id,
+                            sourceHandle: output.id,
+                            anchor: {
+                              x: rect.right,
+                              y: rect.top + rect.height / 2,
+                            },
+                          });
+                        }}
+                        className={[
+                          "group/handle !z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+                          "!translate-y-0",
+                          "before:absolute before:-inset-1",
+                        ].join(" ")}
+                      >
+                        <AddHandleButton visibility={addButtonVisibility} />
+                      </Handle>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="rounded-lg bg-[#f7f8fa] px-2.5 py-2 text-[11px] text-[var(--yak-components-muted-text)]">
+              <div className="rounded-lg bg-[#f7f8fa] px-2.5 py-1 text-[11px] text-[var(--yak-components-muted-text)]">
                 {data.draft ? "未保存节点" : "工作流节点"}
               </div>
             )}
@@ -217,88 +294,36 @@ export function WorkflowTaskNode({
         </div>
       </div>
 
-      {branchOutputs.length > 0 ? (
-        branchOutputs.map((output, index) => {
-          const connected = outgoingEdges.some(
-            (edge) => edge.sourceHandle === output.id,
-          );
-          return (
-            <Handle
-              key={output.id}
-              id={output.id}
-              type="source"
-              position={Position.Right}
-              isConnectable={!data.readOnly}
-              style={{ top: 52 + index * 22, right: -9 }}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (data.readOnly) return;
-                openSelector({
-                  kind: "downstream",
-                  nodeId: id,
-                  sourceHandle: output.id,
-                });
-              }}
-              className={[
-                "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
-                "!translate-y-0",
-                "before:absolute before:-inset-1",
-                "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-                connected ? "after:opacity-100" : "after:opacity-40",
-              ].join(" ")}
-            >
-              <span
-                aria-hidden="true"
-                className={[
-                  "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-                  "bg-[var(--yak-color-primary)] text-white shadow-sm",
-                  "transition-[opacity,transform] duration-150 ease-out",
-                  "group-hover/handle:scale-125",
-                  addButtonVisibility,
-                ].join(" ")}
-              >
-                <Plus size={10} strokeWidth={2.5} />
-              </span>
-            </Handle>
-          );
-        })
-      ) : (
+      {branchOutputs.length === 0 ? (
         <Handle
           id="source"
           type="source"
           position={Position.Right}
           isConnectable={!data.readOnly}
+          data-workflow-edge-picker-trigger
           onClick={(event) => {
             event.stopPropagation();
             if (data.readOnly) return;
-            openSelector({
-              kind: "downstream",
+            const rect = event.currentTarget.getBoundingClientRect();
+            openEdgeSelector({
+              kind: "downstream-popover",
               nodeId: id,
               sourceHandle: "source",
+              anchor: {
+                x: rect.right,
+                y: rect.top + rect.height / 2,
+              },
             });
           }}
           className={[
-            "group/handle !z-[1] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
+            "group/handle !z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
             "!top-4 !-right-[9px] !translate-y-0",
             "before:absolute before:-inset-1",
-            "after:absolute after:right-1.5 after:top-1 after:h-2 after:w-0.5 after:bg-[#98A2B3]",
-            hasOutgoingEdge ? "after:opacity-100" : "after:opacity-0",
           ].join(" ")}
         >
-          <span
-            aria-hidden="true"
-            className={[
-              "pointer-events-none absolute left-1/2 top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-              "bg-[var(--yak-color-primary)] text-white shadow-sm",
-              "transition-[opacity,transform] duration-150 ease-out",
-              "group-hover/handle:scale-125",
-              addButtonVisibility,
-            ].join(" ")}
-          >
-            <Plus size={10} strokeWidth={2.5} />
-          </span>
+          <AddHandleButton visibility={addButtonVisibility} />
         </Handle>
-      )}
+      ) : null}
     </div>
   );
 }

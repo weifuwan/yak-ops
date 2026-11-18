@@ -28,10 +28,11 @@ public class SwitchParameters extends AbstractParameters {
         if (switchResult == null) {
             return false;
         }
-        if (CollectionUtils.isEmpty(switchResult.getDependTaskList()) && switchResult.getNextNode() == null) {
-            return false;
+        List<SwitchResultVo> dependTaskList = switchResult.getDependTaskList();
+        if (CollectionUtils.isEmpty(dependTaskList)) {
+            return switchResult.getNextNode() != null;
         }
-        for (SwitchResultVo switchResultVo : switchResult.getDependTaskList()) {
+        for (SwitchResultVo switchResultVo : dependTaskList) {
             if (switchResultVo == null || switchResultVo.getNextNode() == null) {
                 return false;
             }

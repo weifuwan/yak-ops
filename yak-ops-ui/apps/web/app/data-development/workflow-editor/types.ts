@@ -12,8 +12,28 @@ export type WorkflowEdgeStyle = "bezier" | "step" | "smoothstep";
 export type WorkflowSelectorRequest =
   | { kind: "add" }
   | { kind: "upstream"; nodeId: string }
-  | { kind: "downstream"; nodeId: string; sourceHandle?: string }
-  | { kind: "edge"; edgeId: string };
+  | { kind: "downstream"; nodeId: string; sourceHandle?: string };
+
+export type WorkflowEdgeSelectorRequest = {
+  kind: "edge";
+  edgeId: string;
+  anchor: XYPosition;
+};
+
+export type WorkflowPopoverSelectorRequest =
+  | WorkflowEdgeSelectorRequest
+  | { kind: "add-popover"; anchor: XYPosition }
+  | { kind: "upstream-popover"; nodeId: string; anchor: XYPosition }
+  | {
+      kind: "downstream-popover";
+      nodeId: string;
+      sourceHandle?: string;
+      anchor: XYPosition;
+    };
+
+export type WorkflowNodeInsertionRequest =
+  | WorkflowSelectorRequest
+  | WorkflowEdgeSelectorRequest;
 
 export type WorkflowBranchOutputKind =
   | "success"
@@ -38,7 +58,11 @@ export type WorkflowNodeData = {
   task?: WorkflowTaskRecord;
   focused?: boolean;
   readOnly?: boolean;
+  menuOpen?: boolean;
+  onRun?: () => void;
+  onOpenMenu?: (position: { x: number; y: number }) => void;
   branchOutputs?: WorkflowBranchOutput[];
+  branchOutputsPreview?: WorkflowBranchOutput[];
 };
 
 export type WorkflowEdgeData = {

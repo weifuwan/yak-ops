@@ -19,6 +19,7 @@ import {
   validateDependentTaskParams,
 } from "../apps/web/app/data-development/task-editor/logic/dependent/adapter.ts";
 import {
+  getSwitchCaseWarnings,
   getSwitchVariableOptions,
   remapSwitchCaseHandles,
   validateSwitchTaskParams,
@@ -322,6 +323,23 @@ test("SWITCH restores Case and Default handles from taskParams", () => {
   );
 });
 
+test("SWITCH exposes every configured Case plus Default, including six or more Cases", () => {
+  const params = {
+    switchResult: {
+      dependTaskList: Array.from({ length: 6 }, (_item, index) => ({
+        condition: "${amount} >= " + (100 - index * 10),
+        nextNode: 201 + index,
+      })),
+      nextNode: 207,
+    },
+  };
+
+  assert.deepEqual(
+    getWorkflowBranchOutputs("SWITCH", params).map((item) => item.id),
+    ["case-0", "case-1", "case-2", "case-3", "case-4", "case-5", "default"],
+  );
+});
+
 test("SWITCH writes one target per Case and Default", () => {
   const result = applyWorkflowBranchTargets(
     "SWITCH",
@@ -346,6 +364,65 @@ test("SWITCH writes one target per Case and Default", () => {
   assert.equal(result.switchResult.dependTaskList[1].nextNode, 202);
   assert.equal(result.switchResult.nextNode, 203);
   assert.equal(validateSwitchTaskParams(result), null);
+});
+
+test("SWITCH supports a Default-only configuration", () => {
+  const params = {
+    switchResult: {
+      dependTaskList: [],
+      nextNode: 203,
+    },
+  };
+
+  assert.deepEqual(
+    getWorkflowBranchOutputs("SWITCH", params).map((item) => item.id),
+    ["default"],
+  );
+  assert.equal(resolveWorkflowSourceHandle("SWITCH", params, 203), "default");
+  assert.equal(validateSwitchTaskParams(params), null);
+
+  const result = applyWorkflowBranchTargets(
+    "SWITCH",
+    { switchResult: { dependTaskList: [], nextNode: null } },
+    "100",
+    [{ source: "100", sourceHandle: "default", target: "203" }],
+  );
+
+  assert.deepEqual(result.switchResult.dependTaskList, []);
+  assert.equal(result.switchResult.nextNode, 203);
+});
+
+test("SWITCH validates the Default edge for Default-only configurations", () => {
+  const params = { switchResult: { dependTaskList: [], nextNode: null } };
+
+  assert.throws(
+    () => applyWorkflowBranchTargets("SWITCH", params, "100", []),
+    /Default 分支\s+必须且只能连接一个下游节点/,
+  );
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "SWITCH",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "default", target: "203" },
+        { source: "100", sourceHandle: "default", target: "204" },
+      ],
+    ),
+    /Default 分支\s+必须且只能连接一个下游节点/,
+  );
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "SWITCH",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "default", target: "203" },
+        { source: "100", sourceHandle: "unknown", target: "204" },
+      ],
+    ),
+    /未识别的分支连线/,
+  );
 });
 
 test("SWITCH remaps connected edges when Case expressions are reordered", () => {
@@ -379,14 +456,212 @@ test("SWITCH remaps connected edges when Case expressions are reordered", () => 
   assert.equal(remapped.find((edge) => edge.target === "203").sourceHandle, "default");
 });
 
-test("SWITCH variable selector includes workflow and task input parameters", () => {
-  const options = getSwitchVariableOptions(
-    JSON.stringify([{ prop: "bizDate", type: "DATE", direct: "IN" }]),
-    {
-      localParams: [{ prop: "amount", type: "INTEGER", direct: "IN" }],
+test("SWITCH keeps new preview connections attached to the same Case across subsequent edits", () => {
+  const original = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 100", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: null,
     },
+  };
+  const firstPreview = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 50", nextNode: 202 },
+        { condition: "${amount} > 10", nextNode: null },
+        { condition: "${amount} >= 100", nextNode: 201 },
+      ],
+      nextNode: null,
+    },
+  };
+  const secondPreview = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} > 10", nextNode: null },
+        { condition: "${amount} >= 100", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: null,
+    },
+  };
+  const originalEdges = [
+    { id: "a", source: "100", sourceHandle: "case-0", target: "201" },
+    { id: "b", source: "100", sourceHandle: "case-1", target: "202" },
+  ];
+
+  const firstEdges = remapSwitchCaseHandles(
+    "100",
+    original,
+    firstPreview,
+    originalEdges,
   );
-  assert.deepEqual(options.map((item) => item.value), ["${bizDate}", "${amount}"]);
+  const withNewConnection = [
+    ...firstEdges,
+    { id: "c", source: "100", sourceHandle: "case-1", target: "203" },
+  ];
+  const secondEdges = remapSwitchCaseHandles(
+    "100",
+    firstPreview,
+    secondPreview,
+    withNewConnection,
+  );
+
+  assert.equal(secondEdges.find((edge) => edge.target === "201").sourceHandle, "case-1");
+  assert.equal(secondEdges.find((edge) => edge.target === "202").sourceHandle, "case-2");
+  assert.equal(secondEdges.find((edge) => edge.target === "203").sourceHandle, "case-0");
+});
+
+test("SWITCH keeps a connected Case edge when its expression changes", () => {
+  const previous = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 100", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: 203,
+    },
+  };
+  const next = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} > 200", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: 203,
+    },
+  };
+  const edges = [
+    { id: "a", source: "100", sourceHandle: "case-0", target: "201" },
+    { id: "b", source: "100", sourceHandle: "case-1", target: "202" },
+  ];
+
+  const remapped = remapSwitchCaseHandles("100", previous, next, edges);
+  assert.equal(remapped.find((edge) => edge.target === "201").sourceHandle, "case-0");
+  assert.equal(remapped.find((edge) => edge.target === "202").sourceHandle, "case-1");
+});
+
+test("SWITCH removes only the deleted Case connection", () => {
+  const previous = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 100", nextNode: 201 },
+        { condition: "${amount} >= 50", nextNode: 202 },
+      ],
+      nextNode: 203,
+    },
+  };
+  const next = {
+    switchResult: {
+      dependTaskList: [{ condition: "${amount} >= 50", nextNode: 202 }],
+      nextNode: 203,
+    },
+  };
+  const edges = [
+    { id: "a", source: "100", sourceHandle: "case-0", target: "201" },
+    { id: "b", source: "100", sourceHandle: "case-1", target: "202" },
+    { id: "c", source: "100", sourceHandle: "default", target: "203" },
+  ];
+
+  const remapped = remapSwitchCaseHandles("100", previous, next, edges);
+  assert.deepEqual(remapped.map((edge) => edge.id), ["b", "c"]);
+  assert.equal(remapped.find((edge) => edge.target === "202").sourceHandle, "case-0");
+  assert.equal(remapped.find((edge) => edge.target === "203").sourceHandle, "default");
+});
+
+test("SWITCH variable selector includes runtime system, project, workflow, and task parameters with data types", () => {
+  const options = getSwitchVariableOptions(
+    JSON.stringify([
+      { prop: "bizDate", type: "DATE", direct: "IN" },
+      { prop: "shared", type: "VARCHAR", direct: "IN" },
+    ]),
+    {
+      localParams: [
+        { prop: "amount", type: "INTEGER", direct: "IN" },
+        { prop: "shared", type: "VARCHAR", direct: "IN" },
+      ],
+    },
+    [
+      { paramName: "projectRegion", paramDataType: "VARCHAR" },
+      { paramName: "shared", paramDataType: "VARCHAR" },
+    ],
+  );
+  const byValue = new Map(options.map((item) => [item.value, item]));
+
+  assert.equal(byValue.get("${system.biz.date}")?.label, "system.biz.date（系统 · DATE）");
+  assert.equal(byValue.get("${system.project.code}")?.label, "system.project.code（系统 · LONG）");
+  assert.equal(byValue.get("${projectRegion}")?.label, "projectRegion（项目 · VARCHAR）");
+  assert.equal(byValue.get("${bizDate}")?.label, "bizDate（全局 · DATE）");
+  assert.equal(byValue.get("${amount}")?.label, "amount（节点 · INTEGER）");
+  assert.equal(byValue.get("${shared}")?.label, "shared（节点 · VARCHAR）");
+  assert.equal(byValue.get("${amount}")?.dataType, "INTEGER");
+});
+
+test("SWITCH variable selector exposes only transitive upstream OUT parameters", () => {
+  const options = getSwitchVariableOptions(
+    [],
+    { localParams: [] },
+    [],
+    [
+      {
+        code: 10,
+        name: "上游 SQL",
+        taskParams: {
+          localParams: [
+            { prop: "customerLevel", direct: "OUT", type: "VARCHAR" },
+            { prop: "internalValue", direct: "IN", type: "INTEGER" },
+          ],
+        },
+      },
+      {
+        code: 20,
+        name: "上游 JAVA",
+        taskParams: {
+          localParams: [{ prop: "amount", direct: "OUT", type: "DECIMAL" }],
+        },
+      },
+      {
+        code: 99,
+        name: "无关任务",
+        taskParams: {
+          localParams: [{ prop: "ignored", direct: "OUT", type: "STRING" }],
+        },
+      },
+    ],
+    [
+      { preTaskCode: 10, postTaskCode: 20 },
+      { preTaskCode: 20, postTaskCode: 30 },
+      { preTaskCode: 99, postTaskCode: 98 },
+    ],
+    30,
+  );
+  const byValue = new Map(options.map((item) => [item.value, item]));
+
+  assert.equal(byValue.get("${customerLevel}")?.label, "customerLevel（上游 上游 SQL · VARCHAR）");
+  assert.equal(byValue.get("${amount}")?.label, "amount（上游 上游 JAVA · DECIMAL）");
+  assert.equal(byValue.has("${internalValue}"), false);
+  assert.equal(byValue.has("${ignored}"), false);
+});
+
+test("SWITCH warns when an earlier numeric Case covers a later Case", () => {
+  const warnings = getSwitchCaseWarnings({
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} >= 500", nextNode: 201 },
+        { condition: "${amount} >= 1000", nextNode: 202 },
+        { condition: "${age} <= 100", nextNode: 203 },
+        { condition: "${age} <= 50", nextNode: 204 },
+        { condition: "${score} > 10", nextNode: 205 },
+        { condition: "${score} > 20", nextNode: 206 },
+      ],
+    },
+  });
+
+  assert.deepEqual(
+    warnings.map((warning) => [warning.caseIndex, warning.previousCaseIndex]),
+    [[1, 0], [3, 2], [5, 4]],
+  );
 });
 
 test("SWITCH rejects missing expressions and duplicate cases", () => {
@@ -404,6 +679,45 @@ test("SWITCH rejects missing expressions and duplicate cases", () => {
       },
     }),
     /不能重复/,
+  );
+});
+
+test("SWITCH rejects multiple branches that target the same downstream task", () => {
+  const params = {
+    switchResult: {
+      dependTaskList: [
+        { condition: "${amount} > 100", nextNode: null },
+        { condition: "${amount} > 50", nextNode: null },
+      ],
+      nextNode: null,
+    },
+  };
+
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "SWITCH",
+      params,
+      "100",
+      [
+        { source: "100", sourceHandle: "case-0", target: "201" },
+        { source: "100", sourceHandle: "case-1", target: "201" },
+        { source: "100", sourceHandle: "default", target: "203" },
+      ],
+    ),
+    /不能连接到同一个下游节点/,
+  );
+
+  assert.throws(
+    () => applyWorkflowBranchTargets(
+      "SWITCH",
+      { switchResult: { dependTaskList: [{ condition: "${amount} > 0", nextNode: null }], nextNode: null } },
+      "100",
+      [
+        { source: "100", sourceHandle: "case-0", target: "201" },
+        { source: "100", sourceHandle: "default", target: "201" },
+      ],
+    ),
+    /不能连接到同一个下游节点/,
   );
 });
 

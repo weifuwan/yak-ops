@@ -111,4 +111,43 @@ public class WorkflowStartSwitchTestCase extends AbstractMasterIntegrationTestCa
         masterContainer.assertAllResourceReleased();
     }
 
+    @Test
+    @DisplayName("Test start a workflow with a Default-only switch task")
+    public void testStartWorkflow_with_defaultOnlySwitch() {
+        final String yaml = "/it/start/workflow_with_default_only_switch.yaml";
+        final WorkflowTestCaseContext context = workflowTestCaseContextFactory.initializeContextFromYaml(yaml);
+        final WorkflowDefinition parentWorkflow = context.getOneWorkflow();
+
+        final WorkflowOperator.WorkflowTriggerDTO workflowTriggerDTO = WorkflowOperator.WorkflowTriggerDTO.builder()
+                .workflowDefinition(parentWorkflow)
+                .runWorkflowCommandParam(new RunWorkflowCommandParam())
+                .failureStrategy(FailureStrategy.CONTINUE)
+                .build();
+        final Integer workflowInstanceId = workflowOperator.manualTriggerWorkflow(workflowTriggerDTO);
+
+        await()
+                .atMost(Duration.ofMinutes(1))
+                .untilAsserted(() -> {
+                    Assertions
+                            .assertThat(repository.queryWorkflowInstance(workflowInstanceId))
+                            .matches(workflowInstance -> workflowInstance.getState() == WorkflowExecutionStatus.SUCCESS)
+                            .matches(workflowInstance -> workflowInstance.getIsSubWorkflow() == Flag.NO)
+                            .matches(workflowInstance -> workflowInstance.getDryRun() == Flag.NO.getCode());
+
+                    Assertions
+                            .assertThat(repository.queryTaskInstance(workflowInstanceId))
+                            .hasSize(2)
+                            .anySatisfy(taskInstance -> {
+                                assertThat(taskInstance.getName()).isEqualTo("switch_task");
+                                assertThat(taskInstance.getState()).isEqualTo(TaskExecutionStatus.SUCCESS);
+                            })
+                            .anySatisfy(taskInstance -> {
+                                assertThat(taskInstance.getName()).isEqualTo("default_branch");
+                                assertThat(taskInstance.getState()).isEqualTo(TaskExecutionStatus.SUCCESS);
+                            });
+                });
+
+        masterContainer.assertAllResourceReleased();
+    }
+
 }

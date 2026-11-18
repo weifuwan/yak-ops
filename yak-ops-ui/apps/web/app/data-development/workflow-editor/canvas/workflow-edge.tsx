@@ -23,8 +23,13 @@ export function WorkflowEdge({
 }: EdgeProps<WorkflowEdgeData>) {
   const [focused, setFocused] = useState(false);
   const [triggerHovered, setTriggerHovered] = useState(false);
-  const openSelector = useWorkflowStore(
-    (state) => state.openSelector,
+  const openEdgeSelector = useWorkflowStore(
+    (state) => state.openEdgeSelector,
+  );
+  const edgeSelectorOpen = useWorkflowStore(
+    (state) =>
+      state.edgeSelectorRequest?.kind === "edge" &&
+      state.edgeSelectorRequest.edgeId === id,
   );
   const edgeStyle = useWorkflowStore(
     (state) => state.edgeStyle,
@@ -47,7 +52,7 @@ export function WorkflowEdge({
         });
 
   const active = Boolean(
-    selected || data?.hovered || focused || triggerHovered,
+    selected || data?.hovered || focused || triggerHovered || edgeSelectorOpen,
   );
 
   return (
@@ -87,12 +92,20 @@ export function WorkflowEdge({
             type="button"
             title="在线路中插入节点"
             aria-label="在线路中插入节点"
+            aria-expanded={edgeSelectorOpen}
+            data-workflow-edge-picker-trigger
+            onPointerDown={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
-              openSelector({
+              const rect = event.currentTarget.getBoundingClientRect();
+              openEdgeSelector({
                 kind: "edge",
                 edgeId: id,
+                anchor: {
+                  x: rect.right,
+                  y: rect.top + rect.height / 2,
+                },
               });
             }}
             className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-[var(--yak-components-border)] bg-white text-[var(--yak-color-primary)] shadow-sm"

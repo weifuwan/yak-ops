@@ -55,6 +55,7 @@ export function LogicTaskEditor({
   onBackToWorkflow,
   children,
   validateParams,
+  onParamsChange,
 }: {
   workflowCode: number;
   task: WorkflowTaskRecord;
@@ -66,6 +67,7 @@ export function LogicTaskEditor({
   onBackToWorkflow: () => void;
   children: (props: LogicTaskFormProps) => ReactNode;
   validateParams?: (params: LogicTaskParams) => string | null | Promise<string | null>;
+  onParamsChange?: (params: LogicTaskParams) => void;
 }) {
   const queryClient = useQueryClient();
   const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
@@ -133,6 +135,7 @@ export function LogicTaskEditor({
   const updateParams = (next: LogicTaskParams) => {
     setParams(next);
     setTaskParamsText(JSON.stringify(next, null, 2));
+    onParamsChange?.(next);
   };
 
   const handleSave = async () => {
@@ -255,7 +258,9 @@ export function LogicTaskEditor({
               const nextText = String(value ?? "");
               setTaskParamsText(nextText);
               try {
-                setParams(parseTaskParams(nextText));
+                const nextParams = parseTaskParams(nextText);
+                setParams(nextParams);
+                onParamsChange?.(nextParams);
               } catch {
                 // Keep the previous form state until the JSON becomes valid.
               }
@@ -270,7 +275,7 @@ export function LogicTaskEditor({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
-          <div className="mx-auto max-w-[1120px] space-y-3">
+          <div className={"mx-auto space-y-3 " + (taskType === "CONDITIONS" ? "max-w-[1440px]" : "max-w-[1120px]")}>
             {children({ params, onChange: updateParams, disabled: readOnly })}
           </div>
         </div>

@@ -177,7 +177,7 @@ export function NodeEditorFrame({
   const activeTitle = PANEL_ITEMS.find((item) => item.key === activePanel)?.label;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
       <header className="flex h-9 shrink-0 items-center gap-1 border-b border-[#e5e7eb] bg-white px-2">
         <ToolbarButton
           label="运行"
@@ -233,7 +233,7 @@ export function NodeEditorFrame({
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
           <fieldset disabled={readOnly} className="contents">
             {children}
@@ -252,7 +252,7 @@ export function NodeEditorFrame({
                 onResize={setPanelWidth}
               />
               <section
-                className="flex h-full min-h-0 max-w-[calc(100vw-64px)] flex-col border-l border-[#e5e7eb] bg-white"
+                className="flex h-full min-h-0 max-w-[calc(100vw-100px)] shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
                 style={{ width: panelWidth }}
               >
                 <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-3">
@@ -307,7 +307,7 @@ export function NodeEditorFrame({
                   {selected ? (
                     <span
                       aria-hidden="true"
-                      className="absolute inset-y-0 left-0 z-[1] w-0.5 bg-[#315efb]"
+                      className="absolute inset-y-0 right-0 z-[1] w-0.5 bg-[#315efb]"
                     />
                   ) : null}
                   <span className="[writing-mode:vertical-rl] [text-orientation:upright] [word-break:keep-all] whitespace-nowrap tracking-[2px]">

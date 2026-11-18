@@ -124,6 +124,9 @@ export function WorkflowCanvas({
   const edges = useWorkflowStore(
     (state) => state.edges,
   );
+  const previewEdges = useWorkflowStore(
+    (state) => state.previewEdges,
+  );
   const interactionMode = useWorkflowStore(
     (state) => state.interactionMode,
   );
@@ -142,11 +145,11 @@ export function WorkflowCanvas({
   const setEdgeStyle = useWorkflowStore(
     (state) => state.setEdgeStyle,
   );
-  const openSelector = useWorkflowStore(
-    (state) => state.openSelector,
+  const openEdgeSelector = useWorkflowStore(
+    (state) => state.openEdgeSelector,
   );
-  const selectorRequest = useWorkflowStore(
-    (state) => state.selectorRequest,
+  const edgeSelectorRequest = useWorkflowStore(
+    (state) => state.edgeSelectorRequest,
   );
   const addDroppedNode = useWorkflowStore(
     (state) => state.addDroppedNode,
@@ -191,6 +194,21 @@ export function WorkflowCanvas({
   const [nodeNameValue, setNodeNameValue] = useState("");
   const [nodeNameError, setNodeNameError] = useState<string | null>(null);
 
+  function requestNodeRun(
+    node: WorkflowCanvasNode,
+    taskDependType: WorkflowTaskDependType,
+    title: string,
+    scopeDescription: string,
+  ) {
+    setContextMenu(null);
+    setPendingRun({
+      node,
+      taskDependType,
+      title,
+      scopeDescription,
+    });
+  }
+
   const {
     handleConnect,
     handleNodesDelete,
@@ -217,13 +235,23 @@ export function WorkflowCanvas({
           ...node.data,
           focused: node.id === focusedNodeId,
           readOnly: isWorkflowOnline,
+          menuOpen: contextMenu?.node.id === node.id,
+          onRun: () =>
+            requestNodeRun(
+              node,
+              "TASK_ONLY",
+              "运行该节点",
+              "仅执行当前节点。",
+            ),
+          onOpenMenu: ({ x, y }: { x: number; y: number }) =>
+            setContextMenu({ node, x, y }),
         },
       })),
-    [nodes, focusedNodeId, isWorkflowOnline],
+    [nodes, focusedNodeId, isWorkflowOnline, contextMenu],
   );
   const renderEdges = useMemo(
     () =>
-      edges.map((edge) => ({
+      (previewEdges ?? edges).map((edge) => ({
         ...edge,
         data: {
           backend: edge.data?.backend ?? false,
@@ -231,7 +259,7 @@ export function WorkflowCanvas({
           relation: edge.data?.relation,
         },
       })),
-    [edges, hoveredEdgeId],
+    [edges, previewEdges, hoveredEdgeId],
   );
 
   useEffect(() => {
@@ -334,21 +362,6 @@ export function WorkflowCanvas({
     } finally {
       setRemovalPending(false);
     }
-  };
-
-  const requestNodeRun = (
-    node: WorkflowCanvasNode,
-    taskDependType: WorkflowTaskDependType,
-    title: string,
-    scopeDescription: string,
-  ) => {
-    setContextMenu(null);
-    setPendingRun({
-      node,
-      taskDependType,
-      title,
-      scopeDescription,
-    });
   };
 
   const confirmNodeRun = async () => {
@@ -593,7 +606,7 @@ export function WorkflowCanvas({
                 side="bottom"
                 align="start"
                 sideOffset={0}
-                className="w-[216px] rounded-md p-1"
+                className="w-[240px] rounded-xl p-1.5"
               >
                 <DropdownMenuItem
                   onClick={() => openNode(contextMenu.node)}
@@ -602,6 +615,30 @@ export function WorkflowCanvas({
                   打开节点
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  disabled={isWorkflowOnline}
+                  onClick={() => {
+                    const node = contextMenu.node;
+                    const anchor = instance?.flowToScreenPosition({
+                      x: node.position.x + (node.width ?? 240) + 16,
+                      y: node.position.y + (node.height ?? 96) / 2,
+                    }) ?? {
+                      x: contextMenu.x + 260,
+                      y: contextMenu.y + 48,
+                    };
+                    setContextMenu(null);
+                    openEdgeSelector({
+                      kind: "upstream-popover",
+                      nodeId: node.id,
+                      anchor,
+                    });
+                  }}
+                >
+                  <Plus size={14} aria-hidden="true" />
+                  新建上游
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  tone="danger"
                   disabled={
                     !contextMenu.node.data.draft &&
                     (isWorkflowOnline ||
@@ -863,10 +900,20 @@ export function WorkflowCanvas({
             title="新建节点"
             aria-label="新建节点"
             disabled={isWorkflowOnline}
-            aria-expanded={selectorRequest?.kind === "add"}
-            onClick={() => openSelector({ kind: "add" })}
+            aria-expanded={edgeSelectorRequest?.kind === "add-popover"}
+            data-workflow-edge-picker-trigger
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              openEdgeSelector({
+                kind: "add-popover",
+                anchor: {
+                  x: rect.right,
+                  y: rect.top + rect.height / 2,
+                },
+              });
+            }}
             className="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)] data-[selector-open=true]:bg-[var(--yak-color-primary-subtle)] data-[selector-open=true]:text-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-            data-selector-open={selectorRequest?.kind === "add" ? "true" : undefined}
+            data-selector-open={edgeSelectorRequest?.kind === "add-popover" ? "true" : undefined}
           >
             <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
               <circle cx="8" cy="8" r="7" fill="currentColor" />

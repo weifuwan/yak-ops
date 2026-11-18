@@ -86,7 +86,7 @@ function BranchTargetSummary({
       };
 
   return (
-    <div className={"min-w-0 rounded-md border px-3 py-2 " + tone.border + " " + tone.background}>
+    <div className={"w-full min-w-0 rounded-md border px-3 py-2 " + tone.border + " " + tone.background}>
       <div className="flex items-center gap-2">
         <Icon size={14} className={tone.title} />
         <span className={"text-xs font-semibold " + tone.title}>{title}</span>
@@ -121,13 +121,11 @@ function ConditionsForm({
   params,
   onChange,
   disabled,
-  onBackToWorkflow,
 }: LogicTaskFormProps & {
   upstreamTasks: ConditionTaskOption[];
   successTargets: ConditionTaskOption[];
   failedTargets: ConditionTaskOption[];
   unassignedTargetCount: number;
-  onBackToWorkflow: () => void;
 }) {
   const normalized = normalizeConditionsTaskParams(params);
   const dependence = normalized.dependence;
@@ -175,12 +173,6 @@ function ConditionsForm({
     ]);
   };
 
-  const expressionPlaceholder = groups.length === 0
-    ? "添加条件组后显示判断表达式"
-    : upstreamTasks.length === 0
-      ? "连接上游任务后显示判断表达式"
-      : "请完成所有判断条件";
-
   const rowCount = Math.max(groups.length, 2);
   const groupRows = groups.length === 1
     ? [{ group: groups[0], groupIndex: 0, row: `1 / span ${rowCount}` }]
@@ -195,7 +187,6 @@ function ConditionsForm({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-xs font-semibold text-[#344054]">CONDITIONS 判断流程</div>
-          <div className="mt-0.5 text-[11px] text-[#98A2B3]">左侧输入 · 中间判断 · 右侧输出</div>
         </div>
         <Button size="sm" variant="secondary" isDisabled={disabled} onClick={addGroup}>
           <Plus size={13} />
@@ -203,14 +194,6 @@ function ConditionsForm({
         </Button>
       </div>
 
-      {upstreamTasks.length === 0 ? (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-[#d0d5dd] px-3 py-2">
-          <span className="text-xs text-[#667085]">当前节点尚未连接上游任务</span>
-          <Button size="sm" variant="ghost" onClick={onBackToWorkflow}>
-            返回画布
-          </Button>
-        </div>
-      ) : null}
       {unassignedTargetCount > 0 ? (
         <div className="flex items-center gap-2 rounded-md border border-[#fed7aa] bg-[#fff7ed] px-2.5 py-2 text-[11px] text-[#9a3412]">
           <AlertCircle size={14} className="shrink-0" />
@@ -219,16 +202,8 @@ function ConditionsForm({
       ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-[#eaecf0] bg-[#fbfcfe] p-3">
-        <div className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch">
-          <div className="pb-2 text-[11px] font-semibold text-[#667085]">输入 · 条件组</div>
-          <div />
-          <div className="pb-2 text-center text-[11px] font-semibold text-[#667085]">判断 · CONDITIONS</div>
-          <div />
-          <div className="pb-2 text-[11px] font-semibold text-[#667085]">输出 · 执行分支</div>
-        </div>
-
         <div
-          className="grid min-w-[980px] grid-cols-[minmax(310px,1.2fr)_64px_236px_64px_minmax(220px,0.9fr)] items-stretch"
+          className="grid min-w-[1040px] grid-cols-[minmax(310px,1.2fr)_104px_236px_104px_minmax(260px,1fr)] items-stretch"
           style={{ gridTemplateRows: `repeat(${rowCount}, minmax(164px, auto))` }}
         >
           {groups.length === 0 ? (
@@ -238,7 +213,6 @@ function ConditionsForm({
             >
               <div className="flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[#d0d5dd] bg-white px-3 text-center">
                 <span className="text-xs font-medium text-[#667085]">还没有输入条件</span>
-                <span className="mt-1 text-[11px] text-[#98A2B3]">新增条件组，选择上游任务和期望状态</span>
                 <Button className="mt-2" size="sm" variant="secondary" isDisabled={disabled} onClick={addGroup}>
                   <Plus size={12} />
                   添加第一个条件组
@@ -251,12 +225,9 @@ function ConditionsForm({
               className="flex min-w-0 items-center py-2"
               style={{ gridColumn: 1, gridRow: row }}
             >
-              <section className="w-full rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="group w-full rounded-lg border border-[#dfe3ea] bg-white p-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-md bg-[#eef2ff] text-[10px] font-semibold text-[#3a3d51]">
-                      {groupIndex + 1}
-                    </span>
                     <span className="text-xs font-semibold text-[#344054]">条件组 {groupIndex + 1}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -277,6 +248,7 @@ function ConditionsForm({
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="pointer-events-none scale-[0.97] opacity-0 transition-[opacity,transform] duration-300 ease-in-out group-hover:pointer-events-auto group-hover:scale-100 group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:scale-100 focus-visible:opacity-100"
                       isDisabled={disabled || groups.length <= 1}
                       title={groups.length <= 1 ? "至少保留一个条件组" : "删除条件组"}
                       aria-label={"删除条件组 " + (groupIndex + 1)}
@@ -294,7 +266,6 @@ function ConditionsForm({
                       .map((other) => other.depTaskCode);
                     return (
                       <div key={"conditions-item-" + groupIndex + "-" + itemIndex} className="rounded-md bg-[#f8f9fb] p-2">
-                        <div className="mb-1 text-[10px] text-[#98A2B3]">判断条件 {itemIndex + 1}</div>
                         <div className="grid grid-cols-[minmax(0,1fr)_minmax(100px,0.72fr)_28px] items-center gap-1.5 max-sm:grid-cols-1">
                           <LogicSelect
                             id={"conditions-task-" + groupIndex + "-" + itemIndex}
@@ -351,27 +322,46 @@ function ConditionsForm({
               <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
             </div>
           ) : groups.length > 1 ? (
-            <>
+            groups.map((_group, groupIndex) => (
               <div
-                className="pointer-events-none relative"
-                style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
+                key={"conditions-input-link-" + groupIndex}
+                className="pointer-events-none relative flex items-center justify-center"
+                style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
               >
-                <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
-                <span className="absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+                {groupIndex === 0 ? (
+                  <span className="absolute left-1/2 top-1/2 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+                ) : groupIndex === groups.length - 1 ? (
+                  <span className="absolute left-1/2 top-0 bottom-1/2 border-l border-dashed border-[#aeb7c4]" />
+                ) : (
+                  <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
+                )}
               </div>
-              {groups.map((_group, groupIndex) => (
-                <div
-                  key={"conditions-input-link-" + groupIndex}
-                  className="pointer-events-none relative flex items-center justify-center"
-                  style={{ gridColumn: 2, gridRow: groupIndex + 1 }}
-                >
-                  <span className="absolute left-0 right-1/2 top-1/2 border-t border-dashed border-[#aeb7c4]" />
-                  <span className="relative z-10 rounded-full border border-[#d0d5dd] bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#475467]">
-                    {dependence.relation}
-                  </span>
-                </div>
-              ))}
-            </>
+            ))
+          ) : null}
+          {groups.length > 1 ? (
+            <div
+              className="relative"
+              style={{ gridColumn: 2, gridRow: `1 / span ${rowCount}` }}
+            >
+              <span className="pointer-events-none absolute left-1/2 right-0 top-1/2 border-t border-dashed border-[#aeb7c4]" />
+              <button
+                type="button"
+                disabled={disabled}
+                aria-label={`组间关系：${dependence.relation === "AND" ? "全部满足（AND）" : "满足其一（OR）"}，点击切换`}
+                title={`组间关系：${dependence.relation === "AND" ? "全部满足（AND）" : "满足其一（OR）"}，点击切换`}
+                onClick={() => onChange({
+                  ...normalized,
+                  dependence: {
+                    ...dependence,
+                    relation: dependence.relation === "AND" ? "OR" : "AND",
+                  },
+                })}
+                className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full border border-[#d0d5dd] bg-white px-2 py-0.5 text-[9px] font-semibold text-[#475467] shadow-sm transition-colors hover:border-[#a5b4fc] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {dependence.relation}
+              </button>
+            </div>
           ) : null}
 
           <div
@@ -379,21 +369,12 @@ function ConditionsForm({
             style={{ gridColumn: 3, gridRow: `1 / span ${rowCount}` }}
           >
             <div className="w-full rounded-xl border border-[#c7d2fe] bg-[#f5f6ff] p-3 shadow-[0_3px_10px_rgba(58,61,81,0.07)]">
-              <div className="mb-3 flex items-center justify-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-[#e7eaff] text-[#3a3d51]">
-                  <AlertCircle size={18} />
-                </span>
-                <div>
-                  <div className="text-xs font-semibold text-[#344054]">CONDITIONS</div>
-                  <div className="text-[10px] text-[#98A2B3]">条件判断节点</div>
-                </div>
-              </div>
               <div className="rounded-md border border-[#e4e7ec] bg-white p-2.5">
                 <div className="mb-1.5 text-[10px] font-medium text-[#98A2B3]">逻辑表达式</div>
                 {expression ? (
                   <code className="block break-words text-[10px] leading-5 text-[#344054]">{expression}</code>
                 ) : (
-                  <span className="text-[10px] leading-5 text-[#98A2B3]">{expressionPlaceholder}</span>
+                  <span className="text-[10px] leading-5 text-[#98A2B3]">—</span>
                 )}
               </div>
               <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-[#667085]">
@@ -409,7 +390,6 @@ function ConditionsForm({
             style={{ gridColumn: 4, gridRow: `1 / span ${rowCount}` }}
           >
             <span className="absolute left-0 top-1/2 h-0 w-1/2 border-t border-dashed border-[#aeb7c4]" />
-            <span className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#aeb7c4]" />
           </div>
           {Array.from({ length: rowCount }, (_item, rowIndex) => (
             <div
@@ -502,7 +482,6 @@ export function ConditionsEditor({
           successTargets={successTargets}
           failedTargets={failedTargets}
           unassignedTargetCount={unassignedTargetCount}
-          onBackToWorkflow={onBackToWorkflow}
         />
       )}
     </LogicTaskEditor>

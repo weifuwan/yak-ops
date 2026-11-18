@@ -54,6 +54,9 @@ jobs:
       - name: Workflow logic node branch contract tests
         working-directory: yak-ops-ui
         run: npm run test:workflow-logic
+      - name: Shell task editor contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:shell-editor
       - name: Build UI
         working-directory: yak-ops-ui
         run: npm run build
