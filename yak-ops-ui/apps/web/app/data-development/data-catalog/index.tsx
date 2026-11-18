@@ -16,6 +16,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import {
   listDataSources,
+  getDataSourceCatalogCapabilities,
   listDataSourceCatalogChildren,
   searchDataSourceCatalog,
   type CatalogTreeNode,
@@ -176,6 +177,11 @@ export function DataCatalogPanel({ width }: { width: number }) {
   });
   const sources: DataSourceRecord[] = sourcesQuery.data?.totalList ?? [];
   const selectedSource = sources.find((source) => source.id === selectedSourceId);
+  const capabilitiesQuery = useQuery({
+    queryKey: ["data-catalog", "capabilities", selectedSourceId],
+    queryFn: ({ signal }) => getDataSourceCatalogCapabilities(selectedSourceId, signal),
+    enabled: Boolean(selectedSourceId),
+  });
 
   useEffect(() => {
     if (!selectedSourceId && sources.length > 0 && sources[0].id) {
@@ -206,7 +212,10 @@ export function DataCatalogPanel({ width }: { width: number }) {
     id: "datasource:" + selectedSourceId,
     name: selectedSource.name || "数据源",
     nodeType: "DATASOURCE",
-    hasChildren: true,
+    hasChildren: Boolean(
+      (capabilitiesQuery.data?.namespaceLevels.length ?? 0) > 0
+      || (capabilitiesQuery.data?.objectTypes.length ?? 0) > 0
+    ),
     path: {},
   } : null;
 
@@ -282,6 +291,21 @@ export function DataCatalogPanel({ width }: { width: number }) {
             ))
           )
         ) : rootNode ? (
+          {capabilitiesQuery.isLoading ? (
+            <div className="px-4 py-4 text-[11px] text-[#9aa0a8]">读取数据源目录能力...</div>
+          ) : capabilitiesQuery.isError ? (
+            <button
+              type="button"
+              onClick={() => capabilitiesQuery.refetch()}
+              className="px-4 py-4 text-[11px] text-[#c15b52]"
+            >
+              目录能力读取失败，点击重试
+            </button>
+          ) : !rootNode.hasChildren ? (
+            <div className="px-4 py-4 text-[11px] text-[#9aa0a8]">
+              当前数据源插件暂未提供元数据目录能力
+            </div>
+          ) : null}
           <CatalogTreeNodeView
             key={selectedSourceId}
             datasourceId={selectedSourceId}
