@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import {
   getLatestDataSyncWorkflow,
   isWorkflowActive,
@@ -10,9 +11,12 @@ import { detailQueryKeys } from "./query-keys";
 export function useActiveTaskInstance(scope: string, taskId?: string, workflowCode?: string) {
   const query = useQuery({
     queryKey: detailQueryKeys.activeInstance(scope, taskId || ""),
-    queryFn: ({ signal }) => listLatestDataSyncTaskInstances([taskId!], true, signal),
+    queryFn: ({ signal }) => listLatestDataSyncTaskInstances([taskId!], false, signal),
     enabled: Boolean(scope && taskId),
-    refetchInterval: (result) => (result.state.data?.length ? 2000 : 15000),
+    refetchInterval: (result) =>
+      result.state.data?.some((instance) => isTaskInstanceActive(instance.status))
+        ? 2000
+        : 15000,
   });
   const workflowQuery = useQuery({
     queryKey: detailQueryKeys.latestWorkflow(scope, workflowCode || ""),
@@ -23,7 +27,10 @@ export function useActiveTaskInstance(scope: string, taskId?: string, workflowCo
   });
   return {
     workflow: workflowQuery.data ?? undefined,
-    activeInstance: query.data?.find((instance) => instance.definitionId === taskId),
+    activeInstance: query.data?.find(
+      (instance) =>
+        instance.definitionId === taskId && isTaskInstanceActive(instance.status),
+    ),
     ready: Boolean(scope && taskId && workflowCode && query.isSuccess && workflowQuery.isSuccess &&
       !query.isFetching && !workflowQuery.isFetching),
     refresh: async () => {
