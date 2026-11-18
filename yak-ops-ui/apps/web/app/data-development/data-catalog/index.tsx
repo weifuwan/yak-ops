@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   ChevronRight,
   Code2,
   Columns3,
+  Copy,
   Database,
   Eye,
   Hash,
@@ -14,6 +16,10 @@ import {
   Zap,
 } from "lucide-react";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Input,
   PanelHeader,
   Select,
@@ -23,6 +29,7 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
+  toast,
 } from "@yak-ops/yak-ui";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
@@ -36,6 +43,12 @@ import {
 } from "@/service/datasource";
 import { ResourceTreeIcon } from "../../resources/components/resource-file-icon";
 import { useDataDevelopmentWorkbench } from "../workbench-context";
+
+type CatalogContextMenuState = {
+  x: number;
+  y: number;
+  nodeName: string;
+};
 
 function CatalogNodeIcon({
   node,
@@ -105,12 +118,14 @@ function CatalogTreeNodeView({
   node,
   depth,
   onOpenObject,
+  onNodeContextMenu,
   defaultExpanded = false,
 }: {
   datasourceId: string;
   node: CatalogTreeNode;
   depth: number;
   onOpenObject: (node: CatalogTreeNode) => void;
+  onNodeContextMenu: (node: CatalogTreeNode, event: ReactMouseEvent<HTMLElement>) => void;
   defaultExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -135,6 +150,7 @@ function CatalogTreeNodeView({
       <div
         className="flex min-w-0 items-center gap-1 rounded-[3px] pr-2 hover:bg-[#f4f6f9]"
         style={{ paddingLeft: 8 + depth * 14 }}
+        onContextMenu={(event) => onNodeContextMenu(node, event)}
       >
         {node.hasChildren ? (
           <button
@@ -191,6 +207,7 @@ function CatalogTreeNodeView({
               node={child}
               depth={depth + 1}
               onOpenObject={onOpenObject}
+              onNodeContextMenu={onNodeContextMenu}
             />
           ))}
           {childrenQuery.hasNextPage ? (
@@ -218,7 +235,41 @@ function CatalogTreeNodeView({
 export function DataCatalogPanel({ width }: { width: number }) {
   const [selectedSourceId, setSelectedSourceId] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [contextMenu, setContextMenu] = useState<CatalogContextMenuState | null>(null);
+  const [contextMenuPortalRoot, setContextMenuPortalRoot] = useState<HTMLElement | null>(null);
   const { openCatalogTable } = useDataDevelopmentWorkbench();
+
+  useEffect(() => {
+    setContextMenuPortalRoot(document.body);
+  }, []);
+
+  const handleNodeContextMenu = (
+    node: CatalogTreeNode,
+    event: ReactMouseEvent<HTMLElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      nodeName: node.name,
+    });
+  };
+
+  const copyNodeName = async () => {
+    if (!contextMenu) return;
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(contextMenu.nodeName);
+      toast.success("名称已复制");
+    } catch {
+      toast.error("复制失败，请检查浏览器剪贴板权限");
+    } finally {
+      setContextMenu(null);
+    }
+  };
 
   const sourcesQuery = useQuery({
     queryKey: ["data-catalog", "sources"],
@@ -366,6 +417,7 @@ export function DataCatalogPanel({ width }: { width: number }) {
                 key={node.id}
                 type="button"
                 onClick={() => openObject(node)}
+                onContextMenu={(event) => handleNodeContextMenu(node, event)}
                 className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-[#eef3ff]"
               >
                 <CatalogNodeIcon node={node} />
@@ -402,10 +454,40 @@ export function DataCatalogPanel({ width }: { width: number }) {
             depth={0}
             defaultExpanded
             onOpenObject={openObject}
+            onNodeContextMenu={handleNodeContextMenu}
           />
           </>
         ) : null}
       </div>
+      {contextMenu && contextMenuPortalRoot
+        ? createPortal(
+            <DropdownMenu
+              open
+              onOpenChange={(open) => {
+                if (!open) setContextMenu(null);
+              }}
+            >
+              <DropdownMenuTrigger
+                aria-hidden="true"
+                tabIndex={-1}
+                className="pointer-events-none fixed size-px opacity-0"
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+              />
+              <DropdownMenuContent
+                side="bottom"
+                align="start"
+                sideOffset={0}
+                className="w-[144px] rounded-md p-1"
+              >
+                <DropdownMenuItem onClick={copyNodeName}>
+                  <Copy size={14} />
+                  复制名称
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>,
+            contextMenuPortalRoot,
+          )
+        : null}
     </aside>
   );
 }
