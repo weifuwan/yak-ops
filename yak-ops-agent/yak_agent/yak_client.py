@@ -26,7 +26,7 @@ from typing import Any
 MAX_PAYLOAD_CHARS = 16_000
 DEFAULT_TIMEOUT = 30
 
-# Process-wide accounting of tool-level API calls, used by the smoke test to
+# Process-wide accounting of tool-level API calls, used by acceptance runs to
 # judge outcomes on facts instead of guessing from model prose.
 _TOOL_STATS: dict[str, Any] = {"calls": 0, "errors": []}
 _STATS_LOCK = threading.Lock()
