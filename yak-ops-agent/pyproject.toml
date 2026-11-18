@@ -5,6 +5,7 @@ description = "AgentScope-based read-only copilot harness for yak-ops (replaces 
 requires-python = ">=3.11"
 dependencies = [
     "agentscope==2.0.12",
+    "pyyaml>=6.0",
 ]
 
 [build-system]
