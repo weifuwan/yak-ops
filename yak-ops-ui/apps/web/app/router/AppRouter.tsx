@@ -24,6 +24,7 @@ import { DataSourcePage } from "@/app/datasource/list/page";
 import { DataIntegrationOverviewPage } from "@/app/data-integration/overview/page";
 import LoginPage from "@/app/login";
 import { AlertCenterPage } from "@/app/management/alerts/page";
+import { TenantManagementPage } from "@/app/management/tenants/page";
 import { UserManagementPage } from "@/app/management/users/page";
 import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
 import { DataSyncPage } from "@/app/data-sync/list/page";
@@ -74,6 +75,7 @@ const AUTHENTICATED_PATHS = new Set([
   "/operations",
   "/operations/offline-tasks",
   "/operations/realtime-tasks",
+  "/management/tenants",
   "/management/users",
   "/management/workspaces",
   "/management/alerts",
@@ -293,6 +295,7 @@ export default function AppRouter() {
             }
           >
             <Route path="/management" element={<Navigate replace to="/management/users" />} />
+            <Route path="/management/tenants" element={<TenantManagementPage />} />
             <Route path="/management/users" element={<UserManagementPage />} />
             <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
             <Route path="/management/alerts" element={<AlertCenterPage />} />
