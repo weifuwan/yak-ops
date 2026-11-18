@@ -234,58 +234,10 @@ export function NodeEditorFrame({
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-          <fieldset disabled={readOnly} className="contents">
-            {children}
-          </fieldset>
-        </main>
-
         <aside className="flex h-full min-h-0 shrink-0 bg-white">
-          {activePanel ? (
-            <>
-              <PanelResizer
-                width={panelWidth}
-                minWidth={MIN_PANEL_WIDTH}
-                maxWidth={MAX_PANEL_WIDTH}
-                resizeDirection="left"
-                ariaLabel="调整节点配置面板宽度"
-                onResize={setPanelWidth}
-              />
-              <section
-                className="flex h-full min-h-0 max-w-[calc(100vw-64px)] flex-col border-l border-[#e5e7eb] bg-white"
-                style={{ width: panelWidth }}
-              >
-                <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-3">
-                  <span className="text-sm font-semibold text-[#303846]">{activeTitle}</span>
-                  <button
-                    type="button"
-                    title="收起面板"
-                    aria-label="收起面板"
-                    onClick={() => setActivePanel(null)}
-                    className="flex size-6 cursor-pointer items-center justify-center rounded text-[#8b93a1] transition-colors hover:bg-[#f0f2f5] hover:text-[#303846]"
-                  >
-                    <X size={14} />
-                  </button>
-                </header>
-                <div className="min-h-0 flex-1 overflow-y-auto bg-white">
-                  {activePanel === "properties" ? (
-                    <NodePanelContent
-                      task={task}
-                      taskName={taskName}
-                      taskType={taskType}
-                      workflowCode={workflowCode}
-                    />
-                  ) : (
-                    <div className="p-3">{runConfig}</div>
-                  )}
-                </div>
-              </section>
-            </>
-          ) : null}
-
           <nav
             aria-label="节点配置"
-            className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
+            className="flex h-full w-9 shrink-0 flex-col border-r border-[#e5e7eb] bg-white"
           >
             {PANEL_ITEMS.map((item) => {
               const selected = activePanel === item.key;
@@ -317,7 +269,55 @@ export function NodeEditorFrame({
               );
             })}
           </nav>
+
+          {activePanel ? (
+            <>
+              <section
+                className="flex h-full min-h-0 max-w-[calc(100vw-100px)] flex-col border-r border-[#e5e7eb] bg-white"
+                style={{ width: panelWidth }}
+              >
+                <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-3">
+                  <span className="text-sm font-semibold text-[#303846]">{activeTitle}</span>
+                  <button
+                    type="button"
+                    title="收起面板"
+                    aria-label="收起面板"
+                    onClick={() => setActivePanel(null)}
+                    className="flex size-6 cursor-pointer items-center justify-center rounded text-[#8b93a1] transition-colors hover:bg-[#f0f2f5] hover:text-[#303846]"
+                  >
+                    <X size={14} />
+                  </button>
+                </header>
+                <div className="min-h-0 flex-1 overflow-y-auto bg-white">
+                  {activePanel === "properties" ? (
+                    <NodePanelContent
+                      task={task}
+                      taskName={taskName}
+                      taskType={taskType}
+                      workflowCode={workflowCode}
+                    />
+                  ) : (
+                    <div className="p-3">{runConfig}</div>
+                  )}
+                </div>
+              </section>
+              <PanelResizer
+                width={panelWidth}
+                minWidth={MIN_PANEL_WIDTH}
+                maxWidth={MAX_PANEL_WIDTH}
+                resizeDirection="right"
+                ariaLabel="调整节点配置面板宽度"
+                onResize={setPanelWidth}
+              />
+            </>
+          ) : null}
         </aside>
+
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          <fieldset disabled={readOnly} className="contents">
+            {children}
+          </fieldset>
+        </main>
       </div>
     </div>
   );
