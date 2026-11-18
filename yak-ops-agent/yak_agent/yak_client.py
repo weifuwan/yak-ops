@@ -73,10 +73,18 @@ class YakAuth:
 
     Thread-safe: AgentScope may run read-only tools concurrently
     (`is_concurrency_safe=True`), so session refresh is guarded by a lock.
+
+    Three auth modes, in priority order:
+    - `token`: platform API token (header `token`);
+    - `session_id`: a sessionId cookie value handed over by the frontend
+      (per-user identity) — used as-is, no password held; on 401 the caller
+      re-authenticates upstream and sends a fresh sessionId;
+    - `username`/`password`: server-side login (CLI / single-tenant default).
     """
 
     base_url: str
     token: str = ""
+    session_id: str = ""
     username: str = ""
     password: str = ""
     timeout: int = DEFAULT_TIMEOUT
@@ -90,6 +98,9 @@ class YakAuth:
         headers = {"Accept": "application/json"}
         if self.token:
             headers["token"] = self.token
+        elif self.session_id:
+            # Per-user sessionId from the frontend: used as-is, no login.
+            headers["Cookie"] = f"sessionId={self.session_id}"
         else:
             session_id = self._ensure_session()
             if session_id:
@@ -99,8 +110,8 @@ class YakAuth:
     # ---- session login ----
 
     def _ensure_session(self) -> str:
-        if self._session_id:
-            return self._session_id
+        if self.session_id or self._session_id:
+            return self.session_id or self._session_id
         with self._lock:
             if not self._session_id:
                 self._session_id = self._login()

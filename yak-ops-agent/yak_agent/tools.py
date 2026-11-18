@@ -243,7 +243,7 @@ def build_tools(
             workdir = workspace.root if workspace is not None else None
             return _executor.format_result(_executor.run_analysis(
                 code, timeout_seconds, workdir=workdir, workspace=workspace,
-                allow_unsafe=settings.ptc_allow_unsafe, settings=settings,
+                allow_unsafe=settings.ptc_allow_unsafe, auth=auth,
             ))
 
         if ptc_ready:

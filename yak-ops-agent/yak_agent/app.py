@@ -50,7 +50,12 @@ SYSTEM_PROMPT = """你是 yak-ops 平台的数据同步助手，覆盖数据同�
 8. 日志根因分析、跨实例聚合统计等大数据量分析：优先用 `run_analysis_script` 写脚本处理（脚本里分页拉全量日志并 grep `Caused by` 链，只 print 结论），不要把大段原始日志读进对话。简单状态查询仍用直接工具。"""
 
 
-def build_agent(settings: Settings, state: Any | None = None, workspace: SessionWorkspace | None = None) -> Agent:
+def build_agent(
+    settings: Settings,
+    state: Any | None = None,
+    workspace: SessionWorkspace | None = None,
+    auth: Any | None = None,
+) -> Agent:
     """Assemble the data-sync copilot from open-box AgentScope components."""
     model = OpenAIChatModel(
         credential=OpenAICredential(api_key=settings.llm_api_key, base_url=settings.llm_base_url),
@@ -61,7 +66,7 @@ def build_agent(settings: Settings, state: Any | None = None, workspace: Session
         system_prompt=SYSTEM_PROMPT,
         model=model,
         toolkit=Toolkit(
-            tools=build_tools(settings, workspace=workspace),
+            tools=build_tools(settings, auth=auth, workspace=workspace),
             skills_or_loaders=[LocalSkillLoader(directory=str(_SKILLS_DIR), scan_subdir=True)],
         ),
         state=state,

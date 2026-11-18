@@ -50,10 +50,13 @@ from agentscope.event import (
 from agentscope.message import UserMsg
 from agentscope.state import AgentState
 
+import hashlib
+
 from yak_agent.app import build_agent
 from yak_agent import audit
 from yak_agent.config import Settings
 from yak_agent.workspace import SessionWorkspace
+from yak_agent.yak_client import YakAuth
 
 _SESSION_DIR = Path(os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions"))
 _FORWARD_EVENTS = {
@@ -68,6 +71,7 @@ class Session:
     agent: Any
     workspace: SessionWorkspace
     owner: str = "local"
+    auth: Any = None  # per-session YakAuth; refreshed in place on each request
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     confirm_future: asyncio.Future | None = None
     pending_event: RequireUserConfirmEvent | None = None
@@ -120,8 +124,8 @@ def _service_token() -> str:
     return os.environ.get("YAK_AGENT_SERVICE_TOKEN", "").strip()
 
 
-def _caller(request: "Request") -> str:
-    """Authenticate the caller and return its identity.
+def _service_guard(request: "Request") -> None:
+    """Service-level access control (layer 1 of the two-layer auth).
 
     With YAK_AGENT_SERVICE_TOKEN set, callers must present
     `Authorization: Bearer <token>` (401 otherwise). Without a token the
@@ -132,11 +136,49 @@ def _caller(request: "Request") -> str:
     if token:
         if request.headers.get("Authorization", "") != f"Bearer {token}":
             raise HTTPException(status_code=401, detail="unauthorized: missing or invalid service token")
-        return "service-token"
+        return
     client_host = request.client.host if request.client else "?"
     if client_host not in ("127.0.0.1", "::1", "localhost"):
         raise HTTPException(status_code=401, detail="unauthorized: set YAK_AGENT_SERVICE_TOKEN for non-local callers")
-    return "local"
+
+
+def _identity(request: "Request", settings: Settings) -> tuple[str, YakAuth]:
+    """Resolve (owner key, session auth) from the frontend headers.
+
+    X-Yak-Session-Id carries the caller's yak-ops sessionId cookie (per-user
+    identity — tools then run inside that user's permission boundary);
+    X-Yak-User-Id is the stable ownership key that survives re-login. Without
+    headers the service credentials are used (CLI / single-tenant mode).
+    Layer 1 (service guard) runs first: service token or loopback-only.
+    """
+    _service_guard(request)
+    session_id = request.headers.get("X-Yak-Session-Id", "").strip()
+    user_id = request.headers.get("X-Yak-User-Id", "").strip()
+    auth = YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id) if session_id else None
+    if user_id:
+        return f"user:{user_id}", auth
+    if session_id:
+        return "session:" + hashlib.sha256(session_id.encode()).hexdigest()[:12], auth
+    return "local", auth or YakAuth(
+        base_url=settings.yak_ops_base_url,
+        username=settings.yak_ops_username,
+        password=settings.yak_ops_password,
+    )
+
+
+def _refresh_session_auth(session: Session, auth: YakAuth | None) -> None:
+    """Refresh the session's per-user credentials in place.
+
+    YakAuth is a mutable object captured by the tool closures at build time —
+    updating `session_id` (and base_url) here makes the running tools use the
+    fresh frontend session on the next call. No-op without user headers
+    (CLI / single-tenant mode keeps the service credentials).
+    """
+    if auth is not None and session.auth is not None:
+        session.auth.session_id = auth.session_id
+        session.auth.base_url = auth.base_url
+    elif auth is not None and session.auth is None:
+        session.auth = auth
 
 
 def _load_session(sid: str, caller: str) -> Session:
@@ -242,14 +284,15 @@ async def health() -> dict[str, str]:
 
 @app.post("/agent/sessions")
 async def create_session(request: "Request") -> dict[str, str]:
-    caller = _caller(request)
+    caller, auth = _identity(request, _get_settings())
     sid = uuid.uuid4().hex
     workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
     session = Session(
         sid=sid,
-        agent=build_agent(_get_settings(), workspace=workspace),
+        agent=build_agent(_get_settings(), workspace=workspace, auth=auth),
         workspace=workspace,
         owner=caller,
+        auth=auth,
     )
     _sessions[sid] = session
     _persist(session)
@@ -258,7 +301,7 @@ async def create_session(request: "Request") -> dict[str, str]:
 
 @app.get("/agent/sessions")
 async def list_sessions(request: "Request") -> list[dict[str, Any]]:
-    caller = _caller(request)
+    caller, _ = _identity(request, _get_settings())
     items = []
     if _SESSION_DIR.exists():
         for path in sorted(_SESSION_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
@@ -280,8 +323,9 @@ async def list_sessions(request: "Request") -> list[dict[str, Any]]:
 
 @app.post("/agent/sessions/{sid}/messages")
 async def send_message(sid: str, body: MessageBody, request: "Request") -> EventSourceResponse:
-    caller = _caller(request)
+    caller, auth = _identity(request, _get_settings())
     session = _load_session(sid, caller)
+    _refresh_session_auth(session, auth)
     if session.busy:
         raise HTTPException(status_code=409, detail="session is processing another message")
     session.busy = True
@@ -303,8 +347,9 @@ async def send_message(sid: str, body: MessageBody, request: "Request") -> Event
 
 @app.post("/agent/sessions/{sid}/confirm")
 async def confirm(sid: str, body: ConfirmBody, request: "Request") -> dict[str, bool]:
-    caller = _caller(request)
+    caller, auth = _identity(request, _get_settings())
     session = _load_session(sid, caller)
+    _refresh_session_auth(session, auth)
     if session.confirm_future is None or session.confirm_future.done():
         raise HTTPException(status_code=409, detail="no pending confirmation for this session")
     approved = body.approved if isinstance(body.approved, bool) else all(body.approved)
@@ -319,8 +364,9 @@ async def confirm(sid: str, body: ConfirmBody, request: "Request") -> dict[str, 
 
 @app.delete("/agent/sessions/{sid}")
 async def delete_session(sid: str, request: "Request") -> dict[str, bool]:
-    caller = _caller(request)
+    caller, auth = _identity(request, _get_settings())
     session = _load_session(sid, caller)  # ownership check before removal
+    _refresh_session_auth(session, auth)
     _sessions.pop(sid, None)
     for path in (_state_path(sid), _meta_path(sid)):
         if path.exists():

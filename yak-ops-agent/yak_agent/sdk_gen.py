@@ -24,16 +24,19 @@ sys.path.insert(0, r"{agent_root}")
 from yak_agent.yak_client import YakAuth, yak_download, yak_get
 
 # Credentials are injected as literals by the server at generation time — the
-# script process has no credential-bearing environment variables and cannot
-# read the host .env (the server process environment stays clean, and the
-# sandbox limits what the script can reach). Visibility of these constants to
-# the script is inherent to PTC and bounded by the sandbox + audit trail.
+# per-user session identity comes from the frontend request, so every SDK call
+# runs inside the calling user's permission boundary. The script process has
+# no credential-bearing environment variables and cannot read the host .env;
+# visibility of these constants to the script is inherent to PTC and bounded
+# by the sandbox + audit trail.
 _BASE_URL = {base_url!r}
+_SESSION_ID = {session_id!r}
 _TOKEN = {token!r}
 _USERNAME = {username!r}
 _PASSWORD = {password!r}
 _AUTH = YakAuth(
     base_url=_BASE_URL,
+    session_id=_SESSION_ID,
     token=_TOKEN,
     username=_USERNAME,
     password=_PASSWORD,
@@ -111,7 +114,7 @@ def {op['id']}({', '.join(signature) or ''}):
     return src
 
 
-def generate_sdk(agent_root: Path, settings: Any = None) -> str:
+def generate_sdk(agent_root: Path, auth: Any = None) -> str:
     """Return the SDK source for the readonly registry subset.
 
     `settings` supplies the credentials injected as literals (the script
@@ -120,16 +123,16 @@ def generate_sdk(agent_root: Path, settings: Any = None) -> str:
     fails — used by the compute-only tier, which does not write the SDK at all.
     """
     operations = [op for op in _load_operations() if op.get("risk") == "readonly"]
-    if settings is not None:
+    if auth is not None:
         creds = dict(
-            base_url=settings.yak_ops_base_url,
-            token=settings.yak_ops_token,
-            username=settings.yak_ops_username,
-            password=settings.yak_ops_password,
-            project_code=settings.project_code,
+            base_url=auth.base_url,
+            session_id=auth.session_id,
+            token=auth.token,
+            username=auth.username,
+            password=auth.password,
         )
     else:
-        creds = dict(base_url="", token="", username="", password="", project_code="")
+        creds = dict(base_url="", session_id="", token="", username="", password="")
     body = _TEMPLATE_HEADER.format(agent_root=str(agent_root), **creds)
     body += (
         "\n\ndef _post(method, path, body):\n"
@@ -144,10 +147,10 @@ def generate_sdk(agent_root: Path, settings: Any = None) -> str:
     return body
 
 
-def write_sdk(workdir: Path, agent_root: Path, settings: Any = None) -> Path:
+def write_sdk(workdir: Path, agent_root: Path, auth: Any = None) -> Path:
     """Materialise the SDK into a script working directory."""
     sdk_path = workdir / "yak_agent_sdk.py"
-    sdk_path.write_text(generate_sdk(agent_root, settings), encoding="utf-8")
+    sdk_path.write_text(generate_sdk(agent_root, auth), encoding="utf-8")
     return sdk_path
 
 

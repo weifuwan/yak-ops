@@ -200,7 +200,7 @@ def run_analysis(
     workdir: Path | None = None,
     workspace: Any | None = None,
     allow_unsafe: bool = False,
-    settings: Any = None,
+    auth: Any = None,
 ) -> dict[str, Any]:
     """Execute one analysis script and return {stdout, stderr, exitCode, durationMs, backend}.
 
@@ -244,13 +244,14 @@ def run_analysis(
     workdir.mkdir(parents=True, exist_ok=True)
     try:
         if backend == "cocoon":
-            # Sandboxed tier: SDK with injected credentials, script HTTP pinned
-            # to the whitelist proxy, and the script process environment carries
-            # no credentials (the server process environment stays clean).
-            if settings is None:
-                raise ValueError("settings is required for the sandboxed PTC tier")
-            proxy_url = _get_proxy(urlparse(settings.yak_ops_base_url).netloc)
-            write_sdk(workdir, _AGENT_ROOT, settings)
+            # Sandboxed tier: SDK injected with the per-user session identity
+            # (tools run inside the calling user's permission boundary), script
+            # HTTP pinned to the whitelist proxy, and the script process
+            # environment carries no credentials.
+            if auth is None:
+                raise ValueError("auth is required for the sandboxed PTC tier")
+            proxy_url = _get_proxy(urlparse(auth.base_url).netloc)
+            write_sdk(workdir, _AGENT_ROOT, auth)
             preamble = (
                 f"import sys; sys.path.insert(0, r\"{workdir}\"); sys.path.insert(0, r\"{_AGENT_ROOT}\")\n"
                 f"import os as _os\n"
