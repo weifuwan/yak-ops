@@ -30,8 +30,6 @@ export type SwitchRunConfig = {
   taskGroupPriority: string;
 };
 
-};
-
 const TASK_PRIORITIES: Array<{ value: SwitchTaskPriority; label: string }> = [
   { value: "HIGHEST", label: "最高" }, { value: "HIGH", label: "高" },
   { value: "MEDIUM", label: "中" }, { value: "LOW", label: "低" },
