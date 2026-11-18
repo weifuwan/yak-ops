@@ -7,8 +7,10 @@ import {
   Eye,
   Hash,
   ListTree,
+  Layers3,
   Search,
   Table2,
+  Workflow,
   Zap,
 } from "lucide-react";
 import { PanelHeader } from "@yak-ops/yak-ui";
@@ -32,12 +34,20 @@ function CatalogNodeIcon({
   node: CatalogTreeNode;
   expanded?: boolean;
 }) {
-  const className = "shrink-0";
+  const iconClass = "shrink-0";
+  const iconSize = 15;
+
   switch (node.nodeType) {
     case "DATASOURCE":
     case "DATABASE":
     case "CATALOG":
-      return <Database size={14} className="shrink-0 text-[#788391]" />;
+      return (
+        <Database
+          size={iconSize}
+          strokeWidth={1.7}
+          className={iconClass + " text-[#8b98a8]"}
+        />
+      );
     case "SCHEMA":
     case "TABLE_GROUP":
     case "VIEW_GROUP":
@@ -48,34 +58,35 @@ function CatalogNodeIcon({
     case "SEQUENCE_GROUP":
     case "COLUMN_GROUP":
     case "INDEX_GROUP":
+      // Reuse the exact open/closed folder SVG used by Resource Management.
       return (
         <ResourceTreeIcon
           name={node.name}
           directory
           expanded={expanded}
-          size={16}
+          size={17}
         />
       );
     case "TABLE":
-      return <Table2 size={14} className={className + " text-[#15966f]"} />;
+      return <Table2 size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#22a06b]"} />;
     case "VIEW":
-      return <Eye size={14} className={className + " text-[#4786c8]"} />;
+      return <Eye size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#4b91d1]"} />;
     case "MATERIALIZED_VIEW":
-      return <Eye size={14} className={className + " text-[#0f9f8f]"} />;
+      return <Layers3 size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#159e91]"} />;
     case "COLUMN":
-      return <Columns3 size={13} className={className + " text-[#718096]"} />;
+      return <Columns3 size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#c18a2d]"} />;
     case "INDEX":
-      return <ListTree size={13} className={className + " text-[#c18a2d]"} />;
+      return <ListTree size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#b9852b]"} />;
     case "FUNCTION":
-      return <Code2 size={13} className={className + " text-[#8b5cf6]"} />;
+      return <Code2 size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#9361d8]"} />;
     case "PROCEDURE":
-      return <Code2 size={13} className={className + " text-[#6366f1]"} />;
+      return <Workflow size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#6875d9]"} />;
     case "TRIGGER":
-      return <Zap size={13} className={className + " text-[#d97706]"} />;
+      return <Zap size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#d88a24]"} />;
     case "SEQUENCE":
-      return <Hash size={13} className={className + " text-[#0891b2]"} />;
+      return <Hash size={iconSize} strokeWidth={1.8} className={iconClass + " text-[#1698b5]"} />;
     default:
-      return <Database size={14} className="shrink-0 text-[#788391]" />;
+      return <Database size={iconSize} strokeWidth={1.7} className={iconClass + " text-[#8b98a8]"} />;
   }
 }
 
