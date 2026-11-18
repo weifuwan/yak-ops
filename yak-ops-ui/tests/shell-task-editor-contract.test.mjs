@@ -237,3 +237,32 @@ test("Shell resources panel uses declared loading, error and retry props", () =>
   assert.equal(resourcesPanelSource.includes("resourceLoading"), true);
   assert.equal(resourcesPanelSource.includes("onRetryResources()"), true);
 });
+
+
+test("Java, Shell, Conditions and Switch own independent run config modules", () => {
+  const root = new URL("../apps/web/app/data-development/task-editor/", import.meta.url);
+  const read = (path) => readFileSync(new URL(path, root), "utf8");
+  const java = read("java-task-editor.tsx");
+  const javaConfig = read("java-run-config-panel.tsx");
+  const shell = read("shell/index.tsx");
+  const shellHook = read("shell/use-shell-task-editor.ts");
+  const shellConfig = read("shell/components/shell-run-config-panel.tsx");
+  const conditions = read("logic/conditions/index.tsx");
+  const conditionsConfig = read("logic/conditions/components/conditions-run-config-panel.tsx");
+  const switchEditor = read("logic/switch/index.tsx");
+  const switchConfig = read("logic/switch/components/switch-run-config-panel.tsx");
+  const logic = read("logic/shared/logic-task-editor.tsx");
+
+  assert.match(java, /JavaRunConfigPanel/);
+  assert.match(javaConfig, /parseJavaRunConfig/);
+  assert.match(javaConfig, /normalizeJavaRunConfig/);
+  assert.match(shell, /ShellRunConfigPanel/);
+  assert.match(shellHook, /parseShellRunConfig/);
+  assert.match(shellHook, /normalizeShellRunConfig/);
+  assert.match(conditions, /useConditionsRunConfig/);
+  assert.match(conditionsConfig, /normalizeConditionsRunConfig/);
+  assert.match(switchEditor, /useSwitchRunConfig/);
+  assert.match(switchConfig, /normalizeSwitchRunConfig/);
+  assert.match(logic, /runConfig: LogicTaskRunConfigController/);
+  assert.doesNotMatch(logic, /TaskCommonSettingsSection|parseTaskCommonSettings|normalizeTaskCommonSettings/);
+});
