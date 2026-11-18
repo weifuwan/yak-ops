@@ -233,9 +233,10 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
   };
 
   const updateWorkflowReleaseState = (workflowCode: number, releaseState: string) => {
-    setTabs((current) => current.map((tab) =>
-      tab.workflowCode === workflowCode ? { ...tab, releaseState } : tab,
-    ));
+    setTabs((current) => current.map((tab) => {
+      if (tab.kind !== "workflow" && tab.kind !== "task") return tab;
+      return tab.workflowCode === workflowCode ? { ...tab, releaseState } : tab;
+    }));
   };
 
   const registerWorkflowStore = useCallback((workflowCode: number, store: WorkflowStoreApi) => {
