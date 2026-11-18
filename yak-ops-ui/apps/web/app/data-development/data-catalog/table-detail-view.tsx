@@ -91,30 +91,20 @@ export function TableDetailView({
       >
         <div className="flex h-11 shrink-0 items-stretch justify-between border-b border-[#e8eaee] bg-white">
           <TabsList className="!h-full !min-w-0 !flex-1 !gap-6 !border-b-0 !px-5">
-            <TabsTab value="columns" className="!px-0 !pb-2.5 !text-xs">
+            <TabsTab value="columns" className="!gap-1 !px-0 !pb-2.5 !text-xs data-active:!text-[var(--yak-components-tab-text)]">
               <span>字段</span>
               <span
-                className={[
-                  "rounded-[3px] px-1.5 py-0.5 text-[10px] font-medium",
-                  activeTab === "columns"
-                    ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                    : "bg-[#f1f3f6] text-[#667085]",
-                ].join(" ")}
+                className="rounded-[3px] bg-[#f1f3f6] px-1.5 py-0.5 text-[10px] font-medium text-[#667085]"
               >
                 {columnsQuery.data ? columns.length : "—"}
               </span>
             </TabsTab>
 
             {canShowIndexes ? (
-              <TabsTab value="indexes" className="!px-0 !pb-2.5 !text-xs">
+              <TabsTab value="indexes" className="!gap-1 !px-0 !pb-2.5 !text-xs data-active:!text-[var(--yak-components-tab-text)]">
                 <span>索引</span>
                 <span
-                  className={[
-                    "rounded-[3px] px-1.5 py-0.5 text-[10px] font-medium",
-                    activeTab === "indexes"
-                      ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
-                      : "bg-[#f1f3f6] text-[#667085]",
-                  ].join(" ")}
+                  className="rounded-[3px] bg-[#f1f3f6] px-1.5 py-0.5 text-[10px] font-medium text-[#667085]"
                 >
                   {indexesQuery.data ? indexes.length : "—"}
                 </span>
