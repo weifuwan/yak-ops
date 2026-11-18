@@ -44,14 +44,14 @@ type RailItem = {
 
 const RAIL_ITEMS: RailItem[] = [
   { id: "development", label: "数据开发", icon: SquareCode },
-  { id: "manual", label: "手动", icon: Ear },
+  { id: "manual", label: "手动运行", icon: Ear },
   { id: "component", label: "组件管理", icon: Puzzle },
   { id: "catalog", label: "数据目录", icon: Table2 },
   { id: "resource", label: "资源管理", icon: Archive },
   { id: "ai-processing", label: "AI 数据处理", icon: Bot },
   { id: "history", label: "运行历史", icon: History },
   { id: "review", label: "代码评审列表", icon: Stamp },
-  { id: "operation-check", label: "操作检查", icon: SquareCheckBig },
+  { id: "operation-check", label: "操作历史", icon: SquareCheckBig },
   { id: "smoke-test", label: "冒烟测试记录", icon: FileText },
   { id: "code-management", label: "代码管理", icon: Server },
   { id: "governance", label: "数据资产治理", icon: Box },
