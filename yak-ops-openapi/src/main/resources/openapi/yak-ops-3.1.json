@@ -15,7 +15,7 @@
     "/user-preferences/{scene}/{itemKey}/favorite": {
       "put": {
         "tags": [
-          "USER_PREFERENCE_TAG"
+          "user-preference"
         ],
         "operationId": "favorite",
         "parameters": [
@@ -62,13 +62,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Favorite",
+        "x-agent-summary-derived": true
       }
     },
     "/tenants/{id}": {
       "put": {
         "tags": [
-          "tenant related operation"
+          "tenant"
         ],
         "summary": "updateTenant",
         "description": "update tenant",
@@ -128,7 +130,7 @@
       },
       "delete": {
         "tags": [
-          "tenant related operation"
+          "tenant"
         ],
         "summary": "deleteTenantById",
         "description": "delete tenant",
@@ -162,7 +164,7 @@
     "/resources": {
       "get": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "pagingResourceItemRequest",
         "description": "PAGING_RESOURCE_ITEM_LIST",
@@ -235,7 +237,7 @@
       },
       "put": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "updateResource",
         "description": "edit resource file online",
@@ -320,7 +322,7 @@
       },
       "post": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "uploadFile",
         "description": "CREATE_FILE",
@@ -401,7 +403,7 @@
       },
       "delete": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "deleteResource",
         "description": "delete resource by id",
@@ -434,7 +436,7 @@
     "/resources/update-content": {
       "put": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "updateFileContent",
         "description": "edit resource file online",
@@ -484,7 +486,7 @@
     "/queues/{id}": {
       "put": {
         "tags": [
-          "queue related operation"
+          "queue"
         ],
         "summary": "updateQueue",
         "description": "update queue",
@@ -534,7 +536,7 @@
       },
       "delete": {
         "tags": [
-          "queue related operation"
+          "queue"
         ],
         "summary": "deleteQueueById",
         "description": "DELETE_QUEUE_NOTES",
@@ -568,7 +570,7 @@
     "/projects/{projectCode}/workflow-instances/{id}": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "queryWorkflowInstanceById",
         "description": "query process instance by process instance id",
@@ -610,7 +612,7 @@
       },
       "put": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "updateWorkflowInstance",
         "description": "update process instance",
@@ -716,7 +718,7 @@
       },
       "delete": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "deleteWorkflowInstanceById",
         "description": "delete process instance by process instance id",
@@ -760,7 +762,7 @@
     "/projects/{projectCode}/workflow-definition/{code}": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "queryWorkflowDefinitionByCode",
         "description": "query workflow definition by code",
@@ -802,7 +804,7 @@
       },
       "put": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "update",
         "description": "update process definition",
@@ -934,7 +936,7 @@
       },
       "delete": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "deleteByWorkflowDefinitionCode",
         "description": "delete process definition by process definition id",
@@ -978,7 +980,7 @@
     "/projects/{projectCode}/schedules/{id}": {
       "put": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "updateSchedule",
         "description": "update schedule",
@@ -1111,7 +1113,7 @@
       },
       "delete": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "deleteScheduleById",
         "description": "delete schedule by id",
@@ -1155,7 +1157,7 @@
     "/projects/{projectCode}/schedules/update/{code}": {
       "put": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "updateScheduleByWorkflowDefinitionCode",
         "description": "UPDATE_SCHEDULE_BY_WORKFLOW_DEFINITION_CODE_NOTES",
@@ -1298,7 +1300,7 @@
     "/projects/{projectCode}/project-preference": {
       "get": {
         "tags": [
-          "project preference related operation"
+          "project-preference"
         ],
         "summary": "queryProjectPreferenceByProjectCode",
         "description": "query project preference",
@@ -1330,7 +1332,7 @@
       },
       "put": {
         "tags": [
-          "project preference related operation"
+          "project-preference"
         ],
         "summary": "updateProjectPreference",
         "description": "update project preference",
@@ -1371,7 +1373,7 @@
       },
       "post": {
         "tags": [
-          "project preference related operation"
+          "project-preference"
         ],
         "summary": "enableProjectPreference",
         "description": "update the state of the project preference",
@@ -1414,7 +1416,7 @@
     "/projects/{projectCode}/project-parameter/{code}": {
       "get": {
         "tags": [
-          "project parameter related operation"
+          "project-parameter"
         ],
         "summary": "queryProjectParameterByCode",
         "description": "query project parameter",
@@ -1456,7 +1458,7 @@
       },
       "put": {
         "tags": [
-          "project parameter related operation"
+          "project-parameter"
         ],
         "summary": "updateProjectParameter",
         "description": "update project parameter",
@@ -1527,7 +1529,7 @@
     "/projects/{projectCode}/modeling/time-periods/{id}": {
       "get": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "getById",
         "parameters": [
@@ -1551,11 +1553,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "update",
         "parameters": [
@@ -1589,11 +1593,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "delete",
         "parameters": [
@@ -1617,13 +1623,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/categories/{categoryId}": {
       "get": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "getCategoryById",
         "parameters": [
@@ -1647,11 +1655,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get Category By Id",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "updateCategory",
         "parameters": [
@@ -1685,11 +1695,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update Category",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "deleteCategory",
         "parameters": [
@@ -1713,13 +1725,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete Category",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/subject-domain": {
       "put": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "description": "Update subject domain",
         "operationId": "update_1",
@@ -1744,11 +1758,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 1",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "description": "Create subject domain",
         "operationId": "create_1",
@@ -1773,13 +1789,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/standard-directories/{id}": {
       "get": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "getById_1",
         "parameters": [
@@ -1803,11 +1821,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 1",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "update_2",
         "parameters": [
@@ -1841,11 +1861,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 2",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "delete_2",
         "parameters": [
@@ -1869,13 +1891,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/naming-dictionaries/{id}": {
       "get": {
         "tags": [
-          "naming-dictionary-controller"
+          "naming-dictionary"
         ],
         "operationId": "getById_2",
         "parameters": [
@@ -1899,11 +1923,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 2",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "naming-dictionary-controller"
+          "naming-dictionary"
         ],
         "operationId": "update_3",
         "parameters": [
@@ -1937,11 +1963,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 3",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "naming-dictionary-controller"
+          "naming-dictionary"
         ],
         "operationId": "delete_3",
         "parameters": [
@@ -1965,13 +1993,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers/{id}": {
       "get": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "getById_3",
         "parameters": [
@@ -1995,11 +2025,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 3",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "update_4",
         "parameters": [
@@ -2033,11 +2065,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 4",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "delete_4",
         "parameters": [
@@ -2061,13 +2095,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/measurement-units/{id}": {
       "get": {
         "tags": [
-          "measurement-unit-controller"
+          "measurement-unit"
         ],
         "operationId": "getById_4",
         "parameters": [
@@ -2091,11 +2127,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 4",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "measurement-unit-controller"
+          "measurement-unit"
         ],
         "operationId": "update_5",
         "parameters": [
@@ -2129,11 +2167,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 5",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "measurement-unit-controller"
+          "measurement-unit"
         ],
         "operationId": "delete_5",
         "parameters": [
@@ -2157,13 +2197,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/field-standards/{id}": {
       "get": {
         "tags": [
-          "field-standard-controller"
+          "field-standard"
         ],
         "operationId": "getById_5",
         "parameters": [
@@ -2187,11 +2229,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 5",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "field-standard-controller"
+          "field-standard"
         ],
         "operationId": "update_6",
         "parameters": [
@@ -2225,11 +2269,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 6",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "field-standard-controller"
+          "field-standard"
         ],
         "operationId": "delete_6",
         "parameters": [
@@ -2253,13 +2299,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 6",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dw-layer": {
       "put": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "description": "Update warehouse layer",
         "operationId": "update_7",
@@ -2284,11 +2332,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 7",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "description": "Create warehouse layer",
         "operationId": "create_7",
@@ -2313,13 +2363,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 7",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions": {
       "put": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Update dimension table",
         "operationId": "update_8",
@@ -2344,11 +2396,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 8",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Create dimension table",
         "operationId": "create_8",
@@ -2373,13 +2427,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 8",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/{id}/submit": {
       "put": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Submit dimension table",
         "operationId": "submit",
@@ -2404,13 +2460,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/{id}/fields": {
       "get": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "fields",
         "parameters": [
@@ -2434,11 +2492,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Fields",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Replace dimension table fields",
         "operationId": "replaceFields",
@@ -2476,11 +2536,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Replace Fields",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Create dimension table field",
         "operationId": "createField",
@@ -2515,13 +2577,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create Field",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/{id}/fields/{fieldId}": {
       "put": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Update dimension table field",
         "operationId": "updateField",
@@ -2564,11 +2628,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update Field",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Delete dimension table field",
         "operationId": "deleteField",
@@ -2601,13 +2667,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete Field",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators/{id}": {
       "get": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "getById_6",
         "parameters": [
@@ -2631,11 +2699,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 6",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "update_9",
         "parameters": [
@@ -2669,11 +2739,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 9",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "delete_9",
         "parameters": [
@@ -2697,13 +2769,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 9",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-mart": {
       "put": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "description": "Update data mart",
         "operationId": "update_10",
@@ -2728,11 +2802,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 10",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "description": "Create data mart",
         "operationId": "create_10",
@@ -2757,13 +2833,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 10",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-domain": {
       "put": {
         "tags": [
-          "data-domain-controller"
+          "data-domain"
         ],
         "description": "Update data domain",
         "operationId": "update_11",
@@ -2788,11 +2866,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 11",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "data-domain-controller"
+          "data-domain"
         ],
         "description": "Create data domain",
         "operationId": "create_11",
@@ -2817,13 +2897,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 11",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators/{id}": {
       "get": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "getById_7",
         "parameters": [
@@ -2847,11 +2929,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 7",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "update_12",
         "parameters": [
@@ -2885,11 +2969,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 12",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "delete_12",
         "parameters": [
@@ -2913,13 +2999,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 12",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/code-standards/{id}": {
       "get": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "getById_8",
         "parameters": [
@@ -2943,11 +3031,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 8",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "update_13",
         "parameters": [
@@ -2981,11 +3071,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 13",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "delete_13",
         "parameters": [
@@ -3009,13 +3101,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 13",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/code-standards/{id}/details/{detailId}": {
       "put": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "updateDetail",
         "parameters": [
@@ -3057,11 +3151,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update Detail",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "deleteDetail",
         "parameters": [
@@ -3093,13 +3189,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete Detail",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type": {
       "put": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "description": "Update business type",
         "operationId": "update_14",
@@ -3124,11 +3222,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 14",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "description": "Create business type",
         "operationId": "create_14",
@@ -3153,13 +3253,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 14",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/update/related-domain/{id}": {
       "put": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "description": "Update business type data-domain relations",
         "operationId": "updateTypeData",
@@ -3197,13 +3299,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update Type Data",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/loadall/related-domain/{id}": {
       "put": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "description": "Load all data domains for business type",
         "operationId": "onLoadAllDomains",
@@ -3228,13 +3332,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "On Load All Domains",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-process": {
       "put": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "description": "Update business process",
         "operationId": "update_15",
@@ -3259,11 +3365,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 15",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "description": "Create business process",
         "operationId": "create_15",
@@ -3288,13 +3396,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 15",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/atom-indicators/{id}": {
       "get": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "getById_9",
         "parameters": [
@@ -3318,11 +3428,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get By Id 9",
+        "x-agent-summary-derived": true
       },
       "put": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "update_16",
         "parameters": [
@@ -3356,11 +3468,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Update 16",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "delete_16",
         "parameters": [
@@ -3384,13 +3498,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 16",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/datasources/{id}": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "queryDataSource",
         "description": "query data source by id",
@@ -3431,7 +3547,7 @@
       },
       "put": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "updateDataSource",
         "description": "update data source",
@@ -3490,7 +3606,7 @@
       },
       "delete": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "deleteDataSource",
         "description": "delete data source",
@@ -3533,7 +3649,7 @@
     "/projects/{projectCode}/data-sync/tasks/{taskCode}": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "getTask",
         "parameters": [
@@ -3567,14 +3683,16 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询数据同步任务详情",
+        "description": "返回任务定义、parameters 参数模板、revision（乐观锁）与 definitionVersion"
       },
       "put": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
-        "summary": "updateDataSyncTask",
-        "description": "Update data synchronization task",
+        "summary": "修改数据同步任务",
+        "description": "更新任务定义，需携带 expectedRevision 乐观锁",
         "operationId": "updateTask",
         "parameters": [
           {
@@ -3621,10 +3739,10 @@
       },
       "delete": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
-        "summary": "deleteDataSyncTask",
-        "description": "Delete data synchronization task",
+        "summary": "删除数据同步任务",
+        "description": "永久删除任务，不可恢复；仅停用请使用下线",
         "operationId": "deleteTask",
         "parameters": [
           {
@@ -3663,7 +3781,7 @@
     "/projects/{code}": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryProjectByCode",
         "description": "query project info by project id",
@@ -3695,7 +3813,7 @@
       },
       "put": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "update",
         "description": "update project",
@@ -3745,7 +3863,7 @@
       },
       "delete": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "delete",
         "description": "delete project by id",
@@ -3779,7 +3897,7 @@
     "/alert-plugin-instances/{id}": {
       "get": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "getAlertPluginInstance",
         "description": "get alert plugin instance operation",
@@ -3810,7 +3928,7 @@
       },
       "put": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "updateAlertPluginInstance",
         "description": "update alert plugin instance operation",
@@ -3868,7 +3986,7 @@
       },
       "delete": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "deleteAlertPluginInstance",
         "description": "delete alert plugin instance operation",
@@ -3902,7 +4020,7 @@
     "/alert-groups/{id}": {
       "put": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "updateAlertGroup",
         "description": "update alert group",
@@ -3961,7 +4079,7 @@
       },
       "delete": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "delAlertGroupById",
         "description": "delete alert group by id",
@@ -3995,7 +4113,7 @@
     "/access-tokens/{id}": {
       "put": {
         "tags": [
-          "access token related operation"
+          "access-token"
         ],
         "summary": "updateToken",
         "description": "update access token for specified user",
@@ -4057,7 +4175,7 @@
       },
       "delete": {
         "tags": [
-          "access token related operation"
+          "access-token"
         ],
         "summary": "deleteToken",
         "description": "DELETE_TOKEN_NOTES",
@@ -4090,7 +4208,7 @@
     "/worker-groups": {
       "get": {
         "tags": [
-          "worker group related operation"
+          "worker-group"
         ],
         "summary": "queryAllWorkerGroupsPaging",
         "description": "query worker group paging",
@@ -4141,7 +4259,7 @@
       },
       "post": {
         "tags": [
-          "worker group related operation"
+          "worker-group"
         ],
         "summary": "saveWorkerGroup",
         "description": "create worker group",
@@ -4202,7 +4320,7 @@
     "/users/update": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "updateUser",
         "description": "update user",
@@ -4309,7 +4427,7 @@
     "/users/revoke-project": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "revokeProject",
         "description": "REVOKE PROJECT FOR USER",
@@ -4353,7 +4471,7 @@
     "/users/revoke-project-by-id": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "revokeProjectById",
         "description": "REVOKE PROJECT FOR USER",
@@ -4396,7 +4514,7 @@
     "/users/register": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "registerUser",
         "description": "register user",
@@ -4457,7 +4575,7 @@
     "/users/grant-project": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "grantProject",
         "description": "GRANT PROJECT",
@@ -4500,7 +4618,7 @@
     "/users/grant-project-with-read-perm": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "grantProjectWithReadPerm",
         "description": "GRANT_PROJECT_WITH_READ_PERM_NOTES",
@@ -4543,7 +4661,7 @@
     "/users/grant-project-by-code": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "grantProjectByCode",
         "description": "GRANT PROJECT BY CODE",
@@ -4587,7 +4705,7 @@
     "/users/grant-datasource": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "grantDataSource",
         "description": "grant datasource",
@@ -4630,7 +4748,7 @@
     "/users/delete": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "delUserById",
         "description": "delete user by id",
@@ -4664,7 +4782,7 @@
     "/users/create": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "createUser",
         "description": "create user",
@@ -4753,7 +4871,7 @@
     "/users/batch/activate": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "batchActivateUser",
         "description": "batch active user",
@@ -4796,7 +4914,7 @@
     "/users/activate": {
       "post": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "activateUser",
         "description": "active user",
@@ -4829,7 +4947,7 @@
     "/user-preferences/{scene}/{itemKey}/use": {
       "post": {
         "tags": [
-          "USER_PREFERENCE_TAG"
+          "user-preference"
         ],
         "operationId": "use",
         "parameters": [
@@ -4866,13 +4984,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Use",
+        "x-agent-summary-derived": true
       }
     },
     "/tenants": {
       "get": {
         "tags": [
-          "tenant related operation"
+          "tenant"
         ],
         "summary": "queryTenantListPaging",
         "description": "query tenant list paging",
@@ -4923,7 +5043,7 @@
       },
       "post": {
         "tags": [
-          "tenant related operation"
+          "tenant"
         ],
         "summary": "createTenant",
         "description": "create tenant",
@@ -4975,7 +5095,7 @@
     "/task-group/update": {
       "post": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "update",
         "description": "update task group",
@@ -5037,7 +5157,7 @@
     "/task-group/start-task-group": {
       "post": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "startTaskGroup",
         "description": "start task group",
@@ -5071,7 +5191,7 @@
     "/task-group/modifyPriority": {
       "post": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "modifyPriority",
         "description": "modify task group priority",
@@ -5115,7 +5235,7 @@
     "/task-group/forceStart": {
       "post": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "forceStart",
         "description": "force start task group",
@@ -5149,7 +5269,7 @@
     "/task-group/create": {
       "post": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "create",
         "description": "create task group",
@@ -5211,7 +5331,7 @@
     "/task-group/close-task-group": {
       "post": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "closeTaskGroup",
         "description": "close task group",
@@ -5245,7 +5365,7 @@
     "/signOut": {
       "post": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "signOut",
         "description": "logout",
@@ -5267,7 +5387,7 @@
     "/resources/online-create": {
       "post": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "createFileFromContent",
         "description": "online create resource",
@@ -5347,7 +5467,7 @@
     "/resources/directory": {
       "post": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "createDirectory",
         "description": "create resource",
@@ -5402,7 +5522,7 @@
     "/queues": {
       "get": {
         "tags": [
-          "queue related operation"
+          "queue"
         ],
         "summary": "queryQueueListPaging",
         "description": "query queue list paging",
@@ -5453,7 +5573,7 @@
       },
       "post": {
         "tags": [
-          "queue related operation"
+          "queue"
         ],
         "summary": "createQueue",
         "description": "create queue",
@@ -5495,7 +5615,7 @@
     "/queues/verify": {
       "post": {
         "tags": [
-          "queue related operation"
+          "queue"
         ],
         "summary": "verifyQueue",
         "description": "verify queue",
@@ -5537,7 +5657,7 @@
     "/projects": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryProjectListPaging",
         "description": "QUERY PROJECT LIST PAGING",
@@ -5588,7 +5708,7 @@
       },
       "post": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "create",
         "description": "create project",
@@ -5630,7 +5750,7 @@
     "/projects/{projectCode}/workflow-instances/batch-delete": {
       "post": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "batchDeleteWorkflowInstanceByIds",
         "description": "batch delete workflow instance by workflow ids",
@@ -5673,7 +5793,7 @@
     "/projects/{projectCode}/workflow-definition": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "queryListPaging",
         "description": "query workflow definition list paging",
@@ -5753,7 +5873,7 @@
       },
       "post": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "createWorkflowDefinition",
         "description": "create process definition",
@@ -5873,7 +5993,7 @@
     "/projects/{projectCode}/workflow-definition/{code}/release": {
       "post": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "release",
         "description": "release workflow definition",
@@ -5938,7 +6058,7 @@
     "/projects/{projectCode}/workflow-definition/batch-move": {
       "post": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "batchMoveByCodes",
         "description": "move process definition notes",
@@ -5991,7 +6111,7 @@
     "/projects/{projectCode}/workflow-definition/batch-delete": {
       "post": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "batchDeleteByCodes",
         "description": "batch delete workflow definition by workflow definition ids",
@@ -6034,7 +6154,7 @@
     "/projects/{projectCode}/workflow-definition/batch-copy": {
       "post": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "batchCopyByCodes",
         "description": "copy process definition notes",
@@ -6087,7 +6207,7 @@
     "/projects/{projectCode}/worker-group": {
       "get": {
         "tags": [
-          "PROJECT_WORKER_GROUP_TAG"
+          "project-worker-group"
         ],
         "summary": "queryAssignedWorkerGroups",
         "description": "QUERY_WORKER_GROUP_LIST",
@@ -6122,7 +6242,7 @@
       },
       "post": {
         "tags": [
-          "PROJECT_WORKER_GROUP_TAG"
+          "project-worker-group"
         ],
         "summary": "assignWorkerGroups",
         "description": "ASSIGN_WORKER_GROUPS_NOTES",
@@ -6175,10 +6295,10 @@
     "/projects/{projectCode}/task-instances/{id}/stop": {
       "post": {
         "tags": [
-          "task instance related operation"
+          "task-instance"
         ],
-        "summary": "stop",
-        "description": "stop task instance",
+        "summary": "停止任务实例",
+        "description": "停止正在运行的实例",
         "operationId": "stopTask",
         "parameters": [
           {
@@ -6219,7 +6339,7 @@
     "/projects/{projectCode}/task-instances/{id}/savepoint": {
       "post": {
         "tags": [
-          "task instance related operation"
+          "task-instance"
         ],
         "summary": "savepoint",
         "description": "task savepoint",
@@ -6263,10 +6383,10 @@
     "/projects/{projectCode}/task-instances/{id}/force-success": {
       "post": {
         "tags": [
-          "task instance related operation"
+          "task-instance"
         ],
-        "summary": "force-success",
-        "description": "force task success",
+        "summary": "强制标记任务实例成功",
+        "description": "将失败的实例标记为成功，仅用于确认数据无误的场景",
         "operationId": "forceTaskSuccess",
         "parameters": [
           {
@@ -6306,7 +6426,7 @@
     "/projects/{projectCode}/task-definition/{code}/release": {
       "post": {
         "tags": [
-          "task definition related operation"
+          "task-definition"
         ],
         "summary": "releaseTaskDefinition",
         "description": "release task definition",
@@ -6363,7 +6483,7 @@
     "/projects/{projectCode}/schedules": {
       "get": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "queryScheduleListPaging",
         "description": "query schedule list paging",
@@ -6434,7 +6554,7 @@
       },
       "post": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "createSchedule",
         "description": "create schedule",
@@ -6569,7 +6689,7 @@
     "/projects/{projectCode}/schedules/{id}/online": {
       "post": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "online",
         "description": "online schedule",
@@ -6613,7 +6733,7 @@
     "/projects/{projectCode}/schedules/{id}/offline": {
       "post": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "offline",
         "description": "offline schedule",
@@ -6657,7 +6777,7 @@
     "/projects/{projectCode}/schedules/preview": {
       "post": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "previewSchedule",
         "description": "preview schedule",
@@ -6690,7 +6810,7 @@
     "/projects/{projectCode}/schedules/list": {
       "post": {
         "tags": [
-          "schedule related operation"
+          "schedule"
         ],
         "summary": "queryScheduleList",
         "description": "query schedule list",
@@ -6724,7 +6844,7 @@
     "/projects/{projectCode}/project-parameter": {
       "get": {
         "tags": [
-          "project parameter related operation"
+          "project-parameter"
         ],
         "summary": "queryProjectParameterListPaging",
         "description": "query project parameter list paging",
@@ -6793,7 +6913,7 @@
       },
       "post": {
         "tags": [
-          "project parameter related operation"
+          "project-parameter"
         ],
         "summary": "createProjectParameter",
         "description": "create project parameter",
@@ -6854,7 +6974,7 @@
     "/projects/{projectCode}/project-parameter/delete": {
       "post": {
         "tags": [
-          "project parameter related operation"
+          "project-parameter"
         ],
         "summary": "deleteProjectParametersByCode",
         "description": "delete project parameter",
@@ -6897,7 +7017,7 @@
     "/projects/{projectCode}/project-parameter/batch-delete": {
       "post": {
         "tags": [
-          "project parameter related operation"
+          "project-parameter"
         ],
         "summary": "batchDeleteProjectParametersByCodes",
         "description": "delete project parameter",
@@ -6940,7 +7060,7 @@
     "/projects/{projectCode}/modeling/time-periods": {
       "post": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "create",
         "requestBody": {
@@ -6964,13 +7084,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/{id}/submit": {
       "post": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "submit_1",
         "parameters": [
@@ -6994,13 +7116,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/{id}/rollback": {
       "post": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "rollback",
         "parameters": [
@@ -7033,13 +7157,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Rollback",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/page": {
       "post": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "page",
         "requestBody": {
@@ -7063,13 +7189,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/categories": {
       "post": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "createCategory",
         "requestBody": {
@@ -7093,13 +7221,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create Category",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/categories/page": {
       "post": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "pageCategories",
         "requestBody": {
@@ -7123,13 +7253,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page Categories",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/subject-domain/page": {
       "post": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "operationId": "paging",
         "requestBody": {
@@ -7153,13 +7285,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Paging",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/subject-domain/all": {
       "post": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "operationId": "all",
         "responses": {
@@ -7173,13 +7307,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/standard-directories": {
       "post": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "create_2",
         "requestBody": {
@@ -7203,13 +7339,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/standard-directories/page": {
       "post": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "page_1",
         "requestBody": {
@@ -7233,13 +7371,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/naming-dictionaries": {
       "post": {
         "tags": [
-          "naming-dictionary-controller"
+          "naming-dictionary"
         ],
         "operationId": "create_3",
         "requestBody": {
@@ -7263,13 +7403,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/naming-dictionaries/page": {
       "post": {
         "tags": [
-          "naming-dictionary-controller"
+          "naming-dictionary"
         ],
         "operationId": "page_2",
         "requestBody": {
@@ -7293,13 +7435,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers": {
       "post": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "create_4",
         "requestBody": {
@@ -7323,13 +7467,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers/{id}/submit": {
       "post": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "submit_2",
         "parameters": [
@@ -7353,13 +7499,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers/{id}/rollback": {
       "post": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "rollback_1",
         "parameters": [
@@ -7392,13 +7540,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Rollback 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers/page": {
       "post": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "page_3",
         "requestBody": {
@@ -7422,13 +7572,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/measurement-units": {
       "post": {
         "tags": [
-          "measurement-unit-controller"
+          "measurement-unit"
         ],
         "operationId": "create_5",
         "requestBody": {
@@ -7452,13 +7604,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/measurement-units/page": {
       "post": {
         "tags": [
-          "measurement-unit-controller"
+          "measurement-unit"
         ],
         "operationId": "page_4",
         "requestBody": {
@@ -7482,13 +7636,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/field-standards": {
       "post": {
         "tags": [
-          "field-standard-controller"
+          "field-standard"
         ],
         "operationId": "create_6",
         "requestBody": {
@@ -7512,13 +7668,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 6",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/field-standards/page": {
       "post": {
         "tags": [
-          "field-standard-controller"
+          "field-standard"
         ],
         "operationId": "page_5",
         "requestBody": {
@@ -7542,13 +7700,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dw-layer/page": {
       "post": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "operationId": "paging_1",
         "requestBody": {
@@ -7572,13 +7732,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Paging 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dw-layer/option": {
       "post": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "operationId": "option",
         "requestBody": {
@@ -7605,13 +7767,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Option",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/tree": {
       "post": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "tree",
         "requestBody": {
@@ -7635,13 +7799,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Tree",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/rollback/{id}": {
       "post": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Rollback dimension table version",
         "operationId": "rollback_2",
@@ -7675,13 +7841,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Rollback 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/page": {
       "post": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "page_6",
         "requestBody": {
@@ -7705,13 +7873,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 6",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/all": {
       "post": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "all_1",
         "requestBody": {
@@ -7734,13 +7904,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators": {
       "post": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "create_9",
         "requestBody": {
@@ -7764,13 +7936,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 9",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators/{id}/submit": {
       "post": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "submit_3",
         "parameters": [
@@ -7794,13 +7968,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators/{id}/rollback": {
       "post": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "rollback_3",
         "parameters": [
@@ -7833,13 +8009,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Rollback 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators/page": {
       "post": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "page_7",
         "requestBody": {
@@ -7863,13 +8041,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 7",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-mart/page": {
       "post": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "operationId": "paging_2",
         "requestBody": {
@@ -7893,13 +8073,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Paging 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-domain/page": {
       "post": {
         "tags": [
-          "data-domain-controller"
+          "data-domain"
         ],
         "operationId": "paging_3",
         "requestBody": {
@@ -7923,13 +8105,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Paging 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators": {
       "post": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "create_12",
         "requestBody": {
@@ -7953,13 +8137,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 12",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators/{id}/submit": {
       "post": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "submit_4",
         "parameters": [
@@ -7983,13 +8169,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators/{id}/rollback": {
       "post": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "rollback_4",
         "parameters": [
@@ -8022,13 +8210,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Rollback 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators/page": {
       "post": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "page_8",
         "requestBody": {
@@ -8052,13 +8242,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 8",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/code-standards": {
       "post": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "create_13",
         "requestBody": {
@@ -8082,13 +8274,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 13",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/code-standards/{id}/details": {
       "get": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "listDetails",
         "parameters": [
@@ -8112,11 +8306,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "List Details",
+        "x-agent-summary-derived": true
       },
       "post": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "createDetail",
         "parameters": [
@@ -8150,13 +8346,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create Detail",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/code-standards/page": {
       "post": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "page_9",
         "requestBody": {
@@ -8180,13 +8378,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 9",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/page": {
       "post": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "paging_4",
         "requestBody": {
@@ -8210,13 +8410,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Paging 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-process/page": {
       "post": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "operationId": "paging_5",
         "requestBody": {
@@ -8240,13 +8442,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Paging 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/atom-indicators": {
       "post": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "create_16",
         "requestBody": {
@@ -8270,13 +8474,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Create 16",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/atom-indicators/{id}/submit": {
       "post": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "submit_5",
         "parameters": [
@@ -8300,13 +8506,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/atom-indicators/{id}/rollback": {
       "post": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "rollback_5",
         "parameters": [
@@ -8339,13 +8547,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Rollback 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/atom-indicators/page": {
       "post": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "page_10",
         "requestBody": {
@@ -8369,13 +8579,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Page 10",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/lineages/tasks/verify-delete": {
       "post": {
         "tags": [
-          "work flow lineage related operation"
+          "workflow-lineage"
         ],
         "summary": "verifyTaskCanDelete",
         "description": "verify if task can be deleted",
@@ -8429,7 +8641,7 @@
     "/projects/{projectCode}/executors/task-instance/{code}/start": {
       "post": {
         "tags": [
-          "executor operation"
+          "executor"
         ],
         "summary": "startTaskInstance",
         "description": "run task instance",
@@ -8595,7 +8807,7 @@
     "/projects/{projectCode}/executors/start-workflow-instance": {
       "post": {
         "tags": [
-          "executor operation"
+          "executor"
         ],
         "summary": "startWorkflowInstance",
         "description": "run process instance",
@@ -8863,7 +9075,7 @@
     "/projects/{projectCode}/executors/execute": {
       "post": {
         "tags": [
-          "executor operation"
+          "executor"
         ],
         "summary": "execute",
         "description": "execute action to process instance",
@@ -8915,7 +9127,7 @@
     "/projects/{projectCode}/executors/execute-task": {
       "post": {
         "tags": [
-          "executor operation"
+          "executor"
         ],
         "summary": "execute-task",
         "description": "execute action to process instance",
@@ -8982,7 +9194,7 @@
     "/projects/{projectCode}/executors/batch-start-workflow-instance": {
       "post": {
         "tags": [
-          "executor operation"
+          "executor"
         ],
         "summary": "batchStartWorkflowInstance",
         "description": "batch run process instance(If any processDefinitionCode cannot be found, the failure information is returned and the status is set to failed. The successful task will run normally and will not stop)",
@@ -9239,7 +9451,7 @@
     "/projects/{projectCode}/executors/batch-execute": {
       "post": {
         "tags": [
-          "executor operation"
+          "executor"
         ],
         "summary": "batchExecute",
         "description": "batch change state for muliple process instances(Will raise error with specific id when any it cannot be found, and will only show detail error message when some instances change state not as expected)",
@@ -9299,7 +9511,7 @@
     "/projects/{projectCode}/datasources": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "queryDataSourceListPaging",
         "description": "query data source list paging",
@@ -9398,7 +9610,7 @@
       },
       "post": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "createDataSource",
         "description": "create data source",
@@ -9442,7 +9654,7 @@
     "/projects/{projectCode}/data-sync/tasks": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "listTasks",
         "parameters": [
@@ -9520,14 +9732,16 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询数据同步任务列表",
+        "description": "分页查询任务定义，支持名称关键字、发布状态与范围过滤"
       },
       "post": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
-        "summary": "createDataSyncTask",
-        "description": "Create data synchronization task",
+        "summary": "创建数据同步任务",
+        "description": "创建新任务，默认离线（OFFLINE），发布后才可执行",
         "operationId": "createTask",
         "parameters": [
           {
@@ -9567,10 +9781,10 @@
     "/projects/{projectCode}/data-sync/tasks/{taskCode}/unpublish": {
       "post": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
-        "summary": "unpublishDataSyncTask",
-        "description": "Unpublish data synchronization task",
+        "summary": "下线数据同步任务",
+        "description": "将任务下线，停止新的调度执行",
         "operationId": "unpublish",
         "parameters": [
           {
@@ -9609,10 +9823,10 @@
     "/projects/{projectCode}/data-sync/tasks/{taskCode}/publish": {
       "post": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
-        "summary": "publishDataSyncTask",
-        "description": "Publish data synchronization task",
+        "summary": "发布数据同步任务",
+        "description": "将指定版本上线，使其可被调度执行",
         "operationId": "publish",
         "parameters": [
           {
@@ -9661,10 +9875,10 @@
     "/projects/{projectCode}/data-sync/tasks/preview": {
       "post": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
-        "summary": "previewDataSyncTask",
-        "description": "Preview data synchronization pipeline YAML",
+        "summary": "预览数据同步任务 YAML",
+        "description": "校验 pipeline 参数并渲染生成的 YAML，不产生任何写入",
         "operationId": "preview",
         "parameters": [
           {
@@ -9704,7 +9918,7 @@
     "/login": {
       "post": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "login",
         "description": "user login",
@@ -9747,7 +9961,7 @@
     "/favourite/{taskType}": {
       "post": {
         "tags": [
-          "favourite related operation"
+          "favourite"
         ],
         "summary": "addTaskType",
         "description": "add task type",
@@ -9777,7 +9991,7 @@
       },
       "delete": {
         "tags": [
-          "favourite related operation"
+          "favourite"
         ],
         "summary": "deleteTaskType",
         "description": "delete task type",
@@ -9809,7 +10023,7 @@
     "/environment/verify-environment": {
       "post": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "verifyEnvironment",
         "description": "verify environment",
@@ -9842,7 +10056,7 @@
     "/environment/update": {
       "post": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "updateEnvironment",
         "description": "UPDATE_ENVIRONMENT_NOTES",
@@ -9912,7 +10126,7 @@
     "/environment/delete": {
       "post": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "deleteEnvironmentByCode",
         "description": "delete environment by code",
@@ -9946,7 +10160,7 @@
     "/environment/create": {
       "post": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "createEnvironment",
         "description": "create environment",
@@ -10006,7 +10220,7 @@
     "/datasources/connect": {
       "post": {
         "tags": [
-          "data-source-connector-controller"
+          "data-source-connector"
         ],
         "operationId": "testConnection",
         "requestBody": {
@@ -10030,13 +10244,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Test Connection",
+        "x-agent-summary-derived": true
       }
     },
     "/cluster/verify-cluster": {
       "post": {
         "tags": [
-          "cluster related operation"
+          "cluster"
         ],
         "summary": "verifyCluster",
         "description": "verify cluster",
@@ -10069,7 +10285,7 @@
     "/cluster/update": {
       "post": {
         "tags": [
-          "cluster related operation"
+          "cluster"
         ],
         "summary": "updateCluster",
         "description": "update cluster",
@@ -10130,7 +10346,7 @@
     "/cluster/delete": {
       "post": {
         "tags": [
-          "cluster related operation"
+          "cluster"
         ],
         "summary": "deleteClusterByCode",
         "description": "delete cluster by code",
@@ -10164,7 +10380,7 @@
     "/cluster/create": {
       "post": {
         "tags": [
-          "cluster related operation"
+          "cluster"
         ],
         "summary": "createCluster",
         "description": "create cluster",
@@ -10215,7 +10431,7 @@
     "/alert-plugin-instances": {
       "get": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "queryAlertPluginInstanceListPaging",
         "description": "query alert plugin instance paging",
@@ -10266,7 +10482,7 @@
       },
       "post": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "createAlertPluginInstance",
         "description": "create alert plugin instance operation",
@@ -10318,7 +10534,7 @@
     "/alert-plugin-instances/test-send": {
       "post": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "testSendAlertPluginInstance",
         "description": "TEST_SEND_ALERT_PLUGIN_INSTANCE",
@@ -10361,7 +10577,7 @@
     "/alert-groups": {
       "get": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "queryAlertGroupListPaging",
         "description": "query alert group list paging",
@@ -10412,7 +10628,7 @@
       },
       "post": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "createAlertGroup",
         "description": "create alert group",
@@ -10463,7 +10679,7 @@
     "/alert-groups/query": {
       "post": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "queryAlertGroupById",
         "description": "QUERY_ALERT_GROUP_BY_ID_NOTES",
@@ -10497,7 +10713,7 @@
     "/agent/chat": {
       "post": {
         "tags": [
-          "agent-chat-controller"
+          "agent-chat"
         ],
         "operationId": "chat",
         "requestBody": {
@@ -10524,13 +10740,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Chat",
+        "x-agent-summary-derived": true
       }
     },
     "/agent/chat/turns": {
       "post": {
         "tags": [
-          "agent-chat-controller"
+          "agent-chat"
         ],
         "operationId": "submitTurn",
         "requestBody": {
@@ -10557,13 +10775,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Submit Turn",
+        "x-agent-summary-derived": true
       }
     },
     "/access-tokens": {
       "get": {
         "tags": [
-          "access token related operation"
+          "access-token"
         ],
         "summary": "queryAccessTokenList",
         "description": "query access token list paging",
@@ -10616,7 +10836,7 @@
       },
       "post": {
         "tags": [
-          "access token related operation"
+          "access-token"
         ],
         "summary": "createToken",
         "description": "create access token for specified user",
@@ -10670,7 +10890,7 @@
     "/access-tokens/generate": {
       "post": {
         "tags": [
-          "access token related operation"
+          "access-token"
         ],
         "operationId": "generateToken",
         "parameters": [
@@ -10703,13 +10923,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Generate Token",
+        "x-agent-summary-derived": true
       }
     },
     "/worker-groups/worker-address-list": {
       "get": {
         "tags": [
-          "worker group related operation"
+          "worker-group"
         ],
         "summary": "queryWorkerAddressList",
         "description": "query worker address list",
@@ -10731,7 +10953,7 @@
     "/worker-groups/all": {
       "get": {
         "tags": [
-          "worker group related operation"
+          "worker-group"
         ],
         "summary": "queryAllWorkerGroups",
         "description": "query worker group list",
@@ -10753,7 +10975,7 @@
     "/users/verify-user-name": {
       "get": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "verifyUserName",
         "description": "verify user name",
@@ -10786,7 +11008,7 @@
     "/users/list": {
       "get": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "listUser",
         "description": "list user",
@@ -10808,7 +11030,7 @@
     "/users/list-paging": {
       "get": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "queryUserList",
         "description": "query user list",
@@ -10861,7 +11083,7 @@
     "/users/list-all": {
       "get": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "operationId": "listAll",
         "responses": {
@@ -10875,13 +11097,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List All",
+        "x-agent-summary-derived": true
       }
     },
     "/users/get-user-info": {
       "get": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "summary": "getUserInfo",
         "description": "get user info",
@@ -10903,7 +11127,7 @@
     "/users/by-ids": {
       "get": {
         "tags": [
-          "users related operation"
+          "users"
         ],
         "operationId": "getUsersByIds",
         "parameters": [
@@ -10931,13 +11155,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get Users By Ids",
+        "x-agent-summary-derived": true
       }
     },
     "/user-preferences": {
       "get": {
         "tags": [
-          "USER_PREFERENCE_TAG"
+          "user-preference"
         ],
         "operationId": "list",
         "parameters": [
@@ -10966,13 +11192,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List",
+        "x-agent-summary-derived": true
       }
     },
     "/ui-plugins/{id}": {
       "get": {
         "tags": [
-          "UI plugin related operation"
+          "ui-plugin"
         ],
         "summary": "queryUiPluginDetailById",
         "description": "query ui plugin detail by id",
@@ -11006,7 +11234,7 @@
     "/ui-plugins/query-product-info": {
       "get": {
         "tags": [
-          "UI plugin related operation"
+          "ui-plugin"
         ],
         "summary": "queryProductInfo",
         "description": "QUERY_PRODUCT_INFO",
@@ -11028,7 +11256,7 @@
     "/ui-plugins/query-by-type": {
       "get": {
         "tags": [
-          "UI plugin related operation"
+          "ui-plugin"
         ],
         "summary": "queryUiPluginsByType",
         "description": "query ui plugins by type",
@@ -11066,7 +11294,7 @@
     "/tenants/verify-code": {
       "get": {
         "tags": [
-          "tenant related operation"
+          "tenant"
         ],
         "summary": "verifyTenantCode",
         "description": "verify tenant code",
@@ -11099,7 +11327,7 @@
     "/tenants/list": {
       "get": {
         "tags": [
-          "tenant related operation"
+          "tenant"
         ],
         "summary": "queryTenantList",
         "description": "query tenant list",
@@ -11121,7 +11349,7 @@
     "/task-plugins/types": {
       "get": {
         "tags": [
-          "TASK_PLUGIN"
+          "task-plugin"
         ],
         "summary": "listRegisteredTaskTypes",
         "description": "LIST_REGISTERED_TASK_TYPES",
@@ -11143,7 +11371,7 @@
     "/task-group/query-list-by-status": {
       "get": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "queryTaskGroupByStatus",
         "description": "query task group list by status",
@@ -11197,7 +11425,7 @@
     "/task-group/query-list-by-projectCode": {
       "get": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "queryTaskGroupByName",
         "description": "query task group list by project id",
@@ -11250,7 +11478,7 @@
     "/task-group/query-list-by-group-id": {
       "get": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "queryTaskGroupQueuesByGroupId",
         "description": "QUERY_TASKS_GROUP_GROUP_QUEUES",
@@ -11332,7 +11560,7 @@
     "/task-group/list-paging": {
       "get": {
         "tags": [
-          "task group related operation"
+          "task-group"
         ],
         "summary": "list-paging",
         "description": "query all task group",
@@ -11394,7 +11622,7 @@
     "/resources/view": {
       "get": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "viewResource",
         "description": "view resource by id",
@@ -11455,7 +11683,7 @@
     "/resources/query-by-type": {
       "get": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "queryResourceFileList",
         "description": "QUERY_RESOURCE_FILE_LIST_NOTES",
@@ -11492,7 +11720,7 @@
     "/resources/list": {
       "get": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "queryResourceList",
         "description": "query resource list",
@@ -11529,7 +11757,7 @@
     "/resources/download": {
       "get": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "downloadResource",
         "description": "download resource file",
@@ -11555,7 +11783,7 @@
     "/resources/base-dir": {
       "get": {
         "tags": [
-          "resource center related operation"
+          "resource"
         ],
         "summary": "queryResourceBaseDir",
         "description": "QUERY_RESOURCE_BASE_DIR",
@@ -11592,7 +11820,7 @@
     "/redirect/login/oauth2": {
       "get": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "redirectToOauth2",
         "description": "REDIRECT_TO_OAUTH2_LOGIN",
@@ -11626,7 +11854,7 @@
     "/queues/list": {
       "get": {
         "tags": [
-          "queue related operation"
+          "queue"
         ],
         "summary": "queryList",
         "description": "query queue list",
@@ -11648,7 +11876,7 @@
     "/projects/{projectCode}/workflow-instances": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "queryWorkflowInstanceListPaging",
         "description": "query process instance list",
@@ -11786,7 +12014,7 @@
     "/projects/{projectCode}/workflow-instances/{id}/view-variables": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "viewVariables",
         "description": "query process instance global variables and local variables",
@@ -11830,7 +12058,7 @@
     "/projects/{projectCode}/workflow-instances/{id}/view-gantt": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "vieGanttTree",
         "description": "view gantt",
@@ -11874,7 +12102,7 @@
     "/projects/{projectCode}/workflow-instances/{id}/tasks": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "queryTaskListByWorkflowInstanceId",
         "description": "query task list by process instance id",
@@ -11918,7 +12146,7 @@
     "/projects/{projectCode}/workflow-instances/trigger": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "queryWorkflowInstanceListByTrigger",
         "description": "QUERY_WORKFLOW_INSTANCE_BY_TRIGGER_NOTES",
@@ -11963,7 +12191,7 @@
     "/projects/{projectCode}/workflow-instances/top-n": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "queryTopNLongestRunningWorkflowInstance",
         "description": "query topN longest running workflow instance",
@@ -12025,7 +12253,7 @@
     "/projects/{projectCode}/workflow-instances/query-sub-by-parent": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "querySubWorkflowInstanceByTaskCode",
         "description": "QUERY_SUB_WORKFLOW_INSTANCE_BY_TASK_CODE_NOTES",
@@ -12077,7 +12305,7 @@
     "/projects/{projectCode}/workflow-instances/query-parent-by-sub": {
       "get": {
         "tags": [
-          "process instance related operation"
+          "process-instance"
         ],
         "summary": "queryParentInstanceBySubId",
         "description": "query parent process instance info by sub process instance id",
@@ -12121,7 +12349,7 @@
     "/projects/{projectCode}/workflow-definition/{code}/view-variables": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "viewVariables",
         "description": "QUERY_WORKFLOW_DEFINITION_GLOBAL_VARIABLES_AND_LOCAL_VARIABLES_NOTES",
@@ -12165,7 +12393,7 @@
     "/projects/{projectCode}/workflow-definition/{code}/view-tree": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "viewTree",
         "description": "view tree",
@@ -12219,7 +12447,7 @@
     "/projects/{projectCode}/workflow-definition/{code}/versions": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "queryVersions",
         "description": "query process definition versions",
@@ -12283,7 +12511,7 @@
     "/projects/{projectCode}/workflow-definition/{code}/versions/{version}": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "switchVersion",
         "description": "switch process definition version",
@@ -12335,7 +12563,7 @@
       },
       "delete": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "deleteVersion",
         "description": "delete process definition version",
@@ -12389,7 +12617,7 @@
     "/projects/{projectCode}/workflow-definition/{code}/tasks": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "getTasksByDefinitionCode",
         "description": "GET_TASK_LIST_BY_DEFINITION_CODE_NOTES",
@@ -12433,7 +12661,7 @@
     "/projects/{projectCode}/workflow-definition/verify-name": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "verify-name",
         "description": "verify process definition name",
@@ -12494,7 +12722,7 @@
     "/projects/{projectCode}/workflow-definition/simple-list": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "querySimpleList",
         "description": "QUERY_WORKFLOW_DEFINITION_SIMPLE_LIST_NOTES",
@@ -12528,7 +12756,7 @@
     "/projects/{projectCode}/workflow-definition/query-workflow-definition-list": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "getWorkflowListByProjectCode",
         "description": "query process definition list by project code",
@@ -12562,7 +12790,7 @@
     "/projects/{projectCode}/workflow-definition/query-task-definition-list": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "getTaskListByWorkflowDefinitionCode",
         "description": "query task definition list by process definition code",
@@ -12606,7 +12834,7 @@
     "/projects/{projectCode}/workflow-definition/query-by-name": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "queryWorkflowDefinitionByName",
         "description": "query process definition by name",
@@ -12649,7 +12877,7 @@
     "/projects/{projectCode}/workflow-definition/list": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "queryList",
         "description": "query workflow definition list",
@@ -12683,7 +12911,7 @@
     "/projects/{projectCode}/workflow-definition/batch-query-tasks": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "getTaskListByDefinitionCodes",
         "description": "GET_TASK_LIST_BY_DEFINITION_CODE_NOTES",
@@ -12726,7 +12954,7 @@
     "/projects/{projectCode}/workflow-definition/all": {
       "get": {
         "tags": [
-          "workflow definition related operation"
+          "workflow-definition"
         ],
         "summary": "queryAllByProjectCode",
         "description": "query all process definition by project code",
@@ -12760,7 +12988,7 @@
     "/projects/{projectCode}/task-instances": {
       "get": {
         "tags": [
-          "task instance related operation"
+          "task-instance"
         ],
         "summary": "queryTaskListPaging",
         "description": "query task instance list paging",
@@ -12939,7 +13167,7 @@
     "/projects/{projectCode}/task-definition/{code}": {
       "get": {
         "tags": [
-          "task definition related operation"
+          "task-definition"
         ],
         "summary": "queryTaskDefinitionByCode",
         "description": "query task definition detail",
@@ -12983,7 +13211,7 @@
     "/projects/{projectCode}/task-definition/{code}/versions": {
       "get": {
         "tags": [
-          "task definition related operation"
+          "task-definition"
         ],
         "summary": "queryVersions",
         "description": "query task definition version list",
@@ -13047,7 +13275,7 @@
     "/projects/{projectCode}/task-definition/{code}/versions/{version}": {
       "get": {
         "tags": [
-          "task definition related operation"
+          "task-definition"
         ],
         "summary": "switchVersion",
         "description": "switch task definition version",
@@ -13099,7 +13327,7 @@
       },
       "delete": {
         "tags": [
-          "task definition related operation"
+          "task-definition"
         ],
         "summary": "deleteVersion",
         "description": "delete task definition version",
@@ -13153,7 +13381,7 @@
     "/projects/{projectCode}/task-definition/gen-task-codes": {
       "get": {
         "tags": [
-          "task definition related operation"
+          "task-definition"
         ],
         "summary": "genTaskCodeList",
         "description": "query task code list",
@@ -13187,7 +13415,7 @@
     "/projects/{projectCode}/modeling/time-periods/{id}/versions": {
       "get": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "versions",
         "parameters": [
@@ -13211,13 +13439,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Versions",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/list": {
       "get": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "list_1",
         "parameters": [
@@ -13241,13 +13471,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/time-periods/categories/list": {
       "get": {
         "tags": [
-          "time-period-controller"
+          "time-period"
         ],
         "operationId": "listCategories",
         "parameters": [
@@ -13271,13 +13503,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List Categories",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/subject-domain/{id}": {
       "get": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "operationId": "selectById",
         "parameters": [
@@ -13301,11 +13535,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select By Id",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "description": "Delete subject domain",
         "operationId": "delete_1",
@@ -13330,13 +13566,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/subject-domain/tree": {
       "get": {
         "tags": [
-          "subject-domain-controller"
+          "subject-domain"
         ],
         "operationId": "tree_1",
         "responses": {
@@ -13350,13 +13588,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Tree 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/standard-directories/tree": {
       "get": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "tree_2",
         "parameters": [
@@ -13380,13 +13620,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Tree 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/standard-directories/list": {
       "get": {
         "tags": [
-          "standard-directory-controller"
+          "standard-directory"
         ],
         "operationId": "list_2",
         "parameters": [
@@ -13410,13 +13652,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/naming-dictionaries/list": {
       "get": {
         "tags": [
-          "naming-dictionary-controller"
+          "naming-dictionary"
         ],
         "operationId": "list_3",
         "parameters": [
@@ -13440,13 +13684,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers/{id}/versions": {
       "get": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "versions_1",
         "parameters": [
@@ -13470,13 +13716,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Versions 1",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/modifiers/list": {
       "get": {
         "tags": [
-          "modifier-controller"
+          "modifier"
         ],
         "operationId": "list_4",
         "parameters": [
@@ -13500,13 +13748,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/measurement-units/list": {
       "get": {
         "tags": [
-          "measurement-unit-controller"
+          "measurement-unit"
         ],
         "operationId": "list_5",
         "parameters": [
@@ -13530,13 +13780,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/field-standards/list": {
       "get": {
         "tags": [
-          "field-standard-controller"
+          "field-standard"
         ],
         "operationId": "list_6",
         "parameters": [
@@ -13560,13 +13812,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 6",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dw-layer/{id}": {
       "get": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "operationId": "selectById_1",
         "parameters": [
@@ -13590,11 +13844,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select By Id 1",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "description": "Delete warehouse layer",
         "operationId": "delete_7",
@@ -13619,13 +13875,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 7",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dw-layer/option/modal-type": {
       "get": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "operationId": "optionByModalType",
         "parameters": [
@@ -13658,13 +13916,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Option By Modal Type",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dw-layer/all": {
       "get": {
         "tags": [
-          "dw-layer-controller"
+          "dw-layer"
         ],
         "operationId": "all_2",
         "parameters": [
@@ -13688,13 +13948,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/{id}": {
       "get": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "get",
         "parameters": [
@@ -13718,11 +13980,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Delete dimension table",
         "operationId": "delete_8",
@@ -13747,13 +14011,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 8",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/version-history/{id}": {
       "get": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "versionHistory",
         "parameters": [
@@ -13777,13 +14043,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Version History",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/options/select": {
       "get": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "selectOptions",
         "responses": {
@@ -13797,13 +14065,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select Options",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/dimensions/options/select/dim": {
       "get": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "operationId": "dimensionOptions",
         "responses": {
@@ -13817,13 +14087,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Dimension Options",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators/{id}/versions": {
       "get": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "versions_2",
         "parameters": [
@@ -13847,13 +14119,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Versions 2",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/derived-indicators/list": {
       "get": {
         "tags": [
-          "derived-indicator-controller"
+          "derived-indicator"
         ],
         "operationId": "list_7",
         "parameters": [
@@ -13877,13 +14151,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 7",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-mart/{id}": {
       "get": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "operationId": "selectById_2",
         "parameters": [
@@ -13907,11 +14183,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select By Id 2",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "description": "Delete data mart",
         "operationId": "delete_10",
@@ -13936,13 +14214,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 10",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-mart/tree": {
       "get": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "operationId": "tree_3",
         "parameters": [
@@ -13966,13 +14246,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Tree 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-mart/all": {
       "get": {
         "tags": [
-          "data-mart-controller"
+          "data-mart"
         ],
         "operationId": "all_3",
         "responses": {
@@ -13986,13 +14268,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-domain/{id}": {
       "get": {
         "tags": [
-          "data-domain-controller"
+          "data-domain"
         ],
         "operationId": "selectById_3",
         "parameters": [
@@ -14016,11 +14300,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select By Id 3",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "data-domain-controller"
+          "data-domain"
         ],
         "description": "Delete data domain",
         "operationId": "delete_11",
@@ -14045,13 +14331,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 11",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/data-domain/all": {
       "get": {
         "tags": [
-          "data-domain-controller"
+          "data-domain"
         ],
         "operationId": "all_4",
         "responses": {
@@ -14065,13 +14353,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators/{id}/versions": {
       "get": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "versions_3",
         "parameters": [
@@ -14095,13 +14385,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Versions 3",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/composite-indicators/list": {
       "get": {
         "tags": [
-          "composite-indicator-controller"
+          "composite-indicator"
         ],
         "operationId": "list_8",
         "parameters": [
@@ -14125,13 +14417,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 8",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/code-standards/list": {
       "get": {
         "tags": [
-          "code-standard-controller"
+          "code-standard"
         ],
         "operationId": "list_9",
         "parameters": [
@@ -14155,13 +14449,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 9",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/{id}": {
       "get": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "selectById_4",
         "parameters": [
@@ -14185,11 +14481,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select By Id 4",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "description": "Delete business type",
         "operationId": "delete_14",
@@ -14214,13 +14512,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 14",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/tree": {
       "get": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "tree_4",
         "parameters": [
@@ -14244,13 +14544,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Tree 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/select/related-domain/{id}": {
       "get": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "selectTypeData",
         "parameters": [
@@ -14274,13 +14576,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select Type Data",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/related-domain/all": {
       "get": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "allRelatedDomainIds",
         "responses": {
@@ -14294,13 +14598,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All Related Domain Ids",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/option/related-domain/{id}": {
       "get": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "optionRelatedDomain",
         "parameters": [
@@ -14332,13 +14638,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Option Related Domain",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/all": {
       "get": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "operationId": "all_5",
         "responses": {
@@ -14352,13 +14660,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All 5",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-process/{id}": {
       "get": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "operationId": "selectById_5",
         "parameters": [
@@ -14382,11 +14692,13 @@
               }
             }
           }
-        }
+        },
+        "summary": "Select By Id 5",
+        "x-agent-summary-derived": true
       },
       "delete": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "description": "Delete business process",
         "operationId": "delete_15",
@@ -14411,13 +14723,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete 15",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-process/option/cascader": {
       "get": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "operationId": "getTreeOption",
         "parameters": [
@@ -14441,13 +14755,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get Tree Option",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-process/all": {
       "get": {
         "tags": [
-          "business-process-controller"
+          "business-process"
         ],
         "operationId": "all_6",
         "parameters": [
@@ -14471,13 +14787,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "All 6",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/bootstrap": {
       "get": {
         "tags": [
-          "DATA_MODELING_TAG"
+          "data-modeling"
         ],
         "summary": "queryModelingBootstrap",
         "description": "QUERY_MODELING_BOOTSTRAP_NOTES",
@@ -14510,7 +14828,7 @@
     "/projects/{projectCode}/modeling/atom-indicators/{id}/versions": {
       "get": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "versions_4",
         "parameters": [
@@ -14534,13 +14852,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Versions 4",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/atom-indicators/list": {
       "get": {
         "tags": [
-          "atom-indicator-controller"
+          "atom-indicator"
         ],
         "operationId": "list_10",
         "parameters": [
@@ -14564,13 +14884,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "List 10",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/lineages/{workFlowCode}": {
       "get": {
         "tags": [
-          "work flow lineage related operation"
+          "workflow-lineage"
         ],
         "summary": "queryLineageByWorkFlowCode",
         "description": "query workflow lineage by code list",
@@ -14613,7 +14935,7 @@
     "/projects/{projectCode}/lineages/query-dependent-tasks": {
       "get": {
         "tags": [
-          "work flow lineage related operation"
+          "workflow-lineage"
         ],
         "summary": "verifyTaskCanDelete",
         "description": "verify if task can be deleted",
@@ -14666,7 +14988,7 @@
     "/projects/{projectCode}/lineages/query-by-name": {
       "get": {
         "tags": [
-          "work flow lineage related operation"
+          "workflow-lineage"
         ],
         "summary": "queryLineageByWorkFlowName",
         "description": "query workflow lineage by name",
@@ -14708,7 +15030,7 @@
     "/projects/{projectCode}/lineages/list": {
       "get": {
         "tags": [
-          "work flow lineage related operation"
+          "workflow-lineage"
         ],
         "summary": "queryWorkFlowList",
         "description": "query workflow lineage",
@@ -14742,7 +15064,7 @@
     "/projects/{projectCode}/datasources/{id}/connect-test": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "connectionTest",
         "description": "connect data source test",
@@ -14785,7 +15107,7 @@
     "/projects/{projectCode}/datasources/verify-name": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "verifyDataSourceName",
         "description": "verify data source",
@@ -14827,7 +15149,7 @@
     "/projects/{projectCode}/datasources/tables": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "tables",
         "description": "get datasource tables",
@@ -14907,7 +15229,7 @@
     "/projects/{projectCode}/datasources/tableColumns": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "tableColumns",
         "description": "get datasource table columns",
@@ -14968,7 +15290,7 @@
     "/projects/{projectCode}/datasources/table-metadata": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "tableMetadata",
         "description": "get datasource tables",
@@ -15029,7 +15351,7 @@
     "/projects/{projectCode}/datasources/list": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "queryDataSourceList",
         "description": "query data source list by database type",
@@ -15102,7 +15424,7 @@
     "/projects/{projectCode}/datasources/databases": {
       "get": {
         "tags": [
-          "data source related operation"
+          "data-source"
         ],
         "summary": "databases",
         "description": "get datasource databases",
@@ -15145,7 +15467,7 @@
     "/projects/{projectCode}/data-sync/tasks/{taskCode}/versions/{version}": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "version",
         "parameters": [
@@ -15188,13 +15510,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询任务历史版本",
+        "description": "返回指定版本的任务定义快照"
       }
     },
     "/projects/{projectCode}/data-sync/overview": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "overview",
         "parameters": [
@@ -15219,13 +15543,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询数据同步概览",
+        "description": "返回项目的同步任务数、执行统计与健康度概览"
       }
     },
     "/projects/{projectCode}/data-sync/overview/executions": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "executionStats",
         "parameters": [
@@ -15268,13 +15594,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询数据同步执行统计",
+        "description": "按日期区间统计同步任务执行情况（开始/成功/失败数量）"
       }
     },
     "/projects/{projectCode}/data-sync/instances": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "instances",
         "parameters": [
@@ -15348,13 +15676,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询数据同步执行实例列表",
+        "description": "分页查询执行实例，支持状态与任务编码过滤，最新在前"
       }
     },
     "/projects/{projectCode}/data-sync/instances/{id}": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "getInstance",
         "parameters": [
@@ -15388,13 +15718,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询执行实例详情",
+        "description": "返回实例状态、起止时间、耗时与关联工作流实例"
       }
     },
     "/projects/{projectCode}/data-sync/instances/{id}/definition": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "getInstanceDefinition",
         "parameters": [
@@ -15428,13 +15760,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询实例对应的任务定义",
+        "description": "返回该实例执行时使用的任务定义快照"
       }
     },
     "/projects/{projectCode}/data-sync/instances/latest": {
       "get": {
         "tags": [
-          "data-sync-controller"
+          "data-sync"
         ],
         "operationId": "latest",
         "parameters": [
@@ -15480,13 +15814,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "查询任务最新执行实例",
+        "description": "批量查询指定任务的最新执行实例，可选仅活跃状态"
       }
     },
     "/projects/{projectCode}/alerts": {
       "get": {
         "tags": [
-          "ALERT_TAG"
+          "alert"
         ],
         "summary": "listAlerts",
         "description": "QUERY_ALERT_RECORD_LIST_NOTES",
@@ -15584,7 +15920,7 @@
     "/projects/unauth-project": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryUnauthorizedProject",
         "description": "query unauthorized project",
@@ -15618,7 +15954,7 @@
     "/projects/project-with-authorized-level": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryProjectWithAuthorizedLevel",
         "description": "QUERY_PROJECT_AUTHORIZED_LEVEL",
@@ -15652,7 +15988,7 @@
     "/projects/project-with-authorized-level-list-paging": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryProjectWithAuthorizedLevelListPaging",
         "description": "QUERY_PROJECT_WITH_AUTH_LEVEL_LIST_PAGING_NOTES",
@@ -15715,7 +16051,7 @@
     "/projects/list": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryAllProjectList",
         "description": "query all project list",
@@ -15737,7 +16073,7 @@
     "/projects/list-dependent": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryAllProjectListForDependent",
         "description": "query all project list for dependent",
@@ -15759,7 +16095,7 @@
     "/projects/created-and-authed": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryProjectCreatedAndAuthorizedByUser",
         "description": "query authorized and user created project",
@@ -15781,7 +16117,7 @@
     "/projects/authed-user": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryAuthorizedUser",
         "description": "query authorized user",
@@ -15815,7 +16151,7 @@
     "/projects/authed-project": {
       "get": {
         "tags": [
-          "project related operation"
+          "project"
         ],
         "summary": "queryAuthorizedProject",
         "description": "query authorized project",
@@ -15849,7 +16185,7 @@
     "/projects/audit/audit-log-operation-type": {
       "get": {
         "tags": [
-          "audit log related operation"
+          "audit-log"
         ],
         "summary": "queryAuditOperationTypeList",
         "description": "QUERY_AUDIT_OPERATION_TYPE_LIST",
@@ -15871,7 +16207,7 @@
     "/projects/audit/audit-log-model-type": {
       "get": {
         "tags": [
-          "audit log related operation"
+          "audit-log"
         ],
         "summary": "queryAuditModelTypeList",
         "description": "QUERY_AUDIT_MODEL_TYPE_LIST",
@@ -15893,7 +16229,7 @@
     "/projects/audit/audit-log-list": {
       "get": {
         "tags": [
-          "audit log related operation"
+          "audit-log"
         ],
         "summary": "queryAuditLogListPaging",
         "description": "query audit log",
@@ -16003,7 +16339,7 @@
     "/projects/analysis/workflow-state-count": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "countWorkflowInstanceState",
         "description": "count process instance state",
@@ -16055,7 +16391,7 @@
     "/projects/analysis/task-state-count": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "countTaskState",
         "description": "count task state",
@@ -16107,7 +16443,7 @@
     "/projects/analysis/queue-count": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "countQueueState",
         "description": "count the running status of the task in the queue",
@@ -16129,7 +16465,7 @@
     "/projects/analysis/listErrorCommand": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "listErrorCommand",
         "description": "LIST_ERROR_COMMAND_LIST_PAGING_NOTES",
@@ -16189,7 +16525,7 @@
     "/projects/analysis/listCommand": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "listPendingCommands",
         "description": "LIST_PENDING_COMMANDS",
@@ -16249,7 +16585,7 @@
     "/projects/analysis/define-user-count": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "countDefinitionByUser",
         "description": "count process definition by user",
@@ -16283,7 +16619,7 @@
     "/projects/analysis/command-state-count": {
       "get": {
         "tags": [
-          "analysis related operation of task state"
+          "task-analysis"
         ],
         "summary": "countCommandState",
         "description": "count command state",
@@ -16305,7 +16641,7 @@
     "/oidc-providers": {
       "get": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "getOidcProviders",
         "description": "GET_OIDC_PROVIDERS",
@@ -16328,7 +16664,7 @@
     "/oauth2/authorization/{providerId}": {
       "get": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "redirectToOidc",
         "description": "REDIRECT_TO_OIDC_LOGIN",
@@ -16354,7 +16690,7 @@
     "/oauth2-provider": {
       "get": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "getOauth2Provider",
         "description": "GET_OAUTH2_PROVIDER",
@@ -16376,7 +16712,7 @@
     "/monitor/{nodeType}": {
       "get": {
         "tags": [
-          "monitor related operation"
+          "monitor"
         ],
         "summary": "listServer",
         "description": "SERVER_LIST_NOTES",
@@ -16420,7 +16756,7 @@
     "/monitor/workers/task-executors": {
       "get": {
         "tags": [
-          "monitor related operation"
+          "monitor"
         ],
         "operationId": "queryTaskExecutors",
         "parameters": [
@@ -16444,13 +16780,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Query Task Executors",
+        "x-agent-summary-derived": true
       }
     },
     "/monitor/masters/workflow-executors": {
       "get": {
         "tags": [
-          "monitor related operation"
+          "monitor"
         ],
         "operationId": "queryWorkflowExecutors",
         "parameters": [
@@ -16474,13 +16812,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Query Workflow Executors",
+        "x-agent-summary-derived": true
       }
     },
     "/monitor/databases": {
       "get": {
         "tags": [
-          "monitor related operation"
+          "monitor"
         ],
         "summary": "queryDatabaseState",
         "description": "query database state",
@@ -16502,7 +16842,7 @@
     "/login/sso": {
       "get": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "sso login",
         "description": "user sso login",
@@ -16525,7 +16865,7 @@
     "/login/oauth2/code/{providerId}": {
       "get": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "summary": "handleOidcCallback",
         "description": "HANDLE_OIDC_CALLBACK",
@@ -16575,7 +16915,7 @@
     "/log/download-log": {
       "get": {
         "tags": [
-          "log related operation"
+          "log"
         ],
         "summary": "downloadTaskLog",
         "description": "download task instance log",
@@ -16609,10 +16949,10 @@
     "/log/detail": {
       "get": {
         "tags": [
-          "log related operation"
+          "log"
         ],
-        "summary": "queryLog",
-        "description": "query task instance log",
+        "summary": "查询任务实例执行日志",
+        "description": "按行读取任务实例日志，支持跳过行数与条数控制",
         "operationId": "queryLog",
         "parameters": [
           {
@@ -16663,7 +17003,7 @@
     "/favourite/taskTypes": {
       "get": {
         "tags": [
-          "favourite related operation"
+          "favourite"
         ],
         "summary": "listTaskType",
         "description": "query task type list",
@@ -16685,7 +17025,7 @@
     "/environment/query-environment-list": {
       "get": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "queryAllEnvironmentList",
         "description": "query all environment list",
@@ -16707,7 +17047,7 @@
     "/environment/query-by-code": {
       "get": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "queryEnvironmentByCode",
         "description": "query environment by code",
@@ -16741,7 +17081,7 @@
     "/environment/list-paging": {
       "get": {
         "tags": [
-          "environment related operation"
+          "environment"
         ],
         "summary": "queryEnvironmentListPaging",
         "description": "query environment list paging",
@@ -16794,7 +17134,7 @@
     "/dynamic/{taskCategory}/taskTypes": {
       "get": {
         "tags": [
-          "DYNAMIC_TASK_TYPE"
+          "dynamic-task-type"
         ],
         "summary": "listDynamicTaskTypes",
         "description": "LIST_DYNAMIC_TASK_TYPES",
@@ -16826,7 +17166,7 @@
     "/dynamic/taskCategories": {
       "get": {
         "tags": [
-          "DYNAMIC_TASK_TYPE"
+          "dynamic-task-type"
         ],
         "summary": "listTaskCategories",
         "description": "LIST_TASK_TYPE_CATEGORIES",
@@ -16848,7 +17188,7 @@
     "/datasources/kerberos-startup-state": {
       "get": {
         "tags": [
-          "data-source-connector-controller"
+          "data-source-connector"
         ],
         "operationId": "kerberosStartupState",
         "responses": {
@@ -16862,13 +17202,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Kerberos Startup State",
+        "x-agent-summary-derived": true
       }
     },
     "/datasources/connection-properties": {
       "get": {
         "tags": [
-          "data-source-connector-controller"
+          "data-source-connector"
         ],
         "operationId": "getConnectionProperties",
         "parameters": [
@@ -16923,13 +17265,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Get Connection Properties",
+        "x-agent-summary-derived": true
       }
     },
     "/cluster/query-cluster-list": {
       "get": {
         "tags": [
-          "cluster related operation"
+          "cluster"
         ],
         "summary": "queryAllClusterList",
         "description": "query all cluster list",
@@ -16951,7 +17295,7 @@
     "/cluster/list-paging": {
       "get": {
         "tags": [
-          "cluster related operation"
+          "cluster"
         ],
         "summary": "queryClusterListPaging",
         "description": "query cluster list paging",
@@ -17004,7 +17348,7 @@
     "/alert-plugin-instances/verify-name": {
       "get": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "verifyAlertInstanceName",
         "description": "verify alert instance name",
@@ -17037,7 +17381,7 @@
     "/alert-plugin-instances/list": {
       "get": {
         "tags": [
-          "alert plugin instance related operation"
+          "alert"
         ],
         "summary": "queryAlertPluginInstanceList",
         "description": "query all alert plugin instances",
@@ -17059,7 +17403,7 @@
     "/alert-groups/verify-name": {
       "get": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "verifyGroupName",
         "description": "verify alert group name, check alert group exist or not",
@@ -17092,7 +17436,7 @@
     "/alert-groups/list": {
       "get": {
         "tags": [
-          "alert group related operation"
+          "alert"
         ],
         "summary": "listAlertGroupById",
         "description": "query alert group list",
@@ -17114,7 +17458,7 @@
     "/agent/turns/{turnId}": {
       "get": {
         "tags": [
-          "agent-chat-controller"
+          "agent-chat"
         ],
         "operationId": "turnResult",
         "parameters": [
@@ -17138,13 +17482,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Turn Result",
+        "x-agent-summary-derived": true
       }
     },
     "/agent/turns/{turnId}/events": {
       "get": {
         "tags": [
-          "agent-chat-controller"
+          "agent-chat"
         ],
         "operationId": "turnEvents",
         "parameters": [
@@ -17168,13 +17514,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Turn Events",
+        "x-agent-summary-derived": true
       }
     },
     "/agent/sessions/{sessionId}/messages": {
       "get": {
         "tags": [
-          "agent-chat-controller"
+          "agent-chat"
         ],
         "operationId": "sessionMessages",
         "parameters": [
@@ -17208,13 +17556,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Session Messages",
+        "x-agent-summary-derived": true
       }
     },
     "/access-tokens/user/{userId}": {
       "get": {
         "tags": [
-          "access token related operation"
+          "access-token"
         ],
         "summary": "queryAccessTokenByUser",
         "description": "query access token for specified user",
@@ -17248,7 +17598,7 @@
     "/worker-groups/{id}": {
       "delete": {
         "tags": [
-          "worker group related operation"
+          "worker-group"
         ],
         "summary": "deleteWorkerGroupById",
         "description": "delete worker group by id",
@@ -17282,7 +17632,7 @@
     "/projects/{projectCode}/modeling/dimensions/batch": {
       "delete": {
         "tags": [
-          "dimension-modeling-controller"
+          "dimension-modeling"
         ],
         "description": "Delete dimension tables in batch",
         "operationId": "deleteBatch",
@@ -17310,13 +17660,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete Batch",
+        "x-agent-summary-derived": true
       }
     },
     "/projects/{projectCode}/modeling/business-type/delete/related-domain/{id}": {
       "delete": {
         "tags": [
-          "business-type-controller"
+          "business-type"
         ],
         "description": "Delete business type data-domain relation",
         "operationId": "deleteTypeData",
@@ -17349,13 +17701,15 @@
               }
             }
           }
-        }
+        },
+        "summary": "Delete Type Data",
+        "x-agent-summary-derived": true
       }
     },
     "/cookies": {
       "delete": {
         "tags": [
-          "User login related operations"
+          "users"
         ],
         "operationId": "clearCookieSessionId",
         "responses": {
@@ -17363,7 +17717,9 @@
             "description": "OK"
           }
         },
-        "security": []
+        "security": [],
+        "summary": "Clear Cookie Session Id",
+        "x-agent-summary-derived": true
       }
     }
   },
@@ -28468,6 +28824,12 @@
         "in": "cookie",
         "name": "sessionId",
         "description": "登录会话 Cookie（Constants.SESSION_ID = \"sessionId\"）。先调用 POST /login 建立会话，后续请求自动携带。"
+      },
+      "tokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "token",
+        "description": "平台 API Token 请求头（LoginHandlerInterceptor 校验 t_yak_ops_access_token，含过期时间）。经 /access-tokens 创建。"
       }
     }
   },
@@ -28475,6 +28837,9 @@
   "security": [
     {
       "cookieAuth": []
+    },
+    {
+      "tokenAuth": []
     }
   ]
 }

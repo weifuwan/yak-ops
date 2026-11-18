@@ -68,11 +68,6 @@
 
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-agent</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-alert-server</artifactId>
             <scope>provided</scope>
         </dependency>
