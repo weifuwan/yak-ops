@@ -6,6 +6,9 @@ import {
   Ellipsis,
   X,
   XCircle,
+  ClipboardList,
+  History,
+  Table2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,6 +26,9 @@ import {
 import { TaskEditor } from "./task-editor/task-editor";
 import { WorkflowEditor } from "./workflow-editor/workflow-editor";
 import { WorkflowWelcome } from "./workflow-welcome";
+import { WorkflowInstanceView } from "./run-history/workflow-instance-view";
+import { TableDetailView } from "./data-catalog/table-detail-view";
+import { AuditDetailView } from "./operation-history/detail-view";
 import { TaskTypeBadgeIcon } from "./workflow-editor/components/task-type-badge-icon";
 import { WorkflowTreeIcon } from "./workflow-editor/components/workflow-tree-icon";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
@@ -167,13 +173,14 @@ export function DataDevelopmentWorkbench() {
                   >
                     {tab.kind === "workflow" ? (
                       <WorkflowTreeIcon size={16} />
+                    ) : tab.kind === "task" ? (
+                      <TaskTypeBadgeIcon taskType={tab.task.taskType} size={16} />
+                    ) : tab.kind === "workflow-instance" ? (
+                      <History size={15} className="shrink-0 text-[#667085]" />
+                    ) : tab.kind === "catalog-table" ? (
+                      <Table2 size={15} className="shrink-0 text-[#667085]" />
                     ) : (
-                      <TaskTypeBadgeIcon
-                        taskType={
-                          tab.task.taskType
-                        }
-                        size={16}
-                      />
+                      <ClipboardList size={15} className="shrink-0 text-[#667085]" />
                     )}
                     <span className="min-w-0 flex-1 truncate whitespace-nowrap">
                       {tab.title}
@@ -397,6 +404,47 @@ export function DataDevelopmentWorkbench() {
                   nodeId={tab.nodeId}
                   readOnly={tab.releaseState.toUpperCase() === "ONLINE"}
                 />
+              </div>
+            );
+          }
+
+          if (tab.kind === "workflow-instance") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <WorkflowInstanceView instanceId={tab.instanceId} />
+              </div>
+            );
+          }
+
+          if (tab.kind === "catalog-table") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <TableDetailView
+                  dataSourceId={tab.dataSourceId}
+                  dataSourceName={tab.dataSourceName}
+                  database={tab.database}
+                  tableName={tab.tableName}
+                />
+              </div>
+            );
+          }
+
+          if (tab.kind === "audit-record") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <AuditDetailView record={tab.record} />
               </div>
             );
           }
