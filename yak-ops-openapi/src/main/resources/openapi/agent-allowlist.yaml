@@ -58,7 +58,13 @@ entries:
     tool: query_task_log
     domain: task-log
     risk: readonly
-    note: 任务实例日志（尾部）
+    note: 任务实例日志（分页）
+
+  - operationId: downloadTaskLog
+    tool: download_task_log
+    domain: task-log
+    risk: readonly
+    note: 下载任务实例完整日志文件（PTC 分析用）
 
   # ---------------- write (human confirmation) ----------------
   - operationId: createTask

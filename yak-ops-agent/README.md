@@ -30,7 +30,8 @@
 | `get_sync_overview` | `GET .../overview` |
 | `list_sync_instances` | `GET .../instances`（status/taskCode 过滤） |
 | `get_sync_instance_detail` | `GET .../instances/{id}` |
-| `query_task_log` | `GET /log/detail`（日志尾部，limit≤1000） |
+| `query_task_log` | `GET /log/detail`（日志分页，limit≤1000） |
+| `download_task_log` | `GET /log/download-log`（完整日志文件一次下载，PTC 分析用） |
 
 | 写工具（需人工确认） | REST 端点 |
 | --- | --- |
