@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -51,6 +51,7 @@ from agentscope.message import UserMsg
 from agentscope.state import AgentState
 
 from yak_agent.app import build_agent
+from yak_agent import audit
 from yak_agent.config import Settings
 from yak_agent.workspace import SessionWorkspace
 
@@ -66,6 +67,7 @@ class Session:
     sid: str
     agent: Any
     workspace: SessionWorkspace
+    owner: str = "local"
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     confirm_future: asyncio.Future | None = None
     pending_event: RequireUserConfirmEvent | None = None
@@ -97,30 +99,74 @@ def _state_path(sid: str) -> Path:
     return _SESSION_DIR / f"{sid}.json"
 
 
+def _meta_path(sid: str) -> Path:
+    _SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    return _SESSION_DIR / f"{sid}.meta.json"
+
+
 def _persist(session: Session) -> None:
     try:
         state = getattr(session.agent, "state", None)
         if state is not None:
             _state_path(session.sid).write_text(state.model_dump_json(), encoding="utf-8")
+        _meta_path(session.sid).write_text(
+            json.dumps({"owner": session.owner}, ensure_ascii=False), encoding="utf-8"
+        )
     except Exception:  # noqa: BLE001 - persistence must never break a turn
         pass
 
 
-def _load_session(sid: str) -> Session:
+def _service_token() -> str:
+    return os.environ.get("YAK_AGENT_SERVICE_TOKEN", "").strip()
+
+
+def _caller(request: "Request") -> str:
+    """Authenticate the caller and return its identity.
+
+    With YAK_AGENT_SERVICE_TOKEN set, callers must present
+    `Authorization: Bearer <token>` (401 otherwise). Without a token the
+    service is loopback-only by construction — non-local clients are refused
+    (401) so an accidental 0.0.0.0 binding cannot silently expose writes.
+    """
+    token = _service_token()
+    if token:
+        if request.headers.get("Authorization", "") != f"Bearer {token}":
+            raise HTTPException(status_code=401, detail="unauthorized: missing or invalid service token")
+        return "service-token"
+    client_host = request.client.host if request.client else "?"
+    if client_host not in ("127.0.0.1", "::1", "localhost"):
+        raise HTTPException(status_code=401, detail="unauthorized: set YAK_AGENT_SERVICE_TOKEN for non-local callers")
+    return "local"
+
+
+def _load_session(sid: str, caller: str) -> Session:
     if sid in _sessions:
-        return _sessions[sid]
-    path = _state_path(sid)
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"session {sid} not found")
-    settings = _get_settings()
-    try:
-        state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
-    except Exception as ex:  # noqa: BLE001
-        raise HTTPException(status_code=422, detail=f"session state unreadable: {ex}") from ex
-    workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
-    agent = build_agent(settings, state=state, workspace=workspace)
-    session = Session(sid=sid, agent=agent, workspace=workspace)
-    _sessions[sid] = session
+        session = _sessions[sid]
+    else:
+        path = _state_path(sid)
+        if not path.exists():
+            raise HTTPException(status_code=404, detail=f"session {sid} not found")
+        settings = _get_settings()
+        try:
+            state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
+        except Exception as ex:  # noqa: BLE001
+            raise HTTPException(status_code=422, detail=f"session state unreadable: {ex}") from ex
+        workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
+        agent = build_agent(settings, state=state, workspace=workspace)
+        owner = "local"
+        meta_path = _meta_path(sid)
+        if meta_path.exists():
+            try:
+                owner = json.loads(meta_path.read_text(encoding="utf-8")).get("owner", "local")
+            except Exception:  # noqa: BLE001
+                owner = "local"
+        if owner != caller:
+            raise HTTPException(status_code=403, detail="session belongs to another caller")
+        session = Session(sid=sid, agent=agent, workspace=workspace, owner=owner)
+        _sessions[sid] = session
+        return session
+    if session.owner != caller:
+        raise HTTPException(status_code=403, detail="session belongs to another caller")
     return session
 
 
@@ -195,20 +241,36 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/agent/sessions")
-async def create_session() -> dict[str, str]:
+async def create_session(request: "Request") -> dict[str, str]:
+    caller = _caller(request)
     sid = uuid.uuid4().hex
     workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
-    session = Session(sid=sid, agent=build_agent(_get_settings(), workspace=workspace), workspace=workspace)
+    session = Session(
+        sid=sid,
+        agent=build_agent(_get_settings(), workspace=workspace),
+        workspace=workspace,
+        owner=caller,
+    )
     _sessions[sid] = session
     _persist(session)
     return {"sessionId": sid}
 
 
 @app.get("/agent/sessions")
-async def list_sessions() -> list[dict[str, Any]]:
+async def list_sessions(request: "Request") -> list[dict[str, Any]]:
+    caller = _caller(request)
     items = []
     if _SESSION_DIR.exists():
         for path in sorted(_SESSION_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            owner = "local"
+            meta = _meta_path(path.stem)
+            if meta.exists():
+                try:
+                    owner = json.loads(meta.read_text(encoding="utf-8")).get("owner", "local")
+                except Exception:  # noqa: BLE001
+                    owner = "local"
+            if owner != caller:
+                continue  # session ownership: callers only see their own sessions
             items.append({
                 "sessionId": path.stem,
                 "updatedAt": path.stat().st_mtime,
@@ -217,8 +279,9 @@ async def list_sessions() -> list[dict[str, Any]]:
 
 
 @app.post("/agent/sessions/{sid}/messages")
-async def send_message(sid: str, body: MessageBody) -> EventSourceResponse:
-    session = _load_session(sid)
+async def send_message(sid: str, body: MessageBody, request: "Request") -> EventSourceResponse:
+    caller = _caller(request)
+    session = _load_session(sid, caller)
     if session.busy:
         raise HTTPException(status_code=409, detail="session is processing another message")
     session.busy = True
@@ -239,20 +302,30 @@ async def send_message(sid: str, body: MessageBody) -> EventSourceResponse:
 
 
 @app.post("/agent/sessions/{sid}/confirm")
-async def confirm(sid: str, body: ConfirmBody) -> dict[str, bool]:
-    session = _sessions.get(sid) or _load_session(sid)
+async def confirm(sid: str, body: ConfirmBody, request: "Request") -> dict[str, bool]:
+    caller = _caller(request)
+    session = _load_session(sid, caller)
     if session.confirm_future is None or session.confirm_future.done():
         raise HTTPException(status_code=409, detail="no pending confirmation for this session")
+    approved = body.approved if isinstance(body.approved, bool) else all(body.approved)
+    audit.record_tool_call(
+        "session_confirm",
+        {"session": sid, "caller": caller, "approved": approved},
+        True, 0, None,
+    )
     session.confirm_future.set_result(body.approved)
     return {"accepted": True}
 
 
 @app.delete("/agent/sessions/{sid}")
-async def delete_session(sid: str) -> dict[str, bool]:
+async def delete_session(sid: str, request: "Request") -> dict[str, bool]:
+    caller = _caller(request)
+    session = _load_session(sid, caller)  # ownership check before removal
     _sessions.pop(sid, None)
-    path = _state_path(sid)
-    if path.exists():
-        path.unlink()
+    for path in (_state_path(sid), _meta_path(sid)):
+        if path.exists():
+            path.unlink()
+    del session
     return {"deleted": True}
 
 

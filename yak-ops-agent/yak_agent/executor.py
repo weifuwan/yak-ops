@@ -24,9 +24,12 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from yak_agent import audit
 from yak_agent.sdk_gen import script_rejected, write_sdk
@@ -115,18 +118,99 @@ def _run_subprocess(script: Path, workdir: Path, timeout: int) -> tuple[str, str
         return ("", f"TIMEOUT after {timeout}s", -1)
 
 
+_PROXY_STATE: dict[str, Any] = {}
+
+
+def _get_proxy(allowed_netloc: str) -> str:
+    """Start (once) a localhost forward proxy that only relays the configured
+    yak-ops API host, and return its URL.
+
+    The sandboxed script routes its HTTP through this proxy via
+    HTTP_PROXY/HTTPS_PROXY set inside the script process — so SDK calls reach
+    yak-ops while any other destination gets a 403 from the proxy itself.
+    """
+    state = _PROXY_STATE
+    server = state.get("server")
+    if server is not None and state.get("allowed") == allowed_netloc:
+        return f"http://127.0.0.1:{server.server_address[1]}"
+
+    import httpx
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+        def _blocked(self) -> None:
+            self.send_error(403, "blocked: analysis scripts can only reach the configured yak-ops API host")
+
+        def _forward(self) -> None:
+            parsed = urlparse(self.path)
+            if not parsed.scheme:
+                target = f"http://{self.headers.get('Host', '')}{self.path}"
+            else:
+                target = self.path
+            if urlparse(target).netloc != allowed_netloc:
+                self._blocked()
+                return
+            length = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(length) if length else None
+            # drop accept-encoding (httpx decompresses) and hop-by-hop headers
+            headers = {
+                k: v for k, v in self.headers.items()
+                if k.lower() not in (
+                    "host", "proxy-connection", "content-length",
+                    "accept-encoding", "connection", "keep-alive",
+                )
+            }
+            try:
+                resp = httpx.request(self.command, target, headers=headers, content=body, timeout=60.0)
+            except Exception as ex:  # noqa: BLE001
+                self.send_error(502, f"upstream error: {ex}")
+                return
+            self.send_response(resp.status_code)
+            for k, v in resp.headers.items():
+                # content is already decompressed by httpx — drop encoding marks
+                if k.lower() in ("content-length", "transfer-encoding", "connection", "keep-alive", "content-encoding"):
+                    continue
+                self.send_header(k, v)
+            self.send_header("Content-Length", str(len(resp.content)))
+            self.end_headers()
+            self.wfile.write(resp.content)
+
+        do_GET = _forward
+        do_POST = _forward
+        do_PUT = _forward
+        do_DELETE = _forward
+        do_HEAD = _forward
+        do_CONNECT = _blocked
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    _PROXY_STATE["server"] = server
+    _PROXY_STATE["allowed"] = allowed_netloc
+    return f"http://127.0.0.1:{server.server_address[1]}"
+
+
 def run_analysis(
     code: str,
     timeout_seconds: int = _DEFAULT_TIMEOUT,
     workdir: Path | None = None,
     workspace: Any | None = None,
     allow_unsafe: bool = False,
+    settings: Any = None,
 ) -> dict[str, Any]:
     """Execute one analysis script and return {stdout, stderr, exitCode, durationMs, backend}.
 
     Backend policy: cocoon (sandboxed, SDK available) by default; the
     no-isolation subprocess tier only when `allow_unsafe` is set, running with
     a minimal environment (compute-only — the SDK cannot authenticate there).
+    In the sandboxed tier the script's HTTP goes through a whitelist proxy that
+    only relays the configured yak-ops API host, and credentials are injected
+    as literals into the generated SDK (the script process has no
+    credential-bearing environment).
     """
     started = time.monotonic()
     timeout = max(5, min(_HARD_TIMEOUT_CAP, int(timeout_seconds)))
@@ -160,15 +244,25 @@ def run_analysis(
     workdir.mkdir(parents=True, exist_ok=True)
     try:
         if backend == "cocoon":
-            # Sandboxed tier: SDK + credentials reachable inside the sandbox.
-            write_sdk(workdir, _AGENT_ROOT)
+            # Sandboxed tier: SDK with injected credentials, script HTTP pinned
+            # to the whitelist proxy, and the script process environment carries
+            # no credentials (the server process environment stays clean).
+            if settings is None:
+                raise ValueError("settings is required for the sandboxed PTC tier")
+            proxy_url = _get_proxy(urlparse(settings.yak_ops_base_url).netloc)
+            write_sdk(workdir, _AGENT_ROOT, settings)
             preamble = (
                 f"import sys; sys.path.insert(0, r\"{workdir}\"); sys.path.insert(0, r\"{_AGENT_ROOT}\")\n"
+                f"import os as _os\n"
+                f"_os.environ[\"HTTP_PROXY\"] = {proxy_url!r}\n"
+                f"_os.environ[\"HTTPS_PROXY\"] = {proxy_url!r}\n"
+                f"_os.environ[\"NO_PROXY\"] = \"\"\n"
             )
         else:
             # Unsafe tier is compute-only: no SDK, no path into the agent
             # package — otherwise Settings.load() would read the host .env and
-            # hand credentials to the script.
+            # hand credentials to the script. No proxy either: no network use
+            # is expected from a compute-only script.
             preamble = f"import sys; sys.path.insert(0, r\"{workdir}\")\n"
         script = workdir / "analysis.py"
         script.write_text(preamble + code, encoding="utf-8")

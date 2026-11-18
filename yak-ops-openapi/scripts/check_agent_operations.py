@@ -73,6 +73,15 @@ def main() -> int:
     entries = allow.get("entries") or []
     tools = {op["id"]: op for op in (registry.get("operations") or [])}
 
+    # drift check: the agent's runtime copy must match the reviewed original —
+    # two copies of one fact would silently diverge.
+    agent_copy = args.allowlist.parents[3] / "yak-ops-agent" / "yak_agent" / "agent-allowlist.yaml"
+    if agent_copy.exists():
+        if args.allowlist.read_text(encoding="utf-8") != agent_copy.read_text(encoding="utf-8"):
+            print("1 problem(s):")
+            print("  - allowlist drift: yak-ops-agent/yak_agent/agent-allowlist.yaml differs from the reviewed original; copy the original over the copy")
+            return 1
+
     problems: list[str] = []
     expected_tools: set[str] = set()
 
@@ -80,6 +89,12 @@ def main() -> int:
         op_id = entry.get("operationId")
         tool = entry.get("tool") or re.sub(r"(?<!^)(?=[A-Z])", "_", op_id or "").lower()
         expected_tools.add(tool)
+
+        if entry.get("kind") == "script":
+            # Non-REST tool (e.g. sandboxed script execution): no contract
+            # operation and no registry entry to cross-check — it is materialized
+            # by the executor, not the registry. Still counts as a reviewed tool.
+            continue
 
         contract_op = by_id.get(op_id)
         if contract_op is None:

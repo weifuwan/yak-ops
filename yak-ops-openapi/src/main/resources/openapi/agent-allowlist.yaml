@@ -66,6 +66,16 @@ entries:
     risk: readonly
     note: 下载任务实例完整日志文件（PTC 分析用）
 
+  # ---------------- programmatic tool calling ----------------
+  # 非 REST 操作（沙箱内执行的模型脚本），无契约 operationId 对应；
+  # kind: script 让一致性校验跳过契约核对，但仍计入工具审定。
+  - operationId: run_analysis_script
+    tool: run_analysis_script
+    domain: ptc
+    kind: script
+    risk: readonly
+    note: PTC 分析脚本执行（cocoon 沙箱优先；只读 SDK，写操作在脚本内禁用）
+
   # ---------------- write (human confirmation) ----------------
   - operationId: createTask
     tool: create_sync_task

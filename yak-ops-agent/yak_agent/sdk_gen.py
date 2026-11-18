@@ -21,15 +21,22 @@ import sys
 
 sys.path.insert(0, r"{agent_root}")
 
-from yak_agent.config import Settings
 from yak_agent.yak_client import YakAuth, yak_download, yak_get
 
-_SETTINGS = Settings.load()
+# Credentials are injected as literals by the server at generation time — the
+# script process has no credential-bearing environment variables and cannot
+# read the host .env (the server process environment stays clean, and the
+# sandbox limits what the script can reach). Visibility of these constants to
+# the script is inherent to PTC and bounded by the sandbox + audit trail.
+_BASE_URL = {base_url!r}
+_TOKEN = {token!r}
+_USERNAME = {username!r}
+_PASSWORD = {password!r}
 _AUTH = YakAuth(
-    base_url=_SETTINGS.yak_ops_base_url,
-    token=_SETTINGS.yak_ops_token,
-    username=_SETTINGS.yak_ops_username,
-    password=_SETTINGS.yak_ops_password,
+    base_url=_BASE_URL,
+    token=_TOKEN,
+    username=_USERNAME,
+    password=_PASSWORD,
 )
 
 # Writes are disabled inside analysis scripts: HITL-confirmed mutations must go
@@ -44,7 +51,7 @@ def _writes_disabled(*_args, **_kwargs):
 
 _yak_client.yak_write = _writes_disabled
 
-PROJECT = _SETTINGS.project_code
+PROJECT = {project_code!r}
 '''
 
 
@@ -104,10 +111,26 @@ def {op['id']}({', '.join(signature) or ''}):
     return src
 
 
-def generate_sdk(agent_root: Path) -> str:
-    """Return the SDK source for the readonly registry subset."""
+def generate_sdk(agent_root: Path, settings: Any = None) -> str:
+    """Return the SDK source for the readonly registry subset.
+
+    `settings` supplies the credentials injected as literals (the script
+    process has no credential-bearing environment and cannot read the host
+    .env). Without settings the SDK header still renders, but authenticating
+    fails — used by the compute-only tier, which does not write the SDK at all.
+    """
     operations = [op for op in _load_operations() if op.get("risk") == "readonly"]
-    body = _TEMPLATE_HEADER.format(agent_root=str(agent_root))
+    if settings is not None:
+        creds = dict(
+            base_url=settings.yak_ops_base_url,
+            token=settings.yak_ops_token,
+            username=settings.yak_ops_username,
+            password=settings.yak_ops_password,
+            project_code=settings.project_code,
+        )
+    else:
+        creds = dict(base_url="", token="", username="", password="", project_code="")
+    body = _TEMPLATE_HEADER.format(agent_root=str(agent_root), **creds)
     body += (
         "\n\ndef _post(method, path, body):\n"
         "    # The only POST reachable from analysis scripts is the side-effect-free\n"
@@ -121,10 +144,10 @@ def generate_sdk(agent_root: Path) -> str:
     return body
 
 
-def write_sdk(workdir: Path, agent_root: Path) -> Path:
+def write_sdk(workdir: Path, agent_root: Path, settings: Any = None) -> Path:
     """Materialise the SDK into a script working directory."""
     sdk_path = workdir / "yak_agent_sdk.py"
-    sdk_path.write_text(generate_sdk(agent_root), encoding="utf-8")
+    sdk_path.write_text(generate_sdk(agent_root, settings), encoding="utf-8")
     return sdk_path
 
 

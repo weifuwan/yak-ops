@@ -179,6 +179,19 @@ def build_auth(settings: Settings) -> YakAuth:
     )
 
 
+def _load_allowlist() -> set[str]:
+    """Tool ids the reviewed allowlist exposes.
+
+    Runtime registration is strictly limited to this set — the allowlist is
+    an enforcement boundary, not documentation. The copy here is kept in sync
+    with yak-ops-openapi's resource by check_agent_operations.py.
+    """
+    path = Path(__file__).resolve().parent / "agent-allowlist.yaml"
+    with path.open(encoding="utf-8") as handle:
+        data = yaml.safe_load(handle)
+    return {entry["tool"] for entry in data.get("entries", [])}
+
+
 def build_tools(
     settings: Settings,
     auth: YakAuth | None = None,
@@ -194,7 +207,10 @@ def build_tools(
     auth = auth or build_auth(settings)
 
     tools: list[FunctionTool] = []
+    allowlisted = _load_allowlist()
     for op in _load_operations():
+        if op["id"] not in allowlisted:
+            continue  # allowlist enforcement: not reviewed, not exposed
         readonly = op.get("risk") == "readonly"
 
         def runner(_op: dict[str, Any] = op, **kwargs: Any) -> str:
@@ -227,7 +243,7 @@ def build_tools(
             workdir = workspace.root if workspace is not None else None
             return _executor.format_result(_executor.run_analysis(
                 code, timeout_seconds, workdir=workdir, workspace=workspace,
-                allow_unsafe=settings.ptc_allow_unsafe,
+                allow_unsafe=settings.ptc_allow_unsafe, settings=settings,
             ))
 
         if ptc_ready:

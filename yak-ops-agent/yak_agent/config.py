@@ -18,10 +18,16 @@ from pathlib import Path
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
-def _load_env_file() -> None:
-    """Populate os.environ from .env without overriding existing values."""
+def _load_env_file() -> dict:
+    """Parse .env and return the values not already in os.environ.
+
+    Deliberately does NOT mutate os.environ: the server process keeps a clean
+    environment, so analysis-script subprocesses (PTC) never inherit
+    credentials no matter which execution backend runs them.
+    """
     if not _ENV_FILE.exists():
-        return
+        return {}
+    file_vars = {}
     for raw in _ENV_FILE.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -29,7 +35,8 @@ def _load_env_file() -> None:
         key, _, value = line.partition("=")
         key, value = key.strip(), value.strip().strip('"').strip("'")
         if key and key not in os.environ:
-            os.environ[key] = value
+            file_vars[key] = value
+    return file_vars
 
 
 @dataclass(frozen=True)
@@ -53,11 +60,15 @@ class Settings:
 
     @classmethod
     def load(cls) -> "Settings":
-        _load_env_file()
+        file_vars = _load_env_file()
+
+        def get(key: str, default: str = "") -> str:
+            return os.environ.get(key, file_vars.get(key, default))
+
         missing = [
             k
             for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "YAK_OPS_PROJECT_CODE")
-            if not os.environ.get(k)
+            if not get(k)
         ]
         if missing:
             raise SystemExit(
@@ -65,20 +76,20 @@ class Settings:
                 + ". Copy .env.example to .env and fill the values "
                 "(YAK_OPS_PROJECT_CODE is the project snowflake ID, visible in the project URL)."
             )
-        token = os.environ.get("YAK_OPS_TOKEN", "").strip()
-        username = os.environ.get("YAK_OPS_USERNAME", "").strip()
-        password = os.environ.get("YAK_OPS_PASSWORD", "")
+        token = get("YAK_OPS_TOKEN").strip()
+        username = get("YAK_OPS_USERNAME").strip()
+        password = get("YAK_OPS_PASSWORD")
         if not token and not (username and password):
             raise SystemExit(
                 "Missing yak-ops credentials: set YAK_OPS_USERNAME + YAK_OPS_PASSWORD "
                 "(session login) or YAK_OPS_TOKEN (API token)."
             )
-        project_code = os.environ["YAK_OPS_PROJECT_CODE"].strip()
+        project_code = get("YAK_OPS_PROJECT_CODE").strip()
         return cls(
-            llm_base_url=os.environ["LLM_BASE_URL"].rstrip("/"),
-            llm_api_key=os.environ["LLM_API_KEY"],
-            llm_model=os.environ["LLM_MODEL"],
-            yak_ops_base_url=os.environ.get("YAK_OPS_BASE_URL", "http://127.0.0.1:12345/yak-ops").rstrip("/"),
+            llm_base_url=get("LLM_BASE_URL").rstrip("/"),
+            llm_api_key=get("LLM_API_KEY"),
+            llm_model=get("LLM_MODEL"),
+            yak_ops_base_url=get("YAK_OPS_BASE_URL", "http://127.0.0.1:12345/yak-ops").rstrip("/"),
             yak_ops_token=token,
             yak_ops_username=username,
             yak_ops_password=password,
