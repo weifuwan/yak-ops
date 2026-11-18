@@ -26,42 +26,72 @@ export function PanelResizer({
 }: PanelResizerProps) {
   const startXRef = useRef(0);
   const startWidthRef = useRef(width);
+  const activePointerIdRef = useRef<number | null>(null);
+  const previousBodyStylesRef = useRef<{ cursor: string; userSelect: string } | null>(null);
   const direction = resizeDirection === "left" ? -1 : 1;
 
   useEffect(
     () => () => {
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
+      const previousStyles = previousBodyStylesRef.current;
+      if (previousStyles) {
+        document.body.style.cursor = previousStyles.cursor;
+        document.body.style.userSelect = previousStyles.userSelect;
+      }
+      previousBodyStylesRef.current = null;
+      activePointerIdRef.current = null;
     },
     [],
   );
 
+  const restoreBodyStyles = () => {
+    const previousStyles = previousBodyStylesRef.current;
+    if (!previousStyles) return;
+
+    document.body.style.cursor = previousStyles.cursor;
+    document.body.style.userSelect = previousStyles.userSelect;
+    previousBodyStylesRef.current = null;
+  };
+
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || activePointerIdRef.current !== null) return;
+
     event.preventDefault();
     startXRef.current = event.clientX;
     startWidthRef.current = width;
     event.currentTarget.setPointerCapture(event.pointerId);
+    activePointerIdRef.current = event.pointerId;
+    previousBodyStylesRef.current = {
+      cursor: document.body.style.cursor,
+      userSelect: document.body.style.userSelect,
+    };
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    if (
+      activePointerIdRef.current !== event.pointerId ||
+      !event.currentTarget.hasPointerCapture(event.pointerId)
+    ) {
+      return;
+    }
 
     const delta = event.clientX - startXRef.current;
     onResize(clampWidth(startWidthRef.current + delta * direction, minWidth, maxWidth));
   };
 
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) return;
+
+    activePointerIdRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
+    restoreBodyStyles();
   };
 
   return (
-    <div className="relative z-20 w-0 shrink-0 self-stretch">
+    <div className="relative z-30 w-0 shrink-0 self-stretch">
       <div
         role="separator"
         aria-label={ariaLabel}
@@ -72,8 +102,9 @@ export function PanelResizer({
         tabIndex={0}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onLostPointerCapture={handlePointerEnd}
         onKeyDown={(event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
@@ -84,7 +115,7 @@ export function PanelResizer({
             onResize(clampWidth(width + KEYBOARD_STEP * direction, minWidth, maxWidth));
           }
         }}
-        className="group absolute inset-y-0 left-1/2 z-10 w-2 -translate-x-1/2 cursor-col-resize touch-none outline-none"
+        className="group pointer-events-auto absolute inset-y-0 left-1/2 z-20 w-3 -translate-x-1/2 cursor-col-resize touch-none select-none outline-none"
       >
         <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[#d9d9d9] transition-colors group-hover:bg-[var(--yak-color-primary)] group-focus-visible:bg-[var(--yak-color-primary)] group-active:bg-[var(--yak-color-primary)]" />
       </div>
