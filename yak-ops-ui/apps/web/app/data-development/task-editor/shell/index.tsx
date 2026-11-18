@@ -56,12 +56,6 @@ export function ShellTaskEditor({
           resourceError={editor.resourceQuery.isError}
           onRetryResources={() => void editor.resourceQuery.refetch()}
           disabled={readOnly}
-          localParamsDescription={
-            <p className="text-[11px] leading-5 text-[#687385]">
-              输入参数在脚本中使用 <code className="rounded bg-[#f1f4f8] px-1.5 py-0.5 font-mono text-[#31506f]">{"$" + "{paramName}"}</code>；
-              OUT 参数可使用 <code className="rounded bg-[#f1f4f8] px-1.5 py-0.5 font-mono text-[#31506f]">{"$" + "{setValue(name=value)}"}</code> 输出。
-            </p>
-          }
         />
       }
       runConfig={
