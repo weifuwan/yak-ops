@@ -1,3 +1,5 @@
+import { PanelHeader } from "@yak-ops/yak-ui";
+
 import { DataDevelopmentResourcePanel } from "../resource-panel";
 import { ResourceBrowserPanel } from "../resource-browser-panel";
 import { ManualRunPanel } from "../manual-run";
