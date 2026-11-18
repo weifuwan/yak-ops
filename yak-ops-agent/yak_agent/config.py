@@ -46,6 +46,10 @@ class Settings:
     # subprocess backend (compute-only, credentials stripped). Default False —
     # without a real sandbox (cocoon/Docker) the tool is simply not registered.
     ptc_allow_unsafe: bool = False
+    # Weighted token budget per reply (output tokens weigh 2x). When exceeded,
+    # the agent is nudged to wrap up without further tool calls — the guardrail
+    # against runaway multi-round turns.
+    reply_token_budget: int = 25000
 
     @classmethod
     def load(cls) -> "Settings":
@@ -80,4 +84,5 @@ class Settings:
             yak_ops_password=password,
             project_code=int(project_code),
             ptc_allow_unsafe=os.environ.get('YAK_AGENT_PTC_ALLOW_UNSAFE', '').strip().lower() in ('1', 'true', 'yes'),
+            reply_token_budget=int(os.environ.get('YAK_AGENT_REPLY_TOKEN_BUDGET', '25000')),
         )

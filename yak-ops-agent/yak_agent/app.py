@@ -26,6 +26,7 @@ from agentscope.event import (
     UserConfirmResultEvent,
 )
 from agentscope.message import UserMsg
+from agentscope.middleware import ReplyBudgetControlMiddleware, TracingMiddleware
 from agentscope.model import OpenAIChatModel
 from agentscope.skill import LocalSkillLoader
 from agentscope.tool import Toolkit
@@ -66,6 +67,18 @@ def build_agent(settings: Settings, state: Any | None = None, workspace: Session
         state=state,
         react_config=ReActConfig(max_iters=12),
         context_config=ContextConfig(tool_result_limit=1000),
+        middlewares=[
+            # Cost/latency guardrail: output tokens weigh 2x; once the budget
+            # is exhausted the agent wraps up without further tool calls.
+            ReplyBudgetControlMiddleware(
+                token_budget=settings.reply_token_budget,
+                input_token_weight=1.0,
+                output_token_weight=2.0,
+            ),
+            # OpenTelemetry tracing; short-circuits (zero overhead) when no
+            # TracerProvider is configured, full span tree when one is.
+            TracingMiddleware(),
+        ],
     )
 
 
