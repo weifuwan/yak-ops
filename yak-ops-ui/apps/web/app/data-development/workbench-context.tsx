@@ -12,6 +12,7 @@ import type {
   WorkflowDefinitionRecord,
   WorkflowTaskRecord,
 } from "@/service/workflow/definition";
+import type { AuditRecord } from "@/service/audit";
 import type { WorkflowStoreApi } from "./workflow-editor/store/workflow-store";
 
 export type WorkflowWorkbenchTab =
@@ -32,6 +33,27 @@ export type WorkflowWorkbenchTab =
       task: WorkflowTaskRecord;
       nodeId: string;
       releaseState: string;
+    }
+  | {
+      id: string;
+      kind: "workflow-instance";
+      instanceId: number;
+      title: string;
+    }
+  | {
+      id: string;
+      kind: "catalog-table";
+      dataSourceId: string;
+      dataSourceName: string;
+      database: string;
+      tableName: string;
+      title: string;
+    }
+  | {
+      id: string;
+      kind: "audit-record";
+      record: AuditRecord;
+      title: string;
     };
 
 type DataDevelopmentWorkbenchContextValue = {
@@ -42,6 +64,14 @@ type DataDevelopmentWorkbenchContextValue = {
   activeTab: WorkflowWorkbenchTab | null;
   openWorkflow: (workflow: WorkflowDefinitionRecord) => void;
   openTask: (workflowCode: number, task: WorkflowTaskRecord, nodeId?: string, releaseState?: string) => void;
+  openWorkflowInstance: (instanceId: number, title?: string) => void;
+  openCatalogTable: (
+    dataSourceId: string | number,
+    dataSourceName: string,
+    database: string,
+    tableName: string,
+  ) => void;
+  openAuditRecord: (record: AuditRecord, title?: string) => void;
   updateTaskTab: (id: string, task: WorkflowTaskRecord) => void;
   syncWorkflowTaskRecords: (workflowCode: number, tasks: WorkflowTaskRecord[]) => void;
   updateWorkflowDefinition: (workflow: WorkflowDefinitionRecord) => void;
@@ -126,6 +156,52 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       releaseState ?? workflowTab?.releaseState ?? "OFFLINE",
     ));
   };
+
+  const openWorkflowInstance = (instanceId: number, title = "运行 #" + instanceId) =>
+    openTab({
+      id: "workflow-instance:" + instanceId,
+      kind: "workflow-instance",
+      instanceId,
+      title,
+    });
+
+  const openCatalogTable = (
+    dataSourceId: string | number,
+    dataSourceName: string,
+    database: string,
+    tableName: string,
+  ) =>
+    openTab({
+      id:
+        "catalog-table:" +
+        String(dataSourceId) +
+        ":" +
+        database +
+        ":" +
+        tableName,
+      kind: "catalog-table",
+      dataSourceId: String(dataSourceId),
+      dataSourceName,
+      database,
+      tableName,
+      title: tableName,
+    });
+
+  const openAuditRecord = (record: AuditRecord, title = "操作详情") =>
+    openTab({
+      id:
+        "audit-record:" +
+        String(record.createTime ?? "") +
+        ":" +
+        String(record.modelType ?? "") +
+        ":" +
+        String(record.modelName ?? "") +
+        ":" +
+        String(record.operation ?? ""),
+      kind: "audit-record",
+      record,
+      title,
+    });
 
   const updateTaskTab = (id: string, task: WorkflowTaskRecord) => {
     setTabs((current) => current.map((tab) =>
@@ -224,6 +300,9 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     activeTab,
     openWorkflow,
     openTask,
+    openWorkflowInstance,
+    openCatalogTable,
+    openAuditRecord,
     updateTaskTab,
     syncWorkflowTaskRecords,
     updateWorkflowDefinition,
