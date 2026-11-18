@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Textarea, toast } from "@yak-ops/yak-ui";
+import { listWorkflowResources } from "@/service/resources";
 import { getWorkflowDefinition, type WorkflowTaskRecord } from "@/service/workflow/definition";
 
+import { NodeResourceParamsPanel } from "./common/node-resource-params";
+import {
+  buildNodeResourceList,
+  normalizeNodeLocalParams,
+  normalizeNodeResourceList,
+} from "./common/node-resource-params/adapter";
+import { buildResourceTreeOptions } from "./common/node-resource-params/resource-adapter";
 import { NodeEditorFrame } from "./node-editor-frame";
 import {
   getTaskGroupValidationError,
@@ -59,6 +67,24 @@ export function GenericTaskEditor({
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const parsedTaskParams = useMemo(() => {
+    try {
+      return parseTaskParams(taskParamsText);
+    } catch {
+      return null;
+    }
+  }, [taskParamsText]);
+  const supportsResourceList = Array.isArray(parsedTaskParams?.resourceList);
+  const resourceQuery = useQuery({
+    queryKey: ["data-development", "generic-task-resources", taskType],
+    queryFn: ({ signal }) => listWorkflowResources(signal),
+    enabled: supportsResourceList,
+    staleTime: 60_000,
+  });
+  const resourceTree = useMemo(
+    () => buildResourceTreeOptions(resourceQuery.data ?? []),
+    [resourceQuery.data],
+  );
 
   useEffect(() => {
     const paramsText = formatTaskParams(task.taskParams);
@@ -72,6 +98,27 @@ export function GenericTaskEditor({
   const isDirty =
     JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings) ||
     taskParamsText !== baselineTaskParamsText;
+
+  const updateCommonTaskParams = (patch: Record<string, unknown>) => {
+    if (!parsedTaskParams) return;
+    setTaskParamsText(JSON.stringify({ ...parsedTaskParams, ...patch }, null, 2));
+  };
+  const resourceParams = parsedTaskParams ? (
+    <NodeResourceParamsPanel
+      idPrefix={taskType.toLowerCase() + "-" + currentTask.code}
+      resourceList={supportsResourceList ? normalizeNodeResourceList(parsedTaskParams.resourceList) : undefined}
+      onResourceListChange={supportsResourceList
+        ? (resourceList) => updateCommonTaskParams({ resourceList: buildNodeResourceList(resourceList) })
+        : undefined}
+      localParams={normalizeNodeLocalParams(parsedTaskParams.localParams)}
+      onLocalParamsChange={(localParams) => updateCommonTaskParams({ localParams })}
+      resourceTree={resourceTree}
+      resourceLoading={resourceQuery.isPending}
+      resourceError={resourceQuery.isError}
+      onRetryResources={() => void resourceQuery.refetch()}
+      disabled={readOnly}
+    />
+  ) : undefined;
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -173,7 +220,7 @@ export function GenericTaskEditor({
       saving={saving}
       running={false}
       stopping={false}
-      refreshing={refreshing}
+      refreshing={refreshing || resourceQuery.isFetching}
       lastWorkflowInstanceId={null}
       canRun={false}
       readOnly={readOnly}
@@ -182,6 +229,7 @@ export function GenericTaskEditor({
       onSave={() => void handleSave()}
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
+      resourceParams={resourceParams}
       runConfig={
         <TaskCommonSettingsSection
           id="generic-run-config"

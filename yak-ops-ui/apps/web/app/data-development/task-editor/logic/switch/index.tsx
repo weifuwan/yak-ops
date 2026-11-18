@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -11,6 +11,7 @@ import { useDataDevelopmentWorkbench } from "../../../workbench-context";
 import { getWorkflowBranchOutputs } from "../../../workflow-editor/adapter/workflow-branch-adapter";
 
 import { LogicTaskEditor } from "../shared/logic-task-editor";
+import { useSwitchRunConfig } from "./components/switch-run-config-panel";
 import {
   getSwitchVariableOptions,
   remapSwitchCaseHandles,
@@ -37,9 +38,11 @@ export function SwitchEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
+  const runConfig = useSwitchRunConfig(task, readOnly);
   const { activeTabId, getWorkflowStore } = useDataDevelopmentWorkbench();
   const taskTabId = "task:" + workflowCode + ":" + task.code;
   const latestPreviewParamsRef = useRef<unknown>(null);
+  const [draftTaskParams, setDraftTaskParams] = useState(task.taskParams);
 
   const updateCanvasPreview = useCallback((params: unknown) => {
     const store = getWorkflowStore(workflowCode);
@@ -73,6 +76,7 @@ export function SwitchEditor({
   useEffect(() => {
     // A refreshed or externally updated task is the new preview baseline.
     latestPreviewParamsRef.current = task.taskParams;
+    setDraftTaskParams(task.taskParams);
   }, [task.taskParams]);
 
   useEffect(() => {
@@ -86,6 +90,11 @@ export function SwitchEditor({
   useEffect(() => () => {
     getWorkflowStore(workflowCode)?.getState().clearSwitchPreview(nodeId);
   }, [getWorkflowStore, nodeId, workflowCode]);
+
+  const handleParamsChange = useCallback((params: unknown) => {
+    setDraftTaskParams(params);
+    updateCanvasPreview(params);
+  }, [updateCanvasPreview]);
 
   const workflowQuery = useQuery({
     queryKey: ["workflow-switch-variables", workflowCode],
@@ -101,7 +110,7 @@ export function SwitchEditor({
   const variables = useMemo(
     () => getSwitchVariableOptions(
       workflowQuery.data?.workflowDefinition.globalParams,
-      task.taskParams,
+      draftTaskParams,
       projectParametersQuery.data?.totalList,
       workflowQuery.data?.taskDefinitionList,
       workflowQuery.data?.workflowTaskRelationList,
@@ -110,7 +119,7 @@ export function SwitchEditor({
     [
       projectParametersQuery.data?.totalList,
       task.code,
-      task.taskParams,
+      draftTaskParams,
       workflowQuery.data?.taskDefinitionList,
       workflowQuery.data?.workflowTaskRelationList,
       workflowQuery.data?.workflowDefinition.globalParams,
@@ -124,11 +133,12 @@ export function SwitchEditor({
       taskName={taskName}
       taskType="SWITCH"
       readOnly={readOnly}
+      runConfig={runConfig}
       onApplyTask={onApplyTask}
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}
       validateParams={validateSwitchTaskParams}
-      onParamsChange={updateCanvasPreview}
+      onParamsChange={handleParamsChange}
     >
       {(formProps) => <SwitchForm {...formProps} variables={variables} />}
     </LogicTaskEditor>

@@ -4,6 +4,7 @@ import { ReactFlowProvider } from "reactflow";
 import { Button, toast } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { LoadingIndicator } from "@/app/components/loading-indicator";
 import {
   getWorkflowDefinition,
   releaseWorkflowDefinition,
@@ -381,8 +382,13 @@ export function WorkflowEditor({ workflowCode, selectedTaskCode }: WorkflowEdito
 
   if (query.isPending || layoutQuery.isPending || !layoutQuery.data) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--yak-components-muted-text)]">
-        正在加载工作流…
+      <div
+        role="status"
+        aria-label="正在加载工作流"
+        className="flex min-h-0 flex-1 items-center justify-center"
+      >
+        <LoadingIndicator />
+        <span className="sr-only">正在加载工作流</span>
       </div>
     );
   }

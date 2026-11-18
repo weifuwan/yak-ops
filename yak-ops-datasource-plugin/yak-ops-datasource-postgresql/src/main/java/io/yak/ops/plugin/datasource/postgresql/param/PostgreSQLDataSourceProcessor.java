@@ -3,6 +3,7 @@ package io.yak.ops.plugin.datasource.postgresql.param;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
@@ -33,6 +34,11 @@ public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {
     @Override
     public List<ConnectionProperty> getConnectionProperties() {
         return catalog.getConnectionProperties();
+    }
+
+    @Override
+    public PostgreSQLDataSourceCatalog getCatalog() {
+        return catalog;
     }
 
     @Override
@@ -112,6 +118,20 @@ public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {
                 .password(PasswordUtils.decodePassword(postgreSqlConnectionParam.getPassword()))
                 .build()
                 .getConnection();
+    }
+
+    @Override
+    public Connection getConnection(ConnectionParam connectionParam, CatalogPath path) throws SQLException {
+        if (path == null || path.getDatabase() == null
+                || !(connectionParam instanceof PostgreSQLConnectionParam)) {
+            return getConnection(connectionParam);
+        }
+        PostgreSQLConnectionParam source = (PostgreSQLConnectionParam) connectionParam;
+        if (source.getDatabase() == null || !path.getDatabase().equals(source.getDatabase())) {
+            throw new IllegalArgumentException("Catalog database '" + path.getDatabase()
+                    + "' is outside the configured datasource database '" + source.getDatabase() + "'");
+        }
+        return getConnection(connectionParam);
     }
 
     @Override

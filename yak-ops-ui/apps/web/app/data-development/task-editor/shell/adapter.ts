@@ -1,4 +1,5 @@
-import type { ShellLocalParam, ShellTaskForm } from "./types";
+import type { ShellTaskForm } from "./types";
+import type { NodeLocalParam } from "../common/node-resource-params/types";
 
 export function readShellTaskObject(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
@@ -41,7 +42,7 @@ export function parseShellTaskForm(value: unknown): ShellTaskForm {
           type: readString(param.type) || "VARCHAR",
           value: readString(param.value),
           sensitive: param.sensitive === true,
-        } satisfies ShellLocalParam;
+        } satisfies NodeLocalParam;
       })
     : [];
 

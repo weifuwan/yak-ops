@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Textarea, toast } from "@yak-ops/yak-ui";
+import { listWorkflowResources } from "@/service/resources";
 
 import {
   getWorkflowDefinition,
+  type WorkflowTaskCommonSettingsPatch,
   type WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 
-import { NodeEditorFrame } from "../../node-editor-frame";
+import { NodeResourceParamsPanel } from "../../common/node-resource-params";
 import {
-  getTaskGroupValidationError,
-  normalizeTaskCommonSettings,
-  parseTaskCommonSettings,
-  TaskCommonSettingsSection,
-  useTaskGroups,
-  type TaskCommonSettings,
-} from "../../task-common-settings-section";
+  buildNodeResourceList,
+  normalizeNodeLocalParams,
+  normalizeNodeResourceList,
+} from "../../common/node-resource-params/adapter";
+import { buildResourceTreeOptions } from "../../common/node-resource-params/resource-adapter";
+import { NodeEditorFrame } from "../../node-editor-frame";
+import type { LogicTaskRunConfigController } from "./logic-task-run-config";
 
 export type LogicTaskParams = Record<string, unknown>;
 
@@ -56,6 +58,7 @@ export function LogicTaskEditor({
   children,
   validateParams,
   onParamsChange,
+  runConfig,
 }: {
   workflowCode: number;
   task: WorkflowTaskRecord;
@@ -65,16 +68,13 @@ export function LogicTaskEditor({
   onApplyTask: (task: WorkflowTaskRecord) => boolean;
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
+  runConfig: LogicTaskRunConfigController;
   children: (props: LogicTaskFormProps) => ReactNode;
   validateParams?: (params: LogicTaskParams) => string | null | Promise<string | null>;
   onParamsChange?: (params: LogicTaskParams) => void;
 }) {
   const queryClient = useQueryClient();
-  const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
-  const initialCommonSettings = useMemo(() => parseTaskCommonSettings(task), [task]);
   const [currentTask, setCurrentTask] = useState(task);
-  const [commonSettings, setCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
-  const [baselineCommonSettings, setBaselineCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
   const [taskParamsText, setTaskParamsText] = useState(() => formatTaskParams(task.taskParams));
   const [baselineTaskParamsText, setBaselineTaskParamsText] = useState(() => formatTaskParams(task.taskParams));
   const [params, setParams] = useState<LogicTaskParams>(() => {
@@ -91,8 +91,6 @@ export function LogicTaskEditor({
   useEffect(() => {
     const paramsText = formatTaskParams(task.taskParams);
     setCurrentTask(task);
-    setCommonSettings(initialCommonSettings);
-    setBaselineCommonSettings(initialCommonSettings);
     setTaskParamsText(paramsText);
     setBaselineTaskParamsText(paramsText);
     try {
@@ -100,11 +98,9 @@ export function LogicTaskEditor({
     } catch {
       setParams({});
     }
-  }, [task, initialCommonSettings]);
+  }, [task]);
 
-  const isDirty =
-    JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings) ||
-    taskParamsText !== baselineTaskParamsText;
+  const isDirty = runConfig.isDirty || taskParamsText !== baselineTaskParamsText;
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -113,24 +109,18 @@ export function LogicTaskEditor({
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
   const jsonText = useMemo(() => {
-    let commonFields: Record<string, unknown>;
     let taskParams: unknown = taskParamsText;
-    try {
-      commonFields = normalizeTaskCommonSettings(commonSettings);
-    } catch {
-      commonFields = commonSettings;
-    }
     try {
       taskParams = parseTaskParams(taskParamsText);
     } catch {
       // Keep the in-progress JSON visible in the preview.
     }
     return JSON.stringify(
-      { workflowCode, task: { ...currentTask, ...commonFields, taskParams, taskType } },
+      { workflowCode, task: { ...currentTask, ...runConfig.getPreviewPatch(), taskParams, taskType } },
       null,
       2,
     );
-  }, [commonSettings, currentTask, taskParamsText, taskType, workflowCode]);
+  }, [currentTask, runConfig, taskParamsText, taskType, workflowCode]);
 
   const updateParams = (next: LogicTaskParams) => {
     setParams(next);
@@ -138,15 +128,56 @@ export function LogicTaskEditor({
     onParamsChange?.(next);
   };
 
+  const paramsTextIsValid = useMemo(() => {
+    try {
+      parseTaskParams(taskParamsText);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [taskParamsText]);
+  const supportsResourceList = paramsTextIsValid && Array.isArray(params.resourceList);
+  const resourceQuery = useQuery({
+    queryKey: ["data-development", "logic-task-resources", workflowCode, task.code],
+    queryFn: ({ signal }) => listWorkflowResources(signal),
+    enabled: supportsResourceList,
+    staleTime: 60_000,
+  });
+  const resourceTree = useMemo(
+    () => buildResourceTreeOptions(resourceQuery.data ?? []),
+    [resourceQuery.data],
+  );
+  const resourceParams = paramsTextIsValid ? (
+    <NodeResourceParamsPanel
+      idPrefix={taskType.toLowerCase() + "-" + task.code}
+      resourceList={supportsResourceList ? normalizeNodeResourceList(params.resourceList) : undefined}
+      onResourceListChange={supportsResourceList
+        ? (resourceList) => updateParams({ ...params, resourceList: buildNodeResourceList(resourceList) })
+        : undefined}
+      localParams={normalizeNodeLocalParams(params.localParams)}
+      onLocalParamsChange={(localParams) => updateParams({ ...params, localParams })}
+      resourceTree={resourceTree}
+      resourceLoading={resourceQuery.isPending}
+      resourceError={resourceQuery.isError}
+      onRetryResources={() => void resourceQuery.refetch()}
+      disabled={readOnly}
+    />
+  ) : undefined;
+
   const handleSave = async () => {
     if (saving) return false;
     setSaving(true);
     try {
-      let commonPatch: ReturnType<typeof normalizeTaskCommonSettings>;
+      let commonPatch: WorkflowTaskCommonSettingsPatch;
       let taskParams: LogicTaskParams;
       try {
-        commonPatch = normalizeTaskCommonSettings(commonSettings);
+        commonPatch = runConfig.getPatch();
         taskParams = parseTaskParams(taskParamsText);
+        const runConfigError = runConfig.validate();
+        if (runConfigError) {
+          toast.warning(runConfigError);
+          return false;
+        }
         const validationError = await validateParams?.(taskParams);
         if (validationError) {
           toast.warning(validationError);
@@ -157,22 +188,11 @@ export function LogicTaskEditor({
         return false;
       }
 
-      const taskGroupError = getTaskGroupValidationError(commonSettings, {
-        projectCode,
-        taskGroups,
-        isPending: taskGroupsQuery.isPending,
-        isError: taskGroupsQuery.isError,
-      });
-      if (taskGroupError) {
-        toast.warning(taskGroupError);
-        return false;
-      }
-
       const nextTask = { ...currentTask, ...commonPatch, taskParams };
       if (!onApplyTask(nextTask)) return false;
       setCurrentTask(nextTask);
       setParams(taskParams);
-      setBaselineCommonSettings(commonSettings);
+      runConfig.markSaved();
       setBaselineTaskParamsText(taskParamsText);
       toast.success("节点配置已应用，请保存工作流");
       return true;
@@ -196,12 +216,10 @@ export function LogicTaskEditor({
       const latestTask = dag.taskDefinitionList.find((item) => item.code === currentTask.code);
       if (!latestTask) throw new Error("节点不存在或已被删除");
       if (!onApplyTask(latestTask)) return;
-      const nextCommonSettings = parseTaskCommonSettings(latestTask);
       const paramsText = formatTaskParams(latestTask.taskParams);
       const nextParams = parseTaskParams(paramsText);
       setCurrentTask(latestTask);
-      setCommonSettings(nextCommonSettings);
-      setBaselineCommonSettings(nextCommonSettings);
+      runConfig.refreshFromTask(latestTask);
       setTaskParamsText(paramsText);
       setBaselineTaskParamsText(paramsText);
       setParams(nextParams);
@@ -228,7 +246,7 @@ export function LogicTaskEditor({
       saving={saving}
       running={false}
       stopping={false}
-      refreshing={refreshing}
+      refreshing={refreshing || resourceQuery.isFetching}
       lastWorkflowInstanceId={null}
       canRun={false}
       readOnly={readOnly}
@@ -237,15 +255,8 @@ export function LogicTaskEditor({
       onSave={() => void handleSave()}
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
-      runConfig={
-        <TaskCommonSettingsSection
-          id="logic-run-config"
-          settings={commonSettings}
-          onChange={setCommonSettings}
-          disabled={readOnly}
-          compact
-        />
-      }
+      runConfig={runConfig.content}
+      resourceParams={resourceParams}
     >
       {activeView === "json" ? (
         <div className="min-h-0 flex-1 overflow-auto bg-[var(--yak-components-panel-bg)] p-4">

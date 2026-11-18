@@ -87,6 +87,11 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         return source;
     }
 
+    @Override
+    public DataSource getDataSourceForCatalog(User loginUser, long projectCode, Integer datasourceId) {
+        return checkProjectDataSource(loginUser, projectCode, datasourceId, false);
+    }
+
     private void checkDataSourcePermission(User user, DataSource source, boolean write, String permission) {
         if (source.getProjectCode() > 0) {
             if (write) {

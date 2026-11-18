@@ -1,5 +1,6 @@
 import { NodeEditorFrame } from "../node-editor-frame";
-import { TaskCommonSettingsSection } from "../task-common-settings-section";
+import { NodeResourceParamsPanel } from "../common/node-resource-params";
+import { ShellRunConfigPanel } from "./components/shell-run-config-panel";
 
 import { ShellEditorWorkspace } from "./components/shell-editor-workspace";
 import { useShellTaskEditor } from "./use-shell-task-editor";
@@ -43,11 +44,25 @@ export function ShellTaskEditor({
       onSave={() => void editor.handleSave()}
       onRefresh={() => void editor.handleRefresh()}
       onBack={onBackToWorkflow}
+      resourceParams={
+        <NodeResourceParamsPanel
+          idPrefix={"shell-" + editor.currentTask.code}
+          resourceList={editor.form.resourceList}
+          onResourceListChange={(resourceList) => editor.updateField("resourceList", resourceList)}
+          localParams={editor.form.localParams}
+          onLocalParamsChange={(localParams) => editor.updateField("localParams", localParams)}
+          resourceTree={editor.resourceTree}
+          resourceLoading={editor.resourceQuery.isPending}
+          resourceError={editor.resourceQuery.isError}
+          onRetryResources={() => void editor.resourceQuery.refetch()}
+          disabled={readOnly}
+        />
+      }
       runConfig={
-        <TaskCommonSettingsSection
+        <ShellRunConfigPanel
           id="shell-run-config"
-          settings={editor.commonSettings}
-          onChange={editor.setCommonSettings}
+          settings={editor.shellRunConfig}
+          onChange={editor.setShellRunConfig}
           disabled={readOnly}
           compact
         />
@@ -63,14 +78,7 @@ export function ShellTaskEditor({
         <ShellEditorWorkspace
           form={editor.form}
           readOnly={readOnly}
-          activeTab={editor.activeConfigTab}
-          onActiveTabChange={editor.setActiveConfigTab}
           updateField={editor.updateField}
-          updateLocalParam={editor.updateLocalParam}
-          resourceTree={editor.resourceTree}
-          resourceLoading={editor.resourceQuery.isPending}
-          resourceError={editor.resourceQuery.isError}
-          onRetryResources={() => void editor.resourceQuery.refetch()}
         />
       )}
     </NodeEditorFrame>

@@ -29,40 +29,40 @@ const STATISTICS: StatisticItem[] = [
     title: "维度表模型",
     image:
       "https://img.alicdn.com/imgextra/i3/O1CN01bYykXi1ZHuHGBhaDL_!!6000000003170-2-tps-228-228.png",
-    values: [{ num: "0", unit: "模型数量" }],
+    values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "明细表模型",
     image:
       "https://img.alicdn.com/imgextra/i2/O1CN01l2o2g71MLUN0kZXpq_!!6000000001418-2-tps-228-228.png",
-    values: [{ num: "2", unit: "模型数量" }],
+    values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "汇总表模型",
     image:
       "https://img.alicdn.com/imgextra/i3/O1CN01RHb33F1ySm4GYFQiu_!!6000000006578-2-tps-228-228.png",
-    values: [{ num: "0", unit: "模型数量" }],
+    values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "应用表模型",
     image:
       "https://img.alicdn.com/imgextra/i2/O1CN018Lu3ns1kR1wLd4FXZ_!!6000000004679-2-tps-228-228.png",
-    values: [{ num: "0", unit: "模型数量" }],
+    values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "派生指标&复合指标",
     image:
       "https://img.alicdn.com/imgextra/i4/O1CN016myXwp1W58NunKeT1_!!6000000002736-2-tps-228-228.png",
     values: [
-      { num: "3", unit: "指标数量" },
-      { num: "1", unit: "向上取整" },
+      { num: "—", unit: "指标数量" },
+      { num: "—", unit: "向上取整" },
     ],
   },
   {
     title: "合计",
     total: true,
-    values: [{ num: "3", unit: "" }],
-    formula: "对象数量：模型数量+向上取整(指标数量/10)",
+    values: [{ num: "—", unit: "" }],
+    formula: "统计接口待接入",
   },
 ];
 

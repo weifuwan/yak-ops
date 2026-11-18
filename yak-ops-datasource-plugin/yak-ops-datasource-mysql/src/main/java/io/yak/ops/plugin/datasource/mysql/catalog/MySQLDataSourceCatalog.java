@@ -1,6 +1,16 @@
 package io.yak.ops.plugin.datasource.mysql.catalog;
 
+import io.yak.ops.plugin.datasource.api.catalog.CatalogCapabilities;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogFeature;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogIndex;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogNamespace;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogObject;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectQuery;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPage;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
+import io.yak.ops.plugin.datasource.api.catalog.NamespaceLevel;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogTable;
 import io.yak.ops.plugin.datasource.api.datasource.ConnectionProperty;
@@ -15,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -56,6 +68,163 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
         }
     }
 
+
+    @Override
+    public CatalogCapabilities getCapabilities() {
+        return new CatalogCapabilities(
+                Arrays.asList(NamespaceLevel.DATABASE),
+                Arrays.asList(CatalogObjectType.TABLE, CatalogObjectType.VIEW),
+                Arrays.asList(CatalogFeature.COLUMNS, CatalogFeature.INDEXES, CatalogFeature.PRIMARY_KEYS));
+    }
+
+    @Override
+    public List<CatalogNamespace> listNamespaces(
+            Connection connection, CatalogPath parentPath, NamespaceLevel level) {
+        if (level != NamespaceLevel.DATABASE) {
+            throw new UnsupportedOperationException("MySQL exposes databases without a separate schema level");
+        }
+        String database = requireConfiguredDatabase(connection, null);
+        CatalogPath path = new CatalogPath(null, database, null, null, null);
+        return Collections.singletonList(
+                new CatalogNamespace(database, NamespaceLevel.DATABASE, path, true));
+    }
+
+    @Override
+    public CatalogPage<CatalogObject> listObjects(Connection connection, CatalogObjectQuery query) {
+        CatalogPath path = query.getPath();
+        if (path == null || path.getDatabase() == null) {
+            throw new IllegalArgumentException("A database is required to list MySQL objects");
+        }
+        requireConfiguredDatabase(connection, path.getDatabase());
+        CatalogObjectType type = query.getObjectType();
+        if (type != null && type != CatalogObjectType.TABLE && type != CatalogObjectType.VIEW) {
+            return new CatalogPage<>(Collections.<CatalogObject>emptyList(), 0);
+        }
+        String typeFilter = type == CatalogObjectType.TABLE
+                ? " AND t.TABLE_TYPE = 'BASE TABLE'"
+                : type == CatalogObjectType.VIEW
+                        ? " AND t.TABLE_TYPE = 'VIEW'"
+                        : " AND t.TABLE_TYPE IN ('BASE TABLE', 'VIEW')";
+        String keywordFilter = hasKeyword(query.getKeyword()) ? " AND t.TABLE_NAME LIKE ?" : "";
+        String fromWhere = " FROM information_schema.TABLES t WHERE t.TABLE_SCHEMA = ?" + typeFilter + keywordFilter;
+        String countSql = "SELECT COUNT(*)" + fromWhere;
+        String listSql = "SELECT t.TABLE_NAME, t.TABLE_TYPE, t.TABLE_COMMENT" + fromWhere
+                + " ORDER BY t.TABLE_NAME LIMIT ? OFFSET ?";
+        try {
+            long total;
+            try (PreparedStatement count = connection.prepareStatement(countSql)) {
+                int index = 1;
+                count.setString(index++, path.getDatabase());
+                if (hasKeyword(query.getKeyword())) count.setString(index, "%" + query.getKeyword().trim() + "%");
+                try (ResultSet result = count.executeQuery()) {
+                    total = result.next() ? result.getLong(1) : 0;
+                }
+            }
+            List<CatalogObject> objects = new ArrayList<>();
+            try (PreparedStatement statement = connection.prepareStatement(listSql)) {
+                int index = 1;
+                statement.setString(index++, path.getDatabase());
+                if (hasKeyword(query.getKeyword())) statement.setString(index++, "%" + query.getKeyword().trim() + "%");
+                statement.setInt(index++, query.getLimit());
+                statement.setInt(index, query.getOffset());
+                try (ResultSet result = statement.executeQuery()) {
+                    while (result.next()) {
+                        String name = result.getString("TABLE_NAME");
+                        String tableType = result.getString("TABLE_TYPE");
+                        CatalogObjectType objectType = "VIEW".equalsIgnoreCase(tableType)
+                                ? CatalogObjectType.VIEW : CatalogObjectType.TABLE;
+                        CatalogPath objectPath = new CatalogPath(null, path.getDatabase(), null, name, objectType);
+                        objects.add(new CatalogObject(name, objectType, result.getString("TABLE_COMMENT"),
+                                objectPath, true, Collections.<String>emptyList()));
+                    }
+                }
+            }
+            return new CatalogPage<>(objects, total);
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to list MySQL catalog objects", e);
+        }
+    }
+
+    @Override
+    public CatalogObject getObject(Connection connection, CatalogPath path) {
+        if (path == null || path.getDatabase() == null || path.getObjectName() == null) {
+            throw new IllegalArgumentException("A database and object name are required");
+        }
+        CatalogPage<CatalogObject> page = listObjects(connection,
+                new CatalogObjectQuery(path, path.getObjectType(), path.getObjectName(), 0, 100));
+        for (CatalogObject object : page.getItems()) {
+            if (path.getObjectName().equals(object.getName())) {
+                List<String> primaryKeys = new ArrayList<>();
+                try (ResultSet keys = connection.getMetaData().getPrimaryKeys(
+                        path.getDatabase(), null, path.getObjectName())) {
+                    while (keys.next()) primaryKeys.add(keys.getString("COLUMN_NAME"));
+                } catch (SQLException e) {
+                    throw new IllegalStateException("Failed to load MySQL primary keys", e);
+                }
+                return new CatalogObject(object.getName(), object.getType(), object.getComment(),
+                        object.getPath(), true, primaryKeys);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public List<DataSourceCatalogColumn> listColumns(Connection connection, CatalogPath path) {
+        return listColumns(connection, path.getDatabase(), path.getObjectName());
+    }
+
+    @Override
+    public List<CatalogIndex> listIndexes(Connection connection, CatalogPath path) {
+        requireConfiguredDatabase(connection, path == null ? null : path.getDatabase());
+        Map<String, List<String>> columns = new LinkedHashMap<>();
+        Map<String, Boolean> unique = new LinkedHashMap<>();
+        try (ResultSet result = connection.getMetaData().getIndexInfo(
+                path.getDatabase(), null, path.getObjectName(), false, false)) {
+            while (result.next()) {
+                String name = result.getString("INDEX_NAME");
+                String column = result.getString("COLUMN_NAME");
+                if (name == null || column == null) continue;
+                columns.computeIfAbsent(name, ignored -> new ArrayList<>()).add(column);
+                unique.put(name, !result.getBoolean("NON_UNIQUE"));
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to load MySQL indexes", e);
+        }
+        List<CatalogIndex> indexes = new ArrayList<>();
+        columns.forEach((name, values) -> indexes.add(new CatalogIndex(
+                name, values, Boolean.TRUE.equals(unique.get(name)), "PRIMARY".equalsIgnoreCase(name))));
+        return indexes;
+    }
+
+    @Override
+    public List<CatalogObject> searchObjects(Connection connection, String keyword, int limit) {
+        if (!hasKeyword(keyword)) return Collections.emptyList();
+        String database = requireConfiguredDatabase(connection, null);
+        String sql = "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COMMENT"
+                + " FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME LIKE ?"
+                + " AND TABLE_TYPE IN ('BASE TABLE', 'VIEW') ORDER BY TABLE_NAME LIMIT ?";
+        List<CatalogObject> objects = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, database);
+            statement.setString(2, "%" + keyword.trim() + "%");
+            statement.setInt(3, Math.max(1, Math.min(limit, 200)));
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    String objectDatabase = result.getString("TABLE_SCHEMA");
+                    String name = result.getString("TABLE_NAME");
+                    CatalogObjectType type = "VIEW".equalsIgnoreCase(result.getString("TABLE_TYPE"))
+                            ? CatalogObjectType.VIEW : CatalogObjectType.TABLE;
+                    CatalogPath path = new CatalogPath(null, objectDatabase, null, name, type);
+                    objects.add(new CatalogObject(name, type, result.getString("TABLE_COMMENT"),
+                            path, true, Collections.<String>emptyList()));
+                }
+            }
+            return objects;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to search MySQL catalog", e);
+        }
+    }
+
     @Override
     public boolean supportsTablePaging() {
         return true;
@@ -63,6 +232,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
 
     @Override
     public int countTables(Connection connection, String database, String keyword) {
+        database = requireConfiguredDatabase(connection, database);
         String filter = hasKeyword(keyword)
                 ? TABLE_FILTER + " AND INSTR(t.TABLE_NAME, ?) > 0"
                 : TABLE_FILTER;
@@ -83,6 +253,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceCatalogTable> listTables(
             Connection connection, String database, String keyword, int offset, int limit) {
+        database = requireConfiguredDatabase(connection, database);
         String keywordFilter = hasKeyword(keyword) ? " AND INSTR(t.TABLE_NAME, ?) > 0" : "";
         String sql = "SELECT t.TABLE_NAME, t.TABLE_TYPE, t.TABLE_COMMENT,"
                 + " GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ',') AS PRIMARY_KEYS"
@@ -115,6 +286,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceCatalogTable> getTables(
             Connection connection, String database, List<String> tableNames) {
+        database = requireConfiguredDatabase(connection, database);
         if (tableNames == null || tableNames.isEmpty()) {
             return Collections.emptyList();
         }
@@ -148,6 +320,7 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceCatalogColumn> listColumns(
             Connection connection, String database, String tableName) {
+        database = requireConfiguredDatabase(connection, database);
         try {
             DatabaseMetaData metadata = connection.getMetaData();
             Set<String> primaryKeys = new HashSet<>();
@@ -176,6 +349,22 @@ public class MySQLDataSourceCatalog implements DataSourceCatalog {
             return columns;
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to load MySQL column metadata", e);
+        }
+    }
+
+    private static String requireConfiguredDatabase(Connection connection, String requestedDatabase) {
+        try {
+            String configuredDatabase = connection.getCatalog();
+            if (configuredDatabase == null || configuredDatabase.trim().isEmpty()) {
+                throw new IllegalStateException("The MySQL datasource has no configured database");
+            }
+            if (requestedDatabase != null && !configuredDatabase.equals(requestedDatabase)) {
+                throw new IllegalArgumentException("Catalog database '" + requestedDatabase
+                        + "' is outside the configured datasource database '" + configuredDatabase + "'");
+            }
+            return configuredDatabase;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to resolve configured MySQL database", e);
         }
     }
 

@@ -1,6 +1,6 @@
-import type { ShellLocalParam } from "./types";
+import type { NodeLocalParam } from "./types";
 
-export const SHELL_PARAM_TYPE_OPTIONS = [
+export const NODE_LOCAL_PARAM_TYPE_OPTIONS = [
   { value: "VARCHAR", label: "VARCHAR" },
   { value: "INTEGER", label: "INTEGER" },
   { value: "LONG", label: "LONG" },
@@ -14,12 +14,6 @@ export const SHELL_PARAM_TYPE_OPTIONS = [
   { value: "FILE", label: "FILE" },
 ] as const;
 
-export function createShellLocalParam(): ShellLocalParam {
-  return {
-    prop: "",
-    direct: "IN",
-    type: "VARCHAR",
-    value: "",
-    sensitive: false,
-  };
+export function createNodeLocalParam(): NodeLocalParam {
+  return { prop: "", direct: "IN", type: "VARCHAR", value: "", sensitive: false };
 }

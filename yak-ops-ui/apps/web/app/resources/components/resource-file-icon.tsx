@@ -36,7 +36,13 @@ const getFileVisual = (name: string) => {
   return { Icon: File, color: "text-[#64748b]", background: "bg-[#f1f5f9]" };
 };
 
-function ResourceFolderGlyph({ size }: { size: number }) {
+function ResourceFolderGlyph({
+  size,
+  expanded = true,
+}: {
+  size: number;
+  expanded?: boolean;
+}) {
   return (
     <svg
       width={size}
@@ -50,10 +56,17 @@ function ResourceFolderGlyph({ size }: { size: number }) {
         d="M96 160h252q20 0 36 16l64 64h480q48 0 48 48v528q0 48-48 48H96q-48 0-48-48V208q0-48 48-48z"
         fill="#E9A52B"
       />
-      <path
-        d="M96 304h832q48 0 48 48v464q0 48-48 48H96q-48 0-48-48V352q0-48 48-48z"
-        fill="#FFD16B"
-      />
+      {expanded ? (
+        <path
+          d="M48 384 872 292q48-5 56 43v473q0 48-48 48H96q-48 0-48-48V384z"
+          fill="#FFD16B"
+        />
+      ) : (
+        <path
+          d="M96 304h832q48 0 48 48v464q0 48-48 48H96q-48 0-48-48V352q0-48 48-48z"
+          fill="#FFD16B"
+        />
+      )}
     </svg>
   );
 }
@@ -62,16 +75,18 @@ function ResourceFolderGlyph({ size }: { size: number }) {
 export function ResourceTreeIcon({
   name,
   directory,
+  expanded = false,
   size = 16,
 }: {
   name: string;
   directory: boolean;
+  expanded?: boolean;
   size?: number;
 }) {
   if (directory) {
     return (
       <span className="inline-flex shrink-0 items-center justify-center">
-        <ResourceFolderGlyph size={size} />
+        <ResourceFolderGlyph size={size} expanded={expanded} />
       </span>
     );
   }

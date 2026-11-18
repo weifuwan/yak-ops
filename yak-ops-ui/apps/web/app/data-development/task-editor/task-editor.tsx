@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback } from "react";
 import { toast } from "@yak-ops/yak-ui";
+import { LoadingIndicator } from "@/app/components/loading-indicator";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 import { useDataDevelopmentWorkbench } from "../workbench-context";
@@ -83,8 +84,13 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
       {isShellTask ? (
         <Suspense
           fallback={
-            <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
-              正在加载 Shell 编辑器...
+            <div
+              role="status"
+              aria-label="正在加载 Shell 编辑器"
+              className="flex min-h-0 flex-1 items-center justify-center"
+            >
+              <LoadingIndicator />
+              <span className="sr-only">正在加载 Shell 编辑器</span>
             </div>
           }
         >

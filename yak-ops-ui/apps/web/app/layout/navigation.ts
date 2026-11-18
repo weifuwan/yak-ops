@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowRightLeft,
   Bell,
+  Building2,
   Boxes,
   Database,
   GitBranch,
@@ -10,7 +11,9 @@ import {
   LayoutGrid,
   Layers,
   ListOrdered,
+  Server,
   Settings,
+  Settings2,
   Table2,
   Users,
   Wrench,
@@ -263,6 +266,16 @@ export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     end: true,
   },
   {
+    label: "Worker 分组",
+    path: "/resources/worker-groups",
+    icon: Server,
+  },
+  {
+    label: "环境管理",
+    path: "/resources/environments",
+    icon: Settings2,
+  },
+  {
     label: "任务组配置",
     path: "/resources/task-groups",
     icon: Layers,
@@ -290,6 +303,11 @@ export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
 ];
 
 export const MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
+  {
+    label: "租户管理",
+    path: "/management/tenants",
+    icon: Building2,
+  },
   {
     label: "用户管理",
     path: "/management/users",

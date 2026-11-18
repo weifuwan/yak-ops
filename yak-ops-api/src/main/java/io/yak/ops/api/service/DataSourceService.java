@@ -33,6 +33,9 @@ public interface DataSourceService {
 
     void delete(User loginUser, long projectCode, int datasourceId);
 
+    /** Returns a project-scoped datasource only after catalog read permission has been checked. */
+    DataSource getDataSourceForCatalog(User loginUser, long projectCode, Integer datasourceId);
+
     List<ParamsOptions> getTables(User loginUser, long projectCode, Integer id, String database);
 
     PageInfo<DataSourceCatalogTable> getTables(User loginUser, long projectCode, Integer id, String database,

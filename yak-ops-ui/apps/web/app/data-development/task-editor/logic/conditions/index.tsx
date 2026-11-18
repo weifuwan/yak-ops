@@ -4,6 +4,7 @@ import { Button } from "@yak-ops/yak-ui";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
+import { useConditionsRunConfig } from "./components/conditions-run-config-panel";
 import { LogicSection, LogicSelect } from "../shared/logic-form-controls";
 import {
   buildConditionLogicExpression,
@@ -456,6 +457,7 @@ export function ConditionsEditor({
   failedTargets: ConditionTaskOption[];
   unassignedTargetCount: number;
 }) {
+  const runConfig = useConditionsRunConfig(task, readOnly);
   const applyNormalizedTask = (nextTask: WorkflowTaskRecord) => onApplyTask({
     ...nextTask,
     taskParams: normalizeConditionsTaskParams(nextTask.taskParams),
@@ -468,6 +470,7 @@ export function ConditionsEditor({
       taskName={taskName}
       taskType="CONDITIONS"
       readOnly={readOnly}
+      runConfig={runConfig}
       onApplyTask={applyNormalizedTask}
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}

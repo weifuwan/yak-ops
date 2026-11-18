@@ -17,6 +17,13 @@ import type {
   DataSourceCatalogQuery,
   DataSourceCatalogTable,
   DataSourceCatalogTablePath,
+  CatalogCapabilities,
+  CatalogChildrenPage,
+  CatalogChildrenQuery,
+  CatalogIndex,
+  CatalogObject,
+  CatalogPath,
+  CatalogTreeNode,
   DataSourceDriverProperty,
   DataSourceOptionRules,
   DataSourceValidationError,
@@ -238,3 +245,77 @@ export const previewDataSourceTable = async (
 ): Promise<DataSourcePreview> => {
   throw new Error("当前 Yak Ops 后端尚未提供数据预览接口");
 };
+
+
+const catalogAPI = (id: DataSourceId) => API() + "/" + encodeURIComponent(id) + "/catalog";
+
+const catalogPathParams = (path: CatalogPath): Record<string, string | number | undefined> => ({
+  catalog: path.catalog || undefined,
+  database: path.database || undefined,
+  schema: path.schema || undefined,
+  objectName: path.objectName || undefined,
+  objectType: path.objectType || undefined,
+});
+
+export const getDataSourceCatalogCapabilities = (
+  id: DataSourceId,
+  signal?: AbortSignal,
+): Promise<CatalogCapabilities> =>
+  HttpUtils.getData<CatalogCapabilities>(catalogAPI(id) + "/capabilities", { signal });
+
+export const listDataSourceCatalogChildren = (
+  id: DataSourceId,
+  query: CatalogChildrenQuery,
+  signal?: AbortSignal,
+): Promise<CatalogChildrenPage> =>
+  HttpUtils.getData<CatalogChildrenPage>(
+    catalogAPI(id) + "/children?" + qs({
+      ...catalogPathParams(query),
+      nodeType: query.nodeType,
+      keyword: query.keyword,
+      pageNo: query.pageNo ?? 1,
+      pageSize: query.pageSize ?? 100,
+    }),
+    { signal },
+  );
+
+export const searchDataSourceCatalog = (
+  id: DataSourceId,
+  keyword: string,
+  limit = 100,
+  signal?: AbortSignal,
+): Promise<CatalogTreeNode[]> =>
+  HttpUtils.getData<CatalogTreeNode[]>(
+    catalogAPI(id) + "/search?" + qs({ keyword, limit }),
+    { signal },
+  );
+
+export const getDataSourceCatalogObject = (
+  id: DataSourceId,
+  path: CatalogPath,
+  signal?: AbortSignal,
+): Promise<CatalogObject> =>
+  HttpUtils.getData<CatalogObject>(
+    catalogAPI(id) + "/object?" + qs(catalogPathParams(path)),
+    { signal },
+  );
+
+export const listDataSourceCatalogColumns = (
+  id: DataSourceId,
+  path: CatalogPath,
+  signal?: AbortSignal,
+): Promise<DataSourceCatalogColumn[]> =>
+  HttpUtils.getData<DataSourceCatalogColumn[]>(
+    catalogAPI(id) + "/columns?" + qs(catalogPathParams(path)),
+    { signal },
+  );
+
+export const listDataSourceCatalogIndexes = (
+  id: DataSourceId,
+  path: CatalogPath,
+  signal?: AbortSignal,
+): Promise<CatalogIndex[]> =>
+  HttpUtils.getData<CatalogIndex[]>(
+    catalogAPI(id) + "/indexes?" + qs(catalogPathParams(path)),
+    { signal },
+  );

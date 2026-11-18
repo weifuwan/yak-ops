@@ -16,12 +16,15 @@ import SubjectDomainPage from "@/app/data-modeling/planning/application-layer/su
 import DimensionModelingPage from "@/app/data-modeling/models/dimension-modeling";
 import ReverseModelingPage from "@/app/data-modeling/models/reverse-modeling";
 import { ResourceManagementPage } from "@/app/resources/page";
+import { WorkerGroupsPage } from "@/app/resources/worker-groups/page";
+import { EnvironmentsPage } from "@/app/resources/environments/page";
 import { TaskGroupConfigurationPage } from "@/app/resources/task-group-option/page";
 import { TaskGroupQueuePage } from "@/app/resources/task-group-queue/page";
 import { DataSourcePage } from "@/app/datasource/list/page";
 import { DataIntegrationOverviewPage } from "@/app/data-integration/overview/page";
 import LoginPage from "@/app/login";
 import { AlertCenterPage } from "@/app/management/alerts/page";
+import { TenantManagementPage } from "@/app/management/tenants/page";
 import { UserManagementPage } from "@/app/management/users/page";
 import { WorkspaceManagementPage } from "@/app/management/workspaces/page";
 import { DataSyncPage } from "@/app/data-sync/list/page";
@@ -62,6 +65,8 @@ const AUTHENTICATED_PATHS = new Set([
   "/data-development",
   "/data-modeling",
   "/resources",
+  "/resources/worker-groups",
+  "/resources/environments",
   "/resources/task-groups",
   "/resources/task-group-queue",
   "/data-source",
@@ -70,6 +75,7 @@ const AUTHENTICATED_PATHS = new Set([
   "/operations",
   "/operations/offline-tasks",
   "/operations/realtime-tasks",
+  "/management/tenants",
   "/management/users",
   "/management/workspaces",
   "/management/alerts",
@@ -289,6 +295,7 @@ export default function AppRouter() {
             }
           >
             <Route path="/management" element={<Navigate replace to="/management/users" />} />
+            <Route path="/management/tenants" element={<TenantManagementPage />} />
             <Route path="/management/users" element={<UserManagementPage />} />
             <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
             <Route path="/management/alerts" element={<AlertCenterPage />} />
@@ -308,6 +315,8 @@ export default function AppRouter() {
           }
         >
           <Route path="/resources" element={<ResourceManagementPage />} />
+          <Route path="/resources/worker-groups" element={<WorkerGroupsPage />} />
+          <Route path="/resources/environments" element={<EnvironmentsPage />} />
           <Route path="/resources/task-groups" element={<TaskGroupConfigurationPage />} />
           <Route path="/resources/task-group-queue" element={<TaskGroupQueuePage />} />
         </Route>

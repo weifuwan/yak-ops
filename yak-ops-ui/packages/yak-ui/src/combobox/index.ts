@@ -1,6 +1,11 @@
 export {
   Combobox,
   ComboboxContent,
+  ComboboxInputGroup,
+  ComboboxValue,
+  ComboboxChips,
+  ComboboxChip,
+  ComboboxChipRemove,
   ComboboxEmpty,
   ComboboxEmptyState,
   ComboboxInput,

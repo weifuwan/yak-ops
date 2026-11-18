@@ -13,7 +13,7 @@ import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 import { PanelResizer } from "../layout/panel-resizer";
 
 type NodeEditorView = "form" | "json";
-type NodePanelKey = "properties" | "runConfig";
+type NodePanelKey = "properties" | "resourceParams" | "runConfig";
 
 const PANEL_ITEMS: Array<{ key: NodePanelKey; label: string }> = [
   { key: "properties", label: "属性" },
@@ -72,7 +72,7 @@ function InfoRow({
       : String(value);
 
   return (
-    <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 border-b border-[#f0f1f3] py-2 last:border-b-0">
+    <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 py-2">
       <span className="text-xs text-[#8b93a1]">{label}</span>
       <span className="break-all text-xs text-[#303846]">{displayValue}</span>
     </div>
@@ -87,7 +87,7 @@ function PanelSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-[#e8ebef] bg-white px-3 py-2">
+    <section className="bg-white px-3 py-2">
       <h3 className="mb-1 text-xs font-semibold text-[#303846]">{title}</h3>
       {children}
     </section>
@@ -110,11 +110,6 @@ function NodePanelContent({
       <PanelSection title="节点信息">
         <InfoRow label="节点名称" value={taskName} />
         <InfoRow label="节点类型" value={task?.taskType ?? taskType} />
-        <InfoRow label="节点编码" value={task?.code} />
-        <InfoRow label="节点版本" value={task?.version} />
-        <InfoRow label="所属工作流" value={workflowCode} />
-        <InfoRow label="修改人" value={task?.modifyBy} />
-        <InfoRow label="更新时间" value={task?.updateTime} />
       </PanelSection>
       {task?.description ? (
         <PanelSection title="节点描述">
@@ -148,6 +143,7 @@ export function NodeEditorFrame({
   onRefresh,
   onBack,
   runConfig,
+  resourceParams,
   children,
 }: {
   task?: WorkflowTaskRecord;
@@ -170,11 +166,16 @@ export function NodeEditorFrame({
   onRefresh: () => void;
   onBack: () => void;
   runConfig: ReactNode;
+  resourceParams?: ReactNode;
   children: ReactNode;
 }) {
   const [activePanel, setActivePanel] = useState<NodePanelKey | null>(null);
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH);
-  const activeTitle = PANEL_ITEMS.find((item) => item.key === activePanel)?.label;
+  const panelItems: Array<{ key: NodePanelKey; label: string }> = resourceParams
+    ? [PANEL_ITEMS[0], { key: "resourceParams", label: "资源与参数" }, PANEL_ITEMS[1]]
+    : PANEL_ITEMS;
+  const visibleActivePanel = panelItems.some((item) => item.key === activePanel) ? activePanel : null;
+  const activeTitle = panelItems.find((item) => item.key === visibleActivePanel)?.label;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
@@ -241,7 +242,7 @@ export function NodeEditorFrame({
         </main>
 
         <aside className="flex h-full min-h-0 shrink-0 bg-white">
-          {activePanel ? (
+          {visibleActivePanel ? (
             <>
               <PanelResizer
                 width={panelWidth}
@@ -268,13 +269,15 @@ export function NodeEditorFrame({
                   </button>
                 </header>
                 <div className="min-h-0 flex-1 overflow-y-auto bg-white">
-                  {activePanel === "properties" ? (
+                  {visibleActivePanel === "properties" ? (
                     <NodePanelContent
                       task={task}
                       taskName={taskName}
                       taskType={taskType}
                       workflowCode={workflowCode}
                     />
+                  ) : visibleActivePanel === "resourceParams" ? (
+                    <div className="p-3">{resourceParams}</div>
                   ) : (
                     <div className="p-3">{runConfig}</div>
                   )}
@@ -287,8 +290,8 @@ export function NodeEditorFrame({
             aria-label="节点配置"
             className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white"
           >
-            {PANEL_ITEMS.map((item) => {
-              const selected = activePanel === item.key;
+            {panelItems.map((item) => {
+              const selected = visibleActivePanel === item.key;
               return (
                 <button
                   key={item.key}

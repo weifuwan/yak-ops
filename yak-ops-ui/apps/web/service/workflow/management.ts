@@ -229,16 +229,32 @@ export function switchWorkflowDefinitionVersion(
   );
 }
 
+export interface WorkflowInstanceQuery {
+  workflowDefinitionCode?: number;
+  searchVal?: string;
+  executorName?: string;
+  stateType?: string;
+  host?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export async function listWorkflowInstances(
-  workflowDefinitionCode: number,
+  workflowDefinitionCode?: number,
   pageNo = 1,
   pageSize = 10,
   signal?: AbortSignal,
+  filters: Omit<WorkflowInstanceQuery, "workflowDefinitionCode"> = {},
 ): Promise<PageInfo<WorkflowInstanceSummary>> {
   const params = new URLSearchParams({
-    workflowDefinitionCode: String(workflowDefinitionCode),
     pageNo: String(pageNo),
     pageSize: String(pageSize),
+  });
+  if (workflowDefinitionCode !== undefined) {
+    params.set("workflowDefinitionCode", String(workflowDefinitionCode));
+  }
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") params.set(key, value);
   });
   return HttpUtils.getData<PageInfo<WorkflowInstanceSummary>>(
     instanceBase() + "?" + params.toString(),

@@ -1,21 +1,13 @@
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
-
-export type ShellLocalParam = {
-  prop: string;
-  direct: "IN" | "OUT";
-  type: string;
-  value: string;
-  sensitive: boolean;
-};
+import type { NodeLocalParam } from "../common/node-resource-params/types";
 
 export type ShellTaskForm = {
   rawScript: string;
   resourceList: string[];
-  localParams: ShellLocalParam[];
+  localParams: NodeLocalParam[];
 };
 
 export type ShellEditorView = "form" | "json";
-export type ShellConfigTab = "parameters" | "resources";
 
 export type ShellTaskEditorProps = {
   workflowCode: number;

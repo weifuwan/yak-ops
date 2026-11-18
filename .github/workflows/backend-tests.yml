@@ -170,6 +170,44 @@ jobs:
               raise SystemExit('No Data Sync plugin unit tests executed')
           PY
 
+  datasource-catalog-plugin:
+    name: Datasource Catalog Plugin Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Compile MySQL and PostgreSQL catalog plugins and run catalog tests
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-datasource-mysql,:yak-ops-datasource-postgresql -am \
+            '-Dtest=MySQLDataSourceCatalogTest,PostgreSQLDataSourceCatalogTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require catalog plugin tests to execute
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          modules = [
+              Path('yak-ops-datasource-plugin/yak-ops-datasource-mysql/target/surefire-reports'),
+              Path('yak-ops-datasource-plugin/yak-ops-datasource-postgresql/target/surefire-reports'),
+          ]
+          for module in modules:
+              reports = list(module.glob('TEST-*.xml'))
+              total = sum(int(ET.parse(report).getroot().attrib.get('tests', 0)) for report in reports)
+              print(f'{module}: {len(reports)} reports, {total} tests')
+              if total == 0:
+                  raise SystemExit(f'No catalog plugin tests executed in {module}')
+          PY
+
   modeling-unit:
     name: Modeling Unit Tests (JDK 17)
     runs-on: ubuntu-latest
