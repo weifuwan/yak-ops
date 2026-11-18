@@ -128,7 +128,7 @@ export function DataCatalogPanel({ width }: { width: number }) {
                                 ) : (
                                   tables.map((table) => (
                                     <button
-                                      key={table.tableName}
+                                      key={table.name}
                                       type="button"
                                       className="flex w-full cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left hover:bg-[#eef3ff]"
                                       onClick={() =>
