@@ -1,9 +1,8 @@
 """Tool-call audit trail (JSONL, append-only).
 
 Every tool execution is recorded with its arguments (truncated), outcome and
-duration, so the agent's behaviour is reviewable after the fact — the Python
-counterpart of the retired Java audit tables, kept file-based to stay
-zero-dependency.
+duration, so the agent's behaviour is reviewable after the fact — file-based
+to stay zero-dependency.
 
 Location: $YAK_AGENT_AUDIT_DIR (default <module>/logs/audit/YYYY-MM-DD.jsonl).
 """

@@ -1,7 +1,7 @@
 """Settings loaded from environment variables and an optional .env file.
 
 Zero-dependency on purpose: a tiny .env parser instead of python-dotenv.
-Variable names mirror the yak-ops PoC convention (AGENT_BASE_URL, AGENT_MODEL, ...)
+Variable names follow the platform convention (LLM_BASE_URL, LLM_MODEL, ...)
 so the same credentials used by standalone-server work unchanged.
 
 Authentication is either an API token (`YAK_OPS_TOKEN`, when the platform token

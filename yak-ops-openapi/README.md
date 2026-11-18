@@ -1,6 +1,6 @@
 # yak-ops-openapi
 
-平台 REST API 的 **OpenAPI 3.1 契约基线与 agent 白名单**，零 Java 源码、零第三方依赖。用于：外部集成、前端类型生成、AI 工具接入。
+平台 REST API 的 **OpenAPI 3.1 契约基线与 agent 白名单**，纯资源模块、零第三方依赖。用于：外部集成、前端类型生成、AI 工具接入。
 
 模块内容：
 

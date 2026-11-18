@@ -1,6 +1,6 @@
 # yak-ops-agent（AgentScope Python harness）
 
-数据同步页面的完整功能 agent（查询 + 创建/修改/发布/下线/删除 + 实例停止/强制成功），**替代已移除的 Java agent 模块**。
+数据同步页面的完整功能 agent（查询 + 创建/修改/发布/下线/删除 + 实例停止/强制成功），基于 AgentScope 构建。
 平台侧契约与安全边界见 `yak-ops-openapi/`（契约基线与 agent 白名单）。
 
 ## 定位
@@ -107,7 +107,7 @@ SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`
 
 ## 已知边界
 
-- Java `AgentChatController` 已随旧模块移除，前端 assistant drawer 的 SSE 接口暂缺；本模块提供 CLI 入口，HTTP 兼容层在闭环验收后按需补；
-- 建表机制（四张审计表）随 Java 模块移除，审计留痕在 Python 侧复跑 Golden 前另行落地；
+- 前端 assistant drawer 的对接接口由 HTTP 服务（`python -m yak_agent.server`）提供，CLI 为本地运维入口；
+- 工具调用审计以 JSONL 形式落盘（`logs/audit/`），可配置重定向；
 - 创建/修改任务需要完整的 pipeline `parameters` JSON——system prompt 引导模型从 `get_sync_task` 取模板修改并用 `preview_sync_task` 验证，避免凭空构造；
 - 冒烟脚本只覆盖只读场景；写操作的确认流由写操作演练脚本（`smoke/write_drill.py`）端到端验证。

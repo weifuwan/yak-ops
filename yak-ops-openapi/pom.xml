@@ -12,7 +12,7 @@
     <artifactId>yak-ops-openapi</artifactId>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
-    <description>Yak Ops OpenAPI contract assets and agent allowlist (no Java sources, no third-party deps)</description>
+    <description>Yak Ops OpenAPI contract assets and agent allowlist (resource-only, no third-party deps)</description>
 
     <build>
         <resources>
