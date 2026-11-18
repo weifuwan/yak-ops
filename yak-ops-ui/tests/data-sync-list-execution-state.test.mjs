@@ -6,6 +6,7 @@ import { test } from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../apps/web/app/data-sync/list");
 const queries = readFileSync(join(root, "use-list-queries.ts"), "utf8");
+const editor = readFileSync(join(root, "../editor/page.tsx"), "utf8");
 const page = readFileSync(join(root, "page.tsx"), "utf8");
 const lifecycle = readFileSync(join(root, "task-lifecycle.tsx"), "utf8");
 const actions = readFileSync(join(root, "use-task-actions.ts"), "utf8");
@@ -59,4 +60,18 @@ test("data sync actions refresh only the resource family they change without abo
 
 test("global queries do not refetch just because the browser regains focus", () => {
   assert.match(app, /refetchOnWindowFocus: false/);
+});
+
+
+test("editor derives its execution lock from the latest instance instead of an active-only query", () => {
+  assert.match(
+    editor,
+    /listLatestDataSyncTaskInstances\(\[id!\], false, signal\)/,
+  );
+  assert.match(editor, /isTaskInstanceActive\(instance\.status\)/);
+  assert.match(editor, /const activeInstance = activeQuery\.data\?\.find/);
+  assert.doesNotMatch(
+    editor,
+    /listLatestDataSyncTaskInstances\(\[id!\], true/,
+  );
 });
