@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "@yak-ops/yak-ui";
-import { canCancelTaskInstance } from "@/service/data-sync/execution";
+import {
+  canCancelTaskInstance,
+  isTaskInstanceActive,
+} from "@/service/data-sync/execution";
 import {
   cancelDataSyncInstance,
   canStopWorkflow,
@@ -53,11 +56,12 @@ export function useExecutionActions({
       return;
     setRunning(true);
     try {
-      const [active, latestWorkflow] = await Promise.all([
-        listLatestDataSyncTaskInstances([taskId], true),
+      const [latestInstances, latestWorkflow] = await Promise.all([
+        listLatestDataSyncTaskInstances([taskId], false),
         getLatestDataSyncWorkflow(task!.workflowCode),
       ]);
-      if (active.length > 0 || (latestWorkflow && isWorkflowActive(latestWorkflow.state))) {
+      if (latestInstances.some((instance) => isTaskInstanceActive(instance.status)) ||
+          (latestWorkflow && isWorkflowActive(latestWorkflow.state))) {
         toast.error("任务正在执行，请先停止");
         await refreshActiveInstances();
         return;
@@ -67,8 +71,12 @@ export function useExecutionActions({
       selectWorkflowSubmitted(submitted.workflowInstanceId);
       toast.success("运行请求已提交");
       await refreshActiveInstances();
-      const latest = await listLatestDataSyncTaskInstances([taskId], true);
-      const launched = latest.find((instance) => instance.workflowInstanceId === submitted.workflowInstanceId);
+      const latest = await listLatestDataSyncTaskInstances([taskId], false);
+      const launched = latest.find(
+        (instance) =>
+          instance.workflowInstanceId === submitted.workflowInstanceId &&
+          isTaskInstanceActive(instance.status),
+      );
       if (launched) {
         selectSubmitted(launched.id);
         setPendingWorkflowInstanceId(undefined);
