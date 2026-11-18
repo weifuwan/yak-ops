@@ -269,9 +269,6 @@ export function WorkerGroupsPage() {
         <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-[var(--yak-components-muted-text)]">
-                Worker 分组用于指定任务的执行 Worker。系统分组来自当前在线 Worker，不能在这里编辑。
-              </div>
               <div className="flex items-center gap-2">
                 <div className="w-[260px] max-w-full">
                   <Input
@@ -429,9 +426,6 @@ export function WorkerGroupsPage() {
                     )}
                   </ComboboxContent>
                 </Combobox>
-                <div className="mt-1.5 text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-                  只展示当前在线 Worker 地址；最终地址合法性由后端校验。
-                </div>
               </div>
             </Field>
 
