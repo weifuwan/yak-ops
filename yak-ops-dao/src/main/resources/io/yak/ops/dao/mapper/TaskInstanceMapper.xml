@@ -313,22 +313,24 @@
         from t_yak_ops_task_instance
         where project_code = #{projectCode}
           and task_type = #{taskType}
+          and flag = 1
           and id in (
               select max(i.id) from t_yak_ops_task_instance i
               where i.project_code = #{projectCode}
                 and i.task_type = #{taskType}
+                and i.flag = 1
                 and i.task_code in
                 <foreach collection="taskCodes" item="code" open="(" separator="," close=")">
                     #{code}
                 </foreach>
-                <if test="states != null and states.length != 0">
-                    and i.state in
-                    <foreach collection="states" item="state" open="(" separator="," close=")">
-                        #{state}
-                    </foreach>
-                </if>
               group by i.task_code
           )
+        <if test="states != null and states.length != 0">
+            and state in
+            <foreach collection="states" item="state" open="(" separator="," close=")">
+                #{state}
+            </foreach>
+        </if>
         order by id desc
     </select>
 </mapper>
