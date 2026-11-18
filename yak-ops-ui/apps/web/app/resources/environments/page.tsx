@@ -277,9 +277,6 @@ export function EnvironmentsPage() {
         <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-[var(--yak-components-muted-text)]">
-                环境配置用于 Worker 执行任务时加载的环境变量；一个环境可以关联多个 Worker 分组。
-              </div>
               <div className="flex items-center gap-2">
                 <div className="w-[260px] max-w-full">
                   <Input
@@ -422,9 +419,6 @@ export function EnvironmentsPage() {
                     )}
                   </ComboboxContent>
                 </Combobox>
-                <div className="mt-1.5 text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-                  可不绑定 Worker 分组；绑定后，任务节点可按 Worker 分组选择该环境。
-                </div>
               </Field>
             </div>
 
@@ -445,9 +439,6 @@ export function EnvironmentsPage() {
               <FieldError match={Boolean(configError)} className="mt-1">
                 {configError}
               </FieldError>
-              <div className="mt-1.5 text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-                配置内容按 Shell 环境脚本处理，例如 export JAVA_HOME=/opt/jdk。
-              </div>
             </Field>
 
             <Field>
