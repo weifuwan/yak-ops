@@ -4,7 +4,7 @@ import { ReactFlowProvider } from "reactflow";
 import { Button, toast } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
-import { LoadingIndicator } from "@/components/loading-indicator";
+import { LoadingIndicator } from "@/app/components/loading-indicator";
 import {
   getWorkflowDefinition,
   releaseWorkflowDefinition,
