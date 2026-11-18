@@ -11,6 +11,18 @@ import org.junit.jupiter.api.Test;
 public class MySQLDataSourceCatalogTest {
 
     @Test
+    public void testCatalogCapabilitiesExposeDatabaseWithoutSchema() {
+        DataSourceCatalog catalog = new MySQLDataSourceCatalog();
+        Assertions.assertEquals(java.util.Arrays.asList(
+                io.yak.ops.plugin.datasource.api.catalog.NamespaceLevel.DATABASE),
+                catalog.getCapabilities().getNamespaceLevels());
+        Assertions.assertTrue(catalog.getCapabilities().supportsObject(
+                io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType.TABLE));
+        Assertions.assertTrue(catalog.getCapabilities().supportsFeature(
+                io.yak.ops.plugin.datasource.api.catalog.CatalogFeature.INDEXES));
+    }
+
+    @Test
     public void testDriverConnectionProperties() {
         DataSourceCatalog catalog = new MySQLDataSourceCatalog();
         List<ConnectionProperty> properties = catalog.getConnectionProperties();
