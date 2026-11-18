@@ -37,6 +37,11 @@ public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {
     }
 
     @Override
+    public PostgreSQLDataSourceCatalog getCatalog() {
+        return catalog;
+    }
+
+    @Override
     public BaseDataSourceParamDTO castDatasourceParamDTO(String paramJson) {
         return JSONUtils.parseObject(paramJson, PostgreSQLDataSourceParamDTO.class);
     }
