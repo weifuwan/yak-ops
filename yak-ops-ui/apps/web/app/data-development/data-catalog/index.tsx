@@ -72,8 +72,8 @@ export function DataCatalogPanel({ width }: { width: number }) {
           <div className="px-4 py-10 text-center text-[12px] text-[#9aa0a8]">暂无数据源</div>
         ) : (
           sources.map((source) => {
-            const sourceKey = String(source.id);
-            const sourceOpen = expandedSource === sourceKey;
+            const sourceKey = source.id ?? "";
+            const sourceOpen = Boolean(sourceKey) && expandedSource === sourceKey;
             return (
               <div key={sourceKey}>
                 <button
@@ -133,16 +133,16 @@ export function DataCatalogPanel({ width }: { width: number }) {
                                       className="flex w-full cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left hover:bg-[#eef3ff]"
                                       onClick={() =>
                                         openCatalogTable(
-                                          source.id,
-                                          source.name,
+                                          sourceKey,
+                                          source.name || "数据源",
                                           database,
-                                          table.tableName,
+                                          table.name,
                                         )
                                       }
                                     >
                                       <Table2 size={13} className="text-[#6d7682]" />
                                       <span className="min-w-0 flex-1 truncate text-[11px] text-[#3e454f]">
-                                        {table.tableName}
+                                        {table.name}
                                       </span>
                                     </button>
                                   ))
