@@ -1,24 +1,22 @@
-import { PanelHeader } from "@yak-ops/yak-ui";
-
 import { DataDevelopmentResourcePanel } from "../resource-panel";
 import { ResourceBrowserPanel } from "../resource-browser-panel";
+import { ManualRunPanel } from "../manual-run";
+import { RunHistoryPanel } from "../run-history";
+import { DataCatalogPanel } from "../data-catalog";
+import { OperationHistoryPanel } from "../operation-history";
 import type { DataDevelopmentSection } from "./development-rail";
 
 const PANEL_COPY: Record<
-  Exclude<DataDevelopmentSection, "development" | "resource">,
+  Exclude<DataDevelopmentSection, "development" | "resource" | "manual" | "catalog" | "history" | "operation-check">,
   { title: string; content: string }
 > = {
-  manual: { title: "手动", content: "这里将展示手动任务相关内容。" },
-  component: { title: "组件管理", content: "这里将展示组件管理内容。" },
-  catalog: { title: "数据目录", content: "这里将展示数据目录内容。" },
-  "ai-processing": { title: "AI 数据处理", content: "这里将展示 AI 数据处理内容。" },
-  history: { title: "运行历史", content: "这里将展示运行历史内容。" },
-  review: { title: "代码评审列表", content: "这里将展示代码评审内容。" },
-  "operation-check": { title: "操作检查", content: "这里将展示操作检查内容。" },
-  "smoke-test": { title: "冒烟测试记录", content: "这里将展示冒烟测试记录。" },
-  "code-management": { title: "代码管理", content: "这里将展示代码管理内容。" },
-  governance: { title: "数据资产治理", content: "这里将展示数据资产治理内容。" },
-  "recycle-bin": { title: "回收站", content: "这里将展示回收站内容。" },
+  component: { title: "组件管理", content: "该能力暂未接入当前后端。" },
+  "ai-processing": { title: "AI 数据处理", content: "该能力暂未接入当前后端。" },
+  review: { title: "代码评审列表", content: "该能力暂未接入当前后端。" },
+  "smoke-test": { title: "冒烟测试记录", content: "该能力暂未接入当前后端。" },
+  "code-management": { title: "代码管理", content: "该能力暂未接入当前后端。" },
+  governance: { title: "数据资产治理", content: "该能力暂未接入当前后端。" },
+  "recycle-bin": { title: "回收站", content: "该能力暂未接入当前后端。" },
 };
 
 type DevelopmentPanelProps = {
@@ -46,6 +44,13 @@ export function DevelopmentPanel({
         onDirectoryPathsChange={onResourceDirectoryPathsChange}
       />
     );
+  }
+
+  if (activeSection === "manual") return <ManualRunPanel width={width} />;
+  if (activeSection === "history") return <RunHistoryPanel width={width} />;
+  if (activeSection === "catalog") return <DataCatalogPanel width={width} />;
+  if (activeSection === "operation-check") {
+    return <OperationHistoryPanel width={width} />;
   }
 
   const panel = PANEL_COPY[activeSection];
