@@ -43,7 +43,7 @@ public class DataSourceCatalogController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "catalogCapabilities", description = "Get datasource catalog capabilities")
     public Result<CatalogCapabilities> capabilities(
-            @Parameter(hidden = true) @RequestAttribute(Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @PathVariable("datasourceId") Integer datasourceId) {
         return Result.success(catalogService.getCapabilities(loginUser, projectCode, datasourceId));
@@ -53,7 +53,7 @@ public class DataSourceCatalogController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "catalogChildren", description = "Get direct children of a catalog tree node")
     public Result<CatalogChildrenPageVO> children(
-            @Parameter(hidden = true) @RequestAttribute(Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @PathVariable("datasourceId") Integer datasourceId,
             @RequestParam(value = "nodeType", defaultValue = "DATASOURCE") CatalogNodeType nodeType,
@@ -75,7 +75,7 @@ public class DataSourceCatalogController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "catalogSearch", description = "Search datasource tables and views")
     public Result<List<CatalogTreeNodeVO>> search(
-            @Parameter(hidden = true) @RequestAttribute(Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @PathVariable("datasourceId") Integer datasourceId,
             @RequestParam("keyword") String keyword,
@@ -87,7 +87,7 @@ public class DataSourceCatalogController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "catalogObject", description = "Get database object details")
     public Result<CatalogObject> object(
-            @Parameter(hidden = true) @RequestAttribute(Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @PathVariable("datasourceId") Integer datasourceId,
             @RequestParam(value = "catalog", required = false) String catalog,
@@ -103,7 +103,7 @@ public class DataSourceCatalogController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "catalogColumns", description = "Get columns for a database object")
     public Result<List<DataSourceCatalogColumn>> columns(
-            @Parameter(hidden = true) @RequestAttribute(Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @PathVariable("datasourceId") Integer datasourceId,
             @RequestParam(value = "catalog", required = false) String catalog,
@@ -119,7 +119,7 @@ public class DataSourceCatalogController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "catalogIndexes", description = "Get indexes for a database object")
     public Result<List<CatalogIndex>> indexes(
-            @Parameter(hidden = true) @RequestAttribute(Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
             @PathVariable("projectCode") long projectCode,
             @PathVariable("datasourceId") Integer datasourceId,
             @RequestParam(value = "catalog", required = false) String catalog,
