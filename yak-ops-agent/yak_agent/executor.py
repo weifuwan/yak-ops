@@ -12,8 +12,8 @@
    runs with a **minimal environment** (credential-bearing variables stripped,
    so the SDK is unusable — compute-only) and the same audit record.
 
-Production deployments replace both with AgentScope's DockerWorkspace
-(FYOIP-16). Either way: the generated SDK is the only I/O surface, writes are
+Production deployments replace both with AgentScope's DockerWorkspace.
+Either way: the generated SDK is the only I/O surface, writes are
 disabled inside scripts, and every execution is audited.
 """
 

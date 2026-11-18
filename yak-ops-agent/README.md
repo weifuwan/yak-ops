@@ -1,7 +1,7 @@
 # yak-ops-agent（AgentScope Python harness）
 
 数据同步页面的完整功能 agent（查询 + 创建/修改/发布/下线/删除 + 实例停止/强制成功），**替代已移除的 Java agent 模块**。
-平台侧契约与安全边界见 `docs/openapi/`（契约基线）与 `D:/tianxy/code/yak-ops-worktrees/agent-openapi-plan-20261118.md`（接入方案 v1.5）。
+平台侧契约与安全边界见 `yak-ops-openapi/`（契约基线与 agent 白名单）。
 
 ## 定位
 
@@ -18,7 +18,7 @@
 | **审计留痕** | 每次工具调用落 JSONL（`logs/audit/YYYY-MM-DD.jsonl`，`YAK_AGENT_AUDIT_DIR` 可改）：时间、工具、脱敏参数、成功与否、耗时——`parameters_json` 类参数只记占位符，不落盘数据源凭据 |
 | **短期记忆** | Agent 内部 context：同一会话内后续问题复用已取数据（省 token） |
 | **PTC（程序化工具调用）** | `run_analysis_script`：模型写 Python 脚本在受限执行器里跑，脚本经生成的只读 `yak_agent_sdk` 调 yak-ops API（含 `download_task_log` 全量日志），**只有结论进上下文**；写操作在 SDK import 时硬禁，静态预检拒绝写符号，超时/输出截断/全量审计 |
-| **会话工作区** | 每会话持久目录（`sessions/{sid}/workspace/`）：脚本产物跨轮存活；stdout 超长时自动 offload 落盘；`read_workspace_file` / `list_workspace_files` 只读工具回读（路径逃逸防护）。执行后端可插拔：本地=受限子进程，生产=DockerWorkspace（FYOIP-16） |
+| **会话工作区** | 每会话持久目录（`sessions/{sid}/workspace/`）：脚本产物跨轮存活；stdout 超长时自动 offload 落盘；`read_workspace_file` / `list_workspace_files` 只读工具回读（路径逃逸防护）。执行后端可插拔：本地=cocoon 沙箱（默认）或受限子进程，生产=DockerWorkspace |
 
 ## 工具（数据同步，7 读 + 7 写）
 
@@ -110,4 +110,4 @@ SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`
 - Java `AgentChatController` 已随旧模块移除，前端 assistant drawer 的 SSE 接口暂缺；本模块提供 CLI 入口，HTTP 兼容层在闭环验收后按需补；
 - 建表机制（四张审计表）随 Java 模块移除，审计留痕在 Python 侧复跑 Golden 前另行落地；
 - 创建/修改任务需要完整的 pipeline `parameters` JSON——system prompt 引导模型从 `get_sync_task` 取模板修改并用 `preview_sync_task` 验证，避免凭空构造；
-- 冒烟脚本只覆盖只读场景；写操作的确认流由 mock 验证（`worktrees/agent-harness/hitl_mock_check.py`，不随仓库提供）。
+- 冒烟脚本只覆盖只读场景；写操作的确认流由写操作演练脚本（`smoke/write_drill.py`）端到端验证。

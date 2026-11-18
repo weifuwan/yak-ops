@@ -10,7 +10,7 @@ Provides the two workspace capabilities that matter on a Docker-less host:
 Deliberately NOT provided on this tier: a general Bash tool, arbitrary file
 access outside the workspace root, network egress control (the SDK whitelist
 and audit trail cover the script surface; production isolation is the
-DockerWorkspace backend, per FYOIP-16).
+DockerWorkspace backend).
 """
 
 from __future__ import annotations
