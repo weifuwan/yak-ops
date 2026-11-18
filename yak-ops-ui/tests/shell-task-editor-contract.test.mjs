@@ -122,3 +122,12 @@ test("Shell editor keeps named local-parameter and setValue syntax hints", () =>
   assert.match(configPanelSource, /ShellParametersPanel/);
   assert.match(configPanelSource, /ShellResourcesPanel/);
 });
+
+test("Shell config panel uses its declared activeTab props for navigation", () => {
+  assert.doesNotMatch(configPanelSource, /\\bactiveConfigTab\\b/);
+  assert.doesNotMatch(configPanelSource, /\\bsetActiveConfigTab\\b/);
+  assert.match(configPanelSource, /aria-pressed=\\{activeTab === "parameters"\\}/);
+  assert.match(configPanelSource, /onClick=\\{\\(\\) => onActiveTabChange\\("parameters"\\)\\}/);
+  assert.match(configPanelSource, /aria-pressed=\\{activeTab === "resources"\\}/);
+  assert.match(configPanelSource, /onClick=\\{\\(\\) => onActiveTabChange\\("resources"\\)\\}/);
+});
