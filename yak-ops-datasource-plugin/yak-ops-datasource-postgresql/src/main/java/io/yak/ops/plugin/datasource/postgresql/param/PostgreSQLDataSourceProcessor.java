@@ -3,6 +3,7 @@ package io.yak.ops.plugin.datasource.postgresql.param;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
@@ -112,6 +113,30 @@ public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {
                 .password(PasswordUtils.decodePassword(postgreSqlConnectionParam.getPassword()))
                 .build()
                 .getConnection();
+    }
+
+    @Override
+    public Connection getConnection(ConnectionParam connectionParam, CatalogPath path) throws SQLException {
+        if (path == null || path.getDatabase() == null
+                || !(connectionParam instanceof PostgreSQLConnectionParam)) {
+            return getConnection(connectionParam);
+        }
+        PostgreSQLConnectionParam source = (PostgreSQLConnectionParam) connectionParam;
+        if (path.getDatabase().equalsIgnoreCase(source.getDatabase())) {
+            return getConnection(connectionParam);
+        }
+        PostgreSQLConnectionParam target = new PostgreSQLConnectionParam();
+        target.setUser(source.getUser());
+        target.setPassword(source.getPassword());
+        target.setAddress(source.getAddress());
+        target.setDatabase(path.getDatabase());
+        target.setJdbcUrl(source.getAddress() + "/" + path.getDatabase());
+        target.setDriverLocation(source.getDriverLocation());
+        target.setDriverClassName(source.getDriverClassName());
+        target.setValidationQuery(source.getValidationQuery());
+        target.setCompatibleMode(source.getCompatibleMode());
+        target.setOther(source.getOther());
+        return getConnection(target);
     }
 
     @Override
