@@ -79,14 +79,15 @@ public class TaskInstanceMapperTest extends BaseDaoTest {
         return taskInstance;
     }
 
-    private TaskInstance insertDataSyncTaskInstance(long taskCode, TaskExecutionStatus state, Flag flag) {
+    private TaskInstance insertDataSyncTaskInstance(int workflowInstanceId, long taskCode,
+                                                        TaskExecutionStatus state, Flag flag) {
         TaskInstance taskInstance = new TaskInstance();
         taskInstance.setFlag(flag);
         taskInstance.setName("data-sync-" + taskCode);
         taskInstance.setState(state);
         taskInstance.setSubmitTime(new Date());
         taskInstance.setFirstSubmitTime(new Date());
-        taskInstance.setWorkflowInstanceId(1);
+        taskInstance.setWorkflowInstanceId(workflowInstanceId);
         taskInstance.setProjectCode(1L);
         taskInstance.setTaskType("DATA_SYNC");
         taskInstance.setTaskCode(taskCode);
@@ -97,13 +98,14 @@ public class TaskInstanceMapperTest extends BaseDaoTest {
 
     @Test
     public void testQueryLatestByTaskCodesAppliesStateFilterAfterSelectingLatestValidInstance() {
+        WorkflowInstance workflowInstance = insertProcessInstance();
         long taskCode = 990001L;
         TaskInstance earlierRunning = insertDataSyncTaskInstance(
-                taskCode, TaskExecutionStatus.RUNNING_EXECUTION, Flag.YES);
+                workflowInstance.getId(), taskCode, TaskExecutionStatus.RUNNING_EXECUTION, Flag.YES);
         TaskInstance latestStopped = insertDataSyncTaskInstance(
-                taskCode, TaskExecutionStatus.KILL, Flag.YES);
+                workflowInstance.getId(), taskCode, TaskExecutionStatus.KILL, Flag.YES);
         TaskInstance invalidRunning = insertDataSyncTaskInstance(
-                taskCode, TaskExecutionStatus.RUNNING_EXECUTION, Flag.NO);
+                workflowInstance.getId(), taskCode, TaskExecutionStatus.RUNNING_EXECUTION, Flag.NO);
 
         try {
             int[] activeStates = {
@@ -126,6 +128,7 @@ public class TaskInstanceMapperTest extends BaseDaoTest {
             taskInstanceMapper.deleteById(invalidRunning.getId());
             taskInstanceMapper.deleteById(latestStopped.getId());
             taskInstanceMapper.deleteById(earlierRunning.getId());
+            workflowInstanceMapper.deleteById(workflowInstance.getId());
         }
     }
 
