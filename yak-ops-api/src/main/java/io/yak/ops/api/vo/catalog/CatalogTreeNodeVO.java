@@ -28,11 +28,31 @@ public class CatalogTreeNodeVO {
                 : Collections.unmodifiableMap(new LinkedHashMap<>(metadata));
     }
 
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public CatalogNodeType getNodeType() { return nodeType; }
-    public String getObjectType() { return objectType; }
-    public boolean isHasChildren() { return hasChildren; }
-    public CatalogPath getPath() { return path; }
-    public Map<String, Object> getMetadata() { return metadata; }
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public CatalogNodeType getNodeType() {
+        return nodeType;
+    }
+
+    public String getObjectType() {
+        return objectType;
+    }
+
+    public boolean isHasChildren() {
+        return hasChildren;
+    }
+
+    public CatalogPath getPath() {
+        return path;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
 }
