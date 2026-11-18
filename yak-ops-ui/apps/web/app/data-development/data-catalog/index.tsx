@@ -291,6 +291,7 @@ export function DataCatalogPanel({ width }: { width: number }) {
             ))
           )
         ) : rootNode ? (
+          <>
           {capabilitiesQuery.isLoading ? (
             <div className="px-4 py-4 text-[11px] text-[#9aa0a8]">读取数据源目录能力...</div>
           ) : capabilitiesQuery.isError ? (
@@ -314,6 +315,7 @@ export function DataCatalogPanel({ width }: { width: number }) {
             defaultExpanded
             onOpenObject={openObject}
           />
+          </>
         ) : null}
       </div>
     </aside>
