@@ -47,6 +47,18 @@ const javaEditorSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/java-task-editor.tsx", import.meta.url),
   "utf8",
 );
+const shellWorkspaceSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-editor-workspace.tsx", import.meta.url),
+  "utf8",
+);
+const panelResizerSource = readFileSync(
+  new URL("../apps/web/app/data-development/layout/panel-resizer.tsx", import.meta.url),
+  "utf8",
+);
+const panelHeightResizerSource = readFileSync(
+  new URL("../apps/web/app/data-development/layout/panel-height-resizer.tsx", import.meta.url),
+  "utf8",
+);
 
 test("Java and Shell share the left-aligned node configuration sidebar", () => {
   assert.match(editorSource, /<NodeEditorFrame/);
@@ -138,10 +150,32 @@ test("Shell editor uses Monaco 0.57 public ESM entry points and registers the Sh
   assert.match(scriptEditorSource, /monaco-editor\/editor\/editor\.worker\?worker/);
   assert.match(scriptEditorSource, /getWorker: \(\) => new EditorWorker\(\)/);
   assert.match(scriptEditorSource, /editor\.create/);
+  assert.match(scriptEditorSource, /automaticLayout:\\s*true/);
   assert.doesNotMatch(scriptEditorSource, /monaco-editor\/editor\/(?:browser\/controller|contrib)\//);
   assert.doesNotMatch(scriptEditorSource, /monaco-editor\/basic-languages\//);
   assert.doesNotMatch(scriptEditorSource, /monaco-editor\/esm\/vs\//);
   assert.match(scriptEditorSource, /language: "shell"/);
+});
+
+test("Node configuration sidebar keeps pointer capture and keyboard resizing", () => {
+  assert.match(panelResizerSource, /setPointerCapture/);
+  assert.match(panelResizerSource, /onLostPointerCapture={handlePointerEnd}/);
+  assert.match(panelResizerSource, /pointer-events-auto/);
+  assert.match(panelResizerSource, /ArrowLeft/);
+  assert.match(panelResizerSource, /ArrowRight/);
+});
+
+test("Shell script and parameter panels support vertical resizing", () => {
+  assert.match(shellWorkspaceSource, /new ResizeObserver/);
+  assert.match(shellWorkspaceSource, /PanelHeightResizer/);
+  assert.match(shellWorkspaceSource, /maxConfigPanelHeight/);
+  assert.match(shellWorkspaceSource, /height={visibleConfigPanelHeight}/);
+  assert.match(configPanelSource, /style=\\{\\{ height, flexBasis: height \\}\\}/);
+  assert.match(panelHeightResizerSource, /aria-orientation="horizontal"/);
+  assert.match(panelHeightResizerSource, /setPointerCapture/);
+  assert.match(panelHeightResizerSource, /onLostPointerCapture={handlePointerEnd}/);
+  assert.match(panelHeightResizerSource, /ArrowUp/);
+  assert.match(panelHeightResizerSource, /ArrowDown/);
 });
 
 test("Shell editor follows the directory-based task editor structure", () => {
