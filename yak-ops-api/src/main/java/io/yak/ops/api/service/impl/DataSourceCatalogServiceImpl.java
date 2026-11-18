@@ -201,7 +201,7 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
     }
 
     private <T> T withConnection(User loginUser, long projectCode, Integer datasourceId,
-                                DataSourceProcessor processor, CatalogPath path, CatalogOperation<T> operation) {
+                                 DataSourceProcessor processor, CatalogPath path, CatalogOperation<T> operation) {
         DataSource source = dataSourceService.getDataSourceForCatalog(loginUser, projectCode, datasourceId);
         DataSourceCatalog catalog = processor.getCatalog();
         if (catalog == null) {
@@ -218,6 +218,7 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
     }
 
     private interface CatalogOperation<T> {
+
         T execute(DataSourceCatalog catalog, Connection connection);
     }
 
@@ -389,7 +390,7 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
         CatalogNodeType type = objectNodeType(object.getType());
         boolean hasChildren = object.isHasChildren()
                 && (capabilities.supportsFeature(CatalogFeature.COLUMNS)
-                || capabilities.supportsFeature(CatalogFeature.INDEXES));
+                        || capabilities.supportsFeature(CatalogFeature.INDEXES));
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("comment", object.getComment());
         metadata.put("primaryKeys", object.getPrimaryKeys());
@@ -401,9 +402,10 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
                                    String name, boolean hasChildren, CatalogPath path,
                                    Map<String, Object> metadata) {
         String key = type.name() + "|" + datasourceId + "|"
-                + (path == null ? "" : value(path.getCatalog()) + "|" + value(path.getDatabase()) + "|"
-                + value(path.getSchema()) + "|" + value(path.getObjectName()) + "|"
-                + value(path.getObjectType() == null ? null : path.getObjectType().name()))
+                + (path == null ? ""
+                        : value(path.getCatalog()) + "|" + value(path.getDatabase()) + "|"
+                                + value(path.getSchema()) + "|" + value(path.getObjectName()) + "|"
+                                + value(path.getObjectType() == null ? null : path.getObjectType().name()))
                 + "|" + value(name);
         String id = UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
         return new CatalogTreeNodeVO(id, name, type, objectType, hasChildren, path, metadata);
