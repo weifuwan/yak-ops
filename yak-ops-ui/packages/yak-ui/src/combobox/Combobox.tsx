@@ -154,6 +154,12 @@ export function ComboboxItemIndicator({ className, ...props }: ComboboxItemIndic
   );
 }
 
+export const ComboboxInputGroup = BaseCombobox.InputGroup;
+export const ComboboxValue = BaseCombobox.Value;
+export const ComboboxChips = BaseCombobox.Chips;
+export const ComboboxChip = BaseCombobox.Chip;
+export const ComboboxChipRemove = BaseCombobox.ChipRemove;
+
 export const ComboboxEmpty = BaseCombobox.Empty;
 
 export type ComboboxEmptyProps = Omit<BaseCombobox.Empty.Props, "className"> & {
