@@ -83,5 +83,5 @@ export function ShellScriptEditor({
     editorRef.current?.updateOptions({ readOnly });
   }, [readOnly]);
 
-  return <div ref={containerRef} className="h-full min-h-[240px] w-full" />;
+  return <div ref={containerRef} className="h-full min-h-[240px] min-w-0 w-full" />;
 }
