@@ -209,22 +209,29 @@ def build_tools(
             is_concurrency_safe=readonly,
         ))
 
-    # PTC tool: only registered when a backend is usable. The generated SDK is
-    # read-only, so the tool itself is read-only (read-only fast path applies).
+    # PTC tool: only registered when a sandboxed backend is available (cocoon,
+    # a default dependency) or the operator explicitly allowed the unsafe
+    # no-isolation tier. Read-only SDK ⇒ the tool itself is read-only.
     try:
         from yak_agent import executor as _executor
 
+        ptc_ready = _executor.cocoon_available() or settings.ptc_allow_unsafe
+
         def run_analysis_script(code: str, timeout_seconds: int = 60) -> str:
-            """Write and run a Python analysis script inside the cocoon sandbox (network allowed only for the read-only yak-ops SDK; host mounts are read-only). Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
+            """Write and run a Python analysis script in the sandboxed executor (cocoon: host mounts read-only, process limits, network only for the read-only yak-ops SDK). Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
 
             Args:
                 code: Python 3 script body. `import yak_agent_sdk as sdk` then call its functions; print the conclusion.
                 timeout_seconds: Wall-clock limit, 5-300.
             """
             workdir = workspace.root if workspace is not None else None
-            return _executor.format_result(_executor.run_analysis(code, timeout_seconds, workdir=workdir, workspace=workspace))
+            return _executor.format_result(_executor.run_analysis(
+                code, timeout_seconds, workdir=workdir, workspace=workspace,
+                allow_unsafe=settings.ptc_allow_unsafe,
+            ))
 
-        tools.append(FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False))
+        if ptc_ready:
+            tools.append(FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False))
 
         if workspace is not None:
             def read_workspace_file(path: str, start_line: int = 1, end_line: int | None = None) -> str:

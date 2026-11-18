@@ -42,6 +42,10 @@ class Settings:
     yak_ops_username: str
     yak_ops_password: str
     project_code: int
+    # PTC safety: when True, analysis scripts may run on the no-isolation
+    # subprocess backend (compute-only, credentials stripped). Default False —
+    # without a real sandbox (cocoon/Docker) the tool is simply not registered.
+    ptc_allow_unsafe: bool = False
 
     @classmethod
     def load(cls) -> "Settings":
@@ -75,4 +79,5 @@ class Settings:
             yak_ops_username=username,
             yak_ops_password=password,
             project_code=int(project_code),
+            ptc_allow_unsafe=os.environ.get('YAK_AGENT_PTC_ALLOW_UNSAFE', '').strip().lower() in ('1', 'true', 'yes'),
         )
