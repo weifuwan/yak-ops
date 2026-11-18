@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@yak-ops/yak-ui";
 
 import {
   getDataSourceCatalogCapabilities,
@@ -79,71 +80,63 @@ export function TableDetailView({
         onRetry={() => void metadataQuery.refetch()}
       />
 
-      <div
-        role="tablist"
-        aria-label="数据对象元数据"
-        className="flex h-11 shrink-0 items-center gap-6 border-b border-[#e8eaee] bg-white px-5"
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          if (value === "columns" || value === "indexes") {
+            setRequestedTab(value);
+          }
+        }}
+        className="flex min-h-0 flex-1 flex-col"
       >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "columns"}
-          onClick={() => setRequestedTab("columns")}
-          className={[
-            "relative flex h-full cursor-pointer items-center gap-2 text-[12px] transition-colors",
-            activeTab === "columns"
-              ? "font-semibold text-[#2864c5]"
-              : "text-[#667085] hover:text-[#344054]",
-          ].join(" ")}
-        >
-          字段
-          <span className="rounded-[3px] bg-[#f1f3f6] px-1.5 py-0.5 text-[10px] font-medium text-[#667085]">
-            {columnsQuery.data ? columns.length : "—"}
-          </span>
-          {activeTab === "columns" ? (
-            <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#3978e8]" />
-          ) : null}
-        </button>
+        <div className="flex h-11 shrink-0 items-stretch justify-between border-b border-[#e8eaee] bg-white">
+          <TabsList className="!h-full !min-w-0 !flex-1 !gap-6 !border-b-0 !px-5">
+            <TabsTab value="columns" className="!px-0 !pb-2.5 !text-xs">
+              <span>字段</span>
+              <span
+                className={[
+                  "rounded-[3px] px-1.5 py-0.5 text-[10px] font-medium",
+                  activeTab === "columns"
+                    ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                    : "bg-[#f1f3f6] text-[#667085]",
+                ].join(" ")}
+              >
+                {columnsQuery.data ? columns.length : "—"}
+              </span>
+            </TabsTab>
 
-        {canShowIndexes ? (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "indexes"}
-            onClick={() => setRequestedTab("indexes")}
-            className={[
-              "relative flex h-full cursor-pointer items-center gap-2 text-[12px] transition-colors",
-              activeTab === "indexes"
-                ? "font-semibold text-[#2864c5]"
-                : "text-[#667085] hover:text-[#344054]",
-            ].join(" ")}
-          >
-            索引
-            <span className="rounded-[3px] bg-[#f1f3f6] px-1.5 py-0.5 text-[10px] font-medium text-[#667085]">
-              {indexesQuery.data ? indexes.length : "—"}
-            </span>
-            {activeTab === "indexes" ? (
-              <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#3978e8]" />
+            {canShowIndexes ? (
+              <TabsTab value="indexes" className="!px-0 !pb-2.5 !text-xs">
+                <span>索引</span>
+                <span
+                  className={[
+                    "rounded-[3px] px-1.5 py-0.5 text-[10px] font-medium",
+                    activeTab === "indexes"
+                      ? "bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
+                      : "bg-[#f1f3f6] text-[#667085]",
+                  ].join(" ")}
+                >
+                  {indexesQuery.data ? indexes.length : "—"}
+                </span>
+              </TabsTab>
             ) : null}
-          </button>
-        ) : null}
+          </TabsList>
 
-        {capabilitiesQuery.isError && ["TABLE", "MATERIALIZED_VIEW"].includes(objectType) ? (
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-[#a0a6af]">
-            <span>索引能力读取失败</span>
-            <button
-              type="button"
-              onClick={() => void capabilitiesQuery.refetch()}
-              className="cursor-pointer text-[#5677a8] hover:text-[#315b91]"
-            >
-              重试
-            </button>
-          </div>
-        ) : null}
-      </div>
+          {capabilitiesQuery.isError && ["TABLE", "MATERIALIZED_VIEW"].includes(objectType) ? (
+            <div className="flex shrink-0 items-center gap-2 pr-5 text-[11px] text-[#a0a6af]">
+              <span>索引能力读取失败</span>
+              <button
+                type="button"
+                onClick={() => void capabilitiesQuery.refetch()}
+                className="cursor-pointer text-[var(--yak-color-primary)] hover:opacity-80"
+              >
+                重试
+              </button>
+            </div>
+          ) : null}
+        </div>
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        {activeTab === "columns" ? (
+        <TabsPanel value="columns" className="flex min-h-0 flex-1 flex-col">
           <ColumnsTab
             columns={columns}
             primaryKeys={primaryKeys}
@@ -151,15 +144,19 @@ export function TableDetailView({
             isError={columnsQuery.isError}
             onRetry={() => void columnsQuery.refetch()}
           />
-        ) : (
-          <IndexesTab
-            indexes={indexes}
-            isLoading={indexesQuery.isLoading}
-            isError={indexesQuery.isError}
-            onRetry={() => void indexesQuery.refetch()}
-          />
-        )}
-      </div>
+        </TabsPanel>
+
+        {canShowIndexes ? (
+          <TabsPanel value="indexes" className="flex min-h-0 flex-1 flex-col">
+            <IndexesTab
+              indexes={indexes}
+              isLoading={indexesQuery.isLoading}
+              isError={indexesQuery.isError}
+              onRetry={() => void indexesQuery.refetch()}
+            />
+          </TabsPanel>
+        ) : null}
+      </Tabs>
     </div>
   );
 }
