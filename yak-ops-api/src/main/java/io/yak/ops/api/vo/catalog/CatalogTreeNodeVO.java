@@ -8,6 +8,7 @@ import java.util.Map;
 
 /** Normalized tree node returned by the catalog API. */
 public class CatalogTreeNodeVO {
+
     private final String id;
     private final String name;
     private final CatalogNodeType nodeType;
