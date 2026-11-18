@@ -171,9 +171,12 @@ export function TenantForm({ open, record, onClose, onSaved }: TenantFormProps) 
           <FieldLabel
             required
             htmlFor="management-tenant-queue"
-            className="pt-1.5 text-xs leading-4"
+            className="inline-flex items-center gap-1 pt-1.5 text-xs leading-4"
           >
             所属队列
+            <span className="rounded bg-[var(--yak-color-hover)] px-1 py-0.5 text-[10px] font-medium leading-3 text-[var(--yak-components-muted-text)]">
+              YARN
+            </span>
           </FieldLabel>
           <div className="min-w-0">
             <Select<string>
