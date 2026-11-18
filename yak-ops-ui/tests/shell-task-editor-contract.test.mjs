@@ -19,6 +19,10 @@ const configPanelSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/components/shell-config-panel.tsx", import.meta.url),
   "utf8",
 );
+const parametersPanelSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-parameters-panel.tsx", import.meta.url),
+  "utf8",
+);
 const hookSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/use-shell-task-editor.ts", import.meta.url),
   "utf8",
@@ -113,6 +117,8 @@ test("Shell editor follows the directory-based task editor structure", () => {
 });
 
 test("Shell editor keeps named local-parameter and setValue syntax hints", () => {
-  assert.match(configPanelSource, /paramName/);
-  assert.match(configPanelSource, /setValue/);
+  assert.match(parametersPanelSource, /paramName/);
+  assert.match(parametersPanelSource, /setValue/);
+  assert.match(configPanelSource, /ShellParametersPanel/);
+  assert.match(configPanelSource, /ShellResourcesPanel/);
 });
