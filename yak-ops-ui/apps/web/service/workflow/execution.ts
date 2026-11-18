@@ -11,10 +11,17 @@ export interface WorkflowAlertOptions {
   warningGroupId?: number;
 }
 
+export type WorkflowFailureStrategy = "END" | "CONTINUE";
+export type WorkflowPriority = "HIGHEST" | "HIGH" | "MEDIUM" | "LOW" | "LOWEST";
+
 export interface StartWorkflowOptions extends Partial<WorkflowAlertOptions> {
   workerGroup?: string;
+  environmentCode?: number;
+  tenantCode?: string;
+  failureStrategy?: WorkflowFailureStrategy;
+  workflowInstancePriority?: WorkflowPriority;
   startParams?: Record<string, string>;
-  startNodeList?: number;
+  startNodeList?: number | string;
   taskDependType?: WorkflowTaskDependType;
 }
 
@@ -38,7 +45,7 @@ export async function startWorkflowInstance(
       queryString({
         workflowDefinitionCode,
         execType: "START_PROCESS",
-        failureStrategy: "END",
+        failureStrategy: options?.failureStrategy ?? "END",
         startNodeList: options?.startNodeList,
         taskDependType: options?.taskDependType ?? "TASK_POST",
         warningType: options?.warningType ?? "NONE",
@@ -46,9 +53,10 @@ export async function startWorkflowInstance(
           options?.warningType && options.warningType !== "NONE"
             ? options.warningGroupId
             : undefined,
-        workflowInstancePriority: "MEDIUM",
+        workflowInstancePriority: options?.workflowInstancePriority ?? "MEDIUM",
         workerGroup: options?.workerGroup || "default",
-        tenantCode: "default",
+        tenantCode: options?.tenantCode || "default",
+        environmentCode: options?.environmentCode ?? -1,
         dryRun: 0,
         startParams: options?.startParams ? JSON.stringify(options.startParams) : undefined,
       }),
