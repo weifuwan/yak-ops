@@ -2,35 +2,49 @@ import { useQuery } from "@tanstack/react-query";
 import { Database, KeyRound, Table2 } from "lucide-react";
 
 import {
-  listDataSourceColumns,
-  listDataSourceTableMetadata,
+  getDataSourceCatalogObject,
+  listDataSourceCatalogColumns,
+  listDataSourceCatalogIndexes,
+  type CatalogObjectType,
 } from "@/service/datasource";
 
 export function TableDetailView({
   dataSourceId,
   dataSourceName,
   database,
+  schema,
   tableName,
+  objectType = "TABLE",
 }: {
   dataSourceId: string;
   dataSourceName: string;
   database: string;
+  schema?: string;
   tableName: string;
+  objectType?: string;
 }) {
+  const path = {
+    database: database || undefined,
+    schema,
+    objectName: tableName,
+    objectType: objectType as CatalogObjectType,
+  };
   const metadataQuery = useQuery({
-    queryKey: ["data-development", "catalog", "table", dataSourceId, database, tableName],
-    queryFn: ({ signal }) =>
-      listDataSourceTableMetadata(dataSourceId, database, [tableName], signal),
+    queryKey: ["data-catalog", "object", dataSourceId, database, schema, tableName, objectType],
+    queryFn: ({ signal }) => getDataSourceCatalogObject(dataSourceId, path, signal),
   });
-
   const columnsQuery = useQuery({
-    queryKey: ["data-development", "catalog", "columns", dataSourceId, database, tableName],
-    queryFn: ({ signal }) =>
-      listDataSourceColumns(dataSourceId, { database, table: tableName }, signal),
+    queryKey: ["data-catalog", "columns", dataSourceId, database, schema, tableName],
+    queryFn: ({ signal }) => listDataSourceCatalogColumns(dataSourceId, path, signal),
+  });
+  const indexesQuery = useQuery({
+    queryKey: ["data-catalog", "indexes", dataSourceId, database, schema, tableName],
+    queryFn: ({ signal }) => listDataSourceCatalogIndexes(dataSourceId, path, signal),
   });
 
-  const metadata = metadataQuery.data?.[0];
+  const metadata = metadataQuery.data;
   const columns = columnsQuery.data ?? [];
+  const indexes = indexesQuery.data ?? [];
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col bg-white">
@@ -41,14 +55,14 @@ export function TableDetailView({
         </div>
         <div className="mt-1 flex items-center gap-3 text-[11px] text-[#8a919b]">
           <span><Database size={11} className="mr-1 inline" />{dataSourceName}</span>
-          <span>{database}</span>
+          {[database, schema].filter(Boolean).map((value) => <span key={value}>{value}</span>)}
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-px border-b border-[#ececec] bg-[#ececec]">
         {[
-          ["表类型", metadata?.type],
-          ["备注", metadata?.remarks],
+          ["对象类型", metadata?.type || objectType],
+          ["备注", metadata?.comment],
           ["主键", metadata?.primaryKeys?.join(", ")],
         ].map(([label, value]) => (
           <div key={label} className="bg-white px-4 py-3">
@@ -72,7 +86,7 @@ export function TableDetailView({
             {columns.map((column) => (
               <tr key={column.name} className="hover:bg-[#f7f8fa]">
                 <td className="border-b border-[#f0f1f3] px-4 py-2.5 text-[#30343a]">
-                  {metadata?.primaryKeys?.includes(column.name) ? (
+                  {column.primaryKey || metadata?.primaryKeys?.includes(column.name) ? (
                     <KeyRound size={12} className="mr-1 inline text-[#d99a22]" />
                   ) : null}
                   {column.name}
@@ -89,9 +103,44 @@ export function TableDetailView({
         {columnsQuery.isLoading ? (
           <div className="p-6 text-center text-[12px] text-[#8b919b]">加载字段...</div>
         ) : null}
-        {!columnsQuery.isLoading && columns.length === 0 ? (
+        {columnsQuery.isError ? (
+          <div className="p-6 text-center text-[12px] text-[#c15b52]">字段加载失败</div>
+        ) : null}
+        {!columnsQuery.isLoading && !columnsQuery.isError && columns.length === 0 ? (
           <div className="p-6 text-center text-[12px] text-[#8b919b]">暂无字段信息</div>
         ) : null}
+
+        <div className="border-t border-[#ececec]">
+          <div className="px-4 py-3 text-[12px] font-medium text-[#424a55]">索引</div>
+          {indexesQuery.isLoading ? (
+            <div className="px-4 pb-4 text-[11px] text-[#8b919b]">加载索引...</div>
+          ) : indexesQuery.isError ? (
+            <div className="px-4 pb-4 text-[11px] text-[#c15b52]">索引加载失败</div>
+          ) : indexes.length === 0 ? (
+            <div className="px-4 pb-4 text-[11px] text-[#8b919b]">暂无索引信息</div>
+          ) : (
+            <table className="w-full border-collapse text-left text-[12px]">
+              <thead className="bg-[#fafafa] text-[#737b86]">
+                <tr>
+                  <th className="border-b border-[#ececec] px-4 py-2 font-medium">索引名</th>
+                  <th className="border-b border-[#ececec] px-4 py-2 font-medium">字段</th>
+                  <th className="border-b border-[#ececec] px-4 py-2 font-medium">类型</th>
+                </tr>
+              </thead>
+              <tbody>
+                {indexes.map((index) => (
+                  <tr key={index.name}>
+                    <td className="border-b border-[#f0f1f3] px-4 py-2 text-[#30343a]">{index.name}</td>
+                    <td className="border-b border-[#f0f1f3] px-4 py-2 text-[#59616d]">{index.columns.join(", ")}</td>
+                    <td className="border-b border-[#f0f1f3] px-4 py-2 text-[#59616d]">
+                      {index.primary ? "主键" : index.unique ? "唯一" : "普通"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );
