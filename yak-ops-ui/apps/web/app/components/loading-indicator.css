@@ -1,0 +1,11 @@
+@keyframes yak-loading-shimmer {
+  from {
+    transform: translateX(0);
+  }
+
+  /* The highlight clears the silhouette before the loop restarts. */
+  70%,
+  to {
+    transform: translateX(92px);
+  }
+}
