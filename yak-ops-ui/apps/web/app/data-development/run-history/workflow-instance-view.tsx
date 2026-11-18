@@ -89,7 +89,7 @@ export function WorkflowInstanceView({ instanceId }: { instanceId: number }) {
             刷新
           </Button>
           {canStop ? (
-            <Button size="sm" variant="secondary" onClick={stop} disabled={stopping}>
+            <Button size="sm" variant="secondary" onClick={stop} isDisabled={stopping}>
               <Square size={12} fill="currentColor" />
               {stopping ? "停止中..." : "停止"}
             </Button>
@@ -136,7 +136,7 @@ export function WorkflowInstanceView({ instanceId }: { instanceId: number }) {
             <span className="text-[12px] font-medium text-[#30343a]">
               {selectedTask?.name || "任务日志"}
             </span>
-            <Button size="sm" variant="ghost" onClick={download} disabled={!selectedTask}>
+            <Button size="sm" variant="ghost" onClick={download} isDisabled={!selectedTask}>
               <Download size={13} />
               下载
             </Button>
