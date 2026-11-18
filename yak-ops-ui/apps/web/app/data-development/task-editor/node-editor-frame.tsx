@@ -72,7 +72,7 @@ function InfoRow({
       : String(value);
 
   return (
-    <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 border-b border-[#f0f1f3] py-2 last:border-b-0">
+    <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 py-2">
       <span className="text-xs text-[#8b93a1]">{label}</span>
       <span className="break-all text-xs text-[#303846]">{displayValue}</span>
     </div>
@@ -87,7 +87,7 @@ function PanelSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-[#e8ebef] bg-white px-3 py-2">
+    <section className="bg-white px-3 py-2">
       <h3 className="mb-1 text-xs font-semibold text-[#303846]">{title}</h3>
       {children}
     </section>
@@ -110,11 +110,6 @@ function NodePanelContent({
       <PanelSection title="节点信息">
         <InfoRow label="节点名称" value={taskName} />
         <InfoRow label="节点类型" value={task?.taskType ?? taskType} />
-        <InfoRow label="节点编码" value={task?.code} />
-        <InfoRow label="节点版本" value={task?.version} />
-        <InfoRow label="所属工作流" value={workflowCode} />
-        <InfoRow label="修改人" value={task?.modifyBy} />
-        <InfoRow label="更新时间" value={task?.updateTime} />
       </PanelSection>
       {task?.description ? (
         <PanelSection title="节点描述">
