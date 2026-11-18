@@ -72,7 +72,11 @@ export const createTenant = (payload: TenantSavePayload): Promise<TenantRecord> 
   }));
 
 export const updateTenant = (id: number, payload: TenantSavePayload): Promise<boolean> =>
-  HttpUtils.putData<boolean>(TENANT_API + "/" + id + "?" + queryString(payload));
+  HttpUtils.putData<boolean>(TENANT_API + "/" + id + "?" + queryString({
+    tenantCode: payload.tenantCode,
+    queueId: payload.queueId,
+    description: payload.description,
+  }));
 
 export const deleteTenant = (id: number): Promise<boolean> =>
   HttpUtils.deleteData<boolean>(TENANT_API + "/" + id);
