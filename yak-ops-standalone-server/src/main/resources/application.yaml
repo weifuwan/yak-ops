@@ -279,18 +279,6 @@ api:
     # (0 = infinite), and socket server would never close even though no requests accept
     read-timeout: 0
 
-# Agent copilot: read-only operations assistant backed by an OpenAI-compatible endpoint.
-# Disabled by default; secrets are injected via environment variables only.
-yak:
-  agent:
-    enabled: ${YAK_AGENT_ENABLED:false}
-    llm-base-url: ${AGENT_BASE_URL:}
-    llm-api-key: ${AGENT_API_KEY:}
-    llm-model: ${AGENT_MODEL:}
-    llm-timeout-seconds: ${AGENT_LLM_TIMEOUT_SECONDS:120}
-    max-tool-rounds: ${AGENT_MAX_TOOL_ROUNDS:5}
-    turn-pool-size: ${AGENT_TURN_POOL_SIZE:4}
-
 server:
   port: 12345
   servlet:

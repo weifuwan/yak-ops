@@ -53,13 +53,6 @@ public class SchemaDao {
             "t_yak_ops_version_management"
     };
 
-    private static final String[] AGENT_TABLES = {
-            "t_yak_ops_agent_session",
-            "t_yak_ops_agent_turn",
-            "t_yak_ops_agent_message",
-            "t_yak_ops_agent_tool_call"
-    };
-
     public SchemaDao(DataSource dataSource, DbType dbType) {
         this.dataSource = dataSource;
         this.dbType = dbType;
@@ -172,29 +165,6 @@ public class SchemaDao {
             log.info("Ensured data modeling schema using {}", sqlFilePath);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath, ex);
-        }
-    }
-
-    /**
-     * Ensure the additive agent copilot schema (sessions, turns, messages, tool calls).
-     *
-     * <p>Scripts are idempotent ({@code CREATE TABLE IF NOT EXISTS}), so no pre-check
-     * is required and existing deployments stay untouched.
-     */
-    public void ensureAgentSchema() {
-        String db = dbType.getDb();
-        if (!"mysql".equalsIgnoreCase(db)
-                && !"postgresql".equalsIgnoreCase(db)
-                && !"h2".equalsIgnoreCase(db)) {
-            throw new IllegalStateException("Agent schema is not available for database type " + db);
-        }
-
-        String sqlFilePath = String.format("sql/agent_%s.sql", db);
-        try {
-            new SqlScriptRunner(dataSource, sqlFilePath).execute();
-            log.info("Ensured agent schema using {} for tables {}", sqlFilePath, AGENT_TABLES.length);
-        } catch (Exception ex) {
-            throw new IllegalStateException("Failed to initialize agent schema using " + sqlFilePath, ex);
         }
     }
 
