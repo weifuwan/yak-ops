@@ -1,4 +1,5 @@
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
 import {
@@ -806,4 +807,49 @@ test("SUB_WORKFLOW detects direct and transitive circular references", async () 
 test("Non-logic task parameters pass through branch serialization unchanged", () => {
   const raw = "{\"rawScript\":\"echo ok\"}";
   assert.equal(applyWorkflowBranchTargets("SHELL", raw, "100", []), raw);
+});
+
+const conditionsRunConfigSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/logic/conditions/components/conditions-run-config-panel.tsx", import.meta.url),
+  "utf8",
+);
+const switchRunConfigSource = readFileSync(
+  new URL("../apps/web/app/data-development/task-editor/logic/switch/components/switch-run-config-panel.tsx", import.meta.url),
+  "utf8",
+);
+
+test("CONDITIONS and SWITCH expose only the compact Master logic run configuration", () => {
+  for (const source of [conditionsRunConfigSource, switchRunConfigSource]) {
+    assert.match(source, /title="调度配置"/);
+    assert.match(source, /title="失败重试"/);
+    assert.match(source, /title="超时告警"/);
+
+    for (const field of [
+      'label="任务优先级"',
+      'label="延迟执行（分钟）"',
+      'label="TaskGroup"',
+      'label="组内优先级"',
+      'label="最大重试次数"',
+      'label="重试间隔"',
+      'label="超时告警"',
+      'label="超时时间（分钟）"',
+    ]) {
+      assert.ok(source.includes(field), "Missing run config field: " + field);
+    }
+
+    assert.doesNotMatch(
+      source,
+      /<SettingField label="(?:Worker Group|Environment Code|CPU 配额|最大内存|执行类型|超时处理策略)"/,
+    );
+    assert.match(source, /environmentCode: -1/);
+    assert.match(source, /cpuQuota: -1/);
+    assert.match(source, /memoryMax: -1/);
+    assert.match(source, /taskExecuteType: "BATCH"/);
+    assert.match(source, /timeoutNotifyStrategy: settings\.timeoutFlag === "OPEN" \? "WARN" : null/);
+    assert.match(source, /workerGroup: task\?\.workerGroup\?\.trim\(\) \|\| "default"/);
+    assert.match(source, /Number\(settings\.failRetryTimes\) > 0/);
+    assert.match(source, /\{settings\.taskGroupId > 0 \? \(/);
+    assert.match(source, /\{settings\.timeoutFlag === "OPEN" \? \(/);
+    assert.match(source, /超时后仅发送告警，不会主动中断逻辑节点/);
+  }
 });
