@@ -75,7 +75,7 @@ export function WorkflowInstanceView({ instanceId }: { instanceId: number }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col bg-white">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#ececec] px-4">
         <div>
           <div className="text-[14px] font-medium text-[#24272c]">{detail?.name || "运行实例"}</div>
