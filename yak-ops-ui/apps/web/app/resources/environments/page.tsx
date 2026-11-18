@@ -420,7 +420,7 @@ export function EnvironmentsPage() {
                             >
                               <span className="min-w-0 truncate">{item}</span>
                               <ComboboxChipRemove
-                                aria-label={\`移除 \${item}\`}
+                                aria-label={`移除 ${item}`}
                                 className="flex size-3.5 shrink-0 items-center justify-center rounded-[3px] text-[var(--yak-components-muted-text)] hover:bg-black/5 hover:text-[var(--yak-components-panel-text)]"
                               >
                                 <X size={11} strokeWidth={1.8} />
@@ -432,7 +432,7 @@ export function EnvironmentsPage() {
                             aria-label="Worker 分组"
                             aria-description={
                               selectedValues.length > 0
-                                ? \`已选择 \${selectedValues.length} 个 Worker 分组，可使用 Backspace 或 Delete 移除\`
+                                ? `已选择 ${selectedValues.length} 个 Worker 分组，可使用 Backspace 或 Delete 移除`
                                 : undefined
                             }
                             placeholder={
