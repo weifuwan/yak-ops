@@ -47,8 +47,8 @@ export function TableDetailView({
 
       <div className="grid grid-cols-3 gap-px border-b border-[#ececec] bg-[#ececec]">
         {[
-          ["表类型", metadata?.tableType],
-          ["备注", metadata?.comment],
+          ["表类型", metadata?.type],
+          ["备注", metadata?.remarks],
           ["主键", metadata?.primaryKeys?.join(", ")],
         ].map(([label, value]) => (
           <div key={label} className="bg-white px-4 py-3">
@@ -77,11 +77,11 @@ export function TableDetailView({
                   ) : null}
                   {column.name}
                 </td>
-                <td className="border-b border-[#f0f1f3] px-4 py-2.5 text-[#59616d]">{column.type || "-"}</td>
+                <td className="border-b border-[#f0f1f3] px-4 py-2.5 text-[#59616d]">{column.typeName || "-"}</td>
                 <td className="border-b border-[#f0f1f3] px-4 py-2.5 text-[#59616d]">
                   {column.nullable === undefined ? "-" : column.nullable ? "是" : "否"}
                 </td>
-                <td className="border-b border-[#f0f1f3] px-4 py-2.5 text-[#59616d]">{column.comment || "-"}</td>
+                <td className="border-b border-[#f0f1f3] px-4 py-2.5 text-[#59616d]">{column.remarks || "-"}</td>
               </tr>
             ))}
           </tbody>
