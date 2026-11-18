@@ -49,9 +49,13 @@ import {
 import { ResourceTreeIcon } from "../../resources/components/resource-file-icon";
 import { NodeEditorFrame } from "./node-editor-frame";
 import {
-  getTaskGroupValidationError, normalizeTaskCommonSettings, parseTaskCommonSettings,
-  TaskCommonSettingsSection, useTaskGroups, type TaskCommonSettings,
-} from "./task-common-settings-section";
+  getJavaTaskGroupValidationError,
+  normalizeJavaRunConfig,
+  parseJavaRunConfig,
+  JavaRunConfigPanel,
+  useJavaTaskGroups,
+  type JavaRunConfig,
+} from "./java-run-config-panel";
 
 type JavaRunType = "FAT_JAR" | "NORMAL_JAR";
 
@@ -314,16 +318,16 @@ export function JavaTaskEditor({
   onBackToWorkflow: () => void;
 }) {
   const queryClient = useQueryClient();
-  const { projectCode, taskGroups, taskGroupsQuery } = useTaskGroups();
+  const { projectCode, taskGroups, taskGroupsQuery } = useJavaTaskGroups();
   const initialForm = useMemo(
     () => parseJavaTaskForm(task?.taskParams),
     [task?.taskParams],
   );
-  const initialCommonSettings = useMemo(() => parseTaskCommonSettings(task), [task]);
+  const initialJavaRunConfig = useMemo(() => parseJavaRunConfig(task), [task]);
   const [form, setForm] = useState<JavaTaskForm>(initialForm);
   const [baselineForm, setBaselineForm] = useState<JavaTaskForm>(initialForm);
-  const [commonSettings, setCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
-  const [baselineCommonSettings, setBaselineCommonSettings] = useState<TaskCommonSettings>(initialCommonSettings);
+  const [javaRunConfig, setJavaRunConfig] = useState<JavaRunConfig>(initialJavaRunConfig);
+  const [baselineJavaRunConfig, setBaselineCommonSettings] = useState<JavaRunConfig>(initialJavaRunConfig);
   const [currentTask, setCurrentTask] = useState(task);
   const [activeView, setActiveView] = useState<"form" | "json">("form");
   const [saving, setSaving] = useState(false);
@@ -335,10 +339,10 @@ export function JavaTaskEditor({
   useEffect(() => {
     setForm(initialForm);
     setBaselineForm(initialForm);
-    setCommonSettings(initialCommonSettings);
-    setBaselineCommonSettings(initialCommonSettings);
+    setJavaRunConfig(initialJavaRunConfig);
+    setBaselineCommonSettings(initialJavaRunConfig);
     setCurrentTask(task);
-  }, [initialForm, initialCommonSettings, task]);
+  }, [initialForm, initialJavaRunConfig, task]);
 
   const resourceQuery = useQuery({
     queryKey: ["data-development", "java-task-resources"],
@@ -380,20 +384,20 @@ export function JavaTaskEditor({
   const jsonText = useMemo(() => {
     let commonFields: Record<string, unknown>;
     try {
-      commonFields = normalizeTaskCommonSettings(commonSettings);
+      commonFields = normalizeJavaRunConfig(javaRunConfig);
     } catch {
-      commonFields = commonSettings;
+      commonFields = javaRunConfig;
     }
     return JSON.stringify({
       taskType: "JAVA",
       taskParams: buildJavaTaskParams(form),
       ...commonFields,
     }, null, 2);
-  }, [form, commonSettings]);
+  }, [form, javaRunConfig]);
 
   const isDirty =
     JSON.stringify(form) !== JSON.stringify(baselineForm) ||
-    JSON.stringify(commonSettings) !== JSON.stringify(baselineCommonSettings);
+    JSON.stringify(javaRunConfig) !== JSON.stringify(baselineJavaRunConfig);
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -406,12 +410,12 @@ export function JavaTaskEditor({
 
     let commonPatch;
     try {
-      commonPatch = normalizeTaskCommonSettings(commonSettings);
+      commonPatch = normalizeJavaRunConfig(javaRunConfig);
     } catch (error) {
       toast.warning(error instanceof Error ? error.message : "请检查节点通用配置");
       return false;
     }
-    const taskGroupError = getTaskGroupValidationError(commonSettings, {
+    const taskGroupError = getJavaTaskGroupValidationError(javaRunConfig, {
       projectCode, taskGroups, isPending: taskGroupsQuery.isPending, isError: taskGroupsQuery.isError,
     });
     if (taskGroupError) {
@@ -426,7 +430,7 @@ export function JavaTaskEditor({
       if (!onApplyTask(nextTask)) return false;
       setCurrentTask(nextTask);
       setBaselineForm(form);
-      setBaselineCommonSettings(commonSettings);
+      setBaselineCommonSettings(javaRunConfig);
       toast.success("Java 节点配置已应用，请保存工作流");
       return true;
     } catch {
@@ -514,12 +518,12 @@ export function JavaTaskEditor({
             );
             if (!latestTask) throw new Error("节点不存在或已被删除");
             const nextForm = parseJavaTaskForm(latestTask.taskParams);
-            const nextCommonSettings = parseTaskCommonSettings(latestTask);
+            const nextCommonSettings = parseJavaRunConfig(latestTask);
             if (!onApplyTask(latestTask)) return;
             setCurrentTask(latestTask);
             setForm(nextForm);
             setBaselineForm(nextForm);
-            setCommonSettings(nextCommonSettings);
+            setJavaRunConfig(nextCommonSettings);
             setBaselineCommonSettings(nextCommonSettings);
           }),
         );
@@ -560,10 +564,10 @@ export function JavaTaskEditor({
       onRefresh={() => void handleRefresh()}
       onBack={onBackToWorkflow}
       runConfig={
-        <TaskCommonSettingsSection
+        <JavaRunConfigPanel
           id="java-run-config"
-          settings={commonSettings}
-          onChange={setCommonSettings}
+          settings={javaRunConfig}
+          onChange={setJavaRunConfig}
           disabled={readOnly}
           compact
         />
