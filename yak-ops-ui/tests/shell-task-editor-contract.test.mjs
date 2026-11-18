@@ -77,11 +77,16 @@ test("Shell form serializes only the existing backend fields and preserves other
   assert.equal("workingDirectory" in params, false);
 });
 
-test("Shell editor uses Monaco and is routed separately from the generic JSON editor", () => {
-  assert.match(editorSource, /from "monaco-editor\/editor\/editor.api.js"/);
-  assert.match(editorSource, /editor\.create/);
-  assert.match(editorSource, /monaco-editor\/basic-languages\/shell\/shell\.contribution\.js/);
-  assert.doesNotMatch(editorSource, /monaco-editor\/esm\/vs\//);
+test("Shell editor uses Monaco 0.57 public ESM entry points and is routed separately", () => {
+  assert.match(editorSource, /from "monaco-editor\\/editor"/);
+  assert.match(editorSource, /monaco-editor\\/features\\/register\\.all/);
+  assert.match(editorSource, /monaco-editor\\/languages\\/definitions\\/shell\\/register/);
+  assert.match(editorSource, /monaco-editor\\/editor\\/editor\\.worker\\?worker/);
+  assert.match(editorSource, /getWorker: \\(\\) => new EditorWorker\\(\\)/);
+  assert.match(editorSource, /editor\\.create/);
+  assert.doesNotMatch(editorSource, /monaco-editor\\/editor\\/(?:browser\\/controller|contrib)\\//);
+  assert.doesNotMatch(editorSource, /monaco-editor\\/basic-languages\\//);
+  assert.doesNotMatch(editorSource, /monaco-editor\\/esm\\/vs\\//);
   assert.match(editorSource, /language: "shell"/);
   assert.match(editorSource, /localParams/);
   assert.match(editorSource, /resourceList/);
