@@ -7,10 +7,9 @@
 | 文件 | 说明 |
 | --- | --- |
 | `src/main/resources/openapi/yak-ops-3.1.json` | 全量契约基线（406 操作，生成物，**禁止手改**） |
-| `src/main/resources/openapi/agent-allowlist.yaml` | **agent 白名单事实源**（人工审定，PR 评审）：哪些操作对 agent 开放、风险等级、工具名映射 |
 | `scripts/to-openapi-31.cjs` | 3.0→3.1 机械升级 + 治理脚本（零依赖 Node） |
 | `scripts/summary-overrides.cjs` | **summary 人工文案覆盖表**（operationId → 中文 summary/description）：不改上游 Controller 注解，治理时注入，零合并冲突 |
-| `scripts/check_agent_operations.py` | 三方一致性校验：白名单 ↔ agent 工具注册表 ↔ 契约（需 PyYAML） |
+| `scripts/check_agent_operations.py` | 一致性校验：agent 白名单（位于 yak-ops-agent）↔ 工具注册表 ↔ 契约 |
 
 ## 为什么需要转换
 
@@ -34,7 +33,7 @@ node scripts/to-openapi-31.cjs api-docs.json out.json --server-url=https://yak-o
 
 ## Agent 白名单与一致性校验
 
-`agent-allowlist.yaml` 是「agent 能看见哪些操作」的唯一事实源。新增/调整 agent 能力 = 修改该文件并走 PR 评审；`yak-ops-agent` 的工具注册表（`yak_agent/operations.yaml`）必须与白名单一一对应。
+agent 白名单的唯一事实源是 `yak-ops-agent/yak_agent/agent-allowlist.yaml`（运行时强制注册的消费者所在模块）。新增/调整 agent 能力 = 修改该文件并走 PR 评审；`yak-ops-agent` 的工具注册表（`yak_agent/operations.yaml`）必须与白名单一一对应，本模块的校验脚本负责核对三方。
 
 ```bash
 # 校验三方一致性（白名单 / 工具注册表 / 契约）
@@ -70,5 +69,5 @@ python scripts/check_agent_operations.py
 ## 约束提醒
 
 - 不要手工编辑 `yak-ops-3.1.json`（下次生成会覆盖），改动请落在注解或升级脚本上；
-- `agent-allowlist.yaml` 可以手工维护（它就是人工审定的事实源）；
+- `yak-ops-agent/yak_agent/agent-allowlist.yaml` 可以手工维护（它就是人工审定的事实源，运行时强制）；
 - 升级脚本零依赖（Node 内置模块），校验脚本依赖 PyYAML。

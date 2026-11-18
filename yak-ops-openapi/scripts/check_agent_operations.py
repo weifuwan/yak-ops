@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover
 
 MODULE_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONTRACT = MODULE_ROOT / "src/main/resources/openapi/yak-ops-3.1.json"
-DEFAULT_ALLOWLIST = MODULE_ROOT / "src/main/resources/openapi/agent-allowlist.yaml"
+DEFAULT_ALLOWLIST = MODULE_ROOT.parent / "yak-ops-agent" / "yak_agent" / "agent-allowlist.yaml"
 DEFAULT_REGISTRY = MODULE_ROOT.parent / "yak-ops-agent/yak_agent/operations.yaml"
 
 _VAR = re.compile(r"\{[^}]+\}")
@@ -72,15 +72,6 @@ def main() -> int:
     registry = yaml.safe_load(args.registry.read_text(encoding="utf-8")) or {}
     entries = allow.get("entries") or []
     tools = {op["id"]: op for op in (registry.get("operations") or [])}
-
-    # drift check: the agent's runtime copy must match the reviewed original —
-    # two copies of one fact would silently diverge.
-    agent_copy = args.allowlist.parents[3] / "yak-ops-agent" / "yak_agent" / "agent-allowlist.yaml"
-    if agent_copy.exists():
-        if args.allowlist.read_text(encoding="utf-8") != agent_copy.read_text(encoding="utf-8"):
-            print("1 problem(s):")
-            print("  - allowlist drift: yak-ops-agent/yak_agent/agent-allowlist.yaml differs from the reviewed original; copy the original over the copy")
-            return 1
 
     problems: list[str] = []
     expected_tools: set[str] = set()

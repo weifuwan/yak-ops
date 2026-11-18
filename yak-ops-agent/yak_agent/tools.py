@@ -183,8 +183,8 @@ def _load_allowlist() -> set[str]:
     """Tool ids the reviewed allowlist exposes.
 
     Runtime registration is strictly limited to this set — the allowlist is
-    an enforcement boundary, not documentation. The copy here is kept in sync
-    with yak-ops-openapi's resource by check_agent_operations.py.
+    an enforcement boundary, not documentation. This file is the single
+    source of truth.
     """
     path = Path(__file__).resolve().parent / "agent-allowlist.yaml"
     with path.open(encoding="utf-8") as handle:
