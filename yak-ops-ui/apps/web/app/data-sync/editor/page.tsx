@@ -17,6 +17,7 @@ import {
   readPipelineDefinition,
   type PipelineDefinition,
 } from "@/service/data-sync/native-pipeline";
+import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import { getDataSource, type DataSourceRecord } from "@/service/datasource";
 import {
   DatabaseTaskEditor,
@@ -103,21 +104,24 @@ export function DataSyncTaskEditorPage() {
   const activeQuery = useQuery({
     queryKey: ["data-sync-editor-active", currentUser?.id, id],
     queryFn: ({ signal }) =>
-      listLatestDataSyncTaskInstances([id!], true, signal),
+      listLatestDataSyncTaskInstances([id!], false, signal),
     enabled: Boolean(id && currentUser?.id),
-    refetchInterval: (query) => (query.state.data?.length ? 2000 : 5000),
+    refetchInterval: (query) =>
+      query.state.data?.some((instance) => isTaskInstanceActive(instance.status))
+        ? 2000
+        : 15000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
+  const activeInstance = activeQuery.data?.find(
+    (instance) =>
+      instance.definitionId === id && isTaskInstanceActive(instance.status),
+  );
   const executionLocked =
-    Boolean(id) &&
-    (!activeQuery.isSuccess ||
-      Boolean(
-        activeQuery.data?.some((instance) => instance.definitionId === id),
-      ));
+    Boolean(id) && (!activeQuery.isSuccess || Boolean(activeInstance));
   const executionLockMessage = activeQuery.isError
     ? "运行状态获取失败，暂不可修改配置。"
-    : activeQuery.data?.some((instance) => instance.definitionId === id)
+    : activeInstance
       ? "任务正在执行，完成或停止后才能修改配置。"
       : "正在确认任务运行状态，暂不可修改配置。";
 
