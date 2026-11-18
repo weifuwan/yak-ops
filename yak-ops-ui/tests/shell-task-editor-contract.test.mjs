@@ -27,10 +27,6 @@ const parametersPanelSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/components/shell-parameters-panel.tsx", import.meta.url),
   "utf8",
 );
-const parametersPanelSource = readFileSync(
-  new URL("../apps/web/app/data-development/task-editor/shell/components/shell-parameters-panel.tsx", import.meta.url),
-  "utf8",
-);
 const resourcesPanelSource = readFileSync(
   new URL("../apps/web/app/data-development/task-editor/shell/components/shell-resources-panel.tsx", import.meta.url),
   "utf8",
