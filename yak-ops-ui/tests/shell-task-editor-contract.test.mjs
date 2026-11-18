@@ -56,6 +56,18 @@ test("Java-only Module Path option stays attached to the shared resource section
   assert.match(javaEditor, /resourceExtra=/);
 });
 
+test("Node properties stay focused on user-facing fields", () => {
+  assert.match(frame, /InfoRow label="节点名称"/);
+  assert.match(frame, /InfoRow label="节点类型"/);
+  assert.doesNotMatch(frame, /InfoRow label="节点编码"/);
+  assert.doesNotMatch(frame, /InfoRow label="节点版本"/);
+  assert.doesNotMatch(frame, /InfoRow label="所属工作流"/);
+  assert.doesNotMatch(frame, /InfoRow label="修改人"/);
+  assert.doesNotMatch(frame, /InfoRow label="更新时间"/);
+  assert.doesNotMatch(frame, /border-b border-\[#f0f1f3\]/);
+  assert.doesNotMatch(frame, /rounded-md border border-\[#e8ebef\]/);
+});
+
 test("Shell workspace is dedicated to the Monaco script editor", () => {
   assert.match(shellWorkspace, /ShellScriptPanel/);
   assert.doesNotMatch(shellWorkspace, /ShellConfigPanel|PanelHeightResizer/);
