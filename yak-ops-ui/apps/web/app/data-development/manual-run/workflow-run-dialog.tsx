@@ -191,11 +191,11 @@ export function WorkflowRunDialog({ workflow, open, onOpenChange }: Props) {
               size="sm"
               variant="secondary"
               onClick={() => onOpenChange(false)}
-              disabled={running}
+              isDisabled={running}
             >
               取消
             </Button>
-            <Button size="sm" onClick={run} disabled={running}>
+            <Button size="sm" onClick={run} isDisabled={running}>
               {running ? "启动中..." : "开始运行"}
             </Button>
           </div>
