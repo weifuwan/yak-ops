@@ -60,7 +60,7 @@ const panelHeightResizerSource = readFileSync(
   "utf8",
 );
 
-test("Java and Shell share the left-aligned node configuration sidebar", () => {
+test("Java and Shell share the right-aligned node configuration sidebar", () => {
   assert.match(editorSource, /<NodeEditorFrame/);
   assert.match(javaEditorSource, /<NodeEditorFrame/);
 
@@ -69,17 +69,18 @@ test("Java and Shell share the left-aligned node configuration sidebar", () => {
   );
   assert.notEqual(workspaceStart, -1);
   const workspaceLayout = nodeEditorFrameSource.slice(workspaceStart);
-  const asideIndex = workspaceLayout.indexOf("<aside");
-  const navIndex = workspaceLayout.indexOf("<nav");
-  const panelIndex = workspaceLayout.indexOf("<section");
-  const resizerIndex = workspaceLayout.indexOf("<PanelResizer");
   const editorIndex = workspaceLayout.indexOf("<main");
+  const asideIndex = workspaceLayout.indexOf("<aside");
+  const resizerIndex = workspaceLayout.indexOf("<PanelResizer");
+  const panelIndex = workspaceLayout.indexOf("<section");
+  const navIndex = workspaceLayout.indexOf("<nav");
 
-  assert.ok(asideIndex >= 0 && asideIndex < editorIndex);
-  assert.ok(navIndex > asideIndex && navIndex < panelIndex);
-  assert.ok(panelIndex < resizerIndex && resizerIndex < editorIndex);
-  assert.match(workspaceLayout, /resizeDirection="right"/);
-  assert.match(workspaceLayout, /border-r/);
+  assert.ok(editorIndex >= 0 && editorIndex < asideIndex);
+  assert.ok(asideIndex < resizerIndex && resizerIndex < panelIndex);
+  assert.ok(panelIndex < navIndex);
+  assert.match(workspaceLayout, /resizeDirection="left"/);
+  assert.match(workspaceLayout, /border-l/);
+  assert.match(workspaceLayout, /right-0 z-\[1\] w-0\.5/);
 });
 
 test("Shell form reads the DolphinScheduler rawScript, resourceList and localParams contract", () => {
