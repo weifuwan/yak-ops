@@ -87,8 +87,6 @@ python -m venv .venv
 .venv/Scripts/python -m yak_agent.app "现在有哪些同步实例在运行？"
 # HTTP 服务（给前端消费；默认 127.0.0.1:8090）
 .venv/Scripts/python -m yak_agent.server
-# 只读冒烟（5 个 Golden 问题 + 冷启动稳定性探针）
-.venv/Scripts/python smoke/smoke_test.py --repeat 10
 ```
 
 ## HTTP 接口（前端对接）
@@ -116,4 +114,4 @@ SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`
 - 前端 assistant drawer 的对接接口由 HTTP 服务（`python -m yak_agent.server`）提供，CLI 为本地运维入口；
 - 工具调用审计以 JSONL 形式落盘（`logs/audit/`），可配置重定向；
 - 创建/修改任务需要完整的 pipeline `parameters` JSON——system prompt 引导模型从 `get_sync_task` 取模板修改并用 `preview_sync_task` 验证，避免凭空构造；
-- 冒烟脚本只覆盖只读场景；写操作的确认流由写操作演练脚本（`smoke/write_drill.py`）端到端验证。
+- 验收（5 个只读 Golden 问题、冷启动稳定性、写操作全生命周期演练）在开发环境以真实模型与真实后端执行；验收脚本强依赖 LLM 与内网后端、运行会产生真实副作用与调用成本，因此**不随仓库分发**。

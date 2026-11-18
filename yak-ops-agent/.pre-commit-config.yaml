@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check (auto-fix)
-        entry: python -m ruff check yak_agent smoke --fix
+        entry: python -m ruff check yak_agent --fix
         language: system
         types: [python]
         pass_filenames: true
@@ -14,7 +14,7 @@ repos:
 
       - id: ruff-format
         name: ruff format
-        entry: python -m ruff format yak_agent smoke
+        entry: python -m ruff format yak_agent
         language: system
         pass_filenames: false
         stages: [pre-push]
