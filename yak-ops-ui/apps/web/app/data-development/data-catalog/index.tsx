@@ -22,13 +22,6 @@ import {
   DropdownMenuTrigger,
   Input,
   PanelHeader,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectTrigger,
-  SelectValue,
   toast,
 } from "@yak-ops/yak-ui";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -41,6 +34,8 @@ import {
   type CatalogTreeNode,
   type DataSourceRecord,
 } from "@/service/datasource";
+import DatabaseIcons from "@/app/datasource/icons/DatabaseIcons";
+import { DataSyncSearchableSelect } from "@/app/data-sync/components/searchable-select";
 import { ResourceTreeIcon } from "../../resources/components/resource-file-icon";
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 
@@ -277,6 +272,20 @@ export function DataCatalogPanel({ width }: { width: number }) {
       listDataSources({ pageNo: 1, pageSize: 100 }, signal),
   });
   const sources: DataSourceRecord[] = sourcesQuery.data?.totalList ?? [];
+  const sourceOptions = sources.flatMap((source) =>
+    source.id
+      ? [
+          {
+            value: source.id,
+            label: source.name || source.id,
+            icon: <DatabaseIcons dbType={source.dbType} width="16px" height="16px" />,
+            searchText: [source.dbType, source.database, source.schema]
+              .filter(Boolean)
+              .join(" "),
+          },
+        ]
+      : [],
+  );
   const selectedSource = sources.find((source) => source.id === selectedSourceId);
   const capabilitiesQuery = useQuery({
     queryKey: ["data-catalog", "capabilities", selectedSourceId],
@@ -328,48 +337,19 @@ export function DataCatalogPanel({ width }: { width: number }) {
     >
       <PanelHeader title="数据目录" />
       <div className="space-y-2 border-b border-[#ececec] px-3 py-2">
-        <Select
-          size="small"
-          items={sources.map((source) => ({
-            value: source.id,
-            label: `${source.name} · ${source.dbType?.toUpperCase() || "数据库"}`,
-          }))}
+        <DataSyncSearchableSelect
           value={selectedSourceId || null}
+          options={sourceOptions}
+          placeholder="请选择数据源"
+          ariaLabel="选择数据源"
+          searchPlaceholder="请输入关键字"
+          emptyText="没有匹配的数据源"
+          triggerClassName="!h-6 !w-full !rounded-[4px] !px-2.5"
           onValueChange={(value) => {
-            setSelectedSourceId(String(value ?? ""));
+            setSelectedSourceId(value);
             setKeyword("");
           }}
-        >
-          <SelectTrigger
-            variant="outlined"
-            aria-label="选择数据源"
-            className="!h-6 w-full !rounded-[4px] !px-2.5"
-          >
-            <SelectValue placeholder="选择数据源">
-              {(value) => {
-                const source = sources.find((item) => item.id === value);
-                return source ? (
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Database size={13} className="shrink-0 text-[var(--yak-components-muted-text)]" />
-                    <span className="truncate">
-                      {source.name} · {source.dbType?.toUpperCase() || "数据库"}
-                    </span>
-                  </span>
-                ) : null;
-              }}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {sources.map((source) => (
-              <SelectItem key={source.id} value={source.id}>
-                <SelectItemText>
-                  {source.name} · {source.dbType?.toUpperCase() || "数据库"}
-                </SelectItemText>
-                <SelectItemIndicator />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
         <div className="relative">
           <Search
             size={13}
