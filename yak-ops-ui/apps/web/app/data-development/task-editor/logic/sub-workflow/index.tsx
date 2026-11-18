@@ -8,6 +8,7 @@ import {
 } from "@/service/workflow/definition";
 
 import { LogicTaskEditor, type LogicTaskFormProps } from "../shared/logic-task-editor";
+import { useGenericLogicTaskRunConfig } from "../shared/use-generic-logic-run-config";
 import { LogicField, LogicSection, LogicSelect } from "../shared/logic-form-controls";
 import { normalizeSubWorkflowTaskParams } from "./adapter";
 import { hasSubWorkflowCycle } from "./service";
@@ -117,6 +118,7 @@ export function SubWorkflowEditor({
   onDirtyChange: (dirty: boolean) => void;
   onBackToWorkflow: () => void;
 }) {
+  const runConfig = useGenericLogicTaskRunConfig(task, readOnly);
   const workflowsQuery = useQuery({
     queryKey: ["workflow-logic-sub-workflows", task.projectCode],
     queryFn: () => listWorkflowDefinitions({ pageNo: 1, pageSize: 200 }),
@@ -133,6 +135,7 @@ export function SubWorkflowEditor({
       taskName={taskName}
       taskType="SUB_WORKFLOW"
       readOnly={readOnly}
+      runConfig={runConfig}
       onApplyTask={onApplyTask}
       onDirtyChange={onDirtyChange}
       onBackToWorkflow={onBackToWorkflow}
