@@ -1,4 +1,4 @@
-import { Bot, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { ProductModuleNavigationItem } from "./navigation";
@@ -9,8 +9,6 @@ import WorkspaceSwitcher from "./workspace-switcher";
 type TopBarProps = {
   launcherOpen: boolean;
   onToggleLauncher: () => void;
-  agentOpen: boolean;
-  onToggleAgent: () => void;
   productLabel: string;
   productPath: string;
   moduleNavigation?: ProductModuleNavigationItem[];
@@ -21,8 +19,6 @@ type TopBarProps = {
 export default function TopBar({
   launcherOpen,
   onToggleLauncher,
-  agentOpen,
-  onToggleAgent,
   productLabel,
   productPath,
   moduleNavigation,
@@ -94,21 +90,7 @@ export default function TopBar({
         </div>
       )}
 
-      <div className="flex h-full shrink-0 items-center gap-1 px-2">
-        <button
-          type="button"
-          aria-label={agentOpen ? "收起运维助手" : "打开运维助手"}
-          aria-expanded={agentOpen}
-          onClick={onToggleAgent}
-          className={
-            agentOpen
-              ? "flex h-7 items-center gap-1.5 rounded bg-white/15 px-2 text-xs text-white transition-colors hover:bg-white/20"
-              : "flex h-7 items-center gap-1.5 rounded px-2 text-xs text-white/65 transition-colors hover:bg-white/10 hover:text-white"
-          }
-        >
-          <Bot className="h-3.5 w-3.5" />
-          助手
-        </button>
+      <div className="flex h-full shrink-0 items-center px-3">
         <AccountMenu />
       </div>
     </header>
