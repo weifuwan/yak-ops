@@ -69,7 +69,9 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
         CatalogPath safePath = path == null ? new CatalogPath() : path;
         DataSourceProcessor processor = getAuthorizedProcessor(loginUser, projectCode, datasourceId);
         DataSourceCatalog catalog = processor.getCatalog();
-        if (catalog == null) return emptyPage(currentPage, currentSize);
+        if (catalog == null) {
+            return emptyPage(currentPage, currentSize);
+        }
         CatalogCapabilities capabilities = catalog.getCapabilities();
         CatalogNodeType currentType = nodeType == null ? CatalogNodeType.DATASOURCE : nodeType;
 
@@ -148,15 +150,21 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
     @Override
     public List<CatalogTreeNodeVO> search(User loginUser, long projectCode, Integer datasourceId,
                                           String keyword, Integer limit) {
-        if (keyword == null || keyword.trim().length() < 2) return Collections.emptyList();
+        if (keyword == null || keyword.trim().length() < 2) {
+            return Collections.emptyList();
+        }
         int safeLimit = limit == null ? 100 : Math.max(1, Math.min(limit, 200));
         DataSourceProcessor processor = getAuthorizedProcessor(loginUser, projectCode, datasourceId);
-        if (processor.getCatalog() == null) return Collections.emptyList();
+        if (processor.getCatalog() == null) {
+            return Collections.emptyList();
+        }
         List<CatalogObject> objects = withConnection(loginUser, projectCode, datasourceId, processor,
                 new CatalogPath(), (catalog, connection) -> catalog.searchObjects(connection, keyword, safeLimit));
         List<CatalogTreeNodeVO> result = new ArrayList<>();
         CatalogCapabilities capabilities = processor.getCatalog().getCapabilities();
-        for (CatalogObject object : objects) result.add(objectNode(datasourceId, object, capabilities));
+        for (CatalogObject object : objects) {
+            result.add(objectNode(datasourceId, object, capabilities));
+        }
         return result;
     }
 
@@ -196,7 +204,9 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
                                 DataSourceProcessor processor, CatalogPath path, CatalogOperation<T> operation) {
         DataSource source = dataSourceService.getDataSourceForCatalog(loginUser, projectCode, datasourceId);
         DataSourceCatalog catalog = processor.getCatalog();
-        if (catalog == null) return null;
+        if (catalog == null) {
+            return null;
+        }
         ConnectionParam connectionParam = processor.createConnectionParams(source.getConnectionParams());
         try (Connection connection = processor.getConnection(connectionParam, path)) {
             return operation.execute(catalog, connection);
@@ -213,17 +223,27 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
 
     private NamespaceLevel nextNamespaceLevel(CatalogCapabilities capabilities, CatalogNodeType currentType) {
         List<NamespaceLevel> levels = capabilities.getNamespaceLevels();
-        if (levels.isEmpty()) return null;
-        if (currentType == CatalogNodeType.DATASOURCE) return levels.get(0);
+        if (levels.isEmpty()) {
+            return null;
+        }
+        if (currentType == CatalogNodeType.DATASOURCE) {
+            return levels.get(0);
+        }
         NamespaceLevel current = namespaceLevel(currentType);
         int index = levels.indexOf(current);
         return index >= 0 && index + 1 < levels.size() ? levels.get(index + 1) : null;
     }
 
     private NamespaceLevel namespaceLevel(CatalogNodeType type) {
-        if (type == CatalogNodeType.CATALOG) return NamespaceLevel.CATALOG;
-        if (type == CatalogNodeType.DATABASE) return NamespaceLevel.DATABASE;
-        if (type == CatalogNodeType.SCHEMA) return NamespaceLevel.SCHEMA;
+        if (type == CatalogNodeType.CATALOG) {
+            return NamespaceLevel.CATALOG;
+        }
+        if (type == CatalogNodeType.DATABASE) {
+            return NamespaceLevel.DATABASE;
+        }
+        if (type == CatalogNodeType.SCHEMA) {
+            return NamespaceLevel.SCHEMA;
+        }
         return null;
     }
 
@@ -248,40 +268,64 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
 
     private CatalogObjectType objectTypeForGroup(CatalogNodeType type) {
         switch (type) {
-            case TABLE_GROUP: return CatalogObjectType.TABLE;
-            case VIEW_GROUP: return CatalogObjectType.VIEW;
-            case MATERIALIZED_VIEW_GROUP: return CatalogObjectType.MATERIALIZED_VIEW;
-            case FUNCTION_GROUP: return CatalogObjectType.FUNCTION;
-            case PROCEDURE_GROUP: return CatalogObjectType.PROCEDURE;
-            case TRIGGER_GROUP: return CatalogObjectType.TRIGGER;
-            case SEQUENCE_GROUP: return CatalogObjectType.SEQUENCE;
-            default: return null;
+            case TABLE_GROUP:
+                return CatalogObjectType.TABLE;
+            case VIEW_GROUP:
+                return CatalogObjectType.VIEW;
+            case MATERIALIZED_VIEW_GROUP:
+                return CatalogObjectType.MATERIALIZED_VIEW;
+            case FUNCTION_GROUP:
+                return CatalogObjectType.FUNCTION;
+            case PROCEDURE_GROUP:
+                return CatalogObjectType.PROCEDURE;
+            case TRIGGER_GROUP:
+                return CatalogObjectType.TRIGGER;
+            case SEQUENCE_GROUP:
+                return CatalogObjectType.SEQUENCE;
+            default:
+                return null;
         }
     }
 
     private CatalogNodeType groupType(CatalogObjectType type) {
         switch (type) {
-            case TABLE: return CatalogNodeType.TABLE_GROUP;
-            case VIEW: return CatalogNodeType.VIEW_GROUP;
-            case MATERIALIZED_VIEW: return CatalogNodeType.MATERIALIZED_VIEW_GROUP;
-            case FUNCTION: return CatalogNodeType.FUNCTION_GROUP;
-            case PROCEDURE: return CatalogNodeType.PROCEDURE_GROUP;
-            case TRIGGER: return CatalogNodeType.TRIGGER_GROUP;
-            case SEQUENCE: return CatalogNodeType.SEQUENCE_GROUP;
-            default: return null;
+            case TABLE:
+                return CatalogNodeType.TABLE_GROUP;
+            case VIEW:
+                return CatalogNodeType.VIEW_GROUP;
+            case MATERIALIZED_VIEW:
+                return CatalogNodeType.MATERIALIZED_VIEW_GROUP;
+            case FUNCTION:
+                return CatalogNodeType.FUNCTION_GROUP;
+            case PROCEDURE:
+                return CatalogNodeType.PROCEDURE_GROUP;
+            case TRIGGER:
+                return CatalogNodeType.TRIGGER_GROUP;
+            case SEQUENCE:
+                return CatalogNodeType.SEQUENCE_GROUP;
+            default:
+                return null;
         }
     }
 
     private CatalogNodeType objectNodeType(CatalogObjectType type) {
         switch (type) {
-            case TABLE: return CatalogNodeType.TABLE;
-            case VIEW: return CatalogNodeType.VIEW;
-            case MATERIALIZED_VIEW: return CatalogNodeType.MATERIALIZED_VIEW;
-            case FUNCTION: return CatalogNodeType.FUNCTION;
-            case PROCEDURE: return CatalogNodeType.PROCEDURE;
-            case TRIGGER: return CatalogNodeType.TRIGGER;
-            case SEQUENCE: return CatalogNodeType.SEQUENCE;
-            default: return CatalogNodeType.TABLE;
+            case TABLE:
+                return CatalogNodeType.TABLE;
+            case VIEW:
+                return CatalogNodeType.VIEW;
+            case MATERIALIZED_VIEW:
+                return CatalogNodeType.MATERIALIZED_VIEW;
+            case FUNCTION:
+                return CatalogNodeType.FUNCTION;
+            case PROCEDURE:
+                return CatalogNodeType.PROCEDURE;
+            case TRIGGER:
+                return CatalogNodeType.TRIGGER;
+            case SEQUENCE:
+                return CatalogNodeType.SEQUENCE;
+            default:
+                return CatalogNodeType.TABLE;
         }
     }
 
@@ -290,22 +334,32 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
         List<CatalogTreeNodeVO> nodes = new ArrayList<>();
         for (CatalogObjectType type : capabilities.getObjectTypes()) {
             CatalogNodeType groupType = groupType(type);
-            if (groupType != null) nodes.add(node(datasourceId, groupType, type.name(),
-                    groupLabel(type), true, path, Collections.<String, Object>emptyMap()));
+            if (groupType != null) {
+                nodes.add(node(datasourceId, groupType, type.name(),
+                        groupLabel(type), true, path, Collections.<String, Object>emptyMap()));
+            }
         }
         return nodes;
     }
 
     private String groupLabel(CatalogObjectType type) {
         switch (type) {
-            case TABLE: return "表";
-            case VIEW: return "视图";
-            case MATERIALIZED_VIEW: return "物化视图";
-            case FUNCTION: return "函数";
-            case PROCEDURE: return "存储过程";
-            case TRIGGER: return "触发器";
-            case SEQUENCE: return "序列";
-            default: return type.name();
+            case TABLE:
+                return "表";
+            case VIEW:
+                return "视图";
+            case MATERIALIZED_VIEW:
+                return "物化视图";
+            case FUNCTION:
+                return "函数";
+            case PROCEDURE:
+                return "存储过程";
+            case TRIGGER:
+                return "触发器";
+            case SEQUENCE:
+                return "序列";
+            default:
+                return type.name();
         }
     }
 
@@ -355,7 +409,9 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
         return new CatalogTreeNodeVO(id, name, type, objectType, hasChildren, path, metadata);
     }
 
-    private String value(String value) { return value == null ? "" : value; }
+    private String value(String value) {
+        return value == null ? "" : value;
+    }
 
     private CatalogChildrenPageVO page(List<CatalogTreeNodeVO> nodes, int pageNo, int pageSize) {
         int start = Math.min((pageNo - 1) * pageSize, nodes.size());
