@@ -29,9 +29,9 @@ export interface WorkerGroupSavePayload {
   description: string;
 }
 
-const toQuery = (values: Record<string, string | number | undefined>) => {
+const toQuery = (values: object) => {
   const params = new URLSearchParams();
-  Object.entries(values).forEach(([key, value]) => {
+  Object.entries(values as Record<string, string | number | undefined>).forEach(([key, value]) => {
     if (value !== undefined) params.set(key, String(value));
   });
   return params.toString();
