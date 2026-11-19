@@ -1,4 +1,4 @@
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Code2, Database, Plus, Workflow } from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -16,7 +16,7 @@ type DataAgentPromptComposerProps = {
   trailingActions?: ReactNode;
 };
 
-const MIN_TEXTAREA_HEIGHT = 56;
+const MIN_TEXTAREA_HEIGHT = 40;
 const MAX_TEXTAREA_HEIGHT = 160;
 
 export function DataAgentPromptComposer({
@@ -82,25 +82,13 @@ export function DataAgentPromptComposer({
 
   return (
     <div className="group/composer relative isolate w-full">
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-6 bottom-0.5 z-0 h-2 rounded-full bg-[linear-gradient(90deg,#5e89f2_0%,#ff66f4_50%,#fe7b02_100%)] opacity-0 blur-[7px] transition-opacity duration-200 ease-out group-focus-within/composer:opacity-20 motion-reduce:transition-none"
-      />
-      <div className="relative z-[1] isolate overflow-hidden rounded-3xl bg-white">
-        <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 rounded-[inherit]">
-          <span className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] shadow-[0_2px_3px_-2px_rgb(0_0_0_/_12%),0_10px_28px_-16px_rgb(0_0_0_/_22%)]" />
-          <span className="pointer-events-none absolute inset-0 z-[1] rounded-[inherit] bg-white" />
-          <span className="pointer-events-none absolute inset-0 z-[2] rounded-[inherit] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_92%),inset_0_-1px_0_0_rgb(0_0_0_/_2.5%)]" />
-          <span className="pointer-events-none absolute inset-0 z-[3] rounded-[inherit] shadow-[inset_0_0_0_1px_#e6e6e3]" />
-          <span className="pointer-events-none absolute inset-0 z-[4] rounded-[inherit] opacity-0 shadow-[inset_0_0_0_1px_#c7c7c2] transition-opacity duration-150 group-focus-within/composer:opacity-100 motion-reduce:transition-none" />
-        </span>
-
-        <div className="relative z-10 p-3">
+      <div className="relative z-[1] overflow-hidden rounded-[14px] border border-[#e0e4e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#cbd3d1] focus-within:shadow-[0_2px_8px_rgba(0,0,0,0.055)]">
+        <div className="relative p-2.5">
           <div className="relative">
             {showAnimatedPlaceholder && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 px-2 py-1 text-[15px] leading-6 text-[#999999]"
+                className="pointer-events-none absolute inset-x-0 top-0 px-1 py-1 text-[14px] leading-6 text-[#a3adb8]"
               >
                 <span>{placeholderPrefix}</span>
                 {visibleLength > 0 ? <span> {suggestion.slice(0, visibleLength)}</span> : null}
@@ -133,14 +121,43 @@ export function DataAgentPromptComposer({
               onCompositionEnd={() => {
                 isComposingRef.current = false;
               }}
-              className="relative block min-h-14 w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-6 text-[#20201e] outline-none placeholder:text-[#999999]"
+              className="relative block min-h-10 w-full resize-none bg-transparent px-1 py-1 text-[14px] leading-6 text-[#20201e] outline-none placeholder:text-[#aab4bf]"
             />
           </div>
 
-          <div className="mt-1 flex min-h-8 items-center justify-between gap-3 px-1">
-            <div className="flex min-w-0 items-center gap-1">
-              <span className="text-[11px] text-[#aaaaaa]">AI 助手</span>
+          <div className="mt-0.5 flex min-h-7 items-center justify-between gap-3 px-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label="附件上传暂未接入"
+                title="附件上传暂未接入"
+                disabled
+                className="flex size-7 shrink-0 cursor-not-allowed items-center justify-center rounded-md text-[#9aa4a3] opacity-75"
+              >
+                <Plus size={17} strokeWidth={1.7} />
+              </button>
+              <div className="flex items-center -space-x-1.5" aria-label="Data Agent 能力">
+                <span
+                  title="数据分析"
+                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#ffe9e2] text-[#d77a5e] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
+                >
+                  <Database size={10} strokeWidth={1.8} />
+                </span>
+                <span
+                  title="SQL 与代码"
+                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#e8efff] text-[#5d80bf] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
+                >
+                  <Code2 size={10} strokeWidth={1.8} />
+                </span>
+                <span
+                  title="工作流"
+                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#e7f4eb] text-[#55966d] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
+                >
+                  <Workflow size={10} strokeWidth={1.8} />
+                </span>
+              </div>
             </div>
+
             <div className="flex shrink-0 items-center gap-1.5">
               {trailingActions}
               <button
@@ -148,10 +165,10 @@ export function DataAgentPromptComposer({
                 aria-label="发送消息"
                 title="发送消息"
                 disabled={!value.trim()}
-                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#20201e] text-white transition-colors hover:bg-[#343431] disabled:cursor-not-allowed disabled:bg-[#dededb] disabled:text-white"
+                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#87918f] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
                 onClick={submit}
               >
-                <ArrowUp size={18} strokeWidth={1.8} />
+                <ArrowUp size={17} strokeWidth={1.8} />
               </button>
             </div>
           </div>

@@ -1,8 +1,14 @@
 import {
+  Activity,
   Check,
   ChevronDown,
+  Code2,
+  Database,
   FolderOpen,
+  PanelLeft,
+  PanelRight,
   Sparkles,
+  Workflow,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,6 +27,37 @@ type LocalConversation = {
   updatedAt: string;
   messages: LocalMessage[];
 };
+
+const QUICK_ACTIONS = [
+  {
+    id: "table",
+    label: "分析数据表",
+    prompt: "请帮我分析这张数据表的结构、字段含义和潜在问题。",
+    Icon: Database,
+    iconClass: "bg-[#fff0ed] text-[#df795c]",
+  },
+  {
+    id: "sql",
+    label: "生成 SQL",
+    prompt: "请根据我的需求生成 SQL，并解释查询逻辑和关键字段。",
+    Icon: Code2,
+    iconClass: "bg-[#eaf2ff] text-[#5685c8]",
+  },
+  {
+    id: "task",
+    label: "排查任务异常",
+    prompt: "请帮我分析任务运行日志，定位失败原因并给出修复建议。",
+    Icon: Activity,
+    iconClass: "bg-[#fff5df] text-[#c58a35]",
+  },
+  {
+    id: "workflow",
+    label: "梳理数据开发流程",
+    prompt: "请根据我的业务需求，帮我梳理数据集成与工作流开发方案。",
+    Icon: Workflow,
+    iconClass: "bg-[#eaf6ef] text-[#4f9a70]",
+  },
+] as const;
 
 function conversationTitle(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
@@ -86,11 +123,39 @@ function ModelSelector({
   );
 }
 
+function AgentWorkspacePanel() {
+  return (
+    <aside
+      aria-label="Agent 工作区"
+      className="hidden min-h-0 w-[46%] min-w-[360px] max-w-[640px] shrink-0 flex-col border-l border-[#eeeeec] bg-[#fcfcfb] xl:flex"
+    >
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#eeeeec] px-4">
+        <span className="text-sm font-semibold text-[#20201e]">工作区</span>
+        <span className="rounded-full bg-[#f3f3f1] px-2 py-1 text-[10px] text-[#999999]">
+          暂无执行结果
+        </span>
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 text-center">
+        <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-white text-[#999999] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <FolderOpen size={21} strokeWidth={1.6} />
+        </span>
+        <h3 className="m-0 text-sm font-medium text-[#555555]">暂无工作区文件</h3>
+        <p className="mb-0 mt-2 max-w-[250px] text-xs leading-6 text-[#a0a0a0]">
+          Agent 生成的文件、数据结果和执行产物将在这里展示。
+        </p>
+      </div>
+    </aside>
+  );
+}
+
 export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: string }) {
   const [conversations, setConversations] = useState<LocalConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState("DeepSeek");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
+  const [composerKey, setComposerKey] = useState(0);
   const [initialDraft, setInitialDraft] = useState(initialPrompt);
   const messageScrollRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +173,9 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
   function handleNewConversation() {
     setActiveConversationId(null);
     setModelMenuOpen(false);
+    setWorkspacePanelOpen(false);
+    setInitialDraft("");
+    setComposerKey((current) => current + 1);
   }
 
   function handleSubmit(content: string) {
@@ -153,8 +221,16 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
 
   function handlePromptSubmit(content: string) {
     const accepted = handleSubmit(content);
-    if (accepted !== false) setInitialDraft("");
+    if (accepted !== false) {
+      setInitialDraft("");
+      setWorkspacePanelOpen(true);
+    }
     return accepted;
+  }
+
+  function handleQuickAction(prompt: string) {
+    setInitialDraft(prompt);
+    setComposerKey((current) => current + 1);
   }
 
   const modelSelector = (
@@ -171,34 +247,84 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
-      <DataAgentSidebar
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        onNewConversation={handleNewConversation}
-        onSelectConversation={(id) => {
-          setActiveConversationId(id);
-          setModelMenuOpen(false);
-        }}
-      />
+      {sidebarOpen ? (
+        <DataAgentSidebar
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          onNewConversation={handleNewConversation}
+          onSelectConversation={(id) => {
+            setActiveConversationId(id);
+            setModelMenuOpen(false);
+            setWorkspacePanelOpen(true);
+          }}
+        />
+      ) : null}
 
       <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
+        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-[7px] pt-2">
+            <button
+              type="button"
+              aria-label={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+              aria-expanded={sidebarOpen}
+              title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+              className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-colors hover:border-[#cbd2d1] hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
+              onClick={() => setSidebarOpen((open) => !open)}
+            >
+              <PanelLeft size={15} strokeWidth={1.5} />
+            </button>
+
+            <button
+              type="button"
+              aria-label={workspacePanelOpen ? "隐藏工作区面板" : "显示工作区面板"}
+              aria-expanded={workspacePanelOpen}
+              title={workspacePanelOpen ? "隐藏工作区面板" : "显示工作区面板"}
+              className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-colors hover:border-[#cbd2d1] hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
+              onClick={() => setWorkspacePanelOpen((open) => !open)}
+            >
+              <PanelRight size={15} strokeWidth={1.5} />
+            </button>
+          </div>
+
           {!hasMessages ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
-              <div className="w-full max-w-2xl">
-                <DataAgentPromptComposer
-                  initialValue={initialDraft}
-                  onSubmit={handlePromptSubmit}
-                  trailingActions={modelSelector}
-                  placeholderPrefix="告诉 Data Agent，"
-                  placeholderSuggestions={[
-                    "分析这张表的结构和字段含义",
-                    "帮我排查数据同步任务失败的原因",
-                    "根据业务需求编写 SQL",
-                    "梳理一条数据开发工作流",
-                  ]}
-                />
+            <div className="flex min-h-0 flex-1">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
+                <div className="w-full max-w-[540px]">
+                  <DataAgentPromptComposer
+                    key={composerKey}
+                    initialValue={initialDraft}
+                    onSubmit={handlePromptSubmit}
+                    trailingActions={modelSelector}
+                    placeholder="你想让 Data Agent 帮你完成什么？"
+                  />
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {QUICK_ACTIONS.map((action) => {
+                      const Icon = action.Icon;
+                      return (
+                        <button
+                          key={action.id}
+                          type="button"
+                          className="flex h-10 min-w-0 cursor-pointer items-center gap-2 rounded-[12px] border border-[#e2e6e5] bg-white px-2.5 text-left text-[13px] font-medium text-[#26302f] transition-[border-color,background-color] duration-150 hover:border-[#cbd4d2] hover:bg-[#fafbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
+                          onClick={() => handleQuickAction(action.prompt)}
+                        >
+                          <span
+                            className={
+                              "flex size-5 shrink-0 items-center justify-center rounded-md " +
+                              action.iconClass
+                            }
+                          >
+                            <Icon size={12} strokeWidth={1.8} />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">{action.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
+              {workspacePanelOpen ? <AgentWorkspacePanel /> : null}
             </div>
           ) : (
             <div className="flex min-h-0 flex-1">
@@ -207,7 +333,7 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
                   ref={messageScrollRef}
                   className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle"
                 >
-                  <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 max-sm:px-4">
+                  <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pb-8 pt-14 max-sm:px-4">
                     {messages.map((message) => (
                       <article key={message.id} className="flex w-full justify-end">
                         <div className="max-w-[82%]">
@@ -239,6 +365,7 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
                 <div className="shrink-0 px-6 pb-5 pt-3 max-sm:px-4">
                   <div className="mx-auto w-full max-w-3xl">
                     <DataAgentPromptComposer
+                      key={composerKey}
                       initialValue={initialDraft}
                       onSubmit={handlePromptSubmit}
                       trailingActions={modelSelector}
@@ -251,26 +378,7 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
                 </div>
               </div>
 
-              <aside
-                aria-label="Agent 工作区"
-                className="hidden min-h-0 w-[46%] min-w-[420px] max-w-[760px] shrink-0 flex-col border-l border-[#eeeeec] bg-[#fcfcfb] xl:flex"
-              >
-                <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#eeeeec] px-4">
-                  <span className="text-sm font-semibold text-[#20201e]">工作区</span>
-                  <span className="rounded-full bg-[#f3f3f1] px-2 py-1 text-[10px] text-[#999999]">
-                    暂无执行结果
-                  </span>
-                </header>
-                <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 text-center">
-                  <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-white text-[#999999] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <FolderOpen size={21} strokeWidth={1.6} />
-                  </span>
-                  <h3 className="m-0 text-sm font-medium text-[#555555]">暂无工作区文件</h3>
-                  <p className="mb-0 mt-2 max-w-[250px] text-xs leading-6 text-[#a0a0a0]">
-                    Agent 生成的文件、数据结果和执行产物将在这里展示。
-                  </p>
-                </div>
-              </aside>
+              {workspacePanelOpen ? <AgentWorkspacePanel /> : null}
             </div>
           )}
         </section>

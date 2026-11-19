@@ -59,6 +59,19 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(sidebar, /onSelectConversation/);
 });
 
+test("the Data Agent empty workspace matches the centered prompt and shortcut layout", () => {
+  assert.match(workspace, /max-w-\[540px\]/);
+  assert.match(workspace, /grid grid-cols-2 gap-2/);
+  assert.match(workspace, /分析数据表/);
+  assert.match(workspace, /生成 SQL/);
+  assert.match(workspace, /排查任务异常/);
+  assert.match(workspace, /梳理数据开发流程/);
+  assert.match(workspace, /handleQuickAction/);
+  assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
+  assert.match(workspace, /aria-label=\{workspacePanelOpen \? "隐藏工作区面板" : "显示工作区面板"\}/);
+  assert.match(workspace, /<AgentWorkspacePanel \/>/);
+});
+
 test("Data Agent welcome and composer styling use Tailwind utilities", () => {
   assert.doesNotMatch(page, /data-agent\.css/);
   assert.equal(
@@ -72,8 +85,10 @@ test("Data Agent welcome and composer styling use Tailwind utilities", () => {
   assert.match(welcome, /motion-reduce:animate-none/);
   assert.doesNotMatch(welcome, /data-agent-welcome-|data-agent-mascot-(?:eye|shine)/);
   assert.match(composer, /group\/composer relative isolate w-full/);
-  assert.match(composer, /group-focus-within\/composer:opacity-20/);
+  assert.match(composer, /rounded-\[14px\] border border-\[#e0e4e3\]/);
   assert.match(composer, /animate-data-agent-caret/);
+  assert.match(composer, /aria-label="Data Agent 能力"/);
+  assert.match(composer, /附件上传暂未接入/);
   assert.doesNotMatch(composer, /data-agent-composer-[a-z-]+/);
   assert.match(globalStyles, /--animate-data-agent-message-in:/);
   assert.match(globalStyles, /--animate-data-agent-card-in:/);
@@ -84,7 +99,7 @@ test("Data Agent welcome and composer styling use Tailwind utilities", () => {
 
 test("welcome entrypoints seed the composer without claiming file upload support", () => {
   assert.match(workspace, /initialPrompt/);
-  assert.match(workspace, /setInitialDraft\(""\)/);
+  assert.match(workspace, /setInitialDraft\(\"\"\)/);
   assert.match(composer, /initialValue\?: string/);
   assert.match(composer, /useState\(initialValue\)/);
   assert.doesNotMatch(welcome, /type="file"|上传成功|文件已导入/);
@@ -102,8 +117,8 @@ test("Data Agent prompt composer preserves Yakable-style input interactions", ()
   assert.match(composer, /placeholderSuggestions/);
   assert.match(composer, /onCompositionStart/);
   assert.match(composer, /event\.shiftKey/);
-  assert.match(composer, /rounded-3xl bg-white/);
-  assert.match(composer, /AI 助手/);
+  assert.match(composer, /rounded-\[14px\] border/);
+  assert.match(composer, /aria-label="发送消息"/);
 });
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {
