@@ -133,6 +133,9 @@ export function DataAgentPromptComposer({
           </div>
 
           <div className="mt-1 flex min-h-8 items-center justify-between gap-3 px-1">
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="text-[11px] text-[#aaaaaa]">AI 助手</span>
+            </div>
             <div className="flex shrink-0 items-center gap-1.5">
               {trailingActions}
               <button
