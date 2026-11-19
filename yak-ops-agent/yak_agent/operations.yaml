@@ -1,0 +1,212 @@
+# Data-sync operation registry: the single declarative source for agent tools.
+#
+# Every entry becomes one AgentScope FunctionTool. Adding an operation means
+# adding a YAML record, not writing Python. When the yak-ops-openapi contract
+# pipeline lands (agent-allowlist.yaml -> yak-ops-agent-3.1.json), this file can
+# be generated from the contract subset instead of maintained by hand.
+#
+# Param fields:
+#   name        python-facing parameter name (snake_case)
+#   type        string | integer | boolean
+#   required    whether the model must provide it
+#   description model-facing explanation (Chinese)
+#   location    query | body | path
+#   as          wire name when it differs (e.g. expectedRevision)
+#   enum        allowed values (validated in-tool)
+#   min / max   numeric clamp
+#   json        value is a JSON object string, parsed before sending
+#   const       fixed value, never exposed to the model (e.g. skipLineNum: 0)
+#   inject      host-side value (project_code), never exposed to the model
+#
+# Response fields:
+#   truncate        max characters of the serialized payload (default 16000)
+#   truncate_field  a top-level string field to truncate in place (log message)
+
+operations:
+  # ---------------- read ----------------
+
+  - id: list_sync_tasks
+    domain: data-sync
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/data-sync/tasks
+    summary: 列出数据同步任务定义
+    description: |
+      列出项目的数据同步任务定义（分页），用于找到任务编码（taskCode）后再读取、修改、发布或删除。
+      返回字段：id（即 taskCode）、name、status（ONLINE/OFFLINE）、definitionVersion、revision、remark。
+    params:
+      - { name: keyword, type: string, required: false, description: 名称关键字过滤, location: query }
+      - { name: status, type: string, required: false, description: 发布状态过滤，ONLINE 或 OFFLINE, location: query, enum: [ONLINE, OFFLINE] }
+      - { name: page_no, type: integer, required: false, description: 页码，从 1 开始, location: query, as: pageNo, min: 1 }
+      - { name: page_size, type: integer, required: false, description: 每页条数，1-50, location: query, as: pageSize, min: 1, max: 50 }
+
+  - id: get_sync_task
+    domain: data-sync
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/data-sync/tasks/{task_code}
+    summary: 获取数据同步任务定义详情
+    description: |
+      获取单个数据同步任务的完整定义。返回的 parameters 是修改参数的模板；
+      revision 用于 update/publish 的 expectedRevision（乐观锁）；definitionVersion 用于 publish 的 version。
+    params:
+      - { name: task_code, type: integer, required: true, description: 任务编码，来自 list_sync_tasks, location: path }
+
+  - id: preview_sync_task
+    domain: data-sync
+    risk: readonly
+    method: POST
+    path: /projects/{project_code}/data-sync/tasks/preview
+    summary: 预览数据同步任务（校验参数并渲染 YAML，无副作用）
+    description: |
+      校验 pipeline 参数并渲染生成的 YAML，不产生任何写入。创建或修改任务前必须先预览，
+      以便尽早发现参数错误并向用户展示将要生成的内容。
+    params:
+      - { name: parameters_json, type: string, required: true, description: pipeline 参数字符串（JSON 对象），通常从 get_sync_task 复制后修改, location: body, as: parameters, json: true }
+      - { name: name, type: string, required: false, description: 预览使用的任务名, location: body, default: preview }
+
+  - id: get_sync_overview
+    domain: data-sync
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/data-sync/overview
+    summary: 获取数据同步概览
+    description: 获取项目数据同步的整体概览（任务数、执行统计、健康度）。
+    params: []
+
+  - id: list_sync_instances
+    domain: data-sync
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/data-sync/instances
+    summary: 列出数据同步执行实例
+    description: |
+      列出项目的同步执行实例（分页，最新在前）。用于回答：哪些实例失败/运行中/成功、起止时间、耗时。
+      返回的 taskInstanceId 可用于 query_task_log、stop_task_instance、force_success_task_instance。
+    params:
+      - { name: status, type: string, required: false, description: 状态过滤，常用 FAILURE、RUNNING_EXECUTION、SUCCESS, location: query, enum: [SUBMITTED_SUCCESS, RUNNING_EXECUTION, READY_PAUSE, PAUSE, READY_STOP, STOP, FAILURE, SUCCESS, NEED_FAULT_TOLERANCE, KILL, DISPATCH] }
+      - { name: task_code, type: integer, required: false, description: 只看某个同步任务的实例, location: query, as: taskCode }
+      - { name: page_no, type: integer, required: false, description: 页码，从 1 开始, location: query, as: pageNo, min: 1 }
+      - { name: page_size, type: integer, required: false, description: 每页条数，1-50, location: query, as: pageSize, min: 1, max: 50 }
+
+  - id: get_sync_instance_detail
+    domain: data-sync
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/data-sync/instances/{instance_id}
+    summary: 获取数据同步实例详情
+    description: 获取单个同步实例的详情（状态、起止时间、耗时、关联工作流实例）。
+    params:
+      - { name: instance_id, type: integer, required: true, description: 实例 ID，来自 list_sync_instances, location: path }
+
+  - id: query_task_log
+    domain: data-sync
+    risk: readonly
+    method: GET
+    path: /log/detail
+    summary: 查询任务实例执行日志（分页读取）
+    description: |
+      按行分页读取任务实例执行日志（skipLineNum 从 0 开始 + limit）。小范围查看用本接口；
+      需要全量日志做根因分析时改用 download_task_log 一次性拿完整文件。
+    params:
+      - { name: task_instance_id, type: integer, required: true, description: 任务实例 ID，来自 list_sync_instances（taskInstanceId）, location: query, as: taskInstanceId }
+      - { name: skip_line_num, type: integer, required: false, description: 跳过的行数，从 0 开始，用于翻页拉取全量日志, location: query, as: skipLineNum, min: 0, default: 0 }
+      - { name: limit, type: integer, required: false, description: 本次返回的行数，1-1000, location: query, min: 1, max: 1000, default: 200 }
+    response: { truncate_field: message }
+
+  - id: download_task_log
+    domain: task-log
+    risk: readonly
+    method: GET
+    path: /log/download-log
+    summary: 下载任务实例的完整日志文件（一次拿全量）
+    description: |
+      返回任务实例的完整日志文本（非分页）。根因分析优先用本接口拉全量，
+      再在脚本内 grep ERROR/Exception/Caused by 定位根因。
+    params:
+      - { name: task_instance_id, type: integer, required: true, description: 任务实例 ID，来自 list_sync_instances（taskInstanceId）, location: query, as: taskInstanceId }
+    response: { raw: true, truncate: 16000 }
+
+  # ---------------- write (human confirmation required) ----------------
+
+  - id: create_sync_task
+    domain: data-sync
+    risk: write
+    method: POST
+    path: /projects/{project_code}/data-sync/tasks
+    summary: 创建数据同步任务（需确认）
+    description: |
+      创建新的数据同步任务。参数从已有任务（get_sync_task）复制并修改，且必须先通过 preview_sync_task 校验。
+      新建任务默认离线（OFFLINE），需发布后才可被执行。
+    params:
+      - { name: name, type: string, required: true, description: 项目内唯一的任务名, location: body }
+      - { name: remark, type: string, required: false, description: 备注说明, location: body, default: "" }
+      - { name: parameters_json, type: string, required: true, description: pipeline 参数字符串（JSON 对象）, location: body, as: parameters, json: true }
+
+  - id: update_sync_task
+    domain: data-sync
+    risk: write
+    method: PUT
+    path: /projects/{project_code}/data-sync/tasks/{task_code}
+    summary: 修改数据同步任务定义（需确认）
+    description: |
+      修改任务定义。先 get_sync_task 读当前定义，修改 parameters，经 preview 校验后提交；
+      必须带上任务当前 revision 作为 expectedRevision（乐观锁，过期会被服务端拒绝）。
+    params:
+      - { name: task_code, type: integer, required: true, description: 任务编码, location: path }
+      - { name: parameters_json, type: string, required: true, description: 完整 pipeline 参数字符串（JSON 对象）, location: body, as: parameters, json: true }
+      - { name: name, type: string, required: false, description: 新任务名，不传则保持不变, location: body }
+      - { name: remark, type: string, required: false, description: 新备注，不传则保持不变, location: body }
+      - { name: expected_revision, type: integer, required: false, description: 任务当前 revision（来自 get_sync_task）, location: body, as: expectedRevision }
+
+  - id: publish_sync_task
+    domain: data-sync
+    risk: write
+    method: POST
+    path: /projects/{project_code}/data-sync/tasks/{task_code}/publish
+    summary: 发布（上线）数据同步任务（需确认）
+    description: 将任务发布上线，使其可被调度执行。version 取 get_sync_task 的 definitionVersion，expectedRevision 取 revision。
+    params:
+      - { name: task_code, type: integer, required: true, description: 任务编码, location: path }
+      - { name: version, type: integer, required: true, description: 要发布的定义版本（definitionVersion）, location: body }
+      - { name: expected_revision, type: integer, required: false, description: 任务当前 revision, location: body, as: expectedRevision }
+
+  - id: unpublish_sync_task
+    domain: data-sync
+    risk: write
+    method: POST
+    path: /projects/{project_code}/data-sync/tasks/{task_code}/unpublish
+    summary: 下线数据同步任务（需确认）
+    description: 将任务下线，停止新的调度执行。比删除温和，适合仅想停用的场景。
+    params:
+      - { name: task_code, type: integer, required: true, description: 任务编码, location: path }
+
+  - id: delete_sync_task
+    domain: data-sync
+    risk: destructive
+    method: DELETE
+    path: /projects/{project_code}/data-sync/tasks/{task_code}
+    summary: 删除数据同步任务（需确认，不可恢复）
+    description: 永久删除任务，不可恢复。仅当目标只是停用时，优先建议 unpublish_sync_task。
+    params:
+      - { name: task_code, type: integer, required: true, description: 要删除的任务编码, location: path }
+
+  - id: stop_task_instance
+    domain: data-sync
+    risk: destructive
+    method: POST
+    path: /projects/{project_code}/task-instances/{instance_id}/stop
+    summary: 停止运行中的同步实例（需确认）
+    description: 停止一个运行中的数据同步任务实例。先确认实例确实处于运行态。
+    params:
+      - { name: instance_id, type: integer, required: true, description: 实例 ID，来自 list_sync_instances, location: path }
+
+  - id: force_success_task_instance
+    domain: data-sync
+    risk: destructive
+    method: POST
+    path: /projects/{project_code}/task-instances/{instance_id}/force-success
+    summary: 强制标记实例成功（需确认）
+    description: 把失败的同步实例标记为成功。仅在确认数据实际无误时使用。
+    params:
+      - { name: instance_id, type: integer, required: true, description: 实例 ID，来自 list_sync_instances, location: path }

@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+!.env.example
+.pytest_cache/
+logs/
+sessions/
+smoke/

@@ -1,0 +1,117 @@
+# yak-ops-agent（AgentScope Python harness）
+
+数据同步页面的完整功能 agent（查询 + 创建/修改/发布/下线/删除 + 实例停止/强制成功），基于 AgentScope 构建。
+平台侧契约与安全边界见 `yak-ops-openapi/`（契约基线与 agent 白名单）。
+
+## 定位
+
+- 消费方形态：外部 agent 进程（Python），通过 yak-ops REST API 接入；
+- 编排：AgentScope `Agent`（ReAct 循环）开箱即用；本仓库零自定义框架代码；
+- 安全模型：读工具自动执行（只读快路径）；写工具一律走 **HITL 人工确认**（`RequireUserConfirmEvent`），非交互模式默认拒绝写操作；
+- PTC 对齐：`ContextConfig.tool_result_limit` 与客户端 16KB 截断保证中间结果不撑爆上下文。
+
+## 内置能力
+
+| 能力 | 说明 |
+| --- | --- |
+| **Skill（技能）** | `yak_agent/skills/data-sync-troubleshooting/SKILL.md`：数据同步排障知识（状态语义、排查步骤、常见根因、耗时口径、高危红线），模型按需加载 |
+| **审计留痕** | 每次工具调用落 JSONL（`logs/audit/YYYY-MM-DD.jsonl`，`YAK_AGENT_AUDIT_DIR` 可改）：时间、工具、脱敏参数、成功与否、耗时——`parameters_json` 类参数只记占位符，不落盘数据源凭据 |
+| **短期记忆** | Agent 内部 context：同一会话内后续问题复用已取数据（省 token） |
+| **Middleware** | `ReplyBudgetControlMiddleware`：单回复加权 token 预算（输出 ×2，`YAK_AGENT_REPLY_TOKEN_BUDGET` 默认 25000），超限后收敛不再调工具——长回合的成本/时延护栏；`TracingMiddleware`：OpenTelemetry 全链路追踪，未配置 TracerProvider 时零开销，配置 collector（OTLP）后输出完整 span 树（reply/model_call/tool 层级含 token 计数与 HITL 状态） |
+| **PTC（程序化工具调用）** | `run_analysis_script`：模型写 Python 脚本在受限执行器里跑，脚本经生成的只读 `yak_agent_sdk` 调 yak-ops API（含 `download_task_log` 全量日志），**只有结论进上下文**；写操作在 SDK import 时硬禁，静态预检拒绝写符号，超时/输出截断/全量审计 |
+| **会话工作区** | 每会话持久目录（`sessions/{sid}/workspace/`）：脚本产物跨轮存活；stdout 超长时自动 offload 落盘；`read_workspace_file` / `list_workspace_files` 只读工具回读（路径逃逸防护）。执行后端可插拔：本地=cocoon 沙箱（默认）或受限子进程，生产=DockerWorkspace |
+
+## 工具（数据同步，7 读 + 7 写）
+
+| 读工具（自动执行） | REST 端点 |
+| --- | --- |
+| `list_sync_tasks` | `GET /projects/{code}/data-sync/tasks`（keyword/status 过滤） |
+| `get_sync_task` | `GET .../tasks/{taskCode}`（含 parameters 模板、revision、definitionVersion） |
+| `preview_sync_task` | `POST .../tasks/preview`（校验参数并渲染 YAML，无副作用） |
+| `get_sync_overview` | `GET .../overview` |
+| `list_sync_instances` | `GET .../instances`（status/taskCode 过滤） |
+| `get_sync_instance_detail` | `GET .../instances/{id}` |
+| `query_task_log` | `GET /log/detail`（日志分页，limit≤1000） |
+| `download_task_log` | `GET /log/download-log`（完整日志文件一次下载，PTC 分析用） |
+
+| 写工具（需人工确认） | REST 端点 |
+| --- | --- |
+| `create_sync_task` | `POST .../tasks` |
+| `update_sync_task` | `PUT .../tasks/{taskCode}`（带 expectedRevision 乐观锁） |
+| `publish_sync_task` | `POST .../tasks/{taskCode}/publish` |
+| `unpublish_sync_task` | `POST .../tasks/{taskCode}/unpublish` |
+| `delete_sync_task` | `DELETE .../tasks/{taskCode}`（不可恢复） |
+| `stop_task_instance` | `POST .../task-instances/{id}/stop` |
+| `force_success_task_instance` | `POST .../task-instances/{id}/force-success` |
+
+安全边界（宿主侧固化，模型不可见/不可传）：凭证注入（token 或 session cookie）、`projectCode` 来自配置、`Result<T>` 业务码校验、16KB 截断、写操作 HITL 确认。
+
+## 使用体验（完整 agent 流程示例）
+
+```
+你> 照着 orders_daily 建一个 orders_daily_v2，目标表改成 orders_v2
+    → list_sync_tasks（找 orders_daily）→ get_sync_task（取参数模板）
+    → preview_sync_task（校验 YAML）
+    → —— 需要确认的操作 ——  create_sync_task({...})  确认执行? [y/N] y
+    → 创建成功（OFFLINE）→ publish_sync_task（再次确认）→ 已上线
+你> 最近一次失败是什么原因
+    → list_sync_instances(status=FAILURE) → query_task_log → 结论 + 实例 ID/日志行
+你> 把任务 42 删了
+    → 模型先说明影响并建议以下线替代 → delete_sync_task（确认框）→ 用户拒绝则停止
+```
+
+## 安装
+
+```bash
+cd yak-ops-agent
+python -m venv .venv
+.venv/Scripts/python -m pip install "agentscope==2.0.12" -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+要求 Python 3.11+（AgentScope 2.0 硬要求）。
+
+## 配置
+
+复制 `.env.example` 为 `.env` 填写：`LLM_BASE_URL`（openai-compatible 端点）、`LLM_API_KEY`、`LLM_MODEL`、`YAK_OPS_PROJECT_CODE`（项目雪花 ID，必填）。
+
+**认证（二选一，token 优先）**：
+- 当前默认：`YAK_OPS_USERNAME` + `YAK_OPS_PASSWORD`——`POST /login` 换 `sessionId` cookie，后续请求自动携带；session 过期（401）自动重登重试一次；
+- 平台 API token 功能上线后：`YAK_OPS_TOKEN`（设置后忽略用户名密码）。
+
+## 运行
+
+```bash
+# 交互 CLI（写操作逐条确认）
+.venv/Scripts/python -m yak_agent.app
+# 单问（非交互，写操作自动拒绝）
+.venv/Scripts/python -m yak_agent.app "现在有哪些同步实例在运行？"
+# HTTP 服务（给前端消费；默认 127.0.0.1:8090）
+.venv/Scripts/python -m yak_agent.server
+```
+
+## HTTP 接口（前端对接）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/agent/sessions` | 创建会话 → `{sessionId}` |
+| POST | `/agent/sessions/{sid}/messages` | 发消息（body `{message}`）→ **SSE 事件流** |
+| POST | `/agent/sessions/{sid}/confirm` | 确认/拒绝挂起的写操作（body `{approved: bool 或 [bool...]}`） |
+| GET | `/agent/sessions` | 列出**当前调用方**的已持久化会话 |
+| DELETE | `/agent/sessions/{sid}` | 删除会话 |
+| GET | `/health` | 存活检查 |
+
+**鉴权两层**：
+
+1. **服务层**（保护 agent 服务本身）：配置 `YAK_AGENT_SERVICE_TOKEN` 后所有端点要求 `Authorization: Bearer <token>`；未配置时仅接受 loopback 调用，非本机来源 401。
+2. **用户层**（数据权限边界，与原后端同一套登录认证）：前端登录 yak-ops 后把登录态动态传入——`X-Yak-Session-Id`（登录换得的 sessionId cookie 值，agent 不持密码，过期时创建会话返回 401 由前端重新登录）。**会话创建时服务端用该 sessionId 向平台反查并校验**（平台 interceptor 语义：会话有效性 + 配置项目是否授予该用户，401/403 透传），之后**所有工具调用与 PTC 脚本都以该用户身份执行**（平台逐请求认证）。归属键由 sessionId 派生（不接受前端自报的用户 id）；确认动作的调用方（会话标识）写入审计。不传头 = 单租户本地模式（服务端凭据）。
+
+SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`（工具调用）、`confirm_required`（写操作待确认，含 `toolCalls[]`）、`done`、`error`。**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。
+
+会话按轮持久化（`AgentState` 序列化，`YAK_AGENT_SESSION_DIR` 可配），服务重启后按会话 ID 懒加载恢复。服务端口与绑定地址：`YAK_AGENT_PORT` / `YAK_AGENT_HOST`。
+
+## 已知边界
+
+- 前端 assistant drawer 的对接接口由 HTTP 服务（`python -m yak_agent.server`）提供，CLI 为本地运维入口；
+- 工具调用审计以 JSONL 形式落盘（`logs/audit/`），可配置重定向；
+- 创建/修改任务需要完整的 pipeline `parameters` JSON——system prompt 引导模型从 `get_sync_task` 取模板修改并用 `preview_sync_task` 验证，避免凭空构造；
+- 验收（5 个只读 Golden 问题、冷启动稳定性、写操作全生命周期演练）在开发环境以真实模型与真实后端执行；验收脚本强依赖 LLM 与内网后端、运行会产生真实副作用与调用成本，因此**不随仓库分发**。

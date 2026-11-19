@@ -37,6 +37,7 @@
         <module>yak-ops-task-executor</module>
         <module>yak-ops-cdc</module>
         <module>yak-ops-ui</module>
+        <module>yak-ops-openapi</module>
     </modules>
 
     <properties>

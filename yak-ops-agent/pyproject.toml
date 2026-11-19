@@ -1,0 +1,51 @@
+[project]
+name = "yak-ops-agent"
+version = "0.1.0"
+description = "AgentScope-based copilot harness for yak-ops (data-sync closed loop)."
+requires-python = ">=3.11"
+dependencies = [
+    "agentscope==2.0.12",
+    "pyyaml>=6.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "sse-starlette>=2.0",
+    "cocoon-sandbox>=0.3.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Modeled after DataHub's Python setup: ruff is the single tool for
+# formatting and linting (replaces black/isort/flake8).
+# Line-length findings (E501/E111/E114/E117) are handled by `ruff format`,
+# not the linter — the formatter is the single executor of layout.
+select = ["E", "F", "W", "B", "I", "C90", "SIM", "UP", "C4"]
+ignore = [
+    "E501",  # handled by formatter
+    "E111",  # handled by formatter
+    "E114",  # handled by formatter
+    "E117",  # handled by formatter
+    "SIM102", # collapsible-if — readability varies, revisit later
+    "SIM105", # try-except-pass — the audit module's silence is intentional
+    "SIM117", # nested-with — readability varies
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
+[tool.ruff.lint.isort]
+known-first-party = ["yak_agent"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.17.5",
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["yak_agent"]
