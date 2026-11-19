@@ -30,6 +30,9 @@ jobs:
       - name: Data Agent frontend contract tests
         working-directory: yak-ops-ui
         run: npm run test:data-agent
+      - name: Management access token contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:management-token
       - name: Data Sync Pipeline contract tests
         working-directory: yak-ops-ui
         run: npm run test:data-sync
