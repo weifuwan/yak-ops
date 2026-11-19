@@ -14,6 +14,7 @@ import {
   Server,
   Settings,
   Settings2,
+  Sparkles,
   Table2,
   Users,
   Wrench,
@@ -339,6 +340,13 @@ const DATA_DEVELOPMENT_PRODUCT: GlobalProductMenuItem = {
   path: "/data-development",
 };
 
+const DATA_AGENT_PRODUCT: GlobalProductMenuItem = {
+  id: "data-agent",
+  label: "Data Agent",
+  icon: Sparkles,
+  path: "/data-agent",
+};
+
 const DATA_MODELING_PRODUCT: GlobalProductMenuItem = {
   id: "data-modeling",
   label: DATA_MODELING_PRODUCT_LABEL,
@@ -368,6 +376,7 @@ const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
 };
 
 export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
+  DATA_AGENT_PRODUCT,
   DATA_INTEGRATION_PRODUCT,
   DATA_DEVELOPMENT_PRODUCT,
   DATA_MODELING_PRODUCT,
@@ -377,6 +386,11 @@ export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
 ];
 
 export const ALL_PRODUCT_GROUPS: AllProductGroup[] = [
+  {
+    id: "agents",
+    label: "智能体",
+    products: [DATA_AGENT_PRODUCT],
+  },
   {
     id: "data-integration",
     label: DATA_INTEGRATION_PRODUCT_LABEL,

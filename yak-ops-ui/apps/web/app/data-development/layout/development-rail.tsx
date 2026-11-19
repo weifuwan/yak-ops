@@ -62,6 +62,7 @@ type DevelopmentRailProps = {
   activeSection: DataDevelopmentSection;
   panelCollapsed: boolean;
   onSectionChange: (section: DataDevelopmentSection) => void;
+  onOpenAgent: () => void;
   onTogglePanel: () => void;
 };
 
@@ -108,6 +109,7 @@ export function DevelopmentRail({
   activeSection,
   panelCollapsed,
   onSectionChange,
+  onOpenAgent,
   onTogglePanel,
 }: DevelopmentRailProps) {
   return (
@@ -119,6 +121,7 @@ export function DevelopmentRail({
         label="Data Agent · 数据开发助手"
         icon={Sparkles}
         indicator
+        onClick={onOpenAgent}
       />
 
       <nav

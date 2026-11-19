@@ -17,6 +17,7 @@
     "format:check": "oxfmt --check apps packages",
     "check": "npm run format:check",
     "test:auth": "node --experimental-strip-types --test tests/auth-contract.test.mjs",
+    "test:data-agent": "node --experimental-strip-types --test tests/data-agent-entrypoints.test.mjs",
     "test:http": "node --experimental-strip-types --test tests/http-request-cancellation.test.mjs",
     "test:atom-indicator": "node --experimental-strip-types --test tests/atom-indicator-form-contract.test.mjs",
     "test:data-sync": "node --experimental-strip-types --test tests/data-sync-native-pipeline.test.mjs tests/data-sync-workflow-state.test.mjs tests/data-sync-list-filters.test.mjs tests/data-sync-overview-metrics.test.mjs tests/data-sync-list-execution-state.test.mjs",
