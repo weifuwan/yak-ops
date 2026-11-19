@@ -106,7 +106,7 @@ export function DataAgentSidebarResizer({
 
   return (
     <div
-      className="group relative z-[1] w-0 shrink-0 translate-x-px self-stretch max-md:hidden"
+      className="group relative z-[1] w-0 shrink-0 translate-x-[9px] self-stretch max-md:hidden"
       data-dragging={dragging}
     >
       <div className="relative h-full w-0 shrink-0">

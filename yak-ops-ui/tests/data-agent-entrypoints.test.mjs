@@ -179,6 +179,7 @@ test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
   assert.match(sidebarResizer, /ArrowLeft/);
   assert.match(sidebarResizer, /ArrowRight/);
   assert.match(sidebarResizer, /onLostPointerCapture/);
+  assert.match(sidebarResizer, /translate-x-\[9px\]/);
   assert.match(sidebarResizer, /top-8 bottom-8/);
   assert.match(sidebarResizer, /h-6 w-2/);
   assert.match(sidebarResizer, /group-hover:opacity-100/);
