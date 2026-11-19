@@ -102,7 +102,7 @@ function TaskTypeItem({
           : "mr-2 flex size-4 shrink-0 items-center justify-center"}>
           <TaskTypeBadgeIcon
             taskType={task.taskType}
-            size={isPopover ? 20 : 16}
+            size={variant === "popover" ? 20 : 16}
           />
         </span>
         <span className="min-w-0 truncate leading-4">
