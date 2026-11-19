@@ -133,7 +133,10 @@ export function ParticleTransition({
       return;
     }
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      document.visibilityState === "hidden" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       onCompleteRef.current?.();
       return;
     }
@@ -208,16 +211,43 @@ export function ParticleTransition({
       window.addEventListener("resize", resizeCanvas);
     }
 
+    let completed = false;
+
+    const finish = () => {
+      if (completed) return;
+
+      completed = true;
+      window.cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+
+      if (!resizeObserver) {
+        window.removeEventListener("resize", resizeCanvas);
+      }
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      context.clearRect(0, 0, width, height);
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = "source-over";
+      onCompleteRef.current?.();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        finish();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const startTime = performance.now();
     lastFrameTime = startTime;
 
     const renderFrame = (now: number) => {
-      if (disposed) return;
+      if (disposed || completed) return;
 
       const elapsed = now - startTime;
       if (elapsed >= safeDuration) {
-        context.clearRect(0, 0, width, height);
-        onCompleteRef.current?.();
+        finish();
         return;
       }
 
