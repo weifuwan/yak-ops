@@ -44,7 +44,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);
-  assert.match(sidebar, /w-64/);
+  assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
   assert.ok(sidebar.includes('src="/yakable_logo.png"'));
   assert.doesNotMatch(sidebar, /<Sparkles/);
   assert.match(sidebar, /New/);
@@ -82,7 +82,8 @@ test("Data Agent sidebar uses a smooth drawer transition without unmounting", ()
   assert.match(workspace, /-translate-x-3 opacity-0 pointer-events-none/);
   assert.match(workspace, /w-\[var\(--data-agent-sidebar-width\)\] max-md:!w-0/);
   assert.match(workspace, /sidebarWidth/);
-  assert.match(workspace, /sidebarResizing \? "transition-none"/);
+  assert.match(workspace, /sidebarResizing/);
+  assert.match(workspace, /\? "transition-none/);
   assert.match(workspace, /<DataAgentSidebarResizer/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
   assert.doesNotMatch(workspace, /\{sidebarOpen \? \([\s\S]*?<DataAgentSidebar/);
