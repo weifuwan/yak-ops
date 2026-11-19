@@ -12,7 +12,7 @@ const router = read("../apps/web/app/router/AppRouter.tsx");
 const navigation = read("../apps/web/app/layout/navigation.ts");
 
 test("Data Agent reuses Yakable's full-screen workspace structure", () => {
-  assert.match(page, /productPath="\\/data-agent"/);
+  assert.ok(page.includes('productPath="/data-agent"'));
   assert.match(page, /<DataAgentWorkspace \/>/);
   assert.match(workspace, /你好，我是 Yak-OPS Data Agent/);
   assert.match(workspace, /理解数据、构建任务/);

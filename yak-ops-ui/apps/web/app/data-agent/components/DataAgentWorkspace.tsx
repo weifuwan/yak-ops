@@ -24,7 +24,7 @@ type LocalConversation = {
 };
 
 function conversationTitle(content: string) {
-  const normalized = content.replace(/\\s+/g, " ").trim();
+  const normalized = content.replace(/\s+/g, " ").trim();
   return normalized.length > 26 ? normalized.slice(0, 26) + "…" : normalized;
 }
 
