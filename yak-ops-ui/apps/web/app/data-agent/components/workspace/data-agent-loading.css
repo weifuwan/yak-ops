@@ -1,0 +1,29 @@
+@keyframes data-agent-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.data-agent-skeleton {
+  display: block;
+  flex: none;
+  background: linear-gradient(
+    100deg,
+    #e9eceb 20%,
+    #f2f4f3 38%,
+    #e9eceb 56%
+  );
+  background-size: 220% 100%;
+  animation: data-agent-skeleton-shimmer 1.55s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-agent-skeleton {
+    animation: none;
+    background: #ecefee;
+  }
+}
