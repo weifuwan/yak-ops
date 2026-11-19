@@ -4,6 +4,9 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
+const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
+const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
 const markdown = read("../apps/web/app/data-agent/components/markdown/DataAgentMarkdown.tsx");
 const markdownStyles = read("../apps/web/app/data-agent/components/markdown/data-agent-markdown.css");
 const globalStyles = read("../apps/web/app/styles/global.css");
@@ -11,18 +14,18 @@ const webPackage = JSON.parse(read("../apps/web/package.json"));
 const lock = JSON.parse(read("../package-lock.json"));
 
 test("assistant responses render through Streamdown without changing the SSE message flow", () => {
-  assert.match(workspace, /import \{ DataAgentMarkdown \} from "\.\/markdown\/DataAgentMarkdown";/);
+  assert.match(assistantMessage, /import \{ DataAgentMarkdown \} from "\.\.\/\.\.\/markdown\/DataAgentMarkdown";/);
   assert.match(
-    workspace,
+    assistantMessage,
     /<DataAgentMarkdown\s+content=\{message\.content\}\s+isStreaming=\{message\.status === "streaming"\}\s*\/>/,
   );
-  assert.ok(
-    !workspace.includes(`<div className="text-[14px] leading-7 text-[#27302f]">
-                                {message.content ? (`),
+  assert.doesNotMatch(workspace, /DataAgentMarkdown|text_delta|sendAgentMessage/);
+  assert.match(conversationHook, /sendAgentMessage/);
+  assert.match(reducer, /content: message\.content \+ action\.delta/);
+  assert.match(
+    read("../apps/web/app/data-agent/components/workspace/conversation/ConfirmationCard.tsx"),
+    /确认执行/,
   );
-  assert.match(workspace, /case "text_delta":/);
-  assert.match(workspace, /content: message\.content \+ event\.delta/);
-  assert.match(workspace, /确认执行/);
 });
 
 test("the renderer enables streaming repair, Shiki highlighting and Chinese punctuation handling", () => {
@@ -60,6 +63,6 @@ test("Streamdown runtime packages are pinned in both the app manifest and npm lo
   for (const [name, version] of Object.entries(versions)) {
     assert.equal(webPackage.dependencies[name], version);
     assert.equal(lock.packages["apps/web"].dependencies[name], version);
-    assert.equal(lock.packages[`node_modules/${name}`].version, version);
+    assert.equal(lock.packages["node_modules/" + name].version, version);
   }
 });

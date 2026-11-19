@@ -6,9 +6,18 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
+const sidebarNavigation = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarNavigation.tsx");
+const conversationList = read("../apps/web/app/data-agent/components/sidebar/DataAgentConversationList.tsx");
+const sidebarFooter = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarFooter.tsx");
 const sidebarResizer = read("../apps/web/app/data-agent/components/DataAgentSidebarResizer.tsx");
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
+const modelSelector = read("../apps/web/app/data-agent/components/workspace/ModelSelector.tsx");
+const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
+const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
+const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
+const confirmationCard = read("../apps/web/app/data-agent/components/workspace/conversation/ConfirmationCard.tsx");
 const globalStyles = read("../apps/web/app/styles/global.css");
 const rail = read("../apps/web/app/data-development/layout/development-rail.tsx");
 const layout = read("../apps/web/app/data-development/layout/data-development-layout.tsx");
@@ -46,26 +55,26 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
   assert.ok(sidebar.includes('src="/yakable_logo.png"'));
-  assert.doesNotMatch(sidebar, /<Sparkles/);
-  assert.match(sidebar, /New/);
-  assert.match(sidebar, /Search/);
-  assert.match(sidebar, /Projects/);
-  assert.match(sidebar, /Connectors/);
-  assert.match(sidebar, /Automations/);
-  assert.match(sidebar, /Data Sync Hub/);
-  assert.match(sidebar, /Upgrade to Pro/);
-  assert.match(sidebar, /Unlock more features/);
   assert.match(sidebar, /useWorkspace/);
   assert.match(sidebar, /onSelectConversation/);
+  assert.match(sidebarNavigation, /New/);
+  assert.match(sidebarNavigation, /Search/);
+  assert.match(sidebarNavigation, /Projects/);
+  assert.match(sidebarNavigation, /Connectors/);
+  assert.match(sidebarNavigation, /Automations/);
+  assert.match(conversationList, /Data Sync Hub/);
+  assert.match(conversationList, /Recent chats/);
+  assert.match(sidebarFooter, /Upgrade to Pro/);
+  assert.match(sidebarFooter, /Unlock more features/);
 });
 
-test("the Data Agent welcome workspace keeps the centered prompt and shortcut layout without the unused side panel", () => {
-  assert.match(workspace, /max-w-\[540px\]/);
-  assert.match(workspace, /grid grid-cols-2 gap-2/);
-  assert.match(workspace, /分析数据表/);
-  assert.match(workspace, /生成 SQL/);
-  assert.match(workspace, /排查任务异常/);
-  assert.match(workspace, /梳理数据开发流程/);
+test("the welcome workspace keeps its centered prompt and shortcut layout", () => {
+  assert.match(emptyState, /max-w-\[540px\]/);
+  assert.match(emptyState, /grid grid-cols-2 gap-2/);
+  assert.match(emptyState, /分析数据表/);
+  assert.match(emptyState, /生成 SQL/);
+  assert.match(emptyState, /排查任务异常/);
+  assert.match(emptyState, /梳理数据开发流程/);
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
@@ -117,36 +126,43 @@ test("Data Agent welcome and composer styling use Tailwind utilities", () => {
 
 test("welcome entrypoints seed the composer without claiming file upload support", () => {
   assert.match(workspace, /initialPrompt/);
-  assert.match(workspace, /setInitialDraft\(\"\"\)/);
+  assert.match(workspace, /setInitialDraft\(""\)/);
   assert.match(composer, /initialValue\?: string/);
   assert.match(composer, /useState\(initialValue\)/);
   assert.doesNotMatch(welcome, /type="file"|上传成功|文件已导入/);
 });
 
-test("Data Agent conversations use persisted agent sessions and live SSE responses", () => {
-  assert.match(workspace, /createAgentSession/);
-  assert.match(workspace, /listAgentSessions/);
-  assert.match(workspace, /sendAgentMessage/);
-  assert.match(workspace, /text_delta/);
-  assert.match(workspace, /tool_start/);
-  assert.match(workspace, /tool_result/);
-  assert.match(workspace, /confirm_required/);
-  assert.match(workspace, /确认执行/);
-  assert.match(workspace, /拒绝/);
-  assert.match(workspace, /历史消息暂不提供回放/);
+test("conversation orchestration is separated from the workspace component", () => {
+  assert.match(workspace, /useDataAgentConversation/);
+  assert.match(workspace, /<ConversationPanel/);
+  assert.match(workspace, /<DataAgentEmptyState/);
+  assert.doesNotMatch(workspace, /sendAgentMessage|createAgentSession|listAgentSessions|text_delta|tool_start|confirm_required|patchAssistantMessage/);
+  assert.match(conversationHook, /createAgentSession/);
+  assert.match(conversationHook, /listAgentSessions/);
+  assert.match(conversationHook, /sendAgentMessage/);
+  assert.match(conversationHook, /onConfirmRequired/);
+  assert.match(conversationHook, /AbortController/);
+  assert.match(reducer, /case "TEXT_DELTA"/);
+  assert.match(reducer, /case "TOOL_STARTED"/);
+  assert.match(reducer, /case "CONFIRMATION_REQUIRED"/);
+  assert.match(reducer, /case "MESSAGE_COMPLETED"/);
+  assert.match(assistantMessage, /DataAgentMarkdown/);
+  assert.match(confirmationCard, /确认执行/);
+  assert.match(confirmationCard, /拒绝/);
+  assert.match(emptyState, /历史消息暂不提供回放/);
   assert.match(composer, /isSubmitting\?: boolean/);
   assert.match(composer, /disabled=\{isSubmitting \|\| !value\.trim\(\)\}/);
 });
 
 test("the model selector uses the Yak-UI portal menu and opens below the trigger", () => {
-  assert.match(workspace, /<DropdownMenu open=\{open\} onOpenChange=\{onOpenChange\}>/);
+  assert.match(modelSelector, /<DropdownMenu open=\{open\} onOpenChange=\{onOpenChange\}>/);
   assert.match(
-    workspace,
+    modelSelector,
     /<DropdownMenuContent[\s\S]*?side="bottom"[\s\S]*?align="end"[\s\S]*?sideOffset=\{8\}/,
   );
-  assert.match(workspace, /role="menuitemradio"/);
-  assert.match(workspace, /aria-checked=\{value === "DeepSeek"\}/);
-  assert.doesNotMatch(workspace, /absolute bottom-full|bottom-full right-0/);
+  assert.match(modelSelector, /role="menuitemradio"/);
+  assert.match(modelSelector, /aria-checked=\{value === "DeepSeek"\}/);
+  assert.doesNotMatch(modelSelector, /absolute bottom-full|bottom-full right-0/);
 });
 
 test("Data Agent prompt composer preserves Yakable-style input interactions", () => {
@@ -159,7 +175,7 @@ test("Data Agent prompt composer preserves Yakable-style input interactions", ()
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {
   assert.match(rail, /onClick=\{onOpenAgent\}/);
-  assert.match(layout, /onOpenAgent=\{\(\) => navigate\(\"\/data-agent\"\)\}/);
+  assert.match(layout, /onOpenAgent=\{\(\) => navigate\("\/data-agent"\)\}/);
 });
 
 test("Data Agent is registered as an authenticated route and product-menu entry", () => {
