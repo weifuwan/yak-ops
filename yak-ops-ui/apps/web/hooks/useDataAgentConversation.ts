@@ -31,7 +31,7 @@ type SendMessageResult = {
 
 export function useDataAgentConversation() {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, loading: isWorkspaceLoading } = useWorkspace();
   const requestIdentity = useMemo(
     () =>
       currentUser?.id && currentWorkspace?.id
@@ -48,6 +48,7 @@ export function useDataAgentConversation() {
     initialConversationState,
   );
   const [isSending, setIsSending] = useState(false);
+  const [isRestoringSessions, setIsRestoringSessions] = useState(true);
   const [connectionError, setConnectionError] = useState("");
   const [pendingConfirmation, setPendingConfirmation] =
     useState<PendingConfirmation | null>(null);
@@ -80,9 +81,11 @@ export function useDataAgentConversation() {
     dispatch({ type: "RESET" });
 
     if (!requestIdentity) {
+      setIsRestoringSessions(false);
       return () => controller.abort();
     }
 
+    setIsRestoringSessions(true);
     listAgentSessions(requestIdentity, controller.signal)
       .then((sessions) => {
         if (controller.signal.aborted) return;
@@ -106,6 +109,9 @@ export function useDataAgentConversation() {
           return;
         }
         setConnectionError(agentErrorMessage(error));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsRestoringSessions(false);
       });
 
     return () => controller.abort();
@@ -319,6 +325,7 @@ export function useDataAgentConversation() {
     messages,
     lastMessage,
     isSending,
+    isLoading: isWorkspaceLoading || isRestoringSessions,
     connectionError,
     pendingConfirmation,
     createConversation,
