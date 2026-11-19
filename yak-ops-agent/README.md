@@ -65,8 +65,10 @@
 ```bash
 cd yak-ops-agent
 python -m venv .venv
-.venv/Scripts/python -m pip install "agentscope==2.0.12" -i https://pypi.tuna.tsinghua.edu.cn/simple
+.venv/Scripts/python -m pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
+
+依赖清单见 `pyproject.toml`（含 AgentScope、FastAPI/uvicorn、httpx、Pydantic、cocoon 沙箱等）；开发环境用 `pip install -e ".[dev]"` 一并安装 ruff 与 pre-commit。
 
 要求 Python 3.11+（AgentScope 2.0 硬要求）。
 
