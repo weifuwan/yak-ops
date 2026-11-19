@@ -105,7 +105,7 @@ test("Data Agent welcome and composer styling use Tailwind utilities", () => {
   assert.match(composer, /group\/composer relative isolate w-full/);
   assert.match(composer, /rounded-\[14px\] border border-\[#e0e4e3\]/);
   assert.match(composer, /animate-data-agent-caret/);
-  assert.match(composer, /aria-label="Data Agent 能力"/);
+  assert.match(composer, /aria-label="向 Data Agent 发送消息"/);
   assert.match(composer, /附件上传暂未接入/);
   assert.doesNotMatch(composer, /data-agent-composer-[a-z-]+/);
   assert.match(globalStyles, /--animate-data-agent-message-in:/);
@@ -123,12 +123,19 @@ test("welcome entrypoints seed the composer without claiming file upload support
   assert.doesNotMatch(welcome, /type="file"|上传成功|文件已导入/);
 });
 
-test("Data Agent conversations stay local and do not call backend services", () => {
-  assert.match(workspace, /setConversations/);
-  assert.match(workspace, /消息已在当前页面本地展示/);
-  assert.match(workspace, /后端接口尚未接入/);
-  assert.doesNotMatch(workspace, /ProjectService|SessionService|fetch\s*\(/);
-  assert.doesNotMatch(composer, /fetch\s*\(/);
+test("Data Agent conversations use persisted agent sessions and live SSE responses", () => {
+  assert.match(workspace, /createAgentSession/);
+  assert.match(workspace, /listAgentSessions/);
+  assert.match(workspace, /sendAgentMessage/);
+  assert.match(workspace, /text_delta/);
+  assert.match(workspace, /tool_start/);
+  assert.match(workspace, /tool_result/);
+  assert.match(workspace, /confirm_required/);
+  assert.match(workspace, /确认执行/);
+  assert.match(workspace, /拒绝/);
+  assert.match(workspace, /历史消息暂不提供回放/);
+  assert.match(composer, /isSubmitting\?: boolean/);
+  assert.match(composer, /disabled=\{isSubmitting \|\| !value\.trim\(\)\}/);
 });
 
 test("the model selector uses the Yak-UI portal menu and opens below the trigger", () => {
@@ -147,7 +154,7 @@ test("Data Agent prompt composer preserves Yakable-style input interactions", ()
   assert.match(composer, /onCompositionStart/);
   assert.match(composer, /event\.shiftKey/);
   assert.match(composer, /rounded-\[14px\] border/);
-  assert.match(composer, /aria-label="发送消息"/);
+  assert.match(composer, /aria-label=\{isSubmitting \? "正在发送消息" : "发送消息"\}/);
 });
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {

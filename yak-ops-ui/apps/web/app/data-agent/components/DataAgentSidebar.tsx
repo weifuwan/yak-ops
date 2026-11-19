@@ -33,6 +33,7 @@ type DataAgentSidebarProps = {
   activeConversationId: string | null;
   onNewConversation: () => void;
   onSelectConversation: (id: string) => void;
+  busy?: boolean;
 };
 
 function formatConversationTime(value: string) {
@@ -49,6 +50,7 @@ export function DataAgentSidebar({
   activeConversationId,
   onNewConversation,
   onSelectConversation,
+  busy = false,
 }: DataAgentSidebarProps) {
   const {
     workspaces,
@@ -167,7 +169,8 @@ export function DataAgentSidebar({
         <button
           type="button"
           aria-current={activeNavigation === "new" ? "page" : undefined}
-          className={navItemClass(activeNavigation === "new")}
+          disabled={busy}
+          className={navItemClass(activeNavigation === "new") + " disabled:cursor-not-allowed disabled:opacity-50"}
           onClick={() => {
             onNewConversation();
             setActiveNavigation("new");
@@ -241,7 +244,8 @@ export function DataAgentSidebar({
                   key={conversation.id}
                   type="button"
                   title={conversation.title}
-                  className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs text-[#555555] transition-colors hover:bg-[#e5e5e5]"
+                  disabled={busy}
+                  className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs text-[#555555] transition-colors hover:bg-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => selectConversation(conversation.id)}
                 >
                   <MessageSquare size={13} className="shrink-0 text-[#888888]" />
@@ -307,11 +311,13 @@ export function DataAgentSidebar({
                         type="button"
                         title={conversation.title}
                         aria-current={active ? "page" : undefined}
+                        disabled={busy}
                         className={
                           "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-xs transition-colors " +
                           (active
                             ? "bg-white font-medium text-[#20201e]"
-                            : "text-[#666666] hover:bg-[#e5e5e5] hover:text-[#20201e]")
+                            : "text-[#666666] hover:bg-[#e5e5e5] hover:text-[#20201e]") +
+                          " disabled:cursor-not-allowed disabled:opacity-50"
                         }
                         onClick={() => selectConversation(conversation.id)}
                       >

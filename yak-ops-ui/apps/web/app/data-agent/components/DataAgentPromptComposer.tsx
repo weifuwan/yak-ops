@@ -1,4 +1,4 @@
-import { ArrowUp, Code2, Database, Plus, Workflow } from "lucide-react";
+import { ArrowUp, LoaderCircle, Plus } from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -14,6 +14,7 @@ type DataAgentPromptComposerProps = {
   placeholderPrefix?: string;
   placeholderSuggestions?: readonly string[];
   trailingActions?: ReactNode;
+  isSubmitting?: boolean;
 };
 
 const MIN_TEXTAREA_HEIGHT = 40;
@@ -26,6 +27,7 @@ export function DataAgentPromptComposer({
   placeholderPrefix,
   placeholderSuggestions = [],
   trailingActions,
+  isSubmitting = false,
 }: DataAgentPromptComposerProps) {
   const [value, setValue] = useState(initialValue);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -71,7 +73,7 @@ export function DataAgentPromptComposer({
 
   function submit() {
     const normalized = value.trim();
-    if (!normalized) return;
+    if (!normalized || isSubmitting) return;
 
     const accepted = onSubmit(normalized);
     if (accepted !== false) {
@@ -100,6 +102,7 @@ export function DataAgentPromptComposer({
               aria-label="向 Data Agent 发送消息"
               autoComplete="off"
               rows={1}
+              disabled={isSubmitting}
               value={value}
               placeholder={showAnimatedPlaceholder ? "" : placeholder}
               onChange={(event) => setValue(event.target.value)}
@@ -143,13 +146,17 @@ export function DataAgentPromptComposer({
               {trailingActions}
               <button
                 type="button"
-                aria-label="发送消息"
-                title="发送消息"
-                disabled={!value.trim()}
+                aria-label={isSubmitting ? "正在发送消息" : "发送消息"}
+                title={isSubmitting ? "正在发送消息" : "发送消息"}
+                disabled={isSubmitting || !value.trim()}
                 className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#000000] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
                 onClick={submit}
               >
-                <ArrowUp size={17} strokeWidth={1.8} />
+                {isSubmitting ? (
+                  <LoaderCircle size={16} className="animate-spin" />
+                ) : (
+                  <ArrowUp size={17} strokeWidth={1.8} />
+                )}
               </button>
             </div>
           </div>
