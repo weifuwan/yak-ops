@@ -7,6 +7,7 @@ import { DataAgentSidebar } from "./DataAgentSidebar";
 import { DataAgentSidebarResizer } from "./DataAgentSidebarResizer";
 import { ConversationPanel } from "./workspace/ConversationPanel";
 import { DataAgentEmptyState } from "./workspace/DataAgentEmptyState";
+import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
 
 type DataAgentWorkspaceProps = {
@@ -23,6 +24,7 @@ export function DataAgentWorkspace({
     messages,
     lastMessage,
     isSending,
+    isLoading,
     connectionError,
     pendingConfirmation,
     createConversation,
@@ -100,6 +102,10 @@ export function DataAgentWorkspace({
       }}
     />
   );
+
+  if (isLoading) {
+    return <DataAgentLoading sidebarWidth={sidebarWidth} />;
+  }
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
