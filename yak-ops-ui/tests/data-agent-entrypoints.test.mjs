@@ -38,6 +38,7 @@ test("Data Agent prompt composer preserves Yakable-style input interactions", ()
   assert.match(composer, /onCompositionStart/);
   assert.match(composer, /event\.shiftKey/);
   assert.match(composer, /data-agent-composer-surface/);
+  assert.doesNotMatch(composer, /AI 助手/);
 });
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {
