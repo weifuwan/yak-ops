@@ -184,10 +184,6 @@ export default function AppRouter() {
 
           <Route path="/data-development" element={<DataDevelopmentPage />} />
           <Route path="/data-agent" element={<DataAgentPage />} />
-          <Route
-            path="/data-agent/particle-preview"
-            element={<ParticlePreviewPage />}
-          />
 
           <Route
             element={
@@ -316,6 +312,11 @@ export default function AppRouter() {
           <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
           <Route path="*" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
         </Route>
+
+        <Route
+          path="/data-agent/particle-preview"
+          element={<ParticlePreviewPage />}
+        />
 
         <Route
           element={
