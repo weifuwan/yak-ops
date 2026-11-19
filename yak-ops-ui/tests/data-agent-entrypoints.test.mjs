@@ -86,10 +86,14 @@ test("Data Agent sidebar keeps the Recent chats section visible when there are n
 test("the welcome workspace keeps its centered prompt and shortcut layout", () => {
   assert.match(emptyState, /max-w-\[540px\]/);
   assert.match(emptyState, /grid grid-cols-2 gap-2/);
-  assert.match(quickActions, /分析数据表/);
-  assert.match(quickActions, /生成 SQL/);
-  assert.match(quickActions, /排查任务异常/);
-  assert.match(quickActions, /梳理数据开发流程/);
+  assert.match(quickActions, /分析数据结构/);
+  assert.match(quickActions, /生成 SQL 查询/);
+  assert.match(quickActions, /诊断任务异常/);
+  assert.match(quickActions, /规划数据开发流程/);
+  assert.match(quickActions, /bg-\\\[#e77a5b\\\] text-white/);
+  assert.match(quickActions, /bg-\\\[#5e8fe2\\\] text-white/);
+  assert.match(quickActions, /bg-\\\[#d79a38\\\] text-white/);
+  assert.match(quickActions, /bg-\\\[#59a67a\\\] text-white/);
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
