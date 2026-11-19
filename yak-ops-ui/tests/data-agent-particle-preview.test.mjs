@@ -15,6 +15,12 @@ test("Particle Lab is an authenticated standalone Data Agent route", () => {
     router,
     /path="\/data-agent\/particle-preview"[\s\S]*?element=\{<ParticlePreviewPage \/>\}/,
   );
+  assert.ok(
+    router.includes(
+      '\n        </Route>\n\n        <Route\n          path="/data-agent/particle-preview"',
+    ),
+    "Particle Lab should not depend on the workspace creation gate",
+  );
   assert.match(welcome, /to="\/data-agent\/particle-preview"/);
   assert.match(welcome, /粒子动画预览/);
 });
