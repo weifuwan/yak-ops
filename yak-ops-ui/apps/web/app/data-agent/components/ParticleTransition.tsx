@@ -94,20 +94,20 @@ function createParticles(
         : direction === "left" ? -1 : 1;
 
     return {
-    x: centerX + randomGaussian() * 2.6,
-    y: centerY + randomGaussian() * 3.4,
-    previousX: centerX,
-    previousY: centerY,
-    vx: (particleDirection * width * randomBetween(0.48, 0.82)) / durationSeconds,
-    vy: (randomGaussian() * verticalSpread * 0.92) / durationSeconds,
-    radius: Math.random() > 0.9 ? randomBetween(1.5, 2.2) : randomBetween(0.62, 1.55),
-    opacity: randomBetween(0.34, 0.82),
-    phase: randomBetween(0, TAU),
-    frequency: randomBetween(1.1, 3.4),
-    delay: randomBetween(0, 0.16),
-    life: randomBetween(0.68, 1),
-    color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
-    direction: particleDirection,
+      x: centerX + randomGaussian() * 2.6,
+      y: centerY + randomGaussian() * 3.4,
+      previousX: centerX,
+      previousY: centerY,
+      vx: (particleDirection * width * randomBetween(0.48, 0.82)) / durationSeconds,
+      vy: (randomGaussian() * verticalSpread * 0.92) / durationSeconds,
+      radius: Math.random() > 0.9 ? randomBetween(1.5, 2.2) : randomBetween(0.62, 1.55),
+      opacity: randomBetween(0.34, 0.82),
+      phase: randomBetween(0, TAU),
+      frequency: randomBetween(1.1, 3.4),
+      delay: randomBetween(0, 0.16),
+      life: randomBetween(0.68, 1),
+      color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+      direction: particleDirection,
     };
   });
 }
