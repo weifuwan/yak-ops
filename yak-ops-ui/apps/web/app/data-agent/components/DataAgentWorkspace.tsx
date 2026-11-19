@@ -27,6 +27,15 @@ function conversationTitle(content: string) {
   return normalized.length > 26 ? normalized.slice(0, 26) + "…" : normalized;
 }
 
+function formatConversationTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function ModelSelector({
   value,
   open,
