@@ -182,11 +182,11 @@ ol {
   transition:
     opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
 }
 
 .data-agent-transition-welcome[data-exiting="true"] {
   opacity: 0;
+  will-change: opacity, transform;
   pointer-events: none;
   transform: scale(1.012);
 }
