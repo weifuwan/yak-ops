@@ -9,6 +9,7 @@ import {
 
 type DataAgentPromptComposerProps = {
   onSubmit: (value: string) => boolean | void;
+  initialValue?: string;
   placeholder?: string;
   placeholderPrefix?: string;
   placeholderSuggestions?: readonly string[];
@@ -20,12 +21,13 @@ const MAX_TEXTAREA_HEIGHT = 160;
 
 export function DataAgentPromptComposer({
   onSubmit,
+  initialValue = "",
   placeholder = "向 Data Agent 描述你想完成的任务...",
   placeholderPrefix,
   placeholderSuggestions = [],
   trailingActions,
 }: DataAgentPromptComposerProps) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [visibleLength, setVisibleLength] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

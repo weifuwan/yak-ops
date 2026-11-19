@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
+const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
@@ -12,9 +13,19 @@ const layout = read("../apps/web/app/data-development/layout/data-development-la
 const router = read("../apps/web/app/router/AppRouter.tsx");
 const navigation = read("../apps/web/app/layout/navigation.ts");
 
-test("Data Agent reuses Yakable's full-screen workspace structure", () => {
+test("Data Agent opens on a welcome screen and enters the existing workspace", () => {
   assert.ok(page.includes('productPath="/data-agent"'));
-  assert.match(page, /<DataAgentWorkspace \/>/);
+  assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
+  assert.match(page, /<DataAgentWorkspace initialPrompt=\{initialPrompt\} \/>/);
+  assert.match(page, /setWorkspaceOpen\(true\)/);
+  assert.match(welcome, /src="\/yakable_logo\.png"/);
+  assert.match(welcome, /onClick=\{\(\) => onEnter\(\)\}/);
+  assert.match(welcome, /onEnter\(entry\.prompt\)/);
+  assert.match(welcome, /数据表 \/ 元数据/);
+  assert.match(welcome, /SQL \/ 脚本/);
+  assert.match(welcome, /任务运行日志/);
+  assert.match(welcome, /直接描述需求/);
+  assert.match(welcome, /data-agent-mascot/);
   assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|理解数据、构建任务|Enter 发送 · Shift/);
   assert.ok(!workspace.includes('activeConversation?.title ?? "新对话"'));
   assert.ok(!workspace.includes("前端预览</span>"));
@@ -36,6 +47,14 @@ test("Data Agent reuses Yakable's full-screen workspace structure", () => {
   assert.match(sidebar, /Unlock more features/);
   assert.match(sidebar, /useWorkspace/);
   assert.match(sidebar, /onSelectConversation/);
+});
+
+test("welcome entrypoints seed the composer without claiming file upload support", () => {
+  assert.match(workspace, /initialPrompt/);
+  assert.match(workspace, /setInitialDraft\(""\)/);
+  assert.match(composer, /initialValue\?: string/);
+  assert.match(composer, /useState\(initialValue\)/);
+  assert.doesNotMatch(welcome, /type="file"|上传成功|文件已导入/);
 });
 
 test("Data Agent conversations stay local and do not call backend services", () => {
@@ -60,7 +79,7 @@ test("the Data Development sparkle shortcut navigates to Data Agent", () => {
 });
 
 test("Data Agent is registered as an authenticated route and product-menu entry", () => {
-  assert.match(router, /path="\/data-agent" element=\{<DataAgentPage \/>\}/);
+  assert.match(router, /path="\/data-agent" element=\{<DataAgentPage \/>/);
   assert.match(router, /"\/data-agent"/);
   assert.match(navigation, /id: "data-agent"/);
   assert.match(navigation, /label: "Data Agent"/);

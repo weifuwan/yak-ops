@@ -86,11 +86,12 @@ function ModelSelector({
   );
 }
 
-export function DataAgentWorkspace() {
+export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: string }) {
   const [conversations, setConversations] = useState<LocalConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState("DeepSeek");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [initialDraft, setInitialDraft] = useState(initialPrompt);
   const messageScrollRef = useRef<HTMLDivElement>(null);
 
   const activeConversation =
@@ -150,6 +151,12 @@ export function DataAgentWorkspace() {
     return true;
   }
 
+  function handlePromptSubmit(content: string) {
+    const accepted = handleSubmit(content);
+    if (accepted !== false) setInitialDraft("");
+    return accepted;
+  }
+
   const modelSelector = (
     <ModelSelector
       value={selectedModel}
@@ -176,13 +183,12 @@ export function DataAgentWorkspace() {
 
       <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
         <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
-
-
           {!hasMessages ? (
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
               <div className="w-full max-w-2xl">
                 <DataAgentPromptComposer
-                  onSubmit={handleSubmit}
+                  initialValue={initialDraft}
+                  onSubmit={handlePromptSubmit}
                   trailingActions={modelSelector}
                   placeholderPrefix="告诉 Data Agent，"
                   placeholderSuggestions={[
@@ -233,7 +239,8 @@ export function DataAgentWorkspace() {
                 <div className="shrink-0 px-6 pb-5 pt-3 max-sm:px-4">
                   <div className="mx-auto w-full max-w-3xl">
                     <DataAgentPromptComposer
-                      onSubmit={handleSubmit}
+                      initialValue={initialDraft}
+                      onSubmit={handlePromptSubmit}
                       trailingActions={modelSelector}
                       placeholder="继续向 Data Agent 提问..."
                     />
