@@ -175,3 +175,51 @@ ul,
 ol {
   list-style: none;
 }
+
+/* Data Agent welcome-to-workspace transition */
+.data-agent-transition-welcome {
+  transform-origin: center;
+  transition:
+    opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.data-agent-transition-welcome[data-exiting="true"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1.012);
+}
+
+[data-agent-transition-workspace][data-entering="true"] {
+  animation: data-agent-transition-workspace-reveal 980ms
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes data-agent-transition-workspace-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.994);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-agent-transition-welcome {
+    transition: none;
+    will-change: auto;
+  }
+
+  .data-agent-transition-welcome[data-exiting="true"] {
+    transform: none;
+  }
+
+  [data-agent-transition-workspace][data-entering="true"] {
+    animation: none;
+  }
+}
+
