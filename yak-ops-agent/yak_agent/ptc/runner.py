@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -29,16 +30,44 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from yak_agent import audit
-from yak_agent.sdk_gen import script_rejected, write_sdk
+from yak_agent.ptc.sdk_gen import script_rejected, write_sdk
 
 _MAX_OUTPUT_CHARS = 16_000
 _DEFAULT_TIMEOUT = 60
 _HARD_TIMEOUT_CAP = 300
 
-_AGENT_ROOT = Path(__file__).resolve().parent.parent
+_AGENT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Routes an analysis script may reach through the host-side proxy. They mirror
+# the readonly subset of operations.yaml plus the side-effect-free preview
+# validation; the generated SDK is not a security boundary on its own.
+_READONLY_PATHS = (
+    re.compile(r"/projects/[^/]+/data-sync/tasks"),
+    re.compile(r"/projects/[^/]+/data-sync/tasks/[^/]+"),
+    re.compile(r"/projects/[^/]+/data-sync/overview"),
+    re.compile(r"/projects/[^/]+/data-sync/instances"),
+    re.compile(r"/projects/[^/]+/data-sync/instances/[^/]+"),
+    re.compile(r"/log/detail"),
+    re.compile(r"/log/download-log"),
+)
+_PREVIEW_PATH = re.compile(r"/projects/[^/]+/data-sync/tasks/preview")
+
+
+def _path_allowed(method: str, path: str) -> bool:
+    """Whether an analysis script may send this method/path through the proxy."""
+    decoded = unquote(path)
+    if ".." in decoded.split("/"):
+        return False
+    normalized = decoded.rstrip("/") or "/"
+    if method in ("GET", "HEAD"):
+        return any(pattern.fullmatch(normalized) for pattern in _READONLY_PATHS)
+    if method == "POST":
+        return bool(_PREVIEW_PATH.fullmatch(normalized))
+    return False
+
 
 # Environment variables that must never reach an analysis script.
 _SENSITIVE_PREFIXES = ("YAK_", "LLM_", "COCOON_")
@@ -168,7 +197,10 @@ def _get_proxy(allowed_netloc: str) -> str:
                 target = f"http://{self.headers.get('Host', '')}{self.path}"
             else:
                 target = self.path
-            if urlparse(target).netloc != allowed_netloc:
+            target_url = urlparse(target)
+            if target_url.netloc != allowed_netloc or not _path_allowed(
+                self.command, target_url.path
+            ):
                 self._blocked()
                 return
             length = int(self.headers.get("Content-Length") or 0)
@@ -211,10 +243,12 @@ def _get_proxy(allowed_netloc: str) -> str:
             self.wfile.write(resp.content)
 
         do_GET = _forward
-        do_POST = _forward
-        do_PUT = _forward
-        do_DELETE = _forward
         do_HEAD = _forward
+        do_POST = _forward
+        do_PUT = _blocked
+        do_DELETE = _blocked
+        do_PATCH = _blocked
+        do_OPTIONS = _blocked
         do_CONNECT = _blocked
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -232,6 +266,7 @@ def run_analysis(
     workspace: Any | None = None,
     allow_unsafe: bool = False,
     auth: Any = None,
+    project_code: Any = None,
 ) -> dict[str, Any]:
     """Execute one analysis script and return {stdout, stderr, exitCode, durationMs, backend}.
 
@@ -288,7 +323,7 @@ def run_analysis(
             if auth is None:
                 raise ValueError("auth is required for the sandboxed PTC tier")
             proxy_url = _get_proxy(urlparse(auth.base_url).netloc)
-            write_sdk(workdir, _AGENT_ROOT, auth)
+            write_sdk(workdir, _AGENT_ROOT, auth, project_code)
             preamble = (
                 f'import sys; sys.path.insert(0, r"{workdir}"); sys.path.insert(0, r"{_AGENT_ROOT}")\n'
                 f"import os as _os\n"

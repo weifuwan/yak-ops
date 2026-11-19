@@ -4,9 +4,10 @@ Zero-dependency on purpose: a tiny .env parser instead of python-dotenv.
 Variable names follow the platform convention (LLM_BASE_URL, LLM_MODEL, ...)
 so the same credentials used by standalone-server work unchanged.
 
-Authentication is either an API token (`YAK_OPS_TOKEN`, when the platform token
-feature is available) or a username/password pair (`YAK_OPS_USERNAME` +
-`YAK_OPS_PASSWORD`, session-cookie login — the current default).
+The agent service authenticates each caller with the frontend-supplied
+`X-Yak-Session-Id`, resolves the user via the platform, and takes the
+workspace from `X-Yak-Workspace-Id`; there is no global platform account or
+project in the configuration. `YAK_OPS_TOKEN` remains for CLI use.
 """
 
 from __future__ import annotations
@@ -46,9 +47,6 @@ class Settings:
     llm_model: str
     yak_ops_base_url: str
     yak_ops_token: str
-    yak_ops_username: str
-    yak_ops_password: str
-    project_code: int
     # PTC safety: when True, analysis scripts may run on the no-isolation
     # subprocess backend (compute-only, credentials stripped). Default False —
     # without a real sandbox (cocoon/Docker) the tool is simply not registered.
@@ -65,36 +63,19 @@ class Settings:
         def get(key: str, default: str = "") -> str:
             return os.environ.get(key, file_vars.get(key, default))
 
-        missing = [
-            k
-            for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "YAK_OPS_PROJECT_CODE")
-            if not get(k)
-        ]
+        missing = [k for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL") if not get(k)]
         if missing:
             raise SystemExit(
                 "Missing required settings: "
                 + ", ".join(missing)
-                + ". Copy .env.example to .env and fill the values "
-                "(YAK_OPS_PROJECT_CODE is the project snowflake ID, visible in the project URL)."
+                + ". Copy .env.example to .env and fill the values."
             )
-        token = get("YAK_OPS_TOKEN").strip()
-        username = get("YAK_OPS_USERNAME").strip()
-        password = get("YAK_OPS_PASSWORD")
-        if not token and not (username and password):
-            raise SystemExit(
-                "Missing yak-ops credentials: set YAK_OPS_USERNAME + YAK_OPS_PASSWORD "
-                "(session login) or YAK_OPS_TOKEN (API token)."
-            )
-        project_code = get("YAK_OPS_PROJECT_CODE").strip()
         return cls(
             llm_base_url=get("LLM_BASE_URL").rstrip("/"),
             llm_api_key=get("LLM_API_KEY"),
             llm_model=get("LLM_MODEL"),
             yak_ops_base_url=get("YAK_OPS_BASE_URL", "http://127.0.0.1:12345/yak-ops").rstrip("/"),
-            yak_ops_token=token,
-            yak_ops_username=username,
-            yak_ops_password=password,
-            project_code=int(project_code),
+            yak_ops_token=get("YAK_OPS_TOKEN").strip(),
             ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
             in ("1", "true", "yes"),
             reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
