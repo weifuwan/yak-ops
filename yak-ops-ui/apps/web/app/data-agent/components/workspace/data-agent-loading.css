@@ -8,6 +8,22 @@
   }
 }
 
+.data-agent-workspace-enter {
+  animation: data-agent-workspace-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes data-agent-workspace-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .data-agent-skeleton {
   display: block;
   flex: none;
@@ -25,5 +41,9 @@
   .data-agent-skeleton {
     animation: none;
     background: #ecefee;
+  }
+
+  .data-agent-workspace-enter {
+    animation: none;
   }
 }
