@@ -1,6 +1,5 @@
 import {
   Clock3,
-  LayoutGrid,
   MessageSquare,
   Search,
   SquarePen,
@@ -19,11 +18,9 @@ type DataAgentSidebarNavigationProps = {
   activeNavigation: string;
   searchOpen: boolean;
   searchTerm: string;
-  projectsExpanded: boolean;
   onActiveNavigationChange: (value: string) => void;
   onSearchOpenChange: (open: boolean) => void;
   onSearchTermChange: (value: string) => void;
-  onProjectsExpandedChange: (expanded: boolean) => void;
   onNewConversation: () => void;
   onSelectConversation: (id: string) => void;
 };
@@ -43,11 +40,9 @@ export function DataAgentSidebarNavigation({
   activeNavigation,
   searchOpen,
   searchTerm,
-  projectsExpanded,
   onActiveNavigationChange,
   onSearchOpenChange,
   onSearchTermChange,
-  onProjectsExpandedChange,
   onNewConversation,
   onSelectConversation,
 }: DataAgentSidebarNavigationProps) {
@@ -92,18 +87,6 @@ export function DataAgentSidebarNavigation({
         >
           <Search size={17} strokeWidth={1.7} className="shrink-0" />
           <span>Search</span>
-        </button>
-        <button
-          type="button"
-          aria-expanded={projectsExpanded}
-          className={navItemClass(activeNavigation === "projects")}
-          onClick={() => {
-            onProjectsExpandedChange(!projectsExpanded);
-            onActiveNavigationChange("projects");
-          }}
-        >
-          <LayoutGrid size={16} strokeWidth={1.7} className="shrink-0" />
-          <span>Projects</span>
         </button>
         <button
           type="button"
