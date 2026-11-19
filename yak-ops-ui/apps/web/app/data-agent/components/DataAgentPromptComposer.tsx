@@ -136,26 +136,7 @@ export function DataAgentPromptComposer({
               >
                 <Plus size={17} strokeWidth={1.7} />
               </button>
-              <div className="flex items-center -space-x-1.5" aria-label="Data Agent 能力">
-                <span
-                  title="数据分析"
-                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#ffe9e2] text-[#d77a5e] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                >
-                  <Database size={10} strokeWidth={1.8} />
-                </span>
-                <span
-                  title="SQL 与代码"
-                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#e8efff] text-[#5d80bf] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                >
-                  <Code2 size={10} strokeWidth={1.8} />
-                </span>
-                <span
-                  title="工作流"
-                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#e7f4eb] text-[#55966d] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                >
-                  <Workflow size={10} strokeWidth={1.8} />
-                </span>
-              </div>
+              
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
@@ -165,7 +146,7 @@ export function DataAgentPromptComposer({
                 aria-label="发送消息"
                 title="发送消息"
                 disabled={!value.trim()}
-                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#87918f] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
+                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#000000] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
                 onClick={submit}
               >
                 <ArrowUp size={17} strokeWidth={1.8} />
