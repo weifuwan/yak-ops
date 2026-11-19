@@ -16,9 +16,9 @@ test("assistant responses render through Streamdown without changing the SSE mes
     workspace,
     /<DataAgentMarkdown\s+content=\{message\.content\}\s+isStreaming=\{message\.status === "streaming"\}\s*\/>/,
   );
-  assert.doesNotMatch(
-    workspace,
-    /<p className="m-0 whitespace-pre-wrap break-words">\s*\{message\.content\}/,
+  assert.ok(
+    !workspace.includes(`<div className="text-[14px] leading-7 text-[#27302f]">
+                                {message.content ? (`),
   );
   assert.match(workspace, /case "text_delta":/);
   assert.match(workspace, /content: message\.content \+ event\.delta/);
