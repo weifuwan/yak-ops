@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Check,
   Copy,
   MoreHorizontal,
   RotateCcw,
@@ -33,6 +34,9 @@ type MessageActionsProps = {
 const actionButtonClassName =
   "inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#9a9a9a] transition-colors duration-150 hover:bg-[#f4f4f2] hover:text-[#555555] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 disabled:cursor-not-allowed disabled:opacity-35";
 
+const copyIconTransitionClassName =
+  "absolute transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]";
+
 export function MessageActions({
   message,
   align = "left",
@@ -41,21 +45,52 @@ export function MessageActions({
   onFeedback,
 }: MessageActionsProps) {
   const [feedback, setFeedback] = useState<MessageFeedback | null>(null);
+  const [messageCopied, setMessageCopied] = useState(false);
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canInteract =
     message.status !== "streaming" &&
     message.status !== "awaiting-confirmation";
   const showToolbar = showActions && canInteract;
 
-  async function copyText(value: string, successMessage: string) {
+  useEffect(
+    () => () => {
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  async function copyText(
+    value: string,
+    successMessage: string,
+    onSuccess?: () => void,
+  ) {
     try {
       if (!navigator.clipboard?.writeText) {
         throw new Error("Clipboard API unavailable");
       }
       await navigator.clipboard.writeText(value);
+      onSuccess?.();
       toast.success(successMessage);
     } catch {
       toast.error("复制失败，请检查浏览器剪贴板权限");
     }
+  }
+
+  function handleMessageCopy() {
+    void copyText(message.content, "消息已复制", () => {
+      setMessageCopied(true);
+
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+
+      copyResetTimerRef.current = window.setTimeout(() => {
+        setMessageCopied(false);
+        copyResetTimerRef.current = null;
+      }, 1500);
+    });
   }
 
   function handleFeedback(nextFeedback: MessageFeedback) {
@@ -118,13 +153,34 @@ export function MessageActions({
 
           <button
             type="button"
-            aria-label="复制消息"
-            title="复制消息"
+            aria-label={messageCopied ? "消息已复制" : "复制消息"}
+            title={messageCopied ? "已复制" : "复制消息"}
             disabled={!message.content.trim()}
             className={actionButtonClassName}
-            onClick={() => void copyText(message.content, "消息已复制")}
+            onClick={handleMessageCopy}
           >
-            <Copy size={14} strokeWidth={1.8} />
+            <span className="relative flex size-4 items-center justify-center">
+              <Copy
+                size={14}
+                strokeWidth={1.8}
+                className={
+                  copyIconTransitionClassName +
+                  (messageCopied
+                    ? " scale-75 rotate-[-10deg] opacity-0"
+                    : " scale-100 rotate-0 opacity-100")
+                }
+              />
+              <Check
+                size={14}
+                strokeWidth={2}
+                className={
+                  copyIconTransitionClassName +
+                  (messageCopied
+                    ? " scale-100 rotate-0 text-[#16a36a] opacity-100"
+                    : " scale-75 rotate-[10deg] opacity-0")
+                }
+              />
+            </span>
           </button>
 
           <DropdownMenu>
