@@ -27,12 +27,12 @@ jobs:
       - name: TypeScript typecheck
         working-directory: yak-ops-ui
         run: npm run typecheck
-      - name: Data Agent frontend contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:data-agent
       - name: Management access token contract tests
         working-directory: yak-ops-ui
         run: npm run test:management-token
+      - name: Data Agent frontend contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:data-agent
       - name: Data Sync Pipeline contract tests
         working-directory: yak-ops-ui
         run: npm run test:data-sync
