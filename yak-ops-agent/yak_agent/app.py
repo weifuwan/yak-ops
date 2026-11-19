@@ -11,9 +11,9 @@ Run:  python -m yak_agent.app                 # interactive CLI
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -33,7 +33,7 @@ from agentscope.skill import LocalSkillLoader
 from agentscope.tool import Toolkit
 
 from yak_agent.config import Settings
-from yak_agent.tools import build_tools
+from yak_agent.tools import build_auth, build_tools
 from yak_agent.workspace import SessionWorkspace
 
 _SKILLS_DIR = Path(__file__).resolve().parent / "skills"
@@ -56,6 +56,7 @@ def build_agent(
     state: Any | None = None,
     workspace: SessionWorkspace | None = None,
     auth: Any | None = None,
+    project_code: int | None = None,
 ) -> Agent:
     """Assemble the data-sync copilot from open-box AgentScope components."""
     model = OpenAIChatModel(
@@ -67,7 +68,12 @@ def build_agent(
         system_prompt=SYSTEM_PROMPT,
         model=model,
         toolkit=Toolkit(
-            tools=build_tools(settings, auth=auth, workspace=workspace),
+            tools=build_tools(
+                settings,
+                auth=auth,
+                workspace=workspace,
+                project_code=project_code,
+            ),
             skills_or_loaders=[LocalSkillLoader(directory=str(_SKILLS_DIR), scan_subdir=True)],
         ),
         state=state,
@@ -146,14 +152,36 @@ async def _ask(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="yak-ops data-sync agent CLI")
+    parser.add_argument("question", nargs="*", help="one-shot question; omit for interactive mode")
+    parser.add_argument(
+        "--project-code",
+        required=True,
+        help="workspace/project code the agent should operate on",
+    )
+    parser.add_argument(
+        "--session-id",
+        default="",
+        help="yak-ops sessionId; falls back to YAK_OPS_TOKEN when omitted",
+    )
+    args = parser.parse_args()
+
     settings = Settings.load()
+    auth = build_auth(settings, session_id=args.session_id)
+    if not auth.token and not auth.session_id:
+        raise SystemExit("CLI requires --session-id or YAK_OPS_TOKEN.")
     workspace = SessionWorkspace(
         Path(__file__).resolve().parent.parent / "sessions" / "default" / "workspace"
     )
-    agent = build_agent(settings, workspace=workspace)
+    agent = build_agent(
+        settings,
+        workspace=workspace,
+        auth=auth,
+        project_code=int(args.project_code),
+    )
 
-    if len(sys.argv) > 1:  # one-shot mode: writes are denied by default
-        answer = asyncio.run(_ask(agent, " ".join(sys.argv[1:])))
+    if args.question:  # one-shot mode: writes are denied by default
+        answer = asyncio.run(_ask(agent, " ".join(args.question)))
         print(answer or "（模型未返回文本）")
         return
 

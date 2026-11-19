@@ -232,6 +232,7 @@ def run_analysis(
     workspace: Any | None = None,
     allow_unsafe: bool = False,
     auth: Any = None,
+    project_code: Any = None,
 ) -> dict[str, Any]:
     """Execute one analysis script and return {stdout, stderr, exitCode, durationMs, backend}.
 
@@ -288,7 +289,7 @@ def run_analysis(
             if auth is None:
                 raise ValueError("auth is required for the sandboxed PTC tier")
             proxy_url = _get_proxy(urlparse(auth.base_url).netloc)
-            write_sdk(workdir, _AGENT_ROOT, auth)
+            write_sdk(workdir, _AGENT_ROOT, auth, project_code)
             preamble = (
                 f'import sys; sys.path.insert(0, r"{workdir}"); sys.path.insert(0, r"{_AGENT_ROOT}")\n'
                 f"import os as _os\n"

@@ -66,8 +66,8 @@ def _build_schema(op: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
-def _render_path(op: dict[str, Any], settings: Settings, values: dict[str, Any]) -> str:
-    path = op["path"].replace("{project_code}", str(settings.project_code))
+def _render_path(op: dict[str, Any], project_code: int, values: dict[str, Any]) -> str:
+    path = op["path"].replace("{project_code}", str(int(project_code)))
     for p in op.get("params") or []:
         if p.get("location") != "path":
             continue
@@ -127,9 +127,9 @@ def _split_params(
 
 def _execute(
     op: dict[str, Any],
-    settings: Settings,
     auth: YakAuth,
     values: dict[str, Any],
+    project_code: int,
 ) -> str:
     started = time.monotonic()
     ok = False
@@ -137,7 +137,7 @@ def _execute(
     # Never persist free-form JSON params (may carry data-source credentials).
     audit_params = {k: ("<json omitted>" if k.endswith("_json") else v) for k, v in values.items()}
     try:
-        path = _render_path(op, settings, values)
+        path = _render_path(op, project_code, values)
         query, body = _split_params(op, values)
 
         method = op["method"].upper()
@@ -179,13 +179,12 @@ def _execute(
         )
 
 
-def build_auth(settings: Settings) -> YakAuth:
-    """Build the host-side auth (token preferred, username/password fallback)."""
+def build_auth(settings: Settings, session_id: str = "") -> YakAuth:
+    """Build the host-side auth for CLI use (token or a supplied session)."""
     return YakAuth(
         base_url=settings.yak_ops_base_url,
         token=settings.yak_ops_token,
-        username=settings.yak_ops_username,
-        password=settings.yak_ops_password,
+        session_id=session_id,
     )
 
 
@@ -206,16 +205,16 @@ def build_tools(
     settings: Settings,
     auth: YakAuth | None = None,
     workspace: Any | None = None,
+    project_code: int | None = None,
 ) -> list[FunctionTool]:
-    """Materialize the registry as AgentScope tools bound to the given settings.
+    """Materialize the registry as AgentScope tools bound to one workspace.
 
-    `workspace` (a SessionWorkspace) enables the persistent PTC working
-    directory and the read_workspace_file/list_workspace_files tools.
+    `project_code` is the workspace the caller is currently in; every REST
+    call is scoped to it. `workspace` (a SessionWorkspace) enables the
+    persistent PTC working directory and the read/list workspace tools.
     """
-    if not settings.project_code:
-        raise YakApiError(
-            "YAK_OPS_PROJECT_CODE is not configured; refusing to build tools with an undefined project"
-        )
+    if not project_code:
+        raise YakApiError("project_code is required; refusing to build tools without a workspace")
     auth = auth or build_auth(settings)
 
     tools: list[FunctionTool] = []
@@ -226,7 +225,7 @@ def build_tools(
         readonly = op.get("risk") == "readonly"
 
         def runner(_op: dict[str, Any] = op, **kwargs: Any) -> str:
-            return _execute(_op, settings, auth, kwargs)
+            return _execute(_op, auth, kwargs, project_code)
 
         tools.append(
             FunctionTool(
@@ -263,6 +262,7 @@ def build_tools(
                     workspace=workspace,
                     allow_unsafe=settings.ptc_allow_unsafe,
                     auth=auth,
+                    project_code=project_code,
                 )
             )
 

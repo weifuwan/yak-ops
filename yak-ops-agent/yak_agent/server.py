@@ -4,7 +4,11 @@ Endpoints
 ---------
 POST   /agent/sessions                    create a session -> {sessionId}
 POST   /agent/sessions/{sid}/messages     send a message -> SSE event stream
-                                          (text_delta / tool_start / tool_result /
+                                          (text_delta / thinking_start /
+                                           thinking_delta / thinking_end /
+                                           tool_start / tool_call_delta /
+                                           tool_result_delta / tool_result /
+                                           usage / reply_end /
                                            confirm_required / done / error)
 POST   /agent/sessions/{sid}/confirm      approve or deny pending writes
                                           {approved: bool | [bool, ...]}
@@ -29,9 +33,10 @@ Run:  python -m yak_agent.server            (defaults 127.0.0.1:8090)
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import os
+import re
+import shutil
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,10 +64,6 @@ from yak_agent.yak_client import YakApiError, YakAuth, yak_get
 _SESSION_DIR = Path(
     os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions")
 )
-_FORWARD_EVENTS = {
-    EventType.TOOL_CALL_START: "tool_start",
-    EventType.TOOL_RESULT_END: "tool_result",
-}
 
 
 @dataclass
@@ -71,6 +72,7 @@ class Session:
     agent: Any
     workspace: SessionWorkspace
     owner: str = "local"
+    workspace_id: str = ""
     auth: Any = None  # per-session YakAuth; refreshed in place on each request
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     confirm_future: asyncio.Future | None = None
@@ -114,7 +116,11 @@ def _persist(session: Session) -> None:
         if state is not None:
             _state_path(session.sid).write_text(state.model_dump_json(), encoding="utf-8")
         _meta_path(session.sid).write_text(
-            json.dumps({"owner": session.owner}, ensure_ascii=False), encoding="utf-8"
+            json.dumps(
+                {"owner": session.owner, "workspace": session.workspace_id},
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
         )
     except Exception:  # noqa: BLE001 - persistence must never break a turn
         pass
@@ -147,38 +153,69 @@ def _service_guard(request: Request) -> None:
         )
 
 
-def _identity(request: Request, settings: Settings) -> tuple[str, YakAuth]:
-    """Resolve (owner key, session auth) from the frontend headers.
+def _request_identity(request: Request, settings: Settings) -> tuple[str, str, YakAuth]:
+    """Resolve (user key, workspace id, per-user auth) from frontend headers.
 
-    X-Yak-Session-Id carries the caller's yak-ops sessionId cookie. The owner
-    key is derived from the sessionId itself — **no user id is accepted from
-    the frontend**; the real identity is verified by the platform when the
-    session is validated (see _verify_session_project) and lives on the
-    platform side, which is also what makes the audit trail traceable.
+    The frontend always sends:
 
-    Layer 1 (service guard) runs first: service token or loopback-only.
-    Without the header the service credentials are used (CLI / single-tenant
-    mode).
+    - `X-Yak-Session-Id`: the yak-ops login session (validated by the platform);
+    - `X-Yak-User-Id`: the platform user id (cross-checked, never trusted);
+    - `X-Yak-Workspace-Id`: the current workspace, i.e. the project code.
+
+    The user id is verified against `GET /users/get-user-info`; a mismatch is
+    rejected. The owner key uses the verified id plus the immutable createTime,
+    so a reused auto-increment id cannot inherit old sessions.
     """
     _service_guard(request)
     session_id = request.headers.get("X-Yak-Session-Id", "").strip()
-    auth = (
-        YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id) if session_id else None
-    )
-    if session_id:
-        return "session:" + hashlib.sha256(session_id.encode()).hexdigest()[:12], auth
-    return "local", auth or YakAuth(
-        base_url=settings.yak_ops_base_url,
-        username=settings.yak_ops_username,
-        password=settings.yak_ops_password,
-    )
+    workspace_id = request.headers.get("X-Yak-Workspace-Id", "").strip()
+    claimed_user_id = request.headers.get("X-Yak-User-Id", "").strip()
+    if not session_id or not workspace_id:
+        raise HTTPException(
+            status_code=401,
+            detail="missing X-Yak-Session-Id or X-Yak-Workspace-Id",
+        )
+    if not workspace_id.isdigit():
+        raise HTTPException(status_code=400, detail="X-Yak-Workspace-Id must be numeric")
+    auth = YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id)
+    user = _fetch_user(auth)
+    if claimed_user_id and str(user.get("id")) != claimed_user_id:
+        raise HTTPException(status_code=403, detail="user id does not match the session")
+    return _user_key(user), workspace_id, auth
 
 
-def _verify_session_project(auth: YakAuth, project_code: int) -> None:
-    """Platform-side session and project-permission check — the same
-    interceptor semantics as the original backend: the sessionId is validated
-    by the platform on this call, and the configured project must be granted
-    to the session's user, otherwise the session is refused."""
+def _fetch_user(auth: YakAuth) -> dict[str, Any]:
+    try:
+        data = yak_get(auth, "/users/get-user-info")
+    except YakApiError as ex:
+        if ex.status_code == 401:
+            raise HTTPException(
+                status_code=401,
+                detail="yak-ops session invalid or expired; re-login and retry",
+            ) from ex
+        raise HTTPException(
+            status_code=502, detail=f"yak-ops user verification failed: {ex}"
+        ) from ex
+    if not isinstance(data, dict) or data.get("id") is None:
+        raise HTTPException(status_code=502, detail="unexpected user info response")
+    return data
+
+
+def _user_key(user: dict[str, Any]) -> str:
+    """Stable owner key: platform id plus the immutable createTime.
+
+    `create_time` is nullable in legacy rows; those users fall back to
+    ``u-{id}-na`` so the agent stays usable (long-term memory will be disabled
+    for them because the id alone is not reuse-safe).
+    """
+    digits = re.sub(r"\D", "", str(user.get("createTime") or ""))
+    return f"u-{user['id']}-{digits or 'na'}"
+
+
+def _verify_workspace(auth: YakAuth, workspace_id: str) -> None:
+    """Platform-side workspace (project) permission check — the sessionId is
+    validated by the platform on this call, and the requested workspace must be
+    granted to the session's user."""
     try:
         data = yak_get(auth, "/projects", {"pageNo": 1, "pageSize": 100})
     except YakApiError as ex:
@@ -187,12 +224,12 @@ def _verify_session_project(auth: YakAuth, project_code: int) -> None:
                 status_code=401, detail="yak-ops session invalid or expired; re-login and retry"
             ) from ex
         raise HTTPException(
-            status_code=502, detail=f"yak-ops session verification failed: {ex}"
+            status_code=502, detail=f"yak-ops workspace verification failed: {ex}"
         ) from ex
     codes = {str(item.get("code")) for item in ((data or {}).get("totalList") or [])}
-    if str(project_code) not in codes:
+    if str(workspace_id) not in codes:
         raise HTTPException(
-            status_code=403, detail="the configured project is not granted to this user"
+            status_code=403, detail="the requested workspace is not granted to this user"
         )
 
 
@@ -201,8 +238,7 @@ def _refresh_session_auth(session: Session, auth: YakAuth | None) -> None:
 
     YakAuth is a mutable object captured by the tool closures at build time —
     updating `session_id` (and base_url) here makes the running tools use the
-    fresh frontend session on the next call. No-op without user headers
-    (CLI / single-tenant mode keeps the service credentials).
+    fresh frontend session on the next call.
     """
     if auth is not None and session.auth is not None:
         session.auth.session_id = auth.session_id
@@ -211,57 +247,146 @@ def _refresh_session_auth(session: Session, auth: YakAuth | None) -> None:
         session.auth = auth
 
 
-def _load_session(sid: str, caller: str) -> Session:
+def _read_meta(sid: str) -> dict[str, Any]:
+    meta_path = _meta_path(sid)
+    if not meta_path.exists():
+        return {}
+    try:
+        return json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _load_session(sid: str, owner: str, workspace_id: str, auth: YakAuth) -> Session:
     if sid in _sessions:
         session = _sessions[sid]
-    else:
-        path = _state_path(sid)
-        if not path.exists():
-            raise HTTPException(status_code=404, detail=f"session {sid} not found")
-        settings = _get_settings()
-        try:
-            state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
-        except Exception as ex:  # noqa: BLE001
-            raise HTTPException(status_code=422, detail=f"session state unreadable: {ex}") from ex
-        workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
-        agent = build_agent(settings, state=state, workspace=workspace)
-        owner = "local"
-        meta_path = _meta_path(sid)
-        if meta_path.exists():
-            try:
-                owner = json.loads(meta_path.read_text(encoding="utf-8")).get("owner", "local")
-            except Exception:  # noqa: BLE001
-                owner = "local"
-        if owner != caller:
-            raise HTTPException(status_code=403, detail="session belongs to another caller")
-        session = Session(sid=sid, agent=agent, workspace=workspace, owner=owner)
-        _sessions[sid] = session
+        if session.owner != owner or session.workspace_id != workspace_id:
+            raise HTTPException(
+                status_code=403, detail="session belongs to another caller or workspace"
+            )
         return session
-    if session.owner != caller:
-        raise HTTPException(status_code=403, detail="session belongs to another caller")
+
+    path = _state_path(sid)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"session {sid} not found")
+    meta = _read_meta(sid)
+    if meta.get("owner") != owner or str(meta.get("workspace", "")) != workspace_id:
+        raise HTTPException(
+            status_code=403, detail="session belongs to another caller or workspace"
+        )
+    settings = _get_settings()
+    try:
+        state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(status_code=422, detail=f"session state unreadable: {ex}") from ex
+    workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
+    agent = build_agent(
+        settings,
+        state=state,
+        workspace=workspace,
+        auth=auth,
+        project_code=int(workspace_id),
+    )
+    session = Session(
+        sid=sid,
+        agent=agent,
+        workspace=workspace,
+        owner=owner,
+        workspace_id=workspace_id,
+        auth=auth,
+    )
+    _sessions[sid] = session
     return session
 
 
 async def _forward(session: Session, event: Any) -> None:
-    if event.type == EventType.TEXT_BLOCK_DELTA:
+    """Translate AgentScope stream events into the frontend SSE contract."""
+    event_type = event.type
+    reply_id = getattr(event, "reply_id", "")
+    if event_type == EventType.TEXT_BLOCK_DELTA:
         delta = getattr(event, "delta", "")
         if delta:
-            await session.queue.put({"type": "text_delta", "delta": delta})
-        return
-    mapped = _FORWARD_EVENTS.get(event.type)
-    if mapped == "tool_start":
+            await session.queue.put(
+                {
+                    "type": "text_delta",
+                    "delta": delta,
+                    "replyId": reply_id,
+                    "blockId": event.block_id,
+                }
+            )
+    elif event_type == EventType.THINKING_BLOCK_START:
+        await session.queue.put(
+            {"type": "thinking_start", "replyId": reply_id, "blockId": event.block_id}
+        )
+    elif event_type == EventType.THINKING_BLOCK_DELTA:
+        delta = getattr(event, "delta", "")
+        if delta:
+            await session.queue.put(
+                {
+                    "type": "thinking_delta",
+                    "delta": delta,
+                    "replyId": reply_id,
+                    "blockId": event.block_id,
+                }
+            )
+    elif event_type == EventType.THINKING_BLOCK_END:
+        await session.queue.put(
+            {"type": "thinking_end", "replyId": reply_id, "blockId": event.block_id}
+        )
+    elif event_type == EventType.TOOL_CALL_START:
         await session.queue.put(
             {
                 "type": "tool_start",
-                "tool": getattr(event, "tool_call_name", ""),
-                "toolCallId": getattr(event, "tool_call_id", ""),
+                "tool": event.tool_call_name,
+                "toolCallId": event.tool_call_id,
+                "replyId": reply_id,
             }
         )
-    elif mapped == "tool_result":
+    elif event_type == EventType.TOOL_CALL_DELTA:
+        await session.queue.put(
+            {
+                "type": "tool_call_delta",
+                "delta": event.delta,
+                "toolCallId": event.tool_call_id,
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.TOOL_RESULT_TEXT_DELTA:
+        await session.queue.put(
+            {
+                "type": "tool_result_delta",
+                "delta": event.delta,
+                "toolCallId": event.tool_call_id,
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.TOOL_RESULT_END:
         await session.queue.put(
             {
                 "type": "tool_result",
-                "toolCallId": getattr(event, "tool_call_id", ""),
+                "toolCallId": event.tool_call_id,
+                "state": getattr(event.state, "value", event.state),
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.MODEL_CALL_END:
+        await session.queue.put(
+            {
+                "type": "usage",
+                "inputTokens": event.input_tokens,
+                "outputTokens": event.output_tokens,
+                "cacheInputTokens": event.cache_input_tokens,
+                "cacheCreationInputTokens": event.cache_creation_input_tokens,
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.REPLY_END:
+        await session.queue.put(
+            {
+                "type": "reply_end",
+                "finishedReason": getattr(event.finished_reason, "value", event.finished_reason),
+                "error": event.error.model_dump(mode="json") if event.error else None,
+                "replyId": reply_id,
             }
         )
 
@@ -320,19 +445,23 @@ async def health() -> dict[str, str]:
 
 @app.post("/agent/sessions")
 async def create_session(request: Request) -> dict[str, str]:
-    caller, auth = _identity(request, _get_settings())
-    # Platform-side verification (same interceptor semantics as the original
-    # backend): the sessionId must be valid and the configured project must be
-    # granted to its user. 401/403 propagate to the frontend.
-    if auth is not None and auth.session_id:
-        _verify_session_project(auth, _get_settings().project_code)
+    settings = _get_settings()
+    owner, workspace_id, auth = _request_identity(request, settings)
+    _verify_workspace(auth, workspace_id)
     sid = uuid.uuid4().hex
     workspace = SessionWorkspace(_SESSION_DIR / sid / "workspace")
+    agent = build_agent(
+        settings,
+        workspace=workspace,
+        auth=auth,
+        project_code=int(workspace_id),
+    )
     session = Session(
         sid=sid,
-        agent=build_agent(_get_settings(), workspace=workspace, auth=auth),
+        agent=agent,
         workspace=workspace,
-        owner=caller,
+        owner=owner,
+        workspace_id=workspace_id,
         auth=auth,
     )
     _sessions[sid] = session
@@ -342,21 +471,15 @@ async def create_session(request: Request) -> dict[str, str]:
 
 @app.get("/agent/sessions")
 async def list_sessions(request: Request) -> list[dict[str, Any]]:
-    caller, _ = _identity(request, _get_settings())
+    owner, workspace_id, _ = _request_identity(request, _get_settings())
     items = []
     if _SESSION_DIR.exists():
         for path in sorted(
             _SESSION_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
         ):
-            owner = "local"
-            meta = _meta_path(path.stem)
-            if meta.exists():
-                try:
-                    owner = json.loads(meta.read_text(encoding="utf-8")).get("owner", "local")
-                except Exception:  # noqa: BLE001
-                    owner = "local"
-            if owner != caller:
-                continue  # session ownership: callers only see their own sessions
+            meta = _read_meta(path.stem)
+            if meta.get("owner") != owner or str(meta.get("workspace", "")) != workspace_id:
+                continue  # callers only see their own sessions in this workspace
             items.append(
                 {
                     "sessionId": path.stem,
@@ -368,8 +491,8 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
 
 @app.post("/agent/sessions/{sid}/messages")
 async def send_message(sid: str, body: MessageBody, request: Request) -> EventSourceResponse:
-    caller, auth = _identity(request, _get_settings())
-    session = _load_session(sid, caller)
+    owner, workspace_id, auth = _request_identity(request, _get_settings())
+    session = _load_session(sid, owner, workspace_id, auth)
     _refresh_session_auth(session, auth)
     if session.busy:
         raise HTTPException(status_code=409, detail="session is processing another message")
@@ -392,15 +515,15 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
 
 @app.post("/agent/sessions/{sid}/confirm")
 async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bool]:
-    caller, auth = _identity(request, _get_settings())
-    session = _load_session(sid, caller)
+    owner, workspace_id, auth = _request_identity(request, _get_settings())
+    session = _load_session(sid, owner, workspace_id, auth)
     _refresh_session_auth(session, auth)
     if session.confirm_future is None or session.confirm_future.done():
         raise HTTPException(status_code=409, detail="no pending confirmation for this session")
     approved = body.approved if isinstance(body.approved, bool) else all(body.approved)
     audit.record_tool_call(
         "session_confirm",
-        {"session": sid, "caller": caller, "approved": approved},
+        {"session": sid, "caller": owner, "approved": approved},
         True,
         0,
         None,
@@ -411,13 +534,14 @@ async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bo
 
 @app.delete("/agent/sessions/{sid}")
 async def delete_session(sid: str, request: Request) -> dict[str, bool]:
-    caller, auth = _identity(request, _get_settings())
-    session = _load_session(sid, caller)  # ownership check before removal
+    owner, workspace_id, auth = _request_identity(request, _get_settings())
+    session = _load_session(sid, owner, workspace_id, auth)  # ownership check before removal
     _refresh_session_auth(session, auth)
     _sessions.pop(sid, None)
     for path in (_state_path(sid), _meta_path(sid)):
         if path.exists():
             path.unlink()
+    shutil.rmtree(_SESSION_DIR / sid, ignore_errors=True)
     del session
     return {"deleted": True}
 

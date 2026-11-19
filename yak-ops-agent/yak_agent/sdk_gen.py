@@ -122,13 +122,15 @@ def {op["id"]}({", ".join(signature) or ""}):
     return src
 
 
-def generate_sdk(agent_root: Path, auth: Any = None) -> str:
+def generate_sdk(agent_root: Path, auth: Any = None, project_code: Any = None) -> str:
     """Return the SDK source for the readonly registry subset.
 
-    `settings` supplies the credentials injected as literals (the script
-    process has no credential-bearing environment and cannot read the host
-    .env). Without settings the SDK header still renders, but authenticating
-    fails — used by the compute-only tier, which does not write the SDK at all.
+    `auth` supplies the credentials injected as literals (the script process
+    has no credential-bearing environment and cannot read the host .env).
+    `project_code` pins every generated call to one workspace/project; without
+    it the SDK cannot build a project-scoped path. Without settings the SDK
+    header still renders, but authenticating fails — used by the compute-only
+    tier, which does not write the SDK at all.
     """
     operations = [op for op in _load_operations() if op.get("risk") == "readonly"]
     if auth is not None:
@@ -138,9 +140,17 @@ def generate_sdk(agent_root: Path, auth: Any = None) -> str:
             "token": auth.token,
             "username": auth.username,
             "password": auth.password,
+            "project_code": project_code,
         }
     else:
-        creds = {"base_url": "", "session_id": "", "token": "", "username": "", "password": ""}
+        creds = {
+            "base_url": "",
+            "session_id": "",
+            "token": "",
+            "username": "",
+            "password": "",
+            "project_code": project_code,
+        }
     body = _TEMPLATE_HEADER.format(agent_root=str(agent_root), **creds)
     body += (
         "\n\ndef _post(method, path, body):\n"
@@ -155,10 +165,15 @@ def generate_sdk(agent_root: Path, auth: Any = None) -> str:
     return body
 
 
-def write_sdk(workdir: Path, agent_root: Path, auth: Any = None) -> Path:
+def write_sdk(
+    workdir: Path,
+    agent_root: Path,
+    auth: Any = None,
+    project_code: Any = None,
+) -> Path:
     """Materialise the SDK into a script working directory."""
     sdk_path = workdir / "yak_agent_sdk.py"
-    sdk_path.write_text(generate_sdk(agent_root, auth), encoding="utf-8")
+    sdk_path.write_text(generate_sdk(agent_root, auth, project_code), encoding="utf-8")
     return sdk_path
 
 
