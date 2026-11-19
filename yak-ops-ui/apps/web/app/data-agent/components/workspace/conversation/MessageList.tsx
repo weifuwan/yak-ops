@@ -21,7 +21,7 @@ export function MessageList({
       ref={scrollRef}
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pb-8 pt-14 max-sm:px-4" style={{paddingLeft: 0}}>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pb-8 pt-14 max-sm:px-4" style={{paddingLeft: 0, paddingRight: 0}}>
         {messages.map((message) => (
           <MessageItem
             key={message.id}
