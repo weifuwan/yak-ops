@@ -242,68 +242,18 @@ export function DataAgentWorkspace() {
         </div>
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 bg-[#f4f4f2] p-2 max-md:p-0">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
-          <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#eeeeec] px-5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm font-semibold tracking-[-0.01em] text-[#20201e]">
-                {activeConversation?.title ?? "新对话"}
-              </span>
-              <ChevronDown size={14} className="shrink-0 text-[#aaaaaa]" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-[#f5f5f3] px-2.5 py-1 text-[11px] font-medium text-[#888888]">
-                前端预览
-              </span>
-              <button
-                type="button"
-                className="hidden h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-xs text-[#666666] hover:bg-[#f5f5f3] max-md:flex"
-                onClick={handleNewConversation}
-              >
-                <Plus size={14} />
-                新对话
-              </button>
-            </div>
-          </header>
+      <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        <section className={"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden " + (hasMessages ? "bg-white" : "data-agent-home-surface")}>
+
 
           {!hasMessages ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
-              <section
-                aria-labelledby="data-agent-title"
-                className="mb-7 flex w-full max-w-2xl flex-col items-center text-center"
-              >
-                <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-[#fff5f7] text-[#fe2c55]">
-                  <Sparkles size={23} strokeWidth={1.65} />
-                </div>
-                <h1
-                  id="data-agent-title"
-                  className="m-0 text-[28px] font-semibold tracking-[-0.035em] text-[#171717] max-sm:text-2xl"
-                >
-                  你好，我是 Yak-OPS Data Agent
-                </h1>
-                <p className="mb-0 mt-3 text-sm leading-7 text-[#666666]">
-                  我可以帮助你理解数据、构建任务，并协助分析数据开发中的问题。
-                </p>
-                <p className="mb-0 mt-1 text-xs leading-6 text-[#a0a0a0]">
-                  智能对话与工具调用能力正在建设中，当前仅提供前端交互预览。
-                </p>
-              </section>
-
-              <div className="w-full max-w-2xl">
+            <div className="data-agent-home-canvas flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 max-sm:px-4">
+              <div className="data-agent-home-content w-full max-w-[620px]">
                 <DataAgentPromptComposer
                   onSubmit={handleSubmit}
                   trailingActions={modelSelector}
-                  placeholderPrefix="告诉 Data Agent，"
-                  placeholderSuggestions={[
-                    "分析这张表的结构和字段含义",
-                    "帮我排查数据同步任务失败的原因",
-                    "根据业务需求编写 SQL",
-                    "梳理一条数据开发工作流",
-                  ]}
+                  placeholder="告诉 Data Agent，你想处理什么数据任务..."
                 />
-                <p className="mb-0 mt-3 text-center text-[11px] text-[#aaaaaa]">
-                  Enter 发送 · Shift + Enter 换行
-                </p>
               </div>
             </div>
           ) : (

@@ -14,11 +14,13 @@ const navigation = read("../apps/web/app/layout/navigation.ts");
 test("Data Agent reuses Yakable's full-screen workspace structure", () => {
   assert.ok(page.includes('productPath="/data-agent"'));
   assert.match(page, /<DataAgentWorkspace \/>/);
-  assert.match(workspace, /你好，我是 Yak-OPS Data Agent/);
-  assert.match(workspace, /理解数据、构建任务/);
+  assert.match(workspace, /data-agent-home-canvas/);
+  assert.match(workspace, /data-agent-home-content/);
+  assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|我可以帮助你理解数据|Enter 发送 · Shift/);
   assert.match(workspace, /最近对话/);
   assert.match(workspace, /新建对话/);
   assert.match(workspace, /前端预览模式/);
+  assert.doesNotMatch(workspace, /前端预览<\\/span>/);
   assert.match(workspace, /暂无工作区文件/);
 });
 
