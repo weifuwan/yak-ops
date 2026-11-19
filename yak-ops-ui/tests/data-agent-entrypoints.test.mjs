@@ -22,8 +22,8 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(welcome, /src="\/yakable_logo\.png"/);
   assert.match(welcome, /onClick=\{\(\) => onEnter\(\)\}/);
   assert.match(welcome, /onEnter\(entry\.prompt\)/);
-  assert.match(welcome, /数据表 \\/ 元数据/);
-  assert.match(welcome, /SQL \\/ 脚本/);
+  assert.match(welcome, /数据表 \/ 元数据/);
+  assert.match(welcome, /SQL \/ 脚本/);
   assert.match(welcome, /任务运行日志/);
   assert.match(welcome, /直接描述需求/);
   assert.match(welcome, /animate-data-agent-mascot-float/);
