@@ -17,6 +17,8 @@ const sidebarResizer = read("../apps/web/app/data-agent/components/DataAgentSide
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const modelSelector = read("../apps/web/app/data-agent/components/workspace/ModelSelector.tsx");
 const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
+const loading = read("../apps/web/app/data-agent/components/workspace/DataAgentLoading.tsx");
+const loadingStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-loading.css");
 const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
 const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
 const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
@@ -257,6 +259,27 @@ test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
   assert.match(sidebarResizer, /group-data-\[dragging=true\]:opacity-100/);
   assert.match(sidebarResizer, /document\.body\.style\.cursor = "col-resize"/);
   assert.match(sidebarResizer, /document\.body\.style\.userSelect = "none"/);
+});
+
+test("Data Agent restores its workspace on refresh and shows a full-screen shimmer skeleton", () => {
+  assert.match(page, /DATA_AGENT_WORKSPACE_KEY/);
+  assert.match(page, /sessionStorage\\.getItem\\(DATA_AGENT_WORKSPACE_KEY\\)/);
+  assert.match(page, /sessionStorage\\.setItem\\(DATA_AGENT_WORKSPACE_KEY, "true"\\)/);
+
+  assert.match(conversationHook, /restoredIdentityKey/);
+  assert.match(conversationHook, /isLoading: isWorkspaceLoading \\|\\| Boolean\\(requestIdentityKey && restoredIdentityKey !== requestIdentityKey\\)/);
+  assert.match(workspace, /if \\(isLoading\\)[\\s\\S]*?<DataAgentLoading/);
+  assert.match(workspace, /data-agent-workspace-enter/);
+
+  assert.match(loading, /fixed inset-0 z-\\[100\\]/);
+  assert.match(loading, /role="status"/);
+  assert.match(loading, /aria-busy="true"/);
+  assert.match(loading, /max-w-\\[494px\\]/);
+  assert.match(loading, /grid grid-cols-2 gap-2/);
+  assert.match(loadingStyles, /@keyframes data-agent-skeleton-shimmer/);
+  assert.match(loadingStyles, /1\\.55s ease-in-out infinite/);
+  assert.match(loadingStyles, /prefers-reduced-motion: reduce/);
+  assert.match(loadingStyles, /@keyframes data-agent-workspace-enter/);
 });
 
 test("Data Agent workspace menu groups its label with menu items", () => {
