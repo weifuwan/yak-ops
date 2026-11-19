@@ -27,7 +27,7 @@ Design notes
 - Credentials live in the server process only; the frontend never sees the
   yak-ops token and cannot pass one.
 
-Run:  python -m yak_agent.api.server         (defaults 127.0.0.1:8090)
+Run:  python -m yak_agent.server             (defaults 127.0.0.1:8090)
 """
 
 from __future__ import annotations
@@ -39,16 +39,18 @@ import uuid
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from yak_agent import audit
 from yak_agent.api.deps import request_identity
+from yak_agent.api.errors import session_error_handler
 from yak_agent.api.sse import forward_event
 from yak_agent.config import Settings
 from yak_agent.service import persistence
 from yak_agent.service.chat import run_turn
+from yak_agent.service.errors import AgentSessionError, ConfirmationNotPending, SessionBusy
 from yak_agent.service.session import (
     create_session as create_agent_session,
 )
@@ -59,6 +61,7 @@ from yak_agent.service.session import (
 )
 
 app = FastAPI(title="yak-ops-agent", version="0.1.0")
+app.add_exception_handler(AgentSessionError, session_error_handler)
 _settings: Settings | None = None
 
 
@@ -125,7 +128,7 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     session = load_session(sid, identity, _get_settings())
     refresh_session_auth(session, identity.auth)
     if session.busy:
-        raise HTTPException(status_code=409, detail="session is processing another message")
+        raise SessionBusy()
     session.busy = True
     worker = asyncio.create_task(run_turn(session, body.message, forward_event))
 
@@ -149,7 +152,7 @@ async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bo
     session = load_session(sid, identity, _get_settings())
     refresh_session_auth(session, identity.auth)
     if session.confirm_future is None or session.confirm_future.done():
-        raise HTTPException(status_code=409, detail="no pending confirmation for this session")
+        raise ConfirmationNotPending()
     approved = body.approved if isinstance(body.approved, bool) else all(body.approved)
     audit.record_tool_call(
         "session_confirm",
@@ -170,10 +173,7 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
     if session.busy:
         # The worker would keep running and call persist() after the state and
         # workspace files are gone. Make the caller stop/wait for it first.
-        raise HTTPException(
-            status_code=409,
-            detail="session is busy; wait for the current turn to finish before deleting",
-        )
+        raise SessionBusy()
     remove_session(sid)
     persistence.delete_files(sid)
     del session

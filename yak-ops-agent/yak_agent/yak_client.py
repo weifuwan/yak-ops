@@ -50,9 +50,15 @@ def _record_error(message: str) -> None:
 class YakApiError(RuntimeError):
     """Raised when yak-ops returns a non-success envelope or a transport error."""
 
-    def __init__(self, message: str, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        business_code: int | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.business_code = business_code
 
 
 def truncate(text: str, limit: int = MAX_PAYLOAD_CHARS) -> str:
@@ -224,7 +230,8 @@ def _get_envelope_data(auth: YakAuth, path: str, params: dict[str, Any] | None) 
         raise YakApiError(f"unexpected response shape from {path}: {truncate(body, 300)}")
     if envelope.get("code") != 0:
         raise YakApiError(
-            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}"
+            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}",
+            business_code=envelope.get("code"),
         )
     return envelope.get("data")
 
@@ -311,6 +318,7 @@ def _write_envelope_data(
         raise YakApiError(f"unexpected response shape from {path}: {truncate(raw, 300)}")
     if envelope.get("code") != 0:
         raise YakApiError(
-            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}"
+            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}",
+            business_code=envelope.get("code"),
         )
     return envelope.get("data")

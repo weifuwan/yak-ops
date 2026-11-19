@@ -1,0 +1,12 @@
+"""User-facing error messages for the HTTP boundary."""
+
+UNAUTHENTICATED = "登录状态已失效，请重新登录"
+MISSING_IDENTITY_HEADERS = "缺少登录会话或工作空间信息，请刷新页面后重试"
+INVALID_WORKSPACE_ID = "工作空间 ID 格式不正确"
+USER_MISMATCH = "登录用户与请求用户不一致，请重新登录"
+WORKSPACE_FORBIDDEN = "当前用户没有该工作空间的操作权限"
+UPSTREAM_USER = "平台用户服务暂时不可用，请稍后再试"
+UPSTREAM_WORKSPACE = "平台工作空间服务暂时不可用，请稍后再试"
+UNEXPECTED_USER = "平台返回了无法识别的用户信息"
+SERVICE_TOKEN_INVALID = "服务访问令牌无效"
+NON_LOCAL_CALLER = "非本机调用必须配置服务访问令牌"

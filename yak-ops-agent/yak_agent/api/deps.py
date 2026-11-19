@@ -8,7 +8,9 @@ import re
 from typing import Any
 
 from fastapi import HTTPException, Request
+from starlette import status
 
+from yak_agent.api import messages
 from yak_agent.config import Settings
 from yak_agent.service.session import Identity
 from yak_agent.yak_client import YakApiError, YakAuth, yak_get
@@ -30,15 +32,15 @@ def service_guard(request: Request) -> None:
     if token:
         if request.headers.get("Authorization", "") != f"Bearer {token}":
             raise HTTPException(
-                status_code=401,
-                detail="unauthorized: missing or invalid service token",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=messages.SERVICE_TOKEN_INVALID,
             )
         return
     client_host = request.client.host if request.client else "?"
     if client_host not in ("127.0.0.1", "::1", "localhost"):
         raise HTTPException(
-            status_code=401,
-            detail="unauthorized: set YAK_AGENT_SERVICE_TOKEN for non-local callers",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=messages.NON_LOCAL_CALLER,
         )
 
 
@@ -62,15 +64,21 @@ def request_identity(request: Request, settings: Settings) -> Identity:
     claimed_user_id = request.headers.get("X-Yak-User-Id", "").strip()
     if not session_id or not workspace_id:
         raise HTTPException(
-            status_code=401,
-            detail="missing X-Yak-Session-Id or X-Yak-Workspace-Id",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=messages.MISSING_IDENTITY_HEADERS,
         )
     if not workspace_id.isdigit():
-        raise HTTPException(status_code=400, detail="X-Yak-Workspace-Id must be numeric")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=messages.INVALID_WORKSPACE_ID,
+        )
     auth = YakAuth(base_url=settings.yak_ops_base_url, session_id=session_id)
     user = fetch_user(auth)
     if claimed_user_id and str(user.get("id")) != claimed_user_id:
-        raise HTTPException(status_code=403, detail="user id does not match the session")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=messages.USER_MISMATCH,
+        )
     owner, persistent = user_key(user, session_id)
     # Authorization is re-checked on every request, not only when the session
     # is created: a revoked workspace must not keep serving persisted history.
@@ -89,15 +97,18 @@ def fetch_user(auth: YakAuth) -> dict[str, Any]:
     except YakApiError as ex:
         if ex.status_code == 401:
             raise HTTPException(
-                status_code=401,
-                detail="yak-ops session invalid or expired; re-login and retry",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=messages.UNAUTHENTICATED,
             ) from ex
         raise HTTPException(
-            status_code=502,
-            detail=f"yak-ops user verification failed: {ex}",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=messages.UPSTREAM_USER,
         ) from ex
     if not isinstance(data, dict) or data.get("id") is None:
-        raise HTTPException(status_code=502, detail="unexpected user info response")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=messages.UNEXPECTED_USER,
+        )
     return data
 
 
@@ -117,25 +128,35 @@ def user_key(user: dict[str, Any], session_id: str) -> tuple[str, bool]:
     return f"u-{user_id}-s-{digest}", False
 
 
+# PROJECT_NOT_FOUND / PROJECT_NOT_EXIST / USER_NO_OPERATION_PROJECT_PERM
+_PROJECT_ACCESS_DENIED_CODES = frozenset({10018, 10190, 30002})
+
+
 def verify_workspace(auth: YakAuth, workspace_id: str) -> None:
-    """Platform-side workspace (project) permission check — the sessionId is
-    validated by the platform on this call, and the requested workspace must be
-    granted to the session's user."""
+    """Platform-side workspace (project) permission check.
+
+    `GET /projects/{code}` already performs existence and permission checks
+    (`checkProjectAndAuthThrowException`), so a successful call means the
+    caller may use this workspace. A business error for a missing project or
+    a permission denial is reported as 403 to avoid leaking existence.
+    """
     try:
-        data = yak_get(auth, "/projects", {"pageNo": 1, "pageSize": 100})
+        yak_get(auth, f"/projects/{workspace_id}")
     except YakApiError as ex:
-        if ex.status_code == 401:
+        if ex.status_code == status.HTTP_401_UNAUTHORIZED:
             raise HTTPException(
-                status_code=401,
-                detail="yak-ops session invalid or expired; re-login and retry",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=messages.UNAUTHENTICATED,
+            ) from ex
+        if ex.business_code in _PROJECT_ACCESS_DENIED_CODES or ex.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=messages.WORKSPACE_FORBIDDEN,
             ) from ex
         raise HTTPException(
-            status_code=502,
-            detail=f"yak-ops workspace verification failed: {ex}",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=messages.UPSTREAM_WORKSPACE,
         ) from ex
-    codes = {str(item.get("code")) for item in ((data or {}).get("totalList") or [])}
-    if str(workspace_id) not in codes:
-        raise HTTPException(
-            status_code=403,
-            detail="the requested workspace is not granted to this user",
-        )

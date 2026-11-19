@@ -8,11 +8,11 @@ from typing import Any
 
 from agentscope.event import RequireUserConfirmEvent
 from agentscope.state import AgentState
-from fastapi import HTTPException
 
 from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
 from yak_agent.service import persistence
+from yak_agent.service.errors import SessionForbidden, SessionNotFound, SessionStateInvalid
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakAuth
 
@@ -70,36 +70,27 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
     if sid in SESSIONS:
         session = SESSIONS[sid]
         if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
-            raise HTTPException(
-                status_code=403,
-                detail="session belongs to another caller or workspace",
-            )
+            raise SessionForbidden()
         return session
 
     if not identity.persistent:
         # No immutable user key: the session was never written to disk, so it
         # cannot be restored after the process (or the in-memory entry) is gone.
-        raise HTTPException(status_code=404, detail=f"session {sid} not found")
+        raise SessionNotFound()
 
     path = persistence.state_path(sid)
     if not path.exists():
-        raise HTTPException(status_code=404, detail=f"session {sid} not found")
+        raise SessionNotFound()
     meta = persistence.read_meta(sid)
     if (
         meta.get("owner") != identity.owner
         or str(meta.get("workspace", "")) != identity.workspace_id
     ):
-        raise HTTPException(
-            status_code=403,
-            detail="session belongs to another caller or workspace",
-        )
+        raise SessionForbidden()
     try:
         state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
     except Exception as ex:  # noqa: BLE001
-        raise HTTPException(
-            status_code=422,
-            detail=f"session state unreadable: {ex}",
-        ) from ex
+        raise SessionStateInvalid() from ex
     workspace = SessionWorkspace(persistence.SESSION_DIR / sid / "workspace")
     agent = build_agent(
         settings,
