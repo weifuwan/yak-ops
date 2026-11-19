@@ -4,7 +4,6 @@ import AppShell from "../layout/AppShell";
 
 import { DataAgentWelcome } from "./components/DataAgentWelcome";
 import { DataAgentWorkspace } from "./components/DataAgentWorkspace";
-import "./data-agent.css";
 
 const DATA_AGENT_PRODUCT_LABEL = "Data Agent";
 

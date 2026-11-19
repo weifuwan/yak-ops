@@ -81,15 +81,18 @@ export function DataAgentPromptComposer({
   }
 
   return (
-    <div className="data-agent-composer-root">
-      <span aria-hidden="true" className="data-agent-composer-halo" />
-      <div className="data-agent-composer-surface">
-        <span aria-hidden="true" className="data-agent-composer-fx-root">
-          <span data-composer-fx="shadow" className="data-agent-composer-fx-layer" />
-          <span data-composer-fx="fill" className="data-agent-composer-fx-layer" />
-          <span data-composer-fx="highlight" className="data-agent-composer-fx-layer" />
-          <span data-composer-fx="rim" className="data-agent-composer-fx-layer" />
-          <span data-composer-fx="focus" className="data-agent-composer-fx-layer" />
+    <div className="group/composer relative isolate w-full">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-6 bottom-0.5 z-0 h-2 rounded-full bg-[linear-gradient(90deg,#5e89f2_0%,#ff66f4_50%,#fe7b02_100%)] opacity-0 blur-[7px] transition-opacity duration-200 ease-out group-focus-within/composer:opacity-20 motion-reduce:transition-none"
+      />
+      <div className="relative z-[1] isolate overflow-hidden rounded-3xl bg-white">
+        <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 rounded-[inherit]">
+          <span className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] shadow-[0_2px_3px_-2px_rgb(0_0_0_/_12%),0_10px_28px_-16px_rgb(0_0_0_/_22%)]" />
+          <span className="pointer-events-none absolute inset-0 z-[1] rounded-[inherit] bg-white" />
+          <span className="pointer-events-none absolute inset-0 z-[2] rounded-[inherit] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_92%),inset_0_-1px_0_0_rgb(0_0_0_/_2.5%)]" />
+          <span className="pointer-events-none absolute inset-0 z-[3] rounded-[inherit] shadow-[inset_0_0_0_1px_#e6e6e3]" />
+          <span className="pointer-events-none absolute inset-0 z-[4] rounded-[inherit] opacity-0 shadow-[inset_0_0_0_1px_#c7c7c2] transition-opacity duration-150 group-focus-within/composer:opacity-100 motion-reduce:transition-none" />
         </span>
 
         <div className="relative z-10 p-3">
@@ -101,7 +104,7 @@ export function DataAgentPromptComposer({
               >
                 <span>{placeholderPrefix}</span>
                 {visibleLength > 0 ? <span> {suggestion.slice(0, visibleLength)}</span> : null}
-                <span className="data-agent-composer-caret" />
+                <span className="ml-0.5 inline-block h-[1em] w-px translate-y-[-0.12em] animate-data-agent-caret bg-current align-[-0.12em] opacity-[0.65] motion-reduce:animate-none" />
               </span>
             )}
             <textarea
