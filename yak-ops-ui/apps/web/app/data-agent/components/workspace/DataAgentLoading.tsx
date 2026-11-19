@@ -20,10 +20,26 @@ export function DataAgentLoading({
       role="status"
       aria-label="正在加载 Data Agent"
       aria-busy="true"
-      className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] p-2 text-[#20201e] max-md:p-0"
+      className="fixed inset-0 z-[100] flex h-dvh w-screen flex-col overflow-hidden bg-[#f0f0f0] p-2 text-[#20201e] max-md:p-0"
     >
       <span className="sr-only">正在加载 Data Agent…</span>
 
+      <header aria-hidden="true" className="flex h-7 shrink-0 items-center justify-between px-0.5 pb-2">
+        <div className="flex items-center gap-2">
+          <SkeletonBlock className="size-4 rounded-[5px]" />
+          <SkeletonBlock className="h-2.5 w-12 rounded-full" />
+          <SkeletonBlock className="size-2 rounded-full" />
+        </div>
+        <div className="flex items-center gap-2">
+          <SkeletonBlock className="h-6 w-10 rounded-md" />
+          <SkeletonBlock className="h-2.5 w-20 rounded-full" />
+          <SkeletonBlock className="size-6 rounded-md" />
+          <SkeletonBlock className="h-6 w-16 rounded-md" />
+          <SkeletonBlock className="h-6 w-16 rounded-md" />
+        </div>
+      </header>
+
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
       <aside
         aria-hidden="true"
         className="flex h-full shrink-0 flex-col gap-3 overflow-hidden bg-[#f0f0f0] px-2 pb-2 pt-3 max-md:hidden"
@@ -81,6 +97,7 @@ export function DataAgentLoading({
           </div>
         </section>
       </main>
+      </div>
     </div>
   );
 }
