@@ -4,16 +4,36 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
+const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const rail = read("../apps/web/app/data-development/layout/development-rail.tsx");
 const layout = read("../apps/web/app/data-development/layout/data-development-layout.tsx");
 const router = read("../apps/web/app/router/AppRouter.tsx");
 const navigation = read("../apps/web/app/layout/navigation.ts");
 
-test("Data Agent has a standalone full-width app page", () => {
-  assert.match(page, /productPath="\/data-agent"/);
-  assert.match(page, /你好，我是 Yak-OPS Data Agent/);
-  assert.match(page, /理解数据、构建任务/);
-  assert.match(page, /智能对话与工具调用能力正在建设中/);
+test("Data Agent reuses Yakable's full-screen workspace structure", () => {
+  assert.match(page, /productPath="\\/data-agent"/);
+  assert.match(page, /<DataAgentWorkspace \/>/);
+  assert.match(workspace, /你好，我是 Yak-OPS Data Agent/);
+  assert.match(workspace, /理解数据、构建任务/);
+  assert.match(workspace, /最近对话/);
+  assert.match(workspace, /新建对话/);
+  assert.match(workspace, /前端预览模式/);
+});
+
+test("Data Agent conversations stay local and do not call backend services", () => {
+  assert.match(workspace, /setConversations/);
+  assert.match(workspace, /消息已在当前页面本地展示/);
+  assert.match(workspace, /后端接口尚未接入/);
+  assert.doesNotMatch(workspace, /ProjectService|SessionService|fetch\s*\(/);
+  assert.doesNotMatch(composer, /fetch\s*\(/);
+});
+
+test("Data Agent prompt composer preserves Yakable-style input interactions", () => {
+  assert.match(composer, /placeholderSuggestions/);
+  assert.match(composer, /onCompositionStart/);
+  assert.match(composer, /event\.shiftKey/);
+  assert.match(composer, /data-agent-composer-surface/);
 });
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {
