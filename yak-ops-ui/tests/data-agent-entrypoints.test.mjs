@@ -268,7 +268,8 @@ test("Data Agent restores its workspace on refresh and shows a full-screen shimm
 
   assert.match(conversationHook, /restoredIdentityKey/);
   assert.match(conversationHook, /isLoading: isWorkspaceLoading \|\| Boolean\(requestIdentityKey && restoredIdentityKey !== requestIdentityKey\)/);
-  assert.match(workspace, /if \(isLoading\)[\s\S]*?<DataAgentLoading/);
+  assert.match(workspace, /showLoadingOverlay \? \([\s\S]*?<DataAgentLoading/);
+  assert.match(workspace, /setLoadingOverlayExiting\(true\)/);
   assert.match(workspace, /data-agent-workspace-enter/);
   assert.match(workspace, /showLoadingOverlay/);
   assert.match(workspace, /window\.setTimeout\(\(\) => setShowLoadingOverlay\(false\), 200\)/);
