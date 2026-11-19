@@ -43,7 +43,6 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);
-  assert.match(workspace, /暂无工作区文件/);
   assert.match(sidebar, /w-64/);
   assert.ok(sidebar.includes('src="/yakable_logo.png"'));
   assert.doesNotMatch(sidebar, /<Sparkles/);
@@ -59,7 +58,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(sidebar, /onSelectConversation/);
 });
 
-test("the Data Agent empty workspace matches the centered prompt and shortcut layout", () => {
+test("the Data Agent welcome workspace keeps the centered prompt and shortcut layout without the unused side panel", () => {
   assert.match(workspace, /max-w-\[540px\]/);
   assert.match(workspace, /grid grid-cols-2 gap-2/);
   assert.match(workspace, /分析数据表/);
@@ -68,8 +67,7 @@ test("the Data Agent empty workspace matches the centered prompt and shortcut la
   assert.match(workspace, /梳理数据开发流程/);
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
-  assert.match(workspace, /aria-label=\{workspacePanelOpen \? "隐藏工作区面板" : "显示工作区面板"\}/);
-  assert.match(workspace, /<AgentWorkspacePanel \/>/);
+  assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
 });
 
 test("Data Agent sidebar uses a smooth drawer transition without unmounting", () => {

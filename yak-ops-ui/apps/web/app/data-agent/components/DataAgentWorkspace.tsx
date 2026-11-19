@@ -10,9 +10,7 @@ import {
   ChevronDown,
   Code2,
   Database,
-  FolderOpen,
   PanelLeft,
-  PanelRight,
   Sparkles,
   Workflow,
 } from "lucide-react";
@@ -133,38 +131,12 @@ function ModelSelector({
     </DropdownMenu>
   );
 }
-function AgentWorkspacePanel() {
-  return (
-    <aside
-      aria-label="Agent 工作区"
-      className="hidden min-h-0 w-[46%] min-w-[360px] max-w-[640px] shrink-0 flex-col border-l border-[#eeeeec] bg-[#fcfcfb] xl:flex"
-    >
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#eeeeec] px-4">
-        <span className="text-sm font-semibold text-[#20201e]">工作区</span>
-        <span className="rounded-full bg-[#f3f3f1] px-2 py-1 text-[10px] text-[#999999]">
-          暂无执行结果
-        </span>
-      </header>
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 text-center">
-        <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-white text-[#999999] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <FolderOpen size={21} strokeWidth={1.6} />
-        </span>
-        <h3 className="m-0 text-sm font-medium text-[#555555]">暂无工作区文件</h3>
-        <p className="mb-0 mt-2 max-w-[250px] text-xs leading-6 text-[#a0a0a0]">
-          Agent 生成的文件、数据结果和执行产物将在这里展示。
-        </p>
-      </div>
-    </aside>
-  );
-}
-
 export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: string }) {
   const [conversations, setConversations] = useState<LocalConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState("DeepSeek");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [composerKey, setComposerKey] = useState(0);
   const [initialDraft, setInitialDraft] = useState(initialPrompt);
   const messageScrollRef = useRef<HTMLDivElement>(null);
@@ -183,7 +155,6 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
   function handleNewConversation() {
     setActiveConversationId(null);
     setModelMenuOpen(false);
-    setWorkspacePanelOpen(false);
     setInitialDraft("");
     setComposerKey((current) => current + 1);
   }
@@ -233,7 +204,6 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
     const accepted = handleSubmit(content);
     if (accepted !== false) {
       setInitialDraft("");
-      setWorkspacePanelOpen(true);
     }
     return accepted;
   }
@@ -282,7 +252,6 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
             onSelectConversation={(id) => {
               setActiveConversationId(id);
               setModelMenuOpen(false);
-              setWorkspacePanelOpen(true);
             }}
           />
         </div>
@@ -302,16 +271,6 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
               <PanelLeft size={15} strokeWidth={1.5} />
             </button>
 
-            <button
-              type="button"
-              aria-label={workspacePanelOpen ? "隐藏工作区面板" : "显示工作区面板"}
-              aria-expanded={workspacePanelOpen}
-              title={workspacePanelOpen ? "隐藏工作区面板" : "显示工作区面板"}
-              className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-colors hover:border-[#cbd2d1] hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
-              onClick={() => setWorkspacePanelOpen((open) => !open)}
-            >
-              <PanelRight size={15} strokeWidth={1.5} />
-            </button>
           </div>
 
           {!hasMessages ? (
@@ -352,7 +311,6 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
                 </div>
               </div>
 
-              {workspacePanelOpen ? <AgentWorkspacePanel /> : null}
             </div>
           ) : (
             <div className="flex min-h-0 flex-1">
@@ -406,7 +364,6 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
                 </div>
               </div>
 
-              {workspacePanelOpen ? <AgentWorkspacePanel /> : null}
             </div>
           )}
         </section>
