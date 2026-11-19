@@ -6,6 +6,7 @@ import {
   isUnauthenticatedResponse,
   type ApiResponse,
 } from "@/service/http/response";
+import { isRequestAborted } from "@/service/http/abort";
 import { notifyOnce } from "@/utils/notification";
 
 export type { ApiResponse } from "@/service/http/response";
@@ -140,7 +141,7 @@ export default async function request<T>(url: string, options: RequestOptions = 
       credentials: requestInit.credentials ?? "include",
     });
   } catch (error) {
-    if (!skipErrorHandler) {
+    if (!skipErrorHandler && !isRequestAborted(error, requestInit.signal)) {
       notifyOnce("network", {
         type: "warning",
         title: "网络异常",
