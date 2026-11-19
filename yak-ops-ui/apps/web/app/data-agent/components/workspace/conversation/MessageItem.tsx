@@ -1,6 +1,6 @@
 import type { AgentMessage, PendingConfirmation } from "../../../model/types";
-import { formatConversationTime } from "../../../utils/message-formatters";
 import { AssistantMessage } from "./AssistantMessage";
+import { MessageActions } from "./MessageActions";
 import { UserMessage } from "./UserMessage";
 
 type MessageItemProps = {
@@ -28,15 +28,11 @@ export function MessageItem({
             onResolveConfirmation={onResolveConfirmation}
           />
         )}
-        <time
-          dateTime={message.createdAt}
-          className={
-            "mt-1 block text-[11px] text-[#aaaaaa] " +
-            (isUser ? "text-right" : "text-left")
-          }
-        >
-          {formatConversationTime(message.createdAt)}
-        </time>
+        <MessageActions
+          message={message}
+          align={isUser ? "right" : "left"}
+          showActions={!isUser}
+        />
       </div>
     </article>
   );
