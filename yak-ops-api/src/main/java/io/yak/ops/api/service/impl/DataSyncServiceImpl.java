@@ -350,6 +350,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         if (workflow.getReleaseState() == ReleaseState.ONLINE) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_ALLOWED_EDIT, workflow.getCode());
         }
+        ensureStopped(workflow.getCode());
         if (request.getExpectedRevision() == null || request.getExpectedRevision() != original.getVersion()) {
             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "expectedRevision");
         }

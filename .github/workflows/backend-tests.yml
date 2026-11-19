@@ -121,6 +121,55 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  dao-mapper:
+    name: DAO Mapper Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run TaskInstanceMapperTest with the H2 test database
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-dao -am \
+            '-Dtest=TaskInstanceMapperTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
+            test
+      - name: Require TaskInstanceMapperTest to execute successfully
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          report = Path(
+              'yak-ops-dao/target/surefire-reports/'
+              'TEST-io.yak.ops.dao.mapper.TaskInstanceMapperTest.xml'
+          )
+          if not report.exists():
+              raise SystemExit(f'Missing DAO mapper test report: {report}')
+
+          result = ET.parse(report).getroot()
+          tests = int(result.attrib.get('tests', 0))
+          failures = int(result.attrib.get('failures', 0))
+          errors = int(result.attrib.get('errors', 0))
+          skipped = int(result.attrib.get('skipped', 0))
+          print(
+              f'TaskInstanceMapperTest: tests={tests}, failures={failures}, '
+              f'errors={errors}, skipped={skipped}'
+          )
+          if tests == 0:
+              raise SystemExit('TaskInstanceMapperTest did not execute')
+          if failures or errors:
+              raise SystemExit('TaskInstanceMapperTest reported failures or errors')
+          PY
+
   data-sync-plugin:
     name: Data Sync Plugin Tests (JDK 17)
     runs-on: ubuntu-latest
