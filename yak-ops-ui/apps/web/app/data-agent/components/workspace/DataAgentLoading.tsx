@@ -66,7 +66,7 @@ export function DataAgentLoading({
         </div>
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1">
+      <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e2e6e5] bg-white shadow-[0_1px_2px_rgba(20,34,35,0.03)] max-md:rounded-none max-md:border-0">
           <div className="absolute inset-x-0 top-0 flex items-center justify-between px-2 pt-2">
             <SkeletonBlock className="size-7 rounded-lg" />
