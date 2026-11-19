@@ -26,7 +26,7 @@ export function UserTable({
     { key: "sequence", title: "序号", width: 72, align: "center", render: (_value, _record, index) => String((pageNo - 1) * pageSize + index + 1).padStart(2, "0") },
     { key: "userName", title: "用户名", dataIndex: "userName", minWidth: 150, render: (_value, record) => <span className="font-medium text-[var(--yak-components-panel-text)]">{record.userName || "-"}</span> },
     { key: "userType", title: "用户类型", dataIndex: "userType", width: 120, render: (_value, record) => record.userType === "ADMIN_USER" ? "管理员" : "普通用户" },
-    { key: "tenantId", title: "租户 ID", dataIndex: "tenantId", width: 100 },
+    { key: "tenantCode", title: "所属租户", dataIndex: "tenantCode", width: 140, render: (_value, record) => record.tenantCode?.trim() || "未分配" },
     { key: "queue", title: "队列", dataIndex: "queue", minWidth: 130, render: (_value, record) => record.queue || "-" },
     { key: "phone", title: "手机号", dataIndex: "phone", minWidth: 140, render: (_value, record) => record.phone || "-" },
     { key: "email", title: "邮箱", dataIndex: "email", minWidth: 200, ellipsis: true, render: (_value, record) => record.email || "-" },

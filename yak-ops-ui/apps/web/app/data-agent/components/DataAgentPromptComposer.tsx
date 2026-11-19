@@ -1,4 +1,4 @@
-import { ArrowUp, Code2, Database, Plus, Workflow } from "lucide-react";
+import { ArrowUp, LoaderCircle, Plus } from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -14,6 +14,7 @@ type DataAgentPromptComposerProps = {
   placeholderPrefix?: string;
   placeholderSuggestions?: readonly string[];
   trailingActions?: ReactNode;
+  isSubmitting?: boolean;
 };
 
 const MIN_TEXTAREA_HEIGHT = 40;
@@ -26,6 +27,7 @@ export function DataAgentPromptComposer({
   placeholderPrefix,
   placeholderSuggestions = [],
   trailingActions,
+  isSubmitting = false,
 }: DataAgentPromptComposerProps) {
   const [value, setValue] = useState(initialValue);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -71,7 +73,7 @@ export function DataAgentPromptComposer({
 
   function submit() {
     const normalized = value.trim();
-    if (!normalized) return;
+    if (!normalized || isSubmitting) return;
 
     const accepted = onSubmit(normalized);
     if (accepted !== false) {
@@ -100,6 +102,7 @@ export function DataAgentPromptComposer({
               aria-label="向 Data Agent 发送消息"
               autoComplete="off"
               rows={1}
+              disabled={isSubmitting}
               value={value}
               placeholder={showAnimatedPlaceholder ? "" : placeholder}
               onChange={(event) => setValue(event.target.value)}
@@ -136,39 +139,24 @@ export function DataAgentPromptComposer({
               >
                 <Plus size={17} strokeWidth={1.7} />
               </button>
-              <div className="flex items-center -space-x-1.5" aria-label="Data Agent 能力">
-                <span
-                  title="数据分析"
-                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#ffe9e2] text-[#d77a5e] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                >
-                  <Database size={10} strokeWidth={1.8} />
-                </span>
-                <span
-                  title="SQL 与代码"
-                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#e8efff] text-[#5d80bf] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                >
-                  <Code2 size={10} strokeWidth={1.8} />
-                </span>
-                <span
-                  title="工作流"
-                  className="flex size-[19px] items-center justify-center rounded-full border border-white bg-[#e7f4eb] text-[#55966d] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                >
-                  <Workflow size={10} strokeWidth={1.8} />
-                </span>
-              </div>
+              
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
               {trailingActions}
               <button
                 type="button"
-                aria-label="发送消息"
-                title="发送消息"
-                disabled={!value.trim()}
-                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#87918f] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
+                aria-label={isSubmitting ? "正在发送消息" : "发送消息"}
+                title={isSubmitting ? "正在发送消息" : "发送消息"}
+                disabled={isSubmitting || !value.trim()}
+                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#000000] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
                 onClick={submit}
               >
-                <ArrowUp size={17} strokeWidth={1.8} />
+                {isSubmitting ? (
+                  <LoaderCircle size={16} className="animate-spin" />
+                ) : (
+                  <ArrowUp size={17} strokeWidth={1.8} />
+                )}
               </button>
             </div>
           </div>

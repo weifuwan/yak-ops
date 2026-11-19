@@ -6,8 +6,19 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
+const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
+const sidebarNavigation = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarNavigation.tsx");
+const conversationList = read("../apps/web/app/data-agent/components/sidebar/DataAgentConversationList.tsx");
+const sidebarFooter = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarFooter.tsx");
+const sidebarResizer = read("../apps/web/app/data-agent/components/DataAgentSidebarResizer.tsx");
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
+const modelSelector = read("../apps/web/app/data-agent/components/workspace/ModelSelector.tsx");
+const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
+const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
+const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
+const confirmationCard = read("../apps/web/app/data-agent/components/workspace/conversation/ConfirmationCard.tsx");
 const globalStyles = read("../apps/web/app/styles/global.css");
 const rail = read("../apps/web/app/data-development/layout/development-rail.tsx");
 const layout = read("../apps/web/app/data-development/layout/data-development-layout.tsx");
@@ -42,35 +53,36 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(workspace, /<DataAgentSidebar/);
-  assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);
-  assert.match(sidebar, /w-64/);
+  assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
+  assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
   assert.ok(sidebar.includes('src="/yakable_logo.png"'));
-  assert.doesNotMatch(sidebar, /<Sparkles/);
-  assert.match(sidebar, /New/);
-  assert.match(sidebar, /Search/);
-  assert.match(sidebar, /Projects/);
-  assert.match(sidebar, /Connectors/);
-  assert.match(sidebar, /Automations/);
-  assert.match(sidebar, /Data Sync Hub/);
-  assert.match(sidebar, /Upgrade to Pro/);
-  assert.match(sidebar, /Unlock more features/);
   assert.match(sidebar, /useWorkspace/);
   assert.match(sidebar, /onSelectConversation/);
+  assert.match(sidebarNavigation, /New/);
+  assert.match(sidebarNavigation, /Search/);
+  assert.match(sidebarNavigation, /Projects/);
+  assert.match(sidebarNavigation, /Connectors/);
+  assert.match(sidebarNavigation, /Automations/);
+  assert.match(conversationList, /Data Sync Hub/);
+  assert.match(conversationList, /Recent chats/);
+  assert.match(sidebarFooter, /Upgrade to Pro/);
+  assert.match(sidebarFooter, /Unlock more features/);
 });
 
-test("the Data Agent welcome workspace keeps the centered prompt and shortcut layout without the unused side panel", () => {
-  assert.match(workspace, /max-w-\[540px\]/);
-  assert.match(workspace, /grid grid-cols-2 gap-2/);
-  assert.match(workspace, /分析数据表/);
-  assert.match(workspace, /生成 SQL/);
-  assert.match(workspace, /排查任务异常/);
-  assert.match(workspace, /梳理数据开发流程/);
+test("the welcome workspace keeps its centered prompt and shortcut layout", () => {
+  assert.match(emptyState, /max-w-\[540px\]/);
+  assert.match(emptyState, /grid grid-cols-2 gap-2/);
+  assert.match(quickActions, /分析数据表/);
+  assert.match(quickActions, /生成 SQL/);
+  assert.match(quickActions, /排查任务异常/);
+  assert.match(quickActions, /梳理数据开发流程/);
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
 });
 
 test("Data Agent sidebar uses a smooth drawer transition without unmounting", () => {
+  assert.match(workspace, /const \[sidebarOpen, setSidebarOpen\] = useState\(true\)/);
   assert.match(workspace, /aria-hidden=\{!sidebarOpen\}/);
   assert.match(workspace, /element\.inert = !sidebarOpen/);
   assert.match(workspace, /transition-\[width\]/);
@@ -78,8 +90,14 @@ test("Data Agent sidebar uses a smooth drawer transition without unmounting", ()
   assert.match(workspace, /ease-\[cubic-bezier\(0\.22,1,0\.36,1\)\]/);
   assert.match(workspace, /translate-x-0 opacity-100 pointer-events-auto/);
   assert.match(workspace, /-translate-x-3 opacity-0 pointer-events-none/);
-  assert.match(workspace, /w-64 max-md:w-0/);
-  assert.doesNotMatch(workspace, /\{sidebarOpen \? \([\s\S]*?<DataAgentSidebar/);
+  assert.match(workspace, /w-\[var\(--data-agent-sidebar-width\)\] max-md:!w-0/);
+  assert.match(workspace, /sidebarWidth/);
+  assert.match(workspace, /sidebarResizing/);
+  assert.match(workspace, /\? "transition-none/);
+  assert.match(workspace, /<DataAgentSidebarResizer/);
+  assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
+  assert.ok(workspace.includes("aria-hidden={!sidebarOpen}"));
+  assert.ok(workspace.includes("<DataAgentSidebar"));
 });
 
 test("Data Agent welcome and composer styling use Tailwind utilities", () => {
@@ -97,7 +115,7 @@ test("Data Agent welcome and composer styling use Tailwind utilities", () => {
   assert.match(composer, /group\/composer relative isolate w-full/);
   assert.match(composer, /rounded-\[14px\] border border-\[#e0e4e3\]/);
   assert.match(composer, /animate-data-agent-caret/);
-  assert.match(composer, /aria-label="Data Agent 能力"/);
+  assert.match(composer, /aria-label="向 Data Agent 发送消息"/);
   assert.match(composer, /附件上传暂未接入/);
   assert.doesNotMatch(composer, /data-agent-composer-[a-z-]+/);
   assert.match(globalStyles, /--animate-data-agent-message-in:/);
@@ -109,29 +127,43 @@ test("Data Agent welcome and composer styling use Tailwind utilities", () => {
 
 test("welcome entrypoints seed the composer without claiming file upload support", () => {
   assert.match(workspace, /initialPrompt/);
-  assert.match(workspace, /setInitialDraft\(\"\"\)/);
+  assert.match(workspace, /setInitialDraft\(""\)/);
   assert.match(composer, /initialValue\?: string/);
   assert.match(composer, /useState\(initialValue\)/);
   assert.doesNotMatch(welcome, /type="file"|上传成功|文件已导入/);
 });
 
-test("Data Agent conversations stay local and do not call backend services", () => {
-  assert.match(workspace, /setConversations/);
-  assert.match(workspace, /消息已在当前页面本地展示/);
-  assert.match(workspace, /后端接口尚未接入/);
-  assert.doesNotMatch(workspace, /ProjectService|SessionService|fetch\s*\(/);
-  assert.doesNotMatch(composer, /fetch\s*\(/);
+test("conversation orchestration is separated from the workspace component", () => {
+  assert.match(workspace, /useDataAgentConversation/);
+  assert.match(workspace, /<ConversationPanel/);
+  assert.match(workspace, /<DataAgentEmptyState/);
+  assert.doesNotMatch(workspace, /sendAgentMessage|createAgentSession|listAgentSessions|text_delta|tool_start|confirm_required|patchAssistantMessage/);
+  assert.match(conversationHook, /createAgentSession/);
+  assert.match(conversationHook, /listAgentSessions/);
+  assert.match(conversationHook, /sendAgentMessage/);
+  assert.match(conversationHook, /onConfirmRequired/);
+  assert.match(conversationHook, /AbortController/);
+  assert.match(reducer, /case "TEXT_DELTA"/);
+  assert.match(reducer, /case "TOOL_STARTED"/);
+  assert.match(reducer, /case "CONFIRMATION_REQUIRED"/);
+  assert.match(reducer, /case "MESSAGE_COMPLETED"/);
+  assert.match(assistantMessage, /DataAgentMarkdown/);
+  assert.match(confirmationCard, /确认执行/);
+  assert.match(confirmationCard, /拒绝/);
+  assert.match(emptyState, /历史消息暂不提供回放/);
+  assert.match(composer, /isSubmitting\?: boolean/);
+  assert.match(composer, /disabled=\{isSubmitting \|\| !value\.trim\(\)\}/);
 });
 
 test("the model selector uses the Yak-UI portal menu and opens below the trigger", () => {
-  assert.match(workspace, /<DropdownMenu open=\{open\} onOpenChange=\{onOpenChange\}>/);
+  assert.match(modelSelector, /<DropdownMenu open=\{open\} onOpenChange=\{onOpenChange\}>/);
   assert.match(
-    workspace,
+    modelSelector,
     /<DropdownMenuContent[\s\S]*?side="bottom"[\s\S]*?align="end"[\s\S]*?sideOffset=\{8\}/,
   );
-  assert.match(workspace, /role="menuitemradio"/);
-  assert.match(workspace, /aria-checked=\{value === "DeepSeek"\}/);
-  assert.doesNotMatch(workspace, /absolute bottom-full|bottom-full right-0/);
+  assert.match(modelSelector, /role="menuitemradio"/);
+  assert.match(modelSelector, /aria-checked=\{value === "DeepSeek"\}/);
+  assert.doesNotMatch(modelSelector, /absolute bottom-full|bottom-full right-0/);
 });
 
 test("Data Agent prompt composer preserves Yakable-style input interactions", () => {
@@ -139,12 +171,12 @@ test("Data Agent prompt composer preserves Yakable-style input interactions", ()
   assert.match(composer, /onCompositionStart/);
   assert.match(composer, /event\.shiftKey/);
   assert.match(composer, /rounded-\[14px\] border/);
-  assert.match(composer, /aria-label="发送消息"/);
+  assert.match(composer, /aria-label=\{isSubmitting \? "正在发送消息" : "发送消息"\}/);
 });
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {
   assert.match(rail, /onClick=\{onOpenAgent\}/);
-  assert.match(layout, /onOpenAgent=\{\(\) => navigate\(\"\/data-agent\"\)\}/);
+  assert.match(layout, /onOpenAgent=\{\(\) => navigate\("\/data-agent"\)\}/);
 });
 
 test("Data Agent is registered as an authenticated route and product-menu entry", () => {
@@ -154,4 +186,28 @@ test("Data Agent is registered as an authenticated route and product-menu entry"
   assert.match(navigation, /label: \"Data Agent\"/);
   assert.match(navigation, /label: \"智能体\"/);
   assert.match(navigation, /DATA_AGENT_PRODUCT/);
+});
+
+test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
+  assert.match(workspace, /const \[sidebarWidth, setSidebarWidth\] = useState\(256\)/);
+  assert.match(workspace, /onResize=\{setSidebarWidth\}/);
+  assert.match(workspace, /onDraggingChange=\{setSidebarResizing\}/);
+  assert.match(sidebarResizer, /SIDEBAR_MIN_WIDTH = 220/);
+  assert.match(sidebarResizer, /SIDEBAR_MAX_WIDTH = 440/);
+  assert.match(sidebarResizer, /role="separator"/);
+  assert.match(sidebarResizer, /aria-orientation="vertical"/);
+  assert.match(sidebarResizer, /aria-valuenow=\{Math\.round\(width\)\}/);
+  assert.match(sidebarResizer, /setPointerCapture/);
+  assert.match(sidebarResizer, /hasPointerCapture/);
+  assert.match(sidebarResizer, /col-resize/);
+  assert.match(sidebarResizer, /ArrowLeft/);
+  assert.match(sidebarResizer, /ArrowRight/);
+  assert.match(sidebarResizer, /onLostPointerCapture/);
+  assert.match(sidebarResizer, /translate-x-\[9px\]/);
+  assert.match(sidebarResizer, /top-8 bottom-8/);
+  assert.match(sidebarResizer, /h-6 w-2/);
+  assert.match(sidebarResizer, /group-hover:opacity-100/);
+  assert.match(sidebarResizer, /group-data-\[dragging=true\]:opacity-100/);
+  assert.match(sidebarResizer, /document\.body\.style\.cursor = "col-resize"/);
+  assert.match(sidebarResizer, /document\.body\.style\.userSelect = "none"/);
 });

@@ -17,6 +17,7 @@ import {
   Sparkles,
   Table2,
   Users,
+  KeyRound,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -313,6 +314,11 @@ export const MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
     label: "用户管理",
     path: "/management/users",
     icon: Users,
+  },
+  {
+    label: "Token 管理",
+    path: "/management/tokens",
+    icon: KeyRound,
   },
   {
     label: "工作空间管理",

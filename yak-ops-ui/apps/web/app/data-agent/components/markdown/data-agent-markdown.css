@@ -1,0 +1,198 @@
+.data-agent-markdown {
+  --background: #ffffff;
+  --foreground: #27302f;
+  --card: #ffffff;
+  --card-foreground: #27302f;
+  --popover: #ffffff;
+  --popover-foreground: #27302f;
+  --primary: #fe2c55;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f6f5;
+  --secondary-foreground: #27302f;
+  --muted: #f4f6f5;
+  --muted-foreground: #78837f;
+  --accent: #f5f6f5;
+  --accent-foreground: #27302f;
+  --destructive: #d14e4e;
+  --destructive-foreground: #ffffff;
+  --border: #e7eae9;
+  --input: #e7eae9;
+  --ring: rgba(254, 44, 85, 0.24);
+  --sidebar: #f7f8f7;
+  --radius: 10px;
+
+  min-width: 0;
+  color: #27302f;
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.data-agent-markdown > :first-child {
+  margin-top: 0 !important;
+}
+
+.data-agent-markdown > :last-child {
+  margin-bottom: 0 !important;
+}
+
+.data-agent-markdown [data-streamdown="heading-1"] {
+  margin: 1.15rem 0 0.55rem;
+  color: #20201e;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.data-agent-markdown [data-streamdown="heading-2"] {
+  margin: 1.05rem 0 0.5rem;
+  color: #20201e;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.data-agent-markdown [data-streamdown="heading-3"],
+.data-agent-markdown [data-streamdown="heading-4"] {
+  margin: 0.9rem 0 0.4rem;
+  color: #27302f;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.data-agent-markdown p {
+  margin: 0.55rem 0;
+  line-height: 1.8;
+}
+
+.data-agent-markdown [data-streamdown="unordered-list"],
+.data-agent-markdown [data-streamdown="ordered-list"] {
+  margin: 0.55rem 0;
+  padding-left: 1.45rem !important;
+  list-style-position: outside !important;
+}
+
+.data-agent-markdown [data-streamdown="unordered-list"] {
+  list-style-type: disc !important;
+}
+
+.data-agent-markdown [data-streamdown="ordered-list"] {
+  list-style-type: decimal !important;
+}
+
+.data-agent-markdown [data-streamdown="list-item"] {
+  padding-top: 0.12rem;
+  padding-bottom: 0.12rem;
+}
+
+.data-agent-markdown [data-streamdown="list-item"] > ul {
+  list-style-type: circle !important;
+}
+
+.data-agent-markdown [data-streamdown="strong"] {
+  color: #20201e;
+  font-weight: 650;
+}
+
+.data-agent-markdown [data-streamdown="inline-code"] {
+  border: 1px solid #eceeed;
+  border-radius: 5px;
+  background: #f4f6f5;
+  padding: 0.12em 0.35em;
+  color: #bd4058;
+  font-size: 0.9em;
+}
+
+.data-agent-markdown [data-streamdown="code-block"] {
+  margin: 0.85rem 0;
+  overflow: hidden;
+  border: 1px solid #e5e9e7;
+  border-radius: 10px;
+  background: #f7f8f7;
+  padding: 8px;
+}
+
+.data-agent-markdown [data-streamdown="code-block-header"] {
+  min-height: 28px;
+  padding: 0 4px;
+}
+
+.data-agent-markdown [data-streamdown="code-block"] pre {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0 2px 4px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.data-agent-markdown [data-streamdown="table-wrapper"] {
+  max-width: 100%;
+  overflow: auto;
+  margin: 0.8rem 0;
+  border: 1px solid #e7eae9;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.data-agent-markdown [data-streamdown="table"] {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-agent-markdown [data-streamdown="table-header"] {
+  background: #f7f8f7;
+}
+
+.data-agent-markdown [data-streamdown="table-header-cell"] {
+  color: #303936;
+  font-weight: 650;
+  text-align: left;
+}
+
+.data-agent-markdown [data-streamdown="table-header-cell"],
+.data-agent-markdown [data-streamdown="table-cell"] {
+  border-bottom: 1px solid #eceeed;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-agent-markdown [data-streamdown="table-row"]:hover {
+  background: #fafbfa;
+}
+
+.data-agent-markdown [data-streamdown="blockquote"] {
+  margin: 0.8rem 0;
+  border-left: 3px solid #e1e6e4;
+  border-radius: 0 8px 8px 0;
+  background: #f8f9f8;
+  padding: 0.55rem 0.8rem;
+  color: #68736f;
+  font-style: normal;
+}
+
+.data-agent-markdown [data-streamdown="link"] {
+  color: #fe2c55;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.data-agent-markdown [data-streamdown="horizontal-rule"] {
+  margin: 1rem 0;
+  border-color: #eceeed;
+}
+
+.data-agent-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.data-agent-markdown :focus-visible {
+  outline: 2px solid rgba(254, 44, 85, 0.35);
+  outline-offset: 2px;
+}

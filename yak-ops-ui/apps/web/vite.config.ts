@@ -3,9 +3,13 @@ import { fileURLToPath, URL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
+import { createDataAgentProxy } from "./agent-proxy";
+
 const webRoot = fileURLToPath(new URL(".", import.meta.url));
 const backendUrl = process.env.YAK_BACKEND_URL || "http://127.0.0.1:8080";
 const yakOpsBackendUrl = process.env.YAK_OPS_BACKEND_URL || "http://127.0.0.1:12345";
+const dataAgentBackendUrl = process.env.YAK_AGENT_URL || "http://127.0.0.1:8090";
+const dataAgentProxy = createDataAgentProxy(dataAgentBackendUrl);
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export default defineConfig({
@@ -31,10 +35,21 @@ export default defineConfig({
     },
     proxy: {
       "/api": backendUrl,
+      "/yak-ops/agent-api": dataAgentProxy,
       "/yak-ops": {
         target: yakOpsBackendUrl,
         changeOrigin: true,
       },
+    },
+  },
+  preview: {
+    proxy: {
+      "/yak-ops/agent-api": dataAgentProxy,
+      "/yak-ops": {
+        target: yakOpsBackendUrl,
+        changeOrigin: true,
+      },
+      "/api": backendUrl,
     },
   },
   build: {
