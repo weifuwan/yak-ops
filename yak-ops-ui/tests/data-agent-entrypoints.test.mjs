@@ -113,6 +113,17 @@ test("Data Agent conversations stay local and do not call backend services", () 
   assert.doesNotMatch(composer, /fetch\s*\(/);
 });
 
+test("the model selector uses the Yak-UI portal menu and opens below the trigger", () => {
+  assert.match(workspace, /<DropdownMenu open=\{open\} onOpenChange=\{onOpenChange\}>/);
+  assert.match(
+    workspace,
+    /<DropdownMenuContent[\s\S]*?side="bottom"[\s\S]*?align="end"[\s\S]*?sideOffset=\{8\}/,
+  );
+  assert.match(workspace, /role="menuitemradio"/);
+  assert.match(workspace, /aria-checked=\{value === "DeepSeek"\}/);
+  assert.doesNotMatch(workspace, /absolute bottom-full|bottom-full right-0/);
+});
+
 test("Data Agent prompt composer preserves Yakable-style input interactions", () => {
   assert.match(composer, /placeholderSuggestions/);
   assert.match(composer, /onCompositionStart/);

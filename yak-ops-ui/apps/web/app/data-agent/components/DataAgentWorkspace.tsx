@@ -1,4 +1,10 @@
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@yak-ops/yak-ui";
+import {
   Activity,
   Check,
   ChevronDown,
@@ -76,53 +82,57 @@ function formatConversationTime(value: string) {
 function ModelSelector({
   value,
   open,
-  onToggle,
+  onOpenChange,
   onSelect,
 }: {
   value: string;
   open: boolean;
-  onToggle: () => void;
+  onOpenChange: (open: boolean) => void;
   onSelect: (value: string) => void;
 }) {
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-[#626262] transition-colors hover:bg-black/[0.045] hover:text-[#20201e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/30"
-        onClick={onToggle}
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+      <DropdownMenuTrigger
+        aria-label="选择模型"
+        className={
+          "flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors hover:bg-black/[0.045] hover:text-[#20201e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/30 " +
+          (open ? "bg-[#f4f4f2] text-[#20201e]" : "text-[#626262]")
+        }
       >
         <Sparkles size={13} strokeWidth={1.8} />
         <span>{value}</span>
-        <ChevronDown size={13} />
-      </button>
+        <ChevronDown
+          size={13}
+          className={"transition-transform duration-150 " + (open ? "rotate-180" : "")}
+        />
+      </DropdownMenuTrigger>
 
-      {open && (
-        <div
-          role="menu"
-          aria-label="选择模型"
-          className="absolute bottom-full right-0 z-30 mb-2 w-56 rounded-xl border border-[#e8e8e5] bg-white p-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.12)]"
+      <DropdownMenuContent
+        side="bottom"
+        align="end"
+        sideOffset={8}
+        className="w-56 rounded-[14px] border border-[#e8e8e5] bg-white p-1.5 text-[#20201e] shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+      >
+        <DropdownMenuItem
+          role="menuitemradio"
+          aria-checked={value === "DeepSeek"}
+          className="min-h-[56px] items-start justify-between gap-3 rounded-[10px] px-3 py-2 data-[highlighted]:bg-[#f5f5f3]"
+          onClick={() => onSelect("DeepSeek")}
         >
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={value === "DeepSeek"}
-            className="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[#20201e] hover:bg-[#f5f5f3]"
-            onClick={() => onSelect("DeepSeek")}
-          >
-            <span>DeepSeek</span>
-            {value === "DeepSeek" ? <Check size={15} className="text-[#fe2c55]" /> : null}
-          </button>
-          <p className="m-0 px-3 pb-2 pt-1 text-[11px] leading-5 text-[#999999]">
-            模型服务将在后端接入后启用
-          </p>
-        </div>
-      )}
-    </div>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-medium leading-5">DeepSeek</span>
+            <span className="mt-0.5 block text-[11px] leading-4 text-[#999999]">
+              模型服务将在后端接入后启用
+            </span>
+          </span>
+          {value === "DeepSeek" ? (
+            <Check size={15} className="mt-0.5 shrink-0 text-[#fe2c55]" />
+          ) : null}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
-
 function AgentWorkspacePanel() {
   return (
     <aside
@@ -237,7 +247,7 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
     <ModelSelector
       value={selectedModel}
       open={modelMenuOpen}
-      onToggle={() => setModelMenuOpen((current) => !current)}
+      onOpenChange={setModelMenuOpen}
       onSelect={(value) => {
         setSelectedModel(value);
         setModelMenuOpen(false);
