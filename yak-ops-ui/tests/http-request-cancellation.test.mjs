@@ -14,7 +14,10 @@ const requestSource = readFileSync(
 
 test("AbortError is recognized even when no AbortSignal is available", () => {
   assert.equal(isAbortError(new DOMException("Request aborted", "AbortError")), true);
-  assert.equal(isAbortError(Object.assign(new Error("Request aborted"), { name: "AbortError" })), true);
+  assert.equal(
+    isAbortError(Object.assign(new Error("Request aborted"), { name: "AbortError" })),
+    true,
+  );
 });
 
 test("an aborted signal marks the request as canceled", () => {
