@@ -27,6 +27,14 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(welcome, /任务运行日志/);
   assert.match(welcome, /直接描述需求/);
   assert.match(welcome, /animate-data-agent-mascot-float/);
+  assert.match(welcome, /onPointerMove=\{handlePointerMove\}/);
+  assert.match(welcome, /onPointerLeave=\{resetEyePosition\}/);
+  assert.match(welcome, /getBoundingClientRect\(\)/);
+  assert.match(welcome, /maxEyeOffset = 1\.8/);
+  assert.match(welcome, /trackingRadius = 96/);
+  assert.match(welcome, /translate3d\(/);
+  assert.match(welcome, /ref=\{leftEyeRef\}/);
+  assert.match(welcome, /ref=\{rightEyeRef\}/);
   assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|理解数据、构建任务|Enter 发送 · Shift/);
   assert.ok(!workspace.includes('activeConversation?.title ?? "新对话"'));
   assert.ok(!workspace.includes("前端预览</span>"));

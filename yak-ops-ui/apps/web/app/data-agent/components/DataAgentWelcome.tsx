@@ -1,3 +1,5 @@
+import { useRef, type PointerEvent } from "react";
+
 import {
   ChevronRight,
   Code2,
@@ -49,8 +51,46 @@ const ENTRYPOINTS: {
 ];
 
 export function DataAgentWelcome({ onEnter }: DataAgentWelcomeProps) {
+  const mascotRef = useRef<HTMLDivElement>(null);
+  const leftEyeRef = useRef<HTMLSpanElement>(null);
+  const rightEyeRef = useRef<HTMLSpanElement>(null);
+
+  function resetEyePosition() {
+    if (leftEyeRef.current) {
+      leftEyeRef.current.style.transform = "translate3d(0, 0, 0)";
+    }
+    if (rightEyeRef.current) {
+      rightEyeRef.current.style.transform = "translate3d(0, 0, 0)";
+    }
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const mascot = mascotRef.current;
+    if (!mascot) return;
+
+    const bounds = mascot.getBoundingClientRect();
+    if (bounds.width === 0 || bounds.height === 0) return;
+
+    const deltaX = event.clientX - (bounds.left + bounds.width / 2);
+    const deltaY = event.clientY - (bounds.top + bounds.height / 2);
+    const distance = Math.hypot(deltaX, deltaY);
+    const maxEyeOffset = 1.8;
+    const trackingRadius = 96;
+    const strength = Math.min(distance / trackingRadius, 1);
+    const offsetX = distance === 0 ? 0 : (deltaX / distance) * maxEyeOffset * strength;
+    const offsetY = distance === 0 ? 0 : (deltaY / distance) * maxEyeOffset * strength;
+    const transform = `translate3d(${offsetX.toFixed(2)}px, ${offsetY.toFixed(2)}px, 0)`;
+
+    if (leftEyeRef.current) leftEyeRef.current.style.transform = transform;
+    if (rightEyeRef.current) rightEyeRef.current.style.transform = transform;
+  }
+
   return (
-    <div className="flex h-dvh min-h-[520px] w-full flex-col overflow-hidden bg-[#f4f6f6] p-2 text-[#1c292b]">
+    <div
+      className="flex h-dvh min-h-[520px] w-full flex-col overflow-hidden bg-[#f4f6f6] p-2 text-[#1c292b]"
+      onPointerMove={handlePointerMove}
+      onPointerLeave={resetEyePosition}
+    >
       <header className="flex h-7 shrink-0 items-center justify-between px-0.5 pb-2">
         <button
           type="button"
@@ -144,11 +184,12 @@ export function DataAgentWelcome({ onEnter }: DataAgentWelcomeProps) {
         </div>
 
         <div
+          ref={mascotRef}
           aria-hidden="true"
-          className="absolute right-[max(28px,calc(50%_-_300px))] bottom-8 h-[76px] w-[37px] -rotate-[9deg] animate-data-agent-mascot-float rounded-full bg-[linear-gradient(112deg,#b9f1bd_0%,#86d48e_42%,#55a968_100%)] shadow-[inset_3px_0_5px_rgb(255_255_255_/_50%),inset_-4px_-2px_7px_rgb(28_99_50_/_16%),0_5px_8px_rgb(24_72_42_/_15%)] max-[640px]:right-[18px] max-[640px]:bottom-3 max-[640px]:h-[58px] max-[640px]:w-7 max-[640px]:opacity-[0.85] [@media(max-height:680px)]:hidden motion-reduce:animate-none motion-reduce:transform-none"
+          className="absolute right-[max(28px,calc(50%_-_300px)) bottom-8 h-[76px] w-[37px] -rotate-[9deg] animate-data-agent-mascot-float rounded-full bg-[linear-gradient(112deg,#b9f1bd_0%,#86d48e_42%,#55a968_100%)] shadow-[inset_3px_0_5px_rgb(255_255_255_/_50%),inset_-4px_-2px_7px_rgb(28_99_50_/_16%),0_5px_8px_rgb(24_72_42_/_15%)] max-[640px]:right-[18px] max-[640px]:bottom-3 max-[640px]:h-[58px] max-[640px]:w-7 max-[640px]:opacity-[0.85] [@media(max-height:680px)]:hidden motion-reduce:animate-none motion-reduce:transform-none"
         >
-          <span className="absolute top-[17px] left-[10px] h-[7px] w-[5px] rounded-[50%] bg-[radial-gradient(circle_at_35%_28%,#64716b_0_12%,#18251f_45%,#07120c_100%)] shadow-[0_0_1px_rgb(0_0_0_/_35%)] max-[640px]:top-[13px] max-[640px]:left-2 max-[640px]:h-[5px] max-[640px]:w-1" />
-          <span className="absolute top-4 left-[21px] h-[7px] w-[5px] rounded-[50%] bg-[radial-gradient(circle_at_35%_28%,#64716b_0_12%,#18251f_45%,#07120c_100%)] shadow-[0_0_1px_rgb(0_0_0_/_35%)] max-[640px]:top-3 max-[640px]:left-[17px] max-[640px]:h-[5px] max-[640px]:w-1" />
+          <span ref={leftEyeRef} className="absolute top-[17px] left-[10px] h-[7px] w-[5px] rounded-[50%] transition-transform duration-75 ease-out will-change-transform motion-reduce:transition-none bg-[radial-gradient(circle_at_35%_28%,#64716b_0_12%,#18251f_45%,#07120c_100%)] shadow-[0_0_1px_rgb(0_0_0_/_35%)] max-[640px]:top-[13px] max-[640px]:left-2 max-[640px]:h-[5px] max-[640px]:w-1" />
+          <span ref={rightEyeRef} className="absolute top-4 left-[21px] h-[7px] w-[5px] rounded-[50%] transition-transform duration-75 ease-out will-change-transform motion-reduce:transition-none bg-[radial-gradient(circle_at_35%_28%,#64716b_0_12%,#18251f_45%,#07120c_100%)] shadow-[0_0_1px_rgb(0_0_0_/_35%)] max-[640px]:top-3 max-[640px]:left-[17px] max-[640px]:h-[5px] max-[640px]:w-1" />
           <span className="absolute top-2 left-[7px] h-[22px] w-2 rotate-[-8deg] rounded-[50%] bg-white/[0.28] blur-[2px]" />
         </div>
       </main>
