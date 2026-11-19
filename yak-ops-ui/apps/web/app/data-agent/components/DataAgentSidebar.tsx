@@ -5,7 +5,6 @@ import {
   LayoutGrid,
   MessageSquare,
   Search,
-  Sparkles,
   SquarePen,
   Workflow,
   Zap,
@@ -94,12 +93,11 @@ export function DataAgentSidebar({
       className="flex h-full w-64 shrink-0 flex-col bg-[#f0f0f0] px-2 pb-2 pt-3 text-[#20201e] max-md:hidden"
     >
       <div className="flex h-6 shrink-0 items-center px-2">
-        <span
-          aria-hidden="true"
-          className="flex size-4 items-center justify-center rounded-[4px] bg-gradient-to-br from-[#ffb454] via-[#ff5c93] to-[#6d7bff] text-white"
-        >
-          <Sparkles size={10} strokeWidth={2.2} />
-        </span>
+        <img
+          src="/yakable_logo.png"
+          alt="Yakable"
+          className="size-4 shrink-0 object-contain"
+        />
       </div>
 
       <DropdownMenu>

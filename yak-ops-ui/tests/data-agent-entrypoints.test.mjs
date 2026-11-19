@@ -24,6 +24,8 @@ test("Data Agent reuses Yakable's full-screen workspace structure", () => {
   assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);
   assert.match(workspace, /暂无工作区文件/);
   assert.match(sidebar, /w-64/);
+  assert.match(sidebar, /src="\\/yakable_logo\\.png"/);
+  assert.doesNotMatch(sidebar, /<Sparkles/);
   assert.match(sidebar, /New/);
   assert.match(sidebar, /Search/);
   assert.match(sidebar, /Projects/);
