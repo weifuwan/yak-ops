@@ -7,6 +7,7 @@ const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
+const sidebarResizer = read("../apps/web/app/data-agent/components/DataAgentSidebarResizer.tsx");
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const globalStyles = read("../apps/web/app/styles/global.css");
 const rail = read("../apps/web/app/data-development/layout/development-rail.tsx");
@@ -79,7 +80,11 @@ test("Data Agent sidebar uses a smooth drawer transition without unmounting", ()
   assert.match(workspace, /ease-\[cubic-bezier\(0\.22,1,0\.36,1\)\]/);
   assert.match(workspace, /translate-x-0 opacity-100 pointer-events-auto/);
   assert.match(workspace, /-translate-x-3 opacity-0 pointer-events-none/);
-  assert.match(workspace, /w-64 max-md:w-0/);
+  assert.match(workspace, /w-\[var\(--data-agent-sidebar-width\)\] max-md:!w-0/);
+  assert.match(workspace, /sidebarWidth/);
+  assert.match(workspace, /sidebarResizing \? "transition-none"/);
+  assert.match(workspace, /<DataAgentSidebarResizer/);
+  assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
   assert.doesNotMatch(workspace, /\{sidebarOpen \? \([\s\S]*?<DataAgentSidebar/);
 });
 
@@ -155,4 +160,27 @@ test("Data Agent is registered as an authenticated route and product-menu entry"
   assert.match(navigation, /label: \"Data Agent\"/);
   assert.match(navigation, /label: \"智能体\"/);
   assert.match(navigation, /DATA_AGENT_PRODUCT/);
+});
+
+test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
+  assert.match(workspace, /const \[sidebarWidth, setSidebarWidth\] = useState\(256\)/);
+  assert.match(workspace, /onResize=\{setSidebarWidth\}/);
+  assert.match(workspace, /onDraggingChange=\{setSidebarResizing\}/);
+  assert.match(sidebarResizer, /SIDEBAR_MIN_WIDTH = 220/);
+  assert.match(sidebarResizer, /SIDEBAR_MAX_WIDTH = 440/);
+  assert.match(sidebarResizer, /role="separator"/);
+  assert.match(sidebarResizer, /aria-orientation="vertical"/);
+  assert.match(sidebarResizer, /aria-valuenow=\{Math\.round\(width\)\}/);
+  assert.match(sidebarResizer, /setPointerCapture/);
+  assert.match(sidebarResizer, /hasPointerCapture/);
+  assert.match(sidebarResizer, /col-resize/);
+  assert.match(sidebarResizer, /ArrowLeft/);
+  assert.match(sidebarResizer, /ArrowRight/);
+  assert.match(sidebarResizer, /onLostPointerCapture/);
+  assert.match(sidebarResizer, /top-8 bottom-8/);
+  assert.match(sidebarResizer, /h-6 w-2/);
+  assert.match(sidebarResizer, /group-hover:opacity-100/);
+  assert.match(sidebarResizer, /group-data-\[dragging=true\]:opacity-100/);
+  assert.match(sidebarResizer, /document\.body\.style\.cursor = "col-resize"/);
+  assert.match(sidebarResizer, /document\.body\.style\.userSelect = "none"/);
 });
