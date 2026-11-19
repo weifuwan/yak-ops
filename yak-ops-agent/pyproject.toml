@@ -50,5 +50,5 @@ dev = [
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["yak_agent"]
+[tool.setuptools.packages.find]
+include = ["yak_agent*"]

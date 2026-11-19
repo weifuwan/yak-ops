@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from yak_agent.tools import _load_operations
+from yak_agent.tools.registry import load_operations
 
 _TEMPLATE_HEADER = '''"""Auto-generated read-only SDK for analysis scripts. Do not edit."""
 
@@ -132,7 +132,7 @@ def generate_sdk(agent_root: Path, auth: Any = None, project_code: Any = None) -
     header still renders, but authenticating fails — used by the compute-only
     tier, which does not write the SDK at all.
     """
-    operations = [op for op in _load_operations() if op.get("risk") == "readonly"]
+    operations = [op for op in load_operations() if op.get("risk") == "readonly"]
     if auth is not None:
         creds = {
             "base_url": auth.base_url,
