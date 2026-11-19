@@ -635,7 +635,7 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
 
                   {activeConversation?.restored ? (
                     <div className="mb-3 rounded-xl border border-[#e7e9e8] bg-[#f8faf9] px-3 py-2 text-xs leading-5 text-[#78817f]">
-                      已恢复服务端会话上下文。当前 Agent 接口暂不提供历史消息回放，你可以继续提问。
+                      已恢复服务端会话上下文。历史消息暂不提供回放，你可以继续提问。
                     </div>
                   ) : null}
 

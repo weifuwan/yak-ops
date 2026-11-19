@@ -22,12 +22,12 @@ export type AgentStreamEvent =
   | { type: "error"; message: string };
 
 export class DataAgentApiError extends Error {
-  constructor(
-    message: string,
-    readonly status?: number,
-  ) {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "DataAgentApiError";
+    this.status = status;
   }
 }
 

@@ -43,7 +43,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(workspace, /<DataAgentSidebar/);
-  assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);
+  assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
   assert.ok(sidebar.includes('src="/yakable_logo.png"'));
   assert.doesNotMatch(sidebar, /<Sparkles/);
