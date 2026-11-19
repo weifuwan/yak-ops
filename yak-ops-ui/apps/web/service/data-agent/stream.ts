@@ -1,8 +1,9 @@
-import { responseError, sessionPath } from "./http.ts";
+import { createAgentRequestHeaders, responseError, sessionPath } from "./http.ts";
 import { confirmAgentSession } from "./sessions.ts";
 import {
   DATA_AGENT_API_PREFIX,
   DataAgentStreamError,
+  type AgentRequestIdentity,
   type AgentStreamEvent,
   type AgentToolCallRequest,
 } from "./types.ts";
@@ -72,6 +73,7 @@ export async function sendAgentMessage(
   sessionId: string,
   message: string,
   options: {
+    identity: AgentRequestIdentity;
     signal: AbortSignal;
     onEvent: (event: AgentStreamEvent) => void;
     onConfirmRequired: (
@@ -83,10 +85,10 @@ export async function sendAgentMessage(
     DATA_AGENT_API_PREFIX + sessionPath(sessionId) + "/messages",
     {
       method: "POST",
-      headers: {
+      headers: createAgentRequestHeaders(options.identity, {
         Accept: "text/event-stream",
         "Content-Type": "application/json",
-      },
+      }),
       credentials: "include",
       body: JSON.stringify({ message }),
       signal: options.signal,
@@ -109,7 +111,7 @@ export async function sendAgentMessage(
 
     if (event.type === "confirm_required") {
       const approved = await options.onConfirmRequired(event);
-      await confirmAgentSession(sessionId, approved, options.signal);
+      await confirmAgentSession(sessionId, approved, options.identity, options.signal);
       return;
     }
 

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
+import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { handleAuthenticationFailure } from "@/service/http/request";
 import {
   createAgentSession,
@@ -28,6 +30,19 @@ type SendMessageResult = {
 };
 
 export function useDataAgentConversation() {
+  const { currentUser } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const requestIdentity = useMemo(
+    () =>
+      currentUser?.id && currentWorkspace?.id
+        ? {
+            userId: String(currentUser.id),
+            workspaceId: String(currentWorkspace.id),
+          }
+        : null,
+    [currentUser?.id, currentWorkspace?.id],
+  );
+
   const [state, dispatch] = useReducer(
     conversationReducer,
     initialConversationState,
@@ -55,7 +70,20 @@ export function useDataAgentConversation() {
   useEffect(() => {
     const controller = new AbortController();
 
-    listAgentSessions(controller.signal)
+    // A workspace or login change invalidates the old conversation context.
+    streamControllerRef.current?.abort();
+    pendingConfirmationResolverRef.current?.(false);
+    pendingConfirmationResolverRef.current = null;
+    pendingConfirmationRef.current = null;
+    setPendingConfirmation(null);
+    setConnectionError("");
+    dispatch({ type: "RESET" });
+
+    if (!requestIdentity) {
+      return () => controller.abort();
+    }
+
+    listAgentSessions(requestIdentity, controller.signal)
       .then((sessions) => {
         if (controller.signal.aborted) return;
         const restored: AgentConversation[] = sessions
@@ -81,7 +109,7 @@ export function useDataAgentConversation() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [requestIdentity]);
 
   useEffect(
     () => () => {
@@ -127,6 +155,10 @@ export function useDataAgentConversation() {
   const sendMessage = useCallback(
     async (content: string): Promise<SendMessageResult> => {
       if (sendingRef.current) return { restoreDraft: false };
+      if (!requestIdentity) {
+        setConnectionError("请先登录并选择工作空间，再使用 Data Agent。");
+        return { restoreDraft: true };
+      }
 
       sendingRef.current = true;
       setIsSending(true);
@@ -154,7 +186,7 @@ export function useDataAgentConversation() {
 
       try {
         if (!sessionId) {
-          const created = await createAgentSession(controller.signal);
+          const created = await createAgentSession(requestIdentity, controller.signal);
           sessionId = created.sessionId;
         }
 
@@ -169,6 +201,7 @@ export function useDataAgentConversation() {
         });
 
         await sendAgentMessage(resolvedSessionId, content, {
+          identity: requestIdentity,
           signal: controller.signal,
           onEvent: (event: AgentStreamEvent) => {
             const updatedAt = new Date().toISOString();
@@ -276,7 +309,7 @@ export function useDataAgentConversation() {
         setIsSending(false);
       }
     },
-    [state.activeConversationId],
+    [requestIdentity, state.activeConversationId],
   );
 
   return {

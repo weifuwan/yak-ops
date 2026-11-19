@@ -1,3 +1,8 @@
+export interface AgentRequestIdentity {
+  userId: string;
+  workspaceId: string;
+}
+
 export interface AgentSessionSummary {
   sessionId: string;
   updatedAt: number;

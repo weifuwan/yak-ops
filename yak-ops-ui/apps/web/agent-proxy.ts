@@ -22,6 +22,12 @@ export function readYakSessionId(cookieHeader?: string): string | null {
   return null;
 }
 
+function readForwardedHeader(value: string | string[] | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized || null;
+}
+
 export function createDataAgentProxy(agentUrl: string): ProxyOptions {
   return {
     target: agentUrl,
@@ -30,8 +36,20 @@ export function createDataAgentProxy(agentUrl: string): ProxyOptions {
     configure: (proxy) => {
       proxy.on("proxyReq", (proxyRequest, request) => {
         const sessionId = readYakSessionId(request.headers.cookie);
+        const userId = readForwardedHeader(request.headers["x-yak-user-id"]);
+        const workspaceId = readForwardedHeader(request.headers["x-yak-workspace-id"]);
+
         // sessionId is HttpOnly. Forward it server-to-server instead of exposing it to browser JavaScript.
         proxyRequest.setHeader("X-Yak-Session-Id", sessionId || "__missing_session__");
+
+        // User/workspace values come from the authenticated frontend context.
+        // The Agent backend independently verifies both against the platform session.
+        if (userId) proxyRequest.setHeader("X-Yak-User-Id", userId);
+        else proxyRequest.removeHeader("X-Yak-User-Id");
+
+        if (workspaceId) proxyRequest.setHeader("X-Yak-Workspace-Id", workspaceId);
+        else proxyRequest.removeHeader("X-Yak-Workspace-Id");
+
         proxyRequest.removeHeader("cookie");
       });
     },

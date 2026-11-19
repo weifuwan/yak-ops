@@ -8,6 +8,7 @@ export {
   DATA_AGENT_API_PREFIX,
   DataAgentApiError,
   DataAgentStreamError,
+  type AgentRequestIdentity,
   type AgentSessionSummary,
   type AgentStreamEvent,
   type AgentToolCallRequest,

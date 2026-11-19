@@ -6,6 +6,7 @@ export type ConversationState = {
 };
 
 export type ConversationAction =
+  | { type: "RESET" }
   | { type: "RESTORE_CONVERSATIONS"; conversations: AgentConversation[] }
   | { type: "SELECT_CONVERSATION"; sessionId: string | null }
   | {
@@ -102,6 +103,9 @@ export function conversationReducer(
   action: ConversationAction,
 ): ConversationState {
   switch (action.type) {
+    case "RESET":
+      return initialConversationState;
+
     case "RESTORE_CONVERSATIONS": {
       const existingIds = new Set(state.conversations.map((item) => item.id));
       const restored = action.conversations.filter((item) => !existingIds.has(item.id));

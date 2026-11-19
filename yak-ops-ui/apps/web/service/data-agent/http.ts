@@ -1,10 +1,27 @@
 import {
   DATA_AGENT_API_PREFIX,
   DataAgentApiError,
+  type AgentRequestIdentity,
 } from "./types.ts";
 
 export const sessionPath = (sessionId: string) =>
   "/agent/sessions/" + encodeURIComponent(sessionId);
+
+export function createAgentRequestHeaders(
+  identity: AgentRequestIdentity,
+  initialHeaders?: HeadersInit,
+): Headers {
+  const userId = identity.userId.trim();
+  const workspaceId = identity.workspaceId.trim();
+  if (!userId || !workspaceId) {
+    throw new DataAgentApiError("Data Agent 请求缺少当前用户或工作空间，请先登录并选择工作空间。");
+  }
+
+  const headers = new Headers(initialHeaders);
+  headers.set("X-Yak-User-Id", userId);
+  headers.set("X-Yak-Workspace-Id", workspaceId);
+  return headers;
+}
 
 export async function responseError(response: Response): Promise<DataAgentApiError> {
   const raw = await response.text();
@@ -28,10 +45,11 @@ export async function responseError(response: Response): Promise<DataAgentApiErr
 
 export async function requestJson<T>(
   path: string,
+  identity: AgentRequestIdentity,
   init: RequestInit = {},
   signal?: AbortSignal,
 ): Promise<T> {
-  const headers = new Headers(init.headers);
+  const headers = createAgentRequestHeaders(identity, init.headers);
   if (init.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
