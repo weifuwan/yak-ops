@@ -108,7 +108,7 @@ export function DataAgentWorkspace({
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
+    <div className="data-agent-workspace-enter flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
       <div
         aria-hidden={!sidebarOpen}
         className={
