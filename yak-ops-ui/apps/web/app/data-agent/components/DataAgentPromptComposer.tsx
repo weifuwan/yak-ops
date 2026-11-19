@@ -104,7 +104,7 @@ export function DataAgentPromptComposer({
               >
                 <span>{placeholderPrefix}</span>
                 {visibleLength > 0 ? <span> {suggestion.slice(0, visibleLength)}</span> : null}
-                <span className="ml-0.5 inline-block h-[1em] w-px translate-y-[-0.12em] animate-data-agent-caret bg-current align-[-0.12em] opacity-[0.65] motion-reduce:animate-none" />
+                <span className="ml-0.5 inline-block h-[1em] w-px animate-data-agent-caret bg-current align-[-0.12em] opacity-[0.65] motion-reduce:animate-none" />
               </span>
             )}
             <textarea
