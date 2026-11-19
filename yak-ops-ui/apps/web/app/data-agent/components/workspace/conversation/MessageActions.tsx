@@ -46,7 +46,7 @@ export function MessageActions({
 }: MessageActionsProps) {
   const [feedback, setFeedback] = useState<MessageFeedback | null>(null);
   const [messageCopied, setMessageCopied] = useState(false);
-  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyResetTimerRef = useRef<number | null>(null);
   const canInteract =
     message.status !== "streaming" &&
     message.status !== "awaiting-confirmation";
