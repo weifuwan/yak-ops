@@ -121,21 +121,31 @@ def verify_workspace(auth: YakAuth, workspace_id: str) -> None:
     """Platform-side workspace (project) permission check — the sessionId is
     validated by the platform on this call, and the requested workspace must be
     granted to the session's user."""
-    try:
-        data = yak_get(auth, "/projects", {"pageNo": 1, "pageSize": 100})
-    except YakApiError as ex:
-        if ex.status_code == 401:
+    page_no = 1
+    while True:
+        try:
+            data = yak_get(auth, "/projects", {"pageNo": page_no, "pageSize": 100})
+        except YakApiError as ex:
+            if ex.status_code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail="yak-ops session invalid or expired; re-login and retry",
+                ) from ex
             raise HTTPException(
-                status_code=401,
-                detail="yak-ops session invalid or expired; re-login and retry",
+                status_code=502,
+                detail=f"yak-ops workspace verification failed: {ex}",
             ) from ex
-        raise HTTPException(
-            status_code=502,
-            detail=f"yak-ops workspace verification failed: {ex}",
-        ) from ex
-    codes = {str(item.get("code")) for item in ((data or {}).get("totalList") or [])}
-    if str(workspace_id) not in codes:
-        raise HTTPException(
-            status_code=403,
-            detail="the requested workspace is not granted to this user",
-        )
+        payload = data or {}
+        items = payload.get("totalList") or []
+        codes = {str(item.get("code")) for item in items}
+        if str(workspace_id) in codes:
+            return
+        total = int(payload.get("total") or 0)
+        page_size = int(payload.get("pageSize") or 100)
+        if not items or page_size <= 0 or page_no * page_size >= total:
+            break
+        page_no += 1
+    raise HTTPException(
+        status_code=403,
+        detail="the requested workspace is not granted to this user",
+    )

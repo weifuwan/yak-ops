@@ -153,7 +153,7 @@ class PersistenceTests(unittest.TestCase):
 
 class WorkspaceAuthorizationTests(unittest.TestCase):
     @staticmethod
-    def _request() -> Request:
+    def _request(workspace_id: str = "1") -> Request:
         return Request(
             {
                 "type": "http",
@@ -161,7 +161,7 @@ class WorkspaceAuthorizationTests(unittest.TestCase):
                 "path": "/",
                 "headers": [
                     (b"x-yak-session-id", b"login-a"),
-                    (b"x-yak-workspace-id", b"1"),
+                    (b"x-yak-workspace-id", workspace_id.encode()),
                 ],
                 "query_string": b"",
                 "server": ("test", 80),
@@ -186,6 +186,26 @@ class WorkspaceAuthorizationTests(unittest.TestCase):
         verify.assert_called_once()
         self.assertEqual(identity.workspace_id, "1")
         self.assertTrue(identity.persistent)
+
+    def test_workspace_on_a_later_page_is_found(self) -> None:
+        settings = SimpleNamespace(yak_ops_base_url="http://platform")
+        pages = [
+            {"totalList": [{"code": 1}], "total": 150, "pageSize": 100},
+            {"totalList": [{"code": 2}], "total": 150, "pageSize": 100},
+        ]
+        with (
+            patch.object(deps, "service_guard"),
+            patch.object(
+                deps,
+                "fetch_user",
+                return_value={"id": 7, "createTime": "2026-01-02"},
+            ),
+            patch.object(deps, "yak_get", side_effect=pages) as get,
+        ):
+            identity = deps.request_identity(self._request("2"), settings)
+
+        self.assertEqual(identity.workspace_id, "2")
+        self.assertEqual(get.call_count, 2)
 
     def test_revoked_workspace_is_rejected(self) -> None:
         settings = SimpleNamespace(yak_ops_base_url="http://platform")
