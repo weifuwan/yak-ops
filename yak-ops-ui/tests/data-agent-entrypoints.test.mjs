@@ -235,3 +235,17 @@ test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
   assert.match(sidebarResizer, /document\.body\.style\.cursor = "col-resize"/);
   assert.match(sidebarResizer, /document\.body\.style\.userSelect = "none"/);
 });
+
+test("Data Agent workspace menu groups its label with menu items", () => {
+  const groupStart = sidebar.indexOf("<DropdownMenuGroup>");
+  const labelStart = sidebar.indexOf("<DropdownMenuLabel");
+  const labelEnd = sidebar.indexOf("</DropdownMenuLabel>");
+  const groupEnd = sidebar.indexOf("</DropdownMenuGroup>");
+  const workspaceItems = sidebar.indexOf("workspaces.map", groupStart);
+
+  assert.ok(groupStart >= 0, "workspace menu should render a DropdownMenuGroup");
+  assert.ok(groupStart < labelStart, "menu group should start before its label");
+  assert.ok(labelStart < labelEnd, "menu label should be present");
+  assert.ok(labelEnd < workspaceItems, "workspace items should follow the label");
+  assert.ok(workspaceItems < groupEnd, "workspace items should remain inside the group");
+});

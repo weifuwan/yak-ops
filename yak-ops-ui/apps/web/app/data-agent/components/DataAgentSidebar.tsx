@@ -5,6 +5,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -103,33 +104,35 @@ export function DataAgentSidebar({
           align="start"
           className="w-60 border border-[#dededb] bg-white p-1.5 text-[#20201e] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
         >
-          <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-medium text-[#888888]">
-            工作空间
-          </DropdownMenuLabel>
-          {workspaces.length > 0 ? (
-            workspaces.map((workspace) => {
-              const selected = workspace.id === currentWorkspace?.id;
-              return (
-                <DropdownMenuItem
-                  key={workspace.id}
-                  onClick={() => selectWorkspace(workspace.id)}
-                  className="min-h-9 cursor-pointer gap-2 rounded-md px-2 py-2 text-xs text-[#333333] outline-none data-[highlighted]:bg-[#f1f1f1]"
-                >
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate font-medium">{workspace.name}</span>
-                    <span className="truncate text-[10px] text-[#999999]">
-                      {workspace.id}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-medium text-[#888888]">
+              工作空间
+            </DropdownMenuLabel>
+            {workspaces.length > 0 ? (
+              workspaces.map((workspace) => {
+                const selected = workspace.id === currentWorkspace?.id;
+                return (
+                  <DropdownMenuItem
+                    key={workspace.id}
+                    onClick={() => selectWorkspace(workspace.id)}
+                    className="min-h-9 cursor-pointer gap-2 rounded-md px-2 py-2 text-xs text-[#333333] outline-none data-[highlighted]:bg-[#f1f1f1]"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="truncate font-medium">{workspace.name}</span>
+                      <span className="truncate text-[10px] text-[#999999]">
+                        {workspace.id}
+                      </span>
                     </span>
-                  </span>
-                  {selected ? <Check size={14} className="shrink-0 text-[#555555]" /> : null}
-                </DropdownMenuItem>
-              );
-            })
-          ) : (
-            <DropdownMenuItem disabled className="text-xs text-[#999999]">
-              暂无工作空间
-            </DropdownMenuItem>
-          )}
+                    {selected ? <Check size={14} className="shrink-0 text-[#555555]" /> : null}
+                  </DropdownMenuItem>
+                );
+              })
+            ) : (
+              <DropdownMenuItem disabled className="text-xs text-[#999999]">
+                暂无工作空间
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
           {error ? (
             <>
               <DropdownMenuSeparator className="my-1 bg-[#eeeeec]" />
