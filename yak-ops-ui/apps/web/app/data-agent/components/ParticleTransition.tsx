@@ -325,6 +325,7 @@ export function ParticleTransition({
         window.removeEventListener("resize", resizeCanvas);
       }
 
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       context.clearRect(0, 0, width, height);
       context.globalAlpha = 1;
       context.globalCompositeOperation = "source-over";
