@@ -273,7 +273,7 @@ test("Data Agent restores its workspace on refresh and shows a full-screen shimm
   assert.match(workspace, /data-agent-workspace-enter/);
   assert.match(workspace, /showLoadingOverlay/);
   assert.match(workspace, /window\.setTimeout\(\(\) => setShowLoadingOverlay\(false\), 200\)/);
-  assert.match(workspace, /inert=\{showLoadingOverlay\}/);
+  assert.match(workspace, /element\.inert = showLoadingOverlay/);
 
   assert.match(loading, /fixed inset-0 z-\[100\]/);
   assert.match(loading, /exiting=\{loadingOverlayExiting\}/);
