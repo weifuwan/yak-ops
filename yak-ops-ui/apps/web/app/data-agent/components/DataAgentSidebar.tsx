@@ -2,7 +2,6 @@ import {
   Check,
   ChevronDown,
   Clock3,
-  Folder,
   LayoutGrid,
   MessageSquare,
   Search,
@@ -168,7 +167,7 @@ export function DataAgentSidebar({
       <nav aria-label="Data Agent navigation" className="mt-2 flex shrink-0 flex-col gap-0.5">
         <button
           type="button"
-          aria-current={activeConversationId === null ? "page" : undefined}
+          aria-current={activeNavigation === "new" ? "page" : undefined}
           className={navItemClass(activeNavigation === "new")}
           onClick={() => {
             onNewConversation();
