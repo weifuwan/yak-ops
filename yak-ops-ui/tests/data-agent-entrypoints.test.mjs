@@ -18,7 +18,7 @@ test("Data Agent reuses Yakable's full-screen workspace structure", () => {
   assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|理解数据、构建任务|Enter 发送 · Shift/);
   assert.ok(!workspace.includes('activeConversation?.title ?? "新对话"'));
   assert.ok(!workspace.includes("前端预览</span>"));
-  assert.match(workspace, /bg-\[#f4f4f2\] p-2 max-md:p-0/);
+  assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);

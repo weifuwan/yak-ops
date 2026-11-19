@@ -305,7 +305,7 @@ function WorkflowNodePicker({
         <div className={isPopover
           ? "flex h-7 items-center justify-between px-2 text-[11px] font-semibold text-[#667085]"
           : "flex h-7 items-center justify-between bg-[#f7f8fa] px-1.5 text-xs font-semibold text-[#333]"}>
-          <span className="flex min-w-0 items-center gap-1.5">
+          <span className="flex min-w-0 items-center gap-1.5" style={{marginTop: 8}}>
             <Star
               size={12}
               fill="currentColor"

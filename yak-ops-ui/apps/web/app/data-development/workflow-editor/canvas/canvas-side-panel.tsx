@@ -299,7 +299,7 @@ export function CanvasSidePanel({
                   placeholder="搜索节点名称 / 类型 / ID"
                   aria-label="搜索内部节点"
                   autoComplete="off"
-                  className="h-9 w-full rounded-md border border-[#e5e7eb] bg-white pl-9 pr-9 text-xs text-[#303846] outline-none transition-colors placeholder:text-[#a0a8b4] focus:border-[#9bb5ff] focus:ring-2 focus:ring-[#315efb]/10"
+                  className="h-6 w-full rounded-md border border-[#e5e7eb] bg-white pl-9 pr-9 text-xs text-[#303846] outline-none transition-colors placeholder:text-[#a0a8b4] focus:border-[#9bb5ff] focus:ring-2 focus:ring-[#315efb]/10"
                 />
                 {searchValue ? (
                   <button

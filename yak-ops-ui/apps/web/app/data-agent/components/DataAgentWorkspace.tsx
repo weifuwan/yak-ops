@@ -163,7 +163,7 @@ export function DataAgentWorkspace() {
   );
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f4f4f2] text-[#20201e]">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
       <DataAgentSidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
@@ -174,7 +174,7 @@ export function DataAgentWorkspace() {
         }}
       />
 
-      <main className="flex min-h-0 min-w-0 flex-1 bg-[#f4f4f2] p-2 max-md:p-0">
+      <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
         <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
 
 
