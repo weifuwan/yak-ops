@@ -1,3 +1,4 @@
+import { isRequestAborted } from "@/service/http/abort";
 import {
   extractErrorMessage,
   extractUnknownErrorMessage,
@@ -6,7 +7,6 @@ import {
   isUnauthenticatedResponse,
   type ApiResponse,
 } from "@/service/http/response";
-import { isRequestAborted } from "@/service/http/abort";
 import { notifyOnce } from "@/utils/notification";
 
 export type { ApiResponse } from "@/service/http/response";
