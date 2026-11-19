@@ -7,6 +7,7 @@ export interface UserRecord {
   phone?: string | null;
   userType?: "ADMIN_USER" | "GENERAL_USER";
   tenantId?: number;
+  tenantCode?: string | null;
   state?: number;
   queue?: string | null;
   timeZone?: string | null;
