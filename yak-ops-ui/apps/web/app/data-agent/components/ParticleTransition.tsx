@@ -13,7 +13,7 @@ export type ParticleTransitionProps = {
   /** Normalized particle emission point. */
   origin?: ParticleTransitionOrigin;
   /** Horizontal direction of the particle stream. */
-  direction?: "left" | "right" | "both";
+  direction?: "left" | "right";
   /** Number of particles emitted for each run. */
   particleCount?: number;
   /** Animation duration in milliseconds. */
@@ -38,7 +38,6 @@ type Particle = {
   delay: number;
   life: number;
   color: string;
-  direction: number;
 };
 
 const DEFAULT_ORIGIN: ParticleTransitionOrigin = { x: 0.42, y: 0.5 };
@@ -80,36 +79,28 @@ function createParticles(
   originX: number,
   originY: number,
   count: number,
-  direction: "left" | "right" | "both",
+  direction: number,
   durationSeconds: number,
 ): Particle[] {
   const centerX = width * originX;
   const centerY = height * originY;
   const verticalSpread = Math.max(height * 0.24, 42);
 
-  return Array.from({ length: count }, () => {
-    const particleDirection =
-      direction === "both"
-        ? Math.random() > 0.5 ? 1 : -1
-        : direction === "left" ? -1 : 1;
-
-    return {
-      x: centerX + randomGaussian() * 2.6,
-      y: centerY + randomGaussian() * 3.4,
-      previousX: centerX,
-      previousY: centerY,
-      vx: (particleDirection * width * randomBetween(0.48, 0.82)) / durationSeconds,
-      vy: (randomGaussian() * verticalSpread * 0.92) / durationSeconds,
-      radius: Math.random() > 0.9 ? randomBetween(1.5, 2.2) : randomBetween(0.62, 1.55),
-      opacity: randomBetween(0.34, 0.82),
-      phase: randomBetween(0, TAU),
-      frequency: randomBetween(1.1, 3.4),
-      delay: randomBetween(0, 0.16),
-      life: randomBetween(0.68, 1),
-      color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
-      direction: particleDirection,
-    };
-  });
+  return Array.from({ length: count }, () => ({
+    x: centerX + randomGaussian() * 2.6,
+    y: centerY + randomGaussian() * 3.4,
+    previousX: centerX,
+    previousY: centerY,
+    vx: (direction * width * randomBetween(0.48, 0.82)) / durationSeconds,
+    vy: (randomGaussian() * verticalSpread * 0.92) / durationSeconds,
+    radius: Math.random() > 0.9 ? randomBetween(1.5, 2.2) : randomBetween(0.62, 1.55),
+    opacity: randomBetween(0.34, 0.82),
+    phase: randomBetween(0, TAU),
+    frequency: randomBetween(1.1, 3.4),
+    delay: randomBetween(0, 0.16),
+    life: randomBetween(0.68, 1),
+    color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+  }));
 }
 
 /**
@@ -157,6 +148,7 @@ export function ParticleTransition({
     const safeParticleCount = Number.isFinite(particleCount)
       ? clamp(Math.round(particleCount), 80, MAX_PARTICLE_COUNT)
       : DEFAULT_PARTICLE_COUNT;
+    const directionSign = direction === "left" ? -1 : 1;
 
     let width = 0;
     let height = 0;
@@ -206,7 +198,7 @@ export function ParticleTransition({
       originX,
       originY,
       safeParticleCount,
-      direction,
+      directionSign,
       durationSeconds,
     );
 
@@ -291,7 +283,7 @@ export function ParticleTransition({
           (durationSeconds * durationSeconds);
         particle.vy *= Math.pow(0.992, deltaSeconds * 60);
         particle.vx +=
-          (particle.direction * width * 0.02 * deltaSeconds) /
+          (directionSign * width * 0.02 * deltaSeconds) /
           (durationSeconds * durationSeconds);
         particle.x += particle.vx * deltaSeconds;
         particle.y += particle.vy * deltaSeconds;
