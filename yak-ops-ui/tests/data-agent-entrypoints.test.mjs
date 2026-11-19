@@ -7,6 +7,7 @@ const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
+const emptyStateStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-empty-state.css");
 const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
 const sidebarNavigation = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarNavigation.tsx");
@@ -90,6 +91,19 @@ test("the welcome workspace keeps its centered prompt and shortcut layout", () =
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
+});
+
+test("Data Agent empty state renders scoped, outward-only ambient waves", () => {
+  assert.match(emptyState, /import "\.\/data-agent-empty-state\.css";/);
+  assert.match(emptyState, /data-agent-empty-state relative isolate/);
+  assert.match(emptyState, /data-agent-empty-state__wave/);
+  assert.match(emptyState, /data-agent-empty-state__content/);
+  assert.match(emptyStateStyles, /--yak-ops-data-agent-wave-duration:\s*5\.6s/);
+  assert.match(emptyStateStyles, /animation-delay:\s*calc\(var\(--yak-ops-data-agent-wave-duration\) \/ -2\)/);
+  assert.match(emptyStateStyles, /@keyframes yak-ops-data-agent-wave-out/);
+  assert.match(emptyStateStyles, /72%/);
+  assert.match(emptyStateStyles, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(emptyStateStyles, /main\s*>|:root/);
 });
 
 test("Data Agent sidebar uses a smooth drawer transition without unmounting", () => {
