@@ -32,6 +32,7 @@ import {
   type AgentToolCallRequest,
 } from "@/service/data-agent";
 
+import { DataAgentMarkdown } from "./markdown/DataAgentMarkdown";
 import { DataAgentPromptComposer } from "./DataAgentPromptComposer";
 import { DataAgentSidebar } from "./DataAgentSidebar";
 import { DataAgentSidebarResizer } from "./DataAgentSidebarResizer";
@@ -698,11 +699,12 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
                                 </p>
                               </div>
                             ) : (
-                              <div className="text-[14px] leading-7 text-[#27302f]">
-                                {message.content ? (
-                                  <p className="m-0 whitespace-pre-wrap break-words">
-                                    {message.content}
-                                  </p>
+                              <div className="min-w-0 text-[14px] leading-7 text-[#27302f]">
+                                {message.content.trim() ? (
+                                  <DataAgentMarkdown
+                                    content={message.content}
+                                    isStreaming={message.status === "streaming"}
+                                  />
                                 ) : message.status === "streaming" &&
                                   (message.toolCalls?.length ?? 0) === 0 ? (
                                   <div className="flex items-center gap-2 text-xs text-[#899391]">
