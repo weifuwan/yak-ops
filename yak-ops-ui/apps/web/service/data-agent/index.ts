@@ -2,8 +2,8 @@ export {
   createAgentSession,
   deleteAgentSession,
   listAgentSessions,
-} from "./sessions";
-export { parseAgentSseFrame, sendAgentMessage } from "./stream";
+} from "./sessions.ts";
+export { parseAgentSseFrame, sendAgentMessage } from "./stream.ts";
 export {
   DATA_AGENT_API_PREFIX,
   DataAgentApiError,
@@ -11,4 +11,4 @@ export {
   type AgentSessionSummary,
   type AgentStreamEvent,
   type AgentToolCallRequest,
-} from "./types";
+} from "./types.ts";

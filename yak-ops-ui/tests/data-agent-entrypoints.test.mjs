@@ -7,6 +7,7 @@ const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
+const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
 const sidebarNavigation = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarNavigation.tsx");
 const conversationList = read("../apps/web/app/data-agent/components/sidebar/DataAgentConversationList.tsx");
@@ -71,10 +72,10 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
 test("the welcome workspace keeps its centered prompt and shortcut layout", () => {
   assert.match(emptyState, /max-w-\[540px\]/);
   assert.match(emptyState, /grid grid-cols-2 gap-2/);
-  assert.match(emptyState, /分析数据表/);
-  assert.match(emptyState, /生成 SQL/);
-  assert.match(emptyState, /排查任务异常/);
-  assert.match(emptyState, /梳理数据开发流程/);
+  assert.match(quickActions, /分析数据表/);
+  assert.match(quickActions, /生成 SQL/);
+  assert.match(quickActions, /排查任务异常/);
+  assert.match(quickActions, /梳理数据开发流程/);
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);

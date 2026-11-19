@@ -1,5 +1,5 @@
-import { requestJson, sessionPath } from "./http";
-import type { AgentSessionSummary } from "./types";
+import { requestJson, sessionPath } from "./http.ts";
+import type { AgentSessionSummary } from "./types.ts";
 
 export async function createAgentSession(
   signal?: AbortSignal,

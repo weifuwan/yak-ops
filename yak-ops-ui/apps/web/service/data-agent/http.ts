@@ -1,7 +1,7 @@
 import {
   DATA_AGENT_API_PREFIX,
   DataAgentApiError,
-} from "./types";
+} from "./types.ts";
 
 export const sessionPath = (sessionId: string) =>
   "/agent/sessions/" + encodeURIComponent(sessionId);

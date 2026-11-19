@@ -1,11 +1,11 @@
-import { responseError, sessionPath } from "./http";
-import { confirmAgentSession } from "./sessions";
+import { responseError, sessionPath } from "./http.ts";
+import { confirmAgentSession } from "./sessions.ts";
 import {
   DATA_AGENT_API_PREFIX,
   DataAgentStreamError,
   type AgentStreamEvent,
   type AgentToolCallRequest,
-} from "./types";
+} from "./types.ts";
 
 export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
   let eventName = "";
