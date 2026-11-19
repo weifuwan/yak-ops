@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   Search,
+  Star,
   X,
 } from "lucide-react";
 import { Input, toast } from "@yak-ops/yak-ui";
@@ -22,6 +23,7 @@ import {
   type WorkflowTaskTypeRecord,
 } from "@/service/workflow/task-type";
 
+import { useWorkflowTaskFavorites } from "./use-workflow-task-favorites";
 import { TaskTypeBadgeIcon } from "../components/task-type-badge-icon";
 import { WORKFLOW_TASK_DRAG_TYPE } from "../constants";
 import { useWorkflowStore } from "../store/workflow-store";
@@ -59,43 +61,79 @@ function selectorTitle(kind: WorkflowSelectorRequest["kind"]) {
 function TaskTypeItem({
   task,
   onSelect,
+  onToggleFavorite,
+  isFavorite,
+  favoriteDisabled,
   variant,
 }: {
   task: WorkflowTaskTypeRecord;
   onSelect: () => void;
+  onToggleFavorite: () => void;
+  isFavorite: boolean;
+  favoriteDisabled: boolean;
   variant: "sidebar" | "popover";
 }) {
+  const isPopover = variant === "popover";
+
   return (
-    <button
-      type="button"
-      draggable
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = "copy";
-        event.dataTransfer.setData(
-          WORKFLOW_TASK_DRAG_TYPE,
-          JSON.stringify({
-            taskType: task.taskType,
-            taskCategory: task.taskCategory,
-          }),
-        );
-      }}
-      onClick={onSelect}
-      className={variant === "popover"
-        ? "group flex h-9 w-full cursor-grab items-center rounded-md border border-transparent bg-white px-3 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:bg-[#F3F5F9] active:cursor-grabbing"
-        : "group flex h-7 w-full cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"}
-    >
-      <span className={variant === "popover"
-        ? "mr-2.5 flex size-6 shrink-0 items-center justify-center"
-        : "mr-2 flex size-4 shrink-0 items-center justify-center"}>
-        <TaskTypeBadgeIcon
-          taskType={task.taskType}
-          size={variant === "popover" ? 20 : 16}
+    <div className={isPopover
+      ? "group flex h-9 w-full min-w-0 items-center gap-0.5"
+      : "group flex h-7 w-full min-w-0 items-center gap-0.5"}>
+      <button
+        type="button"
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = "copy";
+          event.dataTransfer.setData(
+            WORKFLOW_TASK_DRAG_TYPE,
+            JSON.stringify({
+              taskType: task.taskType,
+              taskCategory: task.taskCategory,
+            }),
+          );
+        }}
+        onClick={onSelect}
+        className={isPopover
+          ? "flex h-9 min-w-0 flex-1 cursor-grab items-center rounded-md border border-transparent bg-white px-3 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:bg-[#F3F5F9] active:cursor-grabbing"
+          : "flex h-7 min-w-0 flex-1 cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"}
+      >
+        <span className={isPopover
+          ? "mr-2.5 flex size-6 shrink-0 items-center justify-center"
+          : "mr-2 flex size-4 shrink-0 items-center justify-center"}>
+          <TaskTypeBadgeIcon
+            taskType={task.taskType}
+            size={isPopover ? 20 : 16}
+          />
+        </span>
+        <span className="min-w-0 truncate leading-4">
+          {task.taskType}
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={isFavorite ? "取消收藏 " + task.taskType : "收藏 " + task.taskType}
+        aria-pressed={isFavorite}
+        title={isFavorite ? "取消收藏" : "收藏节点"}
+        disabled={favoriteDisabled}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onToggleFavorite();
+        }}
+        className={"flex " + (isPopover ? "size-7" : "size-6") +
+          " shrink-0 cursor-pointer items-center justify-center rounded-md text-[#98A2B3] transition-[opacity,color,background-color] hover:bg-[#F2F4F7] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-40 " +
+          (isFavorite
+            ? "opacity-100 text-[#E6A23C]"
+            : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100")}
+      >
+        <Star
+          size={isPopover ? 15 : 14}
+          strokeWidth={1.8}
+          fill={isFavorite ? "currentColor" : "none"}
+          aria-hidden="true"
         />
-      </span>
-      <span className="min-w-0 truncate leading-4">
-        {task.taskType}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -178,6 +216,15 @@ function WorkflowNodePicker({
     queryFn: ({ signal }) =>
       listWorkflowTaskTypes(signal),
   });
+  const favorites = useWorkflowTaskFavorites(Boolean(request));
+
+  const favoriteTasks = useMemo(() => {
+    const source = query.data ?? [];
+    return source.filter((item) =>
+      favorites.favoriteTaskTypes.has(item.taskType) &&
+      (!deferredSearch || item.taskType.toLowerCase().includes(deferredSearch)),
+    );
+  }, [deferredSearch, favorites.favoriteTaskTypes, query.data]);
 
   const grouped = useMemo(() => {
     const source = query.data ?? [];
@@ -252,77 +299,139 @@ function WorkflowNodePicker({
     >
       节点类型加载失败，点击重试
     </button>
-  ) : grouped.length === 0 ? (
-    <div className="px-2 py-5 text-center text-xs text-[var(--yak-components-muted-text)]">
-      没有匹配的节点类型
-    </div>
   ) : (
     <div>
-      {grouped.map(([category, tasks]) => {
-        const isCollapsed =
-          collapsed.has(category) &&
-          deferredSearch.length === 0;
-
-        return (
-          <section
-            key={category}
-            className={isPopover ? "pt-1" : "pt-2"}
+      <section className="pb-2">
+        <div className={isPopover
+          ? "flex h-7 items-center justify-between px-2 text-[11px] font-semibold text-[#667085]"
+          : "flex h-7 items-center justify-between bg-[#f7f8fa] px-1.5 text-xs font-semibold text-[#333]"}>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <Star
+              size={12}
+              fill="currentColor"
+              className="shrink-0 text-[#E6A23C]"
+              aria-hidden="true"
+            />
+            <span>我的收藏</span>
+          </span>
+          <span className="rounded-full bg-[#F2F4F7] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[#667085]">
+            {favoriteTasks.length}
+          </span>
+        </div>
+        {favorites.loading ? (
+          <div className="px-2 py-3 text-center text-[11px] text-[var(--yak-components-muted-text)]">
+            正在加载收藏…
+          </div>
+        ) : favorites.error ? (
+          <button
+            type="button"
+            onClick={favorites.retry}
+            className="w-full cursor-pointer px-2 py-3 text-center text-[11px] text-[var(--yak-color-danger)]"
           >
-            <button
-              type="button"
-              aria-expanded={!isCollapsed}
-              onClick={() =>
-                setCollapsed((current) => {
-                  const next = new Set(current);
-                  if (next.has(category)) {
-                    next.delete(category);
-                  } else {
-                    next.add(category);
-                  }
-                  return next;
-                })
-              }
-              className={isPopover
-                ? "relative flex h-7 w-full cursor-pointer items-center rounded-md px-5 text-left text-[11px] font-semibold text-[#667085] transition-colors hover:bg-[#F4F6F8]"
-                : "relative flex h-7 w-full cursor-pointer items-center bg-[#f7f8fa] pl-5 pr-2 text-left text-xs font-semibold text-[#333] transition-colors hover:bg-[#f1f3f5]"}
-            >
-              {isCollapsed ? (
-                <ChevronRight
-                  size={11}
-                  strokeWidth={1.8}
-                  aria-hidden="true"
-                  className="absolute left-1.5 text-[#707780]"
-                />
-              ) : (
-                <ChevronDown
-                  size={11}
-                  strokeWidth={1.8}
-                  aria-hidden="true"
-                  className="absolute left-1.5 text-[#707780]"
-                />
-              )}
-              <span className="truncate">
-                {CATEGORY_LABELS[category] ?? category}
-              </span>
-            </button>
+            收藏加载失败，点击重试
+          </button>
+        ) : favoriteTasks.length === 0 ? (
+          <div className="px-2 py-3 text-center text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
+            {deferredSearch ? "没有匹配的收藏节点" : "点击节点右侧的星标，收藏常用节点"}
+          </div>
+        ) : (
+          <div className={isPopover ? "grid gap-0.5" : "grid gap-1"}>
+            {favoriteTasks.map((task) => (
+              <TaskTypeItem
+                key={"favorite:" + task.taskCategory + ":" + task.taskType}
+                task={task}
+                variant={isPopover ? "popover" : "sidebar"}
+                isFavorite
+                favoriteDisabled={
+                  !favorites.canToggle || favorites.loading || favorites.mutating
+                }
+                onToggleFavorite={() =>
+                  favorites.toggleFavorite(task.taskType, task.taskCategory)
+                }
+                onSelect={() => handleSelectTaskType(task)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+      {grouped.length === 0 ? (
+        <div className="px-2 py-5 text-center text-xs text-[var(--yak-components-muted-text)]">
+          没有匹配的节点类型
+        </div>
+      ) : (
+        grouped.map(([category, tasks]) => {
+          const isCollapsed =
+            collapsed.has(category) &&
+            deferredSearch.length === 0;
 
-            {!isCollapsed ? (
-              <div className="pt-1">
-                <div className={isPopover ? "grid gap-0.5" : "grid gap-1"}>
-                  {tasks.map((task) => (
-                    <TaskTypeItem
-                      key={task.taskCategory + ":" + task.taskType}
-                      task={task}
-                      variant={isPopover ? "popover" : "sidebar"}
-                      onSelect={() => handleSelectTaskType(task)}
-                    />
-                  ))}
+          return (
+            <section
+              key={category}
+              className={isPopover ? "pt-1" : "pt-2"}
+            >
+              <button
+                type="button"
+                aria-expanded={!isCollapsed}
+                onClick={() =>
+                  setCollapsed((current) => {
+                    const next = new Set(current);
+                    if (next.has(category)) {
+                      next.delete(category);
+                    } else {
+                      next.add(category);
+                    }
+                    return next;
+                  })
+                }
+                className={isPopover
+                  ? "relative flex h-7 w-full cursor-pointer items-center rounded-md px-5 text-left text-[11px] font-semibold text-[#667085] transition-colors hover:bg-[#F4F6F8]"
+                  : "relative flex h-7 w-full cursor-pointer items-center bg-[#f7f8fa] pl-5 pr-2 text-left text-xs font-semibold text-[#333] transition-colors hover:bg-[#f1f3f5]"}
+              >
+                {isCollapsed ? (
+                  <ChevronRight
+                    size={11}
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                    className="absolute left-1.5 text-[#707780]"
+                  />
+                ) : (
+                  <ChevronDown
+                    size={11}
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                    className="absolute left-1.5 text-[#707780]"
+                  />
+                )}
+                <span className="truncate">
+                  {CATEGORY_LABELS[category] ?? category}
+                </span>
+              </button>
+
+              {!isCollapsed ? (
+                <div className="pt-1">
+                  <div className={isPopover ? "grid gap-0.5" : "grid gap-1"}>
+                    {tasks.map((task) => (
+                      <TaskTypeItem
+                        key={task.taskCategory + ":" + task.taskType}
+                        task={task}
+                        variant={isPopover ? "popover" : "sidebar"}
+                        isFavorite={favorites.favoriteTaskTypes.has(task.taskType)}
+                        favoriteDisabled={
+                          !favorites.canToggle || favorites.loading || favorites.mutating
+                        }
+                        onToggleFavorite={() =>
+                          favorites.toggleFavorite(task.taskType, task.taskCategory)
+                        }
+                        onSelect={() => handleSelectTaskType(task)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </section>
-        );
-      })}
+              ) : null}
+            </section>
+          );
+        })
+      )}
     </div>
   );
 
