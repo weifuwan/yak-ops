@@ -2,6 +2,7 @@ import {
   Check,
   ChevronDown,
   Clock3,
+  FolderOpen,
   MessageSquare,
   Plus,
   Sparkles,
@@ -306,53 +307,76 @@ export function DataAgentWorkspace() {
               </div>
             </div>
           ) : (
-            <>
-              <div
-                ref={messageScrollRef}
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle"
-              >
-                <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 max-sm:px-4">
-                  {messages.map((message) => (
-                    <article key={message.id} className="flex w-full justify-end">
-                      <div className="max-w-[82%]">
-                        <div className="rounded-[22px] rounded-br-md border border-[#e5e5e2] bg-[#f5f5f3] px-4 py-3 text-[15px] leading-7 text-[#20201e]">
-                          <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
+            <div className="flex min-h-0 flex-1">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <div
+                  ref={messageScrollRef}
+                  className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle"
+                >
+                  <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 max-sm:px-4">
+                    {messages.map((message) => (
+                      <article key={message.id} className="flex w-full justify-end">
+                        <div className="max-w-[82%]">
+                          <div className="rounded-[22px] rounded-br-md border border-[#e5e5e2] bg-[#f5f5f3] px-4 py-3 text-[15px] leading-7 text-[#20201e]">
+                            <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
+                          </div>
+                          <time
+                            dateTime={message.createdAt}
+                            className="mt-1 block text-right text-[11px] text-[#aaaaaa]"
+                          >
+                            {formatConversationTime(message.createdAt)}
+                          </time>
                         </div>
-                        <time
-                          dateTime={message.createdAt}
-                          className="mt-1 block text-right text-[11px] text-[#aaaaaa]"
-                        >
-                          {formatConversationTime(message.createdAt)}
-                        </time>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    ))}
 
-                  <div
-                    role="status"
-                    className="flex items-start gap-2 rounded-xl border border-[#f0e5d7] bg-[#fffaf3] px-3.5 py-3 text-xs leading-5 text-[#92734c]"
-                  >
-                    <Sparkles size={14} className="mt-0.5 shrink-0" />
-                    <span>
-                      消息已在当前页面本地展示。Data Agent 后端接口尚未接入，因此暂时不会生成 AI 回复。
-                    </span>
+                    <div
+                      role="status"
+                      className="flex items-start gap-2 rounded-xl border border-[#f0e5d7] bg-[#fffaf3] px-3.5 py-3 text-xs leading-5 text-[#92734c]"
+                    >
+                      <Sparkles size={14} className="mt-0.5 shrink-0" />
+                      <span>
+                        消息已在当前页面本地展示。Data Agent 后端接口尚未接入，因此暂时不会生成 AI 回复。
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0 px-6 pb-5 pt-3 max-sm:px-4">
+                  <div className="mx-auto w-full max-w-3xl">
+                    <DataAgentPromptComposer
+                      onSubmit={handleSubmit}
+                      trailingActions={modelSelector}
+                      placeholder="继续向 Data Agent 提问..."
+                    />
+                    <p className="mb-0 mt-2 text-center text-[11px] text-[#aaaaaa]">
+                      当前为本地交互预览，刷新页面后对话不会保留
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="shrink-0 px-6 pb-5 pt-3 max-sm:px-4">
-                <div className="mx-auto w-full max-w-3xl">
-                  <DataAgentPromptComposer
-                    onSubmit={handleSubmit}
-                    trailingActions={modelSelector}
-                    placeholder="继续向 Data Agent 提问..."
-                  />
-                  <p className="mb-0 mt-2 text-center text-[11px] text-[#aaaaaa]">
-                    当前为本地交互预览，刷新页面后对话不会保留
+              <aside
+                aria-label="Agent 工作区"
+                className="hidden min-h-0 w-[46%] min-w-[420px] max-w-[760px] shrink-0 flex-col border-l border-[#eeeeec] bg-[#fcfcfb] xl:flex"
+              >
+                <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#eeeeec] px-4">
+                  <span className="text-sm font-semibold text-[#20201e]">工作区</span>
+                  <span className="rounded-full bg-[#f3f3f1] px-2 py-1 text-[10px] text-[#999999]">
+                    暂无执行结果
+                  </span>
+                </header>
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 text-center">
+                  <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-white text-[#999999] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <FolderOpen size={21} strokeWidth={1.6} />
+                  </span>
+                  <h3 className="m-0 text-sm font-medium text-[#555555]">暂无工作区文件</h3>
+                  <p className="mb-0 mt-2 max-w-[250px] text-xs leading-6 text-[#a0a0a0]">
+                    Agent 生成的文件、数据结果和执行产物将在这里展示。
                   </p>
                 </div>
-              </div>
-            </>
+              </aside>
+            </div>
           )}
         </section>
       </main>

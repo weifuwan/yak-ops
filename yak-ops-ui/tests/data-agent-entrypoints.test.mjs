@@ -19,6 +19,7 @@ test("Data Agent reuses Yakable's full-screen workspace structure", () => {
   assert.match(workspace, /最近对话/);
   assert.match(workspace, /新建对话/);
   assert.match(workspace, /前端预览模式/);
+  assert.match(workspace, /暂无工作区文件/);
 });
 
 test("Data Agent conversations stay local and do not call backend services", () => {
