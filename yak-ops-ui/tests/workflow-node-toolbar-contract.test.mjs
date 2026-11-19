@@ -145,7 +145,9 @@ test("canvas toolbar plus opens an anchored root picker while top toolbar alone 
 
 test("floating workflow node picker uses larger Dify-style icons and a wider responsive panel", () => {
   assert.ok(workflowSelector.includes("group flex h-9 w-full"));
-  assert.ok(workflowSelector.includes("px-3 text-left text-xs"));
+  assert.ok(workflowSelector.includes("rounded-md border border-transparent bg-white px-3 transition-colors hover:bg-[#F3F5F9]"));
+  assert.ok(workflowSelector.includes("bg-transparent px-0 text-left text-xs"));
+  assert.ok(workflowSelector.includes("rounded-[2px] border border-[#dcdee3] bg-white px-1.5"));
   assert.ok(workflowSelector.includes("mr-2.5 flex size-6 shrink-0"));
   assert.ok(workflowSelector.includes('size={variant === "popover" ? 20 : 16}'));
   assert.ok(workflowSelector.includes("const panelWidth = Math.min(340, window.innerWidth - 24)"));
