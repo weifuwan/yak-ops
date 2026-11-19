@@ -74,7 +74,7 @@ test("the Data Agent empty workspace matches the centered prompt and shortcut la
 
 test("Data Agent sidebar uses a smooth drawer transition without unmounting", () => {
   assert.match(workspace, /aria-hidden=\{!sidebarOpen\}/);
-  assert.match(workspace, /inert=\{!sidebarOpen\}/);
+  assert.match(workspace, /element\.inert = !sidebarOpen/);
   assert.match(workspace, /transition-\[width\]/);
   assert.match(workspace, /duration-\[320ms\]/);
   assert.match(workspace, /ease-\[cubic-bezier\(0\.22,1,0\.36,1\)\]/);

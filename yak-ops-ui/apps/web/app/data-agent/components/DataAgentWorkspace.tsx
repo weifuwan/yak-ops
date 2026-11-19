@@ -265,7 +265,9 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
         }
       >
         <div
-          inert={!sidebarOpen}
+          ref={(element) => {
+            if (element) element.inert = !sidebarOpen;
+          }}
           className={
             "h-full w-64 transform-gpu transition-[transform,opacity] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none " +
             (sidebarOpen
