@@ -1,4 +1,6 @@
 import { AlertCircle } from "lucide-react";
+
+import "./data-agent-empty-state.css";
 import type { ReactNode } from "react";
 
 import { DataAgentPromptComposer } from "../DataAgentPromptComposer";
@@ -26,8 +28,9 @@ export function DataAgentEmptyState({
   trailingActions,
 }: DataAgentEmptyStateProps) {
   return (
-    <div className="flex min-h-0 flex-1">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
+    <div className="data-agent-empty-state relative isolate flex min-h-0 flex-1 overflow-hidden bg-white">
+      <div className="data-agent-empty-state__wave" aria-hidden="true" />
+      <div className="data-agent-empty-state__content flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
         <div className="w-full max-w-[540px]">
           {connectionError ? (
             <div
