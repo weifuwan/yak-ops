@@ -105,7 +105,22 @@ python -m venv .venv
 1. **服务层**（保护 agent 服务本身）：配置 `YAK_AGENT_SERVICE_TOKEN` 后所有端点要求 `Authorization: Bearer <token>`；未配置时仅接受 loopback 调用，非本机来源 401。
 2. **用户层**（数据权限边界，与原后端同一套登录认证）：前端登录 yak-ops 后把登录态动态传入——`X-Yak-Session-Id`（登录换得的 sessionId cookie 值，agent 不持密码，过期时创建会话返回 401 由前端重新登录）。**会话创建时服务端用该 sessionId 向平台反查并校验**（平台 interceptor 语义：会话有效性 + 配置项目是否授予该用户，401/403 透传），之后**所有工具调用与 PTC 脚本都以该用户身份执行**（平台逐请求认证）。归属键由 sessionId 派生（不接受前端自报的用户 id）；确认动作的调用方（会话标识）写入审计。不传头 = 单租户本地模式（服务端凭据）。
 
-SSE 事件类型：`text_delta`（增量文本）、`tool_start` / `tool_result`（工具调用）、`confirm_required`（写操作待确认，含 `toolCalls[]`）、`done`、`error`。**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。
+SSE 事件类型：
+
+| 事件 | 说明 |
+| --- | --- |
+| `text_delta` | 回复文本增量（`delta`，带 `replyId` / `blockId`） |
+| `thinking_start` / `thinking_delta` / `thinking_end` | 模型推理过程流，同一 `blockId` 分组 |
+| `tool_start` | 工具调用开始（`tool`、`toolCallId`） |
+| `tool_call_delta` | 工具入参 JSON 片段（`delta`） |
+| `tool_result_delta` | 工具结果文本片段（`delta`） |
+| `tool_result` | 工具调用结束（`state`：success/error/denied/interrupted） |
+| `usage` | 单次模型调用 token 用量（含 cache 计数） |
+| `reply_end` | 一轮回复结束（`finishedReason`：completed/interrupted/exceed_max_iters/error，含 `error`） |
+| `confirm_required` | 写操作待确认，含 `toolCalls[]` |
+| `done` / `error` | 本次消息流结束 / 异常 |
+
+**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。
 
 会话按轮持久化（`AgentState` 序列化，`YAK_AGENT_SESSION_DIR` 可配），服务重启后按会话 ID 懒加载恢复。服务端口与绑定地址：`YAK_AGENT_PORT` / `YAK_AGENT_HOST`。
 

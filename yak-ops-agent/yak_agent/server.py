@@ -4,7 +4,11 @@ Endpoints
 ---------
 POST   /agent/sessions                    create a session -> {sessionId}
 POST   /agent/sessions/{sid}/messages     send a message -> SSE event stream
-                                          (text_delta / tool_start / tool_result /
+                                          (text_delta / thinking_start /
+                                           thinking_delta / thinking_end /
+                                           tool_start / tool_call_delta /
+                                           tool_result_delta / tool_result /
+                                           usage / reply_end /
                                            confirm_required / done / error)
 POST   /agent/sessions/{sid}/confirm      approve or deny pending writes
                                           {approved: bool | [bool, ...]}
@@ -59,10 +63,6 @@ from yak_agent.yak_client import YakApiError, YakAuth, yak_get
 _SESSION_DIR = Path(
     os.environ.get("YAK_AGENT_SESSION_DIR", Path(__file__).resolve().parent.parent / "sessions")
 )
-_FORWARD_EVENTS = {
-    EventType.TOOL_CALL_START: "tool_start",
-    EventType.TOOL_RESULT_END: "tool_result",
-}
 
 
 @dataclass
@@ -243,25 +243,93 @@ def _load_session(sid: str, caller: str) -> Session:
 
 
 async def _forward(session: Session, event: Any) -> None:
-    if event.type == EventType.TEXT_BLOCK_DELTA:
+    """Translate AgentScope stream events into the frontend SSE contract."""
+    event_type = event.type
+    reply_id = getattr(event, "reply_id", "")
+    if event_type == EventType.TEXT_BLOCK_DELTA:
         delta = getattr(event, "delta", "")
         if delta:
-            await session.queue.put({"type": "text_delta", "delta": delta})
-        return
-    mapped = _FORWARD_EVENTS.get(event.type)
-    if mapped == "tool_start":
+            await session.queue.put(
+                {
+                    "type": "text_delta",
+                    "delta": delta,
+                    "replyId": reply_id,
+                    "blockId": event.block_id,
+                }
+            )
+    elif event_type == EventType.THINKING_BLOCK_START:
+        await session.queue.put(
+            {"type": "thinking_start", "replyId": reply_id, "blockId": event.block_id}
+        )
+    elif event_type == EventType.THINKING_BLOCK_DELTA:
+        delta = getattr(event, "delta", "")
+        if delta:
+            await session.queue.put(
+                {
+                    "type": "thinking_delta",
+                    "delta": delta,
+                    "replyId": reply_id,
+                    "blockId": event.block_id,
+                }
+            )
+    elif event_type == EventType.THINKING_BLOCK_END:
+        await session.queue.put(
+            {"type": "thinking_end", "replyId": reply_id, "blockId": event.block_id}
+        )
+    elif event_type == EventType.TOOL_CALL_START:
         await session.queue.put(
             {
                 "type": "tool_start",
-                "tool": getattr(event, "tool_call_name", ""),
-                "toolCallId": getattr(event, "tool_call_id", ""),
+                "tool": event.tool_call_name,
+                "toolCallId": event.tool_call_id,
+                "replyId": reply_id,
             }
         )
-    elif mapped == "tool_result":
+    elif event_type == EventType.TOOL_CALL_DELTA:
+        await session.queue.put(
+            {
+                "type": "tool_call_delta",
+                "delta": event.delta,
+                "toolCallId": event.tool_call_id,
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.TOOL_RESULT_TEXT_DELTA:
+        await session.queue.put(
+            {
+                "type": "tool_result_delta",
+                "delta": event.delta,
+                "toolCallId": event.tool_call_id,
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.TOOL_RESULT_END:
         await session.queue.put(
             {
                 "type": "tool_result",
-                "toolCallId": getattr(event, "tool_call_id", ""),
+                "toolCallId": event.tool_call_id,
+                "state": getattr(event.state, "value", event.state),
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.MODEL_CALL_END:
+        await session.queue.put(
+            {
+                "type": "usage",
+                "inputTokens": event.input_tokens,
+                "outputTokens": event.output_tokens,
+                "cacheInputTokens": event.cache_input_tokens,
+                "cacheCreationInputTokens": event.cache_creation_input_tokens,
+                "replyId": reply_id,
+            }
+        )
+    elif event_type == EventType.REPLY_END:
+        await session.queue.put(
+            {
+                "type": "reply_end",
+                "finishedReason": getattr(event.finished_reason, "value", event.finished_reason),
+                "error": event.error.model_dump(mode="json") if event.error else None,
+                "replyId": reply_id,
             }
         )
 
