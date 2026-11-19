@@ -44,6 +44,7 @@ export function DataAgentWorkspace({
 
   const hasMessages = messages.length > 0;
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(isLoading);
+  const isLoadingOverlayVisible = isLoading || showLoadingOverlay;
   const [loadingOverlayExiting, setLoadingOverlayExiting] = useState(false);
 
   useEffect(() => {
@@ -120,13 +121,13 @@ export function DataAgentWorkspace({
 
   return (
     <>
-      {showLoadingOverlay ? (
-        <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting} />
+      {isLoadingOverlayVisible ? (
+        <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting && !isLoading} />
       ) : null}
       <div
-        aria-hidden={showLoadingOverlay}
+        aria-hidden={isLoadingOverlayVisible}
         ref={(element) => {
-          if (element) element.inert = showLoadingOverlay;
+          if (element) element.inert = isLoadingOverlayVisible;
         }}
         className={
           (isLoading ? "" : "data-agent-workspace-enter ") +
