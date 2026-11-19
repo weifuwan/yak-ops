@@ -257,18 +257,34 @@ export function DataAgentWorkspace({ initialPrompt = "" }: { initialPrompt?: str
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
-      {sidebarOpen ? (
-        <DataAgentSidebar
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          onNewConversation={handleNewConversation}
-          onSelectConversation={(id) => {
-            setActiveConversationId(id);
-            setModelMenuOpen(false);
-            setWorkspacePanelOpen(true);
-          }}
-        />
-      ) : null}
+      <div
+        aria-hidden={!sidebarOpen}
+        className={
+          "h-full shrink-0 overflow-hidden bg-[#f0f0f0] transition-[width] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none " +
+          (sidebarOpen ? "w-64 max-md:w-0" : "w-0")
+        }
+      >
+        <div
+          inert={!sidebarOpen}
+          className={
+            "h-full w-64 transform-gpu transition-[transform,opacity] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none " +
+            (sidebarOpen
+              ? "translate-x-0 opacity-100 pointer-events-auto"
+              : "-translate-x-3 opacity-0 pointer-events-none")
+          }
+        >
+          <DataAgentSidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onNewConversation={handleNewConversation}
+            onSelectConversation={(id) => {
+              setActiveConversationId(id);
+              setModelMenuOpen(false);
+              setWorkspacePanelOpen(true);
+            }}
+          />
+        </div>
+      </div>
 
       <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">

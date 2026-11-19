@@ -72,6 +72,18 @@ test("the Data Agent empty workspace matches the centered prompt and shortcut la
   assert.match(workspace, /<AgentWorkspacePanel \/>/);
 });
 
+test("Data Agent sidebar uses a smooth drawer transition without unmounting", () => {
+  assert.match(workspace, /aria-hidden=\{!sidebarOpen\}/);
+  assert.match(workspace, /inert=\{!sidebarOpen\}/);
+  assert.match(workspace, /transition-\[width\]/);
+  assert.match(workspace, /duration-\[320ms\]/);
+  assert.match(workspace, /ease-\[cubic-bezier\(0\.22,1,0\.36,1\)\]/);
+  assert.match(workspace, /translate-x-0 opacity-100 pointer-events-auto/);
+  assert.match(workspace, /-translate-x-3 opacity-0 pointer-events-none/);
+  assert.match(workspace, /w-64 max-md:w-0/);
+  assert.doesNotMatch(workspace, /\{sidebarOpen \? \([\s\S]*?<DataAgentSidebar/);
+});
+
 test("Data Agent welcome and composer styling use Tailwind utilities", () => {
   assert.doesNotMatch(page, /data-agent\.css/);
   assert.equal(
