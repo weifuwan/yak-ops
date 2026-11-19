@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataAgentPage } from "@/app/data-agent/page";
+import { ParticlePreviewPage } from "@/app/data-agent/particle-preview/page";
 import { DataDevelopmentPage } from "@/app/data-development/page";
 import { DataModelingOverviewPage } from "@/app/data-modeling/overview";
 import FieldStandardPage from "@/app/data-modeling/standards/field-standard";
@@ -66,6 +67,7 @@ const AUTHENTICATED_PATHS = new Set([
   "/overview",
   "/data-development",
   "/data-agent",
+  "/data-agent/particle-preview",
   "/data-modeling",
   "/resources",
   "/resources/worker-groups",
@@ -182,6 +184,10 @@ export default function AppRouter() {
 
           <Route path="/data-development" element={<DataDevelopmentPage />} />
           <Route path="/data-agent" element={<DataAgentPage />} />
+          <Route
+            path="/data-agent/particle-preview"
+            element={<ParticlePreviewPage />}
+          />
 
           <Route
             element={
