@@ -69,7 +69,11 @@ export const createAccessToken = async (
       id: string | number;
       userId: string | number;
     }
-  >(ACCESS_TOKEN_API + "?" + queryString(payload));
+  >(
+    ACCESS_TOKEN_API +
+      "?" +
+      queryString({ userId: payload.userId, expireTime: payload.expireTime }),
+  );
   return normalizeAccessToken(record);
 };
 
@@ -83,7 +87,13 @@ export const updateAccessToken = async (
       id: string | number;
       userId: string | number;
     }
-  >(ACCESS_TOKEN_API + "/" + encodeURIComponent(id) + "?" + queryString(payload));
+  >(
+    ACCESS_TOKEN_API +
+      "/" +
+      encodeURIComponent(id) +
+      "?" +
+      queryString({ userId: payload.userId, expireTime: payload.expireTime }),
+  );
   return normalizeAccessToken(record);
 };
 
