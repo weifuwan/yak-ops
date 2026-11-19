@@ -263,24 +263,24 @@ test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
 
 test("Data Agent restores its workspace on refresh and shows a full-screen shimmer skeleton", () => {
   assert.match(page, /DATA_AGENT_WORKSPACE_KEY/);
-  assert.match(page, /sessionStorage\\.getItem\\(DATA_AGENT_WORKSPACE_KEY\\)/);
-  assert.match(page, /sessionStorage\\.setItem\\(DATA_AGENT_WORKSPACE_KEY, "true"\\)/);
+  assert.match(page, /sessionStorage\.getItem\(DATA_AGENT_WORKSPACE_KEY\)/);
+  assert.match(page, /sessionStorage\.setItem\(DATA_AGENT_WORKSPACE_KEY, "true"\)/);
 
   assert.match(conversationHook, /restoredIdentityKey/);
-  assert.match(conversationHook, /isLoading: isWorkspaceLoading \\|\\| Boolean\\(requestIdentityKey && restoredIdentityKey !== requestIdentityKey\\)/);
-  assert.match(workspace, /if \\(isLoading\\)[\\s\\S]*?<DataAgentLoading/);
+  assert.match(conversationHook, /isLoading: isWorkspaceLoading \|\| Boolean\(requestIdentityKey && restoredIdentityKey !== requestIdentityKey\)/);
+  assert.match(workspace, /if \(isLoading\)[\s\S]*?<DataAgentLoading/);
   assert.match(workspace, /data-agent-workspace-enter/);
 
-  assert.match(loading, /fixed inset-0 z-\\[100\\]/);
+  assert.match(loading, /fixed inset-0 z-\[100\]/);
   assert.match(loading, /role="status"/);
   assert.match(loading, /aria-busy="true"/);
-  assert.match(loading, /max-w-\\[494px\\]/);
+  assert.match(loading, /max-w-\[494px\]/);
   assert.match(loading, /grid grid-cols-2 gap-2/);
   assert.match(loadingStyles, /@keyframes data-agent-skeleton-shimmer/);
-  assert.match(loadingStyles, /1\\.55s ease-in-out infinite/);
+  assert.match(loadingStyles, /1\.55s ease-in-out infinite/);
   assert.match(loadingStyles, /prefers-reduced-motion: reduce/);
   assert.match(loadingStyles, /@keyframes data-agent-workspace-enter/);
-});
+});;
 
 test("Data Agent workspace menu groups its label with menu items", () => {
   const groupStart = sidebar.indexOf("<DropdownMenuGroup>");
