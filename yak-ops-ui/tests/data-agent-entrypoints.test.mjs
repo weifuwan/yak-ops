@@ -27,6 +27,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(welcome, /任务运行日志/);
   assert.match(welcome, /直接描述需求/);
   assert.match(welcome, /animate-data-agent-mascot-float/);
+  assert.match(welcome, /right-\[max\(28px,calc\(50%_-_300px\)\)\] bottom-8/);
   assert.match(welcome, /onPointerMove=\{handlePointerMove\}/);
   assert.match(welcome, /onPointerLeave=\{resetEyePosition\}/);
   assert.match(welcome, /getBoundingClientRect\(\)/);
