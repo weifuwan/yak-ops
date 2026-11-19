@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const rail = read("../apps/web/app/data-development/layout/development-rail.tsx");
 const layout = read("../apps/web/app/data-development/layout/data-development-layout.tsx");
@@ -19,10 +20,20 @@ test("Data Agent reuses Yakable's full-screen workspace structure", () => {
   assert.ok(!workspace.includes("前端预览</span>"));
   assert.match(workspace, /bg-\[#f4f4f2\] p-2 max-md:p-0/);
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
-  assert.match(workspace, /最近对话/);
-  assert.match(workspace, /新建对话/);
-  assert.match(workspace, /前端预览模式/);
+  assert.match(workspace, /<DataAgentSidebar/);
+  assert.doesNotMatch(workspace, /前端预览模式|最近对话|新建对话/);
   assert.match(workspace, /暂无工作区文件/);
+  assert.match(sidebar, /w-64/);
+  assert.match(sidebar, /New/);
+  assert.match(sidebar, /Search/);
+  assert.match(sidebar, /Projects/);
+  assert.match(sidebar, /Connectors/);
+  assert.match(sidebar, /Automations/);
+  assert.match(sidebar, /Data Sync Hub/);
+  assert.match(sidebar, /Upgrade to Pro/);
+  assert.match(sidebar, /Unlock more features/);
+  assert.match(sidebar, /useWorkspace/);
+  assert.match(sidebar, /onSelectConversation/);
 });
 
 test("Data Agent conversations stay local and do not call backend services", () => {

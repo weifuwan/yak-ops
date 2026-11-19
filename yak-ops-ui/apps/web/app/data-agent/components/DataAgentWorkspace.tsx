@@ -1,15 +1,13 @@
 import {
   Check,
   ChevronDown,
-  Clock3,
   FolderOpen,
-  MessageSquare,
-  Plus,
   Sparkles,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { DataAgentPromptComposer } from "./DataAgentPromptComposer";
+import { DataAgentSidebar } from "./DataAgentSidebar";
 
 type LocalMessage = {
   id: string;
@@ -27,15 +25,6 @@ type LocalConversation = {
 function conversationTitle(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
   return normalized.length > 26 ? normalized.slice(0, 26) + "…" : normalized;
-}
-
-function formatConversationTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
 }
 
 function ModelSelector({
@@ -166,81 +155,15 @@ export function DataAgentWorkspace() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f4f4f2] text-[#20201e]">
-      <aside className="flex h-full w-[252px] shrink-0 flex-col bg-[#f4f4f2] px-3 pb-3 max-md:hidden">
-        <div className="flex h-14 shrink-0 items-center gap-2 px-2">
-          <span className="flex size-8 items-center justify-center rounded-xl bg-white text-[#fe2c55] shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-            <Sparkles size={18} strokeWidth={1.7} />
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold tracking-[-0.02em] text-[#20201e]">
-              Data Agent
-            </div>
-            <div className="text-[11px] leading-4 text-[#999999]">Yak-OPS 智能助手</div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="mt-2 flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#20201e] px-3 text-[13px] font-medium text-white transition-colors hover:bg-[#343431] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20201e]/25"
-          onClick={handleNewConversation}
-        >
-          <Plus size={15} />
-          新建对话
-        </button>
-
-        <section className="mt-6 min-h-0 flex-1 overflow-y-auto scrollbar-subtle">
-          <div className="mb-2 flex items-center gap-1.5 px-2 text-xs font-medium text-[#888888]">
-            <Clock3 size={13} />
-            最近对话
-          </div>
-
-          {conversations.length === 0 ? (
-            <p className="m-0 px-2 py-2 text-xs leading-5 text-[#aaaaaa]">
-              暂无对话，输入问题后会显示在这里
-            </p>
-          ) : (
-            <nav aria-label="最近对话" className="flex flex-col gap-1">
-              {conversations.map((conversation) => {
-                const active = conversation.id === activeConversationId;
-                return (
-                  <button
-                    key={conversation.id}
-                    type="button"
-                    title={conversation.title}
-                    aria-current={active ? "page" : undefined}
-                    className={
-                      "flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-left text-xs transition-colors " +
-                      (active
-                        ? "bg-white font-medium text-[#20201e] shadow-[0_1px_2px_rgba(0,0,0,0.035)]"
-                        : "text-[#666666] hover:bg-white/70 hover:text-[#20201e]")
-                    }
-                    onClick={() => {
-                      setActiveConversationId(conversation.id);
-                      setModelMenuOpen(false);
-                    }}
-                  >
-                    <MessageSquare size={14} className="shrink-0 text-[#999999]" />
-                    <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
-                    <span className="shrink-0 text-[10px] text-[#aaaaaa]">
-                      {formatConversationTime(conversation.updatedAt)}
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-          )}
-        </section>
-
-        <div className="shrink-0 border-t border-[#e7e7e4] px-2 pb-1 pt-3">
-          <div className="flex items-center gap-2 text-xs font-medium text-[#666666]">
-            <span className="size-1.5 rounded-full bg-[#d99a3d]" />
-            前端预览模式
-          </div>
-          <p className="mb-0 mt-1 text-[11px] leading-5 text-[#999999]">
-            对话仅保存在当前页面，尚未连接后端
-          </p>
-        </div>
-      </aside>
+      <DataAgentSidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onNewConversation={handleNewConversation}
+        onSelectConversation={(id) => {
+          setActiveConversationId(id);
+          setModelMenuOpen(false);
+        }}
+      />
 
       <main className="flex min-h-0 min-w-0 flex-1 bg-[#f4f4f2] p-2 max-md:p-0">
         <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
