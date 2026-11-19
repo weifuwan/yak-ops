@@ -86,7 +86,7 @@ test("Data Agent sidebar uses a smooth drawer transition without unmounting", ()
   assert.match(workspace, /\? "transition-none/);
   assert.match(workspace, /<DataAgentSidebarResizer/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
-  assert.doesNotMatch(workspace, /\{sidebarOpen \? \([\s\S]*?<DataAgentSidebar/);
+  assert.match(workspace, /aria-hidden=\\{!sidebarOpen\\}[\\s\\S]*?<DataAgentSidebar/);
 });
 
 test("Data Agent welcome and composer styling use Tailwind utilities", () => {
