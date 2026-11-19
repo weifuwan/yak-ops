@@ -169,9 +169,9 @@ test("assistant message actions are isolated in a reusable footer before the tim
   assert.match(messageActions, /<Check/);
   assert.match(messageActions, /messageCopied/);
   assert.match(messageActions, /copyIconTransitionClassName/);
-  assert.match(messageActions, /duration-300 ease-\\[cubic-bezier/);
-  assert.match(messageActions, /}, 1500\\)/);
-  assert.match(messageActions, /window\\.clearTimeout/);
+  assert.match(messageActions, /duration-300 ease-\[cubic-bezier/);
+  assert.match(messageActions, /}, 1500\)/);
+  assert.match(messageActions, /window\.clearTimeout/);
   assert.match(messageActions, /<MoreHorizontal/);
   assert.match(messageActions, /navigator\.clipboard\?\.writeText/);
   assert.match(messageActions, /DropdownMenuContent/);
