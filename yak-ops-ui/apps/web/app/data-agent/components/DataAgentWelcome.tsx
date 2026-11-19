@@ -107,9 +107,7 @@ export function DataAgentWelcome({ onEnter }: DataAgentWelcomeProps) {
           />
           <span>Data Agent</span>
         </button>
-        <span className="text-[9px] font-semibold tracking-[0.12em] text-[#9aa4a4] max-[640px]:hidden">
-          YAK-OPS · DATA AGENT
-        </span>
+       
       </header>
 
       <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[14px] border border-[#dfe4e4] bg-white shadow-[0_1px_2px_rgb(20_34_35_/_3%)]">

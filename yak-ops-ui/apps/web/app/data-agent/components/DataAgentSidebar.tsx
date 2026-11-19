@@ -91,6 +91,7 @@ export function DataAgentSidebar({
     <aside
       aria-label="Data Agent sidebar"
       className="flex h-full w-64 shrink-0 flex-col bg-[#f0f0f0] px-2 pb-2 pt-3 text-[#20201e] max-md:hidden"
+      style={{paddingRight: 0}}
     >
       <div className="flex h-6 shrink-0 items-center px-2">
         <img
