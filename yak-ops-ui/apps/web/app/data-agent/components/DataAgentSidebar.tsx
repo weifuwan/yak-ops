@@ -52,7 +52,6 @@ export function DataAgentSidebar({
   const { currentUser } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [activeNavigation, setActiveNavigation] = useState("new");
 
   const workspaceName = loading
@@ -153,11 +152,9 @@ export function DataAgentSidebar({
         activeNavigation={activeNavigation}
         searchOpen={searchOpen}
         searchTerm={searchTerm}
-        projectsExpanded={projectsExpanded}
         onActiveNavigationChange={setActiveNavigation}
         onSearchOpenChange={setSearchOpen}
         onSearchTermChange={setSearchTerm}
-        onProjectsExpandedChange={setProjectsExpanded}
         onNewConversation={onNewConversation}
         onSelectConversation={selectConversation}
       />
@@ -165,11 +162,7 @@ export function DataAgentSidebar({
       <DataAgentConversationList
         conversations={conversations}
         activeConversationId={activeConversationId}
-        activeNavigation={activeNavigation}
-        projectsExpanded={projectsExpanded}
         busy={busy}
-        onProjectsExpandedChange={setProjectsExpanded}
-        onActiveNavigationChange={setActiveNavigation}
         onSelectConversation={selectConversation}
       />
 

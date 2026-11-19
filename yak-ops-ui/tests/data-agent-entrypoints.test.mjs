@@ -62,13 +62,22 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(sidebar, /onSelectConversation/);
   assert.match(sidebarNavigation, /New/);
   assert.match(sidebarNavigation, /Search/);
-  assert.match(sidebarNavigation, /Projects/);
+  assert.doesNotMatch(sidebarNavigation, /Projects|projectsExpanded|LayoutGrid/);
   assert.match(sidebarNavigation, /Connectors/);
   assert.match(sidebarNavigation, /Automations/);
-  assert.match(conversationList, /Data Sync Hub/);
+  assert.doesNotMatch(conversationList, /Projects|Data Sync Hub|projectsExpanded/);
   assert.match(conversationList, /Recent chats/);
+  assert.match(conversationList, /No sessions yet/);
   assert.match(sidebarFooter, /Upgrade to Pro/);
   assert.match(sidebarFooter, /Unlock more features/);
+});
+
+test("Data Agent sidebar keeps the Recent chats section visible when there are no sessions", () => {
+  assert.match(conversationList, /<section aria-label="Recent conversations">/);
+  assert.match(conversationList, /Recent chats/);
+  assert.match(conversationList, /conversations.length > 0 \?/);
+  assert.match(conversationList, /No sessions yet/);
+  assert.doesNotMatch(conversationList, /projectsExpanded|Data Sync Hub/);
 });
 
 test("the welcome workspace keeps its centered prompt and shortcut layout", () => {
