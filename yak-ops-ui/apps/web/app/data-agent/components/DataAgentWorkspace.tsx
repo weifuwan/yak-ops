@@ -43,6 +43,21 @@ export function DataAgentWorkspace({
   const messageScrollRef = useRef<HTMLDivElement>(null);
 
   const hasMessages = messages.length > 0;
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(isLoading);
+  const [loadingOverlayExiting, setLoadingOverlayExiting] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      setShowLoadingOverlay(true);
+      setLoadingOverlayExiting(false);
+      return;
+    }
+    if (!showLoadingOverlay) return;
+
+    setLoadingOverlayExiting(true);
+    const timeout = window.setTimeout(() => setShowLoadingOverlay(false), 200);
+    return () => window.clearTimeout(timeout);
+  }, [isLoading, showLoadingOverlay]);
 
   useEffect(() => {
     const container = messageScrollRef.current;
@@ -103,12 +118,19 @@ export function DataAgentWorkspace({
     />
   );
 
-  if (isLoading) {
-    return <DataAgentLoading sidebarWidth={sidebarWidth} />;
-  }
-
   return (
-    <div className="data-agent-workspace-enter flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]">
+    <>
+      {showLoadingOverlay ? (
+        <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting} />
+      ) : null}
+      <div
+        aria-hidden={showLoadingOverlay}
+        inert={showLoadingOverlay}
+        className={
+          (isLoading ? "" : "data-agent-workspace-enter ") +
+          "flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]"
+        }
+      >
       <div
         aria-hidden={!sidebarOpen}
         className={
@@ -195,7 +217,8 @@ export function DataAgentWorkspace({
           )}
         </section>
       </main>
-    </div>
+      </div>
+    </>
   );
 }
 
