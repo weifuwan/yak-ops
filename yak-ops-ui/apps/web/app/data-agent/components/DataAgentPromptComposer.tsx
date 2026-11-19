@@ -15,7 +15,7 @@ type DataAgentPromptComposerProps = {
   trailingActions?: ReactNode;
 };
 
-const MIN_TEXTAREA_HEIGHT = 40;
+const MIN_TEXTAREA_HEIGHT = 56;
 const MAX_TEXTAREA_HEIGHT = 160;
 
 export function DataAgentPromptComposer({
@@ -128,11 +128,11 @@ export function DataAgentPromptComposer({
               onCompositionEnd={() => {
                 isComposingRef.current = false;
               }}
-              className="relative block min-h-10 w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-6 text-[#20201e] outline-none placeholder:text-[#999999]"
+              className="relative block min-h-14 w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-6 text-[#20201e] outline-none placeholder:text-[#999999]"
             />
           </div>
 
-          <div className="mt-1 flex min-h-7 items-center justify-between gap-3 px-1">
+          <div className="mt-1 flex min-h-8 items-center justify-between gap-3 px-1">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-[11px] text-[#aaaaaa]">AI 助手</span>
             </div>
@@ -143,10 +143,10 @@ export function DataAgentPromptComposer({
                 aria-label="发送消息"
                 title="发送消息"
                 disabled={!value.trim()}
-                className="flex size-7 cursor-pointer items-center justify-center rounded-full bg-[#20201e] text-white transition-colors hover:bg-[#343431] disabled:cursor-not-allowed disabled:bg-[#dededb] disabled:text-white"
+                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#20201e] text-white transition-colors hover:bg-[#343431] disabled:cursor-not-allowed disabled:bg-[#dededb] disabled:text-white"
                 onClick={submit}
               >
-                <ArrowUp size={16} strokeWidth={1.8} />
+                <ArrowUp size={18} strokeWidth={1.8} />
               </button>
             </div>
           </div>

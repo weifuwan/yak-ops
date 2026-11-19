@@ -242,15 +242,23 @@ export function DataAgentWorkspace() {
         </div>
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        <section className={"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden " + (hasMessages ? "bg-white" : "data-agent-home-surface")}>
+      <main className="flex min-h-0 min-w-0 flex-1 bg-[#f4f4f2] p-2 max-md:p-0">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
+
+
           {!hasMessages ? (
-            <div className="data-agent-home-canvas flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 max-sm:px-4">
-              <div className="data-agent-home-content w-full max-w-[620px]">
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10">
+              <div className="w-full max-w-2xl">
                 <DataAgentPromptComposer
                   onSubmit={handleSubmit}
                   trailingActions={modelSelector}
-                  placeholder="告诉 Data Agent，你想处理什么数据任务..."
+                  placeholderPrefix="告诉 Data Agent，"
+                  placeholderSuggestions={[
+                    "分析这张表的结构和字段含义",
+                    "帮我排查数据同步任务失败的原因",
+                    "根据业务需求编写 SQL",
+                    "梳理一条数据开发工作流",
+                  ]}
                 />
               </div>
             </div>
