@@ -77,8 +77,8 @@ function TaskTypeItem({
 
   return (
     <div className={isPopover
-      ? "group flex h-9 w-full min-w-0 items-center gap-0.5"
-      : "group flex h-7 w-full min-w-0 items-center gap-0.5"}>
+      ? "group flex h-9 w-full min-w-0 items-center rounded-md border border-transparent bg-white px-3 transition-colors hover:bg-[#F3F5F9]"
+      : "group flex h-7 w-full min-w-0 items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014]"}>
       <button
         type="button"
         draggable
@@ -94,8 +94,8 @@ function TaskTypeItem({
         }}
         onClick={onSelect}
         className={isPopover
-          ? "flex h-9 min-w-0 flex-1 cursor-grab items-center rounded-md border border-transparent bg-white px-3 text-left text-xs text-[var(--yak-components-panel-text)] transition-colors hover:bg-[#F3F5F9] active:cursor-grabbing"
-          : "flex h-7 min-w-0 flex-1 cursor-grab items-center rounded-[2px] border border-[#dcdee3] bg-white px-1.5 text-left text-xs text-[var(--yak-components-panel-text)] transition-[border-color,box-shadow] hover:border-[#c4cbd1] hover:shadow-[0_2px_10px_#00000014] active:cursor-grabbing"}
+          ? "flex h-full min-w-0 flex-1 cursor-grab items-center bg-transparent px-0 text-left text-xs text-[var(--yak-components-panel-text)] outline-none active:cursor-grabbing"
+          : "flex h-full min-w-0 flex-1 cursor-grab items-center bg-transparent px-0 text-left text-xs text-[var(--yak-components-panel-text)] outline-none active:cursor-grabbing"}
       >
         <span className={isPopover
           ? "mr-2.5 flex size-6 shrink-0 items-center justify-center"
@@ -120,7 +120,7 @@ function TaskTypeItem({
           event.stopPropagation();
           onToggleFavorite();
         }}
-        className={"flex " + (isPopover ? "size-7" : "size-6") +
+        className={"flex " + (isPopover ? "size-7" : "size-5") +
           " shrink-0 cursor-pointer items-center justify-center rounded-md text-[#98A2B3] transition-[opacity,color,background-color] hover:bg-[#F2F4F7] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-40 " +
           (isFavorite
             ? "opacity-100 text-[#E6A23C]"
