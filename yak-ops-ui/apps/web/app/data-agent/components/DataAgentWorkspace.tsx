@@ -244,8 +244,6 @@ export function DataAgentWorkspace() {
 
       <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <section className={"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden " + (hasMessages ? "bg-white" : "data-agent-home-surface")}>
-
-
           {!hasMessages ? (
             <div className="data-agent-home-canvas flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 max-sm:px-4">
               <div className="data-agent-home-content w-full max-w-[620px]">
