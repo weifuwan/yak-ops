@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
+const particleTransition = read("../apps/web/app/data-agent/components/ParticleTransition.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
@@ -34,7 +35,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.ok(page.includes('productPath="/data-agent"'));
   assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
   assert.match(page, /<DataAgentWorkspace initialPrompt=\{initialPrompt\} \/>/);
-  assert.match(page, /setWorkspaceOpen\(true\)/);
+  assert.match(page, /setPhase\("transitioning"\)/);
   assert.match(welcome, /src="\/yakable_logo\.png"/);
   assert.match(welcome, /onClick=\{\(\) => onEnter\(\)\}/);
   assert.match(welcome, /onEnter\(entry\.prompt\)/);
@@ -73,6 +74,25 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(conversationList, /No sessions yet/);
   assert.match(sidebarFooter, /Upgrade to Pro/);
   assert.match(sidebarFooter, /Unlock more features/);
+});
+
+test("Data Agent welcome enters the workspace through a bidirectional particle transition", () => {
+  assert.match(page, /type DataAgentPagePhase = "welcome" \| "transitioning" \| "workspace"/);
+  assert.match(page, /phase !== "welcome"/);
+  assert.match(page, /phase !== "workspace"/);
+  assert.match(page, /data-agent-transition-workspace/);
+  assert.match(page, /data-agent-transition-welcome/);
+  assert.match(page, /direction="both"/);
+  assert.match(page, /particleCount=\{760\}/);
+  assert.match(page, /duration=\{1600\}/);
+  assert.match(page, /onComplete=\{finishTransition\}/);
+  assert.match(page, /setPhase\("workspace"\)/);
+  assert.match(particleTransition, /direction\?: "left" \| "right" \| "both"/);
+  assert.match(particleTransition, /direction === "both"/);
+  assert.match(particleTransition, /particle\.direction \* width/);
+  assert.match(globalStyles, /data-agent-transition-welcome\[data-exiting="true"\]/);
+  assert.match(globalStyles, /data-agent-transition-workspace-reveal/);
+  assert.match(globalStyles, /prefers-reduced-motion: reduce/);
 });
 
 test("Data Agent sidebar keeps the Recent chats section visible when there are no sessions", () => {
