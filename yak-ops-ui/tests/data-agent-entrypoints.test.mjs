@@ -18,6 +18,8 @@ const modelSelector = read("../apps/web/app/data-agent/components/workspace/Mode
 const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
 const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
 const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
+const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
+const messageActions = read("../apps/web/app/data-agent/components/workspace/conversation/MessageActions.tsx");
 const confirmationCard = read("../apps/web/app/data-agent/components/workspace/conversation/ConfirmationCard.tsx");
 const globalStyles = read("../apps/web/app/styles/global.css");
 const rail = read("../apps/web/app/data-development/layout/development-rail.tsx");
@@ -153,6 +155,22 @@ test("conversation orchestration is separated from the workspace component", () 
   assert.match(emptyState, /历史消息暂不提供回放/);
   assert.match(composer, /isSubmitting\?: boolean/);
   assert.match(composer, /disabled=\{isSubmitting \|\| !value\.trim\(\)\}/);
+});
+
+test("assistant message actions are isolated in a reusable footer before the timestamp", () => {
+  assert.match(messageItem, /<MessageActions/);
+  assert.doesNotMatch(messageItem, /<time/);
+  assert.match(messageActions, /formatConversationTime\(message\.createdAt\)/);
+  assert.match(messageActions, /<time/);
+  assert.match(messageActions, /<RotateCcw/);
+  assert.match(messageActions, /<ThumbsUp/);
+  assert.match(messageActions, /<ThumbsDown/);
+  assert.match(messageActions, /<Copy/);
+  assert.match(messageActions, /<MoreHorizontal/);
+  assert.match(messageActions, /navigator\.clipboard\?\.writeText/);
+  assert.match(messageActions, /DropdownMenuContent/);
+  assert.match(messageActions, /disabled=\{!onRegenerate\}/);
+  assert.match(messageActions, /onFeedback\?\.\(message\.id, next\)/);
 });
 
 test("the model selector uses the Yak-UI portal menu and opens below the trigger", () => {
