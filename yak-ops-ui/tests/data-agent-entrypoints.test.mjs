@@ -332,7 +332,9 @@ test("Data Agent renders assistant activity inline and keeps the execution summa
   assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
   assert.match(toolActivity, /hover:bg-\[#e5e5e5\]/);
-  assert.match(detailsTimeline, /hover:bg-\[#e5e5e5\]/);
+  assert.match(detailsTimeline, /hover:bg-\[#f4f5f5\]/);
+  assert.match(detailsTimeline, /active:bg-\[#eceeee\]/);
+  assert.doesNotMatch(detailsTimeline, /hover:bg-\[#e5e5e5\]/);
   assert.doesNotMatch(toolActivity, /hover:bg-\[#f4f6f5\]/);
   assert.doesNotMatch(detailsTimeline, /hover:bg-\[#f8f9f8\]/);
   assert.match(conversationPanel, /AgentDetailsPanel/);
