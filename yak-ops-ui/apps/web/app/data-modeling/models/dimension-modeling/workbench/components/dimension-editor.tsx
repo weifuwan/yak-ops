@@ -1185,7 +1185,7 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
   const columns: TableColumns<DimensionTableRecord> = [
     { key: "sequence", title: "序号", width: 64, align: "center", render: (_value, _record, index) => (pageNo - 1) * pageSize + index + 1 },
     { key: "cnName", title: "表中文名", dataIndex: "cnName", width: 180, ellipsis: true },
-    { key: "tableName", title: "表名", dataIndex: "tableName", width: 180, ellipsis: true },
+    { key: "tableName", title: "英文标识", width: 180, ellipsis: true, render: (_value, record) => record.tableType === "DIM" ? record.enShortName || record.tableName || "-" : record.tableName || "-" },
     { key: "tableType", title: "模型类型", width: 110, render: (_value, record) => TABLE_TYPE_LABELS[String(record.tableType || "")] || "-" },
     { key: "dwhName", title: "数仓分层", dataIndex: "dwhName", width: 140, ellipsis: true },
     { key: "submit", title: "状态", width: 88, render: (_value, record) => record.submit === true || record.submit === "true" ? "已提交" : "草稿" },
@@ -1206,7 +1206,7 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
             size="small"
             variant="outlined"
             value={keyword}
-            placeholder="搜索表中文名或英文表名"
+            placeholder="搜索中文名称、英文表名或维度缩写"
             onChange={(event) => setKeyword(event.target.value)}
             onKeyDown={(event) => { if (event.key === "Enter") applySearch(); }}
           />
