@@ -54,7 +54,7 @@ export function AgentToolActivity({
   return (
     <button
       type="button"
-      aria-label={"查看 " + toolLabel + " 执行详情"}
+      aria-label={"查看 " + toolLabel + " 执行详情，" + toolStatusLabel(status)}
       aria-expanded={selected}
       aria-controls="agent-details-panel"
       className={
@@ -66,12 +66,12 @@ export function AgentToolActivity({
       onClick={() => onSelect?.(activity.id)}
     >
       <Wrench size={13} className="shrink-0 text-[#7a8985]" />
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#20201e]">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#20201e]">
         {toolLabel}
       </span>
       <span
         className={
-          "flex shrink-0 items-center gap-1 text-[10px] " +
+          "flex shrink-0 items-center gap-1 text-xs " +
           (status === "error" ||
           status === "denied" ||
           status === "rejected" ||
@@ -86,10 +86,10 @@ export function AgentToolActivity({
           size={12}
           className={status === "running" ? "animate-spin" : ""}
         />
-        {toolStatusLabel(status)}
+        {status === "completed" ? null : toolStatusLabel(status)}
       </span>
       {duration ? (
-        <span className="shrink-0 text-[10px] tabular-nums text-[#9aa39f]">
+        <span className="shrink-0 text-xs tabular-nums text-[#9aa39f]">
           {duration}
         </span>
       ) : null}

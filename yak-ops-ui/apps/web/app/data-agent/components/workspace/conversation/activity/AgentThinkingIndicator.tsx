@@ -60,16 +60,16 @@ export function AgentThinkingIndicator({ activity }: AgentThinkingIndicatorProps
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="text-xs font-medium text-[#3b4743]">{activity.title}</span>
-          <span className="flex items-center gap-1 text-[10px] text-[#89948f]">
+          <span className="text-sm font-medium text-[#3b4743]">{activity.title}</span>
+          <span aria-label={activityStatusLabel(activity.status)} className="flex items-center gap-1 text-xs text-[#89948f]">
             <Icon
-              size={11}
+              size={12}
               className={activity.status === "running" ? "animate-spin" : ""}
             />
-            {activityStatusLabel(activity.status)}
+            {activity.status === "completed" ? null : activityStatusLabel(activity.status)}
           </span>
           {duration ? (
-            <span className="text-[10px] tabular-nums text-[#a0a9a5]">{duration}</span>
+            <span className="text-xs tabular-nums text-[#a0a9a5]">{duration}</span>
           ) : null}
         </div>
       </div>

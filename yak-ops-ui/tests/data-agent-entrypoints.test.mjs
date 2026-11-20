@@ -540,3 +540,19 @@ test("Data Agent details timeline uses a centered continuous 2px rail without do
   assert.match(detailsTimeline, /SquareTerminal[\s\S]*?size=\{12\}/);
   assert.doesNotMatch(detailsTimeline, /size-1\.5 rounded-full|size-1\.5 rounded-full bg-/);
 });
+
+
+test("completed activity statuses use icon-only indicators and readable typography", () => {
+  const thinkingIndicator = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentThinkingIndicator.tsx");
+  const toolCallCard = read("../apps/web/app/data-agent/components/workspace/conversation/ToolCallCard.tsx");
+
+  assert.match(thinkingIndicator, /activity\.status === "completed" \? null : activityStatusLabel\(activity\.status\)/);
+  assert.match(thinkingIndicator, /text-sm font-medium/);
+  assert.match(thinkingIndicator, /text-xs tabular-nums/);
+  assert.match(toolActivity, /status === "completed" \? null : toolStatusLabel\(status\)/);
+  assert.match(toolActivity, /text-sm font-medium/);
+  assert.match(toolActivity, /text-xs tabular-nums/);
+  assert.match(toolCallCard, /toolCall\.status === "completed" \? null : toolStatusLabel\(toolCall\.status\)/);
+  assert.match(toolCallCard, /text-sm font-medium/);
+  assert.match(toolCallCard, /text-xs text-\[#8b9693\]/);
+});

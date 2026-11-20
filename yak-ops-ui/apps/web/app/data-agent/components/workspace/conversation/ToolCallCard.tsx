@@ -35,10 +35,11 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
     <div className="rounded-xl border border-[#e7eae9] bg-[#fbfcfb] px-3 py-2.5">
       <div className="flex min-w-0 items-center gap-2">
         <Wrench size={14} className="shrink-0 text-[#7a8985]" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#3b4744]">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#3b4744]">
           {TOOL_LABELS[toolCall.name] ?? toolCall.name}
         </span>
-        <span className="flex shrink-0 items-center gap-1 text-[11px] text-[#8b9693]">
+        <span aria-label={toolStatusLabel(toolCall.status)}
+          className="flex shrink-0 items-center gap-1 text-xs text-[#8b9693]">
           <StatusIcon
             size={12}
             className={
@@ -49,7 +50,7 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
                   : "text-[#6c9b7e]"
             }
           />
-          {toolStatusLabel(toolCall.status)}
+          {toolCall.status === "completed" ? null : toolStatusLabel(toolCall.status)}
         </span>
       </div>
       {toolCall.input ? (
