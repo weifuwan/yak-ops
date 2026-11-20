@@ -111,7 +111,7 @@ test("Data Agent restores the original empty workspace and uses a shared split h
   assert.doesNotMatch(conversationHeader, /border-b/);
   assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.match(conversationHeader, /onToggleSidebar/);
-  assert.match(conversationHeader, /const statusLabel = isSending \\? "正在处理" : "已就绪"/);
+  assert.match(conversationHeader, /const statusLabel = isSending \? "正在处理" : "已就绪"/);
   assert.match(conversationHeader, /detailsOpen/);
   assert.match(conversationHeader, /Timeline/);
   assert.match(conversationHeader, /Changes/);
