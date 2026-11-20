@@ -5,13 +5,21 @@ import { formatToolInput } from "../../../../utils/message-formatters";
 type AgentActivityDetailsProps = {
   input?: string;
   output?: string;
+  defaultOpen?: boolean;
 };
 
-export function AgentActivityDetails({ input, output }: AgentActivityDetailsProps) {
+export function AgentActivityDetails({
+  input,
+  output,
+  defaultOpen = false,
+}: AgentActivityDetailsProps) {
   if (!input && !output) return null;
 
   return (
-    <details className="group mt-2 min-w-0 border-t border-[#edf0ef] pt-2">
+    <details
+      className="group mt-2 min-w-0 border-t border-[#edf0ef] pt-2"
+      open={defaultOpen || undefined}
+    >
       <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] text-[#87928f] transition-colors hover:text-[#46534f] [&::-webkit-details-marker]:hidden">
         <ChevronDown
           size={12}
