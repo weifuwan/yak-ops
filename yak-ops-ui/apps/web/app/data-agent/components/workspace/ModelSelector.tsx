@@ -49,7 +49,7 @@ export function ModelSelector({
         <DropdownMenuItem
           role="menuitemradio"
           aria-checked={value === "DeepSeek"}
-          className="min-h-[56px] items-start justify-between gap-3 rounded-[10px] px-3 py-2 data-[highlighted]:bg-[#f5f5f3]"
+          className="min-h-[56px] cursor-pointer items-start justify-between gap-3 rounded-[10px] px-3 py-2 data-[highlighted]:bg-[#f5f5f3]"
           onClick={() => onSelect("DeepSeek")}
         >
           <span className="min-w-0 flex-1">

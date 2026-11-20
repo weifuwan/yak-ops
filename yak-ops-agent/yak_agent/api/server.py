@@ -135,7 +135,14 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     if session.busy:
         raise SessionBusy()
     session.busy = True
-    worker = asyncio.create_task(run_turn(session, body.message, forward_event))
+    worker = asyncio.create_task(
+        run_turn(
+            session,
+            body.message,
+            forward_event,
+            _get_settings().confirm_timeout_seconds,
+        )
+    )
 
     async def event_stream():
         try:

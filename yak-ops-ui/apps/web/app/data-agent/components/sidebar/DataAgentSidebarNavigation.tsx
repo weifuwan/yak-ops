@@ -127,7 +127,7 @@ export function DataAgentSidebarNavigation({
                   type="button"
                   title={conversation.title}
                   disabled={busy}
-                  className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs text-[#555555] transition-colors hover:bg-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-xs text-[#555555] transition-colors hover:bg-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => selectConversation(conversation.id)}
                 >
                   <MessageSquare size={13} className="shrink-0 text-[#888888]" />

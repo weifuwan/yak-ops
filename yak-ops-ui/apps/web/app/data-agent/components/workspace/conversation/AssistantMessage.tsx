@@ -31,10 +31,7 @@ export function AssistantMessage({
       {hasTimeline ? (
         <AgentActivityTimeline
           activities={activities}
-          usage={message.usage}
-          replyEnds={message.replyEnds}
           isStreaming={message.status === "streaming"}
-          isError={message.status === "error"}
           selectedActivityId={selectedActivityId}
           onSelectActivity={onSelectActivity}
         />

@@ -6,6 +6,8 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const conversationHeader = read("../apps/web/app/data-agent/components/workspace/DataAgentConversationHeader.tsx");
+const sessionWorkspace = read("../apps/web/app/data-agent/components/workspace/DataAgentSessionWorkspace.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
 const emptyStateStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-empty-state.css");
 const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
@@ -62,10 +64,12 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(welcome, /ref=\{leftEyeRef\}/);
   assert.match(welcome, /ref=\{rightEyeRef\}/);
   assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|理解数据、构建任务|Enter 发送 · Shift/);
-  assert.ok(!workspace.includes('activeConversation?.title ?? "新对话"'));
+  assert.ok(workspace.includes('activeConversation?.title ?? "新对话"'));
   assert.ok(!workspace.includes("前端预览</span>"));
   assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
+  assert.match(workspace, /<DataAgentEmptyState/);
+  assert.match(workspace, /<DataAgentSessionWorkspace/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
@@ -82,6 +86,40 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(conversationList, /No sessions yet/);
   assert.match(sidebarFooter, /Upgrade to Pro/);
   assert.match(sidebarFooter, /Unlock more features/);
+});
+
+test("Data Agent restores the original empty workspace and uses a shared split header for conversations", () => {
+  const emptyBranchIndex = workspace.indexOf("{!hasMessages ? (");
+  const emptyStateIndex = workspace.indexOf("<DataAgentEmptyState", emptyBranchIndex);
+  const sessionWorkspaceIndex = workspace.indexOf("<DataAgentSessionWorkspace");
+  const conversationBranch = workspace.slice(sessionWorkspaceIndex);
+
+  assert.ok(emptyBranchIndex >= 0, "empty workspace should have its own layout branch");
+  assert.ok(emptyStateIndex > emptyBranchIndex, "empty state should render in the original workspace branch");
+  assert.ok(sessionWorkspaceIndex > emptyStateIndex, "session workspace should only render after the empty state branch");
+  assert.match(workspace.slice(emptyBranchIndex, sessionWorkspaceIndex), /bg-\[#f0f0f0\] p-2 max-md:p-0/);
+  assert.match(workspace.slice(emptyBranchIndex, sessionWorkspaceIndex), /rounded-2xl border border-\[#e7e7e4\] bg-white/);
+  assert.match(conversationBranch, /title=\{activeConversation\?\.title \?\? "新对话"\}/);
+  assert.match(conversationBranch, /messages=\{messages\}/);
+  assert.match(conversationBranch, /trailingActions=\{modelSelector\}/);
+  assert.doesNotMatch(conversationBranch, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
+
+  assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
+  assert.match(sessionWorkspace, /<ConversationPanel/);
+  assert.match(sessionWorkspace, /<AgentDetailsPanel/);
+  assert.match(conversationHeader, /h-12 shrink-0 items-center bg-white/);
+  assert.doesNotMatch(conversationHeader, /border-b/);
+  assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
+  assert.match(conversationHeader, /onToggleSidebar/);
+  assert.match(conversationHeader, /const statusLabel = isSending \? "正在处理" : "已就绪"/);
+  assert.match(conversationHeader, /detailsOpen/);
+  assert.match(conversationHeader, /Timeline/);
+  assert.match(conversationHeader, /Changes/);
+  assert.match(conversationHeader, /onToggleDetails/);
+  assert.match(conversationHeader, /cursor-pointer/);
+
+  assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
+  assert.match(welcome, /rounded-\[14px\] border border-\[#dfe4e4\] bg-white/);
 });
 
 test("Data Agent sidebar keeps the Recent chats section visible when there are no sessions", () => {
@@ -104,7 +142,7 @@ test("the welcome workspace keeps its centered prompt and shortcut layout", () =
   assert.ok(quickActions.includes('iconClass: "bg-[#d79a38] text-white"'));
   assert.ok(quickActions.includes('iconClass: "bg-[#59a67a] text-white"'));
   assert.match(workspace, /handleQuickAction/);
-  assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
+  assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
 });
 
@@ -317,12 +355,13 @@ test("Data Agent workspace menu groups its label with menu items", () => {
 });
 
 
-test("Data Agent renders ordered SSE activity with expandable tool input and output", () => {
+test("Data Agent renders assistant activity inline and keeps execution details in the shared side panel", () => {
   assert.match(assistantMessage, /AgentActivityTimeline/);
   assert.match(assistantMessage, /activities\.some\(\(activity\) => activity\.kind !== "text"\)/);
-  assert.match(activityTimeline, /执行过程/);
-  assert.match(activityTimeline, /aria-expanded=\{expanded\}/);
-  assert.match(activityTimeline, /Token 用量/);
+  assert.doesNotMatch(assistantMessage, /usage=\{message\.usage\}|replyEnds=\{message\.replyEnds\}|isError=/);
+  assert.match(activityTimeline, /AgentActivityItem/);
+  assert.match(activityTimeline, /isStreaming/);
+  assert.doesNotMatch(activityTimeline, /执行过程|aria-expanded=\{expanded\}|Token 用量|ChevronDown|rounded-xl border|bg-\[#fbfcfb\]/);
   assert.match(activityItem, /DataAgentMarkdown/);
   assert.match(activityItem, /AgentToolActivity/);
   assert.doesNotMatch(toolActivity, /AgentActivityDetails/);
@@ -330,25 +369,50 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(toolActivity, /ChevronRight/);
   assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
-  assert.match(toolActivity, /hover:bg-\[#f4f6f5\]/);
-  assert.match(conversationPanel, /AgentDetailsPanel/);
-  assert.match(conversationPanel, /id="agent-details-panel"/);
-  assert.match(conversationPanel, /handleSelectActivity/);
-  assert.match(conversationPanel, /duration-300/);
-  assert.match(conversationPanel, /max-md:absolute max-md:inset-0/);
+  assert.match(toolActivity, /hover:bg-\[#e5e5e5\]/);
+  assert.match(detailsTimeline, /hover:bg-\[#f4f5f5\]/);
+  assert.match(detailsTimeline, /active:bg-\[#eceeee\]/);
+  assert.doesNotMatch(detailsTimeline, /hover:bg-\[#e5e5e5\]/);
+  assert.doesNotMatch(toolActivity, /hover:bg-\[#f4f6f5\]/);
+  assert.doesNotMatch(detailsTimeline, /hover:bg-\[#f8f9f8\]/);
+  assert.match(conversationPanel, /<MessageList/);
+  assert.match(conversationPanel, /selectedMessageId/);
+  assert.match(conversationPanel, /selectedActivityId/);
+  assert.match(conversationPanel, /onSelectActivity/);
+  assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|agent-details-panel|AgentDetailsResizer/);
+  assert.match(sessionWorkspace, /AgentDetailsPanel/);
+  assert.match(sessionWorkspace, /id="agent-details-panel"/);
+  assert.match(sessionWorkspace, /handleSelectActivity/);
+  assert.match(sessionWorkspace, /duration-300/);
+  assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
-  assert.match(detailsPanel, /aria-label="关闭执行详情"/);
-  assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Token 用量|Agent 执行过程/);
+  assert.match(detailsPanel, /AgentDetailsSummary/);
+  assert.match(detailsPanel, /执行概览/);
+  assert.match(detailsPanel, /Token 用量/);
+  assert.match(detailsPanel, /输入 \{inputTokens\.toLocaleString\(\)\}/);
+  assert.match(detailsPanel, /输出 \{outputTokens\.toLocaleString\(\)\}/);
+  assert.match(detailsPanel, /缓存 \{cacheTokens\.toLocaleString\(\)\}/);
+  assert.doesNotMatch(detailsPanel, /aria-label="关闭执行详情"|AgentActivityDetails|Agent 执行过程/);
   assert.match(detailsTimeline, /Thought/);
   assert.match(detailsTimeline, /SquareTerminal/);
-  assert.match(detailsTimeline, /pl-9/);
+  assert.match(detailsTimeline, /pl-8/);
+  assert.match(detailsTimeline, /left-\[15px\]/);
+  assert.match(detailsTimeline, /w-\[2px\]/);
+  assert.match(detailsTimeline, /top-0 bottom-0/);
   assert.match(detailsTimeline, /bg-\[#e7e9e8\]/);
+  assert.match(detailsTimeline, /function TimelineNode/);
+  assert.match(detailsTimeline, /size=\{12\}/);
+  assert.match(detailsTimeline, /text-\[#9fa6a3\]/);
+  assert.doesNotMatch(detailsTimeline, /rounded-full bg-\[#c9cfcc\]/);
   assert.match(detailsTimeline, /aria-expanded=\{expanded\}/);
   assert.match(detailsTimeline, /DataAgentMarkdown/);
   assert.match(detailsTimeline, /输入参数/);
   assert.match(detailsTimeline, /执行结果/);
   assert.match(detailsTimeline, /selectedActivityId/);
-  assert.match(detailsTimeline, /expandedActivityId/);
+  assert.match(detailsTimeline, /expandedActivityIds/);
+  assert.match(detailsTimeline, /new Set\(selectedActivityId \? \[selectedActivityId\] : \[\]\)/);
+  assert.match(detailsTimeline, /activities\.filter/);
+  assert.match(detailsTimeline, /expandAll/);
   assert.match(detailsTimeline, /TOOL_LABELS/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
@@ -369,7 +433,7 @@ test("tool activity is a single-line action that opens the message execution det
   assert.match(toolActivity, /查看 .* 执行详情/);
   assert.match(conversationPanel, /selectedMessage/);
   assert.match(conversationPanel, /selectedActivity/);
-  assert.match(conversationPanel, /event\.key === "Escape"/);
+  assert.match(sessionWorkspace, /event\.key === "Escape"/);
   assert.match(detailsPanel, /message\.activities/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
   assert.match(detailsTimeline, /activity\.kind === "text"/);
@@ -377,18 +441,19 @@ test("tool activity is a single-line action that opens the message execution det
 
 
 test("Data Agent execution details panel has an accessible, bounded drag splitter", () => {
-  assert.match(conversationPanel, /const \[detailsWidth, setDetailsWidth\] = useState\(420\)/);
-  assert.match(conversationPanel, /const \[detailsMaxWidth, setDetailsMaxWidth\] = useState\(DETAILS_MAX_WIDTH\)/);
-  assert.match(conversationPanel, /new ResizeObserver\(updateMaxWidth\)/);
-  assert.match(conversationPanel, /Math\.floor\(element\.clientWidth \* 0\.55\)/);
-  assert.match(conversationPanel, /<AgentDetailsResizer/);
-  assert.match(conversationPanel, /onResize=\{setDetailsWidth\}/);
-  assert.match(conversationPanel, /onDraggingChange=\{setDetailsResizing\}/);
-  assert.match(conversationPanel, /detailsResizing/);
-  assert.match(conversationPanel, /style=\{\{ width: detailsOpen \? String\(detailsWidth\) \+ "px" : "0px" \}\}/);
-  assert.match(conversationPanel, /max-md:!w-full/);
+  assert.match(sessionWorkspace, /const \[detailsWidth, setDetailsWidth\] = useState\(420\)/);
+  assert.match(sessionWorkspace, /const \[detailsMaxWidth, setDetailsMaxWidth\] = useState\(DETAILS_MAX_WIDTH\)/);
+  assert.match(sessionWorkspace, /new ResizeObserver\(updateWidth\)/);
+  assert.match(sessionWorkspace, /Math\.floor\(availableWidth \* 0\.55\)/);
+  assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
+  assert.match(sessionWorkspace, /<AgentDetailsResizer/);
+  assert.match(sessionWorkspace, /onResize=\{setDetailsWidth\}/);
+  assert.match(sessionWorkspace, /onDraggingChange=\{setDetailsResizing\}/);
+  assert.match(sessionWorkspace, /detailsResizing/);
+  assert.match(sessionWorkspace, /style=\{\{ width: detailsOpen \? String\(detailsWidth\) \+ "px" : "0px" \}\}/);
+  assert.match(sessionWorkspace, /max-lg:!w-full/);
 
-  assert.match(detailsResizer, /DETAILS_MIN_WIDTH = 280/);
+  assert.match(detailsResizer, /DETAILS_MIN_WIDTH = 320/);
   assert.match(detailsResizer, /role="separator"/);
   assert.match(detailsResizer, /aria-label="调整 Agent 详情面板宽度"/);
   assert.match(detailsResizer, /aria-orientation="vertical"/);
@@ -403,4 +468,74 @@ test("Data Agent execution details panel has an accessible, bounded drag splitte
   assert.match(detailsResizer, /ArrowRight/);
   assert.match(detailsResizer, /document\.body\.style\.cursor = "col-resize"/);
   assert.match(detailsResizer, /document\.body\.style\.userSelect = "none"/);
+});
+
+
+
+test("Data Agent clickable controls use pointer cursors and drag splitters keep resize cursors", () => {
+  assert.match(detailsTimeline, /cursor-pointer items-start/);
+  assert.match(toolActivity, /cursor-pointer items-center/);
+  assert.match(modelSelector, /min-h-\\[56px\\] cursor-pointer/);
+  assert.match(sidebarNavigation, /group flex h-8 w-full cursor-pointer/);
+  assert.match(sidebarNavigation, /h-8 w-full cursor-pointer items-center/);
+  assert.match(sessionWorkspace, /cursor-pointer/);
+  assert.match(messageActions, /cursor-pointer/);
+  assert.match(confirmationCard, /cursor-pointer/);
+  assert.match(composer, /cursor-pointer/);
+  assert.match(welcome, /cursor-pointer/);
+  assert.match(emptyState, /cursor-pointer/);
+  assert.match(conversationHeader, /cursor-pointer/);
+  assert.match(detailsResizer, /cursor-col-resize/);
+  assert.match(sidebarResizer, /cursor-col-resize/);
+  assert.match(composer, /disabled:cursor-not-allowed/);
+});
+
+test("Data Agent session workspace uses a shared header and a 60/40 split with a responsive details pane", () => {
+  assert.match(workspace, /<DataAgentSessionWorkspace/);
+  assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
+  assert.match(sessionWorkspace, /const \[detailsOpen, setDetailsOpen\] = useState\(false\)/);
+  assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
+  assert.match(sessionWorkspace, /DETAILS_MAX_WIDTH = 640/);
+  assert.match(sessionWorkspace, /DetailsEmptyState/);
+  assert.match(sessionWorkspace, /const \[detailsExpandAll, setDetailsExpandAll\] = useState\(false\)/);
+  assert.match(sessionWorkspace, /container\.scrollTo\(\{ top: container\.scrollHeight, behavior: "smooth" \}\)/);
+  assert.match(sessionWorkspace, /onToggleExpandAll=\{\(\) => setDetailsExpandAll/);
+  assert.match(sessionWorkspace, /expandAll=\{detailsExpandAll\}/);
+  assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0 max-lg:z-20/);
+  assert.match(conversationHeader, /h-12/);
+  assert.doesNotMatch(conversationHeader, /border-l|border-b/);
+  assert.match(conversationHeader, /Timeline/);
+  assert.match(conversationHeader, /Changes/);
+  assert.match(conversationHeader, /aria-expanded=\{detailsOpen\}/);
+  assert.match(conversationHeader, /aria-label="打开执行详情"/);
+  assert.match(conversationHeader, /aria-label="收起执行详情"/);
+  assert.match(conversationHeader, /<PanelRightClose size=\{16\}/);
+  assert.match(conversationHeader, /style=\{\{ right: String\(detailsWidth \+ 12\)/);
+  assert.doesNotMatch(conversationHeader, /aria-label="关闭执行详情"|<X size=\{16\}/);
+  assert.match(conversationHeader, /relative mr-2 hidden h-full shrink-0 items-center justify-between gap-2 border-y/);
+  assert.match(conversationHeader, /Back to latest/);
+  assert.match(conversationHeader, /PREVIEW_DURATION = "6m 40s"/);
+  assert.match(conversationHeader, /PREVIEW_SCORE = "4\.50"/);
+  assert.match(conversationHeader, /pointer-events-none absolute inset-0[\s\S]*?Details/);
+  assert.match(conversationHeader, /aria-label=\{expandAll \? "Collapse all" : "Expand all"\}/);
+  assert.match(conversationHeader, /role="tablist"/);
+  assert.match(conversationHeader, /role="tab"/);
+  assert.match(conversationHeader, /onBackToLatest/);
+  assert.match(conversationHeader, /onToggleExpandAll/);
+  assert.match(sessionWorkspace, /p-2 opacity-100 max-lg:absolute/);
+  assert.match(sessionWorkspace, /rounded-\[14px\] border border-\[#e5e5e5\] bg-white/);
+  assert.match(sessionWorkspace, /<PanelRightClose size=\{15\}/);
+  assert.match(sessionWorkspace, /aria-label="收起执行详情"/);
+  assert.doesNotMatch(sessionWorkspace, /border-l border-\[#ecefed\]/);
+  assert.match(conversationPanel, /<MessageList/);
+  assert.match(conversationPanel, /DataAgentPromptComposer/);
+  assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|AgentDetailsResizer/);
+});
+
+test("Data Agent details timeline uses a centered continuous 2px rail without dot markers", () => {
+  assert.match(detailsTimeline, /relative min-w-0 pl-8/);
+  assert.match(detailsTimeline, /left-\[15px\] top-0 w-\[2px\] bg-\[#e7e9e8\]/);
+  assert.match(detailsTimeline, /absolute -left-8 top-\[10px\] flex h-5 w-8 items-center justify-center/);
+  assert.match(detailsTimeline, /SquareTerminal[\s\S]*?size=\{12\}/);
+  assert.doesNotMatch(detailsTimeline, /size-1\.5 rounded-full|size-1\.5 rounded-full bg-/);
 });

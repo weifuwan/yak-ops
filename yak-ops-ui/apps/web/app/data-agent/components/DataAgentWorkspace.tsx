@@ -5,7 +5,7 @@ import { useDataAgentConversation } from "@/hooks/useDataAgentConversation";
 
 import { DataAgentSidebar } from "./DataAgentSidebar";
 import { DataAgentSidebarResizer } from "./DataAgentSidebarResizer";
-import { ConversationPanel } from "./workspace/ConversationPanel";
+import { DataAgentSessionWorkspace } from "./workspace/DataAgentSessionWorkspace";
 import { DataAgentEmptyState } from "./workspace/DataAgentEmptyState";
 import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
@@ -178,22 +178,22 @@ export function DataAgentWorkspace({
           />
         ) : null}
 
-        <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
-          <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-[7px] pt-2">
-              <button
-                type="button"
-                aria-label={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
-                aria-expanded={sidebarOpen}
-                title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
-                className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-colors hover:border-[#cbd2d1] hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
-                onClick={() => setSidebarOpen((open) => !open)}
-              >
-                <PanelLeft size={15} strokeWidth={1.5} />
-              </button>
-            </div>
+        {!hasMessages ? (
+          <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
+            <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-[7px] pt-2">
+                <button
+                  type="button"
+                  aria-label={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+                  aria-expanded={sidebarOpen}
+                  title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+                  className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-colors hover:border-[#cbd2d1] hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
+                  onClick={() => setSidebarOpen((open) => !open)}
+                >
+                  <PanelLeft size={15} strokeWidth={1.5} />
+                </button>
+              </div>
 
-            {!hasMessages ? (
               <DataAgentEmptyState
                 connectionError={connectionError}
                 restored={Boolean(activeConversation?.restored)}
@@ -204,22 +204,27 @@ export function DataAgentWorkspace({
                 onQuickAction={handleQuickAction}
                 trailingActions={modelSelector}
               />
-            ) : (
-              <ConversationPanel
-                messages={messages}
-                pendingConfirmation={pendingConfirmation}
-                onResolveConfirmation={resolveConfirmation}
-                scrollRef={messageScrollRef}
-                connectionError={connectionError}
-                composerKey={composerKey}
-                initialDraft={initialDraft}
-                isSending={isSending}
-                onSubmit={handlePromptSubmit}
-                trailingActions={modelSelector}
-              />
-            )}
-          </section>
-        </main>
+            </section>
+          </main>
+        ) : (
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+            <DataAgentSessionWorkspace
+              title={activeConversation?.title ?? "新对话"}
+              isSending={isSending}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen((open) => !open)}
+              messages={messages}
+              pendingConfirmation={pendingConfirmation}
+              onResolveConfirmation={resolveConfirmation}
+              scrollRef={messageScrollRef}
+              connectionError={connectionError}
+              composerKey={composerKey}
+              initialDraft={initialDraft}
+              onSubmit={handlePromptSubmit}
+              trailingActions={modelSelector}
+            />
+          </main>
+        )}
       </div>
     </>
   );

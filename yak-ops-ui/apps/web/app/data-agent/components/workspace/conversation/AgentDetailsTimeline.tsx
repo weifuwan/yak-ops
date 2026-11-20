@@ -9,6 +9,7 @@ import { formatToolInput } from "../../../utils/message-formatters";
 type AgentDetailsTimelineProps = {
   activities: AgentActivity[];
   selectedActivityId: string;
+  expandAll: boolean;
 };
 
 function formatDuration(startedAt?: number, completedAt?: number) {
@@ -27,10 +28,6 @@ function ThoughtEvent({ activity }: { activity: AgentActivity }) {
 
   return (
     <div className="relative min-w-0 py-2">
-      <span
-        aria-hidden="true"
-        className="absolute -left-[32px] top-[17px] size-1.5 rounded-full bg-[#c9cfcc]"
-      />
       <p className="mb-0 text-[13px] leading-5 text-[#737875]">
         Thought{duration ? " for " + duration : ""}
       </p>
@@ -52,7 +49,7 @@ function CodePanel({
       <div className="mb-1.5 text-[11px] font-medium text-[#737875]">
         {label}
       </div>
-      <pre className="m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-[#e8e9e8] bg-[#fafafa] p-3 font-mono text-[12px] leading-6 text-[#292d2b]">
+      <pre className="m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-[#e8e9e8] bg-[#fafafa] p-1 font-mono text-[12px] leading-6 text-[#292d2b]">
         {formatToolInput(value)}
       </pre>
     </section>
@@ -76,6 +73,23 @@ function ActivityDetails({ activity }: { activity: AgentActivity }) {
         <CodePanel label="执行结果" value={activity.output ?? ""} />
       </div>
     </div>
+  );
+}
+
+function TimelineNode() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute -left-8 top-[10px] flex h-5 w-8 items-center justify-center"
+    >
+      <span className="flex size-4 items-center justify-center bg-white">
+        <SquareTerminal
+          size={12}
+          strokeWidth={1.5}
+          className="text-[#9fa6a3]"
+        />
+      </span>
+    </span>
   );
 }
 
@@ -106,32 +120,14 @@ function ExpandableActivity({
           : "border border-transparent")
       }
     >
-      <span
-        aria-hidden="true"
-        className="absolute -left-[36px] top-[12px] flex size-4 items-center justify-center bg-white"
-      >
-        <SquareTerminal
-          size={14}
-          strokeWidth={1.6}
-          className={
-            activity.status === "running"
-              ? "text-[#9a875e]"
-              : activity.status === "error" ||
-                  activity.status === "denied" ||
-                  activity.status === "rejected" ||
-                  activity.status === "interrupted"
-                ? "text-[#b96c72]"
-                : "text-[#78827e]"
-          }
-        />
-      </span>
+      <TimelineNode />
 
       {canExpand ? (
         <button
           type="button"
           aria-expanded={expanded}
           aria-controls={"agent-details-content-" + activity.id}
-          className="flex min-h-9 w-full min-w-0 items-start gap-2 rounded-[9px] px-3 py-2 text-left transition-colors duration-200 hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#fe2c55]/20"
+          className="flex min-h-9 w-full min-w-0 cursor-pointer items-start gap-2 rounded-[9px] px-3 py-2 text-left transition-colors duration-200 ease-out hover:bg-[#f4f5f5] active:bg-[#eceeee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#fe2c55]/20"
           onClick={onToggle}
         >
           <span className="min-w-0 flex-1 break-words text-[14px] leading-6 text-[#252927]">
@@ -168,20 +164,38 @@ function ExpandableActivity({
 export function AgentDetailsTimeline({
   activities,
   selectedActivityId,
+  expandAll,
 }: AgentDetailsTimelineProps) {
-  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(
-    selectedActivityId || null,
+  const [expandedActivityIds, setExpandedActivityIds] = useState<Set<string>>(
+    () => new Set(selectedActivityId ? [selectedActivityId] : []),
   );
 
   useEffect(() => {
-    if (selectedActivityId) setExpandedActivityId(selectedActivityId);
-  }, [selectedActivityId]);
+    if (!expandAll) return;
+
+    setExpandedActivityIds(
+      new Set(
+        activities
+          .filter(
+            (activity) =>
+              activity.kind === "tool" ||
+              Boolean(activity.content?.trim() || activity.input || activity.output),
+          )
+          .map((activity) => activity.id),
+      ),
+    );
+  }, [activities, expandAll]);
+
+  useEffect(() => {
+    if (expandAll) return;
+    setExpandedActivityIds(new Set(selectedActivityId ? [selectedActivityId] : []));
+  }, [expandAll, selectedActivityId]);
 
   return (
-    <div className="relative min-w-0 pl-9">
+    <div className="relative min-w-0 pl-8">
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-2 left-[7px] top-2 w-px bg-[#e7e9e8]"
+        className="pointer-events-none absolute bottom-0 left-[15px] top-0 w-[2px] bg-[#e7e9e8]"
       />
 
       <div className="flex min-w-0 flex-col gap-1">
@@ -204,16 +218,19 @@ export function AgentDetailsTimeline({
             );
           }
 
-          const expanded = expandedActivityId === activity.id;
+          const expanded = expandedActivityIds.has(activity.id);
           return (
             <ExpandableActivity
               key={activity.id}
               activity={activity}
               expanded={expanded}
               onToggle={() =>
-                setExpandedActivityId((current) =>
-                  current === activity.id ? null : activity.id,
-                )
+                setExpandedActivityIds((current) => {
+                  const next = new Set(current);
+                  if (next.has(activity.id)) next.delete(activity.id);
+                  else next.add(activity.id);
+                  return next;
+                })
               }
             />
           );

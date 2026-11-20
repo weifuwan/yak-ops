@@ -14,6 +14,7 @@ from agentscope.event import (
 )
 from agentscope.message import UserMsg
 
+from yak_agent import audit
 from yak_agent.service import persistence
 from yak_agent.service.session import Session
 
@@ -33,7 +34,57 @@ def _build_confirm_results(
     ]
 
 
-async def run_turn(session: Session, text: str, forward: ForwardEvent) -> None:
+async def _await_confirmation(
+    session: Session,
+    paused: Any,
+    timeout_seconds: float,
+) -> list[bool]:
+    """Wait for the frontend decision; a timeout denies every pending call."""
+    loop = asyncio.get_running_loop()
+    session.confirm_future = loop.create_future()
+    try:
+        approved = await asyncio.wait_for(session.confirm_future, timeout=timeout_seconds)
+    except TimeoutError:
+        for tool_call in paused.tool_calls:
+            audit.record_tool_call(
+                "session_confirm_timeout",
+                {
+                    "session": session.sid,
+                    "caller": session.owner,
+                    "replyId": paused.reply_id,
+                    "toolCallId": tool_call.id,
+                    "tool": tool_call.name,
+                    "confirmed": False,
+                    "timeoutSeconds": timeout_seconds,
+                },
+                False,
+                0,
+                f"no confirmation within {timeout_seconds}s",
+            )
+        await session.queue.put(
+            {
+                "type": "progress",
+                "phase": "confirm",
+                "title": "确认超时，已按拒绝处理",
+                "status": "error",
+                "replyId": paused.reply_id,
+            }
+        )
+        flags = [False] * len(paused.tool_calls)
+    else:
+        flags = approved if isinstance(approved, list) else [approved] * len(paused.tool_calls)
+    finally:
+        session.confirm_future = None
+        session.pending_event = None
+    return flags
+
+
+async def run_turn(
+    session: Session,
+    text: str,
+    forward: ForwardEvent,
+    confirm_timeout_seconds: float = 600.0,
+) -> None:
     success = False
     analysis_progress_active = True
     try:
@@ -81,12 +132,7 @@ async def run_turn(session: Session, text: str, forward: ForwardEvent) -> None:
                     ],
                 }
             )
-            loop = asyncio.get_running_loop()
-            session.confirm_future = loop.create_future()
-            approved = await session.confirm_future
-            session.confirm_future = None
-            session.pending_event = None
-            flags = approved if isinstance(approved, list) else [approved] * len(paused.tool_calls)
+            flags = await _await_confirmation(session, paused, confirm_timeout_seconds)
             msg = UserConfirmResultEvent(
                 reply_id=paused.reply_id,
                 confirm_results=_build_confirm_results(flags, paused.tool_calls),
