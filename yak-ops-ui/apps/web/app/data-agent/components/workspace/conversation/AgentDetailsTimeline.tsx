@@ -29,7 +29,7 @@ function ThoughtEvent({ activity }: { activity: AgentActivity }) {
     <div className="relative min-w-0 py-2">
       <span
         aria-hidden="true"
-        className="absolute -left-[29px] top-[17px] size-1.5 rounded-full bg-[#c9cfcc]"
+        className="absolute -left-[32px] top-[17px] size-1.5 rounded-full bg-[#c9cfcc]"
       />
       <p className="mb-0 text-[13px] leading-5 text-[#737875]">
         Thought{duration ? " for " + duration : ""}
@@ -107,7 +107,7 @@ function ExpandableActivity({
     >
       <span
         aria-hidden="true"
-        className="absolute -left-[32px] top-[12px] flex size-4 items-center justify-center bg-white"
+        className="absolute -left-[36px] top-[12px] flex size-4 items-center justify-center bg-white"
       >
         <SquareTerminal
           size={14}
@@ -174,7 +174,7 @@ export function AgentDetailsTimeline({
   }, [selectedActivityId]);
 
   return (
-    <div className="relative min-w-0 pl-8">
+    <div className="relative min-w-0 pl-9">
       <span
         aria-hidden="true"
         className="pointer-events-none absolute bottom-2 left-[7px] top-2 w-px bg-[#e7e9e8]"
