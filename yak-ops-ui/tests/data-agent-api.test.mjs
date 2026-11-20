@@ -3,9 +3,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
+  confirmAgentSession,
   createAgentSession,
   deleteAgentSession,
+  getAgentSessionMessages,
+  getAgentSessionStatus,
+  interruptAgentSession,
   listAgentSessions,
+  renameAgentSession,
   parseAgentSseFrame,
   sendAgentMessage,
 } from "../apps/web/service/data-agent/index.ts";
@@ -122,18 +127,27 @@ test("Agent proxy forwards verified-context identity headers and removes the bro
   assert.equal(forwardedHeaders.has("cookie"), false);
 });
 
-test("all JSON session endpoints carry the current user and workspace identity", async () => {
+test("session lifecycle endpoints carry the current user and workspace identity", async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
 
   globalThis.fetch = async (input, init = {}) => {
     calls.push({ url: String(input), init });
+    const url = String(input);
     const payload =
-      init.method === "GET"
+      init.method === "GET" && url.endsWith("/agent/sessions")
         ? []
-        : init.method === "DELETE"
-          ? { deleted: true }
-          : { sessionId: "session-1" };
+        : init.method === "GET" && url.endsWith("/messages")
+          ? { sessionId: "session-1", messages: [], truncated: false }
+          : init.method === "GET"
+            ? { sessionId: "session-1", state: "idle", busy: false, stale: false }
+            : init.method === "DELETE"
+              ? { deleted: true }
+              : init.method === "PATCH"
+                ? { sessionId: "session-1", title: "新标题" }
+                : init.method === "POST" && url.endsWith("/interrupt")
+                  ? { accepted: true, state: "interrupting" }
+                  : { accepted: true };
     return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -143,9 +157,14 @@ test("all JSON session endpoints carry the current user and workspace identity",
   try {
     await createAgentSession(identity);
     await listAgentSessions(identity);
+    await getAgentSessionStatus("session-1", identity);
+    await getAgentSessionMessages("session-1", identity);
+    await renameAgentSession("session-1", "新标题", identity);
+    await interruptAgentSession("session-1", "turn-1", identity);
+    await confirmAgentSession("session-1", true, identity, new AbortController().signal);
     await deleteAgentSession("session-1", identity);
 
-    assert.equal(calls.length, 3);
+    assert.equal(calls.length, 8);
     for (const call of calls) {
       const headers = new Headers(call.init.headers);
       assert.equal(headers.get("X-Yak-User-Id"), identity.userId);
@@ -154,13 +173,23 @@ test("all JSON session endpoints carry the current user and workspace identity",
     }
     assert.equal(calls[0].init.method, "POST");
     assert.equal(calls[1].init.method, "GET");
-    assert.equal(calls[2].init.method, "DELETE");
+    assert.equal(calls[2].init.method, "GET");
+    assert.equal(calls[3].init.method, "GET");
+    assert.equal(calls[4].init.method, "PATCH");
+    assert.equal(calls[5].init.method, "POST");
+    assert.equal(calls[6].init.method, "POST");
+    assert.equal(calls[7].init.method, "DELETE");
+    assert.match(calls[2].url, /\/agent\/sessions\/session-1$/);
+    assert.match(calls[3].url, /\/agent\/sessions\/session-1\/messages$/);
+    assert.match(calls[4].url, /\/agent\/sessions\/session-1$/);
+    assert.match(calls[5].url, /\/agent\/sessions\/session-1\/interrupt$/);
+    assert.match(calls[6].url, /\/agent\/sessions\/session-1\/confirm$/);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test("SSE confirmation pauses the stream until the frontend posts the approval decision", async () => {
+test("SSE confirmation prompts do not block event consumption or post decisions implicitly", async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
   const streamText = [
@@ -211,20 +240,20 @@ test("SSE confirmation pauses the stream until the frontend posts the approval d
     });
 
     assert.equal(confirmationRequested, true);
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 1);
     assert.match(calls[0].url, /\/agent\/sessions\/session-1\/messages$/);
-    assert.match(calls[1].url, /\/agent\/sessions\/session-1\/confirm$/);
-    assert.deepEqual(JSON.parse(calls[1].init.body), { approved: true });
     for (const call of calls) {
       const headers = new Headers(call.init.headers);
       assert.equal(headers.get("X-Yak-User-Id"), identity.userId);
       assert.equal(headers.get("X-Yak-Workspace-Id"), identity.workspaceId);
     }
     assert.equal(calls[0].init.credentials, "include");
-    assert.deepEqual(events, [
-      { type: "text_delta", delta: "创建完成" },
-      { type: "done" },
+    assert.deepEqual(events.map((event) => event.type), [
+      "confirm_required",
+      "text_delta",
+      "done",
     ]);
+    assert.equal(events[0].replyId, "reply-1");
   } finally {
     globalThis.fetch = originalFetch;
   }
