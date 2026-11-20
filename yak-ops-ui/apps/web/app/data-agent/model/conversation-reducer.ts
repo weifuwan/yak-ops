@@ -322,7 +322,7 @@ export function conversationReducer(
             activities: upsertActivity(message.activities ?? [], {
               id,
               kind: "thinking",
-              title: "正在分析请求",
+              title: "思考过程",
               status: "running",
               replyId: action.replyId,
               blockId: action.blockId,
