@@ -9,6 +9,7 @@ import { formatToolInput } from "../../../utils/message-formatters";
 type AgentDetailsTimelineProps = {
   activities: AgentActivity[];
   selectedActivityId: string;
+  expandAll: boolean;
 };
 
 function formatDuration(startedAt?: number, completedAt?: number) {
@@ -163,14 +164,27 @@ function ExpandableActivity({
 export function AgentDetailsTimeline({
   activities,
   selectedActivityId,
+  expandAll,
 }: AgentDetailsTimelineProps) {
-  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(
-    selectedActivityId || null,
+  const [expandedActivityIds, setExpandedActivityIds] = useState<Set<string>>(
+    () => new Set(selectedActivityId ? [selectedActivityId] : []),
   );
 
   useEffect(() => {
-    if (selectedActivityId) setExpandedActivityId(selectedActivityId);
-  }, [selectedActivityId]);
+    const nextExpandedIds = expandAll
+      ? new Set(
+          activities
+            .filter(
+              (activity) =>
+                activity.kind === "tool" ||
+                Boolean(activity.content?.trim() || activity.input || activity.output),
+            )
+            .map((activity) => activity.id),
+        )
+      : new Set(selectedActivityId ? [selectedActivityId] : []);
+
+    setExpandedActivityIds(nextExpandedIds);
+  }, [activities, expandAll, selectedActivityId]);
 
   return (
     <div className="relative min-w-0 pl-8">
@@ -199,16 +213,19 @@ export function AgentDetailsTimeline({
             );
           }
 
-          const expanded = expandedActivityId === activity.id;
+          const expanded = expandedActivityIds.has(activity.id);
           return (
             <ExpandableActivity
               key={activity.id}
               activity={activity}
               expanded={expanded}
               onToggle={() =>
-                setExpandedActivityId((current) =>
-                  current === activity.id ? null : activity.id,
-                )
+                setExpandedActivityIds((current) => {
+                  const next = new Set(current);
+                  if (next.has(activity.id)) next.delete(activity.id);
+                  else next.add(activity.id);
+                  return next;
+                })
               }
             />
           );
