@@ -346,6 +346,7 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(detailsPanel, /defaultOpen=\{selected\}/);
   assert.match(detailsPanel, /Token 用量/);
   assert.match(detailsPanel, /aria-label="关闭执行详情"/);
+  assert.match(detailsPanel, /  X,\\n  XCircle,/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
   assert.match(conversationHook, /case "tool_result_delta"/);
