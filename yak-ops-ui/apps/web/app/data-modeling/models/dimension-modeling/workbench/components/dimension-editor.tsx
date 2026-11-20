@@ -272,19 +272,22 @@ export function DimensionEditor({
   const timePeriodsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-time-periods", projectCode],
     queryFn: () => timePeriodApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
+    enabled: Boolean(projectCode && (values.tableType === "SUMMARY" || values.tableType === "APPLICATION"
+      || tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
       || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
   });
   const modifiersQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-modifiers", projectCode],
     queryFn: () => modifierApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
+    enabled: Boolean(projectCode && (values.tableType === "SUMMARY" || values.tableType === "APPLICATION"
+      || tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
       || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
   });
   const dimensionsQuery = useQuery({
     queryKey: ["modeling", "dimension-editor-dimensions", projectCode],
     queryFn: () => dimensionReferenceApi.dimensionOptions(projectCode),
-    enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
+    enabled: Boolean(projectCode && (values.tableType === "SUMMARY" || values.tableType === "APPLICATION"
+      || tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
       || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
   });
   const fieldStandardsQuery = useQuery<ModelingRecord[]>({
