@@ -6,9 +6,16 @@ import { AgentToolActivity } from "./AgentToolActivity";
 type AgentActivityItemProps = {
   activity: AgentActivity;
   isStreaming: boolean;
+  selectedActivityId?: string | null;
+  onSelectActivity?: (activityId: string) => void;
 };
 
-export function AgentActivityItem({ activity, isStreaming }: AgentActivityItemProps) {
+export function AgentActivityItem({
+  activity,
+  isStreaming,
+  selectedActivityId,
+  onSelectActivity,
+}: AgentActivityItemProps) {
   if (activity.kind === "text") {
     return (
       <div className="min-w-0 py-1 text-[14px] leading-7 text-[#27302f]">
@@ -21,7 +28,13 @@ export function AgentActivityItem({ activity, isStreaming }: AgentActivityItemPr
   }
 
   if (activity.kind === "tool") {
-    return <AgentToolActivity activity={activity} />;
+    return (
+      <AgentToolActivity
+        activity={activity}
+        selected={selectedActivityId === activity.id}
+        onSelect={onSelectActivity}
+      />
+    );
   }
 
   return <AgentThinkingIndicator activity={activity} />;
