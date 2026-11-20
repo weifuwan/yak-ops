@@ -66,7 +66,7 @@ function ActivityDetails({ activity }: { activity: AgentActivity }) {
     <div className="mt-1 min-w-0 border-t border-[#e9eae9] px-3 pb-3 pt-3">
       {content ? (
         <div className="min-w-0 text-[13px] leading-6 text-[#303633] [&_pre]:my-2 [&_pre]:max-h-[420px] [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-[#e8e9e8] [&_pre]:bg-[#fafafa] [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-[12px] [&_pre]:leading-6">
-          <DataAgentMarkdown content={content} />
+          <DataAgentMarkdown content={content} isStreaming={activity.status === "running"} />
         </div>
       ) : null}
 
