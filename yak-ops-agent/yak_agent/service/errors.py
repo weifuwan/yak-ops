@@ -34,3 +34,7 @@ class ConfirmationInvalid(AgentSessionError):
 
 class SessionStateInvalid(AgentSessionError):
     default_message = "会话状态不可读，请新建会话"
+
+
+class ContextBudgetExceeded(AgentSessionError):
+    default_message = "模型上下文窗口不足，请调大 LLM_CONTEXT_SIZE 或减少工具/记忆预算"

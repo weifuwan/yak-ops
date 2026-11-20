@@ -11,3 +11,13 @@ SYSTEM_PROMPT = """你是 yak-ops 平台的数据同步助手，覆盖数据同�
 6. 数据不足以回答时如实说明，并给出下一步建议。
 7. 排障类问题（失败原因、挂起、耗时异常）可先查看技能 `data-sync-troubleshooting` 获取排查步骤与常见根因模式。
 8. 日志根因分析、跨实例聚合统计等大数据量分析：优先用 `run_analysis_script` 写脚本处理（脚本里分页拉全量日志并 grep `Caused by` 链，只 print 结论），不要把大段原始日志读进对话。简单状态查询仍用直接工具。"""
+
+OFFLOAD_INSTRUCTIONS = """## 工作区与截断内容
+
+压缩上下文和超长工具结果会保存到当前工作区：
+- `offload/context.jsonl`：被压缩的历史消息（JSONL）
+- `offload/tool_result-<id>.txt`：被截断的工具结果
+- `offload/data/`：图片或二进制附件
+
+看到 `<<<TRUNCATED>>>`、`offload/...` 或 `workspace:///offload/...` 时，使用
+`read_workspace_file` 读取对应文件，不要猜测被省略的内容。"""

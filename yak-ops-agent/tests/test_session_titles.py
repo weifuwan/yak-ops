@@ -110,9 +110,7 @@ class TitlePersistenceTests(unittest.TestCase):
             patch.object(server, "request_identity", return_value=_identity()),
             self.assertRaises(HTTPException),
         ):
-            asyncio.run(
-                server.rename_session("sid", server.RenameSessionBody(title="   "), None)
-            )
+            asyncio.run(server.rename_session("sid", server.RenameSessionBody(title="   "), None))
 
     def test_existing_title_is_not_overwritten(self) -> None:
         self._send("新的问题", title="旧标题")
