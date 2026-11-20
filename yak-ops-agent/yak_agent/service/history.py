@@ -19,6 +19,8 @@ def _tool_output(value: Any) -> str:
                     parts.append(str(block.get("text", "")))
             elif isinstance(block, str):
                 parts.append(block)
+            elif getattr(block, "type", None) == "text":
+                parts.append(str(getattr(block, "text", "")))
         if parts:
             return "".join(parts)
     if value is None:

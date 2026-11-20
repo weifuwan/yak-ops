@@ -82,6 +82,29 @@ class HistorySerializerTests(unittest.TestCase):
         self.assertEqual(len(result["messages"]), 1)
         self.assertEqual(result["messages"][0]["role"], "assistant")
 
+    def test_tool_output_reads_text_block_objects(self) -> None:
+        state = AgentState()
+        state.context.append(
+            Msg(
+                name="yak_agent",
+                role="assistant",
+                content=[
+                    ToolResultBlock(
+                        id="call-1",
+                        name="download_task_log",
+                        output=[TextBlock(type="text", text="Caused by: boom")],
+                        state=ToolResultState.SUCCESS,
+                    )
+                ],
+            )
+        )
+
+        result = serialize_history(state, limit=10, tool_chars=100)
+
+        block = result["messages"][0]["blocks"][0]
+        self.assertEqual(block["output"], "Caused by: boom")
+        self.assertFalse(block["truncated"])
+
 
 class HistoryEndpointTests(unittest.TestCase):
     def setUp(self) -> None:
