@@ -146,7 +146,7 @@ export function DataAgentWorkspace({
   return (
     <>
       {isLoadingOverlayVisible ? (
-        <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting && !isLoading} />
+        <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting} />
       ) : null}
       <div
         aria-hidden={isLoadingOverlayVisible}
