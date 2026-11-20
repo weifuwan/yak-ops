@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { History, Search } from "lucide-react";
 import {
   Input,
@@ -13,6 +13,8 @@ import {
 } from "@yak-ops/yak-ui";
 import { useQuery } from "@tanstack/react-query";
 
+import { useWorkspace } from "@/hooks/use-workspace";
+import { listWorkflowDefinitionNames } from "@/service/workflow/definition";
 import {
   listWorkflowInstances,
   type WorkflowInstanceSummary,
@@ -31,25 +33,78 @@ function stateLabel(state?: string | null) {
   return STATE_OPTIONS.find((item) => item.value === state)?.label ?? state ?? "-";
 }
 
+function workflowDisplayName(
+  item: WorkflowInstanceSummary,
+  workflowNamesByCode: Map<string, string>,
+) {
+  const definitionName = workflowNamesByCode
+    .get(String(item.workflowDefinitionCode))
+    ?.trim();
+  if (definitionName) return definitionName;
+
+  const instanceName = item.name?.trim();
+  if (instanceName && !/^data_sync_\d+-\d+$/i.test(instanceName)) {
+    return instanceName;
+  }
+
+  return item.workflowDefinitionCode
+    ? "工作流 #" + item.workflowDefinitionCode
+    : "未命名工作流";
+}
+
 export function RunHistoryPanel({ width }: { width: number }) {
   const [keyword, setKeyword] = useState("");
   const [state, setState] = useState("ALL");
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id ?? "";
   const { openWorkflowInstance } = useDataDevelopmentWorkbench();
 
   const query = useQuery({
-    queryKey: ["data-development", "run-history", keyword, state],
+    queryKey: ["data-development", "run-history", workspaceId, state],
     queryFn: ({ signal }) =>
       listWorkflowInstances(
         undefined,
         1,
         100,
         signal,
-        { searchVal: keyword.trim() || undefined, stateType: state === "ALL" ? undefined : state },
+        { stateType: state === "ALL" ? undefined : state },
       ),
+    enabled: Boolean(workspaceId),
     refetchInterval: 5000,
   });
 
+  const definitionsQuery = useQuery({
+    queryKey: ["data-development", "workflow-definition-names", workspaceId],
+    queryFn: ({ signal }) => listWorkflowDefinitionNames(signal),
+    enabled: Boolean(workspaceId),
+    staleTime: 30_000,
+  });
+
   const items: WorkflowInstanceSummary[] = query.data?.totalList ?? [];
+  const workflowNamesByCode = useMemo(
+    () =>
+      new Map(
+        (definitionsQuery.data ?? []).map((definition) => [
+          String(definition.code),
+          definition.name,
+        ]),
+      ),
+    [definitionsQuery.data],
+  );
+  const visibleItems = useMemo(() => {
+    const search = keyword.trim().toLocaleLowerCase();
+    if (!search) return items;
+
+    return items.filter((item) => {
+      const displayName = workflowDisplayName(item, workflowNamesByCode);
+      return [
+        displayName,
+        item.name ?? "",
+        String(item.id),
+        String(item.workflowDefinitionCode),
+      ].some((value) => value.toLocaleLowerCase().includes(search));
+    });
+  }, [items, keyword, workflowNamesByCode]);
 
   return (
     <aside
@@ -95,28 +150,38 @@ export function RunHistoryPanel({ width }: { width: number }) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {query.isLoading ? (
-          <div className="flex h-24 items-center justify-center text-[12px] text-[#9aa0a8]">加载中...</div>
-        ) : items.length === 0 ? (
-          <div className="px-4 py-10 text-center text-[12px] text-[#9aa0a8]">暂无运行记录</div>
+          <div className="flex h-24 items-center justify-center text-[12px] text-[#9aa0a8]">
+            加载中...
+          </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="px-4 py-10 text-center text-[12px] text-[#9aa0a8]">
+            {keyword.trim() ? "没有匹配的运行记录" : "暂无运行记录"}
+          </div>
         ) : (
-          items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => openWorkflowInstance(item.id, (item.name || "工作流") + " · 运行 #" + item.id)}
-              className="group flex w-full cursor-pointer items-start gap-2 border-b border-[#f0f1f3] px-3 py-2.5 text-left hover:bg-[#f7f8fa]"
-            >
-              <History size={14} className="mt-0.5 shrink-0 text-[#7a8290]" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12px] font-medium text-[#30343a]">
-                  {item.name || "未命名工作流"}
+          visibleItems.map((item) => {
+            const displayName = workflowDisplayName(item, workflowNamesByCode);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() =>
+                  openWorkflowInstance(item.id, displayName + " · 运行 #" + item.id)
+                }
+                title={displayName}
+                className="group flex w-full cursor-pointer items-start gap-2 border-b border-[#f0f1f3] px-3 py-2.5 text-left hover:bg-[#f7f8fa]"
+              >
+                <History size={14} className="mt-0.5 shrink-0 text-[#7a8290]" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12px] font-medium text-[#30343a]">
+                    {displayName}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] text-[#8a909a]">
+                    {stateLabel(item.state)} · 实例 #{item.id} · {item.startTime || "-"}
+                  </span>
                 </span>
-                <span className="mt-0.5 block truncate text-[11px] text-[#8a909a]">
-                  {stateLabel(item.state)} · {item.startTime || "-"}
-                </span>
-              </span>
-            </button>
-          ))
+              </button>
+            );
+          })
         )}
       </div>
     </aside>
