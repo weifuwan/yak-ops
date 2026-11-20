@@ -27,7 +27,7 @@ function ThoughtEvent({ activity }: { activity: AgentActivity }) {
   const duration = formatDuration(activity.startedAt, activity.completedAt);
 
   return (
-    <div className="relative min-w-0 py-2">
+    <div className="relative min-w-0 py-2 px-3">
       <p className="mb-0 text-[15px] leading-5 text-[#737875]" style={{fontWeight: 500}}>
         Thought{duration ? " for " + duration : ""}
       </p>
@@ -208,7 +208,7 @@ export function AgentDetailsTimeline({
             return (
               <div
                 key={activity.id}
-                className="relative min-w-0 py-2 text-[14px] leading-7 text-[#27302f]"
+                className="relative min-w-0 py-2 px-3 text-[14px] leading-7 text-[#27302f]"
               >
                 <DataAgentMarkdown
                   content={activity.content ?? ""}
