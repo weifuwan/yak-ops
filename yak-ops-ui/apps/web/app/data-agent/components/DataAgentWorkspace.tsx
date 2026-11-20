@@ -6,6 +6,7 @@ import { useDataAgentConversation } from "@/hooks/useDataAgentConversation";
 import { DataAgentSidebar } from "./DataAgentSidebar";
 import { DataAgentSidebarResizer } from "./DataAgentSidebarResizer";
 import { DataAgentSessionWorkspace } from "./workspace/DataAgentSessionWorkspace";
+import { DataAgentSessionLoading } from "./workspace/DataAgentSessionLoading";
 import { DataAgentEmptyState } from "./workspace/DataAgentEmptyState";
 import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
@@ -34,6 +35,7 @@ export function DataAgentWorkspace({
     isSending,
     isReconnecting,
     isLoading,
+    isRestoringSession,
     connectionError,
     sessionNotice,
     sessionUsage,
@@ -57,12 +59,18 @@ export function DataAgentWorkspace({
   const messageScrollRef = useRef<HTMLDivElement>(null);
 
   const hasMessages = messages.length > 0;
-  const [showLoadingOverlay, setShowLoadingOverlay] = useState(isLoading);
-  const isLoadingOverlayVisible = isLoading || showLoadingOverlay;
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const shouldShowInitialLoading = isLoading && !initialLoadComplete;
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(shouldShowInitialLoading);
+  const isLoadingOverlayVisible = shouldShowInitialLoading || showLoadingOverlay;
   const [loadingOverlayExiting, setLoadingOverlayExiting] = useState(false);
 
   useEffect(() => {
-    if (isLoading) {
+    if (!isLoading) setInitialLoadComplete(true);
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (shouldShowInitialLoading) {
       setShowLoadingOverlay(true);
       setLoadingOverlayExiting(false);
       return;
@@ -72,7 +80,7 @@ export function DataAgentWorkspace({
     setLoadingOverlayExiting(true);
     const timeout = window.setTimeout(() => setShowLoadingOverlay(false), 200);
     return () => window.clearTimeout(timeout);
-  }, [isLoading, showLoadingOverlay]);
+  }, [shouldShowInitialLoading, showLoadingOverlay]);
 
   useEffect(() => {
     const container = messageScrollRef.current;
@@ -146,7 +154,7 @@ export function DataAgentWorkspace({
           if (element) element.inert = isLoadingOverlayVisible;
         }}
         className={
-          (isLoading ? "" : "data-agent-workspace-enter ") +
+          (initialLoadComplete ? "data-agent-workspace-enter " : "") +
           "flex min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f0f0f0] text-[#20201e]"
         }
       >
@@ -199,7 +207,11 @@ export function DataAgentWorkspace({
           />
         ) : null}
 
-        {!hasMessages ? (
+        {isRestoringSession ? (
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+            <DataAgentSessionLoading />
+          </main>
+        ) : !hasMessages ? (
           <main className="flex min-h-0 min-w-0 flex-1 bg-[#f0f0f0] p-2 max-md:p-0">
             <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e7e7e4] bg-white max-md:rounded-none max-md:border-0">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-[7px] pt-2">

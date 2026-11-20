@@ -21,6 +21,7 @@ const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComp
 const modelSelector = read("../apps/web/app/data-agent/components/workspace/ModelSelector.tsx");
 const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
 const loading = read("../apps/web/app/data-agent/components/workspace/DataAgentLoading.tsx");
+const sessionLoading = read("../apps/web/app/data-agent/components/workspace/DataAgentSessionLoading.tsx");
 const loadingStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-loading.css");
 const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
 const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
@@ -352,6 +353,19 @@ test("Data Agent restores a URL-addressed session on refresh and shows a full-sc
   assert.match(loadingStyles, /1\.55s ease-in-out infinite/);
   assert.match(loadingStyles, /prefers-reduced-motion: reduce/);
   assert.match(loadingStyles, /@keyframes data-agent-workspace-enter/);
+});
+
+test("Data Agent session switching keeps the app shell visible and scopes the skeleton to the right workspace", () => {
+  assert.match(hook, /setIsRestoringSession\(true\)/);
+  assert.match(hook, /isRestoringSession,/);
+  assert.match(workspace, /isRestoringSession \? \([\s\S]*?<DataAgentSessionLoading/);
+  assert.match(workspace, /shouldShowInitialLoading/);
+  assert.ok(workspace.indexOf("<DataAgentSidebar") < workspace.indexOf("{isRestoringSession ?"));
+  assert.match(sessionLoading, /role="status"/);
+  assert.match(sessionLoading, /aria-busy="true"/);
+  assert.match(sessionLoading, /max-w-3xl/);
+  assert.match(sessionLoading, /rounded-\[14px\] border border-\[#e0e4e3\]/);
+  assert.doesNotMatch(sessionLoading, /fixed inset-0|z-\[100\]/);
 });
 
 test("Data Agent workspace menu groups its label with menu items", () => {

@@ -516,6 +516,7 @@ export function useDataAgentConversation({
 
   useEffect(() => {
     if (!requestIdentity || !sessionId) {
+      setIsRestoringSession(false);
       if (streamSessionIdRef.current !== sessionId) {
         streamControllerRef.current?.abort();
         streamControllerRef.current = null;
@@ -549,6 +550,7 @@ export function useDataAgentConversation({
     void (async () => {
       const restored = await restoreSessionSnapshot(sessionId, controller.signal);
       if (controller.signal.aborted) return;
+      setIsRestoringSession(false);
 
       if (!restored.status.busy) {
         setIsSending(false);
@@ -620,6 +622,7 @@ export function useDataAgentConversation({
 
   const createConversation = useCallback(() => {
     if (sendingRef.current) return;
+    setIsRestoringSession(false);
     dispatch({ type: "SELECT_CONVERSATION", sessionId: null });
     setConnectionError("");
     setSessionNotice("");
@@ -628,12 +631,13 @@ export function useDataAgentConversation({
 
   const selectConversation = useCallback(
     (targetSessionId: string) => {
-      if (sendingRef.current) return;
+      if (sendingRef.current || targetSessionId === sessionId) return;
+      setIsRestoringSession(true);
       dispatch({ type: "SELECT_CONVERSATION", sessionId: targetSessionId });
       setConnectionError("");
       setSessionNotice("");
     },
-    [],
+    [sessionId],
   );
 
   const sendMessage = useCallback(
@@ -834,6 +838,7 @@ export function useDataAgentConversation({
     lastMessage,
     isSending,
     isReconnecting,
+    isRestoringSession,
     isLoading:
       isWorkspaceLoading ||
       isLoadingSessions ||
