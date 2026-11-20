@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Input,
   Select,
   SelectContent,
@@ -16,6 +21,8 @@ import {
   type TreeSelectOption,
 } from "@yak-ops/yak-ui";
 import {
+  AppWindow,
+  BarChart3,
   Database,
   Layers3,
   List,
@@ -36,7 +43,7 @@ import type {
   DimensionTreeNode,
 } from "@/service/data-modeling/models/dimension-modeling";
 import { DIMENSION_WAREHOUSE_OPTIONS } from "../hooks/use-dimension-tree";
-import type { DimensionSidebarProps } from "../types";
+import { DIMENSION_CREATE_OPTIONS, type DimensionCreateType, type DimensionSidebarProps } from "../types";
 
 type ScopeOption = { value: string; label: string };
 
@@ -384,9 +391,40 @@ export function DimensionSidebar({
           <span className="text-sm font-semibold">维度建模</span>
         </div>
         <div className="flex items-center gap-0.5">
-          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="新建维度表" onClick={onCreate}>
-            <Plus size={14} />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="新建维度模型"
+              title="新建维度模型"
+              className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[var(--yak-components-panel-text)] outline-none transition-colors hover:bg-[var(--yak-color-hover)] focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)]"
+            >
+              <Plus size={14} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="bottom" className="w-44">
+              <DropdownMenuItem onClick={() => onCreate("DIM")}>
+                <Layers3 size={14} />
+                创建维度
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {DIMENSION_CREATE_OPTIONS.filter((option) => option.group === "table").map((option) => {
+                const Icon = option.type === "SOURCE"
+                  ? Database
+                  : option.type === "SUMMARY"
+                    ? BarChart3
+                    : option.type === "APPLICATION"
+                      ? AppWindow
+                      : Table2;
+                return (
+                  <DropdownMenuItem
+                    key={option.type}
+                    onClick={() => onCreate(option.type as DimensionCreateType)}
+                  >
+                    <Icon size={14} />
+                    {option.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="列表模式" onClick={onList}>
             <List size={14} />
           </Button>
