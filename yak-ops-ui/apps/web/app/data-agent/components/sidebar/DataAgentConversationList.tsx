@@ -274,11 +274,9 @@ export function DataAgentConversationList({
         }
       >
         <div className="space-y-2">
-          <label htmlFor="data-agent-session-rename" className="block text-xs text-[var(--yak-components-panel-text)]">
-            会话名称
-          </label>
           <Input
             id="data-agent-session-rename"
+            aria-label="会话名称"
             size="small"
             variant="outlined"
             value={renameTitle}

@@ -614,6 +614,8 @@ test("Data Agent session rename and delete use Yak-UI modals instead of browser 
   assert.ok(conversationList.includes('title="重命名会话"'));
   assert.ok(conversationList.includes('title="删除会话"'));
   assert.ok(conversationList.includes("<Input"));
+  assert.ok(conversationList.includes('aria-label="会话名称"'));
+  assert.ok(!conversationList.includes(">会话名称</label>"));
   assert.ok(conversationList.includes("maxLength={40}"));
   assert.ok(conversationList.includes('variant="danger"'));
   assert.ok(conversationList.includes("setDialogError(errorMessage(error))"));
