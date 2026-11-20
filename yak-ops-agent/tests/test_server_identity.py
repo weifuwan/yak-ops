@@ -223,6 +223,31 @@ class WorkspaceVerificationTests(unittest.TestCase):
         get.assert_called_once()
         self.assertEqual(get.call_args.args[1], "/projects/7")
 
+    def test_none_project_is_rejected(self) -> None:
+        with patch.object(deps, "yak_get", return_value=None):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_empty_project_is_rejected(self) -> None:
+        with patch.object(deps, "yak_get", return_value={}):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_mismatched_project_is_rejected(self) -> None:
+        with patch.object(deps, "yak_get", return_value={"code": 8}):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_string_project_code_is_accepted(self) -> None:
+        with patch.object(deps, "yak_get", return_value={"code": "7"}):
+            deps.verify_workspace(SimpleNamespace(), "7")
+
     def test_permission_business_error_maps_to_403(self) -> None:
         with patch.object(
             deps,

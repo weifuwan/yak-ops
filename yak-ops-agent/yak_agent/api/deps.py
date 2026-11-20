@@ -141,7 +141,12 @@ def verify_workspace(auth: YakAuth, workspace_id: str) -> None:
     a permission denial is reported as 403 to avoid leaking existence.
     """
     try:
-        yak_get(auth, f"/projects/{workspace_id}")
+        project = yak_get(auth, f"/projects/{workspace_id}")
+        if not isinstance(project, dict) or str(project.get("code")) != str(workspace_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=messages.WORKSPACE_FORBIDDEN,
+            )
     except YakApiError as ex:
         if ex.status_code == status.HTTP_401_UNAUTHORIZED:
             raise HTTPException(
