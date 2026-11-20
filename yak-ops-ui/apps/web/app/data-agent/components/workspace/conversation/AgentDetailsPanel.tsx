@@ -28,7 +28,7 @@ export function AgentDetailsPanel({
         <X size={15} />
       </button>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle px-4 pb-6 pt-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle px-3 pb-6 pt-3">
         {activities.length > 0 ? (
           <AgentDetailsTimeline
             activities={activities}
@@ -43,7 +43,7 @@ export function AgentDetailsPanel({
         {message.error ? (
           <div
             role="alert"
-            className="ml-8 mt-3 rounded-lg border border-[#f0d6d6] bg-[#fff7f7] px-3 py-2 text-xs leading-5 text-[#a14d4d]"
+            className="ml-9 mt-3 rounded-lg border border-[#f0d6d6] bg-[#fff7f7] px-3 py-2 text-xs leading-5 text-[#a14d4d]"
           >
             {message.error}
           </div>
