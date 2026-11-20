@@ -28,6 +28,7 @@ const toolActivity = read("../apps/web/app/data-agent/components/workspace/conve
 const activityDetails = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityDetails.tsx");
 const conversationPanel = read("../apps/web/app/data-agent/components/workspace/ConversationPanel.tsx");
 const detailsPanel = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsPanel.tsx");
+const detailsTimeline = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx");
 
 
 const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
@@ -340,13 +341,20 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(conversationPanel, /handleSelectActivity/);
   assert.match(conversationPanel, /duration-300/);
   assert.match(conversationPanel, /max-md:absolute max-md:inset-0/);
-  assert.match(detailsPanel, /Details/);
-  assert.match(detailsPanel, /Thought/);
-  assert.match(detailsPanel, /Progress/);
-  assert.match(detailsPanel, /AgentActivityDetails/);
-  assert.match(detailsPanel, /defaultOpen=\{selected\}/);
-  assert.match(detailsPanel, /Token 用量/);
+  assert.match(detailsPanel, /AgentDetailsTimeline/);
   assert.match(detailsPanel, /aria-label="关闭执行详情"/);
+  assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Token 用量|Agent 执行过程/);
+  assert.match(detailsTimeline, /Thought/);
+  assert.match(detailsTimeline, /SquareTerminal/);
+  assert.match(detailsTimeline, /pl-8/);
+  assert.match(detailsTimeline, /bg-\[#e7e9e8\]/);
+  assert.match(detailsTimeline, /aria-expanded=\{expanded\}/);
+  assert.match(detailsTimeline, /DataAgentMarkdown/);
+  assert.match(detailsTimeline, /输入参数/);
+  assert.match(detailsTimeline, /执行结果/);
+  assert.match(detailsTimeline, /selectedActivityId/);
+  assert.match(detailsTimeline, /expandedActivityId/);
+  assert.match(detailsTimeline, /TOOL_LABELS/);
   assert.ok(detailsPanel.includes("  X,\n  XCircle,"));
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
