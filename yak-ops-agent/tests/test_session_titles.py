@@ -82,6 +82,37 @@ class TitlePersistenceTests(unittest.TestCase):
         self.assertEqual(meta["title"], "帮我检查 同步任务")
         self.assertEqual(meta["preview"], "帮我检查 同步任务")
         self.assertEqual(meta["activeTurn"]["status"], "running")
+        self.assertEqual(meta["activeTurn"]["message"], "  帮我检查\\n同步任务  ")
+
+    def test_rename_updates_persisted_metadata(self) -> None:
+        persistence.state_path("sid").write_text("{}", encoding="utf-8")
+        persistence.meta_path("sid").write_text(
+            json.dumps({"owner": "u-1", "workspace": "1", "title": "旧标题"}),
+            encoding="utf-8",
+        )
+
+        with (
+            patch.object(server, "_get_settings", return_value=self._settings),
+            patch.object(server, "request_identity", return_value=_identity()),
+        ):
+            result = asyncio.run(
+                server.rename_session("sid", server.RenameSessionBody(title="  新标题  "), None)
+            )
+
+        self.assertEqual(result["title"], "新标题")
+        self.assertEqual(persistence.read_meta("sid")["title"], "新标题")
+
+    def test_rename_rejects_blank_title(self) -> None:
+        from fastapi import HTTPException
+
+        with (
+            patch.object(server, "_get_settings", return_value=self._settings),
+            patch.object(server, "request_identity", return_value=_identity()),
+            self.assertRaises(HTTPException),
+        ):
+            asyncio.run(
+                server.rename_session("sid", server.RenameSessionBody(title="   "), None)
+            )
 
     def test_existing_title_is_not_overwritten(self) -> None:
         self._send("新的问题", title="旧标题")
