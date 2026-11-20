@@ -226,7 +226,7 @@ export function DataAgentSessionWorkspace({
               : "pointer-events-none p-0 opacity-0")
           }
         >
-          <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-white">
+          <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-white shadow-surface-xl">
             <MobileDetailsHeader onClose={() => setDetailsOpen(false)} />
             {selectedMessage && selectedActivity ? (
               <AgentDetailsPanel
