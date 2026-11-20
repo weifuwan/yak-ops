@@ -33,13 +33,16 @@ import type {
   DimensionTableRecord,
   DimensionVersionRecord,
 } from "@/service/data-modeling/models/dimension-modeling";
-import type { DimensionTab } from "../types";
+import type { DimensionCreateType, DimensionTab } from "../types";
 import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
 import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
 import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
 import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
+import { timePeriodApi } from "@/service/data-modeling/indicators/time-period";
+import { modifierApi } from "@/service/data-modeling/indicators/modifier";
+import { dimensionReferenceApi } from "@/service/data-modeling/indicators/dimension-reference";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 
 type Option = { value: string; label: string };
@@ -100,6 +103,11 @@ const STORAGE_POLICY_OPTIONS: Option[] = [
 function initialValues(record?: DimensionTableRecord): Record<string, string> {
   return {
     dwhId: String(record?.dwhId || ""),
+    enShortName: String(record?.enShortName || (record?.tableType === "DIM" ? record?.tableName : "") || ""),
+    timePeriodId: String(record?.timePeriodId || ""),
+    dimId: String(record?.dimId || ""),
+    modifier: String(record?.modifier || ""),
+    nameRuleId: String(record?.nameRuleId || ""),
     busTypeId: String(record?.busTypeId || ""),
     domainId: String(record?.domainId || ""),
     busProcessId: String(record?.busProcessId || ""),
@@ -204,9 +212,15 @@ export function DimensionEditor({
 }: DimensionEditorProps) {
   const queryClient = useQueryClient();
   const recordId = String(tab.record?.id || "");
-  const [values, setValues] = useState<Record<string, string>>(() => initialValues(tab.record));
+  const [values, setValues] = useState<Record<string, string>>(() => ({
+    ...initialValues(tab.record),
+    tableType: String(tab.createType || tab.record?.tableType || ""),
+  }));
   const [fields, setFields] = useState<DimensionFieldRecord[]>([]);
   const [dirty, setDirty] = useState(Boolean(tab.dirty));
+  const [basicDirty, setBasicDirty] = useState(Boolean(tab.dirty));
+  const [fieldsDirty, setFieldsDirty] = useState(false);
+  const [savingFields, setSavingFields] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
@@ -243,6 +257,24 @@ export function DimensionEditor({
     queryFn: () => subjectDomainApi.all<ModelingRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
+  const timePeriodsQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-editor-time-periods", projectCode],
+    queryFn: () => timePeriodApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
+      || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
+  });
+  const modifiersQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-editor-modifiers", projectCode],
+    queryFn: () => modifierApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
+      || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
+  });
+  const dimensionsQuery = useQuery({
+    queryKey: ["modeling", "dimension-editor-dimensions", projectCode],
+    queryFn: () => dimensionReferenceApi.dimensionOptions(projectCode),
+    enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
+      || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
+  });
   const fieldsQuery = useQuery<DimensionFieldRecord[]>({
     queryKey: ["modeling", "dimension-fields", projectCode, recordId],
     queryFn: () => dimensionModelingApi.fields(projectCode, recordId),
@@ -255,22 +287,40 @@ export function DimensionEditor({
   });
 
   const layers = layersQuery.data || [];
+  const selectedTableType = String(values.tableType || tab.createType || tab.record?.tableType || "");
+  const defaultDwTypeByCreateType: Record<DimensionCreateType, string> = {
+    DIM: "PUBLIC_LAYER",
+    SOURCE: "SOURCE_LAYER",
+    DIMENSION: "PUBLIC_LAYER",
+    DETAIL: "PUBLIC_LAYER",
+    SUMMARY: "PUBLIC_LAYER",
+    APPLICATION: "APPLICATION_LAYER",
+  };
   const layerOptions = useMemo(() => layers
-    .filter((layer) => String(layer.dwType || "") === dwType)
+    .filter((layer) => {
+      const layerId = String(layer.id || "");
+      const layerType = String(layer.dwType || "");
+      if (layerType === "NONE_LAYER") {
+        return tab.mode === "edit" && layerId === String(tab.record?.dwhId || "");
+      }
+      if (!selectedTableType) return true;
+      return (TABLE_TYPES_BY_MODEL[String(layer.dwModelType || "")] || []).includes(selectedTableType);
+    })
     .map((layer) => ({
       value: String(layer.id || ""),
       label: optionLabel(layer, ["cnName", "enShortName", "enName"]),
     }))
-    .filter((option) => option.value), [layers, dwType]);
+    .filter((option) => option.value), [layers, selectedTableType, tab.mode, tab.record?.dwhId]);
 
   const activeLayer = layers.find((layer) => String(layer.id || "") === values.dwhId);
-  const isUnassigned = dwType === "NONE_LAYER";
+  const isUnassigned = String(activeLayer?.dwType || "") === "NONE_LAYER";
   const tableTypeOptions = useMemo(() => {
-    if (isUnassigned) return [];
     const modelType = String(activeLayer?.dwModelType || "");
     const allowed = TABLE_TYPES_BY_MODEL[modelType] || [];
     return TABLE_TYPE_OPTIONS.filter((option) => allowed.includes(option.value));
-  }, [activeLayer, isUnassigned]);
+  }, [activeLayer]);
+  const isLegacyUntyped = tab.mode === "edit" && !selectedTableType && isUnassigned;
+  const canChooseLegacyType = tab.mode === "edit" && !selectedTableType && !isUnassigned;
 
   const businessTypeOptions = (businessTypesQuery.data || []).map((record) => ({
     value: String(record.id || ""),
@@ -299,21 +349,33 @@ export function DimensionEditor({
 
   useEffect(() => {
     if (tab.mode !== "create" || values.dwhId || !layerOptions.length) return;
-    const firstLayer = layerOptions[0];
-    const layer = layers.find((item) => String(item.id || "") === firstLayer.value);
-    const modelType = String(layer?.dwModelType || "");
-    const firstTableType = (TABLE_TYPES_BY_MODEL[modelType] || [])[0] || "";
-    setValues((current) => ({ ...current, dwhId: firstLayer.value, tableType: firstTableType }));
-  }, [tab.mode, values.dwhId, layerOptions, layers]);
+    const preferredType = tab.createType
+      ? defaultDwTypeByCreateType[tab.createType]
+      : dwType;
+    const preferredLayer = layerOptions.find((option) =>
+      String(layers.find((layer) => String(layer.id || "") === option.value)?.dwType || "") === preferredType,
+    ) || layerOptions[0];
+    if (!preferredLayer) return;
+    setValues((current) => ({
+      ...current,
+      dwhId: preferredLayer.value,
+      tableType: String(tab.createType || current.tableType || ""),
+    }));
+  }, [tab.mode, tab.createType, dwType, values.dwhId, layerOptions, layers]);
 
   useEffect(() => {
-    if (fieldsQuery.data) {
-      setFields(fieldsQuery.data.map((field) => ({ ...field, tempId: field.id || field.tempId })));
+    if (fieldsQuery.data && !fieldsDirty) {
+      setFields(fieldsQuery.data.map((field) => ({
+        ...field,
+        fieldType: field.fieldType || "PROPERTY",
+        tempId: field.id || field.tempId,
+      })));
     }
-  }, [fieldsQuery.data]);
+  }, [fieldsQuery.data, fieldsDirty]);
 
   const changeValue = (key: string, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
+    setBasicDirty(true);
     setDirty(true);
     onDirtyChange(true);
     setNoticeDismissed(false);
@@ -325,21 +387,24 @@ export function DimensionEditor({
     setFields((current) => current.map((item) =>
       (item.id || item.tempId) === identity ? { ...item, ...updates } : item,
     ));
+    setFieldsDirty(true);
     setDirty(true);
     onDirtyChange(true);
     setNoticeDismissed(false);
   };
 
-  const addField = () => {
+  const addField = (fieldType: "PROPERTY" | "PARTITION" = "PROPERTY") => {
     const tempId = "draft-" + String(Date.now()) + "-" + String(fields.length);
     setFields((current) => [...current, {
       tempId,
       fieldName: "",
       cnName: "",
       dataType: "STRING",
+      fieldType,
       primaryFlag: false,
       notNull: false,
     }]);
+    setFieldsDirty(true);
     setDirty(true);
     onDirtyChange(true);
   };
@@ -347,11 +412,12 @@ export function DimensionEditor({
   const removeField = (field: DimensionFieldRecord) => {
     const identity = field.id || field.tempId;
     setFields((current) => current.filter((item) => (item.id || item.tempId) !== identity));
+    setFieldsDirty(true);
     setDirty(true);
     onDirtyChange(true);
   };
 
-  const save = async () => {
+  const saveBasicInfo = async () => {
     if (saving) return;
     if (!values.dwhId) {
       setError("请选择数仓分层");
