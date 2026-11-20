@@ -28,7 +28,7 @@ function ThoughtEvent({ activity }: { activity: AgentActivity }) {
 
   return (
     <div className="relative min-w-0 py-2">
-      <p className="mb-0 text-[13px] leading-5 text-[#737875]">
+      <p className="mb-0 text-[15px] leading-5 text-[#737875]" style={{fontWeight: 500}}>
         Thought{duration ? " for " + duration : ""}
       </p>
     </div>

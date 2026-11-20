@@ -50,8 +50,8 @@ export function AgentThinkingIndicator({ activity }: AgentThinkingIndicatorProps
   const duration = formatDuration(activity.startedAt, activity.completedAt);
 
   return (
-    <div className="flex min-w-0 items-start gap-2.5 py-1.5">
-      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f0f2f1] text-[#6d7b76]">
+    <div className="flex min-w-0 items-center gap-2.5 py-1.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#000000]">
         {activity.status === "running" ? (
           <Brain size={13} className="animate-pulse" />
         ) : (
@@ -61,7 +61,7 @@ export function AgentThinkingIndicator({ activity }: AgentThinkingIndicatorProps
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-sm font-medium text-[#3b4743]">{activity.title}</span>
-          <span aria-label={activityStatusLabel(activity.status)} className="flex items-center gap-1 text-xs text-[#89948f]">
+          <span aria-label={activityStatusLabel(activity.status)} className="flex items-center gap-1 text-xs text-[#000000]">
             <Icon
               size={12}
               className={activity.status === "running" ? "animate-spin" : ""}

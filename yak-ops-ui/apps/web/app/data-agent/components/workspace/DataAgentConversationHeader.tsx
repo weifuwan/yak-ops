@@ -132,7 +132,7 @@ export function DataAgentConversationHeader({
 
           <div
             style={{ width: String(detailsWidth) + "px" }}
-            className="relative mr-2 hidden h-full shrink-0 items-center justify-between gap-2 border-y border-[#e7e9ea] bg-[#f7f8f8] px-2 @container lg:flex"
+            className="relative mr-2 hidden h-full shrink-0 items-center justify-between gap-2  px-2 @container lg:flex"
           >
             <div className="relative z-10 flex min-w-0 shrink-0 items-center gap-1.5">
               <button
