@@ -9,7 +9,8 @@ import lombok.Getter;
 public enum DimensionFieldTypeEnum {
     PROPERTY("PROPERTY", "属性"),
     DIMENSION("DIMENSION", "维度"),
-    MEASUREMENT("MEASUREMENT", "度量");
+    MEASUREMENT("MEASUREMENT", "度量"),
+    PARTITION("PARTITION", "分区");
 
     @EnumValue
     private final String code;
