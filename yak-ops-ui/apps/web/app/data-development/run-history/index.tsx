@@ -101,11 +101,11 @@ export function RunHistoryPanel({ width }: { width: number }) {
   const items: WorkflowInstanceSummary[] = query.data?.totalList ?? [];
   const workflowNamesByCode = useMemo(
     () =>
-      new Map(
+      new Map<string, string>(
         (definitionsQuery.data ?? []).map((definition) => [
           String(definition.code),
           definition.name,
-        ]),
+        ] as const),
       ),
     [definitionsQuery.data],
   );
@@ -124,7 +124,11 @@ export function RunHistoryPanel({ width }: { width: number }) {
     if (!search) return items;
 
     return items.filter((item) => {
-      const displayName = workflowDisplayName(item, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode);
+      const displayName = workflowDisplayName(
+        item,
+        workflowNamesByCode,
+        dataSyncTaskNamesByWorkflowCode,
+      );
       return [
         displayName,
         item.name ?? "",
@@ -177,7 +181,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {query.isLoading ? (
+        {query.isLoading || definitionsQuery.isLoading || dataSyncTaskNamesQuery.isLoading ? (
           <div className="flex h-24 items-center justify-center text-[12px] text-[#9aa0a8]">
             加载中...
           </div>
