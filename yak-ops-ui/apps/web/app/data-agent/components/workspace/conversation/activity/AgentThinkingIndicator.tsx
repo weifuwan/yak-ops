@@ -1,4 +1,12 @@
-import { Brain, CheckCircle2, CircleAlert, LoaderCircle, ShieldCheck, XCircle } from "lucide-react";
+
+import {
+  Brain,
+  CheckCircle2,
+  CircleAlert,
+  LoaderCircle,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 
 import type { AgentActivity } from "../../../../model/types";
 
@@ -28,52 +36,73 @@ function activityStatusLabel(status: AgentActivity["status"]) {
 
 function formatDuration(startedAt?: number, completedAt?: number) {
   if (!startedAt) return "";
+
   const duration = Math.max(0, (completedAt ?? Date.now()) - startedAt);
+
   if (duration < 1000) return "不足 1 秒";
   if (duration < 60_000) return Math.round(duration / 1000) + "s";
+
   const minutes = Math.floor(duration / 60_000);
   const seconds = Math.floor((duration % 60_000) / 1000);
+
   return minutes + "m " + String(seconds).padStart(2, "0") + "s";
 }
 
-export function AgentThinkingIndicator({ activity }: AgentThinkingIndicatorProps) {
+export function AgentThinkingIndicator({
+  activity,
+}: AgentThinkingIndicatorProps) {
   const Icon =
     activity.status === "running"
       ? LoaderCircle
       : activity.status === "error"
         ? CircleAlert
-        : activity.status === "denied" || activity.status === "rejected"
+        : activity.status === "denied" ||
+            activity.status === "rejected"
           ? XCircle
           : activity.status === "awaiting-confirmation"
             ? ShieldCheck
             : CheckCircle2;
-  const duration = formatDuration(activity.startedAt, activity.completedAt);
+
+  const duration = formatDuration(
+    activity.startedAt,
+    activity.completedAt,
+  );
 
   return (
     <div className="flex min-w-0 items-center gap-2.5 py-1.5">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#000000]">
-        {activity.status === "running" ? (
-          <Brain size={13} className="animate-pulse" />
-        ) : (
-          <Brain size={13} />
-        )}
+        <Brain
+          size={13}
+          className={activity.status === "running" ? "animate-pulse" : ""}
+        />
       </span>
+
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="text-sm font-medium text-[#3b4743]">{activity.title}</span>
+          <span className="text-sm font-medium text-[#3b4743]">
+            {activity.title}
+          </span>
+
+          {/* 状态：完成只显示图标，其余状态保留文字 */}
           <span
             aria-label={activityStatusLabel(activity.status)}
             className="flex items-center gap-1 text-xs text-[#89948f]"
           >
-          <span aria-label={activityStatusLabel(activity.status)} className="flex items-center gap-1 text-xs text-[#000000]">
             <Icon
               size={12}
               className={activity.status === "running" ? "animate-spin" : ""}
             />
-            {activity.status === "completed" ? null : activityStatusLabel(activity.status)}
+
+            {activity.status !== "completed" && (
+              <span>{activityStatusLabel(activity.status)}</span>
+            )}
           </span>
+
+          {/* 执行耗时 */}
           {duration ? (
-            <span className="text-xs tabular-nums text-[#a0a9a5]">{duration}</span>
+            <span className="text-xs tabular-nums text-[#a0a9a5]">
+              {duration}
+            </span>
           ) : null}
         </div>
       </div>
