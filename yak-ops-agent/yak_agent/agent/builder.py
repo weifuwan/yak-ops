@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agentscope.agent import Agent, ContextConfig, ReActConfig
+from agentscope.agent import Agent, ContextConfig, InjectionConfig, ReActConfig
 from agentscope.credential import OpenAICredential
 from agentscope.middleware import ReplyBudgetControlMiddleware, TracingMiddleware
 from agentscope.model import OpenAIChatModel
@@ -48,6 +48,7 @@ def build_agent(
         ),
         state=state,
         react_config=ReActConfig(max_iters=12),
+        injection_config=InjectionConfig(timezone="Asia/Shanghai"),
         context_config=ContextConfig(
             trigger_ratio=0.7,
             reserve_ratio=0.2,

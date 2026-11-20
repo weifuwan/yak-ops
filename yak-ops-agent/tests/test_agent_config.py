@@ -38,6 +38,9 @@ class AgentConfigTests(unittest.TestCase):
         self.assertEqual(self.agent.context_config.trigger_ratio, 0.7)
         self.assertEqual(self.agent.context_config.reserve_ratio, 0.2)
 
+    def test_injected_time_uses_platform_timezone(self) -> None:
+        self.assertEqual(self.agent.injection_config.timezone, "Asia/Shanghai")
+
 
 if __name__ == "__main__":
     unittest.main()
