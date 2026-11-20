@@ -61,7 +61,7 @@ export function DataAgentConversationHeader({
           <button
             type="button"
             aria-label="打开执行详情"
-            aria-expanded={false}
+            aria-expanded={detailsOpen}
             title="打开执行详情"
             className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] transition-colors hover:border-[#cbd2d1] hover:bg-[#f3f5f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 lg:hidden"
             onClick={onToggleDetails}
