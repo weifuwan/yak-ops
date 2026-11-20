@@ -99,7 +99,7 @@ function ActivityHeading({ activity }: { activity: AgentActivity }) {
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-[11px] font-medium text-[#7e8985]">
             {isThinking ? "Thought" : "Progress"}
-            {duration ? " · " + duration : ""}
+            {duration ? " for " + duration : ""}
           </span>
           <span className="flex items-center gap-1 text-[10px] text-[#89948f]">
             <StatusIcon activity={activity} />
@@ -153,7 +153,7 @@ export function AgentDetailsPanel({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle px-4 py-3">
         {activities.length > 0 ? (
           <div className="flex min-w-0 flex-col gap-2">
-            {activities.map((activity, index) => {
+            {activities.map((activity) => {
               const selected = activity.id === selectedActivityId;
               const isTool = activity.kind === "tool";
               return (
@@ -172,16 +172,6 @@ export function AgentDetailsPanel({
                         : "border border-transparent")
                   }
                 >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="text-[10px] tabular-nums text-[#a0a9a5]">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    {selected ? (
-                      <span className="text-[10px] font-medium text-[#6b987d]">
-                        当前查看
-                      </span>
-                    ) : null}
-                  </div>
                   <ActivityHeading activity={activity} />
                   {isTool ? (
                     <AgentActivityDetails
