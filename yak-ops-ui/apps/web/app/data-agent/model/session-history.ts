@@ -84,7 +84,7 @@ function mapHistoryMessage(
       const startedAt = parseHistoryTimestamp(block.startedAt);
       const completedAt = parseHistoryTimestamp(block.completedAt);
       activities.push({
-        id: "thinking:history:" + id + ":" + block.id,
+        id: "thinking:" + id + ":" + block.id,
         kind: "thinking",
         title: "思考过程",
         status: completedAt === undefined ? "interrupted" : "completed",

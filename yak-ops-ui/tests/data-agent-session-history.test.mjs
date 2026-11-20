@@ -58,6 +58,7 @@ test("restored session history rebuilds user messages, assistant text and tool a
     conversation.messages[1].activities.map((activity) => activity.kind),
     ["thinking", "text", "tool"],
   );
+  assert.equal(conversation.messages[1].activities[0].id, "thinking:assistant-1:thinking-1");
   assert.equal(conversation.messages[1].activities[0].status, "completed");
   assert.equal(
     conversation.messages[1].activities[0].startedAt,
