@@ -563,7 +563,8 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     }
 
     private void normalizeTypeFields(DimensionTableDTO dto, DimensionTablePO existing) {
-        if (dto.getTableType() == DimensionTableTypeEnum.DIM) {
+        DimensionTableTypeEnum tableType = dto.getTableType();
+        if (tableType == DimensionTableTypeEnum.DIM) {
             if (!notBlank(dto.getEnShortName()) && existing != null
                     && !notBlank(existing.getEnShortName()) && notBlank(existing.getTableName())) {
                 dto.setEnShortName(existing.getTableName());
@@ -575,11 +576,34 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             dto.setNameRuleId(null);
             dto.setStoragePolicy(null);
             dto.setLifeCycle(null);
+            dto.setDirector(null);
             dto.setBusProcessId(null);
             dto.setMartId(null);
             dto.setSubjectId(null);
-        } else if (dto.getTableType() != null) {
-            dto.setEnShortName(null);
+            return;
+        }
+        if (tableType == null) return;
+
+        dto.setEnShortName(null);
+        if (tableType != DimensionTableTypeEnum.DETAIL) dto.setBusProcessId(null);
+        if (tableType != DimensionTableTypeEnum.APPLICATION) {
+            dto.setMartId(null);
+            dto.setSubjectId(null);
+        }
+        if (tableType != DimensionTableTypeEnum.SUMMARY
+                && tableType != DimensionTableTypeEnum.APPLICATION) {
+            dto.setTimePeriodId(null);
+            dto.setDimId(null);
+            dto.setModifier(null);
+        }
+        if (tableType != DimensionTableTypeEnum.SOURCE
+                && tableType != DimensionTableTypeEnum.DIMENSION
+                && tableType != DimensionTableTypeEnum.DETAIL) {
+            dto.setStoragePolicy(null);
+        }
+        if (tableType == DimensionTableTypeEnum.APPLICATION) {
+            dto.setBusTypeId(null);
+            dto.setDomainId(null);
         }
     }
 
