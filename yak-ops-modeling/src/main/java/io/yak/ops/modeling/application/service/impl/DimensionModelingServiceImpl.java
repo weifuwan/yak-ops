@@ -860,6 +860,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         for (DimensionTableFieldPO snapshotField : snapshotFields) {
             if (snapshotField == null) continue;
             snapshotField.setTableId(tableId);
+            validateFieldStandardReferences(snapshotField);
             snapshotField.setProjectCode(null);
             if (!notBlank(snapshotField.getId())) {
                 snapshotField.initInsert();
@@ -949,15 +950,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         po.setTableId(tableId);
         po.setCanNull(dto.getNotNull() == null ? null : !dto.getNotNull());
         if (po.getFieldType() == null) po.setFieldType(io.yak.ops.dao.entity.enums.DimensionFieldTypeEnum.PROPERTY);
-        if (notBlank(po.getFieldStdId()) && fieldStandardDao.queryById(po.getFieldStdId()) == null) {
-            throw new IllegalArgumentException("关联字段标准不存在或不属于当前项目");
-        }
-        if (notBlank(po.getCodeStdId()) && codeStandardDao.queryById(po.getCodeStdId()) == null) {
-            throw new IllegalArgumentException("关联标准代码不存在或不属于当前项目");
-        }
-        if (notBlank(po.getUnitId()) && unitStandardDao.queryById(po.getUnitId()) == null) {
-            throw new IllegalArgumentException("关联度量单位不存在或不属于当前项目");
-        }
+        validateFieldStandardReferences(po);
         po.setProjectCode(null);
         return po;
     }
@@ -967,6 +960,18 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         BeanUtils.copyProperties(po, vo);
         vo.setNotNull(po.getCanNull() == null ? null : !po.getCanNull());
         return vo;
+    }
+
+    private void validateFieldStandardReferences(DimensionTableFieldPO field) {
+        if (notBlank(field.getFieldStdId()) && fieldStandardDao.queryById(field.getFieldStdId()) == null) {
+            throw new IllegalArgumentException("关联字段标准不存在或不属于当前项目");
+        }
+        if (notBlank(field.getCodeStdId()) && codeStandardDao.queryById(field.getCodeStdId()) == null) {
+            throw new IllegalArgumentException("关联标准代码不存在或不属于当前项目");
+        }
+        if (notBlank(field.getUnitId()) && unitStandardDao.queryById(field.getUnitId()) == null) {
+            throw new IllegalArgumentException("关联度量单位不存在或不属于当前项目");
+        }
     }
 
     private void updateFieldColumns(DimensionTableFieldPO po, String tableId, String fieldId) {
