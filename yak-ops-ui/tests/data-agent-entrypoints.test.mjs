@@ -65,9 +65,10 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|理解数据、构建任务|Enter 发送 · Shift/);
   assert.ok(workspace.includes('activeConversation?.title ?? "新对话"'));
   assert.ok(!workspace.includes("前端预览</span>"));
-  assert.match(workspace, /flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white/);
+  assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
+  assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
+  assert.match(workspace, /<DataAgentEmptyState/);
   assert.match(workspace, /<DataAgentConversationHeader/);
-  assert.doesNotMatch(workspace, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
@@ -86,11 +87,21 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(sidebarFooter, /Unlock more features/);
 });
 
-test("Data Agent conversation workspace is edge-to-edge with a dedicated session header", () => {
-  assert.match(workspace, /<DataAgentConversationHeader/);
-  assert.match(workspace, /title=\{activeConversation\?\.title \?\? "新对话"\}/);
-  assert.match(workspace, /<section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">/);
-  assert.doesNotMatch(workspace, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
+test("Data Agent restores the original empty workspace and uses full bleed only for conversations", () => {
+  const emptyBranchIndex = workspace.indexOf("{!hasMessages ? (");
+  const emptyStateIndex = workspace.indexOf("<DataAgentEmptyState", emptyBranchIndex);
+  const conversationHeaderIndex = workspace.indexOf("<DataAgentConversationHeader");
+  const conversationBranch = workspace.slice(conversationHeaderIndex);
+
+  assert.ok(emptyBranchIndex >= 0, "empty workspace should have its own layout branch");
+  assert.ok(emptyStateIndex > emptyBranchIndex, "empty state should render in the original workspace branch");
+  assert.ok(conversationHeaderIndex > emptyStateIndex, "conversation header should only appear after the empty state branch");
+  assert.match(workspace.slice(emptyBranchIndex, conversationHeaderIndex), /bg-\[#f0f0f0\] p-2 max-md:p-0/);
+  assert.match(workspace.slice(emptyBranchIndex, conversationHeaderIndex), /rounded-2xl border border-\[#e7e7e4\] bg-white/);
+  assert.match(conversationBranch, /title=\{activeConversation\?\.title \?\? "新对话"\}/);
+  assert.match(conversationBranch, /<section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">/);
+  assert.doesNotMatch(conversationBranch, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
+  assert.match(conversationBranch, /<ConversationPanel/);
 
   assert.match(conversationHeader, /h-12 shrink-0 items-center justify-between border-b/);
   assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
