@@ -67,6 +67,13 @@ class EventLogTests(unittest.TestCase):
 
         self.assertEqual(events[0]["type"], "stream_idle")
 
+    def test_stream_idle_sse_frame_does_not_require_an_event_id(self) -> None:
+        frame = server._sse_frame({"type": "stream_idle", "state": "idle"})
+
+        self.assertEqual(frame["event"], "stream_idle")
+        self.assertNotIn("id", frame)
+        self.assertEqual(json.loads(frame["data"])["state"], "idle")
+
     def test_future_cursor_is_clamped(self) -> None:
         session = _session()
 
