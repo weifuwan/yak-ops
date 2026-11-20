@@ -117,6 +117,7 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
         auth=identity.auth,
         project_code=int(identity.workspace_id),
     )
+    stored_usage = meta.get("usage") or {}
     session = Session(
         sid=sid,
         agent=agent,
@@ -128,7 +129,7 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
         preview=str(meta.get("preview", "")),
         usage={
             key: max(0, int(value))
-            for key, value in (meta.get("usage") or {}).items()
+            for key, value in stored_usage.items()
             if isinstance(value, (int, float))
         },
     )
