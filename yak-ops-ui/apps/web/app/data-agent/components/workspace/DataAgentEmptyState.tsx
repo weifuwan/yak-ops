@@ -14,6 +14,7 @@ type DataAgentEmptyStateProps = {
   initialDraft: string;
   isSending: boolean;
   onSubmit: (content: string) => boolean | void;
+  onStop: () => void;
   onQuickAction: (prompt: string) => void;
   trailingActions: ReactNode;
 };
@@ -26,6 +27,7 @@ export function DataAgentEmptyState({
   initialDraft,
   isSending,
   onSubmit,
+  onStop,
   onQuickAction,
   trailingActions,
 }: DataAgentEmptyStateProps) {
@@ -60,6 +62,7 @@ export function DataAgentEmptyState({
             initialValue={initialDraft}
             onSubmit={onSubmit}
             isSubmitting={isSending}
+            onStop={onStop}
             trailingActions={trailingActions}
             placeholder="你想让 Data Agent 帮你完成什么？"
           />
