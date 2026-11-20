@@ -1,4 +1,5 @@
 import { useRef, type PointerEvent } from "react";
+import { Link } from "react-router-dom";
 
 import {
   ChevronRight,
@@ -6,6 +7,7 @@ import {
   Database,
   ListChecks,
   MessageSquareText,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -107,9 +109,18 @@ export function DataAgentWelcome({ onEnter }: DataAgentWelcomeProps) {
           />
           <span>Data Agent</span>
         </button>
-        <span className="text-[9px] font-semibold tracking-[0.12em] text-[#9aa4a4] max-[640px]:hidden">
-          YAK-OPS · DATA AGENT
-        </span>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/data-agent/particle-preview"
+            className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-[#71807c] transition-colors duration-150 hover:bg-[#e9eeee] hover:text-[#34433f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 motion-reduce:transition-none"
+          >
+            <Sparkles size={13} strokeWidth={1.8} />
+            粒子动画预览
+          </Link>
+          <span className="text-[9px] font-semibold tracking-[0.12em] text-[#9aa4a4] max-[640px]:hidden">
+            YAK-OPS · DATA AGENT
+          </span>
+        </div>
       </header>
 
       <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[14px] border border-[#dfe4e4] bg-white shadow-[0_1px_2px_rgb(20_34_35_/_3%)]">

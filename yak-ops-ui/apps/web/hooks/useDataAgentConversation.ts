@@ -31,7 +31,7 @@ type SendMessageResult = {
 
 export function useDataAgentConversation() {
   const { currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, loading: isWorkspaceLoading } = useWorkspace();
   const requestIdentity = useMemo(
     () =>
       currentUser?.id && currentWorkspace?.id
@@ -48,6 +48,10 @@ export function useDataAgentConversation() {
     initialConversationState,
   );
   const [isSending, setIsSending] = useState(false);
+  const [restoredIdentityKey, setRestoredIdentityKey] = useState<string | null>(null);
+  const requestIdentityKey = requestIdentity
+    ? requestIdentity.userId + ":" + requestIdentity.workspaceId
+    : null;
   const [connectionError, setConnectionError] = useState("");
   const [pendingConfirmation, setPendingConfirmation] =
     useState<PendingConfirmation | null>(null);
@@ -106,10 +110,15 @@ export function useDataAgentConversation() {
           return;
         }
         setConnectionError(agentErrorMessage(error));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestIdentityKey) {
+          setRestoredIdentityKey(requestIdentityKey);
+        }
       });
 
     return () => controller.abort();
-  }, [requestIdentity]);
+  }, [requestIdentity, requestIdentityKey]);
 
   useEffect(
     () => () => {
@@ -319,6 +328,7 @@ export function useDataAgentConversation() {
     messages,
     lastMessage,
     isSending,
+    isLoading: isWorkspaceLoading || Boolean(requestIdentityKey && restoredIdentityKey !== requestIdentityKey),
     connectionError,
     pendingConfirmation,
     createConversation,

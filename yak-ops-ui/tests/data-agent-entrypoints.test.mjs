@@ -7,6 +7,7 @@ const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
+const emptyStateStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-empty-state.css");
 const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
 const sidebar = read("../apps/web/app/data-agent/components/DataAgentSidebar.tsx");
 const sidebarNavigation = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarNavigation.tsx");
@@ -16,6 +17,8 @@ const sidebarResizer = read("../apps/web/app/data-agent/components/DataAgentSide
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const modelSelector = read("../apps/web/app/data-agent/components/workspace/ModelSelector.tsx");
 const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
+const loading = read("../apps/web/app/data-agent/components/workspace/DataAgentLoading.tsx");
+const loadingStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-loading.css");
 const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
 const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
 const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
@@ -83,13 +86,30 @@ test("Data Agent sidebar keeps the Recent chats section visible when there are n
 test("the welcome workspace keeps its centered prompt and shortcut layout", () => {
   assert.match(emptyState, /max-w-\[540px\]/);
   assert.match(emptyState, /grid grid-cols-2 gap-2/);
-  assert.match(quickActions, /分析数据表/);
-  assert.match(quickActions, /生成 SQL/);
-  assert.match(quickActions, /排查任务异常/);
-  assert.match(quickActions, /梳理数据开发流程/);
+  assert.match(quickActions, /分析数据结构/);
+  assert.match(quickActions, /生成 SQL 查询/);
+  assert.match(quickActions, /诊断任务异常/);
+  assert.match(quickActions, /规划数据开发流程/);
+  assert.ok(quickActions.includes('iconClass: "bg-[#e77a5b] text-white"'));
+  assert.ok(quickActions.includes('iconClass: "bg-[#5e8fe2] text-white"'));
+  assert.ok(quickActions.includes('iconClass: "bg-[#d79a38] text-white"'));
+  assert.ok(quickActions.includes('iconClass: "bg-[#59a67a] text-white"'));
   assert.match(workspace, /handleQuickAction/);
   assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
+});
+
+test("Data Agent empty state renders scoped, outward-only ambient waves", () => {
+  assert.match(emptyState, /import "\.\/data-agent-empty-state\.css";/);
+  assert.match(emptyState, /data-agent-empty-state relative isolate/);
+  assert.match(emptyState, /data-agent-empty-state__wave/);
+  assert.match(emptyState, /data-agent-empty-state__content/);
+  assert.match(emptyStateStyles, /--yak-ops-data-agent-wave-duration:\s*5\.6s/);
+  assert.match(emptyStateStyles, /animation-delay:\s*calc\(var\(--yak-ops-data-agent-wave-duration\) \/ -2\)/);
+  assert.match(emptyStateStyles, /@keyframes yak-ops-data-agent-wave-out/);
+  assert.match(emptyStateStyles, /72%/);
+  assert.match(emptyStateStyles, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(emptyStateStyles, /main\s*>|:root/);
 });
 
 test("Data Agent sidebar uses a smooth drawer transition without unmounting", () => {
@@ -243,6 +263,34 @@ test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
   assert.match(sidebarResizer, /group-data-\[dragging=true\]:opacity-100/);
   assert.match(sidebarResizer, /document\.body\.style\.cursor = "col-resize"/);
   assert.match(sidebarResizer, /document\.body\.style\.userSelect = "none"/);
+});
+
+test("Data Agent restores its workspace on refresh and shows a full-screen shimmer skeleton", () => {
+  assert.match(page, /DATA_AGENT_WORKSPACE_KEY/);
+  assert.match(page, /sessionStorage\.getItem\(DATA_AGENT_WORKSPACE_KEY\)/);
+  assert.match(page, /sessionStorage\.setItem\(DATA_AGENT_WORKSPACE_KEY, "true"\)/);
+
+  assert.match(conversationHook, /restoredIdentityKey/);
+  assert.match(conversationHook, /isLoading: isWorkspaceLoading \|\| Boolean\(requestIdentityKey && restoredIdentityKey !== requestIdentityKey\)/);
+  assert.match(workspace, /isLoadingOverlayVisible \? \([\s\S]*?<DataAgentLoading/);
+  assert.match(workspace, /setLoadingOverlayExiting\(true\)/);
+  assert.match(workspace, /data-agent-workspace-enter/);
+  assert.match(workspace, /showLoadingOverlay/);
+  assert.match(workspace, /window\.setTimeout\(\(\) => setShowLoadingOverlay\(false\), 200\)/);
+  assert.match(workspace, /element\.inert = isLoadingOverlayVisible/);
+
+  assert.match(loading, /fixed inset-0 z-\[100\]/);
+  assert.match(workspace, /exiting=\{loadingOverlayExiting && !isLoading\}/);
+  assert.match(loading, /aria-hidden=\{exiting\}/);
+  assert.match(loading, /transition-opacity duration-200/);
+  assert.match(loading, /role="status"/);
+  assert.match(loading, /aria-busy="true"/);
+  assert.match(loading, /max-w-\[494px\]/);
+  assert.match(loading, /grid grid-cols-2 gap-2/);
+  assert.match(loadingStyles, /@keyframes data-agent-skeleton-shimmer/);
+  assert.match(loadingStyles, /1\.55s ease-in-out infinite/);
+  assert.match(loadingStyles, /prefers-reduced-motion: reduce/);
+  assert.match(loadingStyles, /@keyframes data-agent-workspace-enter/);
 });
 
 test("Data Agent workspace menu groups its label with menu items", () => {

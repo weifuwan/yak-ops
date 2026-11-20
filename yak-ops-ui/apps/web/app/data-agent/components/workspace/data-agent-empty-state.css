@@ -1,0 +1,163 @@
+/*
+ * Soft outward ripples for the Data Agent empty conversation state.
+ *
+ * This effect is intentionally scoped to the empty-state component. It borrows
+ * Yakable's proven two-layer outward-wave treatment without relying on global
+ * positional selectors or changing the conversation view.
+ */
+
+@property --yak-ops-data-agent-wave-white-core {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 40%;
+}
+
+@property --yak-ops-data-agent-wave-slate {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 45%;
+}
+
+@property --yak-ops-data-agent-wave-indigo {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 52%;
+}
+
+@property --yak-ops-data-agent-wave-white-edge {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 63%;
+}
+
+@property --yak-ops-data-agent-wave-white-far {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 74%;
+}
+
+.data-agent-empty-state {
+  --yak-ops-data-agent-wave-duration: 5.6s;
+  --yak-ops-data-agent-wave-slate-color: #fcfcfd;
+  --yak-ops-data-agent-wave-indigo-color: #edf2fe;
+
+  isolation: isolate;
+  background: #fff;
+}
+
+.data-agent-empty-state__wave {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 48%,
+    #fff 0%,
+    #fff var(--yak-ops-data-agent-wave-white-core),
+    var(--yak-ops-data-agent-wave-slate-color) var(--yak-ops-data-agent-wave-slate),
+    var(--yak-ops-data-agent-wave-indigo-color) var(--yak-ops-data-agent-wave-indigo),
+    #fff var(--yak-ops-data-agent-wave-white-edge),
+    #fff var(--yak-ops-data-agent-wave-white-far)
+  );
+  background-size: 100% 100%;
+  opacity: 0;
+  will-change: background, opacity;
+  animation: yak-ops-data-agent-wave-out var(--yak-ops-data-agent-wave-duration)
+    cubic-bezier(0.2, 0.65, 0.25, 1) infinite;
+}
+
+/* The second wave is offset by half a cycle to keep the motion continuous. */
+.data-agent-empty-state::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 48%,
+    #fff 0%,
+    #fff var(--yak-ops-data-agent-wave-white-core),
+    var(--yak-ops-data-agent-wave-slate-color) var(--yak-ops-data-agent-wave-slate),
+    var(--yak-ops-data-agent-wave-indigo-color) var(--yak-ops-data-agent-wave-indigo),
+    #fff var(--yak-ops-data-agent-wave-white-edge),
+    #fff var(--yak-ops-data-agent-wave-white-far)
+  );
+  opacity: 0;
+  will-change: background, opacity;
+  animation: yak-ops-data-agent-wave-out var(--yak-ops-data-agent-wave-duration)
+    cubic-bezier(0.2, 0.65, 0.25, 1) infinite;
+  animation-delay: calc(var(--yak-ops-data-agent-wave-duration) / -2);
+}
+
+/* Keep the composer area calm while the wave travels toward both sides. */
+.data-agent-empty-state::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 48%,
+    #fff 0%,
+    #fff 28%,
+    rgb(255 255 255 / 82%) 35%,
+    rgb(255 255 255 / 28%) 44%,
+    rgb(255 255 255 / 0%) 56%
+  );
+}
+
+.data-agent-empty-state__content {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes yak-ops-data-agent-wave-out {
+  0% {
+    opacity: 0;
+    --yak-ops-data-agent-wave-white-core: 40%;
+    --yak-ops-data-agent-wave-slate: 45%;
+    --yak-ops-data-agent-wave-indigo: 52%;
+    --yak-ops-data-agent-wave-white-edge: 63%;
+    --yak-ops-data-agent-wave-white-far: 74%;
+  }
+
+  9% {
+    opacity: 0.9;
+  }
+
+  72% {
+    opacity: 0.72;
+    --yak-ops-data-agent-wave-white-core: 72%;
+    --yak-ops-data-agent-wave-slate: 92%;
+    --yak-ops-data-agent-wave-indigo: 116%;
+    --yak-ops-data-agent-wave-white-edge: 143%;
+    --yak-ops-data-agent-wave-white-far: 166%;
+  }
+
+  100% {
+    opacity: 0;
+    --yak-ops-data-agent-wave-white-core: 92%;
+    --yak-ops-data-agent-wave-slate: 122%;
+    --yak-ops-data-agent-wave-indigo: 154%;
+    --yak-ops-data-agent-wave-white-edge: 188%;
+    --yak-ops-data-agent-wave-white-far: 218%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-agent-empty-state__wave,
+  .data-agent-empty-state::before {
+    animation: none;
+    opacity: 0.7;
+    will-change: auto;
+    --yak-ops-data-agent-wave-white-core: 56%;
+    --yak-ops-data-agent-wave-slate: 69%;
+    --yak-ops-data-agent-wave-indigo: 84%;
+    --yak-ops-data-agent-wave-white-edge: 104%;
+    --yak-ops-data-agent-wave-white-far: 122%;
+  }
+
+  .data-agent-empty-state::before {
+    display: none;
+  }
+}

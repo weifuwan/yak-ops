@@ -31,7 +31,7 @@ export function DataAgentConversationList({
   return (
     <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-3 [scrollbar-width:thin]">
       <section aria-label="Recent conversations">
-        <div className="mb-1 flex h-6 items-center px-2 text-[11px] font-medium text-[#888888]">
+        <div className="mb-1 flex h-6 items-center " style={{fontSize: "0.875rem", lineHeight: "1.5", color: "oklch(50% .001 107)"}}>
           Recent chats
         </div>
         {conversations.length > 0 ? (
