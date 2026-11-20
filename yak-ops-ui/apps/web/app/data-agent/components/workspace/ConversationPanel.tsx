@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, X } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 
 import { DataAgentPromptComposer } from "../DataAgentPromptComposer";
 import type { AgentActivity, AgentMessage, PendingConfirmation } from "../../model/types";
+import { AgentDetailsResizer } from "./AgentDetailsResizer";
 import { AgentDetailsPanel } from "./conversation/AgentDetailsPanel";
 import { MessageList } from "./conversation/MessageList";
+
+const DETAILS_MIN_WIDTH = 280;
+const DETAILS_MAX_WIDTH = 560;
 
 type ConversationPanelProps = {
   messages: AgentMessage[];
@@ -38,6 +42,11 @@ export function ConversationPanel({
   trailingActions,
 }: ConversationPanelProps) {
   const [selection, setSelection] = useState<ActivitySelection | null>(null);
+  const [detailsWidth, setDetailsWidth] = useState(420);
+  const [detailsMaxWidth, setDetailsMaxWidth] = useState(DETAILS_MAX_WIDTH);
+  const [detailsResizing, setDetailsResizing] = useState(false);
+  const conversationLayoutRef = useRef<HTMLDivElement>(null);
+
   const selectedMessage =
     selection === null
       ? null
@@ -47,6 +56,32 @@ export function ConversationPanel({
       (activity) => activity.id === selection?.activityId,
     ) ?? null;
   const detailsOpen = Boolean(selectedMessage && selectedActivity);
+
+  useEffect(() => {
+    const element = conversationLayoutRef.current;
+    if (!element) return;
+
+    const updateMaxWidth = () => {
+      const nextMaxWidth = Math.min(
+        DETAILS_MAX_WIDTH,
+        Math.max(DETAILS_MIN_WIDTH, Math.floor(element.clientWidth * 0.55)),
+      );
+      setDetailsMaxWidth(nextMaxWidth);
+      setDetailsWidth((current) =>
+        Math.min(nextMaxWidth, Math.max(DETAILS_MIN_WIDTH, current)),
+      );
+    };
+
+    updateMaxWidth();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateMaxWidth);
+      return () => window.removeEventListener("resize", updateMaxWidth);
+    }
+
+    const observer = new ResizeObserver(updateMaxWidth);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (selection && (!selectedMessage || !selectedActivity)) {
@@ -72,7 +107,10 @@ export function ConversationPanel({
   }
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1">
+    <div
+      ref={conversationLayoutRef}
+      className="relative flex min-h-0 min-w-0 flex-1"
+    >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <MessageList
           messages={messages}
@@ -110,15 +148,28 @@ export function ConversationPanel({
         </div>
       </div>
 
+      {detailsOpen ? (
+        <AgentDetailsResizer
+          width={detailsWidth}
+          maxWidth={detailsMaxWidth}
+          onResize={setDetailsWidth}
+          onDraggingChange={setDetailsResizing}
+        />
+      ) : null}
+
       <aside
         id="agent-details-panel"
         aria-label="Agent 执行详情"
         aria-hidden={!detailsOpen}
+        style={{ width: detailsOpen ? String(detailsWidth) + "px" : "0px" }}
         className={
-          "relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-white transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none " +
+          "relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-white motion-reduce:transition-none " +
+          (detailsResizing
+            ? "transition-none "
+            : "transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ") +
           (detailsOpen
-            ? "w-[min(420px,40%)] min-w-0 border-l border-[#ecefed] opacity-100 max-md:absolute max-md:inset-0 max-md:!w-full max-md:z-20"
-            : "pointer-events-none w-0 min-w-0 border-l-0 opacity-0")
+            ? "border-l border-[#ecefed] opacity-100 max-md:absolute max-md:inset-0 max-md:!w-full max-md:z-20"
+            : "pointer-events-none border-l-0 opacity-0")
         }
       >
         {selectedMessage && selectedActivity ? (
