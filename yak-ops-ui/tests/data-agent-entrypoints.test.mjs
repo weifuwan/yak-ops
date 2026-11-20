@@ -356,8 +356,8 @@ test("Data Agent restores a URL-addressed session on refresh and shows a full-sc
 });
 
 test("Data Agent session switching keeps the app shell visible and scopes the skeleton to the right workspace", () => {
-  assert.match(hook, /setIsRestoringSession\(true\)/);
-  assert.match(hook, /isRestoringSession,/);
+  assert.match(conversationHook, /setIsRestoringSession\(true\)/);
+  assert.match(conversationHook, /isRestoringSession,/);
   assert.match(workspace, /isRestoringSession \? \([\s\S]*?<DataAgentSessionLoading/);
   assert.match(workspace, /shouldShowInitialLoading/);
   assert.ok(workspace.indexOf("<DataAgentSidebar") < workspace.indexOf("{isRestoringSession ?"));
