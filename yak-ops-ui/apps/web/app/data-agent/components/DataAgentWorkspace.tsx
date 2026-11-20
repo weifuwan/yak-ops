@@ -223,6 +223,7 @@ export function DataAgentWorkspace({
                 initialDraft={initialDraft}
                 isSending={isSending}
                 onSubmit={handlePromptSubmit}
+                onStop={stopCurrentTurn}
                 onQuickAction={handleQuickAction}
                 trailingActions={modelSelector}
               />
