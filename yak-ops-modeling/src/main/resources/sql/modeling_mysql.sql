@@ -447,6 +447,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table (
   dim_id varchar(1000) NULL,
   modifier varchar(1000) NULL,
   name_rule_id varchar(32) NULL,
+  en_short_name varchar(255) NULL,
   table_name varchar(500) NULL,
   cn_name varchar(500) NULL,
   table_type varchar(50) NULL,
@@ -464,7 +465,8 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table (
   KEY idx_yak_dimension_table_2 (bus_type_id, domain_id, bus_process_id),
   KEY idx_yak_dimension_table_3 (mart_id, subject_id),
   KEY idx_yak_dimension_table_4 (project_code, table_name),
-  KEY idx_yak_dimension_table_5 (project_code, cn_name)
+  KEY idx_yak_dimension_table_5 (project_code, cn_name),
+  KEY idx_yak_dimension_table_6 (project_code, en_short_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-维度表元数据';
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_fields (
