@@ -28,16 +28,9 @@ async def forward_event(session: Session, event: Any) -> None:
             {"type": "thinking_start", "replyId": reply_id, "blockId": event.block_id}
         )
     elif event_type == EventType.THINKING_BLOCK_DELTA:
-        delta = getattr(event, "delta", "")
-        if delta:
-            await session.queue.put(
-                {
-                    "type": "thinking_delta",
-                    "delta": delta,
-                    "replyId": reply_id,
-                    "blockId": event.block_id,
-                }
-            )
+        # Keep raw model reasoning inside the agent process. The browser receives
+        # only thinking_start/thinking_end boundaries and safe progress summaries.
+        return
     elif event_type == EventType.THINKING_BLOCK_END:
         await session.queue.put(
             {"type": "thinking_end", "replyId": reply_id, "blockId": event.block_id}
