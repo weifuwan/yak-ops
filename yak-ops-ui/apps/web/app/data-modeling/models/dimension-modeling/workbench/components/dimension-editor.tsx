@@ -739,8 +739,11 @@ export function DimensionEditor({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--yak-components-panel-border)] px-4 py-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button size="sm" variant="primary" isDisabled={!dirty || saving || (Boolean(recordId) && (fieldsQuery.isFetching || fieldsQuery.isError))} isPending={saving} onClick={() => void save()}>
-              <Save size={13} />保存
+            <Button size="sm" variant="primary" isDisabled={!basicDirty || saving} isPending={saving} onClick={() => void saveBasicInfo()}>
+              <Save size={13} />保存基本信息
+            </Button>
+            <Button size="sm" variant="secondary" isDisabled={!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching} isPending={savingFields} onClick={() => void saveFields()}>
+              <Save size={13} />保存字段
             </Button>
             <Button size="sm" variant="secondary" isDisabled={!recordId || dirty || isSubmitted || submitting} isPending={submitting} onClick={() => void submit()}>
               <Send size={13} />提交
@@ -765,7 +768,7 @@ export function DimensionEditor({
 
         {showNotice && !noticeDismissed ? (
           <div className="flex shrink-0 items-center gap-2 border-b border-[#dce6fb] bg-[#eef4ff] px-4 py-1.5 text-xs text-[#63748f]">
-            <span>{dirty ? "当前存在未保存的变更，请及时保存。" : "当前存在未提交的内容，保存后可点击上方“提交”生成最新版本。"}</span>
+            <span>{dirty ? "请分别保存基本信息和字段变更，再提交生成完整版本。" : "当前存在未提交的内容，保存基本信息和字段后可提交生成完整版本。"}</span>
             <button type="button" aria-label="关闭提示" className="ml-auto flex size-5 items-center justify-center rounded hover:bg-black/5" onClick={() => setNoticeDismissed(true)}>
               <X size={12} />
             </button>
@@ -781,35 +784,37 @@ export function DimensionEditor({
                   <OptionSelect
                     value={values.dwhId}
                     options={layerOptions}
-                    placeholder={layersQuery.isFetching ? "正在加载数仓分层..." : "请选择数仓分层"}
+                    placeholder={layersQuery.isFetching ? "正在加载可用数仓分层..." : "请选择数仓分层"}
                     onChange={(value) => {
-                      const layer = layers.find((item) => String(item.id || "") === value);
-                      const modelType = String(layer?.dwModelType || "");
-                      const firstType = (TABLE_TYPES_BY_MODEL[modelType] || [])[0] || "";
-                      setValues((current) => ({ ...current, dwhId: value, tableType: firstType }));
+                      setValues((current) => ({ ...current, dwhId: value }));
+                      setBasicDirty(true);
                       setDirty(true);
                       onDirtyChange(true);
                     }}
                   />
                 </FormField>
 
-                {!isUnassigned ? (
+                {selectedTableType ? (
+                  <FormField label="模型类型" required>
+                    <Input size="small" variant="outlined" value={modelTypeLabel} disabled />
+                  </FormField>
+                ) : canChooseLegacyType ? (
                   <FormField label="模型类型" required>
                     <OptionSelect
                       value={values.tableType}
                       options={tableTypeOptions}
-                      placeholder="请选择模型类型"
+                      placeholder="请选择迁移后的模型类型"
                       onChange={(value) => changeValue("tableType", value)}
                     />
                   </FormField>
-                ) : (
+                ) : isLegacyUntyped ? (
                   <FormField label="模型类型">
-                    <Input size="small" variant="outlined" value="未分层不指定模型类型" disabled />
+                    <Input size="small" variant="outlined" value="历史记录未记录模型类型，迁移时可指定" disabled />
                   </FormField>
-                )}
+                ) : null}
 
-                {dwType === "APPLICATION_LAYER" ? (
-                  <FormField label="应用层归属">
+                {isApplication ? (
+                  <FormField label="集市/主题" required>
                     <OptionSelect
                       value={values.martOrSubject}
                       options={martSubjectOptions}
@@ -818,64 +823,192 @@ export function DimensionEditor({
                     />
                   </FormField>
                 ) : (
+                  <FormField label="业务分类">
+                    <OptionSelect
+                      value={values.busTypeId}
+                      options={businessTypeOptions}
+                      placeholder={businessTypesQuery.isFetching ? "正在加载业务分类..." : "请选择业务分类"}
+                      onChange={(value) => changeValue("busTypeId", value)}
+                    />
+                  </FormField>
+                )}
+
+                {isDim ? (
+                  <FormField label="数据域" required>
+                    <OptionSelect
+                      value={values.domainId}
+                      options={domainOptions}
+                      placeholder={domainsQuery.isFetching ? "正在加载数据域..." : "请选择数据域"}
+                      onChange={(value) => changeValue("domainId", value)}
+                    />
+                  </FormField>
+                ) : null}
+
+                {isDetail ? (
+                  <FormField label="业务过程" required>
+                    <OptionSelect
+                      value={values.busProcessId}
+                      options={processOptions}
+                      placeholder={processesQuery.isFetching ? "正在加载业务过程..." : "请选择业务过程"}
+                      onChange={(value) => {
+                        const process = (processesQuery.data || []).find(
+                          (item) => String(item.id || "") === value,
+                        );
+                        setValues((current) => ({
+                          ...current,
+                          busProcessId: value,
+                          domainId: String(process?.dataDomainId || process?.domainId || current.domainId || ""),
+                        }));
+                        setBasicDirty(true);
+                        setDirty(true);
+                        onDirtyChange(true);
+                      }}
+                    />
+                  </FormField>
+                ) : null}
+
+                {isSummary ? (
+                  <FormField label="数据域">
+                    <OptionSelect
+                      value={values.domainId}
+                      options={domainOptions}
+                      placeholder="请选择数据域"
+                      onChange={(value) => changeValue("domainId", value)}
+                    />
+                  </FormField>
+                ) : null}
+
+                {isDim ? (
+                  <FormField label="英文缩写" required>
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      value={values.enShortName}
+                      placeholder="请输入维度英文缩写，例如 customer"
+                      onChange={(event) => changeValue("enShortName", event.target.value)}
+                    />
+                  </FormField>
+                ) : (
+                  <FormField label={isLegacyUntyped ? "英文名称" : "表名"} required>
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      value={values.tableName}
+                      placeholder={isLegacyUntyped ? "请输入历史英文名称" : "请输入英文表名"}
+                      onChange={(event) => changeValue("tableName", event.target.value)}
+                    />
+                  </FormField>
+                )}
+
+                <FormField label={isDim ? "中文名称" : "表中文名"} required>
+                  <Input
+                    size="small"
+                    variant="outlined"
+                    value={values.cnName}
+                    placeholder={isDim ? "请输入维度中文名称" : "请输入表中文名"}
+                    onChange={(event) => changeValue("cnName", event.target.value)}
+                  />
+                </FormField>
+
+                {isSummary || isApplication ? (
                   <>
-                    <FormField label="业务分类">
+                    <FormField label="时间周期">
                       <OptionSelect
-                        value={values.busTypeId}
-                        options={businessTypeOptions}
-                        placeholder={businessTypesQuery.isFetching ? "正在加载业务分类..." : "请选择业务分类"}
-                        onChange={(value) => changeValue("busTypeId", value)}
+                        value={values.timePeriodId}
+                        options={timePeriodOptions}
+                        placeholder={timePeriodsQuery.isFetching ? "正在加载时间周期..." : "请选择时间周期"}
+                        onChange={(value) => changeValue("timePeriodId", value)}
                       />
                     </FormField>
-                    <FormField label="数据域">
+                    <FormField label="粒度">
                       <OptionSelect
-                        value={values.domainId}
-                        options={domainOptions}
-                        placeholder={domainsQuery.isFetching ? "正在加载数据域..." : "请选择数据域"}
-                        onChange={(value) => {
-                          setValues((current) => ({ ...current, domainId: value, busProcessId: "" }));
-                          setDirty(true);
-                          onDirtyChange(true);
-                          setNoticeDismissed(false);
-                        }}
+                        value={values.dimId}
+                        options={dimensionOptions}
+                        placeholder={dimensionsQuery.isFetching ? "正在加载维度..." : "请选择维度粒度"}
+                        onChange={(value) => changeValue("dimId", value)}
                       />
                     </FormField>
-                    <FormField label="业务过程">
+                    <FormField label="修饰词">
                       <OptionSelect
-                        value={values.busProcessId}
-                        options={processOptions}
-                        placeholder={processesQuery.isFetching ? "正在加载业务过程..." : "请选择业务过程"}
-                        onChange={(value) => changeValue("busProcessId", value)}
+                        value={values.modifier}
+                        options={modifierOptions}
+                        placeholder={modifiersQuery.isFetching ? "正在加载修饰词..." : "请选择修饰词"}
+                        onChange={(value) => changeValue("modifier", value)}
                       />
                     </FormField>
                   </>
-                )}
+                ) : null}
 
-                <FormField label="表名" required>
-                  <Input size="small" variant="outlined" value={values.tableName} placeholder="请输入英文表名" onChange={(event) => changeValue("tableName", event.target.value)} />
-                </FormField>
-                <FormField label="表中文名" required>
-                  <Input size="small" variant="outlined" value={values.cnName} placeholder="请输入表中文名" onChange={(event) => changeValue("cnName", event.target.value)} />
-                </FormField>
-                <FormField label="存储策略">
-                  <OptionSelect
-                    value={values.storagePolicy}
-                    options={STORAGE_POLICY_OPTIONS}
-                    placeholder="请选择存储策略"
-                    onChange={(value) => changeValue("storagePolicy", value)}
-                  />
-                </FormField>
-                <FormField label="生命周期">
-                  <div className="flex items-center gap-2">
-                    <Input size="small" variant="outlined" type="number" min={0} value={values.lifeCycle} placeholder="请输入" className="max-w-[150px]" onChange={(event) => changeValue("lifeCycle", event.target.value)} />
-                    <span className="text-xs text-[var(--yak-components-muted-text)]">天</span>
-                  </div>
-                </FormField>
-                <FormField label="负责人">
-                  <Input size="small" variant="outlined" value={values.director} placeholder="请选择或输入负责人" onChange={(event) => changeValue("director", event.target.value)} />
-                </FormField>
+                {["SOURCE", "DIMENSION", "DETAIL"].includes(selectedTableType) ? (
+                  <FormField label="存储策略">
+                    <OptionSelect
+                      value={values.storagePolicy}
+                      options={STORAGE_POLICY_OPTIONS}
+                      placeholder="请选择存储策略"
+                      onChange={(value) => changeValue("storagePolicy", value)}
+                    />
+                  </FormField>
+                ) : null}
+
+                {selectedTableType && selectedTableType !== "DIM" ? (
+                  <>
+                    <FormField label="表名规则">
+                      <Input
+                        size="small"
+                        variant="outlined"
+                        value={values.nameRuleId}
+                        placeholder="可选，填写已配置的规则标识"
+                        onChange={(event) => changeValue("nameRuleId", event.target.value)}
+                      />
+                    </FormField>
+                    <FormField label="生命周期">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          size="small"
+                          variant="outlined"
+                          type="number"
+                          min={0}
+                          value={values.lifeCycle}
+                          placeholder="请输入"
+                          className="max-w-[150px]"
+                          onChange={(event) => changeValue("lifeCycle", event.target.value)}
+                        />
+                        <span className="text-xs text-[var(--yak-components-muted-text)]">天</span>
+                      </div>
+                    </FormField>
+                    <FormField label="负责人" required>
+                      <Input
+                        size="small"
+                        variant="outlined"
+                        value={values.director}
+                        placeholder="请输入负责人"
+                        onChange={(event) => changeValue("director", event.target.value)}
+                      />
+                    </FormField>
+                  </>
+                ) : null}
+
+                {isLegacyUntyped ? (
+                  <FormField label="负责人">
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      value={values.director}
+                      placeholder="可选，填写负责人"
+                      onChange={(event) => changeValue("director", event.target.value)}
+                    />
+                  </FormField>
+                ) : null}
+
                 <FormField label="描述" className="xl:col-span-2">
-                  <Textarea size="small" variant="outlined" rows={3} value={values.remark} placeholder="请输入描述" onValueChange={(value) => changeValue("remark", value)} />
+                  <Textarea
+                    size="small"
+                    variant="outlined"
+                    rows={3}
+                    value={values.remark}
+                    placeholder="请输入描述"
+                    onValueChange={(value) => changeValue("remark", value)}
+                  />
                 </FormField>
               </div>
             </section>
