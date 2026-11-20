@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
@@ -400,11 +401,13 @@ export function DimensionSidebar({
               <Plus size={14} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-44">
+              <DropdownMenuLabel>维度模型</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => onCreate("DIM")}>
                 <Layers3 size={14} />
                 创建维度
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuLabel>逻辑模型</DropdownMenuLabel>
               {DIMENSION_CREATE_OPTIONS.filter((option) => option.group === "table").map((option) => {
                 const Icon = option.type === "SOURCE"
                   ? Database
