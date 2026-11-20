@@ -53,7 +53,7 @@ export type AgentMessage = {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
-  status?: "streaming" | "complete" | "awaiting-confirmation" | "error";
+  status?: "streaming" | "complete" | "awaiting-confirmation" | "interrupted" | "error";
   toolCalls?: AgentToolCall[];
   activities?: AgentActivity[];
   usage?: AgentUsage[];
@@ -65,6 +65,7 @@ export type AgentConversation = {
   id: string;
   title: string;
   updatedAt: string;
+  preview?: string;
   messages: AgentMessage[];
   restored?: boolean;
 };
