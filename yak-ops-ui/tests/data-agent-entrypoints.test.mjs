@@ -501,7 +501,10 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
   assert.match(conversationHeader, /Changes/);
   assert.match(conversationHeader, /aria-expanded=\{detailsOpen\}/);
   assert.match(conversationHeader, /aria-label="打开执行详情"/);
-  assert.match(conversationHeader, /hidden h-full shrink-0 items-center justify-end gap-1 px-2\.5 lg:flex/);
+  assert.match(conversationHeader, /mr-2 hidden h-full shrink-0 items-center justify-end gap-1 px-2\.5 lg:flex/);
+  assert.match(sessionWorkspace, /p-2 opacity-100 max-lg:absolute/);
+  assert.match(sessionWorkspace, /rounded-\[14px\] border border-\[#e5e5e5\] bg-white/);
+  assert.doesNotMatch(sessionWorkspace, /border-l border-\[#ecefed\]/);
   assert.match(conversationPanel, /<MessageList/);
   assert.match(conversationPanel, /DataAgentPromptComposer/);
   assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|AgentDetailsResizer/);
