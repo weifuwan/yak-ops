@@ -107,10 +107,11 @@ test("Data Agent restores the original empty workspace and uses a shared split h
   assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
   assert.match(sessionWorkspace, /<ConversationPanel/);
   assert.match(sessionWorkspace, /<AgentDetailsPanel/);
-  assert.match(conversationHeader, /h-12 shrink-0 items-center border-b/);
+  assert.match(conversationHeader, /h-12 shrink-0 items-center bg-white/);
+  assert.doesNotMatch(conversationHeader, /border-b/);
   assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.match(conversationHeader, /onToggleSidebar/);
-  assert.match(conversationHeader, /isSending \? "正在处理" : "已就绪"/);
+  assert.match(conversationHeader, /const statusLabel = isSending \\? "正在处理" : "已就绪"/);
   assert.match(conversationHeader, /detailsOpen/);
   assert.match(conversationHeader, /Timeline/);
   assert.match(conversationHeader, /Changes/);
@@ -495,11 +496,11 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
   assert.match(sessionWorkspace, /DetailsEmptyState/);
   assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0 max-lg:z-20/);
   assert.match(conversationHeader, /h-12/);
-  assert.match(conversationHeader, /border-l border-\[#ecefed\]/);
+  assert.doesNotMatch(conversationHeader, /border-l|border-b/);
   assert.match(conversationHeader, /Timeline/);
   assert.match(conversationHeader, /Changes/);
   assert.match(conversationHeader, /aria-expanded=\{detailsOpen\}/);
-  assert.match(conversationHeader, /lg:hidden/);
+  assert.match(conversationHeader, /aria-label="打开执行详情"/);
   assert.match(conversationPanel, /<MessageList/);
   assert.match(conversationPanel, /DataAgentPromptComposer/);
   assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|AgentDetailsResizer/);
