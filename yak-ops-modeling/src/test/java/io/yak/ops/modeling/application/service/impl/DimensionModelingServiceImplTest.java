@@ -13,6 +13,7 @@ import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
+import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
 import io.yak.ops.dao.entity.enums.DwTypeEnum;
@@ -20,6 +21,9 @@ import io.yak.ops.dao.repository.modeling.BusinessProcessDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
+import io.yak.ops.dao.repository.modeling.FieldStandardDao;
+import io.yak.ops.dao.repository.modeling.CodeStandardDao;
+import io.yak.ops.dao.repository.modeling.UnitStandardDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
@@ -27,6 +31,7 @@ import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.modeling.api.dto.dimension.DimensionTableDTO;
+import io.yak.ops.modeling.api.dto.dimension.DimensionTableFieldDTO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableVO;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.application.service.DimensionTreeBuilder;
@@ -63,6 +68,15 @@ class DimensionModelingServiceImplTest {
 
     @Mock
     private DataMartDao dataMartDao;
+    
+    @Mock
+    private FieldStandardDao fieldStandardDao;
+
+    @Mock
+    private CodeStandardDao codeStandardDao;
+
+    @Mock
+    private UnitStandardDao unitStandardDao;
 
     @Mock
     private SubjectDomainDao subjectDomainDao;
@@ -157,6 +171,26 @@ class DimensionModelingServiceImplTest {
 
         assertEquals("未分层", result.getDwhName());
         verify(dimensionTableDao).updateById(any());
+    }
+
+    @Test
+    void shouldRejectFieldStandardReferencesOutsideCurrentProject() {
+        DimensionTablePO table = new DimensionTablePO();
+        table.setId("table-id");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table);
+        when(fieldStandardDao.queryById("missing-standard")).thenReturn(null);
+
+        DimensionTableFieldDTO field = new DimensionTableFieldDTO();
+        field.setFieldName("customer_id");
+        field.setDataType(DimensionDataTypeEnum.BIGINT);
+        field.setFieldStdId("missing-standard");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.createField("table-id", field));
+
+        assertEquals("关联字段标准不存在或不属于当前项目", exception.getMessage());
+        verify(dimensionTableFieldDao, never()).insert(any());
     }
 
     @Test
