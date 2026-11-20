@@ -20,7 +20,7 @@ All default-data statements are project-scoped and use deterministic IDs with `N
 
 All 22 modeling tables use the `t_yak_ops_` prefix and a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies the project code from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
-The dimension-model table includes `en_short_name` for DIM assets. `SchemaDao.ensureModelingSchema()` additively creates this column on existing installations and backfills it from legacy DIM `table_name` values without deleting the legacy value. New DIM records use `en_short_name`; other model types continue to use `table_name`.
+The dimension-model table includes `en_short_name` for DIM assets. `SchemaDao.ensureModelingSchema()` additively creates this column on existing installations and backfills it from legacy DIM `table_name` values without deleting the legacy value. New DIM records use `en_short_name`; other model types continue to use `table_name`. Dimension version snapshots use a versioned envelope containing both the table metadata and its field definitions; rollback continues to read the older table-only JSON snapshots. Partition fields are stored in the existing dimension-field table with `field_type = 'PARTITION'`.
 
 The database column for dimension-field precision is `field_precision`; the Java/API property remains `precision`. All four indicator-asset tables (modifier, atomic, derivative and composite) store warehouse classification in `dw_type`; they do not reference a concrete warehouse-layer row. Only the dimension-model table retains `dwh_id`, because a dimension table must reference its actual warehouse-layer definition.
 
