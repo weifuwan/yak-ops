@@ -10,6 +10,8 @@ type AgentActivityTimelineProps = {
   replyEnds?: AgentReplyEnd[];
   isStreaming: boolean;
   isError?: boolean;
+  selectedActivityId?: string | null;
+  onSelectActivity?: (activityId: string) => void;
 };
 
 function formatDuration(startedAt?: number, completedAt?: number) {
@@ -28,6 +30,8 @@ export function AgentActivityTimeline({
   replyEnds = [],
   isStreaming,
   isError = false,
+  selectedActivityId,
+  onSelectActivity,
 }: AgentActivityTimelineProps) {
   const [expanded, setExpanded] = useState(true);
   useEffect(() => {
@@ -103,12 +107,14 @@ export function AgentActivityTimeline({
       </button>
 
       {expanded ? (
-        <div className="flex min-w-0 flex-col gap-2 border-t border-[#edf0ef] px-3.5 py-3">
+        <div className="flex min-w-0 flex-col gap-1 border-t border-[#edf0ef] px-3 py-2.5">
           {activities.map((activity) => (
             <AgentActivityItem
               key={activity.id}
               activity={activity}
               isStreaming={isStreaming}
+              selectedActivityId={selectedActivityId}
+              onSelectActivity={onSelectActivity}
             />
           ))}
           {usage.length > 0 ? (
