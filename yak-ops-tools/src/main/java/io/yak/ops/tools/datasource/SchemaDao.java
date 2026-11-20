@@ -200,6 +200,12 @@ public class SchemaDao {
                     log.info("Migrated {} historical DIM short names", migrated);
                 }
             }
+            if (!indexExists(metadata, connection, tableName, "idx_yak_dimension_table_6")) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.execute("CREATE INDEX idx_yak_dimension_table_6 ON "
+                            + quoteIdentifier(tableName) + " (project_code, en_short_name)");
+                }
+            }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to ensure dimension short-name schema", ex);
         }
@@ -331,6 +337,29 @@ public class SchemaDao {
                 new String[]{"TABLE"})) {
             return tables.next();
         }
+    }
+
+    private boolean indexExists(DatabaseMetaData metadata, Connection connection, String tableName, String indexName)
+            throws SQLException {
+        try (ResultSet indexes = metadata.getIndexInfo(
+                connection.getCatalog(), connection.getSchema(), tableName, false, false)) {
+            while (indexes.next()) {
+                String actualName = indexes.getString("INDEX_NAME");
+                if (actualName != null && indexName.equalsIgnoreCase(actualName)) {
+                    return true;
+                }
+            }
+        }
+        try (ResultSet indexes = metadata.getIndexInfo(
+                connection.getCatalog(), connection.getSchema(), tableName.toUpperCase(Locale.ROOT), false, false)) {
+            while (indexes.next()) {
+                String actualName = indexes.getString("INDEX_NAME");
+                if (actualName != null && indexName.equalsIgnoreCase(actualName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean columnExists(DatabaseMetaData metadata, Connection connection, String tableName, String columnName)
