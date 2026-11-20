@@ -92,12 +92,12 @@ export function DataAgentConversationHeader({
                 <span>Back to latest</span>
               </button>
 
-              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[26rem]:hidden">
+              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[28rem]:hidden">
                 <Clock3 size={12} strokeWidth={1.6} />
                 {PREVIEW_DURATION}
               </span>
 
-              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[26rem]:hidden">
+              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[28rem]:hidden">
                 <span className="flex size-3.5 items-center justify-center rounded-full border border-current">
                   <Cloud size={8} strokeWidth={1.6} />
                 </span>
