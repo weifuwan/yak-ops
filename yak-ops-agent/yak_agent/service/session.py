@@ -13,8 +13,20 @@ from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
 from yak_agent.service import persistence
 from yak_agent.service.errors import SessionForbidden, SessionNotFound, SessionStateInvalid
+from yak_agent.service.events import EventLog
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakAuth
+
+
+@dataclass
+class Turn:
+    """One user message turn and its lifecycle on this process."""
+
+    turn_id: str
+    started_at: float
+    status: str = "running"  # running | awaiting_confirmation | interrupting
+    task: asyncio.Task | None = None
+    interrupt_requested: bool = False
 
 
 @dataclass
@@ -25,11 +37,14 @@ class Session:
     owner: str = "local"
     workspace_id: str = ""
     auth: Any = None  # per-session YakAuth; refreshed in place on each request
-    queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     confirm_future: asyncio.Future | None = None
     pending_event: RequireUserConfirmEvent | None = None
     busy: bool = False
     persistent: bool = True
+    turn: Turn | None = None
+    event_log: EventLog = field(default_factory=EventLog)
+    title: str = ""
+    preview: str = ""
 
 
 @dataclass(frozen=True)
@@ -106,6 +121,8 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
         owner=identity.owner,
         workspace_id=identity.workspace_id,
         auth=identity.auth,
+        title=str(meta.get("title", "")),
+        preview=str(meta.get("preview", "")),
     )
     SESSIONS[sid] = session
     return session

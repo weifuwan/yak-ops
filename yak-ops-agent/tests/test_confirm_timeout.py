@@ -56,8 +56,9 @@ class ConfirmTimeoutTests(unittest.TestCase):
         self.assertFalse(first.args[1]["confirmed"])
         self.assertIsNone(session.pending_event)
         self.assertIsNone(session.confirm_future)
-        self.assertFalse(session.queue.empty())
-        self.assertEqual(session.queue.get_nowait()["status"], "error")
+        self.assertTrue(session.event_log.events)
+        self.assertEqual(session.event_log.events[-1]["type"], "progress")
+        self.assertEqual(session.event_log.events[-1]["status"], "error")
 
     def test_frontend_answer_before_the_deadline_is_returned_as_is(self) -> None:
         paused = _paused(2)
@@ -151,9 +152,7 @@ class RunTurnTimeoutTests(unittest.TestCase):
         self.assertEqual(audit.call_count, 2)
         self.assertFalse(session.busy)
         self.assertIsNone(session.pending_event)
-        events = []
-        while not session.queue.empty():
-            events.append(session.queue.get_nowait())
+        events = list(session.event_log.events)
         self.assertEqual(events[-1]["type"], "done")
 
     def test_cancelling_a_paused_turn_releases_the_session(self) -> None:

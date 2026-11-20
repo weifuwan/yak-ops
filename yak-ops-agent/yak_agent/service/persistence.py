@@ -36,11 +36,22 @@ def persist(session: Any) -> None:
                 state.model_dump_json(),
                 encoding="utf-8",
             )
+        existing = read_meta(session.sid)
+        meta = {
+            "owner": session.owner,
+            "workspace": session.workspace_id,
+            "title": session.title or existing.get("title", ""),
+            "preview": session.preview or existing.get("preview", ""),
+        }
+        turn = getattr(session, "turn", None)
+        if turn is not None:
+            meta["activeTurn"] = {
+                "turnId": turn.turn_id,
+                "startedAt": turn.started_at,
+                "status": turn.status,
+            }
         meta_path(session.sid).write_text(
-            json.dumps(
-                {"owner": session.owner, "workspace": session.workspace_id},
-                ensure_ascii=False,
-            ),
+            json.dumps(meta, ensure_ascii=False),
             encoding="utf-8",
         )
     except Exception:  # noqa: BLE001 - persistence must never break a turn

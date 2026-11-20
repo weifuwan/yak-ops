@@ -34,6 +34,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 import uuid
 from typing import Any
 
@@ -56,13 +57,16 @@ from yak_agent.service.errors import (
     ConfirmationNotPending,
     SessionBusy,
 )
+from yak_agent.service.events import close as close_events
+from yak_agent.service.events import subscribe
 from yak_agent.service.session import (
-    create_session as create_agent_session,
-)
-from yak_agent.service.session import (
+    Turn,
     load_session,
     refresh_session_auth,
     remove_session,
+)
+from yak_agent.service.session import (
+    create_session as create_agent_session,
 )
 
 app = FastAPI(title="yak-ops-agent", version="0.1.0")
@@ -134,28 +138,52 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     refresh_session_auth(session, identity.auth)
     if session.busy:
         raise SessionBusy()
+    await session.event_log.reset()
+    turn = Turn(turn_id=uuid.uuid4().hex, started_at=time.time())
+    session.turn = turn
     session.busy = True
-    worker = asyncio.create_task(
+    turn.task = asyncio.create_task(
         run_turn(
             session,
             body.message,
             forward_event,
             _get_settings().confirm_timeout_seconds,
+            turn,
         )
     )
 
     async def event_stream():
-        try:
-            while True:
-                item = await session.queue.get()
-                yield {"event": item["type"], "data": json.dumps(item, ensure_ascii=False)}
-                if item["type"] in ("done", "error"):
-                    break
-        finally:
-            if not worker.done():
-                worker.cancel()
+        async for item in subscribe(session, 0):
+            yield _sse_frame(item)
 
     return EventSourceResponse(event_stream())
+
+
+@app.get("/agent/sessions/{sid}/stream")
+async def resume_stream(sid: str, request: Request, after: int = 0) -> EventSourceResponse:
+    """Resume an SSE stream: replay retained events, then follow live ones."""
+    identity = request_identity(request, _get_settings())
+    session = load_session(sid, identity, _get_settings())
+    refresh_session_auth(session, identity.auth)
+    cursor = after
+    if cursor <= 0:
+        last_event_id = request.headers.get("last-event-id", "")
+        if last_event_id.isdigit():
+            cursor = int(last_event_id)
+
+    async def event_stream():
+        async for item in subscribe(session, cursor):
+            yield _sse_frame(item)
+
+    return EventSourceResponse(event_stream())
+
+
+def _sse_frame(item: dict[str, Any]) -> dict[str, str]:
+    return {
+        "event": item["type"],
+        "data": json.dumps(item, ensure_ascii=False),
+        "id": str(item["seq"]),
+    }
 
 
 @app.post("/agent/sessions/{sid}/confirm")
@@ -203,6 +231,7 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
         # The worker would keep running and call persist() after the state and
         # workspace files are gone. Make the caller stop/wait for it first.
         raise SessionBusy()
+    await close_events(session, "会话已删除")
     remove_session(sid)
     persistence.delete_files(sid)
     del session
