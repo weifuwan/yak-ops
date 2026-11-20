@@ -64,6 +64,15 @@ const TABLE_TYPE_OPTIONS: Option[] = [
   { value: "APPLICATION", label: "应用表" },
 ];
 
+const DEFAULT_DW_TYPE_BY_CREATE_TYPE: Record<DimensionCreateType, string> = {
+  DIM: "PUBLIC_LAYER",
+  SOURCE: "SOURCE_LAYER",
+  DIMENSION: "PUBLIC_LAYER",
+  DETAIL: "PUBLIC_LAYER",
+  SUMMARY: "PUBLIC_LAYER",
+  APPLICATION: "APPLICATION_LAYER",
+};
+
 const TABLE_TYPES_BY_MODEL: Record<string, string[]> = {
   SOURCE: ["SOURCE"],
   DIMENSION: ["DIMENSION"],
@@ -288,21 +297,12 @@ export function DimensionEditor({
 
   const layers = layersQuery.data || [];
   const selectedTableType = String(values.tableType || tab.createType || tab.record?.tableType || "");
-  const defaultDwTypeByCreateType: Record<DimensionCreateType, string> = {
-    DIM: "PUBLIC_LAYER",
-    SOURCE: "SOURCE_LAYER",
-    DIMENSION: "PUBLIC_LAYER",
-    DETAIL: "PUBLIC_LAYER",
-    SUMMARY: "PUBLIC_LAYER",
-    APPLICATION: "APPLICATION_LAYER",
-  };
   const layerOptions = useMemo(() => layers
     .filter((layer) => {
       const layerId = String(layer.id || "");
       const layerType = String(layer.dwType || "");
-      if (layerType === "NONE_LAYER") {
-        return tab.mode === "edit" && layerId === String(tab.record?.dwhId || "");
-      }
+      if (tab.mode === "edit" && layerId === String(tab.record?.dwhId || "")) return true;
+      if (layerType === "NONE_LAYER") return false;
       if (!selectedTableType) return true;
       return (TABLE_TYPES_BY_MODEL[String(layer.dwModelType || "")] || []).includes(selectedTableType);
     })
@@ -367,7 +367,7 @@ export function DimensionEditor({
   useEffect(() => {
     if (tab.mode !== "create" || values.dwhId || !layerOptions.length) return;
     const preferredType = tab.createType
-      ? defaultDwTypeByCreateType[tab.createType]
+      ? DEFAULT_DW_TYPE_BY_CREATE_TYPE[tab.createType]
       : dwType;
     const preferredLayer = layerOptions.find((option) =>
       String(layers.find((layer) => String(layer.id || "") === option.value)?.dwType || "") === preferredType,
@@ -539,14 +539,14 @@ export function DimensionEditor({
         tempId: field.id || field.tempId,
       })));
       setFieldsDirty(false);
-      setDirty(basicDirty);
-      onDirtyChange(basicDirty);
       try {
         const updatedRecord = await dimensionModelingApi.getById(projectCode, recordId);
         onSaved(updatedRecord);
       } catch {
         // The field save already succeeded; a failed metadata refresh must not report a failed save.
       }
+      setDirty(basicDirty);
+      onDirtyChange(basicDirty);
       toast.success("字段信息已保存");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-fields", projectCode, recordId] });
@@ -742,10 +742,10 @@ export function DimensionEditor({
             <Button size="sm" variant="primary" isDisabled={!basicDirty || saving} isPending={saving} onClick={() => void saveBasicInfo()}>
               <Save size={13} />保存基本信息
             </Button>
-            <Button size="sm" variant="secondary" isDisabled={!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching} isPending={savingFields} onClick={() => void saveFields()}>
+            <Button size="sm" variant="secondary" isDisabled={!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching || fieldsQuery.isError} isPending={savingFields} onClick={() => void saveFields()}>
               <Save size={13} />保存字段
             </Button>
-            <Button size="sm" variant="secondary" isDisabled={!recordId || dirty || isSubmitted || submitting} isPending={submitting} onClick={() => void submit()}>
+            <Button size="sm" variant="secondary" isDisabled={!recordId || dirty || isSubmitted || submitting || fieldsQuery.isFetching || fieldsQuery.isError} isPending={submitting} onClick={() => void submit()}>
               <Send size={13} />提交
             </Button>
             <Button size="sm" variant="ghost" onClick={() => void refresh()}>
@@ -1022,7 +1022,7 @@ export function DimensionEditor({
                   size="sm"
                   variant="secondary"
                   className="shrink-0"
-                  isDisabled={!recordId}
+                  isDisabled={!recordId || fieldsQuery.isError}
                   onClick={() => addField("PROPERTY")}
                 >
                   <Plus size={13} />添加字段
@@ -1057,7 +1057,7 @@ export function DimensionEditor({
                   size="sm"
                   variant="secondary"
                   className="shrink-0"
-                  isDisabled={!recordId}
+                  isDisabled={!recordId || fieldsQuery.isError}
                   onClick={() => addField("PARTITION")}
                 >
                   <Plus size={13} />添加分区字段
