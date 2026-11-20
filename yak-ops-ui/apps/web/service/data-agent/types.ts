@@ -14,10 +14,61 @@ export interface AgentToolCallRequest {
   input: string;
 }
 
+type AgentEventIdentity = {
+  replyId?: string;
+};
+
+type AgentBlockIdentity = AgentEventIdentity & {
+  blockId: string;
+};
+
 export type AgentStreamEvent =
-  | { type: "text_delta"; delta: string }
-  | { type: "tool_start"; tool: string; toolCallId: string }
-  | { type: "tool_result"; toolCallId: string }
+  | (AgentEventIdentity & {
+      type: "text_delta";
+      delta: string;
+      blockId?: string;
+    })
+  | (AgentBlockIdentity & { type: "thinking_start" })
+  | (AgentBlockIdentity & { type: "thinking_delta"; delta: string })
+  | (AgentBlockIdentity & { type: "thinking_end" })
+  | (AgentEventIdentity & {
+      type: "tool_start";
+      tool: string;
+      toolCallId: string;
+    })
+  | (AgentEventIdentity & {
+      type: "tool_call_delta";
+      toolCallId: string;
+      delta: string;
+    })
+  | (AgentEventIdentity & {
+      type: "tool_result_delta";
+      toolCallId: string;
+      delta: string;
+    })
+  | (AgentEventIdentity & {
+      type: "tool_result";
+      toolCallId: string;
+      state?: string;
+    })
+  | (AgentEventIdentity & {
+      type: "progress";
+      phase: string;
+      title: string;
+      status: "running" | "completed" | "error";
+    })
+  | (AgentEventIdentity & {
+      type: "usage";
+      inputTokens: number;
+      outputTokens: number;
+      cacheInputTokens: number;
+      cacheCreationInputTokens: number;
+    })
+  | (AgentEventIdentity & {
+      type: "reply_end";
+      finishedReason: string;
+      error?: Record<string, unknown> | null;
+    })
   | {
       type: "confirm_required";
       replyId: string;

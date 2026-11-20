@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  CircleAlert,
   LoaderCircle,
   ShieldCheck,
   Wrench,
@@ -22,11 +23,13 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
   const StatusIcon: LucideIcon =
     toolCall.status === "running"
       ? LoaderCircle
-      : toolCall.status === "rejected"
-        ? XCircle
-        : toolCall.status === "awaiting-confirmation"
-          ? ShieldCheck
-          : CheckCircle2;
+      : toolCall.status === "error" || toolCall.status === "interrupted"
+        ? CircleAlert
+        : toolCall.status === "rejected" || toolCall.status === "denied"
+          ? XCircle
+          : toolCall.status === "awaiting-confirmation"
+            ? ShieldCheck
+            : CheckCircle2;
 
   return (
     <div className="rounded-xl border border-[#e7eae9] bg-[#fbfcfb] px-3 py-2.5">
@@ -41,7 +44,7 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
             className={
               toolCall.status === "running"
                 ? "animate-spin"
-                : toolCall.status === "rejected"
+                : toolCall.status === "rejected" || toolCall.status === "denied" || toolCall.status === "error" || toolCall.status === "interrupted"
                   ? "text-[#b96b6b]"
                   : "text-[#6c9b7e]"
             }

@@ -8,6 +8,7 @@ from typing import Any
 
 from agentscope.event import (
     ConfirmResult,
+    EventType,
     RequireUserConfirmEvent,
     UserConfirmResultEvent,
 )
@@ -21,11 +22,35 @@ ForwardEvent = Callable[[Session, Any], Awaitable[None]]
 
 async def run_turn(session: Session, text: str, forward: ForwardEvent) -> None:
     success = False
+    analysis_progress_active = True
     try:
+        await session.queue.put(
+            {
+                "type": "progress",
+                "phase": "analysis",
+                "title": "正在分析你的需求",
+                "status": "running",
+            }
+        )
         msg: Any = UserMsg(name="user", content=text)
         while True:
             paused = None
             async for event in session.agent.reply_stream(msg):
+                if analysis_progress_active and (
+                    event.type in (EventType.TOOL_CALL_START, EventType.REPLY_END)
+                    or isinstance(event, RequireUserConfirmEvent)
+                ):
+                    await session.queue.put(
+                        {
+                            "type": "progress",
+                            "phase": "analysis",
+                            "title": "需求分析完成",
+                            "status": "completed",
+                            "replyId": getattr(event, "reply_id", ""),
+                        }
+                    )
+                    analysis_progress_active = False
+
                 await forward(session, event)
                 if isinstance(event, RequireUserConfirmEvent):
                     paused = event
@@ -58,6 +83,15 @@ async def run_turn(session: Session, text: str, forward: ForwardEvent) -> None:
             )
         success = True
     except Exception as ex:  # noqa: BLE001 - surface, never crash the worker
+        if analysis_progress_active:
+            await session.queue.put(
+                {
+                    "type": "progress",
+                    "phase": "analysis",
+                    "title": "分析过程出现异常",
+                    "status": "error",
+                }
+            )
         await session.queue.put({"type": "error", "message": f"{type(ex).__name__}: {ex}"})
     finally:
         session.busy = False

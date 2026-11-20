@@ -21,6 +21,11 @@ const loading = read("../apps/web/app/data-agent/components/workspace/DataAgentL
 const loadingStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-loading.css");
 const reducer = read("../apps/web/app/data-agent/model/conversation-reducer.ts");
 const assistantMessage = read("../apps/web/app/data-agent/components/workspace/conversation/AssistantMessage.tsx");
+const activityTimeline = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityTimeline.tsx");
+const activityItem = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityItem.tsx");
+const toolActivity = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx");
+const activityDetails = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityDetails.tsx");
+
 const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
 const messageActions = read("../apps/web/app/data-agent/components/workspace/conversation/MessageActions.tsx");
 const confirmationCard = read("../apps/web/app/data-agent/components/workspace/conversation/ConfirmationCard.tsx");
@@ -305,4 +310,27 @@ test("Data Agent workspace menu groups its label with menu items", () => {
   assert.ok(labelStart < labelEnd, "menu label should be present");
   assert.ok(labelEnd < workspaceItems, "workspace items should follow the label");
   assert.ok(workspaceItems < groupEnd, "workspace items should remain inside the group");
+});
+
+
+test("Data Agent renders ordered SSE activity with expandable tool input and output", () => {
+  assert.match(assistantMessage, /AgentActivityTimeline/);
+  assert.match(assistantMessage, /activities\.some\(\(activity\) => activity\.kind !== "text"\)/);
+  assert.match(activityTimeline, /执行过程/);
+  assert.match(activityTimeline, /aria-expanded=\{expanded\}/);
+  assert.match(activityTimeline, /Token 用量/);
+  assert.match(activityItem, /DataAgentMarkdown/);
+  assert.match(activityItem, /AgentToolActivity/);
+  assert.match(toolActivity, /AgentActivityDetails/);
+  assert.match(activityDetails, /输入参数/);
+  assert.match(activityDetails, /执行结果/);
+  assert.match(activityDetails, /<details/);
+  assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
+  assert.match(conversationHook, /case "tool_call_delta"/);
+  assert.match(conversationHook, /case "tool_result_delta"/);
+  assert.match(conversationHook, /case "usage"/);
+  assert.match(conversationHook, /case "reply_end"/);
+  assert.match(reducer, /case "PROGRESS_UPDATED"/);
+  assert.match(reducer, /case "USAGE_RECORDED"/);
+  assert.match(reducer, /case "REPLY_ENDED"/);
 });

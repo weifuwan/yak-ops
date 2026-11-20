@@ -189,6 +189,7 @@ export function useDataAgentConversation() {
         createdAt: now,
         status: "streaming" as const,
         toolCalls: [],
+        activities: [],
       };
 
       let sessionId = state.activeConversationId;
@@ -221,6 +222,31 @@ export function useDataAgentConversation() {
                   sessionId: resolvedSessionId,
                   messageId: assistantMessage.id,
                   delta: event.delta,
+                  replyId: event.replyId,
+                  blockId: event.blockId,
+                  updatedAt,
+                });
+                break;
+              case "thinking_start":
+                dispatch({
+                  type: "THINKING_STARTED",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  replyId: event.replyId,
+                  blockId: event.blockId,
+                  updatedAt,
+                });
+                break;
+              case "thinking_delta":
+                // Raw model reasoning is intentionally not persisted or rendered.
+                break;
+              case "thinking_end":
+                dispatch({
+                  type: "THINKING_COMPLETED",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  replyId: event.replyId,
+                  blockId: event.blockId,
                   updatedAt,
                 });
                 break;
@@ -231,6 +257,27 @@ export function useDataAgentConversation() {
                   messageId: assistantMessage.id,
                   toolCallId: event.toolCallId,
                   toolName: event.tool,
+                  replyId: event.replyId,
+                  updatedAt,
+                });
+                break;
+              case "tool_call_delta":
+                dispatch({
+                  type: "TOOL_INPUT_DELTA",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  toolCallId: event.toolCallId,
+                  delta: event.delta,
+                  updatedAt,
+                });
+                break;
+              case "tool_result_delta":
+                dispatch({
+                  type: "TOOL_OUTPUT_DELTA",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  toolCallId: event.toolCallId,
+                  delta: event.delta,
                   updatedAt,
                 });
                 break;
@@ -240,6 +287,45 @@ export function useDataAgentConversation() {
                   sessionId: resolvedSessionId,
                   messageId: assistantMessage.id,
                   toolCallId: event.toolCallId,
+                  state: event.state,
+                  updatedAt,
+                });
+                break;
+              case "progress":
+                dispatch({
+                  type: "PROGRESS_UPDATED",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  phase: event.phase,
+                  title: event.title,
+                  status: event.status,
+                  replyId: event.replyId,
+                  updatedAt,
+                });
+                break;
+              case "usage":
+                dispatch({
+                  type: "USAGE_RECORDED",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  usage: {
+                    replyId: event.replyId,
+                    inputTokens: event.inputTokens,
+                    outputTokens: event.outputTokens,
+                    cacheInputTokens: event.cacheInputTokens,
+                    cacheCreationInputTokens: event.cacheCreationInputTokens,
+                  },
+                  updatedAt,
+                });
+                break;
+              case "reply_end":
+                dispatch({
+                  type: "REPLY_ENDED",
+                  sessionId: resolvedSessionId,
+                  messageId: assistantMessage.id,
+                  replyId: event.replyId,
+                  finishedReason: event.finishedReason,
+                  error: event.error,
                   updatedAt,
                 });
                 break;

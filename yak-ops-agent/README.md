@@ -109,8 +109,10 @@ SSE 事件类型：
 
 | 事件 | 说明 |
 | --- | --- |
+| `progress` | 安全的用户可见阶段提示（`phase` / `title` / `status`），不包含模型内部推理文本 |
 | `text_delta` | 回复文本增量（`delta`，带 `replyId` / `blockId`） |
-| `thinking_start` / `thinking_delta` / `thinking_end` | 模型推理过程流，同一 `blockId` 分组 |
+| `thinking_start` / `thinking_end` | 思考阶段边界（同一 `blockId` 分组）；前端只展示阶段状态与耗时 |
+| `thinking_delta` | 原始内部推理增量；服务端不向浏览器转发 |
 | `tool_start` | 工具调用开始（`tool`、`toolCallId`） |
 | `tool_call_delta` | 工具入参 JSON 片段（`delta`） |
 | `tool_result_delta` | 工具结果文本片段（`delta`） |
@@ -120,7 +122,7 @@ SSE 事件类型：
 | `confirm_required` | 写操作待确认，含 `toolCalls[]` |
 | `done` / `error` | 本次消息流结束 / 异常 |
 
-**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。
+**确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。`reply_end` 表示一次模型回复结束，`done` 才表示整轮 Agent 执行结束。
 
 会话按轮持久化（`AgentState` 序列化，`YAK_AGENT_SESSION_DIR` 可配），服务重启后按会话 ID 懒加载恢复；`createTime` 缺失的历史用户不写盘，仅当前进程内可用。服务端口与绑定地址：`YAK_AGENT_PORT` / `YAK_AGENT_HOST`。
 

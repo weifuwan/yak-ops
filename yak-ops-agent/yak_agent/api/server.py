@@ -4,8 +4,7 @@ Endpoints
 ---------
 POST   /agent/sessions                    create a session -> {sessionId}
 POST   /agent/sessions/{sid}/messages     send a message -> SSE event stream
-                                          (text_delta / thinking_start /
-                                           thinking_delta / thinking_end /
+                                          (progress / text_delta / thinking_start / thinking_end /
                                            tool_start / tool_call_delta /
                                            tool_result_delta / tool_result /
                                            usage / reply_end /
