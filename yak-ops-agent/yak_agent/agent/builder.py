@@ -47,7 +47,10 @@ def build_agent(
             skills_or_loaders=[LocalSkillLoader(directory=str(_SKILLS_DIR), scan_subdir=True)],
         ),
         state=state,
-        react_config=ReActConfig(max_iters=12),
+        react_config=ReActConfig(
+            max_iters=12,
+            interruption_message="已中断本次回复，请告诉我接下来要做什么。",
+        ),
         injection_config=InjectionConfig(timezone="Asia/Shanghai"),
         context_config=ContextConfig(
             trigger_ratio=0.7,

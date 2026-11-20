@@ -64,6 +64,9 @@ class AgentConfigTests(unittest.TestCase):
     def test_tool_results_keep_enough_context_for_logs(self) -> None:
         self.assertEqual(self.agent.context_config.tool_result_limit, 4000)
 
+    def test_interruption_message_is_localized(self) -> None:
+        self.assertIn("已中断", self.agent.react_config.interruption_message)
+
 
 class SettingsLoadTests(unittest.TestCase):
     _BASE_ENV = {
