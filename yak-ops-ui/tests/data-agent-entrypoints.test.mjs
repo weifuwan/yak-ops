@@ -341,7 +341,7 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Token 用量|Agent 执行过程/);
   assert.match(detailsTimeline, /Thought/);
   assert.match(detailsTimeline, /SquareTerminal/);
-  assert.match(detailsTimeline, /pl-8/);
+  assert.match(detailsTimeline, /pl-9/);
   assert.match(detailsTimeline, /bg-\[#e7e9e8\]/);
   assert.match(detailsTimeline, /aria-expanded=\{expanded\}/);
   assert.match(detailsTimeline, /DataAgentMarkdown/);
