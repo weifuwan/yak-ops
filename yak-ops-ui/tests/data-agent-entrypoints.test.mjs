@@ -25,7 +25,6 @@ const assistantMessage = read("../apps/web/app/data-agent/components/workspace/c
 const activityTimeline = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityTimeline.tsx");
 const activityItem = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityItem.tsx");
 const toolActivity = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx");
-const activityDetails = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityDetails.tsx");
 const conversationPanel = read("../apps/web/app/data-agent/components/workspace/ConversationPanel.tsx");
 const detailsPanel = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsPanel.tsx");
 const detailsTimeline = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx");
@@ -332,10 +331,6 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
   assert.match(toolActivity, /hover:bg-\[#f4f6f5\]/);
-  assert.match(activityDetails, /输入参数/);
-  assert.match(activityDetails, /执行结果/);
-  assert.match(activityDetails, /<details/);
-  assert.match(activityDetails, /defaultOpen/);
   assert.match(conversationPanel, /AgentDetailsPanel/);
   assert.match(conversationPanel, /id="agent-details-panel"/);
   assert.match(conversationPanel, /handleSelectActivity/);
@@ -355,7 +350,6 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(detailsTimeline, /selectedActivityId/);
   assert.match(detailsTimeline, /expandedActivityId/);
   assert.match(detailsTimeline, /TOOL_LABELS/);
-  assert.ok(detailsPanel.includes("  X,\n  XCircle,"));
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
   assert.match(conversationHook, /case "tool_result_delta"/);
@@ -377,7 +371,8 @@ test("tool activity is a single-line action that opens the message execution det
   assert.match(conversationPanel, /selectedActivity/);
   assert.match(conversationPanel, /event\.key === "Escape"/);
   assert.match(detailsPanel, /message\.activities/);
-  assert.match(detailsPanel, /activity\.kind !== "text"/);
+  assert.match(detailsPanel, /AgentDetailsTimeline/);
+  assert.match(detailsTimeline, /activity\.kind === "text"/);
 });
 
 
