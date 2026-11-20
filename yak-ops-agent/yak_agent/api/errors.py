@@ -12,6 +12,7 @@ from yak_agent.service.errors import (
     ConfirmationInvalid,
     ConfirmationNotPending,
     ContextBudgetExceeded,
+    MemoryDisabled,
     SessionBusy,
     SessionForbidden,
     SessionNotFound,
@@ -26,6 +27,7 @@ _STATUS_BY_ERROR: dict[type[AgentSessionError], int] = {
     ConfirmationInvalid: HTTPStatus.UNPROCESSABLE_ENTITY,
     SessionStateInvalid: HTTPStatus.UNPROCESSABLE_ENTITY,
     ContextBudgetExceeded: HTTPStatus.UNPROCESSABLE_ENTITY,
+    MemoryDisabled: HTTPStatus.CONFLICT,
 }
 
 

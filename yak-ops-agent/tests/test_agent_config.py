@@ -128,7 +128,10 @@ class SettingsLoadTests(unittest.TestCase):
 
         self.assertEqual(settings.llm_context_size, 128000)
         self.assertEqual(settings.confirm_timeout_seconds, 600)
-        self.assertEqual(settings.llm_memory_budget_tokens, 0)
+        self.assertEqual(settings.llm_memory_budget_tokens, 1500)
+        self.assertTrue(settings.memory_enabled)
+        self.assertEqual(settings.memory_top_k, 5)
+        self.assertEqual(settings.memory_dir.name, "memory")
 
     def test_context_and_confirmation_env_overrides(self) -> None:
         settings = self._load(

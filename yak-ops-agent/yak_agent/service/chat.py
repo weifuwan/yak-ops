@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -15,7 +16,7 @@ from agentscope.event import (
     UserConfirmResultEvent,
     UserInterruptEvent,
 )
-from agentscope.message import UserMsg
+from agentscope.message import AssistantMsg, HintBlock, Msg, UserMsg
 
 from yak_agent import audit
 from yak_agent.service import persistence
@@ -26,6 +27,8 @@ ForwardEvent = Callable[[Session, Any], Awaitable[None]]
 
 # A confirmation future may carry this sentinel instead of a decision list.
 INTERRUPT_SENTINEL = object()
+_LOGGER = logging.getLogger(__name__)
+_MEMORY_MSG_NAME = "memory"
 
 
 def _build_confirm_results(
@@ -91,6 +94,56 @@ async def _await_confirmation(
     return flags
 
 
+def _purge_memory_hints(state: Any) -> set[str]:
+    """Drop the previous turn's hint and snapshot the turn-start message ids."""
+    if state is None:
+        return set()
+    state.context[:] = [
+        item for item in state.context if getattr(item, "name", None) != _MEMORY_MSG_NAME
+    ]
+    return {item.id for item in state.context if isinstance(item, Msg)}
+
+
+async def _inject_memory(
+    memory: Any,
+    state: Any,
+    text: str,
+    pre_ids: set[str],
+) -> set[str]:
+    """Retrieve memories and inject one bounded hint before the first model call."""
+    if memory is None or state is None:
+        return pre_ids
+    try:
+        hint = await memory.retrieve(text)
+        if hint:
+            state.context.append(
+                AssistantMsg(
+                    name=_MEMORY_MSG_NAME,
+                    content=[HintBlock(hint=hint)],
+                ),
+            )
+    except Exception as ex:  # noqa: BLE001 - memory must never break a turn
+        _LOGGER.warning("memory retrieval failed: %s", ex)
+    return pre_ids
+
+
+def _queue_memory(memory: Any, state: Any, pre_ids: set[str]) -> None:
+    """Persist the completed turn off the reply path; failures stay silent."""
+    if memory is None or state is None:
+        return
+    new_messages = [
+        item
+        for item in state.context
+        if isinstance(item, Msg)
+        and item.id not in pre_ids
+        and getattr(item, "name", None) != _MEMORY_MSG_NAME
+    ]
+    try:
+        memory.enqueue_turn(getattr(state, "session_id", ""), new_messages)
+    except Exception as ex:  # noqa: BLE001 - memory must never break a turn
+        _LOGGER.warning("memory write enqueue failed: %s", ex)
+
+
 async def run_turn(
     session: Session,
     text: str,
@@ -102,6 +155,11 @@ async def run_turn(
     session.turn = turn
     success = False
     analysis_progress_active = True
+    memory = session.memory
+    state = getattr(session.agent, "state", None)
+    pre_ids = _purge_memory_hints(state)
+    if memory is not None:
+        memory.begin_turn()
     try:
         await emit(
             session,
@@ -112,6 +170,8 @@ async def run_turn(
                 "status": "running",
             },
         )
+        if memory is not None:
+            pre_ids = await _inject_memory(memory, state, text, pre_ids)
         msg: Any = UserMsg(name="user", content=text)
         while True:
             paused = None
@@ -197,6 +257,10 @@ async def run_turn(
             )
         await emit(session, {"type": "error", "message": f"{type(ex).__name__}: {ex}"})
     finally:
+        if memory is not None:
+            memory.end_turn()
+            if success:
+                _queue_memory(memory, state, pre_ids)
         if success:
             await emit(session, {"type": "done"})
         session.busy = False

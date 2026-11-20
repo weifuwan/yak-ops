@@ -12,6 +12,7 @@ from agentscope.state import AgentState
 from yak_agent.agent.budget import ContextBudgetError
 from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
+from yak_agent.memory import get_memory
 from yak_agent.service import persistence
 from yak_agent.service.errors import (
     ContextBudgetExceeded,
@@ -45,6 +46,7 @@ class Session:
     owner: str = "local"
     workspace_id: str = ""
     auth: Any = None  # per-session YakAuth; refreshed in place on each request
+    memory: Any = None  # YakReMeMiddleware shared by (owner, workspace)
     confirm_future: asyncio.Future | None = None
     pending_event: RequireUserConfirmEvent | None = None
     busy: bool = False
@@ -69,14 +71,29 @@ class Identity:
 SESSIONS: dict[str, Session] = {}
 
 
+def _memory_scope_in_use(owner: str, workspace_id: str) -> bool:
+    """Keep one ReMe runtime per scope while any loaded session references it."""
+    return any(
+        session.owner == owner and session.workspace_id == workspace_id
+        for session in SESSIONS.values()
+    )
+
+
 def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
     workspace = SessionWorkspace(persistence.SESSION_DIR / sid / "workspace")
+    memory = (
+        get_memory(identity.owner, identity.workspace_id, settings, _memory_scope_in_use)
+        if identity.persistent
+        else None
+    )
     try:
         agent = build_agent(
             settings,
+            state=AgentState(session_id=sid),
             workspace=workspace,
             auth=identity.auth,
             project_code=int(identity.workspace_id),
+            memory=memory,
         )
     except ContextBudgetError as ex:
         raise ContextBudgetExceeded(str(ex)) from ex
@@ -87,6 +104,7 @@ def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
         owner=identity.owner,
         workspace_id=identity.workspace_id,
         auth=identity.auth,
+        memory=memory,
         persistent=identity.persistent,
     )
     SESSIONS[sid] = session
@@ -119,6 +137,11 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
     except Exception as ex:  # noqa: BLE001
         raise SessionStateInvalid() from ex
     workspace = SessionWorkspace(persistence.SESSION_DIR / sid / "workspace")
+    memory = (
+        get_memory(identity.owner, identity.workspace_id, settings, _memory_scope_in_use)
+        if identity.persistent and settings is not None
+        else None
+    )
     try:
         agent = build_agent(
             settings,
@@ -126,6 +149,7 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
             workspace=workspace,
             auth=identity.auth,
             project_code=int(identity.workspace_id),
+            memory=memory,
         )
     except ContextBudgetError as ex:
         raise ContextBudgetExceeded(str(ex)) from ex
@@ -137,6 +161,7 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
         owner=identity.owner,
         workspace_id=identity.workspace_id,
         auth=identity.auth,
+        memory=memory,
         title=str(meta.get("title", "")),
         preview=str(meta.get("preview", "")),
         usage={

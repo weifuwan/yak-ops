@@ -157,7 +157,11 @@ class SessionConversionTests(unittest.TestCase):
                     side_effect=ContextBudgetError("too small"),
                 ):
                     with self.assertRaises(ContextBudgetExceeded) as ctx:
-                        session_service.create_session("sid", identity, _settings())
+                        session_service.create_session(
+                            "sid",
+                            identity,
+                            _settings(memory_enabled=False),
+                        )
                     self.assertIn("too small", str(ctx.exception))
             finally:
                 persistence.SESSION_DIR = original
