@@ -159,12 +159,49 @@ public class SchemaDao {
             throw new IllegalStateException("Failed to validate modeling schema", ex);
         }
 
+        ensureDimensionShortNameColumn();
+
         String sqlFilePath = String.format("sql/modeling_%s.sql", db);
         try {
             new SqlScriptRunner(dataSource, sqlFilePath).execute();
             log.info("Ensured data modeling schema using {}", sqlFilePath);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath, ex);
+        }
+    }
+
+    /**
+     * Add the DIM business identifier to existing dimension-model tables and
+     * preserve historical DIM identifiers by copying the former table_name value.
+     */
+    private void ensureDimensionShortNameColumn() {
+        final String tableName = "t_yak_ops_dimension_table";
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            if (!tableExists(metadata, connection, tableName)) {
+                return;
+            }
+            if (!columnExists(metadata, connection, tableName, "en_short_name")) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.execute("ALTER TABLE " + quoteIdentifier(tableName)
+                            + " ADD COLUMN en_short_name varchar(255) NULL");
+                }
+                log.info("Added en_short_name to {}", tableName);
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE " + quoteIdentifier(tableName)
+                            + " SET en_short_name = table_name"
+                            + " WHERE table_type = ?"
+                            + " AND (en_short_name IS NULL OR TRIM(en_short_name) = '')"
+                            + " AND table_name IS NOT NULL AND TRIM(table_name) <> ''")) {
+                statement.setString(1, "DIM");
+                int migrated = statement.executeUpdate();
+                if (migrated > 0) {
+                    log.info("Migrated {} historical DIM short names", migrated);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to ensure dimension short-name schema", ex);
         }
     }
 
