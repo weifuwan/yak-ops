@@ -1,4 +1,4 @@
-import { ArrowUp, LoaderCircle, Plus } from "lucide-react";
+import { ArrowUp, Plus, Square } from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -15,6 +15,7 @@ type DataAgentPromptComposerProps = {
   placeholderSuggestions?: readonly string[];
   trailingActions?: ReactNode;
   isSubmitting?: boolean;
+  onStop?: () => void;
 };
 
 const MIN_TEXTAREA_HEIGHT = 40;
@@ -28,6 +29,7 @@ export function DataAgentPromptComposer({
   placeholderSuggestions = [],
   trailingActions,
   isSubmitting = false,
+  onStop,
 }: DataAgentPromptComposerProps) {
   const [value, setValue] = useState(initialValue);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -146,14 +148,19 @@ export function DataAgentPromptComposer({
               {trailingActions}
               <button
                 type="button"
-                aria-label={isSubmitting ? "正在发送消息" : "发送消息"}
-                title={isSubmitting ? "正在发送消息" : "发送消息"}
-                disabled={isSubmitting || !value.trim()}
-                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#000000] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
-                onClick={submit}
+                aria-label={isSubmitting ? "停止当前任务" : "发送消息"}
+                title={isSubmitting ? "停止当前任务" : "发送消息"}
+                disabled={isSubmitting ? !onStop : !value.trim()}
+                className={
+                  "flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed " +
+                  (isSubmitting
+                    ? "bg-[#fff1f1] text-[#c94b4b] hover:bg-[#ffe4e4]"
+                    : "bg-[#000000] text-white hover:bg-[#727d7a] disabled:bg-[#e0e3e2] disabled:text-white")
+                }
+                onClick={isSubmitting ? onStop : submit}
               >
                 {isSubmitting ? (
-                  <LoaderCircle size={16} className="animate-spin" />
+                  <Square size={12} fill="currentColor" strokeWidth={1.8} />
                 ) : (
                   <ArrowUp size={17} strokeWidth={1.8} />
                 )}
