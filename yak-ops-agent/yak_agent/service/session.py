@@ -28,6 +28,7 @@ class Turn:
     task: asyncio.Task | None = None
     interrupt_requested: bool = False
     reply_id: str = ""
+    message: str = ""
 
 
 @dataclass
@@ -46,6 +47,7 @@ class Session:
     event_log: EventLog = field(default_factory=EventLog)
     title: str = ""
     preview: str = ""
+    usage: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -124,6 +126,11 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
         auth=identity.auth,
         title=str(meta.get("title", "")),
         preview=str(meta.get("preview", "")),
+        usage={
+            key: max(0, int(value))
+            for key, value in (meta.get("usage") or {}).items()
+            if isinstance(value, (int, float))
+        },
     )
     SESSIONS[sid] = session
     return session
