@@ -180,6 +180,7 @@ export function DataAgentSessionWorkspace({
         isSending={isSending}
         sidebarOpen={sidebarOpen}
         detailsOpen={detailsOpen}
+        metricsMessage={selectedMessage}
         detailsWidth={detailsWidth}
         expandAll={detailsExpandAll}
         onToggleSidebar={onToggleSidebar}
