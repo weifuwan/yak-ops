@@ -426,6 +426,24 @@ test("Data Agent execution details panel has an accessible, bounded drag splitte
 
 
 
+test("Data Agent clickable controls use pointer cursors and drag splitters keep resize cursors", () => {
+  assert.match(detailsTimeline, /cursor-pointer items-start/);
+  assert.match(toolActivity, /cursor-pointer items-center/);
+  assert.match(modelSelector, /min-h-\\[56px\\] cursor-pointer/);
+  assert.match(sidebarNavigation, /group flex h-8 w-full cursor-pointer/);
+  assert.match(sidebarNavigation, /h-8 w-full cursor-pointer items-center/);
+  assert.match(detailsPanel, /cursor-pointer/);
+  assert.match(messageActions, /cursor-pointer/);
+  assert.match(confirmationCard, /cursor-pointer/);
+  assert.match(composer, /cursor-pointer/);
+  assert.match(welcome, /cursor-pointer/);
+  assert.match(emptyState, /cursor-pointer/);
+  assert.match(workspace, /cursor-pointer/);
+  assert.match(detailsResizer, /cursor-col-resize/);
+  assert.match(sidebarResizer, /cursor-col-resize/);
+  assert.match(composer, /disabled:cursor-not-allowed/);
+});
+
 test("Data Agent details timeline uses a centered continuous 2px rail without dot markers", () => {
   assert.match(detailsTimeline, /relative min-w-0 pl-8/);
   assert.match(detailsTimeline, /left-\[15px\] top-0 w-\[2px\] bg-\[#e7e9e8\]/);
