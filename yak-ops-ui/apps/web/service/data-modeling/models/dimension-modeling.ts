@@ -67,7 +67,6 @@ export type DimensionFieldRecord = {
   remark?: string;
   primaryFlag?: boolean;
   notNull?: boolean;
-  fieldType?: string;
   sourceTb?: string;
   sourceField?: string;
   fieldType?: string;
