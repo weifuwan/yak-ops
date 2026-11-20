@@ -9,6 +9,7 @@ type AgentActivityTimelineProps = {
   usage?: AgentUsage[];
   replyEnds?: AgentReplyEnd[];
   isStreaming: boolean;
+  isError?: boolean;
 };
 
 function formatDuration(startedAt?: number, completedAt?: number) {
@@ -26,6 +27,7 @@ export function AgentActivityTimeline({
   usage = [],
   replyEnds = [],
   isStreaming,
+  isError = false,
 }: AgentActivityTimelineProps) {
   const [expanded, setExpanded] = useState(true);
   useEffect(() => {
@@ -53,8 +55,17 @@ export function AgentActivityTimeline({
   );
   const duration = formatDuration(startedAt, isStreaming ? undefined : completedAt);
   const active = isStreaming || activities.some((activity) => activity.status === "running");
+  const hasFailure =
+    isError ||
+    activities.some((activity) =>
+      ["error", "denied", "interrupted", "rejected"].includes(activity.status),
+    );
   const inputTokens = usage.reduce((total, item) => total + item.inputTokens, 0);
   const outputTokens = usage.reduce((total, item) => total + item.outputTokens, 0);
+  const cacheTokens = usage.reduce(
+    (total, item) => total + item.cacheInputTokens + item.cacheCreationInputTokens,
+    0,
+  );
 
   return (
     <section className="my-2 min-w-0 overflow-hidden rounded-xl border border-[#e7eae9] bg-[#fbfcfb]">
@@ -74,6 +85,8 @@ export function AgentActivityTimeline({
             <span className="size-1.5 rounded-full bg-[#d5a34d]" />
             进行中
           </span>
+        ) : hasFailure ? (
+          <span className="shrink-0 text-[10px] text-[#c45d6c]">存在异常</span>
         ) : (
           <span className="shrink-0 text-[10px] text-[#6b987d]">已完成</span>
         )}
@@ -106,6 +119,7 @@ export function AgentActivityTimeline({
               </span>
               <span>输入 {inputTokens.toLocaleString()}</span>
               <span>输出 {outputTokens.toLocaleString()}</span>
+              {cacheTokens > 0 ? <span>缓存 {cacheTokens.toLocaleString()}</span> : null}
             </div>
           ) : null}
           {replyEnds.some((item) => item.finishedReason !== "completed") ? (
