@@ -154,7 +154,6 @@ async def run_turn(
                 },
             )
             outcome = await _await_confirmation(session, paused, confirm_timeout_seconds)
-            turn.status = "running"
             if outcome is INTERRUPT_SENTINEL:
                 for tool_call in paused.tool_calls:
                     audit.record_tool_call(
@@ -172,6 +171,7 @@ async def run_turn(
                     )
                 msg = UserInterruptEvent(reply_id=paused.reply_id)
                 continue
+            turn.status = "running"
             flags = outcome
             msg = UserConfirmResultEvent(
                 reply_id=paused.reply_id,

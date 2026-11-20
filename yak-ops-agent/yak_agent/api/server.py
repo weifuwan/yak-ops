@@ -50,7 +50,7 @@ from yak_agent.api.errors import session_error_handler
 from yak_agent.api.sse import forward_event
 from yak_agent.config import Settings
 from yak_agent.service import persistence
-from yak_agent.service.chat import run_turn
+from yak_agent.service.chat import INTERRUPT_SENTINEL, run_turn
 from yak_agent.service.errors import (
     AgentSessionError,
     ConfirmationInvalid,
@@ -80,6 +80,10 @@ class MessageBody(BaseModel):
 
 class ConfirmBody(BaseModel):
     approved: bool | list[bool]
+
+
+class InterruptBody(BaseModel):
+    turnId: str | None = None
 
 
 def _get_settings() -> Settings:
@@ -220,6 +224,52 @@ async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bo
         )
     session.confirm_future.set_result(flags)
     return {"accepted": True}
+
+
+@app.post("/agent/sessions/{sid}/interrupt", status_code=202)
+async def interrupt(sid: str, body: InterruptBody, request: Request) -> dict[str, Any]:
+    """Stop the current turn; a stale turnId never stops a newer turn."""
+    identity = request_identity(request, _get_settings())
+    session = load_session(sid, identity, _get_settings())
+    refresh_session_auth(session, identity.auth)
+    turn = session.turn
+    if turn is None or (turn.task is not None and turn.task.done()):
+        return {
+            "accepted": False,
+            "state": "idle",
+            "turnId": turn.turn_id if turn else None,
+        }
+    if body.turnId and body.turnId != turn.turn_id:
+        return {"accepted": False, "state": turn.status, "turnId": turn.turn_id}
+    if turn.status == "interrupting":
+        return {"accepted": True, "state": turn.status, "turnId": turn.turn_id}
+
+    parked = (
+        session.pending_event is not None
+        and session.confirm_future is not None
+        and not session.confirm_future.done()
+    )
+    turn.interrupt_requested = True
+    turn.status = "interrupting"
+    audit.record_tool_call(
+        "session_interrupt",
+        {
+            "session": sid,
+            "caller": identity.owner,
+            "turnId": turn.turn_id,
+            "replyId": session.pending_event.reply_id if parked else "",
+            "scope": "parked" if parked else "running",
+            "toolCalls": len(session.pending_event.tool_calls) if parked else 0,
+        },
+        True,
+        0,
+        None,
+    )
+    if parked:
+        session.confirm_future.set_result(INTERRUPT_SENTINEL)
+    else:
+        turn.task.cancel()
+    return {"accepted": True, "state": "interrupting", "turnId": turn.turn_id}
 
 
 @app.delete("/agent/sessions/{sid}")
