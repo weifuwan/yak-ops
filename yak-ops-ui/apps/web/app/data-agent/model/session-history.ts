@@ -12,11 +12,6 @@ import type {
   ToolCallStatus,
 } from "./types";
 
-function messageTimestamp(value: string) {
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : Date.now();
-}
-
 function toolStatus(value?: string): ToolCallStatus {
   switch (value) {
     case "error":
@@ -48,8 +43,6 @@ function mapHistoryMessage(
   const createdAt = source.createdAt && Number.isFinite(Date.parse(source.createdAt))
     ? new Date(source.createdAt).toISOString()
     : new Date().toISOString();
-  const startedAt = messageTimestamp(createdAt);
-
   if (source.role === "user") {
     return {
       id,
@@ -77,8 +70,6 @@ function mapHistoryMessage(
         title: "回复内容",
         status: "completed",
         content: block.text,
-        startedAt,
-        completedAt: startedAt,
       });
       return;
     }
@@ -101,8 +92,6 @@ function mapHistoryMessage(
         toolName: block.name,
         input: block.input,
         output: result?.output ?? "",
-        startedAt,
-        ...(result ? { completedAt: startedAt } : {}),
       });
       return;
     }
@@ -119,8 +108,6 @@ function mapHistoryMessage(
         toolCallId: block.id,
         toolName: block.name,
         output: block.output,
-        startedAt,
-        completedAt: startedAt,
       });
     }
   });
