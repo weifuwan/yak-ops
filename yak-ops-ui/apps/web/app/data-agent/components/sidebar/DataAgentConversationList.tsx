@@ -105,7 +105,10 @@ export function DataAgentConversationList({
   }
 
   return (
-    <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-3 [scrollbar-width:thin]">
+    <div
+      className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-3 [scrollbar-width:thin]"
+      style={{ scrollbarColor: "var(--yak-color-scrollbar) transparent" }}
+    >
       <section aria-label="Recent conversations">
         <div
           className="mb-1 flex h-6 items-center"
