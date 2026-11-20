@@ -56,6 +56,18 @@ _READONLY_PATHS = (
 _PREVIEW_PATH = re.compile(r"/projects/[^/]+/data-sync/tasks/preview")
 
 
+def _strip_base_path(path: str, base_path: str) -> str:
+    """Remove the configured API context path before allowlist matching."""
+    prefix = base_path.rstrip("/")
+    if not prefix:
+        return path
+    if path == prefix:
+        return "/"
+    if path.startswith(prefix + "/"):
+        return path[len(prefix) :]
+    return path
+
+
 def _path_allowed(method: str, path: str) -> bool:
     """Whether an analysis script may send this method/path through the proxy."""
     decoded = unquote(path)
@@ -165,17 +177,24 @@ def _run_subprocess(script: Path, workdir: Path, timeout: int) -> tuple[str, str
 _PROXY_STATE: dict[str, Any] = {}
 
 
-def _get_proxy(allowed_netloc: str) -> str:
+def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
     """Start (once) a localhost forward proxy that only relays the configured
     yak-ops API host, and return its URL.
 
     The sandboxed script routes its HTTP through this proxy via
     HTTP_PROXY/HTTPS_PROXY set inside the script process — so SDK calls reach
     yak-ops while any other destination gets a 403 from the proxy itself.
+    `base_path` (e.g. `/yak-ops`) is stripped before allowlist matching because
+    SDK URLs include the API context path while the registry stores paths
+    relative to that context.
     """
     state = _PROXY_STATE
     server = state.get("server")
-    if server is not None and state.get("allowed") == allowed_netloc:
+    if (
+        server is not None
+        and state.get("allowed") == allowed_netloc
+        and state.get("base_path") == base_path
+    ):
         return f"http://127.0.0.1:{server.server_address[1]}"
 
     import httpx
@@ -199,7 +218,8 @@ def _get_proxy(allowed_netloc: str) -> str:
                 target = self.path
             target_url = urlparse(target)
             if target_url.netloc != allowed_netloc or not _path_allowed(
-                self.command, target_url.path
+                self.command,
+                _strip_base_path(target_url.path, base_path),
             ):
                 self._blocked()
                 return
@@ -256,6 +276,7 @@ def _get_proxy(allowed_netloc: str) -> str:
     thread.start()
     _PROXY_STATE["server"] = server
     _PROXY_STATE["allowed"] = allowed_netloc
+    _PROXY_STATE["base_path"] = base_path
     return f"http://127.0.0.1:{server.server_address[1]}"
 
 
@@ -322,7 +343,8 @@ def run_analysis(
             # environment carries no credentials.
             if auth is None:
                 raise ValueError("auth is required for the sandboxed PTC tier")
-            proxy_url = _get_proxy(urlparse(auth.base_url).netloc)
+            base = urlparse(auth.base_url)
+            proxy_url = _get_proxy(base.netloc, base.path)
             write_sdk(workdir, _AGENT_ROOT, auth, project_code)
             preamble = (
                 f'import sys; sys.path.insert(0, r"{workdir}"); sys.path.insert(0, r"{_AGENT_ROOT}")\n'
