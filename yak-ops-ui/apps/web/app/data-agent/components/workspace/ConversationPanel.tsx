@@ -14,10 +14,12 @@ type ConversationPanelProps = {
   selectedActivityId?: string | null;
   onSelectActivity?: (messageId: string, activityId: string) => void;
   connectionError: string;
+  sessionNotice: string;
   composerKey: number;
   initialDraft: string;
   isSending: boolean;
   onSubmit: (content: string) => boolean | void;
+  onStop: () => void;
   trailingActions: ReactNode;
 };
 
@@ -30,10 +32,12 @@ export function ConversationPanel({
   selectedActivityId,
   onSelectActivity,
   connectionError,
+  sessionNotice,
   composerKey,
   initialDraft,
   isSending,
   onSubmit,
+  onStop,
   trailingActions,
 }: ConversationPanelProps) {
   return (
@@ -50,6 +54,11 @@ export function ConversationPanel({
 
       <div className="shrink-0 px-6 pb-5 pt-3 max-sm:px-4">
         <div className="mx-auto w-full max-w-3xl">
+          {sessionNotice ? (
+            <div className="mb-2 rounded-xl border border-[#f0e3c7] bg-[#fffaf0] px-3 py-2 text-xs leading-5 text-[#8a6a32]">
+              {sessionNotice}
+            </div>
+          ) : null}
           {connectionError ? (
             <div
               role="alert"
@@ -64,6 +73,7 @@ export function ConversationPanel({
             initialValue={initialDraft}
             onSubmit={onSubmit}
             isSubmitting={isSending}
+            onStop={onStop}
             trailingActions={trailingActions}
             placeholder="继续向 Data Agent 提问..."
           />
