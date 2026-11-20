@@ -41,7 +41,7 @@ from typing import Any
 
 import uvicorn
 from agentscope.state import AgentState
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -93,6 +93,10 @@ class InterruptBody(BaseModel):
     turnId: str | None = None
 
 
+class RenameSessionBody(BaseModel):
+    title: str
+
+
 def _get_settings() -> Settings:
     global _settings
     if _settings is None:
@@ -140,6 +144,7 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
                     "sessionId": path.stem,
                     "title": meta.get("title") or f"历史会话 · {path.stem[:6]}",
                     "preview": meta.get("preview", ""),
+                    "usage": meta.get("usage", {}),
                     "updatedAt": path.stat().st_mtime,
                 }
             )
@@ -164,7 +169,11 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     turn_cursor = session.event_log.next_seq - 1
     if not session.title:
         session.title, session.preview = _conversation_title(body.message)
-    turn = Turn(turn_id=uuid.uuid4().hex, started_at=time.time())
+    turn = Turn(
+        turn_id=uuid.uuid4().hex,
+        started_at=time.time(),
+        message=body.message,
+    )
     session.turn = turn
     session.busy = True
     persistence.persist(session)
@@ -292,6 +301,7 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
             "turnId": turn.turn_id if turn else None,
             "replyId": turn.reply_id if turn and turn.reply_id else None,
             "startedAt": _iso(turn.started_at) if turn else None,
+            "activeTurnMessage": turn.message if turn else None,
             "pendingConfirmation": (
                 {
                     "replyId": pending.reply_id,
@@ -306,6 +316,7 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
             "title": session.title or meta.get("title", ""),
             "preview": session.preview or meta.get("preview", ""),
             "updatedAt": _updated_at(sid),
+            "usage": session.usage,
         }
 
     meta = _authorize_meta(sid, identity)
@@ -318,11 +329,49 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
         "turnId": active.get("turnId"),
         "replyId": None,
         "startedAt": _iso(active.get("startedAt")),
+        "activeTurnMessage": active.get("message"),
         "pendingConfirmation": None,
         "title": meta.get("title", ""),
         "preview": meta.get("preview", ""),
         "updatedAt": _updated_at(sid),
+        "usage": meta.get("usage", {}),
     }
+
+
+@app.patch("/agent/sessions/{sid}")
+async def rename_session(
+    sid: str,
+    body: RenameSessionBody,
+    request: Request,
+) -> dict[str, str]:
+    """Rename a session without constructing an Agent for disk-only sessions."""
+    identity = request_identity(request, _get_settings())
+    title = " ".join(body.title.split()).strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="会话名称不能为空")
+    title = title[:40]
+
+    session = SESSIONS.get(sid)
+    if session is not None:
+        if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
+            raise SessionForbidden()
+        session.title = title
+        meta = persistence.read_meta(sid)
+    else:
+        meta = _authorize_meta(sid, identity)
+
+    meta.update(
+        {
+            "owner": identity.owner,
+            "workspace": identity.workspace_id,
+            "title": title,
+        }
+    )
+    persistence.meta_path(sid).write_text(
+        json.dumps(meta, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return {"sessionId": sid, "title": title}
 
 
 @app.get("/agent/sessions/{sid}/messages")
@@ -348,7 +397,8 @@ async def session_messages(sid: str, request: Request, limit: int = 0) -> dict[s
     settings = _get_settings()
     effective = min(limit or settings.history_max_messages, 500)
     result = serialize_history(state, max(effective, 1), settings.history_tool_chars)
-    return {"sessionId": sid, **result}
+    usage = session.usage if session is not None else persistence.read_meta(sid).get("usage", {})
+    return {"sessionId": sid, "usage": usage, **result}
 
 
 @app.post("/agent/sessions/{sid}/interrupt", status_code=202)
