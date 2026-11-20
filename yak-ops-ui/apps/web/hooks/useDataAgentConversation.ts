@@ -422,13 +422,6 @@ export function useDataAgentConversation({
               },
               updatedAt,
             });
-            setSessionUsage((current) => ({
-              inputTokens: current.inputTokens + event.inputTokens,
-              outputTokens: current.outputTokens + event.outputTokens,
-              cacheInputTokens: current.cacheInputTokens + event.cacheInputTokens,
-              cacheCreationInputTokens:
-                current.cacheCreationInputTokens + event.cacheCreationInputTokens,
-            }));
             break;
           case "reply_end":
             dispatch({
