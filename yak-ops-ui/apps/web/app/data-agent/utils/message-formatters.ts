@@ -41,7 +41,12 @@ export function toolStatusLabel(status: ToolCallStatus) {
     case "approved":
       return "已确认";
     case "rejected":
+    case "denied":
       return "已拒绝";
+    case "error":
+      return "执行失败";
+    case "interrupted":
+      return "已中断";
   }
 }
 
