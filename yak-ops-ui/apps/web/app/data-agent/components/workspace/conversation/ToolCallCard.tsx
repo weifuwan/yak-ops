@@ -38,8 +38,10 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#3b4744]">
           {TOOL_LABELS[toolCall.name] ?? toolCall.name}
         </span>
-        <span aria-label={toolStatusLabel(toolCall.status)}
-          className="flex shrink-0 items-center gap-1 text-xs text-[#8b9693]">
+        <span
+          aria-label={toolStatusLabel(toolCall.status)}
+          className="flex shrink-0 items-center gap-1 text-xs text-[#8b9693]"
+        >
           <StatusIcon
             size={12}
             className={
