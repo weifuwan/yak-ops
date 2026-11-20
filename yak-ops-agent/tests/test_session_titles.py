@@ -119,6 +119,23 @@ class TitlePersistenceTests(unittest.TestCase):
 
         self.assertEqual(persistence.read_meta("sid")["title"], "旧标题")
 
+    def test_session_usage_is_persisted_with_metadata(self) -> None:
+        session = Session(
+            sid="sid",
+            agent=SimpleNamespace(state=None),
+            workspace=object(),
+            owner="u-1",
+            workspace_id="1",
+            usage={"inputTokens": 120, "outputTokens": 35},
+        )
+
+        persistence.persist(session)
+
+        self.assertEqual(
+            persistence.read_meta("sid")["usage"],
+            {"inputTokens": 120, "outputTokens": 35},
+        )
+
     def test_legacy_meta_keeps_title_after_persist(self) -> None:
         persistence.meta_path("sid").write_text(
             json.dumps({"owner": "u-1", "workspace": "1", "title": "历史标题"}),
