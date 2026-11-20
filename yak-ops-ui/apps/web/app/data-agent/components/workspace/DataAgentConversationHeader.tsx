@@ -56,41 +56,42 @@ export function DataAgentConversationHeader({
           >
             <PanelRightClose size={16} strokeWidth={1.5} />
           </button>
+
           <div
             style={{ width: String(detailsWidth) + "px" }}
             className="mr-2 hidden h-full shrink-0 items-center justify-end gap-1 px-2.5 lg:flex"
           >
-          <div
-            role="status"
-            aria-live="polite"
-            aria-label={statusLabel}
-            title={statusLabel}
-            className="mr-1 flex shrink-0 items-center"
-          >
-            <span
-              aria-hidden="true"
-              className={
-                "size-1.5 rounded-full " +
-                (isSending ? "animate-pulse bg-[#d6a34b]" : "bg-[#91a39a]")
-              }
-            />
-          </div>
+            <div
+              role="status"
+              aria-live="polite"
+              aria-label={statusLabel}
+              title={statusLabel}
+              className="mr-1 flex shrink-0 items-center"
+            >
+              <span
+                aria-hidden="true"
+                className={
+                  "size-1.5 rounded-full " +
+                  (isSending ? "animate-pulse bg-[#d6a34b]" : "bg-[#91a39a]")
+                }
+              />
+            </div>
 
-          <button
-            type="button"
-            aria-current="page"
-            className="flex h-7 cursor-default items-center rounded-md bg-[#f1f3f2] px-2 text-[11px] font-medium text-[#3f4945]"
-          >
-            Timeline
-          </button>
-          <button
-            type="button"
-            disabled
-            title="变更记录暂未接入"
-            className="flex h-7 cursor-not-allowed items-center rounded-md px-2 text-[11px] text-[#a6aeaa]"
-          >
-            Changes
-          </button>
+            <button
+              type="button"
+              aria-current="page"
+              className="flex h-7 cursor-default items-center rounded-md bg-[#f1f3f2] px-2 text-[11px] font-medium text-[#3f4945]"
+            >
+              Timeline
+            </button>
+            <button
+              type="button"
+              disabled
+              title="变更记录暂未接入"
+              className="flex h-7 cursor-not-allowed items-center rounded-md px-2 text-[11px] text-[#a6aeaa]"
+            >
+              Changes
+            </button>
           </div>
         </>
       ) : (
