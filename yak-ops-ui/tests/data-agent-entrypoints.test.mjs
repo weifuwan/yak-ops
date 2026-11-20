@@ -131,7 +131,7 @@ test("Data Agent restores the original empty workspace and uses a shared split h
 test("Data Agent sidebar keeps the Recent chats section visible when there are no sessions", () => {
   assert.match(conversationList, /<section aria-label="Recent conversations">/);
   assert.match(conversationList, /Recent chats/);
-  assert.match(conversationList, /conversations.length > 0 \?/);
+  assert.match(conversationList, /groups.length > 0 \?/);
   assert.match(conversationList, /No sessions yet/);
   assert.doesNotMatch(conversationList, /projectsExpanded|Data Sync Hub/);
 });
