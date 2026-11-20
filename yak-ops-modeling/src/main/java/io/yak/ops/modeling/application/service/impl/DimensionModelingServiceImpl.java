@@ -248,6 +248,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     @Override
     public List<DimensionTableVO> getNoneList(String keyword) {
         DimensionTableDTO dto = new DimensionTableDTO();
+        dto.setDwhType(DwTypeEnum.NONE_LAYER);
         dto.setKeyword(keyword);
         return all(dto);
     }
