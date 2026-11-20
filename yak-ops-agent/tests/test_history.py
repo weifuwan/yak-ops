@@ -121,6 +121,70 @@ class HistorySerializerTests(unittest.TestCase):
         )
         self.assertNotIn("must never be returned", str(result))
 
+    def test_open_thinking_uses_the_next_block_as_end(self) -> None:
+        state = AgentState()
+        state.context.append(
+            Msg(
+                name="yak_agent",
+                role="assistant",
+                content=[
+                    ThinkingBlock(
+                        type="thinking",
+                        thinking="internal",
+                        id="thinking-open",
+                        created_at="2026-11-20T09:00:01.000Z",
+                    ),
+                    TextBlock(
+                        type="text",
+                        text="answer",
+                        created_at="2026-11-20T09:00:03.500Z",
+                    ),
+                ],
+            )
+        )
+
+        result = serialize_history(state, limit=10, tool_chars=100)
+
+        block = result["messages"][0]["blocks"][0]
+        self.assertEqual(block["startedAt"], "2026-11-20T09:00:01.000Z")
+        self.assertEqual(block["completedAt"], "2026-11-20T09:00:03.500Z")
+
+    def test_open_thinking_does_not_borrow_the_next_turn_timestamp(self) -> None:
+        state = AgentState()
+        state.context.extend(
+            [
+                Msg(
+                    name="yak_agent",
+                    role="assistant",
+                    content=[
+                        ThinkingBlock(
+                            type="thinking",
+                            thinking="internal",
+                            id="thinking-open",
+                            created_at="2026-11-20T09:00:01.000Z",
+                        )
+                    ],
+                ),
+                Msg(
+                    name="user",
+                    role="user",
+                    content=[
+                        TextBlock(
+                            type="text",
+                            text="next turn",
+                            created_at="2026-11-20T09:30:00.000Z",
+                        )
+                    ],
+                ),
+            ]
+        )
+
+        result = serialize_history(state, limit=10, tool_chars=100)
+
+        block = result["messages"][0]["blocks"][0]
+        self.assertEqual(block["startedAt"], "2026-11-20T09:00:01.000Z")
+        self.assertNotIn("completedAt", block)
+
     def test_limit_drops_oldest_messages(self) -> None:
         result = serialize_history(_state(), limit=1, tool_chars=10)
 
