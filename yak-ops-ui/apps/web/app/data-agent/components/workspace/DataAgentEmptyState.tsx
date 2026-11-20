@@ -8,6 +8,7 @@ import { QUICK_ACTIONS } from "./quick-actions";
 
 type DataAgentEmptyStateProps = {
   connectionError: string;
+  sessionNotice: string;
   restored: boolean;
   composerKey: number;
   initialDraft: string;
@@ -19,6 +20,7 @@ type DataAgentEmptyStateProps = {
 
 export function DataAgentEmptyState({
   connectionError,
+  sessionNotice,
   restored,
   composerKey,
   initialDraft,
@@ -44,7 +46,12 @@ export function DataAgentEmptyState({
 
           {restored ? (
             <div className="mb-3 rounded-xl border border-[#e7e9e8] bg-[#f8faf9] px-3 py-2 text-xs leading-5 text-[#78817f]">
-              已恢复服务端会话上下文。历史消息暂不提供回放，你可以继续提问。
+              已恢复服务端历史消息，可以继续对话。
+            </div>
+          ) : null}
+          {sessionNotice ? (
+            <div className="mb-3 rounded-xl border border-[#f0e3c7] bg-[#fffaf0] px-3 py-2 text-xs leading-5 text-[#8a6a32]">
+              {sessionNotice}
             </div>
           ) : null}
 
