@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { Activity, X } from "lucide-react";
+import { Activity, PanelRightClose } from "lucide-react";
 
 import type { AgentActivity, AgentMessage, PendingConfirmation } from "../../model/types";
 import { AgentDetailsResizer } from "./conversation/AgentDetailsResizer";
@@ -49,12 +49,12 @@ function MobileDetailsHeader({ onClose }: { onClose: () => void }) {
         </button>
         <button
           type="button"
-          aria-label="关闭执行详情"
-          title="关闭执行详情"
+          aria-label="收起执行详情"
+          title="收起执行详情"
           className="flex size-7 cursor-pointer items-center justify-center rounded-md text-[#87928f] transition-colors hover:bg-[#f2f4f3] hover:text-[#303936]"
           onClick={onClose}
         >
-          <X size={15} />
+          <PanelRightClose size={15} strokeWidth={1.5} />
         </button>
       </div>
     </div>
