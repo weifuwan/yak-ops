@@ -43,7 +43,7 @@ import type {
   DimensionTreeNode,
 } from "@/service/data-modeling/models/dimension-modeling";
 import { DIMENSION_WAREHOUSE_OPTIONS } from "../hooks/use-dimension-tree";
-import { DIMENSION_CREATE_OPTIONS, type DimensionCreateType, type DimensionSidebarProps } from "../types";
+import { DIMENSION_CREATE_OPTIONS, type DimensionSidebarProps } from "../types";
 
 type ScopeOption = { value: string; label: string };
 
@@ -416,7 +416,7 @@ export function DimensionSidebar({
                 return (
                   <DropdownMenuItem
                     key={option.type}
-                    onClick={() => onCreate(option.type as DimensionCreateType)}
+                    onClick={() => onCreate(option.type)}
                   >
                     <Icon size={14} />
                     {option.label}
