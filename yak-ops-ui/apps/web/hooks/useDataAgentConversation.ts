@@ -285,6 +285,7 @@ export function useDataAgentConversation({
     ) => ({
       identity: requestIdentity!,
       signal,
+      onReconnect: () => setIsReconnecting(true),
       onConfirmRequired: (
         event: Extract<AgentStreamEvent, { type: "confirm_required" }>,
       ) => {
