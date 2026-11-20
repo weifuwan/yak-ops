@@ -48,7 +48,12 @@ class SessionStatusTests(unittest.TestCase):
             sid="sid", agent=object(), workspace=object(), owner="u-1", workspace_id="1"
         )
         session.busy = True
-        session.turn = Turn(turn_id="turn-1", started_at=1763000000.0)
+        session.turn = Turn(
+            turn_id="turn-1",
+            started_at=1763000000.0,
+            message="分析订单表",
+        )
+        session.usage = {"inputTokens": 120, "outputTokens": 35}
         SESSIONS["sid"] = session
 
         result = self._status("sid")
@@ -56,6 +61,8 @@ class SessionStatusTests(unittest.TestCase):
         self.assertEqual(result["state"], "running")
         self.assertTrue(result["busy"])
         self.assertEqual(result["turnId"], "turn-1")
+        self.assertEqual(result["activeTurnMessage"], "分析订单表")
+        self.assertEqual(result["usage"]["inputTokens"], 120)
         self.assertIsNone(result["pendingConfirmation"])
         self.assertFalse(result["stale"])
 
@@ -90,7 +97,12 @@ class SessionStatusTests(unittest.TestCase):
                     "workspace": "1",
                     "title": "历史标题",
                     "preview": "历史预览",
-                    "activeTurn": {"turnId": "turn-9", "startedAt": 1763000000.0},
+                    "activeTurn": {
+                        "turnId": "turn-9",
+                        "startedAt": 1763000000.0,
+                        "message": "上次执行提示词",
+                    },
+                    "usage": {"inputTokens": 77},
                 },
                 ensure_ascii=False,
             ),
@@ -103,6 +115,8 @@ class SessionStatusTests(unittest.TestCase):
         self.assertTrue(result["stale"])
         self.assertFalse(result["busy"])
         self.assertEqual(result["turnId"], "turn-9")
+        self.assertEqual(result["activeTurnMessage"], "上次执行提示词")
+        self.assertEqual(result["usage"]["inputTokens"], 77)
         self.assertEqual(result["title"], "历史标题")
 
     def test_disk_session_without_active_turn_is_idle(self) -> None:
