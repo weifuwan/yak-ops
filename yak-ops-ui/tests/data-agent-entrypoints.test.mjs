@@ -383,7 +383,7 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(sessionWorkspace, /id="agent-details-panel"/);
   assert.match(sessionWorkspace, /handleSelectActivity/);
   assert.match(sessionWorkspace, /duration-300/);
-  assert.match(sessionWorkspace, /max-md:absolute max-md:inset-0/);
+  assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
   assert.match(detailsPanel, /AgentDetailsSummary/);
   assert.match(detailsPanel, /执行概览/);
@@ -447,7 +447,7 @@ test("Data Agent execution details panel has an accessible, bounded drag splitte
   assert.match(sessionWorkspace, /onDraggingChange=\{setDetailsResizing\}/);
   assert.match(sessionWorkspace, /detailsResizing/);
   assert.match(sessionWorkspace, /style=\{\{ width: detailsOpen \? String\(detailsWidth\) \+ "px" : "0px" \}\}/);
-  assert.match(sessionWorkspace, /max-md:!w-full/);
+  assert.match(sessionWorkspace, /max-lg:!w-full/);
 
   assert.match(detailsResizer, /DETAILS_MIN_WIDTH = 320/);
   assert.match(detailsResizer, /role="separator"/);
@@ -493,13 +493,13 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
   assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
   assert.match(sessionWorkspace, /DETAILS_MAX_WIDTH = 640/);
   assert.match(sessionWorkspace, /DetailsEmptyState/);
-  assert.match(sessionWorkspace, /max-md:absolute max-md:inset-0 max-md:z-20/);
+  assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0 max-lg:z-20/);
   assert.match(conversationHeader, /h-12/);
   assert.match(conversationHeader, /border-l border-\[#ecefed\]/);
   assert.match(conversationHeader, /Timeline/);
   assert.match(conversationHeader, /Changes/);
   assert.match(conversationHeader, /aria-expanded=\{detailsOpen\}/);
-  assert.match(conversationHeader, /md:hidden/);
+  assert.match(conversationHeader, /lg:hidden/);
   assert.match(conversationPanel, /<MessageList/);
   assert.match(conversationPanel, /DataAgentPromptComposer/);
   assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|AgentDetailsResizer/);
