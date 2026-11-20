@@ -15,10 +15,14 @@ export type ConversationAction =
   | { type: "RESET" }
   | { type: "RESTORE_CONVERSATIONS"; conversations: AgentConversation[] }
   | { type: "SELECT_CONVERSATION"; sessionId: string | null }
+  | { type: "HYDRATE_CONVERSATION"; conversation: AgentConversation }
+  | { type: "REMOVE_CONVERSATION"; sessionId: string }
+  | { type: "RENAME_CONVERSATION"; sessionId: string; title: string }
   | {
       type: "MESSAGE_PAIR_ADDED";
       sessionId: string;
       title: string;
+      preview?: string;
       updatedAt: string;
       userMessage: AgentMessage;
       assistantMessage: AgentMessage;
@@ -126,6 +130,7 @@ export type ConversationAction =
       sessionId: string;
       messageId: string;
       updatedAt: string;
+      finishedReason?: string;
     }
   | {
       type: "MESSAGE_FAILED";
@@ -225,13 +230,26 @@ export function conversationReducer(
       return initialConversationState;
 
     case "RESTORE_CONVERSATIONS": {
+      const incoming = new Map(action.conversations.map((item) => [item.id, item]));
       const existingIds = new Set(state.conversations.map((item) => item.id));
-      const restored = action.conversations.filter((item) => !existingIds.has(item.id));
-      if (restored.length === 0) return state;
-
+      const updated = state.conversations.map((item) => {
+        const restored = incoming.get(item.id);
+        return restored
+          ? {
+              ...item,
+              title: restored.title || item.title,
+              preview: restored.preview || item.preview,
+              updatedAt: restored.updatedAt || item.updatedAt,
+            }
+          : item;
+      });
+      const added = action.conversations.filter((item) => !existingIds.has(item.id));
+      if (added.length === 0 && updated.every((item, index) => item === state.conversations[index])) {
+        return state;
+      }
       return {
         ...state,
-        conversations: [...state.conversations, ...restored].sort(
+        conversations: [...updated, ...added].sort(
           (left, right) =>
             new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
         ),
@@ -240,6 +258,37 @@ export function conversationReducer(
 
     case "SELECT_CONVERSATION":
       return { ...state, activeConversationId: action.sessionId };
+
+    case "HYDRATE_CONVERSATION": {
+      const exists = state.conversations.some((item) => item.id === action.conversation.id);
+      const conversations = exists
+        ? state.conversations.map((item) =>
+            item.id === action.conversation.id ? action.conversation : item,
+          )
+        : [action.conversation, ...state.conversations];
+      return {
+        activeConversationId: action.conversation.id,
+        conversations: conversations.sort(
+          (left, right) =>
+            new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+        ),
+      };
+    }
+
+    case "REMOVE_CONVERSATION":
+      return {
+        activeConversationId:
+          state.activeConversationId === action.sessionId ? null : state.activeConversationId,
+        conversations: state.conversations.filter((item) => item.id !== action.sessionId),
+      };
+
+    case "RENAME_CONVERSATION":
+      return {
+        ...state,
+        conversations: state.conversations.map((item) =>
+          item.id === action.sessionId ? { ...item, title: action.title } : item,
+        ),
+      };
 
     case "MESSAGE_PAIR_ADDED": {
       const existing = state.conversations.find((item) => item.id === action.sessionId);
@@ -250,6 +299,7 @@ export function conversationReducer(
             {
               id: action.sessionId,
               title: action.title,
+              preview: action.preview ?? "",
               updatedAt: action.updatedAt,
               messages: [action.userMessage, action.assistantMessage],
             },
@@ -266,6 +316,7 @@ export function conversationReducer(
                 ...conversation,
                 title:
                   conversation.messages.length === 0 ? action.title : conversation.title,
+                preview: action.preview ?? conversation.preview,
                 updatedAt: action.updatedAt,
                 restored: false,
                 messages: [
@@ -622,7 +673,7 @@ export function conversationReducer(
         action.updatedAt,
         (message) => ({
           ...message,
-          status: "complete",
+          status: action.finishedReason === "interrupted" ? "interrupted" : "complete",
           toolCalls: (message.toolCalls ?? []).map((call) =>
             call.status === "running" ? { ...call, status: "interrupted" as const } : call,
           ),
