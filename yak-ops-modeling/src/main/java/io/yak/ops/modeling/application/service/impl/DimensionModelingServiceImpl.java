@@ -114,7 +114,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         DimensionTablePO existing = dimensionTableDao.queryById(dto.getId());
         if (existing == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
 
-        boolean legacyUntyped = isLegacyUnlayeredRecord(existing) && dto.getTableType() == null;
         if (existing.getTableType() != null && dto.getTableType() != existing.getTableType()) {
             throw new IllegalArgumentException("模型类型创建后不可直接修改");
         }
@@ -320,6 +319,11 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             } else {
                 // Backward compatibility: historical versions stored only DimensionTablePO.
                 DimensionTablePO snapshot = objectMapper.treeToValue(root, DimensionTablePO.class);
+                if (snapshot.getTableType() == DimensionTableTypeEnum.DIM
+                        && !notBlank(snapshot.getEnShortName()) && notBlank(snapshot.getTableName())) {
+                    snapshot.setEnShortName(snapshot.getTableName());
+                    snapshot.setTableName(null);
+                }
                 snapshot.setId(id);
                 snapshot.setProjectCode(null);
                 snapshot.initUpdate();
