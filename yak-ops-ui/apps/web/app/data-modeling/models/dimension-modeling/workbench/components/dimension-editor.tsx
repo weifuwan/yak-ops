@@ -346,6 +346,23 @@ export function DimensionEditor({
       label: "主题域 / " + optionLabel(record, ["domainName", "cnName", "enName"]),
     })),
   ].filter((option) => option.value);
+  const timePeriodOptions = (timePeriodsQuery.data || []).map((record) => ({
+    value: String(record.id || ""),
+    label: optionLabel(record, ["cnName", "enName", "enShortName"]),
+  })).filter((option) => option.value);
+  const modifierOptions = (modifiersQuery.data || []).map((record) => ({
+    value: String(record.id || ""),
+    label: optionLabel(record, ["cnName", "enName", "enShortName"]),
+  })).filter((option) => option.value);
+  const dimensionOptions = (dimensionsQuery.data || []).map((option) => ({
+    value: String(option.value || ""),
+    label: String(option.label || option.value || ""),
+  })).filter((option) => option.value);
+  const isDim = selectedTableType === "DIM";
+  const isDetail = selectedTableType === "DETAIL";
+  const isSummary = selectedTableType === "SUMMARY";
+  const isApplication = selectedTableType === "APPLICATION";
+  const modelTypeLabel = TABLE_TYPE_OPTIONS.find((option) => option.value === selectedTableType)?.label || "未识别类型";
 
   useEffect(() => {
     if (tab.mode !== "create" || values.dwhId || !layerOptions.length) return;
@@ -420,32 +437,60 @@ export function DimensionEditor({
   const saveBasicInfo = async () => {
     if (saving) return;
     if (!values.dwhId) {
-      setError("请选择数仓分层");
+      setError("请选择有效数仓分层");
       return;
     }
-    if (!values.tableName.trim()) {
-      setError("请输入英文表名");
+    if (!selectedTableType && !isLegacyUntyped) {
+      setError("请选择模型类型");
       return;
     }
     if (!values.cnName.trim()) {
-      setError("请输入表中文名");
+      setError("请输入中文名称");
       return;
     }
-    if (!isUnassigned && !values.tableType) {
-      setError("请选择模型类型");
+    if (isDim) {
+      if (!values.enShortName.trim()) {
+        setError("请输入维度英文缩写");
+        return;
+      }
+      if (!values.domainId) {
+        setError("请选择数据域");
+        return;
+      }
+    } else {
+      if (!values.tableName.trim()) {
+        setError("请输入英文表名");
+        return;
+      }
+      if (!isLegacyUntyped && !values.director.trim()) {
+        setError("请选择负责人");
+        return;
+      }
+    }
+    if (isDetail && !values.busProcessId) {
+      setError("请选择业务过程");
+      return;
+    }
+    if (isApplication && !values.martOrSubject) {
+      setError("请选择数据集市或主题域");
       return;
     }
 
     const payload: Record<string, unknown> = {
       id: recordId || undefined,
       dwhId: values.dwhId,
+      tableType: selectedTableType || null,
+      enShortName: isDim ? values.enShortName.trim() : null,
       busTypeId: values.busTypeId || null,
       domainId: values.domainId || null,
       busProcessId: values.busProcessId || null,
       martOrSubject: values.martOrSubject || null,
-      tableName: values.tableName.trim(),
+      timePeriodId: values.timePeriodId || null,
+      dimId: values.dimId || null,
+      modifier: values.modifier || null,
+      nameRuleId: values.nameRuleId || null,
+      tableName: isDim ? null : values.tableName.trim(),
       cnName: values.cnName.trim(),
-      tableType: isUnassigned ? null : values.tableType || null,
       storagePolicy: values.storagePolicy || null,
       lifeCycle: values.lifeCycle ? Number(values.lifeCycle) : null,
       director: values.director || null,
@@ -459,37 +504,57 @@ export function DimensionEditor({
         ? await dimensionModelingApi.update(projectCode, payload)
         : await dimensionModelingApi.create(projectCode, payload);
 
-      if (!saved.id) throw new Error("保存成功但未返回维度表ID");
-
-      try {
-        const normalizedFields = fields.map(({ tempId, ...field }) => ({
-          ...field,
-          tableId: String(saved.id),
-        }));
-        const savedFields = await dimensionModelingApi.replaceFields(
-          projectCode,
-          String(saved.id),
-          normalizedFields,
-        );
-        setFields(savedFields);
-      } catch {
-        onSaved(saved);
-        toast.warning("基本信息已保存，但字段管理保存失败，请重试");
-        return;
-      }
-
+      if (!saved.id) throw new Error("保存成功但未返回模型ID");
       onSaved(saved);
-      setDirty(false);
-      onDirtyChange(false);
+      setBasicDirty(false);
+      setDirty(fieldsDirty);
+      onDirtyChange(fieldsDirty);
       setNoticeDismissed(false);
-      toast.success("维度表已保存");
+      toast.success("基本信息已保存为草稿");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
-      await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-fields", projectCode, String(saved.id)] });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "保存失败，请检查填写内容后重试");
-      toast.warning("维度表保存失败");
+      toast.warning("基本信息保存失败");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveFields = async () => {
+    if (!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching) return;
+    setSavingFields(true);
+    try {
+      const normalizedFields = fields.map(({ tempId, ...field }) => ({
+        ...field,
+        tableId: recordId,
+      }));
+      const savedFields = await dimensionModelingApi.replaceFields(
+        projectCode,
+        recordId,
+        normalizedFields,
+      );
+      setFields(savedFields.map((field) => ({
+        ...field,
+        fieldType: field.fieldType || "PROPERTY",
+        tempId: field.id || field.tempId,
+      })));
+      setFieldsDirty(false);
+      setDirty(basicDirty);
+      onDirtyChange(basicDirty);
+      try {
+        const updatedRecord = await dimensionModelingApi.getById(projectCode, recordId);
+        onSaved(updatedRecord);
+      } catch {
+        // The field save already succeeded; a failed metadata refresh must not report a failed save.
+      }
+      toast.success("字段信息已保存");
+      await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
+      await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-fields", projectCode, recordId] });
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "字段保存失败，请重试");
+      toast.warning("字段保存失败");
+    } finally {
+      setSavingFields(false);
     }
   };
 
@@ -499,6 +564,8 @@ export function DimensionEditor({
     try {
       const submitted = await dimensionModelingApi.submit(projectCode, recordId);
       onSaved(submitted);
+      setBasicDirty(false);
+      setFieldsDirty(false);
       setDirty(false);
       onDirtyChange(false);
       toast.success("维度表已提交，版本快照已生成");
@@ -513,8 +580,13 @@ export function DimensionEditor({
 
   const refresh = async () => {
     if (!recordId) {
-      setValues(initialValues());
+      setValues({
+        ...initialValues(),
+        tableType: String(tab.createType || ""),
+      });
       setFields([]);
+      setBasicDirty(false);
+      setFieldsDirty(false);
       setDirty(false);
       onDirtyChange(false);
       return;
@@ -525,11 +597,17 @@ export function DimensionEditor({
         dimensionModelingApi.fields(projectCode, recordId),
       ]);
       setValues(initialValues(record));
-      setFields(nextFields);
+      setFields(nextFields.map((field) => ({
+        ...field,
+        fieldType: field.fieldType || "PROPERTY",
+        tempId: field.id || field.tempId,
+      })));
       onSaved(record);
+      setBasicDirty(false);
+      setFieldsDirty(false);
       setDirty(false);
       onDirtyChange(false);
-      toast.success("维度表已刷新");
+      toast.success("模型已刷新");
     } catch {
       toast.warning("刷新失败，请稍后重试");
     }
@@ -539,8 +617,16 @@ export function DimensionEditor({
     if (!recordId) return;
     try {
       const restored = await dimensionModelingApi.rollback(projectCode, recordId, version.versionNumber);
+      const restoredFields = await dimensionModelingApi.fields(projectCode, recordId);
       setValues(initialValues(restored));
+      setFields(restoredFields.map((field) => ({
+        ...field,
+        fieldType: field.fieldType || "PROPERTY",
+        tempId: field.id || field.tempId,
+      })));
       onSaved(restored);
+      setBasicDirty(false);
+      setFieldsDirty(false);
       setDirty(false);
       onDirtyChange(false);
       setVersionOpen(false);
