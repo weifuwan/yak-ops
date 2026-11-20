@@ -6,6 +6,7 @@ import { AgentDetailsTimeline } from "./AgentDetailsTimeline";
 type AgentDetailsPanelProps = {
   message: AgentMessage;
   selectedActivityId: string;
+  expandAll: boolean;
 };
 
 function formatDuration(startedAt?: number, completedAt?: number) {
@@ -95,6 +96,7 @@ function AgentDetailsSummary({ message }: { message: AgentMessage }) {
 export function AgentDetailsPanel({
   message,
   selectedActivityId,
+  expandAll,
 }: AgentDetailsPanelProps) {
   const activities = message.activities ?? [];
 
@@ -107,6 +109,7 @@ export function AgentDetailsPanel({
           <AgentDetailsTimeline
             activities={activities}
             selectedActivityId={selectedActivityId}
+            expandAll={expandAll}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-[#9aa39f]">
