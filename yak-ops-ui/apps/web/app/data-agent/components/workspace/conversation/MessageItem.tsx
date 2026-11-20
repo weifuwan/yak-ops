@@ -7,12 +7,16 @@ type MessageItemProps = {
   message: AgentMessage;
   pendingConfirmation: PendingConfirmation | null;
   onResolveConfirmation: (approved: boolean) => void;
+  selectedActivityId?: string | null;
+  onSelectActivity?: (activityId: string) => void;
 };
 
 export function MessageItem({
   message,
   pendingConfirmation,
   onResolveConfirmation,
+  selectedActivityId,
+  onSelectActivity,
 }: MessageItemProps) {
   const isUser = message.role === "user";
 
@@ -26,6 +30,8 @@ export function MessageItem({
             message={message}
             pendingConfirmation={pendingConfirmation}
             onResolveConfirmation={onResolveConfirmation}
+            selectedActivityId={selectedActivityId}
+            onSelectActivity={onSelectActivity}
           />
         )}
         <MessageActions
