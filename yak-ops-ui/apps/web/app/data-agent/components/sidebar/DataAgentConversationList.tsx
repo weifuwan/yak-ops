@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Input,
+  Modal,
 } from "@yak-ops/yak-ui";
 
 type SidebarConversation = {
@@ -57,6 +60,14 @@ export function DataAgentConversationList({
   onDeleteConversation,
 }: DataAgentConversationListProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<
+    | { type: "rename"; conversation: SidebarConversation }
+    | { type: "delete"; conversation: SidebarConversation }
+    | null
+  >(null);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [dialogPending, setDialogPending] = useState(false);
+  const [dialogError, setDialogError] = useState("");
 
   const groups = useMemo<ConversationGroup[]>(() => {
     const definitions: ConversationGroup[] = [
@@ -72,23 +83,65 @@ export function DataAgentConversationList({
     return definitions.filter((group) => group.conversations.length > 0);
   }, [conversations]);
 
-  function rename(conversation: SidebarConversation) {
+  function openRenameDialog(conversation: SidebarConversation) {
     setOpenMenuId(null);
-    const nextTitle = window.prompt("重命名会话", conversation.title);
-    if (!nextTitle?.trim()) return;
-    void onRenameConversation(conversation.id, nextTitle.trim()).catch((error: unknown) => {
-      window.alert(errorMessage(error));
-    });
+    setRenameTitle(conversation.title);
+    setDialogError("");
+    setDialog({ type: "rename", conversation });
   }
 
-  function remove(conversation: SidebarConversation) {
+  function openDeleteDialog(conversation: SidebarConversation) {
     setOpenMenuId(null);
-    if (!window.confirm("确定删除会话“" + conversation.title + "”吗？删除后无法恢复。")) {
+    setDialogError("");
+    setDialog({ type: "delete", conversation });
+  }
+
+  function closeDialog() {
+    if (dialogPending) return;
+    setDialog(null);
+    setDialogError("");
+  }
+
+  async function submitRename() {
+    if (dialog?.type !== "rename" || dialogPending) return;
+    const nextTitle = renameTitle.trim();
+    if (!nextTitle) {
+      setDialogError("请输入会话名称");
       return;
     }
-    void onDeleteConversation(conversation.id).catch((error: unknown) => {
-      window.alert(errorMessage(error));
-    });
+    if (nextTitle.length > 40) {
+      setDialogError("会话名称不能超过 40 个字符");
+      return;
+    }
+    if (nextTitle === dialog.conversation.title) {
+      setDialog(null);
+      return;
+    }
+
+    setDialogPending(true);
+    setDialogError("");
+    try {
+      await onRenameConversation(dialog.conversation.id, nextTitle);
+      setDialog(null);
+    } catch (error) {
+      setDialogError(errorMessage(error));
+    } finally {
+      setDialogPending(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (dialog?.type !== "delete" || dialogPending) return;
+    setDialogPending(true);
+    setDialogError("");
+    try {
+      await onDeleteConversation(dialog.conversation.id);
+      setDialog(null);
+    } catch (error) {
+      setDialogError(errorMessage(error));
+    } finally {
+      setDialogPending(false);
+    }
   }
 
   return (
@@ -165,7 +218,7 @@ export function DataAgentConversationList({
                           >
                             <DropdownMenuItem
                               disabled={busy}
-                              onClick={() => rename(conversation)}
+                              onClick={() => openRenameDialog(conversation)}
                               className="min-h-9 rounded-md px-2.5 py-2 text-[13px] text-[#333333] data-[highlighted]:bg-[#f1f1f1]"
                             >
                               <Pencil size={14} className="shrink-0 text-[#666666]" />
@@ -175,7 +228,7 @@ export function DataAgentConversationList({
                             <DropdownMenuItem
                               disabled={busy}
                               tone="danger"
-                              onClick={() => remove(conversation)}
+                              onClick={() => openDeleteDialog(conversation)}
                               className="min-h-9 rounded-md px-2.5 py-2 text-[13px] text-[#c44747] data-[highlighted]:bg-[#fff1f1]"
                             >
                               <Trash2 size={14} className="shrink-0" />
@@ -196,6 +249,83 @@ export function DataAgentConversationList({
           </p>
         )}
       </section>
+
+      <Modal
+        open={dialog?.type === "rename"}
+        centered
+        width={420}
+        title="重命名会话"
+        onClose={closeDialog}
+        footer={
+          <>
+            <Button size="sm" variant="secondary" isDisabled={dialogPending} onClick={closeDialog}>
+              取消
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              isPending={dialogPending}
+              isDisabled={!renameTitle.trim()}
+              onClick={() => void submitRename()}
+            >
+              保存
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <label htmlFor="data-agent-session-rename" className="block text-xs text-[var(--yak-components-panel-text)]">
+            会话名称
+          </label>
+          <Input
+            id="data-agent-session-rename"
+            size="small"
+            variant="outlined"
+            value={renameTitle}
+            maxLength={40}
+            disabled={dialogPending}
+            placeholder="请输入会话名称"
+            onChange={(event) => {
+              setRenameTitle(event.target.value);
+              setDialogError("");
+            }}
+          />
+          {dialogError ? (
+            <p role="alert" className="m-0 text-xs text-[var(--yak-components-danger-text)]">
+              {dialogError}
+            </p>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={dialog?.type === "delete"}
+        centered
+        width={420}
+        title="删除会话"
+        onClose={closeDialog}
+        footer={
+          <>
+            <Button size="sm" variant="secondary" isDisabled={dialogPending} onClick={closeDialog}>
+              取消
+            </Button>
+            <Button size="sm" variant="danger" isPending={dialogPending} onClick={() => void confirmDelete()}>
+              删除
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <p className="m-0 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+            确定删除会话“{dialog?.type === "delete" ? dialog.conversation.title : ""}”吗？删除后无法恢复。
+          </p>
+          {dialogError ? (
+            <p role="alert" className="m-0 text-xs text-[var(--yak-components-danger-text)]">
+              {dialogError}
+            </p>
+          ) : null}
+        </div>
+      </Modal>
     </div>
   );
 }
