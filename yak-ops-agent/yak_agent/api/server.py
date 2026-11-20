@@ -40,6 +40,7 @@ from datetime import datetime
 from typing import Any
 
 import uvicorn
+from agentscope.state import AgentState
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
@@ -59,9 +60,11 @@ from yak_agent.service.errors import (
     SessionBusy,
     SessionForbidden,
     SessionNotFound,
+    SessionStateInvalid,
 )
 from yak_agent.service.events import close as close_events
 from yak_agent.service.events import subscribe
+from yak_agent.service.history import serialize_history
 from yak_agent.service.session import (
     SESSIONS,
     Turn,
@@ -305,6 +308,32 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
         "preview": meta.get("preview", ""),
         "updatedAt": _updated_at(sid),
     }
+
+
+@app.get("/agent/sessions/{sid}/messages")
+async def session_messages(sid: str, request: Request, limit: int = 0) -> dict[str, Any]:
+    """Return the persisted conversation history for one session."""
+    identity = request_identity(request, _get_settings())
+    session = SESSIONS.get(sid)
+    if session is not None:
+        if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
+            raise SessionForbidden()
+        state = getattr(session.agent, "state", None)
+        if state is None:
+            raise SessionStateInvalid()
+    else:
+        _authorize_meta(sid, identity)
+        path = persistence.state_path(sid)
+        if not path.exists():
+            raise SessionNotFound()
+        try:
+            state = AgentState.model_validate_json(path.read_text(encoding="utf-8"))
+        except Exception as ex:  # noqa: BLE001
+            raise SessionStateInvalid() from ex
+    settings = _get_settings()
+    effective = min(limit or settings.history_max_messages, 500)
+    result = serialize_history(state, max(effective, 1), settings.history_tool_chars)
+    return {"sessionId": sid, **result}
 
 
 @app.post("/agent/sessions/{sid}/interrupt", status_code=202)

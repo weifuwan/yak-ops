@@ -53,6 +53,10 @@ class Settings:
     # How long a HITL confirmation may stay pending. On timeout every pending
     # call is denied, audited and the turn continues instead of hanging.
     confirm_timeout_seconds: int = 600
+    # Message history endpoint: default/capped message count and per-tool
+    # output truncation (characters).
+    history_max_messages: int = 200
+    history_tool_chars: int = 2000
     # PTC safety: when True, analysis scripts may run on the no-isolation
     # subprocess backend (compute-only, credentials stripped). Default False —
     # without a real sandbox (cocoon/Docker) the tool is simply not registered.
@@ -84,6 +88,8 @@ class Settings:
             yak_ops_token=get("YAK_OPS_TOKEN").strip(),
             llm_context_size=int(get("LLM_CONTEXT_SIZE", "128000")),
             confirm_timeout_seconds=int(get("YAK_AGENT_CONFIRM_TIMEOUT_SECONDS", "600")),
+            history_max_messages=int(get("YAK_AGENT_HISTORY_MAX_MESSAGES", "200")),
+            history_tool_chars=int(get("YAK_AGENT_HISTORY_TOOL_CHARS", "2000")),
             ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
             in ("1", "true", "yes"),
             reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
