@@ -214,11 +214,13 @@ async def resume_stream(sid: str, request: Request, after: int = 0) -> EventSour
 
 
 def _sse_frame(item: dict[str, Any]) -> dict[str, str]:
-    return {
+    frame = {
         "event": item["type"],
         "data": json.dumps(item, ensure_ascii=False),
-        "id": str(item["seq"]),
     }
+    if "seq" in item:
+        frame["id"] = str(item["seq"])
+    return frame
 
 
 @app.post("/agent/sessions/{sid}/confirm")
