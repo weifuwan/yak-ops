@@ -11,7 +11,7 @@ import { DimensionSidebar } from "./components/dimension-sidebar";
 import { DimensionTabBar } from "./components/dimension-tab-bar";
 import { DimensionEditor, DimensionList } from "./components/dimension-editor";
 import { useDimensionTree } from "./hooks/use-dimension-tree";
-import type { DimensionTab } from "./types";
+import { DIMENSION_CREATE_OPTIONS, type DimensionCreateType, type DimensionTab } from "./types";
 
 type Props = {
   projectCode: string;
@@ -27,9 +27,15 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
     setSelectedTreeKey("");
   }, [projectCode, tree.dwType, tree.groupBy, tree.scopeValue, tree.keyword]);
 
-  const openTab = (mode: DimensionTab["mode"], record?: DimensionTableRecord, tabDwType: string = tree.dwType) => {
+  const openTab = (
+    mode: DimensionTab["mode"],
+    record?: DimensionTableRecord,
+    tabDwType: string = tree.dwType,
+    createType?: DimensionCreateType,
+  ) => {
     const existing = tabs.find((tab) => {
-      if (mode === "create" || mode === "list") return tab.mode === mode && tab.dwType === tabDwType;
+      if (mode === "create") return tab.mode === "create" && tab.createType === createType;
+      if (mode === "list") return tab.mode === "list" && tab.dwType === tabDwType;
       return tab.mode === "edit" && String(tab.record?.id || "") === String(record?.id || "");
     });
     if (existing) {
@@ -39,11 +45,11 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
 
     const key = "dimension-" + mode + "-" + String(Date.now());
     const label = mode === "create"
-      ? "新建维度表"
+      ? DIMENSION_CREATE_OPTIONS.find((option) => option.type === createType)?.label || "新建模型"
       : mode === "list"
         ? "维度表列表"
-        : String(record?.cnName || record?.tableName || "维度表");
-    const nextTab: DimensionTab = { key, mode, dwType: tabDwType, label, record };
+        : String(record?.cnName || record?.enShortName || record?.tableName || "维度表");
+    const nextTab: DimensionTab = { key, mode, dwType: tabDwType, createType, label, record };
     setTabs((current) => [...current, nextTab]);
     setActiveTabKey(key);
   };
@@ -82,7 +88,7 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
           ...tab,
           mode: "edit",
           record,
-          label: String(record.cnName || record.tableName || "维度表"),
+          label: String(record.cnName || record.enShortName || record.tableName || "维度表"),
           dirty: false,
         }
       : tab));
@@ -116,7 +122,10 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
           error={tree.treeQuery.isError}
           emptyText={tree.keyword ? "没有匹配的维度表" : "暂无维度表，点击上方 + 新建"}
           onRefresh={() => void tree.treeQuery.refetch()}
-          onCreate={() => openTab("create")}
+          onCreate={(type) => {
+            const option = DIMENSION_CREATE_OPTIONS.find((item) => item.type === type);
+            openTab("create", undefined, option?.dwType || tree.dwType, type);
+          }}
           onList={() => openTab("list")}
           onToggle={(key) => {
             setSelectedTreeKey(key);
@@ -170,7 +179,7 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
                     <Layers3 size={42} strokeWidth={1.2} />
                   </div>
                   <p className="text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                    请从左侧目录选择维度表，或点击 + 新建维度表
+                    请从左侧目录选择模型，或点击 + 创建维度模型
                   </p>
                 </div>
               </div>
