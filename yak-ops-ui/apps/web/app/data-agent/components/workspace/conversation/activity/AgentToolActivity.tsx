@@ -61,7 +61,7 @@ export function AgentToolActivity({
         "group flex min-h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 " +
         (selected
           ? "bg-[#f1f4f2] text-[#20201e]"
-          : "bg-transparent text-[#20201e] hover:bg-[#f4f6f5]")
+          : "bg-transparent text-[#20201e] hover:bg-[#e5e5e5]")
       }
       onClick={() => onSelect?.(activity.id)}
     >
