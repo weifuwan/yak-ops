@@ -2,6 +2,7 @@ package io.yak.ops.modeling.application.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,7 @@ import io.yak.ops.modeling.application.service.DimensionTreeBuilder;
 import io.yak.ops.modeling.application.service.DwLayerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -112,7 +114,10 @@ class DimensionModelingServiceImplTest {
         DimensionTableVO result = service.create(dto);
 
         assertEquals("公共维度层", result.getDwhName());
-        verify(dimensionTableDao).insert(any());
+        ArgumentCaptor<DimensionTablePO> created = ArgumentCaptor.forClass(DimensionTablePO.class);
+        verify(dimensionTableDao).insert(created.capture());
+        assertEquals("sample_dimension", created.getValue().getEnShortName());
+        assertNull(created.getValue().getTableName());
     }
 
     @Test
