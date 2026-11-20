@@ -17,6 +17,11 @@ const sidebar = read("../apps/web/app/data-modeling/models/dimension-modeling/wo
 const controller = read("../../yak-ops-api/src/main/java/io/yak/ops/api/controller/DimensionModelingController.java");
 const groupingEnum = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/domain/enums/DimensionTreeGroupingEnum.java");
 const treeBuilder = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/DimensionTreeBuilder.java");
+const editor = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/dimension-editor.tsx");
+const createTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/types.ts");
+const dimensionPo = read("../../yak-ops-dao/src/main/java/io/yak/ops/dao/entity/DimensionTablePO.java");
+const dimensionService = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/impl/DimensionModelingServiceImpl.java");
+const dimensionSql = read("../../yak-ops-modeling/src/main/resources/sql/modeling_postgresql.sql");
 
 test("dimension tree API is connected to the project-scoped backend tree endpoint", () => {
   assert.match(api, /resourcePath\(projectCode\) \+ "\/tree"/);
@@ -118,6 +123,35 @@ test("backend tree filters selected parent scopes by descendants and preserves t
   assert.match(treeBuilder, /wrapper\.in\("mart_id", collectDescendantIds/);
   assert.match(treeBuilder, /wrapper\.in\("subject_id", collectDescendantIds/);
   assert.match(treeBuilder, /roots\.removeIf\(node -> !retainPathToSelection/);
-  assert.match(treeBuilder, /tableNode\.setSearchText\(table\.getTableName\(\)\)/);
+  assert.match(treeBuilder, /tableNode\.setSearchText\([\s\S]*table\.getEnShortName\(\)/);
   assert.match(treeBuilder, /应用层目录仅支持按数据集市或主题域分组/);
+});
+
+
+test("dimension creation offers six typed entries and excludes NONE_LAYER", () => {
+  for (const type of ["DIM", "SOURCE", "DIMENSION", "DETAIL", "SUMMARY", "APPLICATION"]) {
+    assert.match(createTypes, new RegExp('type: "' + type + '"'));
+  }
+  assert.doesNotMatch(createTypes, /NONE_LAYER/);
+  assert.match(editor, /layerType === "NONE_LAYER"\) return false/);
+  assert.match(dimensionService, /未分层仅用于历史数据管理/);
+});
+
+test("basic information and field management are saved independently", () => {
+  const basicSaveStart = editor.indexOf("const saveBasicInfo = async");
+  const fieldSaveStart = editor.indexOf("const saveFields = async");
+  assert.ok(basicSaveStart >= 0 && fieldSaveStart > basicSaveStart);
+  assert.doesNotMatch(editor.slice(basicSaveStart, fieldSaveStart), /replaceFields/);
+  assert.match(editor, /dimensionModelingApi\.replaceFields/);
+  assert.match(editor, /保存基本信息/);
+  assert.match(editor, /保存字段/);
+  assert.match(editor, /addField\("PARTITION"\)/);
+});
+
+test("DIM business identifiers use enShortName instead of tableName", () => {
+  assert.match(api, /enShortName\?: string/);
+  assert.match(dimensionPo, /private String enShortName;/);
+  assert.match(dimensionSql, /en_short_name varchar\(255\)/);
+  assert.match(dimensionService, /dto\.setTableName\(null\)/);
+  assert.match(treeBuilder, /en_short_name/);
 });
