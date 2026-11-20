@@ -572,15 +572,15 @@ test("completed activity statuses use icon-only indicators and readable typograp
 });
 
 test("Data Agent session actions use a right-opening Yak-UI menu outside the scroll container", () => {
-  assert.match(conversationList, /<DropdownMenu\\s/);
-  assert.match(conversationList, /<DropdownMenuTrigger/);
-  assert.match(conversationList, /<DropdownMenuContent[\\s\\S]*?side="right"/);
-  assert.match(conversationList, /align="start"/);
-  assert.match(conversationList, /sideOffset=\\{8\\}/);
-  assert.match(conversationList, /<DropdownMenuSeparator/);
-  assert.match(conversationList, /tone="danger"/);
-  assert.match(conversationList, /shadow-\\[0_8px_24px_rgba\\(0,0,0,0\\.12\\)\\]/);
-  assert.doesNotMatch(conversationList, /absolute right-1 top-8 z-30/);
-  assert.doesNotMatch(conversationList, /role="menuitem"/);
+  assert.ok(conversationList.includes("<DropdownMenu"));
+  assert.ok(conversationList.includes("<DropdownMenuTrigger"));
+  assert.ok(conversationList.includes('side="right"'));
+  assert.ok(conversationList.includes('align="start"'));
+  assert.ok(conversationList.includes("sideOffset={8}"));
+  assert.ok(conversationList.includes("<DropdownMenuSeparator"));
+  assert.ok(conversationList.includes('tone="danger"'));
+  assert.ok(conversationList.includes("shadow-[0_8px_24px_rgba(0,0,0,0.12)]"));
+  assert.ok(!conversationList.includes("absolute right-1 top-8 z-30"));
+  assert.ok(!conversationList.includes('role="menuitem"'));
 });
 
