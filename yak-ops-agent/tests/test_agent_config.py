@@ -41,6 +41,9 @@ class AgentConfigTests(unittest.TestCase):
     def test_injected_time_uses_platform_timezone(self) -> None:
         self.assertEqual(self.agent.injection_config.timezone, "Asia/Shanghai")
 
+    def test_tool_results_keep_enough_context_for_logs(self) -> None:
+        self.assertEqual(self.agent.context_config.tool_result_limit, 4000)
+
 
 if __name__ == "__main__":
     unittest.main()

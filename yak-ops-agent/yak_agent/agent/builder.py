@@ -52,7 +52,7 @@ def build_agent(
         context_config=ContextConfig(
             trigger_ratio=0.7,
             reserve_ratio=0.2,
-            tool_result_limit=1000,
+            tool_result_limit=4000,
         ),
         middlewares=[
             # Cost/latency guardrail: output tokens weigh 2x; once the budget
