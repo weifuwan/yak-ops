@@ -4,7 +4,6 @@ import type {
   AgentSessionHistory,
   AgentSessionStatus,
   AgentSessionSummary,
-  AgentToolCallRequest,
 } from "./types.ts";
 
 export async function createAgentSession(
@@ -121,7 +120,3 @@ export async function confirmAgentSession(
   );
 }
 
-export type RestoredConfirmation = {
-  replyId: string;
-  toolCalls: AgentToolCallRequest[];
-};
