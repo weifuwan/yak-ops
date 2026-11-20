@@ -315,9 +315,9 @@ test("Data Agent workspace menu groups its label with menu items", () => {
 
 test("Data Agent renders ordered SSE activity with expandable tool input and output", () => {
   assert.match(assistantMessage, /AgentActivityTimeline/);
-  assert.match(assistantMessage, /activities\\.some\\(\\(activity\\) => activity\\.kind !== "text"\\)/);
+  assert.match(assistantMessage, /activities\.some\(\(activity\) => activity\.kind !== "text"\)/);
   assert.match(activityTimeline, /执行过程/);
-  assert.match(activityTimeline, /aria-expanded=\\{expanded\\}/);
+  assert.match(activityTimeline, /aria-expanded=\{expanded\}/);
   assert.match(activityTimeline, /Token 用量/);
   assert.match(activityItem, /DataAgentMarkdown/);
   assert.match(activityItem, /AgentToolActivity/);
@@ -325,7 +325,7 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(activityDetails, /输入参数/);
   assert.match(activityDetails, /执行结果/);
   assert.match(activityDetails, /<details/);
-  assert.match(conversationHook, /case "thinking_delta":[\\s\\S]*Raw model reasoning is intentionally not persisted or rendered/);
+  assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
   assert.match(conversationHook, /case "tool_result_delta"/);
   assert.match(conversationHook, /case "usage"/);
