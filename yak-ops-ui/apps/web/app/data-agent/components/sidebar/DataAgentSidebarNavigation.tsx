@@ -10,6 +10,7 @@ type SidebarConversation = {
   id: string;
   title: string;
   updatedAt: string;
+  preview?: string;
 };
 
 type DataAgentSidebarNavigationProps = {
@@ -47,7 +48,9 @@ export function DataAgentSidebarNavigation({
   onSelectConversation,
 }: DataAgentSidebarNavigationProps) {
   const filteredConversations = conversations.filter((conversation) =>
-    conversation.title.toLowerCase().includes(searchTerm.trim().toLowerCase()),
+    (conversation.title + " " + (conversation.preview ?? ""))
+      .toLowerCase()
+      .includes(searchTerm.trim().toLowerCase()),
   );
 
   function selectConversation(id: string) {
