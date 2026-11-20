@@ -1,4 +1,4 @@
-import { PanelLeft, PanelRight, X } from "lucide-react";
+import { PanelLeft, PanelRight, PanelRightClose } from "lucide-react";
 
 type DataAgentConversationHeaderProps = {
   title: string;
@@ -44,10 +44,22 @@ export function DataAgentConversationHeader({
       </div>
 
       {detailsOpen ? (
-        <div
-          style={{ width: String(detailsWidth) + "px" }}
-          className="mr-2 hidden h-full shrink-0 items-center justify-end gap-1 px-2.5 lg:flex"
-        >
+        <>
+          <button
+            type="button"
+            aria-label="收起执行详情"
+            aria-expanded={detailsOpen}
+            title="收起执行详情"
+            style={{ right: String(detailsWidth + 12) + "px" }}
+            className="absolute top-1/2 z-20 hidden size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md bg-transparent text-[#7b8581] transition-colors hover:bg-[#f2f4f3] hover:text-[#303936] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 lg:flex"
+            onClick={onToggleDetails}
+          >
+            <PanelRightClose size={16} strokeWidth={1.5} />
+          </button>
+          <div
+            style={{ width: String(detailsWidth) + "px" }}
+            className="mr-2 hidden h-full shrink-0 items-center justify-end gap-1 px-2.5 lg:flex"
+          >
           <div
             role="status"
             aria-live="polite"
@@ -79,16 +91,8 @@ export function DataAgentConversationHeader({
           >
             Changes
           </button>
-          <button
-            type="button"
-            aria-label="关闭执行详情"
-            title="关闭执行详情"
-            className="flex size-7 cursor-pointer items-center justify-center rounded-md bg-transparent text-[#7b8581] transition-colors hover:bg-[#f2f4f3] hover:text-[#303936] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
-            onClick={onToggleDetails}
-          >
-            <X size={16} />
-          </button>
-        </div>
+          </div>
+        </>
       ) : (
         <div className="flex h-full shrink-0 items-center gap-2 px-2.5">
           <div
