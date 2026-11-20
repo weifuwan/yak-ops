@@ -116,7 +116,7 @@ export function ConversationPanel({
         className={
           "relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-white transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none " +
           (detailsOpen
-            ? "w-[min(420px,40%)] min-w-[320px] border-l border-[#ecefed] opacity-100 max-md:absolute max-md:inset-0 max-md:!w-full max-md:min-w-0 max-md:z-20"
+            ? "w-[min(420px,40%)] min-w-0 border-l border-[#ecefed] opacity-100 max-md:absolute max-md:inset-0 max-md:!w-full max-md:z-20"
             : "pointer-events-none w-0 min-w-0 border-l-0 opacity-0")
         }
       >
