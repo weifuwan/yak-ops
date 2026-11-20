@@ -16,6 +16,7 @@ type StreamOptions = {
   onConfirmRequired: (
     event: Extract<AgentStreamEvent, { type: "confirm_required" }>,
   ) => void;
+  onReconnect?: () => void;
 };
 
 type StreamReadResult = {
@@ -377,5 +378,6 @@ export async function sendAgentMessage(
   const result = await consumeAgentStream(response, options, 0);
   if (result.completed) return;
 
+  options.onReconnect?.();
   await resumeAgentStream(sessionId, result.cursor, options);
 }
