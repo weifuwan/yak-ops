@@ -7,6 +7,7 @@ const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const conversationHeader = read("../apps/web/app/data-agent/components/workspace/DataAgentConversationHeader.tsx");
+const sessionWorkspace = read("../apps/web/app/data-agent/components/workspace/DataAgentSessionWorkspace.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
 const emptyStateStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-empty-state.css");
 const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
@@ -68,7 +69,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
   assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(workspace, /<DataAgentEmptyState/);
-  assert.match(workspace, /<DataAgentConversationHeader/);
+  assert.match(workspace, /<DataAgentSessionWorkspace/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
@@ -87,26 +88,33 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(sidebarFooter, /Unlock more features/);
 });
 
-test("Data Agent restores the original empty workspace and uses full bleed only for conversations", () => {
+test("Data Agent restores the original empty workspace and uses a shared split header for conversations", () => {
   const emptyBranchIndex = workspace.indexOf("{!hasMessages ? (");
   const emptyStateIndex = workspace.indexOf("<DataAgentEmptyState", emptyBranchIndex);
-  const conversationHeaderIndex = workspace.indexOf("<DataAgentConversationHeader");
-  const conversationBranch = workspace.slice(conversationHeaderIndex);
+  const sessionWorkspaceIndex = workspace.indexOf("<DataAgentSessionWorkspace");
+  const conversationBranch = workspace.slice(sessionWorkspaceIndex);
 
   assert.ok(emptyBranchIndex >= 0, "empty workspace should have its own layout branch");
   assert.ok(emptyStateIndex > emptyBranchIndex, "empty state should render in the original workspace branch");
-  assert.ok(conversationHeaderIndex > emptyStateIndex, "conversation header should only appear after the empty state branch");
-  assert.match(workspace.slice(emptyBranchIndex, conversationHeaderIndex), /bg-\[#f0f0f0\] p-2 max-md:p-0/);
-  assert.match(workspace.slice(emptyBranchIndex, conversationHeaderIndex), /rounded-2xl border border-\[#e7e7e4\] bg-white/);
+  assert.ok(sessionWorkspaceIndex > emptyStateIndex, "session workspace should only render after the empty state branch");
+  assert.match(workspace.slice(emptyBranchIndex, sessionWorkspaceIndex), /bg-\[#f0f0f0\] p-2 max-md:p-0/);
+  assert.match(workspace.slice(emptyBranchIndex, sessionWorkspaceIndex), /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(conversationBranch, /title=\{activeConversation\?\.title \?\? "新对话"\}/);
-  assert.match(conversationBranch, /<section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">/);
+  assert.match(conversationBranch, /messages=\{messages\}/);
+  assert.match(conversationBranch, /trailingActions=\{modelSelector\}/);
   assert.doesNotMatch(conversationBranch, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
-  assert.match(conversationBranch, /<ConversationPanel/);
 
-  assert.match(conversationHeader, /h-12 shrink-0 items-center justify-between border-b/);
+  assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
+  assert.match(sessionWorkspace, /<ConversationPanel/);
+  assert.match(sessionWorkspace, /<AgentDetailsPanel/);
+  assert.match(conversationHeader, /h-12 shrink-0 items-center border-b/);
   assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.match(conversationHeader, /onToggleSidebar/);
   assert.match(conversationHeader, /isSending \? "正在处理" : "已就绪"/);
+  assert.match(conversationHeader, /detailsOpen/);
+  assert.match(conversationHeader, /Timeline/);
+  assert.match(conversationHeader, /Changes/);
+  assert.match(conversationHeader, /onToggleDetails/);
   assert.match(conversationHeader, /cursor-pointer/);
 
   assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
@@ -346,7 +354,7 @@ test("Data Agent workspace menu groups its label with menu items", () => {
 });
 
 
-test("Data Agent renders assistant activity inline and keeps the execution summary in details", () => {
+test("Data Agent renders assistant activity inline and keeps execution details in the shared side panel", () => {
   assert.match(assistantMessage, /AgentActivityTimeline/);
   assert.match(assistantMessage, /activities\.some\(\(activity\) => activity\.kind !== "text"\)/);
   assert.doesNotMatch(assistantMessage, /usage=\{message\.usage\}|replyEnds=\{message\.replyEnds\}|isError=/);
@@ -366,11 +374,16 @@ test("Data Agent renders assistant activity inline and keeps the execution summa
   assert.doesNotMatch(detailsTimeline, /hover:bg-\[#e5e5e5\]/);
   assert.doesNotMatch(toolActivity, /hover:bg-\[#f4f6f5\]/);
   assert.doesNotMatch(detailsTimeline, /hover:bg-\[#f8f9f8\]/);
-  assert.match(conversationPanel, /AgentDetailsPanel/);
-  assert.match(conversationPanel, /id="agent-details-panel"/);
-  assert.match(conversationPanel, /handleSelectActivity/);
-  assert.match(conversationPanel, /duration-300/);
-  assert.match(conversationPanel, /max-md:absolute max-md:inset-0/);
+  assert.match(conversationPanel, /<MessageList/);
+  assert.match(conversationPanel, /selectedMessageId/);
+  assert.match(conversationPanel, /selectedActivityId/);
+  assert.match(conversationPanel, /onSelectActivity/);
+  assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|agent-details-panel|AgentDetailsResizer/);
+  assert.match(sessionWorkspace, /AgentDetailsPanel/);
+  assert.match(sessionWorkspace, /id="agent-details-panel"/);
+  assert.match(sessionWorkspace, /handleSelectActivity/);
+  assert.match(sessionWorkspace, /duration-300/);
+  assert.match(sessionWorkspace, /max-md:absolute max-md:inset-0/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
   assert.match(detailsPanel, /AgentDetailsSummary/);
   assert.match(detailsPanel, /执行概览/);
@@ -378,8 +391,7 @@ test("Data Agent renders assistant activity inline and keeps the execution summa
   assert.match(detailsPanel, /输入 \{inputTokens\.toLocaleString\(\)\}/);
   assert.match(detailsPanel, /输出 \{outputTokens\.toLocaleString\(\)\}/);
   assert.match(detailsPanel, /缓存 \{cacheTokens\.toLocaleString\(\)\}/);
-  assert.match(detailsPanel, /aria-label="关闭执行详情"/);
-  assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Agent 执行过程/);
+  assert.doesNotMatch(detailsPanel, /aria-label="关闭执行详情"|AgentActivityDetails|Agent 执行过程/);
   assert.match(detailsTimeline, /Thought/);
   assert.match(detailsTimeline, /SquareTerminal/);
   assert.match(detailsTimeline, /pl-8/);
@@ -425,18 +437,19 @@ test("tool activity is a single-line action that opens the message execution det
 
 
 test("Data Agent execution details panel has an accessible, bounded drag splitter", () => {
-  assert.match(conversationPanel, /const \[detailsWidth, setDetailsWidth\] = useState\(420\)/);
-  assert.match(conversationPanel, /const \[detailsMaxWidth, setDetailsMaxWidth\] = useState\(DETAILS_MAX_WIDTH\)/);
-  assert.match(conversationPanel, /new ResizeObserver\(updateMaxWidth\)/);
-  assert.match(conversationPanel, /Math\.floor\(element\.clientWidth \* 0\.55\)/);
-  assert.match(conversationPanel, /<AgentDetailsResizer/);
-  assert.match(conversationPanel, /onResize=\{setDetailsWidth\}/);
-  assert.match(conversationPanel, /onDraggingChange=\{setDetailsResizing\}/);
-  assert.match(conversationPanel, /detailsResizing/);
-  assert.match(conversationPanel, /style=\{\{ width: detailsOpen \? String\(detailsWidth\) \+ "px" : "0px" \}\}/);
-  assert.match(conversationPanel, /max-md:!w-full/);
+  assert.match(sessionWorkspace, /const \[detailsWidth, setDetailsWidth\] = useState\(420\)/);
+  assert.match(sessionWorkspace, /const \[detailsMaxWidth, setDetailsMaxWidth\] = useState\(DETAILS_MAX_WIDTH\)/);
+  assert.match(sessionWorkspace, /new ResizeObserver\(updateWidth\)/);
+  assert.match(sessionWorkspace, /Math\.floor\(availableWidth \* 0\.55\)/);
+  assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
+  assert.match(sessionWorkspace, /<AgentDetailsResizer/);
+  assert.match(sessionWorkspace, /onResize=\{setDetailsWidth\}/);
+  assert.match(sessionWorkspace, /onDraggingChange=\{setDetailsResizing\}/);
+  assert.match(sessionWorkspace, /detailsResizing/);
+  assert.match(sessionWorkspace, /style=\{\{ width: detailsOpen \? String\(detailsWidth\) \+ "px" : "0px" \}\}/);
+  assert.match(sessionWorkspace, /max-md:!w-full/);
 
-  assert.match(detailsResizer, /DETAILS_MIN_WIDTH = 280/);
+  assert.match(detailsResizer, /DETAILS_MIN_WIDTH = 320/);
   assert.match(detailsResizer, /role="separator"/);
   assert.match(detailsResizer, /aria-label="调整 Agent 详情面板宽度"/);
   assert.match(detailsResizer, /aria-orientation="vertical"/);
@@ -461,7 +474,7 @@ test("Data Agent clickable controls use pointer cursors and drag splitters keep 
   assert.match(modelSelector, /min-h-\\[56px\\] cursor-pointer/);
   assert.match(sidebarNavigation, /group flex h-8 w-full cursor-pointer/);
   assert.match(sidebarNavigation, /h-8 w-full cursor-pointer items-center/);
-  assert.match(detailsPanel, /cursor-pointer/);
+  assert.match(sessionWorkspace, /cursor-pointer/);
   assert.match(messageActions, /cursor-pointer/);
   assert.match(confirmationCard, /cursor-pointer/);
   assert.match(composer, /cursor-pointer/);
@@ -471,6 +484,25 @@ test("Data Agent clickable controls use pointer cursors and drag splitters keep 
   assert.match(detailsResizer, /cursor-col-resize/);
   assert.match(sidebarResizer, /cursor-col-resize/);
   assert.match(composer, /disabled:cursor-not-allowed/);
+});
+
+test("Data Agent session workspace uses a shared header and a 60/40 split with a responsive details pane", () => {
+  assert.match(workspace, /<DataAgentSessionWorkspace/);
+  assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
+  assert.match(sessionWorkspace, /const \[detailsOpen, setDetailsOpen\] = useState\(true\)/);
+  assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
+  assert.match(sessionWorkspace, /DETAILS_MAX_WIDTH = 640/);
+  assert.match(sessionWorkspace, /DetailsEmptyState/);
+  assert.match(sessionWorkspace, /max-md:absolute max-md:inset-0 max-md:z-20/);
+  assert.match(conversationHeader, /h-12/);
+  assert.match(conversationHeader, /border-l border-\[#ecefed\]/);
+  assert.match(conversationHeader, /Timeline/);
+  assert.match(conversationHeader, /Changes/);
+  assert.match(conversationHeader, /aria-expanded=\{detailsOpen\}/);
+  assert.match(conversationHeader, /md:hidden/);
+  assert.match(conversationPanel, /<MessageList/);
+  assert.match(conversationPanel, /DataAgentPromptComposer/);
+  assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|AgentDetailsResizer/);
 });
 
 test("Data Agent details timeline uses a centered continuous 2px rail without dot markers", () => {
