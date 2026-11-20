@@ -95,7 +95,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
 });
 
 test("Data Agent restores the original empty workspace and uses a shared split header for conversations", () => {
-  const emptyBranchIndex = workspace.indexOf("{!hasMessages ? (");
+  const emptyBranchIndex = workspace.indexOf(": !hasMessages ? (");
   const emptyStateIndex = workspace.indexOf("<DataAgentEmptyState", emptyBranchIndex);
   const sessionWorkspaceIndex = workspace.indexOf("<DataAgentSessionWorkspace");
   const conversationBranch = workspace.slice(sessionWorkspaceIndex);
