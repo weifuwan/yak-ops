@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react";
 import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@yak-ops/yak-ui";
 
 type SidebarConversation = {
   id: string;
@@ -158,47 +165,50 @@ export function DataAgentConversationList({
                           </span>
                         </button>
 
-                        <button
-                          type="button"
-                          aria-label={"会话操作：" + conversation.title}
-                          title="会话操作"
-                          disabled={busy}
-                          className={
-                            "absolute right-1 top-1.5 flex size-6 cursor-pointer items-center justify-center rounded-md text-[#858585] transition-colors hover:bg-[#e5e5e5] hover:text-[#20201e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888888]/30 " +
-                            (menuOpen ? "bg-[#e5e5e5] opacity-100 " : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 ") +
-                            "disabled:cursor-not-allowed disabled:opacity-40"
-                          }
-                          onClick={() => setOpenMenuId(menuOpen ? null : conversation.id)}
+                        <DropdownMenu
+                          open={menuOpen}
+                          onOpenChange={(open) => setOpenMenuId(open ? conversation.id : null)}
                         >
-                          <MoreHorizontal size={15} />
-                        </button>
-
-                        {menuOpen ? (
-                          <div
-                            role="menu"
-                            aria-label="会话操作"
-                            className="absolute right-1 top-8 z-30 min-w-32 rounded-lg border border-[#e3e3e3] bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                          <DropdownMenuTrigger
+                            type="button"
+                            aria-label={"会话操作：" + conversation.title}
+                            title="会话操作"
+                            disabled={busy}
+                            className={
+                              "absolute right-1 top-1.5 flex size-6 cursor-pointer items-center justify-center rounded-md text-[#858585] outline-none transition-colors hover:bg-[#e5e5e5] hover:text-[#20201e] focus-visible:ring-2 focus-visible:ring-[#888888]/30 " +
+                              (menuOpen ? "bg-[#e5e5e5] opacity-100 " : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 ") +
+                              "disabled:cursor-not-allowed disabled:opacity-40"
+                            }
                           >
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-xs text-[#404040] hover:bg-[#f3f3f3]"
+                            <MoreHorizontal size={15} />
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent
+                            side="right"
+                            align="start"
+                            sideOffset={8}
+                            className="w-48 rounded-xl border border-[#dededb] bg-white p-1.5 text-[#20201e] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                          >
+                            <DropdownMenuItem
+                              disabled={busy}
                               onClick={() => rename(conversation)}
+                              className="min-h-9 rounded-md px-2.5 py-2 text-[13px] text-[#333333] data-[highlighted]:bg-[#f1f1f1]"
                             >
-                              <Pencil size={13} />
+                              <Pencil size={14} className="shrink-0 text-[#666666]" />
                               重命名
-                            </button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-xs text-[#c44747] hover:bg-[#fff3f3]"
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1 bg-[#eeeeec]" />
+                            <DropdownMenuItem
+                              disabled={busy}
+                              tone="danger"
                               onClick={() => remove(conversation)}
+                              className="min-h-9 rounded-md px-2.5 py-2 text-[13px] text-[#c44747] data-[highlighted]:bg-[#fff1f1]"
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={14} className="shrink-0" />
                               删除会话
-                            </button>
-                          </div>
-                        ) : null}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     );
                   })}
