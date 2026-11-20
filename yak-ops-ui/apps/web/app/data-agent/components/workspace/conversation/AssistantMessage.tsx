@@ -11,12 +11,16 @@ type AssistantMessageProps = {
   message: AgentMessage;
   pendingConfirmation: PendingConfirmation | null;
   onResolveConfirmation: (approved: boolean) => void;
+  selectedActivityId?: string | null;
+  onSelectActivity?: (activityId: string) => void;
 };
 
 export function AssistantMessage({
   message,
   pendingConfirmation,
   onResolveConfirmation,
+  selectedActivityId,
+  onSelectActivity,
 }: AssistantMessageProps) {
   const toolCalls = message.toolCalls ?? [];
   const activities = message.activities ?? [];
@@ -31,6 +35,8 @@ export function AssistantMessage({
           replyEnds={message.replyEnds}
           isStreaming={message.status === "streaming"}
           isError={message.status === "error"}
+          selectedActivityId={selectedActivityId}
+          onSelectActivity={onSelectActivity}
         />
       ) : message.content.trim() ? (
         <DataAgentMarkdown
