@@ -317,12 +317,13 @@ test("Data Agent workspace menu groups its label with menu items", () => {
 });
 
 
-test("Data Agent renders ordered SSE activity with expandable tool input and output", () => {
+test("Data Agent renders assistant activity inline and keeps the execution summary in details", () => {
   assert.match(assistantMessage, /AgentActivityTimeline/);
   assert.match(assistantMessage, /activities\.some\(\(activity\) => activity\.kind !== "text"\)/);
-  assert.match(activityTimeline, /执行过程/);
-  assert.match(activityTimeline, /aria-expanded=\{expanded\}/);
-  assert.match(activityTimeline, /Token 用量/);
+  assert.doesNotMatch(assistantMessage, /usage=\{message\.usage\}|replyEnds=\{message\.replyEnds\}|isError=/);
+  assert.match(activityTimeline, /AgentActivityItem/);
+  assert.match(activityTimeline, /isStreaming/);
+  assert.doesNotMatch(activityTimeline, /执行过程|aria-expanded=\{expanded\}|Token 用量|ChevronDown|rounded-xl border|bg-\[#fbfcfb\]/);
   assert.match(activityItem, /DataAgentMarkdown/);
   assert.match(activityItem, /AgentToolActivity/);
   assert.doesNotMatch(toolActivity, /AgentActivityDetails/);
@@ -337,8 +338,14 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(conversationPanel, /duration-300/);
   assert.match(conversationPanel, /max-md:absolute max-md:inset-0/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
+  assert.match(detailsPanel, /AgentDetailsSummary/);
+  assert.match(detailsPanel, /执行概览/);
+  assert.match(detailsPanel, /Token 用量/);
+  assert.match(detailsPanel, /输入 \{inputTokens\.toLocaleString\(\)\}/);
+  assert.match(detailsPanel, /输出 \{outputTokens\.toLocaleString\(\)\}/);
+  assert.match(detailsPanel, /缓存 \{cacheTokens\.toLocaleString\(\)\}/);
   assert.match(detailsPanel, /aria-label="关闭执行详情"/);
-  assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Token 用量|Agent 执行过程/);
+  assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Agent 执行过程/);
   assert.match(detailsTimeline, /Thought/);
   assert.match(detailsTimeline, /SquareTerminal/);
   assert.match(detailsTimeline, /pl-8/);
