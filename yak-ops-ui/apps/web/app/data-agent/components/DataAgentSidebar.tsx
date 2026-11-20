@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@yak-ops/yak-ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -58,6 +58,10 @@ export function DataAgentSidebar({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeNavigation, setActiveNavigation] = useState("new");
+
+  useEffect(() => {
+    setActiveNavigation(activeConversationId ? "chats" : "new");
+  }, [activeConversationId]);
 
   const workspaceName = loading
     ? "加载中…"
@@ -162,8 +166,6 @@ export function DataAgentSidebar({
         onSearchTermChange={setSearchTerm}
         onNewConversation={onNewConversation}
         onSelectConversation={selectConversation}
-        onRenameConversation={onRenameConversation}
-        onDeleteConversation={onDeleteConversation}
       />
 
       <DataAgentConversationList
@@ -171,6 +173,8 @@ export function DataAgentSidebar({
         activeConversationId={activeConversationId}
         busy={busy}
         onSelectConversation={selectConversation}
+        onRenameConversation={onRenameConversation}
+        onDeleteConversation={onDeleteConversation}
       />
 
       <DataAgentSidebarFooter
