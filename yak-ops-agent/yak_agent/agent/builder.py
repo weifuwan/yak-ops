@@ -31,6 +31,7 @@ def build_agent(
     model = OpenAIChatModel(
         credential=OpenAICredential(api_key=settings.llm_api_key, base_url=settings.llm_base_url),
         model=settings.llm_model,
+        context_size=settings.llm_context_size,
     )
     return Agent(
         name="yak_agent",
@@ -47,7 +48,11 @@ def build_agent(
         ),
         state=state,
         react_config=ReActConfig(max_iters=12),
-        context_config=ContextConfig(tool_result_limit=1000),
+        context_config=ContextConfig(
+            trigger_ratio=0.7,
+            reserve_ratio=0.2,
+            tool_result_limit=1000,
+        ),
         middlewares=[
             # Cost/latency guardrail: output tokens weigh 2x; once the budget
             # is exhausted the agent wraps up without further tool calls.

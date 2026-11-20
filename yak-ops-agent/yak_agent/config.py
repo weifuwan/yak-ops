@@ -47,6 +47,9 @@ class Settings:
     llm_model: str
     yak_ops_base_url: str
     yak_ops_token: str
+    # Context window of the configured model, in tokens. Compression triggers
+    # at 70% of this value, so it must match the model's real limit.
+    llm_context_size: int = 128000
     # PTC safety: when True, analysis scripts may run on the no-isolation
     # subprocess backend (compute-only, credentials stripped). Default False —
     # without a real sandbox (cocoon/Docker) the tool is simply not registered.
@@ -76,6 +79,7 @@ class Settings:
             llm_model=get("LLM_MODEL"),
             yak_ops_base_url=get("YAK_OPS_BASE_URL", "http://127.0.0.1:12345/yak-ops").rstrip("/"),
             yak_ops_token=get("YAK_OPS_TOKEN").strip(),
+            llm_context_size=int(get("LLM_CONTEXT_SIZE", "128000")),
             ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
             in ("1", "true", "yes"),
             reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
