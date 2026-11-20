@@ -1,5 +1,11 @@
 import { requestJson, sessionPath } from "./http.ts";
-import type { AgentRequestIdentity, AgentSessionSummary } from "./types.ts";
+import type {
+  AgentRequestIdentity,
+  AgentSessionHistory,
+  AgentSessionStatus,
+  AgentSessionSummary,
+  AgentToolCallRequest,
+} from "./types.ts";
 
 export async function createAgentSession(
   identity: AgentRequestIdentity,
@@ -25,6 +31,49 @@ export async function listAgentSessions(
   );
 }
 
+export async function getAgentSessionStatus(
+  sessionId: string,
+  identity: AgentRequestIdentity,
+  signal?: AbortSignal,
+): Promise<AgentSessionStatus> {
+  return requestJson<AgentSessionStatus>(
+    sessionPath(sessionId),
+    identity,
+    { method: "GET" },
+    signal,
+  );
+}
+
+export async function getAgentSessionMessages(
+  sessionId: string,
+  identity: AgentRequestIdentity,
+  signal?: AbortSignal,
+): Promise<AgentSessionHistory> {
+  return requestJson<AgentSessionHistory>(
+    sessionPath(sessionId) + "/messages",
+    identity,
+    { method: "GET" },
+    signal,
+  );
+}
+
+export async function renameAgentSession(
+  sessionId: string,
+  title: string,
+  identity: AgentRequestIdentity,
+  signal?: AbortSignal,
+): Promise<{ sessionId: string; title: string }> {
+  return requestJson<{ sessionId: string; title: string }>(
+    sessionPath(sessionId),
+    identity,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    },
+    signal,
+  );
+}
+
 export async function deleteAgentSession(
   sessionId: string,
   identity: AgentRequestIdentity,
@@ -38,9 +87,26 @@ export async function deleteAgentSession(
   );
 }
 
+export async function interruptAgentSession(
+  sessionId: string,
+  turnId: string | null,
+  identity: AgentRequestIdentity,
+  signal?: AbortSignal,
+): Promise<{ accepted: boolean; state: string; turnId?: string | null }> {
+  return requestJson<{ accepted: boolean; state: string; turnId?: string | null }>(
+    sessionPath(sessionId) + "/interrupt",
+    identity,
+    {
+      method: "POST",
+      body: JSON.stringify(turnId ? { turnId } : {}),
+    },
+    signal,
+  );
+}
+
 export async function confirmAgentSession(
   sessionId: string,
-  approved: boolean,
+  approved: boolean | boolean[],
   identity: AgentRequestIdentity,
   signal: AbortSignal,
 ): Promise<void> {
@@ -54,3 +120,8 @@ export async function confirmAgentSession(
     signal,
   );
 }
+
+export type RestoredConfirmation = {
+  replyId: string;
+  toolCalls: AgentToolCallRequest[];
+};
