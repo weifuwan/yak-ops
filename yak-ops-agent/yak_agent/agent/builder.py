@@ -17,6 +17,7 @@ from yak_agent.agent.budget import (
     COMPRESSION_TOOL_TOKENS,
     check_context_budget,
     enforce_context_budget,
+    estimate_value_tokens,
 )
 from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, SYSTEM_PROMPT
 from yak_agent.config import Settings
@@ -27,6 +28,17 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
 _TRIGGER_RATIO = 0.7
 _COMPRESSION_ENABLED = True
 _LOGGER = logging.getLogger(__name__)
+_SKILL_TEXT_SUFFIXES = frozenset({".md", ".txt", ".yaml", ".yml", ".json"})
+
+
+def _skill_prompt_tokens() -> int:
+    """Conservative estimate of the skill instructions appended per reply."""
+    total = 0
+    if _SKILLS_DIR.exists():
+        for path in _SKILLS_DIR.rglob("*"):
+            if path.is_file() and path.suffix.lower() in _SKILL_TEXT_SUFFIXES:
+                total += path.stat().st_size
+    return (total + 3) // 4
 
 
 def build_agent(
@@ -59,6 +71,8 @@ def build_agent(
         tools=tools,
         memory_budget_tokens=settings.llm_memory_budget_tokens,
         reserved_tool_tokens=COMPRESSION_TOOL_TOKENS if _COMPRESSION_ENABLED else 0,
+        reserved_prompt_tokens=estimate_value_tokens(getattr(state, "summary", None))
+        + _skill_prompt_tokens(),
     )
     enforce_context_budget(report)
     _LOGGER.info(

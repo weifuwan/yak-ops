@@ -36,6 +36,15 @@ def estimate_tokens(text: str) -> int:
     return (len(text.encode("utf-8")) + _BYTES_PER_TOKEN - 1) // _BYTES_PER_TOKEN
 
 
+def estimate_value_tokens(value: Any) -> int:
+    """Estimate a prompt fragment that may be a string or block list."""
+    if not value:
+        return 0
+    if isinstance(value, str):
+        return estimate_tokens(value)
+    return estimate_tokens(json.dumps(value, ensure_ascii=False, default=str))
+
+
 def _tool_tokens(tool: Any) -> int:
     schema = {
         "name": getattr(tool, "name", ""),
@@ -53,6 +62,7 @@ def check_context_budget(
     tools: list[Any],
     memory_budget_tokens: int = 0,
     reserved_tool_tokens: int = 0,
+    reserved_prompt_tokens: int = 0,
 ) -> BudgetReport:
     """Return the headroom left for conversation context after fixed inputs."""
     threshold = int(context_size * trigger_ratio)
@@ -60,6 +70,7 @@ def check_context_budget(
     used += sum(_tool_tokens(tool) for tool in tools)
     used += max(0, memory_budget_tokens)
     used += max(0, reserved_tool_tokens)
+    used += max(0, reserved_prompt_tokens)
     return BudgetReport(threshold=threshold, used=used, available=threshold - used)
 
 
@@ -69,6 +80,6 @@ def enforce_context_budget(report: BudgetReport) -> None:
     raise ContextBudgetError(
         "模型上下文窗口不足："
         f"压缩触发阈值 {report.threshold} tokens，"
-        f"基础提示+工具+记忆预计 {report.used} tokens。"
+        f"基础提示+工具+摘要+记忆预计 {report.used} tokens。"
         "请调大 LLM_CONTEXT_SIZE，或减少工具/记忆预算。"
     )

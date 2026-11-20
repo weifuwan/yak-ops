@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from agentscope.state import AgentState
+
 from yak_agent.agent.budget import (
     COMPRESSION_TOOL_TOKENS,
     ContextBudgetError,
@@ -85,6 +87,23 @@ class BudgetReportTests(unittest.TestCase):
         self.assertLess(with_memory.available, without.available)
         self.assertEqual(with_memory.used - without.used, 2000 + COMPRESSION_TOOL_TOKENS)
 
+    def test_reserved_prompt_tokens_count(self) -> None:
+        without = check_context_budget(
+            context_size=4000,
+            trigger_ratio=0.7,
+            system_prompt="x" * 100,
+            tools=[],
+        )
+        with_summary = check_context_budget(
+            context_size=4000,
+            trigger_ratio=0.7,
+            system_prompt="x" * 100,
+            tools=[],
+            reserved_prompt_tokens=300,
+        )
+
+        self.assertEqual(with_summary.used - without.used, 300)
+
     def test_enforce_raises_with_actionable_message(self) -> None:
         report = check_context_budget(
             context_size=1000,
@@ -111,6 +130,14 @@ class BuilderBudgetTests(unittest.TestCase):
 
         self.assertEqual(agent.model.context_size, 64000)
 
+    def test_large_persisted_summary_fails_session_load(self) -> None:
+        state = AgentState()
+        state.summary = "x" * 4000
+        settings = _settings(llm_context_size=2000)
+
+        with self.assertRaises(ContextBudgetError):
+            build_agent(settings, state=state, project_code=1)
+
 
 class SessionConversionTests(unittest.TestCase):
     def test_budget_error_becomes_domain_error(self) -> None:
@@ -129,8 +156,9 @@ class SessionConversionTests(unittest.TestCase):
                     "build_agent",
                     side_effect=ContextBudgetError("too small"),
                 ):
-                    with self.assertRaises(ContextBudgetExceeded):
+                    with self.assertRaises(ContextBudgetExceeded) as ctx:
                         session_service.create_session("sid", identity, _settings())
+                    self.assertIn("too small", str(ctx.exception))
             finally:
                 persistence.SESSION_DIR = original
 

@@ -79,7 +79,7 @@ def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
             project_code=int(identity.workspace_id),
         )
     except ContextBudgetError as ex:
-        raise ContextBudgetExceeded() from ex
+        raise ContextBudgetExceeded(str(ex)) from ex
     session = Session(
         sid=sid,
         agent=agent,

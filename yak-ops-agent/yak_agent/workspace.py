@@ -126,7 +126,7 @@ class SessionWorkspace:
     async def offload_tool_result(self, session_id: str, tool_result: ToolResultBlock) -> str:
         """Persist a truncated tool result under `offload/`."""
         del session_id
-        safe = re.sub(r"[^\w.-]", "-", str(tool_result.id)).strip("-") or "tool-result"
+        safe = re.sub(r"[^\w.-]", "-", str(tool_result.id)).strip("-")[:80] or "tool-result"
         rel = f"{_OFFLOAD_DIR}/tool_result-{safe}.txt"
         target = self.resolve(rel)
         target.parent.mkdir(parents=True, exist_ok=True)
