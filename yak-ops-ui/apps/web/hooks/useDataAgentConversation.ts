@@ -75,9 +75,10 @@ function appendActiveTurn(
   const turnId = status.turnId || conversation.id;
   const assistantId = preferredAssistantId || "turn:" + turnId;
   const messages = [...conversation.messages];
-  const lastUserIndex = messages.findLastIndex
-    ? messages.findLastIndex((message) => message.role === "user")
-    : messages.map((message) => message.role).lastIndexOf("user");
+  let lastUserIndex = -1;
+  messages.forEach((message, index) => {
+    if (message.role === "user") lastUserIndex = index;
+  });
   const lastUser = lastUserIndex >= 0 ? messages[lastUserIndex] : null;
   const activeUserAlreadyRestored =
     Boolean(activeText) &&
