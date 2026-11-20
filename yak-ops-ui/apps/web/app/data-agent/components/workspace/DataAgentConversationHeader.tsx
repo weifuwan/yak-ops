@@ -89,9 +89,15 @@ export function DataAgentConversationHeader({
           style={{ width: String(detailsWidth) + "px" }}
           className="relative hidden h-full shrink-0 items-center border-l border-[#ecefed] px-3 lg:flex"
         >
-          <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-[13px] font-semibold text-[#303936]">
-            Details
-          </span>
+          {detailsWidth >= 420 ? (
+            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-[13px] font-semibold text-[#303936]">
+              Details
+            </span>
+          ) : (
+            <span className="mr-auto text-[13px] font-semibold text-[#303936]">
+              Details
+            </span>
+          )}
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <button
