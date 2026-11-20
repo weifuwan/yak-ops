@@ -592,12 +592,17 @@ test("Data Agent session items show only a compact, single-line conversation tit
   assert.ok(!conversationList.includes("conversation.preview"));
   assert.ok(!conversationList.includes("暂无消息预览"));
   assert.ok(!conversationList.includes("formatConversationTime"));
-});\n\ntest("Data Agent session rename and delete use Yak-UI modals instead of browser dialogs", () => {
-  assert.match(conversationList, /<Modal[\\s\\S]*title="重命名会话"/);
-  assert.match(conversationList, /<Input[\\s\\S]*maxLength=\{40\}/);
-  assert.match(conversationList, /<Modal[\\s\\S]*title="删除会话"/);
-  assert.match(conversationList, /variant="danger"/);
-  assert.match(conversationList, /setDialogError\(errorMessage\(error\)\)/);
-  assert.doesNotMatch(conversationList, /window\\.(prompt|confirm|alert)/);
 });
 
+test("Data Agent session rename and delete use Yak-UI modals instead of browser dialogs", () => {
+  assert.equal(conversationList.split("<Modal").length - 1, 2);
+  assert.ok(conversationList.includes('title="重命名会话"'));
+  assert.ok(conversationList.includes('title="删除会话"'));
+  assert.ok(conversationList.includes("<Input"));
+  assert.ok(conversationList.includes("maxLength={40}"));
+  assert.ok(conversationList.includes('variant="danger"'));
+  assert.ok(conversationList.includes("setDialogError(errorMessage(error))"));
+  assert.ok(!conversationList.includes("window.prompt"));
+  assert.ok(!conversationList.includes("window.confirm"));
+  assert.ok(!conversationList.includes("window.alert"));
+});
