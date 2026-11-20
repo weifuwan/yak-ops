@@ -61,6 +61,7 @@ function CodePanel({
 
 function ActivityDetails({ activity }: { activity: AgentActivity }) {
   const content = activity.content?.trim();
+  if (!content && !activity.input && !activity.output) return null;
 
   return (
     <div className="mt-1 min-w-0 border-t border-[#e9eae9] px-3 pb-3 pt-3">
