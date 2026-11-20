@@ -26,6 +26,28 @@ class PtcProxyPathTests(unittest.TestCase):
     def test_preview_post_is_allowed(self) -> None:
         self.assertTrue(runner._path_allowed("POST", "/projects/1/data-sync/tasks/preview"))
 
+    def test_configured_context_path_is_stripped_before_matching(self) -> None:
+        self.assertEqual(
+            runner._strip_base_path("/yak-ops/log/download-log", "/yak-ops"),
+            "/log/download-log",
+        )
+        self.assertTrue(
+            runner._path_allowed(
+                "GET",
+                runner._strip_base_path("/yak-ops/log/download-log", "/yak-ops"),
+            )
+        )
+        self.assertEqual(
+            runner._strip_base_path("/other/log/download-log", "/yak-ops"),
+            "/other/log/download-log",
+        )
+        self.assertFalse(
+            runner._path_allowed(
+                "GET",
+                runner._strip_base_path("/other/log/download-log", "/yak-ops"),
+            )
+        )
+
     def test_write_methods_and_paths_are_blocked(self) -> None:
         blocked = (
             ("POST", "/projects/1/data-sync/tasks"),
