@@ -112,7 +112,7 @@ SSE 事件类型：
 | `progress` | 安全的用户可见阶段提示（`phase` / `title` / `status`），不包含模型内部推理文本 |
 | `text_delta` | 回复文本增量（`delta`，带 `replyId` / `blockId`） |
 | `thinking_start` / `thinking_end` | 思考阶段边界（同一 `blockId` 分组）；前端只展示阶段状态与耗时 |
-| `thinking_delta` | 原始内部推理增量；前端不持久化、不渲染其文本 |
+| `thinking_delta` | 原始内部推理增量；服务端不向浏览器转发 |
 | `tool_start` | 工具调用开始（`tool`、`toolCallId`） |
 | `tool_call_delta` | 工具入参 JSON 片段（`delta`） |
 | `tool_result_delta` | 工具结果文本片段（`delta`） |
