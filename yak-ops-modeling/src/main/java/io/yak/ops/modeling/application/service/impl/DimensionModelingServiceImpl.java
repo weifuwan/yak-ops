@@ -20,6 +20,9 @@ import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DataMartPO;
+import io.yak.ops.dao.entity.FieldStandardPO;
+import io.yak.ops.dao.entity.CodeStandardPO;
+import io.yak.ops.dao.entity.UnitStandardPO;
 import io.yak.ops.dao.entity.SubjectDomainPO;
 import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
@@ -35,6 +38,9 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
+import io.yak.ops.dao.repository.modeling.FieldStandardDao;
+import io.yak.ops.dao.repository.modeling.CodeStandardDao;
+import io.yak.ops.dao.repository.modeling.UnitStandardDao;
 import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
@@ -63,6 +69,9 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     @Resource private BusinessTypeRelatedDataDomainDao businessTypeRelatedDataDomainDao;
     @Resource private DataDomainDao dataDomainDao;
     @Resource private DataMartDao dataMartDao;
+    @Resource private FieldStandardDao fieldStandardDao;
+    @Resource private CodeStandardDao codeStandardDao;
+    @Resource private UnitStandardDao unitStandardDao;
     @Resource private SubjectDomainDao subjectDomainDao;
     @Resource private ModifierDao modifierDao;
     @Resource private DimensionTableFieldDao dimensionTableFieldDao;
@@ -943,6 +952,15 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         po.setTableId(tableId);
         po.setCanNull(dto.getNotNull() == null ? null : !dto.getNotNull());
         if (po.getFieldType() == null) po.setFieldType(io.yak.ops.dao.entity.enums.DimensionFieldTypeEnum.PROPERTY);
+        if (notBlank(po.getFieldStdId()) && fieldStandardDao.queryById(po.getFieldStdId()) == null) {
+            throw new IllegalArgumentException("关联字段标准不存在或不属于当前项目");
+        }
+        if (notBlank(po.getCodeStdId()) && codeStandardDao.queryById(po.getCodeStdId()) == null) {
+            throw new IllegalArgumentException("关联标准代码不存在或不属于当前项目");
+        }
+        if (notBlank(po.getUnitId()) && unitStandardDao.queryById(po.getUnitId()) == null) {
+            throw new IllegalArgumentException("关联度量单位不存在或不属于当前项目");
+        }
         po.setProjectCode(null);
         return po;
     }
