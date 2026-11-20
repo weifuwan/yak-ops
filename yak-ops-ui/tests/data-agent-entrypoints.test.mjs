@@ -489,7 +489,7 @@ test("Data Agent clickable controls use pointer cursors and drag splitters keep 
 test("Data Agent session workspace uses a shared header and a 60/40 split with a responsive details pane", () => {
   assert.match(workspace, /<DataAgentSessionWorkspace/);
   assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
-  assert.match(sessionWorkspace, /window\.innerWidth >= 1024/);
+  assert.match(sessionWorkspace, /const \[detailsOpen, setDetailsOpen\] = useState\(false\)/);
   assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
   assert.match(sessionWorkspace, /DETAILS_MAX_WIDTH = 640/);
   assert.match(sessionWorkspace, /DetailsEmptyState/);
