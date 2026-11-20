@@ -584,3 +584,12 @@ test("Data Agent session actions use a right-opening Yak-UI menu outside the scr
   assert.ok(!conversationList.includes('role="menuitem"'));
 });
 
+test("Data Agent session items show only a compact, single-line conversation title", () => {
+  assert.ok(conversationList.includes("{conversation.title}"));
+  assert.ok(conversationList.includes("h-9 w-full"));
+  assert.ok(conversationList.includes("truncate text-xs leading-5"));
+  assert.ok(conversationList.includes("groupId(conversation.updatedAt)"));
+  assert.ok(!conversationList.includes("conversation.preview"));
+  assert.ok(!conversationList.includes("暂无消息预览"));
+  assert.ok(!conversationList.includes("formatConversationTime"));
+});

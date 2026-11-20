@@ -44,26 +44,6 @@ function groupId(value: string): ConversationGroup["id"] {
   return "older";
 }
 
-function formatConversationTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const group = groupId(value);
-  if (group === "today") {
-    return new Intl.DateTimeFormat("zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  }
-  if (group === "yesterday") return "昨天";
-  if (group === "week") {
-    return new Intl.DateTimeFormat("zh-CN", { weekday: "short" }).format(date);
-  }
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "numeric",
-    day: "numeric",
-  }).format(date);
-}
-
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "操作失败，请稍后重试";
 }
@@ -142,7 +122,7 @@ export function DataAgentConversationList({
                           aria-current={active ? "page" : undefined}
                           disabled={busy}
                           className={
-                            "flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-left transition-colors " +
+                            "flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 pr-8 text-left transition-colors " +
                             (active
                               ? "bg-white text-[#20201e]"
                               : "text-[#666666] hover:bg-[#e5e5e5] hover:text-[#20201e]") +
@@ -153,15 +133,9 @@ export function DataAgentConversationList({
                             onSelectConversation(conversation.id);
                           }}
                         >
-                          <MessageSquare size={13} className="mt-0.5 shrink-0 text-[#999999]" />
-                          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                            <span className="truncate text-xs leading-4">{conversation.title}</span>
-                            <span className="truncate text-[10px] leading-3 text-[#a0a0a0]">
-                              {conversation.preview || "暂无消息预览"}
-                            </span>
-                          </span>
-                          <span className="shrink-0 self-start pt-0.5 text-[10px] text-[#aaaaaa]">
-                            {formatConversationTime(conversation.updatedAt)}
+                          <MessageSquare size={13} className="shrink-0 text-[#999999]" />
+                          <span className="min-w-0 flex-1 truncate text-xs leading-5">
+                            {conversation.title}
                           </span>
                         </button>
 
