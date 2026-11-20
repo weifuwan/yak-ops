@@ -67,7 +67,7 @@ def _state() -> AgentState:
 
 
 class HistorySerializerTests(unittest.TestCase):
-    def test_keeps_text_and_tool_blocks_and_drops_internal_blocks(self) -> None:
+    def test_keeps_thinking_timing_without_internal_content(self) -> None:
         result = serialize_history(_state(), limit=10, tool_chars=10)
 
         self.assertEqual(len(result["messages"]), 2)
@@ -206,6 +206,11 @@ class HistoryEndpointTests(unittest.TestCase):
 
         self.assertEqual(len(result["messages"]), 2)
         self.assertEqual(result["messages"][0]["role"], "user")
+        thinking = result["messages"][1]["blocks"][0]
+        self.assertEqual(thinking["type"], "thinking")
+        self.assertEqual(thinking["startedAt"], "2026-11-20T09:00:01.000Z")
+        self.assertEqual(thinking["completedAt"], "2026-11-20T09:00:02.250Z")
+        self.assertNotIn("internal", str(result))
 
     def test_cross_owner_disk_session_is_rejected(self) -> None:
         persistence.state_path("sid").write_text(_state().model_dump_json(), encoding="utf-8")
