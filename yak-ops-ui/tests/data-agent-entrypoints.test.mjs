@@ -387,12 +387,12 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
   assert.doesNotMatch(detailsPanel, /AgentDetailsSummary|执行概览|Token 用量|inputTokens|outputTokens|cacheTokens/);
-  assert.match(sessionWorkspace, /metricsMessage=\\{selectedMessage\\}/);
-  assert.match(conversationHeader, /getMessageMetrics/);
-  assert.match(conversationHeader, /formatDuration/);
-  assert.match(conversationHeader, /totalTokens = inputTokens \\+ outputTokens \\+ cacheTokens/);
-  assert.match(conversationHeader, /<Coins size=\\{12\\}/);
-  assert.match(conversationHeader, /Token \\{totalTokens\\.toLocaleString\\(\\)\\}/);
+  assert.ok(sessionWorkspace.includes("metricsMessage={selectedMessage}"));
+  assert.ok(conversationHeader.includes("getMessageMetrics"));
+  assert.ok(conversationHeader.includes("formatDuration"));
+  assert.ok(conversationHeader.includes("totalTokens = inputTokens + outputTokens + cacheTokens"));
+  assert.ok(conversationHeader.includes("<Coins size={12}"));
+  assert.ok(conversationHeader.includes("Token {totalTokens.toLocaleString()}"));
   assert.doesNotMatch(detailsPanel, /aria-label="关闭执行详情"|AgentActivityDetails|Agent 执行过程/);
   assert.match(detailsTimeline, /Thought/);
   assert.match(detailsTimeline, /SquareTerminal/);
