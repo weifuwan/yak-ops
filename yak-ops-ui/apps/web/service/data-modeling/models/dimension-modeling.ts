@@ -38,8 +38,13 @@ export type DimensionTableRecord = ModelingRecord & {
   martId?: string;
   subjectId?: string;
   martOrSubject?: string;
+  enShortName?: string;
   tableName?: string;
   cnName?: string;
+  timePeriodId?: string;
+  dimId?: string;
+  modifier?: string;
+  nameRuleId?: string;
   tableType?: string;
   storagePolicy?: string;
   lifeCycle?: number;
@@ -62,6 +67,7 @@ export type DimensionFieldRecord = {
   remark?: string;
   primaryFlag?: boolean;
   notNull?: boolean;
+  fieldType?: string;
   sourceTb?: string;
   sourceField?: string;
   fieldType?: string;
