@@ -20,7 +20,8 @@ from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
 from yak_agent.service import persistence
 from yak_agent.service import session as session_service
-from yak_agent.service.errors import ContextBudgetExceeded
+from yak_agent.service.errors import ContextBudgetExceeded, ToolConfigurationExceeded
+from yak_agent.tools.validation import ToolConfigurationError
 
 
 def _settings(**overrides) -> Settings:
@@ -163,6 +164,32 @@ class SessionConversionTests(unittest.TestCase):
                             _settings(memory_enabled=False),
                         )
                     self.assertIn("too small", str(ctx.exception))
+            finally:
+                persistence.SESSION_DIR = original
+
+    def test_tool_configuration_error_becomes_domain_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            original = persistence.SESSION_DIR
+            persistence.SESSION_DIR = Path(tmp)
+            identity = session_service.Identity(
+                owner="u-1",
+                workspace_id="1",
+                auth=None,
+                persistent=True,
+            )
+            try:
+                with patch.object(
+                    session_service,
+                    "build_agent",
+                    side_effect=ToolConfigurationError("duplicate tool names: x"),
+                ):
+                    with self.assertRaises(ToolConfigurationExceeded) as ctx:
+                        session_service.create_session(
+                            "sid",
+                            identity,
+                            _settings(memory_enabled=False),
+                        )
+                    self.assertIn("duplicate tool names", str(ctx.exception))
             finally:
                 persistence.SESSION_DIR = original
 

@@ -10,11 +10,12 @@
 2. **subprocess, unsafe tier — disabled by default**: no OS-level isolation.
    Enabled only when `YAK_AGENT_PTC_ALLOW_UNSAFE=true`, and then the script
    runs with a **minimal environment** (credential-bearing variables stripped,
-   so the SDK is unusable — compute-only) and the same audit record.
+   so the SDK is unusable — compute-only).
 
 Production deployments replace both with AgentScope's DockerWorkspace.
-Either way: the generated SDK is the only I/O surface, writes are
-disabled inside scripts, and every execution is audited.
+Either way: the generated SDK is the only I/O surface and writes are
+disabled inside scripts. Agent-initiated calls are audited by the Agent
+`on_acting` middleware; direct `run_analysis()` calls are not.
 """
 
 from __future__ import annotations
@@ -32,7 +33,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from yak_agent import audit
 from yak_agent.ptc.sdk_gen import script_rejected, write_sdk
 
 _MAX_OUTPUT_CHARS = 16_000
@@ -312,7 +312,6 @@ def run_analysis(
             "durationMs": 0,
             "backend": backend,
         }
-        audit.record_tool_call("run_analysis_script", {"code_len": len(code)}, False, 0, rejection)
         return result
 
     if backend == "disabled":
@@ -323,13 +322,6 @@ def run_analysis(
             "durationMs": int((time.monotonic() - started) * 1000),
             "backend": "disabled",
         }
-        audit.record_tool_call(
-            "run_analysis_script",
-            {"code_len": len(code)},
-            False,
-            result["durationMs"],
-            "PTC disabled",
-        )
         return result
 
     keep = workdir is not None
@@ -382,14 +374,6 @@ def run_analysis(
             "durationMs": int((time.monotonic() - started) * 1000),
             "backend": backend,
         }
-        ok = exit_code == 0
-        audit.record_tool_call(
-            "run_analysis_script",
-            {"code_len": len(code), "timeout": timeout, "backend": backend},
-            ok,
-            result["durationMs"],
-            None if ok else (stderr or "non-zero exit")[:500],
-        )
         return result
     finally:
         if not keep:
