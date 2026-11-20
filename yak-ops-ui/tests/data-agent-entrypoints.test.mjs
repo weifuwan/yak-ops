@@ -25,6 +25,9 @@ const activityTimeline = read("../apps/web/app/data-agent/components/workspace/c
 const activityItem = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityItem.tsx");
 const toolActivity = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx");
 const activityDetails = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityDetails.tsx");
+const conversationPanel = read("../apps/web/app/data-agent/components/workspace/ConversationPanel.tsx");
+const detailsPanel = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsPanel.tsx");
+
 
 const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
 const messageActions = read("../apps/web/app/data-agent/components/workspace/conversation/MessageActions.tsx");
@@ -321,10 +324,26 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(activityTimeline, /Token 用量/);
   assert.match(activityItem, /DataAgentMarkdown/);
   assert.match(activityItem, /AgentToolActivity/);
-  assert.match(toolActivity, /AgentActivityDetails/);
+  assert.doesNotMatch(toolActivity, /AgentActivityDetails/);
+  assert.match(toolActivity, /<button/);
+  assert.match(toolActivity, /ChevronRight/);
+  assert.match(toolActivity, /aria-pressed=\{selected\}/);
+  assert.match(toolActivity, /hover:bg-\[#f4f6f5\]/);
   assert.match(activityDetails, /输入参数/);
   assert.match(activityDetails, /执行结果/);
   assert.match(activityDetails, /<details/);
+  assert.match(activityDetails, /defaultOpen/);
+  assert.match(conversationPanel, /AgentDetailsPanel/);
+  assert.match(conversationPanel, /handleSelectActivity/);
+  assert.match(conversationPanel, /duration-300/);
+  assert.match(conversationPanel, /max-md:absolute max-md:inset-0/);
+  assert.match(detailsPanel, /Details/);
+  assert.match(detailsPanel, /Thought/);
+  assert.match(detailsPanel, /Progress/);
+  assert.match(detailsPanel, /AgentActivityDetails/);
+  assert.match(detailsPanel, /defaultOpen=\{selected\}/);
+  assert.match(detailsPanel, /Token 用量/);
+  assert.match(detailsPanel, /aria-label="关闭执行详情"/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
   assert.match(conversationHook, /case "tool_result_delta"/);
@@ -333,4 +352,18 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(reducer, /case "PROGRESS_UPDATED"/);
   assert.match(reducer, /case "USAGE_RECORDED"/);
   assert.match(reducer, /case "REPLY_ENDED"/);
+});
+
+
+test("tool activity is a single-line action that opens the message execution details", () => {
+  assert.match(activityTimeline, /onSelectActivity/);
+  assert.match(activityItem, /selectedActivityId/);
+  assert.match(activityItem, /onSelect=\\{onSelectActivity\\}/);
+  assert.match(toolActivity, /group-hover:translate-x-0 group-hover:opacity-100/);
+  assert.match(toolActivity, /查看 .* 执行详情/);
+  assert.match(conversationPanel, /selectedMessage/);
+  assert.match(conversationPanel, /selectedActivity/);
+  assert.match(conversationPanel, /event\\.key === "Escape"/);
+  assert.match(detailsPanel, /message\\.activities/);
+  assert.match(detailsPanel, /activity\\.kind !== "text"/);
 });
