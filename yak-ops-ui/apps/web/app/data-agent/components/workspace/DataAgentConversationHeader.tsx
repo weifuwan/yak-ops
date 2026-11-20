@@ -2,13 +2,15 @@ import {
   ArrowLeft,
   ChevronsUpDown,
   Clock3,
-  Cloud,
+  Coins,
   List,
   PanelLeft,
   PanelRight,
   PanelRightClose,
   SquarePlus,
 } from "lucide-react";
+
+import type { AgentMessage } from "../../model/types";
 
 type DataAgentConversationHeaderProps = {
   title: string;
@@ -17,14 +19,64 @@ type DataAgentConversationHeaderProps = {
   detailsOpen: boolean;
   detailsWidth: number;
   expandAll: boolean;
+  metricsMessage: AgentMessage | null;
   onToggleSidebar: () => void;
   onToggleDetails: () => void;
   onToggleExpandAll: () => void;
   onBackToLatest: () => void;
 };
 
-const PREVIEW_DURATION = "6m 40s";
-const PREVIEW_SCORE = "4.50";
+function formatDuration(startedAt?: number, completedAt?: number) {
+  if (startedAt === undefined) return "";
+  const duration = Math.max(0, (completedAt ?? Date.now()) - startedAt);
+  if (duration < 1000) return "<1s";
+  if (duration < 60_000) return Math.round(duration / 1000) + "s";
+
+  const minutes = Math.floor(duration / 60_000);
+  const seconds = Math.floor((duration % 60_000) / 1000);
+  return minutes + "m " + String(seconds).padStart(2, "0") + "s";
+}
+
+function getMessageMetrics(message: AgentMessage | null) {
+  const activities = message?.activities ?? [];
+  const usage = message?.usage ?? [];
+  const startedAt = activities.reduce<number | undefined>(
+    (earliest, activity) =>
+      activity.startedAt === undefined
+        ? earliest
+        : earliest === undefined
+          ? activity.startedAt
+          : Math.min(earliest, activity.startedAt),
+    undefined,
+  );
+  const completedAt = activities.reduce<number | undefined>(
+    (latest, activity) =>
+      activity.completedAt === undefined
+        ? latest
+        : latest === undefined
+          ? activity.completedAt
+          : Math.max(latest, activity.completedAt),
+    undefined,
+  );
+  const duration = formatDuration(
+    startedAt,
+    message?.status === "streaming" ? undefined : completedAt,
+  );
+  const inputTokens = usage.reduce((total, item) => total + item.inputTokens, 0);
+  const outputTokens = usage.reduce((total, item) => total + item.outputTokens, 0);
+  const cacheTokens = usage.reduce(
+    (total, item) => total + item.cacheInputTokens + item.cacheCreationInputTokens,
+    0,
+  );
+  const totalTokens = inputTokens + outputTokens + cacheTokens;
+  const tokenBreakdown = [
+    `输入 ${inputTokens.toLocaleString()}`,
+    `输出 ${outputTokens.toLocaleString()}`,
+    ...(cacheTokens > 0 ? [`缓存 ${cacheTokens.toLocaleString()}`] : []),
+  ].join(" · ");
+
+  return { duration, totalTokens, tokenBreakdown };
+}
 
 export function DataAgentConversationHeader({
   title,
@@ -33,12 +85,14 @@ export function DataAgentConversationHeader({
   detailsOpen,
   detailsWidth,
   expandAll,
+  metricsMessage,
   onToggleSidebar,
   onToggleDetails,
   onToggleExpandAll,
   onBackToLatest,
 }: DataAgentConversationHeaderProps) {
   const statusLabel = isSending ? "正在处理" : "已就绪";
+  const { duration, totalTokens, tokenBreakdown } = getMessageMetrics(metricsMessage);
 
   return (
     <header className="relative z-10 flex h-12 shrink-0 items-center bg-white">
@@ -92,17 +146,23 @@ export function DataAgentConversationHeader({
                 <span>Back to latest</span>
               </button>
 
-              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[28rem]:hidden">
-                <Clock3 size={12} strokeWidth={1.6} />
-                {PREVIEW_DURATION}
-              </span>
-
-              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[28rem]:hidden">
-                <span className="flex size-3.5 items-center justify-center rounded-full border border-current">
-                  <Cloud size={8} strokeWidth={1.6} />
+              {duration ? (
+                <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[28rem]:hidden">
+                  <Clock3 size={12} strokeWidth={1.6} />
+                  {duration}
                 </span>
-                {PREVIEW_SCORE}
-              </span>
+              ) : null}
+
+              {totalTokens > 0 ? (
+                <span
+                  title={`Token 用量：${tokenBreakdown}`}
+                  aria-label={`Token 用量 ${totalTokens.toLocaleString()}`}
+                  className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[28rem]:hidden"
+                >
+                  <Coins size={12} strokeWidth={1.6} />
+                  <span>Token {totalTokens.toLocaleString()}</span>
+                </span>
+              ) : null}
             </div>
 
             <span className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center text-sm font-semibold text-[#202629]">
