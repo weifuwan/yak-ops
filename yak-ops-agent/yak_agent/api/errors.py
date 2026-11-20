@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from yak_agent.service.errors import (
     AgentSessionError,
+    ConfirmationInvalid,
     ConfirmationNotPending,
     SessionBusy,
     SessionForbidden,
@@ -21,6 +22,7 @@ _STATUS_BY_ERROR: dict[type[AgentSessionError], int] = {
     SessionNotFound: HTTPStatus.NOT_FOUND,
     SessionBusy: HTTPStatus.CONFLICT,
     ConfirmationNotPending: HTTPStatus.CONFLICT,
+    ConfirmationInvalid: HTTPStatus.UNPROCESSABLE_ENTITY,
     SessionStateInvalid: HTTPStatus.UNPROCESSABLE_ENTITY,
 }
 

@@ -25,6 +25,7 @@ from yak_agent.api import deps, errors, server
 from yak_agent.service import persistence
 from yak_agent.service import session as session_service
 from yak_agent.service.errors import (
+    ConfirmationInvalid,
     ConfirmationNotPending,
     SessionBusy,
     SessionForbidden,
@@ -327,6 +328,7 @@ class SessionErrorHandlerTests(unittest.TestCase):
             (SessionNotFound, 404),
             (SessionBusy, 409),
             (ConfirmationNotPending, 409),
+            (ConfirmationInvalid, 422),
             (SessionStateInvalid, 422),
         )
         for error_type, expected_status in cases:
