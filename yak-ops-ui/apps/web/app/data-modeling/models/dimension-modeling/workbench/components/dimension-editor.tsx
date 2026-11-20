@@ -43,6 +43,9 @@ import { subjectDomainApi } from "@/service/data-modeling/planning/application-l
 import { timePeriodApi } from "@/service/data-modeling/indicators/time-period";
 import { modifierApi } from "@/service/data-modeling/indicators/modifier";
 import { dimensionReferenceApi } from "@/service/data-modeling/indicators/dimension-reference";
+import { fieldStandardApi } from "@/service/data-modeling/standards/field-standard";
+import { codeStandardApi } from "@/service/data-modeling/standards/code-standard";
+import { unitStandardApi } from "@/service/data-modeling/standards/unit-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 
 type Option = { value: string; label: string };
@@ -284,6 +287,21 @@ export function DimensionEditor({
     enabled: Boolean(projectCode && (tab.createType === "SUMMARY" || tab.createType === "APPLICATION"
       || tab.record?.tableType === "SUMMARY" || tab.record?.tableType === "APPLICATION")),
   });
+  const fieldStandardsQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-editor-field-standards", projectCode],
+    queryFn: () => fieldStandardApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode && recordId),
+  });
+  const codeStandardsQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-editor-code-standards", projectCode],
+    queryFn: () => codeStandardApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode && recordId),
+  });
+  const unitsQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-editor-units", projectCode],
+    queryFn: () => unitStandardApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode && recordId),
+  });
   const fieldsQuery = useQuery<DimensionFieldRecord[]>({
     queryKey: ["modeling", "dimension-fields", projectCode, recordId],
     queryFn: () => dimensionModelingApi.fields(projectCode, recordId),
@@ -357,6 +375,18 @@ export function DimensionEditor({
   const dimensionOptions = (dimensionsQuery.data || []).map((option) => ({
     value: String(option.value || ""),
     label: String(option.label || option.value || ""),
+  })).filter((option) => option.value);
+  const fieldStandardOptions = (fieldStandardsQuery.data || []).map((record) => ({
+    value: String(record.id || ""),
+    label: optionLabel(record, ["cnName", "enName", "enShortName"]),
+  })).filter((option) => option.value);
+  const codeStandardOptions = (codeStandardsQuery.data || []).map((record) => ({
+    value: String(record.id || ""),
+    label: optionLabel(record, ["cnName", "enName", "enShortName"]),
+  })).filter((option) => option.value);
+  const unitOptions = (unitsQuery.data || []).map((record) => ({
+    value: String(record.id || ""),
+    label: optionLabel(record, ["cnName", "enName", "enShortName", "unitName"]),
   })).filter((option) => option.value);
   const isDim = selectedTableType === "DIM";
   const isDetail = selectedTableType === "DETAIL";
@@ -688,6 +718,45 @@ export function DimensionEditor({
           value={field.cnName || ""}
           placeholder="请输入字段显示名"
           onChange={(event) => changeField(field, { cnName: event.target.value })}
+        />
+      ),
+    },
+    {
+      key: "fieldStdId",
+      title: "字段标准",
+      width: 170,
+      render: (_value, field) => (
+        <OptionSelect
+          value={field.fieldStdId || ""}
+          options={fieldStandardOptions}
+          placeholder={fieldStandardsQuery.isFetching ? "加载中..." : "未关联"}
+          onChange={(value) => changeField(field, { fieldStdId: value || undefined })}
+        />
+      ),
+    },
+    {
+      key: "codeStdId",
+      title: "标准代码",
+      width: 170,
+      render: (_value, field) => (
+        <OptionSelect
+          value={field.codeStdId || ""}
+          options={codeStandardOptions}
+          placeholder={codeStandardsQuery.isFetching ? "加载中..." : "未关联"}
+          onChange={(value) => changeField(field, { codeStdId: value || undefined })}
+        />
+      ),
+    },
+    {
+      key: "unitId",
+      title: "度量单位",
+      width: 150,
+      render: (_value, field) => (
+        <OptionSelect
+          value={field.unitId || ""}
+          options={unitOptions}
+          placeholder={unitsQuery.isFetching ? "加载中..." : "未关联"}
+          onChange={(value) => changeField(field, { unitId: value || undefined })}
         />
       ),
     },
@@ -1044,7 +1113,7 @@ export function DimensionEditor({
                       emptyText={fieldsQuery.isError ? "字段加载失败，请刷新后重试" : "暂无字段，点击添加字段"}
                       pagination={false}
                       size="small"
-                      scroll={{ x: 820 }}
+                      scroll={{ x: 1320 }}
                     />
                   </div>
                 )}
