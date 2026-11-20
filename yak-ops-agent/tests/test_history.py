@@ -39,7 +39,13 @@ def _state() -> AgentState:
                 name="yak_agent",
                 role="assistant",
                 content=[
-                    ThinkingBlock(type="thinking", thinking="internal"),
+                    ThinkingBlock(
+                        type="thinking",
+                        thinking="internal",
+                        id="thinking-1",
+                        created_at="2026-11-20T09:00:01.000Z",
+                        finished_at="2026-11-20T09:00:02.250Z",
+                    ),
                     TextBlock(type="text", text="先查任务列表"),
                     ToolCallBlock(id="call-1", name="list_sync_tasks", input='{"page_no":1}'),
                     ToolResultBlock(
@@ -69,11 +75,51 @@ class HistorySerializerTests(unittest.TestCase):
         self.assertEqual(user["role"], "user")
         self.assertEqual(user["blocks"], [{"type": "text", "text": "下线第一个任务"}])
         types = [block["type"] for block in assistant["blocks"]]
-        self.assertEqual(types, ["text", "tool_call", "tool_result"])
-        self.assertEqual(assistant["blocks"][1]["input"], '{"page_no":1}')
-        self.assertEqual(assistant["blocks"][2]["state"], "success")
-        self.assertEqual(assistant["blocks"][2]["output"], "x" * 10)
-        self.assertTrue(assistant["blocks"][2]["truncated"])
+        self.assertEqual(types, ["thinking", "text", "tool_call", "tool_result"])
+        self.assertEqual(
+            assistant["blocks"][0],
+            {
+                "type": "thinking",
+                "id": "thinking-1",
+                "startedAt": "2026-11-20T09:00:01.000Z",
+                "completedAt": "2026-11-20T09:00:02.250Z",
+            },
+        )
+        self.assertNotIn("thinking", assistant["blocks"][0])
+        self.assertEqual(assistant["blocks"][2]["input"], '{"page_no":1}')
+        self.assertEqual(assistant["blocks"][3]["state"], "success")
+        self.assertEqual(assistant["blocks"][3]["output"], "x" * 10)
+        self.assertTrue(assistant["blocks"][3]["truncated"])
+
+    def test_incomplete_thinking_block_exposes_start_without_reasoning_or_end_time(self) -> None:
+        state = AgentState()
+        state.context.append(
+            Msg(
+                name="yak_agent",
+                role="assistant",
+                content=[
+                    ThinkingBlock(
+                        type="thinking",
+                        thinking="must never be returned",
+                        id="thinking-open",
+                        created_at="2026-11-20T09:00:01.000Z",
+                    )
+                ],
+            )
+        )
+
+        result = serialize_history(state, limit=10, tool_chars=100)
+
+        block = result["messages"][0]["blocks"][0]
+        self.assertEqual(
+            block,
+            {
+                "type": "thinking",
+                "id": "thinking-open",
+                "startedAt": "2026-11-20T09:00:01.000Z",
+            },
+        )
+        self.assertNotIn("must never be returned", str(result))
 
     def test_limit_drops_oldest_messages(self) -> None:
         result = serialize_history(_state(), limit=1, tool_chars=10)

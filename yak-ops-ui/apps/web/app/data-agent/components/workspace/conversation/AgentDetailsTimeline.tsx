@@ -12,9 +12,15 @@ type AgentDetailsTimelineProps = {
   expandAll: boolean;
 };
 
-function formatDuration(startedAt?: number, completedAt?: number) {
+function formatDuration(
+  startedAt?: number,
+  completedAt?: number,
+  isRunning = false,
+) {
   if (!startedAt) return "";
-  const duration = Math.max(0, (completedAt ?? Date.now()) - startedAt);
+  const endAt = completedAt ?? (isRunning ? Date.now() : undefined);
+  if (endAt === undefined) return "";
+  const duration = Math.max(0, endAt - startedAt);
   if (duration < 1000) return "<1s";
   if (duration < 60_000) return Math.round(duration / 1000) + "s";
 
@@ -24,7 +30,11 @@ function formatDuration(startedAt?: number, completedAt?: number) {
 }
 
 function ThoughtEvent({ activity }: { activity: AgentActivity }) {
-  const duration = formatDuration(activity.startedAt, activity.completedAt);
+  const duration = formatDuration(
+    activity.startedAt,
+    activity.completedAt,
+    activity.status === "running",
+  );
 
   return (
     <div className="relative min-w-0 py-2 px-3">

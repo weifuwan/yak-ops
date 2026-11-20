@@ -56,6 +56,30 @@ def serialize_history(state: Any, limit: int, tool_chars: int) -> dict[str, Any]
                 )
                 if text:
                     blocks.append({"type": "text", "text": text})
+            elif block_type == "thinking":
+                # Expose timing only. Never return the model's internal reasoning text.
+                started_at = (
+                    block.get("created_at")
+                    if isinstance(block, dict)
+                    else getattr(block, "created_at", None)
+                )
+                completed_at = (
+                    block.get("finished_at")
+                    if isinstance(block, dict)
+                    else getattr(block, "finished_at", None)
+                )
+                blocks.append(
+                    {
+                        "type": "thinking",
+                        "id": (
+                            block.get("id", "")
+                            if isinstance(block, dict)
+                            else getattr(block, "id", "")
+                        ),
+                        **({"startedAt": str(started_at)} if started_at else {}),
+                        **({"completedAt": str(completed_at)} if completed_at else {}),
+                    }
+                )
             elif block_type == "tool_call":
                 blocks.append(
                     {

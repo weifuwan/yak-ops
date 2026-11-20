@@ -46,6 +46,7 @@ export interface AgentSessionStatus {
 
 export type AgentHistoryBlock =
   | { type: "text"; text: string }
+  | { type: "thinking"; id: string; startedAt?: string; completedAt?: string }
   | { type: "tool_call"; id: string; name: string; input: string }
   | {
       type: "tool_result";

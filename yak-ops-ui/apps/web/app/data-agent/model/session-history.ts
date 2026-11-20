@@ -27,6 +27,12 @@ function toolStatus(value?: string): ToolCallStatus {
   }
 }
 
+function parseHistoryTimestamp(value?: string) {
+  if (!value) return undefined;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function textFromBlocks(blocks: AgentHistoryBlock[]) {
   return blocks
     .filter((block): block is Extract<AgentHistoryBlock, { type: "text" }> => block.type === "text")
@@ -70,6 +76,21 @@ function mapHistoryMessage(
         title: "回复内容",
         status: "completed",
         content: block.text,
+      });
+      return;
+    }
+
+    if (block.type === "thinking") {
+      const startedAt = parseHistoryTimestamp(block.startedAt);
+      const completedAt = parseHistoryTimestamp(block.completedAt);
+      activities.push({
+        id: "thinking:history:" + id + ":" + block.id,
+        kind: "thinking",
+        title: "思考过程",
+        status: completedAt === undefined ? "interrupted" : "completed",
+        blockId: block.id,
+        ...(startedAt === undefined ? {} : { startedAt }),
+        ...(completedAt === undefined ? {} : { completedAt }),
       });
       return;
     }
