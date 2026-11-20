@@ -4,7 +4,7 @@ import type { ReactNode, RefObject } from "react";
 
 import { DataAgentPromptComposer } from "../DataAgentPromptComposer";
 import type { AgentActivity, AgentMessage, PendingConfirmation } from "../../model/types";
-import { AgentDetailsResizer } from "./AgentDetailsResizer";
+import { AgentDetailsResizer } from "./conversation/AgentDetailsResizer";
 import { AgentDetailsPanel } from "./conversation/AgentDetailsPanel";
 import { MessageList } from "./conversation/MessageList";
 
