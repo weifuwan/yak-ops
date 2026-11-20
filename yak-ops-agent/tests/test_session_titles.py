@@ -82,7 +82,7 @@ class TitlePersistenceTests(unittest.TestCase):
         self.assertEqual(meta["title"], "帮我检查 同步任务")
         self.assertEqual(meta["preview"], "帮我检查 同步任务")
         self.assertEqual(meta["activeTurn"]["status"], "running")
-        self.assertEqual(meta["activeTurn"]["message"], "  帮我检查\\n同步任务  ")
+        self.assertEqual(meta["activeTurn"]["message"], "  帮我检查\n同步任务  ")
 
     def test_rename_updates_persisted_metadata(self) -> None:
         persistence.state_path("sid").write_text("{}", encoding="utf-8")
