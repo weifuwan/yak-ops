@@ -27,10 +27,6 @@ function ThoughtEvent({ activity }: { activity: AgentActivity }) {
 
   return (
     <div className="relative min-w-0 py-2">
-      <span
-        aria-hidden="true"
-        className="absolute -left-[32px] top-[17px] size-1.5 rounded-full bg-[#c9cfcc]"
-      />
       <p className="mb-0 text-[13px] leading-5 text-[#737875]">
         Thought{duration ? " for " + duration : ""}
       </p>
@@ -79,6 +75,23 @@ function ActivityDetails({ activity }: { activity: AgentActivity }) {
   );
 }
 
+function TimelineNode() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute -left-8 top-[10px] flex h-5 w-8 items-center justify-center"
+    >
+      <span className="flex size-4 items-center justify-center bg-white">
+        <SquareTerminal
+          size={12}
+          strokeWidth={1.5}
+          className="text-[#9fa6a3]"
+        />
+      </span>
+    </span>
+  );
+}
+
 function ExpandableActivity({
   activity,
   expanded,
@@ -106,25 +119,7 @@ function ExpandableActivity({
           : "border border-transparent")
       }
     >
-      <span
-        aria-hidden="true"
-        className="absolute -left-[36px] top-[12px] flex size-4 items-center justify-center bg-white"
-      >
-        <SquareTerminal
-          size={14}
-          strokeWidth={1.6}
-          className={
-            activity.status === "running"
-              ? "text-[#9a875e]"
-              : activity.status === "error" ||
-                  activity.status === "denied" ||
-                  activity.status === "rejected" ||
-                  activity.status === "interrupted"
-                ? "text-[#b96c72]"
-                : "text-[#78827e]"
-          }
-        />
-      </span>
+      <TimelineNode />
 
       {canExpand ? (
         <button
@@ -178,10 +173,10 @@ export function AgentDetailsTimeline({
   }, [selectedActivityId]);
 
   return (
-    <div className="relative min-w-0 pl-9">
+    <div className="relative min-w-0 pl-8">
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-2 left-[7px] top-2 w-px bg-[#e7e9e8]"
+        className="pointer-events-none absolute bottom-0 left-[15px] top-0 w-[2px] bg-[#e7e9e8]"
       />
 
       <div className="flex min-w-0 flex-col gap-1">
