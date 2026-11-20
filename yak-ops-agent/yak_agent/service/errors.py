@@ -38,3 +38,7 @@ class SessionStateInvalid(AgentSessionError):
 
 class ContextBudgetExceeded(AgentSessionError):
     default_message = "模型上下文窗口不足，请调大 LLM_CONTEXT_SIZE 或减少工具/记忆预算"
+
+
+class MemoryDisabled(AgentSessionError):
+    default_message = "长期记忆未启用"

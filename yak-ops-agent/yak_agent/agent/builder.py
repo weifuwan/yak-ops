@@ -21,6 +21,7 @@ from yak_agent.agent.budget import (
 )
 from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, SYSTEM_PROMPT
 from yak_agent.config import Settings
+from yak_agent.memory.middleware import MEMORY_PROMPT_TOKENS, build_memory_search_tool
 from yak_agent.tools import build_tools
 from yak_agent.workspace import SessionWorkspace
 
@@ -47,6 +48,7 @@ def build_agent(
     workspace: SessionWorkspace | None = None,
     auth: Any | None = None,
     project_code: int | None = None,
+    memory: Any | None = None,
 ) -> Agent:
     """Assemble the data-sync copilot from open-box AgentScope components."""
     model = OpenAIChatModel(
@@ -60,6 +62,8 @@ def build_agent(
         workspace=workspace,
         project_code=project_code,
     )
+    if memory is not None:
+        tools.append(build_memory_search_tool(memory))
     system_prompt = SYSTEM_PROMPT
     if workspace is not None:
         system_prompt = f"{SYSTEM_PROMPT}\n\n{OFFLOAD_INSTRUCTIONS}"
@@ -69,10 +73,11 @@ def build_agent(
         trigger_ratio=_TRIGGER_RATIO,
         system_prompt=system_prompt,
         tools=tools,
-        memory_budget_tokens=settings.llm_memory_budget_tokens,
+        memory_budget_tokens=settings.llm_memory_budget_tokens if memory is not None else 0,
         reserved_tool_tokens=COMPRESSION_TOOL_TOKENS if _COMPRESSION_ENABLED else 0,
         reserved_prompt_tokens=estimate_value_tokens(getattr(state, "summary", None))
-        + _skill_prompt_tokens(),
+        + _skill_prompt_tokens()
+        + (MEMORY_PROMPT_TOKENS if memory is not None else 0),
     )
     enforce_context_budget(report)
     _LOGGER.info(
@@ -80,8 +85,25 @@ def build_agent(
         report.threshold,
         report.used,
         report.available,
-        settings.llm_memory_budget_tokens,
+        settings.llm_memory_budget_tokens if memory is not None else 0,
     )
+
+    middlewares: list[Any] = [
+        # Cost/latency guardrail: output tokens weigh 2x; once the budget
+        # is exhausted the agent wraps up without further tool calls.
+        ReplyBudgetControlMiddleware(
+            token_budget=settings.reply_token_budget,
+            input_token_weight=1.0,
+            output_token_weight=2.0,
+        ),
+        # OpenTelemetry tracing; short-circuits (zero overhead) when no
+        # TracerProvider is configured, full span tree when one is.
+        TracingMiddleware(),
+    ]
+    if memory is not None:
+        # Outermost middleware: supplies the memory tool instructions in the
+        # system prompt. Retrieval/write-back timing is owned by run_turn.
+        middlewares.insert(0, memory)
 
     return Agent(
         name="yak_agent",
@@ -105,16 +127,5 @@ def build_agent(
             tool_result_limit=4000,
             compression_tool_enabled=_COMPRESSION_ENABLED,
         ),
-        middlewares=[
-            # Cost/latency guardrail: output tokens weigh 2x; once the budget
-            # is exhausted the agent wraps up without further tool calls.
-            ReplyBudgetControlMiddleware(
-                token_budget=settings.reply_token_budget,
-                input_token_weight=1.0,
-                output_token_weight=2.0,
-            ),
-            # OpenTelemetry tracing; short-circuits (zero overhead) when no
-            # TracerProvider is configured, full span tree when one is.
-            TracingMiddleware(),
-        ],
+        middlewares=middlewares,
     )

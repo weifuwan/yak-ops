@@ -5,6 +5,7 @@ description = "AgentScope-based copilot harness for yak-ops (data-sync closed lo
 requires-python = ">=3.11"
 dependencies = [
     "agentscope==2.0.12",
+    "reme-ai==0.4.2.3",
     "pyyaml>=6.0",
     "fastapi>=0.115",
     "uvicorn>=0.30",

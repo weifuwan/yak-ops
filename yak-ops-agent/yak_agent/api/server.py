@@ -12,6 +12,8 @@ POST   /agent/sessions/{sid}/messages     send a message -> SSE event stream
 POST   /agent/sessions/{sid}/confirm      approve or deny pending writes
                                           {approved: bool | [bool, ...]}
 GET    /agent/sessions                    list persisted sessions
+GET    /agent/memory                      memory overview for (user, workspace)
+DELETE /agent/memory                      clear one workspace (?all=true: all)
 GET    /health                            liveness probe
 
 Design notes
@@ -36,12 +38,13 @@ import json
 import os
 import time
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
 import uvicorn
 from agentscope.state import AgentState
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -51,12 +54,14 @@ from yak_agent.api.deps import request_identity
 from yak_agent.api.errors import session_error_handler
 from yak_agent.api.sse import forward_event
 from yak_agent.config import Settings
+from yak_agent.memory import MEMORY, memory_overview
 from yak_agent.service import persistence
 from yak_agent.service.chat import INTERRUPT_SENTINEL, run_turn
 from yak_agent.service.errors import (
     AgentSessionError,
     ConfirmationInvalid,
     ConfirmationNotPending,
+    MemoryDisabled,
     SessionBusy,
     SessionForbidden,
     SessionNotFound,
@@ -76,7 +81,14 @@ from yak_agent.service.session import (
     create_session as create_agent_session,
 )
 
-app = FastAPI(title="yak-ops-agent", version="0.1.0")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    yield
+    await MEMORY.close_all()
+
+
+app = FastAPI(title="yak-ops-agent", version="0.1.0", lifespan=_lifespan)
 app.add_exception_handler(AgentSessionError, session_error_handler)
 _settings: Settings | None = None
 
@@ -156,6 +168,63 @@ def _conversation_title(text: str) -> tuple[str, str]:
     if not clean:
         return "新会话", ""
     return clean[:40], clean[:120]
+
+
+@app.get("/agent/memory")
+async def get_memory(request: Request) -> dict[str, Any]:
+    """Summarize this user's memory in the current workspace (no content)."""
+    settings = _get_settings()
+    identity = request_identity(request, settings)
+    if not settings.memory_enabled:
+        raise MemoryDisabled()
+    return {
+        "enabled": True,
+        "workspaceId": identity.workspace_id,
+        **memory_overview(settings, identity.owner, identity.workspace_id),
+    }
+
+
+@app.delete("/agent/memory")
+async def clear_memory(
+    request: Request,
+    all_scopes: bool = Query(False, alias="all"),
+) -> dict[str, Any]:
+    """Clear this user's memory for one workspace, or all workspaces."""
+    settings = _get_settings()
+    identity = request_identity(request, settings)
+
+    def in_use(owner: str, workspace_id: str) -> bool:
+        return any(
+            session.owner == owner and session.workspace_id == workspace_id
+            for session in SESSIONS.values()
+        )
+
+    for session in SESSIONS.values():
+        if session.owner != identity.owner or not session.busy:
+            continue
+        if all_scopes or session.workspace_id == identity.workspace_id:
+            raise SessionBusy()
+    if all_scopes:
+        scopes = await MEMORY.clear_owner(identity.owner, settings, in_use)
+    else:
+        scopes = await MEMORY.clear_scope(
+            identity.owner,
+            identity.workspace_id,
+            settings,
+            in_use,
+        )
+    audit.record_tool_call(
+        "memory_clear",
+        {
+            "caller": identity.owner,
+            "workspace": "*" if all_scopes else identity.workspace_id,
+            "scopes": scopes,
+        },
+        True,
+        0,
+        None,
+    )
+    return {"deleted": True, "scopes": scopes}
 
 
 @app.post("/agent/sessions/{sid}/messages")
@@ -458,6 +527,12 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
         # The worker would keep running and call persist() after the state and
         # workspace files are gone. Make the caller stop/wait for it first.
         raise SessionBusy()
+    if session.memory is not None:
+        await session.memory.flush()
+        state = getattr(session.agent, "state", None)
+        session.memory.delete_session_transcript(
+            str(getattr(state, "session_id", "") or sid),
+        )
     await close_events(session, "会话已删除")
     remove_session(sid)
     persistence.delete_files(sid)
