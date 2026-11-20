@@ -327,7 +327,6 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.doesNotMatch(toolActivity, /AgentActivityDetails/);
   assert.match(toolActivity, /<button/);
   assert.match(toolActivity, /ChevronRight/);
-  assert.match(toolActivity, /aria-expanded=\\{selected\\}/);
   assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
   assert.match(toolActivity, /hover:bg-\[#f4f6f5\]/);
