@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agentscope.agent import Agent, ContextConfig, ReActConfig
+from agentscope.agent import Agent, ContextConfig, InjectionConfig, ReActConfig
 from agentscope.credential import OpenAICredential
 from agentscope.middleware import ReplyBudgetControlMiddleware, TracingMiddleware
 from agentscope.model import OpenAIChatModel
@@ -31,6 +31,7 @@ def build_agent(
     model = OpenAIChatModel(
         credential=OpenAICredential(api_key=settings.llm_api_key, base_url=settings.llm_base_url),
         model=settings.llm_model,
+        context_size=settings.llm_context_size,
     )
     return Agent(
         name="yak_agent",
@@ -47,7 +48,12 @@ def build_agent(
         ),
         state=state,
         react_config=ReActConfig(max_iters=12),
-        context_config=ContextConfig(tool_result_limit=1000),
+        injection_config=InjectionConfig(timezone="Asia/Shanghai"),
+        context_config=ContextConfig(
+            trigger_ratio=0.7,
+            reserve_ratio=0.2,
+            tool_result_limit=4000,
+        ),
         middlewares=[
             # Cost/latency guardrail: output tokens weigh 2x; once the budget
             # is exhausted the agent wraps up without further tool calls.
