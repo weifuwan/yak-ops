@@ -90,6 +90,7 @@ export function DataAgentSessionWorkspace({
 }: DataAgentSessionWorkspaceProps) {
   const [selection, setSelection] = useState<ActivitySelection | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsExpandAll, setDetailsExpandAll] = useState(false);
   const [detailsWidth, setDetailsWidth] = useState(420);
   const [detailsMaxWidth, setDetailsMaxWidth] = useState(DETAILS_MAX_WIDTH);
   const [detailsResizing, setDetailsResizing] = useState(false);
@@ -158,7 +159,14 @@ export function DataAgentSessionWorkspace({
 
   function handleSelectActivity(messageId: string, activityId: string) {
     setSelection({ messageId, activityId });
+    setDetailsExpandAll(false);
     setDetailsOpen(true);
+  }
+
+  function handleBackToLatest() {
+    const container = scrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }
 
   function toggleDetails() {
@@ -173,8 +181,11 @@ export function DataAgentSessionWorkspace({
         sidebarOpen={sidebarOpen}
         detailsOpen={detailsOpen}
         detailsWidth={detailsWidth}
+        expandAll={detailsExpandAll}
         onToggleSidebar={onToggleSidebar}
         onToggleDetails={toggleDetails}
+        onToggleExpandAll={() => setDetailsExpandAll((expanded) => !expanded)}
+        onBackToLatest={handleBackToLatest}
       />
 
       <section
@@ -232,6 +243,7 @@ export function DataAgentSessionWorkspace({
               <AgentDetailsPanel
                 message={selectedMessage}
                 selectedActivityId={selectedActivity.id}
+                expandAll={detailsExpandAll}
               />
             ) : (
               <DetailsEmptyState />
