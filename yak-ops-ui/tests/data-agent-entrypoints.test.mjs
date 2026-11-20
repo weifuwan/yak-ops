@@ -429,7 +429,7 @@ test("tool activity is a single-line action that opens the message execution det
   assert.match(toolActivity, /查看 .* 执行详情/);
   assert.match(conversationPanel, /selectedMessage/);
   assert.match(conversationPanel, /selectedActivity/);
-  assert.match(conversationPanel, /event\.key === "Escape"/);
+  assert.match(sessionWorkspace, /event\.key === "Escape"/);
   assert.match(detailsPanel, /message\.activities/);
   assert.match(detailsPanel, /AgentDetailsTimeline/);
   assert.match(detailsTimeline, /activity\.kind === "text"/);
@@ -489,7 +489,7 @@ test("Data Agent clickable controls use pointer cursors and drag splitters keep 
 test("Data Agent session workspace uses a shared header and a 60/40 split with a responsive details pane", () => {
   assert.match(workspace, /<DataAgentSessionWorkspace/);
   assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
-  assert.match(sessionWorkspace, /const \[detailsOpen, setDetailsOpen\] = useState\(true\)/);
+  assert.match(sessionWorkspace, /window\.innerWidth >= 1024/);
   assert.match(sessionWorkspace, /Math\.round\(availableWidth \* 0\.4\)/);
   assert.match(sessionWorkspace, /DETAILS_MAX_WIDTH = 640/);
   assert.match(sessionWorkspace, /DetailsEmptyState/);
