@@ -448,6 +448,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table (
   dim_id varchar(1000) NULL,
   modifier varchar(1000) NULL,
   name_rule_id varchar(32) NULL,
+  en_short_name varchar(255) NULL,
   table_name varchar(500) NULL,
   cn_name varchar(500) NULL,
   table_type varchar(50) NULL,
@@ -467,6 +468,7 @@ CREATE INDEX IF NOT EXISTS idx_yak_dimension_table_2 ON t_yak_ops_dimension_tabl
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_table_3 ON t_yak_ops_dimension_table (mart_id, subject_id);
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_table_4 ON t_yak_ops_dimension_table (project_code, table_name);
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_table_5 ON t_yak_ops_dimension_table (project_code, cn_name);
+CREATE INDEX IF NOT EXISTS idx_yak_dimension_table_6 ON t_yak_ops_dimension_table (project_code, en_short_name);
 
 CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_fields (
   id varchar(32) NOT NULL,
