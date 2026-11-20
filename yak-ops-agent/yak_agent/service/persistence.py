@@ -37,6 +37,7 @@ def persist(session: Any) -> None:
                 encoding="utf-8",
             )
         existing = read_meta(session.sid)
+        usage = getattr(session, "usage", None) or existing.get("usage", {})
         meta = {
             "owner": session.owner,
             "workspace": session.workspace_id,
@@ -44,7 +45,7 @@ def persist(session: Any) -> None:
             "preview": session.preview or existing.get("preview", ""),
             "usage": {
                 key: max(0, int(value))
-                for key, value in (getattr(session, "usage", None) or existing.get("usage", {})).items()
+                for key, value in usage.items()
             },
         }
         turn = getattr(session, "turn", None)
