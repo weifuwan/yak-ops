@@ -61,7 +61,10 @@ export function AgentThinkingIndicator({ activity }: AgentThinkingIndicatorProps
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-sm font-medium text-[#3b4743]">{activity.title}</span>
-          <span aria-label={activityStatusLabel(activity.status)} className="flex items-center gap-1 text-xs text-[#89948f]">
+          <span
+            aria-label={activityStatusLabel(activity.status)}
+            className="flex items-center gap-1 text-xs text-[#89948f]"
+          >
             <Icon
               size={12}
               className={activity.status === "running" ? "animate-spin" : ""}

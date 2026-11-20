@@ -213,7 +213,8 @@ test("welcome entrypoints seed the composer without claiming file upload support
 
 test("conversation orchestration is separated from the workspace component", () => {
   assert.match(workspace, /useDataAgentConversation/);
-  assert.match(workspace, /<ConversationPanel/);
+  assert.match(workspace, /<DataAgentSessionWorkspace/);
+  assert.match(sessionWorkspace, /<ConversationPanel/);
   assert.match(workspace, /<DataAgentEmptyState/);
   assert.doesNotMatch(workspace, /sendAgentMessage|createAgentSession|listAgentSessions|text_delta|tool_start|confirm_required|patchAssistantMessage/);
   assert.match(conversationHook, /createAgentSession/);
@@ -399,7 +400,7 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(detailsTimeline, /pl-8/);
   assert.match(detailsTimeline, /left-\[15px\]/);
   assert.match(detailsTimeline, /w-\[2px\]/);
-  assert.match(detailsTimeline, /top-0 bottom-0/);
+  assert.match(detailsTimeline, /bottom-0 left-\[15px\] top-0/);
   assert.match(detailsTimeline, /bg-\[#e7e9e8\]/);
   assert.match(detailsTimeline, /function TimelineNode/);
   assert.match(detailsTimeline, /size=\{12\}/);
@@ -476,7 +477,7 @@ test("Data Agent execution details panel has an accessible, bounded drag splitte
 test("Data Agent clickable controls use pointer cursors and drag splitters keep resize cursors", () => {
   assert.match(detailsTimeline, /cursor-pointer items-start/);
   assert.match(toolActivity, /cursor-pointer items-center/);
-  assert.match(modelSelector, /min-h-\\[56px\\] cursor-pointer/);
+  assert.match(modelSelector, /min-h-\[56px\] cursor-pointer/);
   assert.match(sidebarNavigation, /group flex h-8 w-full cursor-pointer/);
   assert.match(sidebarNavigation, /h-8 w-full cursor-pointer items-center/);
   assert.match(sessionWorkspace, /cursor-pointer/);
