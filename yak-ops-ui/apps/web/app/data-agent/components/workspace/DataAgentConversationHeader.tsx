@@ -132,7 +132,9 @@ export function DataAgentConversationHeader({
                   aria-selected="true"
                   className="flex h-7 cursor-default items-center gap-1.5 rounded-full border border-[#e0e3e5] bg-white px-2.5 text-xs font-medium text-[#30383c] shadow-[0_1px_2px_rgba(0,0,0,0.07)]"
                 >
-                  <List size={13} strokeWidth={1.6} />
+                  <span className="flex size-3.5 items-center justify-center rounded-[3px] border border-current">
+                    <List size={9} strokeWidth={1.8} />
+                  </span>
                   Timeline
                 </button>
                 <button
