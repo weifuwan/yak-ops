@@ -1,4 +1,4 @@
-import { Activity, Clock3, Coins, X } from "lucide-react";
+import { Activity, Clock3, Coins } from "lucide-react";
 
 import type { AgentMessage } from "../../../model/types";
 import { AgentDetailsTimeline } from "./AgentDetailsTimeline";
@@ -6,7 +6,6 @@ import { AgentDetailsTimeline } from "./AgentDetailsTimeline";
 type AgentDetailsPanelProps = {
   message: AgentMessage;
   selectedActivityId: string;
-  onClose: () => void;
 };
 
 function formatDuration(startedAt?: number, completedAt?: number) {
@@ -58,7 +57,7 @@ function AgentDetailsSummary({ message }: { message: AgentMessage }) {
 
   return (
     <section className="shrink-0 border-b border-[#ecefed] bg-white px-4 py-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 pr-8">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 pr-2">
         <span className="text-xs font-medium text-[#46504b]">执行概览</span>
         <span className="flex items-center gap-1 text-[11px] text-[#7c8782]">
           <Activity size={12} />
@@ -73,7 +72,7 @@ function AgentDetailsSummary({ message }: { message: AgentMessage }) {
       </div>
 
       {usage.length > 0 ? (
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pr-8 text-[10px] text-[#929c97]">
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pr-2 text-[10px] text-[#929c97]">
           <span className="flex items-center gap-1">
             <Coins size={11} />
             Token 用量
@@ -96,22 +95,11 @@ function AgentDetailsSummary({ message }: { message: AgentMessage }) {
 export function AgentDetailsPanel({
   message,
   selectedActivityId,
-  onClose,
 }: AgentDetailsPanelProps) {
   const activities = message.activities ?? [];
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col bg-white">
-      <button
-        type="button"
-        aria-label="关闭执行详情"
-        title="关闭"
-        className="absolute right-3 top-2 z-20 flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md bg-white/90 text-[#87928f] transition-colors hover:bg-[#f2f4f3] hover:text-[#303936] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25"
-        onClick={onClose}
-      >
-        <X size={15} />
-      </button>
-
       <AgentDetailsSummary message={message} />
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-subtle px-3 pb-6 pt-3">
