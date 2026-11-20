@@ -20,6 +20,19 @@ from yak_agent.service.session import Session
 ForwardEvent = Callable[[Session, Any], Awaitable[None]]
 
 
+def _build_confirm_results(
+    flags: list[bool],
+    tool_calls: list[Any],
+) -> list[ConfirmResult]:
+    """Build one result per pending call; never silently drop a call."""
+    if len(flags) != len(tool_calls):
+        raise ValueError("confirmation result count does not match pending tool calls")
+    return [
+        ConfirmResult(confirmed=bool(flag), tool_call=tool_call)
+        for flag, tool_call in zip(flags, tool_calls, strict=True)
+    ]
+
+
 async def run_turn(session: Session, text: str, forward: ForwardEvent) -> None:
     success = False
     analysis_progress_active = True
@@ -76,10 +89,7 @@ async def run_turn(session: Session, text: str, forward: ForwardEvent) -> None:
             flags = approved if isinstance(approved, list) else [approved] * len(paused.tool_calls)
             msg = UserConfirmResultEvent(
                 reply_id=paused.reply_id,
-                confirm_results=[
-                    ConfirmResult(confirmed=bool(flag), tool_call=tc)
-                    for flag, tc in zip(flags, paused.tool_calls, strict=False)
-                ],
+                confirm_results=_build_confirm_results(flags, paused.tool_calls),
             )
         success = True
     except Exception as ex:  # noqa: BLE001 - surface, never crash the worker

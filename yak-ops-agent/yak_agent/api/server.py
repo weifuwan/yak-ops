@@ -43,13 +43,19 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from yak_agent import audit
+from yak_agent.api import messages
 from yak_agent.api.deps import request_identity
 from yak_agent.api.errors import session_error_handler
 from yak_agent.api.sse import forward_event
 from yak_agent.config import Settings
 from yak_agent.service import persistence
 from yak_agent.service.chat import run_turn
-from yak_agent.service.errors import AgentSessionError, ConfirmationNotPending, SessionBusy
+from yak_agent.service.errors import (
+    AgentSessionError,
+    ConfirmationInvalid,
+    ConfirmationNotPending,
+    SessionBusy,
+)
 from yak_agent.service.session import (
     create_session as create_agent_session,
 )
@@ -150,17 +156,34 @@ async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bo
     identity = request_identity(request, _get_settings())
     session = load_session(sid, identity, _get_settings())
     refresh_session_auth(session, identity.auth)
-    if session.confirm_future is None or session.confirm_future.done():
+    pending = session.pending_event
+    if pending is None or session.confirm_future is None or session.confirm_future.done():
         raise ConfirmationNotPending()
-    approved = body.approved if isinstance(body.approved, bool) else all(body.approved)
-    audit.record_tool_call(
-        "session_confirm",
-        {"session": sid, "caller": identity.owner, "approved": approved},
-        True,
-        0,
-        None,
-    )
-    session.confirm_future.set_result(body.approved)
+    tool_calls = pending.tool_calls
+    if not tool_calls:
+        raise ConfirmationNotPending()
+    if isinstance(body.approved, bool):
+        flags = [body.approved] * len(tool_calls)
+    else:
+        if len(body.approved) != len(tool_calls):
+            raise ConfirmationInvalid(messages.CONFIRMATION_COUNT_MISMATCH)
+        flags = list(body.approved)
+    for tool_call, confirmed in zip(tool_calls, flags, strict=True):
+        audit.record_tool_call(
+            "session_confirm",
+            {
+                "session": sid,
+                "caller": identity.owner,
+                "replyId": pending.reply_id,
+                "toolCallId": tool_call.id,
+                "tool": tool_call.name,
+                "confirmed": confirmed,
+            },
+            True,
+            0,
+            None,
+        )
+    session.confirm_future.set_result(flags)
     return {"accepted": True}
 
 

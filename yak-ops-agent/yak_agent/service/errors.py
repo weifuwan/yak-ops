@@ -28,5 +28,9 @@ class ConfirmationNotPending(AgentSessionError):
     default_message = "当前没有待确认的操作"
 
 
+class ConfirmationInvalid(AgentSessionError):
+    default_message = "确认结果无效"
+
+
 class SessionStateInvalid(AgentSessionError):
     default_message = "会话状态不可读，请新建会话"
