@@ -22,6 +22,12 @@ export interface WorkflowDefinitionRecord {
   executionType?: string | null;
 }
 
+export interface WorkflowDefinitionNameRecord {
+  code: number;
+  name: string;
+  version: number;
+}
+
 export interface WorkflowTaskRecord {
   id: number;
   code: number;
@@ -137,6 +143,15 @@ export const listWorkflowDefinitions = (
         searchVal: params.searchVal,
         userId: params.userId,
       }),
+    { signal },
+  );
+
+/** Lightweight code/name lookup used to label workflow execution history. */
+export const listWorkflowDefinitionNames = (
+  signal?: AbortSignal,
+): Promise<WorkflowDefinitionNameRecord[]> =>
+  HttpUtils.getData<WorkflowDefinitionNameRecord[]>(
+    baseUrl() + "/query-workflow-definition-list",
     { signal },
   );
 
