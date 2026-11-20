@@ -43,9 +43,14 @@ const navigation = read("../apps/web/app/layout/navigation.ts");
 
 test("Data Agent opens on a welcome screen and enters the existing workspace", () => {
   assert.ok(page.includes('productPath="/data-agent"'));
-  assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
-  assert.match(page, /<DataAgentWorkspace initialPrompt=\{initialPrompt\} \/>/);
-  assert.match(page, /setWorkspaceOpen\(true\)/);
+  assert.match(page, /location\.pathname === "\/data-agent"/);
+  assert.match(page, /<DataAgentWelcome/);
+  assert.match(page, /navigate\("\/data-agent\/new", \{ state: \{ initialPrompt: prompt \} \}\)/);
+  assert.match(page, /sessionId=\{sessionId \?\? null\}/);
+  assert.match(page, /onSessionCreated=\{handleSessionCreated\}/);
+  assert.match(page, /onNewConversation=\{handleNewConversation\}/);
+  assert.match(page, /onSelectConversation=\{handleSelectConversation\}/);
+  assert.match(page, /\/data-agent\/sessions\//);
   assert.match(welcome, /src="\/yakable_logo\.png"/);
   assert.match(welcome, /onClick=\{\(\) => onEnter\(\)\}/);
   assert.match(welcome, /onEnter\(entry\.prompt\)/);
@@ -111,14 +116,15 @@ test("Data Agent restores the original empty workspace and uses a shared split h
   assert.doesNotMatch(conversationHeader, /border-b/);
   assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.match(conversationHeader, /onToggleSidebar/);
-  assert.match(conversationHeader, /const statusLabel = isSending \? "正在处理" : "已就绪"/);
+  assert.match(conversationHeader, /isReconnecting \?[\s\S]*?"正在重新连接"/);
   assert.match(conversationHeader, /detailsOpen/);
   assert.match(conversationHeader, /Timeline/);
   assert.match(conversationHeader, /Changes/);
   assert.match(conversationHeader, /onToggleDetails/);
   assert.match(conversationHeader, /cursor-pointer/);
 
-  assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
+  assert.match(page, /location\.pathname === "\/data-agent"/);
+  assert.match(page, /\/data-agent\/sessions\//);
   assert.match(welcome, /rounded-\[14px\] border border-\[#dfe4e4\] bg-white/);
 });
 
@@ -229,9 +235,14 @@ test("conversation orchestration is separated from the workspace component", () 
   assert.match(assistantMessage, /DataAgentMarkdown/);
   assert.match(confirmationCard, /确认执行/);
   assert.match(confirmationCard, /拒绝/);
-  assert.match(emptyState, /历史消息暂不提供回放/);
+  assert.match(emptyState, /已恢复服务端历史消息/);
   assert.match(composer, /isSubmitting\?: boolean/);
-  assert.match(composer, /disabled=\{isSubmitting \|\| !value\.trim\(\)\}/);
+  assert.match(composer, /onStop\?: \(\) => void/);
+  assert.match(composer, /disabled=\{isSubmitting \? !onStop : !value\.trim\(\)\}/);
+  assert.match(composer, /停止当前任务/);
+  assert.match(conversationHook, /resumeAgentStream/);
+  assert.match(conversationHook, /getAgentSessionMessages/);
+  assert.match(conversationHook, /interruptAgentSession/);
 });
 
 test("assistant message actions are isolated in a reusable footer before the timestamp", () => {
@@ -313,13 +324,15 @@ test("Data Agent sidebar has an accessible, bounded drag splitter", () => {
   assert.match(sidebarResizer, /document\.body\.style\.userSelect = "none"/);
 });
 
-test("Data Agent restores its workspace on refresh and shows a full-screen shimmer skeleton", () => {
-  assert.match(page, /DATA_AGENT_WORKSPACE_KEY/);
-  assert.match(page, /sessionStorage\.getItem\(DATA_AGENT_WORKSPACE_KEY\)/);
-  assert.match(page, /sessionStorage\.setItem\(DATA_AGENT_WORKSPACE_KEY, "true"\)/);
+test("Data Agent restores a URL-addressed session on refresh and shows a full-screen shimmer skeleton", () => {
+  assert.match(page, /useParams/);
+  assert.match(page, /sessionId=\{sessionId \?\? null\}/);
+  assert.match(page, /\/data-agent\/sessions\//);
 
   assert.match(conversationHook, /restoredIdentityKey/);
-  assert.match(conversationHook, /isLoading: isWorkspaceLoading \|\| Boolean\(requestIdentityKey && restoredIdentityKey !== requestIdentityKey\)/);
+  assert.match(conversationHook, /isLoading:[\s\S]*?isRestoringSession/);
+  assert.match(conversationHook, /getAgentSessionStatus/);
+  assert.match(conversationHook, /getAgentSessionMessages/);
   assert.match(workspace, /isLoadingOverlayVisible \? \([\s\S]*?<DataAgentLoading/);
   assert.match(workspace, /setLoadingOverlayExiting\(true\)/);
   assert.match(workspace, /data-agent-workspace-enter/);
