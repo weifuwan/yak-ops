@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import unittest
 from types import SimpleNamespace
 from typing import Any
@@ -11,8 +12,10 @@ from unittest.mock import patch
 from agentscope.event import RequireUserConfirmEvent, UserConfirmResultEvent
 from agentscope.message import ToolCallBlock
 
+from yak_agent.api import server
 from yak_agent.service import chat as chat_service
 from yak_agent.service import session as session_service
+from yak_agent.service.errors import ConfirmationNotPending
 
 
 def _tool_calls(count: int) -> list[ToolCallBlock]:
@@ -85,6 +88,22 @@ class ConfirmTimeoutTests(unittest.TestCase):
 
         self.assertEqual(asyncio.run(answer()), [True, True, True])
 
+    def test_late_confirmation_is_rejected_after_timeout(self) -> None:
+        paused = _paused(2)
+        session = _session(paused)
+        identity = SimpleNamespace(owner="u-1", workspace_id="1", auth=None, persistent=True)
+
+        with patch.object(chat_service.audit, "record_tool_call"):
+            asyncio.run(chat_service._await_confirmation(session, paused, 0.01))
+
+        with (
+            patch.object(server, "_get_settings", return_value=object()),
+            patch.object(server, "request_identity", return_value=identity),
+            patch.object(server, "load_session", return_value=session),
+        ):
+            with self.assertRaises(ConfirmationNotPending):
+                asyncio.run(server.confirm("sid", server.ConfirmBody(approved=True), None))
+
 
 class _FakeAgent:
     def __init__(self, paused: RequireUserConfirmEvent) -> None:
@@ -99,6 +118,14 @@ class _FakeAgent:
 
 async def _noop_forward(session: session_service.Session, event: Any) -> None:
     return None
+
+
+async def _wait_for(predicate: Any, attempts: int = 200) -> None:
+    for _ in range(attempts):
+        if predicate():
+            return
+        await asyncio.sleep(0.005)
+    raise AssertionError("condition was not reached")
 
 
 class RunTurnTimeoutTests(unittest.TestCase):
@@ -128,6 +155,67 @@ class RunTurnTimeoutTests(unittest.TestCase):
         while not session.queue.empty():
             events.append(session.queue.get_nowait())
         self.assertEqual(events[-1]["type"], "done")
+
+    def test_cancelling_a_paused_turn_releases_the_session(self) -> None:
+        paused = RequireUserConfirmEvent(reply_id="reply-1", tool_calls=_tool_calls(1))
+        session = _session(paused)
+        session.agent = _FakeAgent(paused)
+
+        async def scenario() -> None:
+            task = asyncio.create_task(chat_service.run_turn(session, "停止实例", _noop_forward, 5))
+            await _wait_for(lambda: session.confirm_future is not None)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+
+        with (
+            patch.object(chat_service.persistence, "persist"),
+            patch.object(chat_service.audit, "record_tool_call"),
+        ):
+            asyncio.run(scenario())
+
+        self.assertIsNone(session.pending_event)
+        self.assertIsNone(session.confirm_future)
+        self.assertFalse(session.busy)
+
+
+class SendMessageStreamTests(unittest.TestCase):
+    def test_sse_stream_reports_timeout_and_finishes(self) -> None:
+        paused = RequireUserConfirmEvent(reply_id="reply-1", tool_calls=_tool_calls(1))
+        session = _session(paused)
+        session.agent = _FakeAgent(paused)
+        settings = SimpleNamespace(confirm_timeout_seconds=0.01)
+        identity = SimpleNamespace(owner="u-1", workspace_id="1", auth=None, persistent=True)
+
+        async def scenario() -> list[dict[str, Any]]:
+            with (
+                patch.object(server, "_get_settings", return_value=settings),
+                patch.object(server, "request_identity", return_value=identity),
+                patch.object(server, "load_session", return_value=session),
+                patch.object(chat_service.persistence, "persist"),
+                patch.object(chat_service.audit, "record_tool_call"),
+            ):
+                response = await server.send_message(
+                    "sid",
+                    server.MessageBody(message="停止实例"),
+                    None,
+                )
+                return [item async for item in response.body_iterator]
+
+        items = asyncio.run(scenario())
+
+        event_types = [item["event"] for item in items]
+        self.assertEqual(event_types[0], "progress")
+        self.assertIn("confirm_required", event_types)
+        self.assertEqual(event_types[-1], "done")
+        self.assertNotIn("error", event_types)
+        progress = [json.loads(item["data"]) for item in items if item["event"] == "progress"]
+        timeout = [event for event in progress if event.get("phase") == "confirm"]
+        self.assertEqual(len(timeout), 1)
+        self.assertEqual(timeout[0]["status"], "error")
+        self.assertEqual(timeout[0]["replyId"], "reply-1")
+        self.assertFalse(session.busy)
+        self.assertIsNone(session.pending_event)
 
 
 if __name__ == "__main__":

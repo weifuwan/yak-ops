@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 import unittest
+from unittest.mock import patch
 
+from yak_agent import config
 from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
 from yak_agent.yak_client import YakAuth
@@ -41,8 +45,54 @@ class AgentConfigTests(unittest.TestCase):
     def test_injected_time_uses_platform_timezone(self) -> None:
         self.assertEqual(self.agent.injection_config.timezone, "Asia/Shanghai")
 
+    def test_runtime_state_hint_carries_platform_timezone(self) -> None:
+        async def first_hint() -> str:
+            agent = build_agent(
+                _settings(),
+                auth=YakAuth(base_url="http://yak.example", token="test-token"),
+                project_code=1,
+            )
+            async for event in agent._inject_runtime_state():
+                return event.hint
+            raise AssertionError("runtime state was not injected")
+
+        hint = asyncio.run(first_hint())
+
+        self.assertIn("<timezone>Asia/Shanghai</timezone>", hint)
+        self.assertIn("<current-time>", hint)
+
     def test_tool_results_keep_enough_context_for_logs(self) -> None:
         self.assertEqual(self.agent.context_config.tool_result_limit, 4000)
+
+
+class SettingsLoadTests(unittest.TestCase):
+    _BASE_ENV = {
+        "LLM_BASE_URL": "http://llm.example",
+        "LLM_API_KEY": "test-key",
+        "LLM_MODEL": "test-model",
+    }
+
+    def _load(self, **overrides: str) -> Settings:
+        with (
+            patch.dict(os.environ, {**self._BASE_ENV, **overrides}, clear=True),
+            patch.object(config, "_load_env_file", return_value={}),
+        ):
+            return Settings.load()
+
+    def test_context_and_confirmation_defaults(self) -> None:
+        settings = self._load()
+
+        self.assertEqual(settings.llm_context_size, 128000)
+        self.assertEqual(settings.confirm_timeout_seconds, 600)
+
+    def test_context_and_confirmation_env_overrides(self) -> None:
+        settings = self._load(
+            LLM_CONTEXT_SIZE="64000",
+            YAK_AGENT_CONFIRM_TIMEOUT_SECONDS="120",
+        )
+
+        self.assertEqual(settings.llm_context_size, 64000)
+        self.assertEqual(settings.confirm_timeout_seconds, 120)
 
 
 if __name__ == "__main__":
