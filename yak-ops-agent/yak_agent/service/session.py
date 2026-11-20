@@ -119,7 +119,7 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
     except Exception as ex:  # noqa: BLE001
         raise SessionStateInvalid() from ex
     workspace = SessionWorkspace(persistence.SESSION_DIR / sid / "workspace")
-try:
+    try:
         agent = build_agent(
             settings,
             state=state,

@@ -43,10 +43,7 @@ def persist(session: Any) -> None:
             "workspace": session.workspace_id,
             "title": session.title or existing.get("title", ""),
             "preview": session.preview or existing.get("preview", ""),
-            "usage": {
-                key: max(0, int(value))
-                for key, value in usage.items()
-            },
+            "usage": {key: max(0, int(value)) for key, value in usage.items()},
         }
         turn = getattr(session, "turn", None)
         if turn is not None:

@@ -399,11 +399,7 @@ async def session_messages(sid: str, request: Request, limit: int = 0) -> dict[s
     settings = _get_settings()
     effective = min(limit or settings.history_max_messages, 500)
     result = serialize_history(state, max(effective, 1), settings.history_tool_chars)
-    usage = (
-        session.usage
-        if session is not None
-        else persistence.read_meta(sid).get("usage", {})
-    )
+    usage = session.usage if session is not None else persistence.read_meta(sid).get("usage", {})
     return {"sessionId": sid, "usage": usage, **result}
 
 
