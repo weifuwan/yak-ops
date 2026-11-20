@@ -39,6 +39,42 @@ test("SSE parser reads text, tool, confirmation, completion and error events", (
     parseAgentSseFrame('event: error\ndata: {"type":"error","message":"failed"}'),
     { type: "error", message: "failed" },
   );
+  assert.deepEqual(
+    parseAgentSseFrame('event: thinking_start\ndata: {"type":"thinking_start","replyId":"reply-1","blockId":"block-1"}'),
+    { type: "thinking_start", replyId: "reply-1", blockId: "block-1" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: thinking_delta\ndata: {"type":"thinking_delta","delta":"private reasoning","replyId":"reply-1","blockId":"block-1"}'),
+    { type: "thinking_delta", delta: "private reasoning", replyId: "reply-1", blockId: "block-1" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: thinking_end\ndata: {"type":"thinking_end","replyId":"reply-1","blockId":"block-1"}'),
+    { type: "thinking_end", replyId: "reply-1", blockId: "block-1" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: tool_call_delta\ndata: {"type":"tool_call_delta","toolCallId":"tool-1","delta":"{\\"name\\":"}'),
+    { type: "tool_call_delta", toolCallId: "tool-1", delta: '{"name":' },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: tool_result_delta\ndata: {"type":"tool_result_delta","toolCallId":"tool-1","delta":"ok"}'),
+    { type: "tool_result_delta", toolCallId: "tool-1", delta: "ok" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: tool_result\ndata: {"type":"tool_result","toolCallId":"tool-1","state":"error"}'),
+    { type: "tool_result", toolCallId: "tool-1", state: "error" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: progress\ndata: {"type":"progress","phase":"analysis","title":"正在分析你的需求","status":"running"}'),
+    { type: "progress", phase: "analysis", title: "正在分析你的需求", status: "running" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: usage\ndata: {"type":"usage","inputTokens":120,"outputTokens":35,"cacheInputTokens":12,"cacheCreationInputTokens":3}'),
+    { type: "usage", inputTokens: 120, outputTokens: 35, cacheInputTokens: 12, cacheCreationInputTokens: 3 },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame('event: reply_end\ndata: {"type":"reply_end","replyId":"reply-1","finishedReason":"completed","error":null}'),
+    { type: "reply_end", replyId: "reply-1", finishedReason: "completed", error: null },
+  );
   assert.equal(parseAgentSseFrame(": keep-alive"), null);
 });
 
@@ -207,4 +243,57 @@ test("conversation hook takes user and workspace identity from the active applic
   assert.match(hook, /createAgentSession\(requestIdentity/);
   assert.match(hook, /identity: requestIdentity/);
   assert.match(hook, /type: "RESET"/);
+});
+
+
+test("SSE stream forwards activity, tool details, usage and reply lifecycle events", async () => {
+  const originalFetch = globalThis.fetch;
+  const frames = [
+    { type: "progress", phase: "analysis", title: "正在分析你的需求", status: "running" },
+    { type: "thinking_start", replyId: "reply-1", blockId: "block-1" },
+    { type: "thinking_delta", replyId: "reply-1", blockId: "block-1", delta: "private" },
+    { type: "thinking_end", replyId: "reply-1", blockId: "block-1" },
+    { type: "text_delta", replyId: "reply-1", blockId: "text-1", delta: "我先检查一下。" },
+    { type: "tool_start", tool: "list_sync_tasks", toolCallId: "tool-1", replyId: "reply-1" },
+    { type: "tool_call_delta", toolCallId: "tool-1", delta: "{\"keyword\":\"orders\"}" },
+    { type: "tool_result_delta", toolCallId: "tool-1", delta: "{\"total\":1}" },
+    { type: "tool_result", toolCallId: "tool-1", state: "success" },
+    { type: "usage", replyId: "reply-1", inputTokens: 120, outputTokens: 35, cacheInputTokens: 12, cacheCreationInputTokens: 3 },
+    { type: "reply_end", replyId: "reply-1", finishedReason: "completed", error: null },
+    { type: "done" },
+  ];
+  const streamText = frames
+    .map((event) => "event: " + event.type + "\ndata: " + JSON.stringify(event))
+    .join("\n\n") + "\n\n";
+
+  globalThis.fetch = async () => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(streamText));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  };
+
+  try {
+    const events = [];
+    await sendAgentMessage("session-1", "查询同步任务", {
+      identity,
+      signal: new AbortController().signal,
+      onEvent: (event) => events.push(event),
+      onConfirmRequired: async () => true,
+    });
+
+    assert.deepEqual(events.map((event) => event.type), frames.map((event) => event.type));
+    assert.equal(events.find((event) => event.type === "tool_call_delta").delta, "{\"keyword\":\"orders\"}");
+    assert.equal(events.find((event) => event.type === "tool_result").state, "success");
+    assert.equal(events.find((event) => event.type === "usage").outputTokens, 35);
+    assert.equal(events.find((event) => event.type === "reply_end").finishedReason, "completed");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
