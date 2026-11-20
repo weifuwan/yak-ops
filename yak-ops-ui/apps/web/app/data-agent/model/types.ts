@@ -5,7 +5,44 @@ export type ToolCallStatus =
   | "completed"
   | "awaiting-confirmation"
   | "approved"
-  | "rejected";
+  | "rejected"
+  | "error"
+  | "denied"
+  | "interrupted";
+
+export type AgentActivityStatus = ToolCallStatus;
+export type AgentActivityKind = "text" | "thinking" | "progress" | "tool";
+
+export type AgentActivity = {
+  id: string;
+  kind: AgentActivityKind;
+  title: string;
+  status: AgentActivityStatus;
+  replyId?: string;
+  blockId?: string;
+  phase?: string;
+  toolCallId?: string;
+  toolName?: string;
+  content?: string;
+  input?: string;
+  output?: string;
+  startedAt?: number;
+  completedAt?: number;
+};
+
+export type AgentUsage = {
+  replyId?: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheInputTokens: number;
+  cacheCreationInputTokens: number;
+};
+
+export type AgentReplyEnd = {
+  replyId?: string;
+  finishedReason: string;
+  error?: Record<string, unknown> | null;
+};
 
 export type AgentToolCall = AgentToolCallRequest & {
   status: ToolCallStatus;
@@ -18,6 +55,9 @@ export type AgentMessage = {
   createdAt: string;
   status?: "streaming" | "complete" | "awaiting-confirmation" | "error";
   toolCalls?: AgentToolCall[];
+  activities?: AgentActivity[];
+  usage?: AgentUsage[];
+  replyEnds?: AgentReplyEnd[];
   error?: string;
 };
 
