@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from "rea
 import { Activity, PanelRightClose } from "lucide-react";
 
 import type { AgentActivity, AgentMessage, PendingConfirmation } from "../../model/types";
+import type { AgentSessionUsage } from "@/service/data-agent";
 import { AgentDetailsResizer } from "./conversation/AgentDetailsResizer";
 import { AgentDetailsPanel } from "./conversation/AgentDetailsPanel";
 import { ConversationPanel } from "./ConversationPanel";
@@ -18,6 +19,10 @@ type ActivitySelection = {
 type DataAgentSessionWorkspaceProps = {
   title: string;
   isSending: boolean;
+  isReconnecting: boolean;
+  sessionUsage: AgentSessionUsage;
+  sessionNotice: string;
+  onStop: () => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   messages: AgentMessage[];
@@ -76,6 +81,10 @@ function DetailsEmptyState() {
 export function DataAgentSessionWorkspace({
   title,
   isSending,
+  isReconnecting,
+  sessionUsage,
+  sessionNotice,
+  onStop,
   sidebarOpen,
   onToggleSidebar,
   messages,
@@ -178,6 +187,8 @@ export function DataAgentSessionWorkspace({
       <DataAgentConversationHeader
         title={title}
         isSending={isSending}
+        isReconnecting={isReconnecting}
+        sessionUsage={sessionUsage}
         sidebarOpen={sidebarOpen}
         detailsOpen={detailsOpen}
         metricsMessage={selectedMessage}
@@ -203,10 +214,12 @@ export function DataAgentSessionWorkspace({
             selectedActivityId={selection?.activityId}
             onSelectActivity={handleSelectActivity}
             connectionError={connectionError}
+            sessionNotice={sessionNotice}
             composerKey={composerKey}
             initialDraft={initialDraft}
             isSending={isSending}
             onSubmit={onSubmit}
+            onStop={onStop}
             trailingActions={trailingActions}
           />
         </div>
