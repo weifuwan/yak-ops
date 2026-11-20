@@ -176,7 +176,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         normalizeTypeFields(dto, po);
         validateBasicInfo(dto, po);
         validateBusinessRelations(dto);
-        validateFieldsForSubmit(id);
+        if (po.getTableType() != DimensionTableTypeEnum.DIM) validateFieldsForSubmit(id);
 
         po.setSubmit(Boolean.TRUE);
         po.initUpdate();
