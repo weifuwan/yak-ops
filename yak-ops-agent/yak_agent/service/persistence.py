@@ -42,6 +42,10 @@ def persist(session: Any) -> None:
             "workspace": session.workspace_id,
             "title": session.title or existing.get("title", ""),
             "preview": session.preview or existing.get("preview", ""),
+            "usage": {
+                key: max(0, int(value))
+                for key, value in (getattr(session, "usage", None) or existing.get("usage", {})).items()
+            },
         }
         turn = getattr(session, "turn", None)
         if turn is not None:
@@ -49,6 +53,7 @@ def persist(session: Any) -> None:
                 "turnId": turn.turn_id,
                 "startedAt": turn.started_at,
                 "status": turn.status,
+                "message": getattr(turn, "message", ""),
             }
         meta_path(session.sid).write_text(
             json.dumps(meta, ensure_ascii=False),
