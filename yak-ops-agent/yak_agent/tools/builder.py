@@ -18,7 +18,7 @@ from typing import Any
 from agentscope.tool import FunctionTool
 
 from yak_agent.config import Settings
-from yak_agent.tools.registry import load_allowlist, load_operations
+from yak_agent.tools.registry import is_read_only, load_allowlist, load_operations
 from yak_agent.tools.runtime import execute
 from yak_agent.tools.schema import build_schema
 from yak_agent.tools.workspace_tools import build_workspace_tools
@@ -55,7 +55,7 @@ def build_tools(
     for op in load_operations():
         if op["id"] not in allowlisted:
             continue  # allowlist enforcement: not reviewed, not exposed
-        readonly = op.get("risk") == "readonly"
+        readonly = is_read_only(op)
 
         def runner(_op: dict[str, Any] = op, **kwargs: Any) -> str:
             return execute(_op, auth, kwargs, project_code)
