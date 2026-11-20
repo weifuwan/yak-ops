@@ -160,6 +160,55 @@ class DimensionModelingServiceImplTest {
     }
 
     @Test
+    void shouldRequireFieldsBeforeSubmittingLogicalTables() {
+        when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL));
+        when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
+        BusinessProcessPO process = new BusinessProcessPO();
+        process.setDataDomainId("domain-a");
+        when(businessProcessDao.queryById("process-id")).thenReturn(process);
+        DimensionTablePO existing = new DimensionTablePO();
+        existing.setId("table-id");
+        existing.setDwhId(LAYER_ID);
+        existing.setTableType(DimensionTableTypeEnum.DETAIL);
+        existing.setTableName("dwd_order_detail");
+        existing.setCnName("订单明细");
+        existing.setDirector("owner");
+        existing.setDomainId("domain-a");
+        existing.setBusProcessId("process-id");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(existing);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.submit("table-id"));
+
+        assertEquals("提交前至少需要配置一个字段", exception.getMessage());
+        verify(dimensionTableDao, never()).updateById(any());
+    }
+
+    @Test
+    void shouldAllowBusinessDimensionSubmissionWithoutPhysicalFields() {
+        DwLayerVO layer = layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM);
+        when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer);
+        when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
+        DimensionTablePO existing = new DimensionTablePO();
+        existing.setId("dimension-id");
+        existing.setDwhId(LAYER_ID);
+        existing.setTableType(DimensionTableTypeEnum.DIM);
+        existing.setEnShortName("customer");
+        existing.setCnName("客户维度");
+        existing.setDomainId("domain-a");
+        existing.setSubmit(Boolean.FALSE);
+        when(dimensionTableDao.queryById("dimension-id")).thenReturn(existing);
+        when(dimensionTableDao.updateById(any())).thenReturn(true);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
+
+        DimensionTableVO result = service.submit("dimension-id");
+
+        assertEquals("客户维度", result.getCnName());
+        verify(dimensionTableDao).updateById(any());
+    }
+
+    @Test
     void shouldRejectBusinessProcessFromAnotherDomain() {
         when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DETAIL));
         when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
