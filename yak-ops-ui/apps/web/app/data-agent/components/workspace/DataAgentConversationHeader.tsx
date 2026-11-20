@@ -10,11 +10,14 @@ import {
   SquarePlus,
 } from "lucide-react";
 
+import type { AgentSessionUsage } from "@/service/data-agent";
 import type { AgentMessage } from "../../model/types";
 
 type DataAgentConversationHeaderProps = {
   title: string;
   isSending: boolean;
+  isReconnecting: boolean;
+  sessionUsage: AgentSessionUsage;
   sidebarOpen: boolean;
   detailsOpen: boolean;
   detailsWidth: number;
@@ -37,9 +40,13 @@ function formatDuration(startedAt?: number, completedAt?: number) {
   return minutes + "m " + String(seconds).padStart(2, "0") + "s";
 }
 
-function getMessageMetrics(message: AgentMessage | null) {
+function getMessageMetrics(
+  message: AgentMessage | null,
+  sessionUsage: AgentSessionUsage,
+) {
   const activities = message?.activities ?? [];
   const usage = message?.usage ?? [];
+  const hasMessageUsage = usage.length > 0;
   const startedAt = activities.reduce<number | undefined>(
     (earliest, activity) =>
       activity.startedAt === undefined
@@ -62,12 +69,18 @@ function getMessageMetrics(message: AgentMessage | null) {
     startedAt,
     message?.status === "streaming" ? undefined : completedAt,
   );
-  const inputTokens = usage.reduce((total, item) => total + item.inputTokens, 0);
-  const outputTokens = usage.reduce((total, item) => total + item.outputTokens, 0);
-  const cacheTokens = usage.reduce(
-    (total, item) => total + item.cacheInputTokens + item.cacheCreationInputTokens,
-    0,
-  );
+  const inputTokens = hasMessageUsage
+    ? usage.reduce((total, item) => total + item.inputTokens, 0)
+    : sessionUsage.inputTokens;
+  const outputTokens = hasMessageUsage
+    ? usage.reduce((total, item) => total + item.outputTokens, 0)
+    : sessionUsage.outputTokens;
+  const cacheTokens = hasMessageUsage
+    ? usage.reduce(
+        (total, item) => total + item.cacheInputTokens + item.cacheCreationInputTokens,
+        0,
+      )
+    : sessionUsage.cacheInputTokens + sessionUsage.cacheCreationInputTokens;
   const totalTokens = inputTokens + outputTokens + cacheTokens;
   const tokenBreakdown = [
     `输入 ${inputTokens.toLocaleString()}`,
@@ -81,6 +94,8 @@ function getMessageMetrics(message: AgentMessage | null) {
 export function DataAgentConversationHeader({
   title,
   isSending,
+  isReconnecting,
+  sessionUsage,
   sidebarOpen,
   detailsOpen,
   detailsWidth,
@@ -91,8 +106,15 @@ export function DataAgentConversationHeader({
   onToggleExpandAll,
   onBackToLatest,
 }: DataAgentConversationHeaderProps) {
-  const statusLabel = isSending ? "正在处理" : "已就绪";
-  const { duration, totalTokens, tokenBreakdown } = getMessageMetrics(metricsMessage);
+  const statusLabel = isReconnecting
+    ? "正在重新连接"
+    : isSending
+      ? "正在处理"
+      : "已就绪";
+  const { duration, totalTokens, tokenBreakdown } = getMessageMetrics(
+    metricsMessage,
+    sessionUsage,
+  );
 
   return (
     <header className="relative z-10 flex h-12 shrink-0 items-center bg-white">
