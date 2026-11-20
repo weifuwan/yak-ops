@@ -145,9 +145,11 @@ test("session lifecycle endpoints carry the current user and workspace identity"
               ? { deleted: true }
               : init.method === "PATCH"
                 ? { sessionId: "session-1", title: "新标题" }
-                : init.method === "POST" && url.endsWith("/interrupt")
-                  ? { accepted: true, state: "interrupting" }
-                  : { accepted: true };
+                : init.method === "POST" && url.endsWith("/agent/sessions")
+                  ? { sessionId: "session-1" }
+                  : init.method === "POST" && url.endsWith("/interrupt")
+                    ? { accepted: true, state: "interrupting" }
+                    : { accepted: true };
     return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -274,6 +276,53 @@ test("conversation hook takes user and workspace identity from the active applic
   assert.match(hook, /type: "RESET"/);
 });
 
+
+test("SSE reconnect resumes from the last acknowledged event sequence", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  const firstFrame = 'id: 7\nevent: text_delta\ndata: {"type":"text_delta","seq":7,"delta":"partial"}\n\n';
+  const resumedFrame = 'id: 8\nevent: done\ndata: {"type":"done","seq":8}\n\n';
+
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    calls.push({ url, init });
+    const payload = url.endsWith("/messages") ? firstFrame : resumedFrame;
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(payload));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  };
+
+  try {
+    const events = [];
+    let reconnecting = false;
+    await sendAgentMessage("session-1", "继续查询", {
+      identity,
+      signal: new AbortController().signal,
+      onEvent: (event) => events.push(event),
+      onConfirmRequired: () => undefined,
+      onReconnect: () => {
+        reconnecting = true;
+      },
+    });
+
+    assert.equal(calls.length, 2);
+    assert.match(calls[0].url, /\/messages$/);
+    assert.match(calls[1].url, /\/stream\?after=7$/);
+    assert.equal(reconnecting, true);
+    assert.deepEqual(events.map((event) => event.type), ["text_delta", "done"]);
+    assert.equal(events[0].seq, 7);
+    assert.equal(events[1].seq, 8);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("SSE stream forwards activity, tool details, usage and reply lifecycle events", async () => {
   const originalFetch = globalThis.fetch;
