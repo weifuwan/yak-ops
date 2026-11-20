@@ -73,7 +73,7 @@ function AgentDetailsSummary({ message }: { message: AgentMessage }) {
       </div>
 
       {usage.length > 0 ? (
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#929c97]">
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pr-8 text-[10px] text-[#929c97]">
           <span className="flex items-center gap-1">
             <Coins size={11} />
             Token 用量
