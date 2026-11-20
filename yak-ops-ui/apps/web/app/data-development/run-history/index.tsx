@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { History, Search } from "lucide-react";
-import { PanelHeader } from "@yak-ops/yak-ui";
+import {
+  Input,
+  PanelHeader,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from "@yak-ops/yak-ui";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -10,7 +20,7 @@ import {
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 
 const STATE_OPTIONS = [
-  { value: "", label: "全部状态" },
+  { value: "ALL", label: "全部状态" },
   { value: "RUNNING_EXECUTION", label: "运行中" },
   { value: "SUCCESS", label: "成功" },
   { value: "FAILURE", label: "失败" },
@@ -23,7 +33,7 @@ function stateLabel(state?: string | null) {
 
 export function RunHistoryPanel({ width }: { width: number }) {
   const [keyword, setKeyword] = useState("");
-  const [state, setState] = useState("");
+  const [state, setState] = useState("ALL");
   const { openWorkflowInstance } = useDataDevelopmentWorkbench();
 
   const query = useQuery({
@@ -34,7 +44,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
         1,
         100,
         signal,
-        { searchVal: keyword.trim() || undefined, stateType: state || undefined },
+        { searchVal: keyword.trim() || undefined, stateType: state === "ALL" ? undefined : state },
       ),
     refetchInterval: 5000,
   });
@@ -49,24 +59,38 @@ export function RunHistoryPanel({ width }: { width: number }) {
     >
       <PanelHeader title="运行历史" />
       <div className="space-y-2 border-b border-[#ececec] px-3 py-2">
-        <div className="flex h-8 items-center gap-2 rounded-[4px] border border-[#dcdfe5] bg-white px-2 text-[#8a8f98]">
-          <Search size={14} />
-          <input
+        <div className="relative">
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-components-input-icon)]"
+          />
+          <Input
+            size="small"
+            variant="outlined"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="工作流 / 实例"
-            className="min-w-0 flex-1 bg-transparent text-[12px] text-[#30343a] outline-none placeholder:text-[#a5aab2]"
+            className="h-8 pl-8"
           />
         </div>
-        <select
+        <Select
+          size="small"
+          items={Object.fromEntries(STATE_OPTIONS.map((option) => [option.value, option.label]))}
           value={state}
-          onChange={(event) => setState(event.target.value)}
-          className="h-8 w-full rounded-[4px] border border-[#dcdfe5] bg-white px-2 text-[12px] text-[#4f5661] outline-none"
+          onValueChange={(value) => setState(String(value ?? "ALL"))}
         >
-          {STATE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+          <SelectTrigger variant="outlined" className="h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <SelectItemText>{option.label}</SelectItemText>
+                <SelectItemIndicator />
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
