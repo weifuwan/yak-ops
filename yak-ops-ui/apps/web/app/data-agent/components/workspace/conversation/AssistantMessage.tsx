@@ -30,6 +30,7 @@ export function AssistantMessage({
           usage={message.usage}
           replyEnds={message.replyEnds}
           isStreaming={message.status === "streaming"}
+          isError={message.status === "error"}
         />
       ) : message.content.trim() ? (
         <DataAgentMarkdown
