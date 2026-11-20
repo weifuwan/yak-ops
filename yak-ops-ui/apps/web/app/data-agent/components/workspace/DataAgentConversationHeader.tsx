@@ -46,7 +46,7 @@ export function DataAgentConversationHeader({
       {detailsOpen ? (
         <div
           style={{ width: String(detailsWidth) + "px" }}
-          className="flex h-full shrink-0 items-center justify-end gap-1 px-2.5"
+          className="hidden h-full shrink-0 items-center justify-end gap-1 px-2.5 lg:flex"
         >
           <div
             role="status"
