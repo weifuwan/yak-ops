@@ -31,14 +31,10 @@ from yak_agent.yak_client import YakAuth, yak_download, yak_get
 _BASE_URL = {base_url!r}
 _SESSION_ID = {session_id!r}
 _TOKEN = {token!r}
-_USERNAME = {username!r}
-_PASSWORD = {password!r}
 _AUTH = YakAuth(
     base_url=_BASE_URL,
     session_id=_SESSION_ID,
     token=_TOKEN,
-    username=_USERNAME,
-    password=_PASSWORD,
 )
 
 # Writes are disabled inside analysis scripts: HITL-confirmed mutations must go
@@ -138,8 +134,6 @@ def generate_sdk(agent_root: Path, auth: Any = None, project_code: Any = None) -
             "base_url": auth.base_url,
             "session_id": auth.session_id,
             "token": auth.token,
-            "username": auth.username,
-            "password": auth.password,
             "project_code": project_code,
         }
     else:
@@ -147,8 +141,6 @@ def generate_sdk(agent_root: Path, auth: Any = None, project_code: Any = None) -
             "base_url": "",
             "session_id": "",
             "token": "",
-            "username": "",
-            "password": "",
             "project_code": project_code,
         }
     body = _TEMPLATE_HEADER.format(agent_root=str(agent_root), **creds)

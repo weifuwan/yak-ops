@@ -8,9 +8,8 @@ Security model (mirrors the OpenAPI agent-integration plan):
 
 Authentication modes:
 - token: `token: <value>` request header (platform API-token feature);
-- password: `POST /login` (form `userName` / `userPassword`) yields a
-  `sessionId` cookie; requests then carry `Cookie: sessionId=<value>`.
-  On HTTP 401 the session is refreshed once and the request retried.
+- session_id: a sessionId cookie handed over by the frontend; requests carry
+  `Cookie: sessionId=<value>`.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 MAX_PAYLOAD_CHARS = 16_000
@@ -50,9 +49,15 @@ def _record_error(message: str) -> None:
 class YakApiError(RuntimeError):
     """Raised when yak-ops returns a non-success envelope or a transport error."""
 
-    def __init__(self, message: str, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        business_code: int | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.business_code = business_code
 
 
 def truncate(text: str, limit: int = MAX_PAYLOAD_CHARS) -> str:
@@ -71,97 +76,26 @@ def _to_query(params: dict[str, Any] | None) -> str:
 class YakAuth:
     """Holds credentials and resolves request auth headers/cookies.
 
-    Thread-safe: AgentScope may run read-only tools concurrently
-    (`is_concurrency_safe=True`), so session refresh is guarded by a lock.
-
-    Three auth modes, in priority order:
+    Two auth modes, in priority order:
     - `token`: platform API token (header `token`);
     - `session_id`: a sessionId cookie value handed over by the frontend
-      (per-user identity) — used as-is, no password held; on 401 the caller
-      re-authenticates upstream and sends a fresh sessionId;
-    - `username`/`password`: server-side login (CLI / single-tenant default).
+      (per-user identity) — used as-is.
     """
 
     base_url: str
     token: str = ""
     session_id: str = ""
-    username: str = ""
-    password: str = ""
     timeout: int = DEFAULT_TIMEOUT
-
-    _session_id: str = field(default="", init=False, repr=False)
-    _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
-
-    # ---- headers ----
 
     def headers(self) -> dict[str, str]:
         headers = {"Accept": "application/json"}
         if self.token:
             headers["token"] = self.token
         elif self.session_id:
-            # Per-user sessionId from the frontend: used as-is, no login.
             headers["Cookie"] = f"sessionId={self.session_id}"
         else:
-            session_id = self._ensure_session()
-            if session_id:
-                headers["Cookie"] = f"sessionId={session_id}"
+            raise YakApiError("no credentials: set token or session_id")
         return headers
-
-    # ---- session login ----
-
-    def _ensure_session(self) -> str:
-        if self.session_id or self._session_id:
-            return self.session_id or self._session_id
-        with self._lock:
-            if not self._session_id:
-                self._session_id = self._login()
-            return self._session_id
-
-    def refresh_session(self) -> None:
-        with self._lock:
-            self._session_id = ""
-
-    def _login(self) -> str:
-        body = urllib.parse.urlencode(
-            {"userName": self.username, "userPassword": self.password}
-        ).encode()
-        request = urllib.request.Request(
-            f"{self.base_url}/login",
-            data=body,
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json",
-            },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                payload = response.read().decode("utf-8")
-                set_cookies = response.headers.get_all("Set-Cookie") or []
-        except urllib.error.HTTPError as ex:
-            raise YakApiError(f"login failed: HTTP {ex.code}", status_code=ex.code) from ex
-        except urllib.error.URLError as ex:
-            raise YakApiError(f"cannot reach yak-ops at {self.base_url}: {ex.reason}") from ex
-
-        session_id = ""
-        if payload:
-            try:
-                envelope = json.loads(payload)
-                data = envelope.get("data") if isinstance(envelope, dict) else None
-                if isinstance(data, dict):
-                    session_id = str(data.get("sessionId") or data.get("session_id") or "")
-            except json.JSONDecodeError:
-                pass
-        if not session_id:
-            for raw in set_cookies:
-                head = raw.split(";", 1)[0]
-                name, _, value = head.partition("=")
-                if name.strip() == "sessionId" and value.strip():
-                    session_id = value.strip()
-                    break
-        if not session_id:
-            raise YakApiError("login succeeded but no sessionId was returned")
-        return session_id
 
 
 def _request(
@@ -187,9 +121,8 @@ def yak_get(auth: YakAuth, path: str, params: dict[str, Any] | None = None) -> A
     """GET a yak-ops API path and return the envelope `data` field.
 
     `path` must start with "/" and already include the project segment when
-    applicable, e.g. "/projects/123/data-sync/instances". On an expired
-    session (401) the login is refreshed once and the request retried.
-    Every outcome is recorded in the process-wide tool stats.
+    applicable, e.g. "/projects/123/data-sync/instances". Every outcome is
+    recorded in the process-wide tool stats.
     """
     try:
         data = _get_envelope_data(auth, path, params)
@@ -205,14 +138,7 @@ def _get_envelope_data(auth: YakAuth, path: str, params: dict[str, Any] | None) 
     query = _to_query(params)
     if query:
         url = f"{url}?{query}"
-    try:
-        body = _request(auth, "GET", url)
-    except YakApiError as ex:
-        if ex.status_code == 401 and not auth.token:
-            auth.refresh_session()
-            body = _request(auth, "GET", url)
-        else:
-            raise
+    body = _request(auth, "GET", url)
 
     if not body:
         return None
@@ -224,7 +150,8 @@ def _get_envelope_data(auth: YakAuth, path: str, params: dict[str, Any] | None) 
         raise YakApiError(f"unexpected response shape from {path}: {truncate(body, 300)}")
     if envelope.get("code") != 0:
         raise YakApiError(
-            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}"
+            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}",
+            business_code=envelope.get("code"),
         )
     return envelope.get("data")
 
@@ -261,14 +188,7 @@ def yak_download(auth: YakAuth, path: str, params: dict[str, Any] | None = None)
         query = _to_query(params)
         if query:
             url = f"{url}?{query}"
-        try:
-            body = _request(auth, "GET", url)
-        except YakApiError as ex:
-            if ex.status_code == 401 and not auth.token:
-                auth.refresh_session()
-                body = _request(auth, "GET", url)
-            else:
-                raise
+        body = _request(auth, "GET", url)
     except YakApiError as ex:
         _record_error(f"{path}: {ex}")
         raise
@@ -292,14 +212,7 @@ def _write_envelope_data(
     if json_body is not None:
         body = json.dumps(json_body, ensure_ascii=False).encode("utf-8")
         content_type = "application/json"
-    try:
-        raw = _request(auth, method, url, body=body, content_type=content_type)
-    except YakApiError as ex:
-        if ex.status_code == 401 and not auth.token:
-            auth.refresh_session()
-            raw = _request(auth, method, url, body=body, content_type=content_type)
-        else:
-            raise
+    raw = _request(auth, method, url, body=body, content_type=content_type)
 
     if not raw:
         return None
@@ -311,6 +224,7 @@ def _write_envelope_data(
         raise YakApiError(f"unexpected response shape from {path}: {truncate(raw, 300)}")
     if envelope.get("code") != 0:
         raise YakApiError(
-            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}"
+            f"yak-ops business error on {path}: code={envelope.get('code')} msg={envelope.get('msg')}",
+            business_code=envelope.get("code"),
         )
     return envelope.get("data")

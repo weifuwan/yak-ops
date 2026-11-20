@@ -11,6 +11,7 @@ Covers:
 from __future__ import annotations
 
 import asyncio
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,9 +21,17 @@ from unittest.mock import patch
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from yak_agent.api import deps, server
+from yak_agent.api import deps, errors, server
 from yak_agent.service import persistence
 from yak_agent.service import session as session_service
+from yak_agent.service.errors import (
+    ConfirmationNotPending,
+    SessionBusy,
+    SessionForbidden,
+    SessionNotFound,
+    SessionStateInvalid,
+)
+from yak_agent.yak_client import YakApiError
 
 
 class UserKeyTests(unittest.TestCase):
@@ -119,10 +128,8 @@ class PersistenceTests(unittest.TestCase):
             persistent=False,
         )
 
-        with self.assertRaises(HTTPException) as ctx:
+        with self.assertRaises(SessionNotFound):
             session_service.load_session("does-not-exist", identity, None)
-
-        self.assertEqual(ctx.exception.status_code, 404)
 
     def test_create_session_with_legacy_identity_writes_no_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -153,7 +160,7 @@ class PersistenceTests(unittest.TestCase):
 
 class WorkspaceAuthorizationTests(unittest.TestCase):
     @staticmethod
-    def _request() -> Request:
+    def _request(workspace_id: str = "1") -> Request:
         return Request(
             {
                 "type": "http",
@@ -161,7 +168,7 @@ class WorkspaceAuthorizationTests(unittest.TestCase):
                 "path": "/",
                 "headers": [
                     (b"x-yak-session-id", b"login-a"),
-                    (b"x-yak-workspace-id", b"1"),
+                    (b"x-yak-workspace-id", workspace_id.encode()),
                 ],
                 "query_string": b"",
                 "server": ("test", 80),
@@ -208,6 +215,84 @@ class WorkspaceAuthorizationTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 403)
 
 
+class WorkspaceVerificationTests(unittest.TestCase):
+    def test_successful_project_lookup_means_authorized(self) -> None:
+        with patch.object(deps, "yak_get", return_value={"code": 7}) as get:
+            deps.verify_workspace(SimpleNamespace(), "7")
+
+        get.assert_called_once()
+        self.assertEqual(get.call_args.args[1], "/projects/7")
+
+    def test_none_project_is_rejected(self) -> None:
+        with patch.object(deps, "yak_get", return_value=None):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_empty_project_is_rejected(self) -> None:
+        with patch.object(deps, "yak_get", return_value={}):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_mismatched_project_is_rejected(self) -> None:
+        with patch.object(deps, "yak_get", return_value={"code": 8}):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_string_project_code_is_accepted(self) -> None:
+        with patch.object(deps, "yak_get", return_value={"code": "7"}):
+            deps.verify_workspace(SimpleNamespace(), "7")
+
+    def test_permission_business_error_maps_to_403(self) -> None:
+        with patch.object(
+            deps,
+            "yak_get",
+            side_effect=YakApiError("denied", business_code=30002),
+        ):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_missing_project_business_error_maps_to_403(self) -> None:
+        with patch.object(
+            deps,
+            "yak_get",
+            side_effect=YakApiError("missing", business_code=10190),
+        ):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_expired_session_maps_to_401(self) -> None:
+        with patch.object(
+            deps,
+            "yak_get",
+            side_effect=YakApiError("expired", status_code=401),
+        ):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 401)
+
+    def test_upstream_failure_maps_to_502(self) -> None:
+        with patch.object(
+            deps,
+            "yak_get",
+            side_effect=YakApiError("boom", status_code=500),
+        ):
+            with self.assertRaises(HTTPException) as ctx:
+                deps.verify_workspace(SimpleNamespace(), "7")
+
+        self.assertEqual(ctx.exception.status_code, 502)
+
+
 class DeleteSessionTests(unittest.TestCase):
     def test_deleting_busy_session_returns_409(self) -> None:
         identity = session_service.Identity(
@@ -227,13 +312,29 @@ class DeleteSessionTests(unittest.TestCase):
         session_service.SESSIONS["sid"] = session
         try:
             with patch.object(server, "request_identity", return_value=identity):
-                with self.assertRaises(HTTPException) as ctx:
+                with self.assertRaises(SessionBusy):
                     asyncio.run(server.delete_session("sid", None))
 
-            self.assertEqual(ctx.exception.status_code, 409)
             self.assertIn("sid", session_service.SESSIONS)
         finally:
             session_service.SESSIONS.pop("sid", None)
+
+
+class SessionErrorHandlerTests(unittest.TestCase):
+    def test_session_errors_map_to_one_http_status_table(self) -> None:
+        cases = (
+            (SessionForbidden, 403),
+            (SessionNotFound, 404),
+            (SessionBusy, 409),
+            (ConfirmationNotPending, 409),
+            (SessionStateInvalid, 422),
+        )
+        for error_type, expected_status in cases:
+            with self.subTest(error=error_type.__name__):
+                response = asyncio.run(errors.session_error_handler(None, error_type()))
+                self.assertEqual(response.status_code, expected_status)
+                payload = json.loads(response.body)
+                self.assertEqual(payload["detail"], error_type.default_message)
 
 
 if __name__ == "__main__":
