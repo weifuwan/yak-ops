@@ -9,10 +9,16 @@ from typing import Any
 from agentscope.event import RequireUserConfirmEvent
 from agentscope.state import AgentState
 
+from yak_agent.agent.budget import ContextBudgetError
 from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
 from yak_agent.service import persistence
-from yak_agent.service.errors import SessionForbidden, SessionNotFound, SessionStateInvalid
+from yak_agent.service.errors import (
+    ContextBudgetExceeded,
+    SessionForbidden,
+    SessionNotFound,
+    SessionStateInvalid,
+)
 from yak_agent.service.events import EventLog
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakAuth
@@ -65,12 +71,15 @@ SESSIONS: dict[str, Session] = {}
 
 def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
     workspace = SessionWorkspace(persistence.SESSION_DIR / sid / "workspace")
-    agent = build_agent(
-        settings,
-        workspace=workspace,
-        auth=identity.auth,
-        project_code=int(identity.workspace_id),
-    )
+    try:
+        agent = build_agent(
+            settings,
+            workspace=workspace,
+            auth=identity.auth,
+            project_code=int(identity.workspace_id),
+        )
+    except ContextBudgetError as ex:
+        raise ContextBudgetExceeded() from ex
     session = Session(
         sid=sid,
         agent=agent,
@@ -110,13 +119,16 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
     except Exception as ex:  # noqa: BLE001
         raise SessionStateInvalid() from ex
     workspace = SessionWorkspace(persistence.SESSION_DIR / sid / "workspace")
-    agent = build_agent(
-        settings,
-        state=state,
-        workspace=workspace,
-        auth=identity.auth,
-        project_code=int(identity.workspace_id),
-    )
+try:
+        agent = build_agent(
+            settings,
+            state=state,
+            workspace=workspace,
+            auth=identity.auth,
+            project_code=int(identity.workspace_id),
+        )
+    except ContextBudgetError as ex:
+        raise ContextBudgetExceeded(str(ex)) from ex
     stored_usage = meta.get("usage") or {}
     session = Session(
         sid=sid,

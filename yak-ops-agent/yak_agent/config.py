@@ -57,6 +57,10 @@ class Settings:
     # output truncation (characters).
     history_max_messages: int = 200
     history_tool_chars: int = 2000
+    # Tokens reserved in the system prompt for long-term memory (ReMe). Kept at
+    # 0 until the memory integration lands; a positive value enables the
+    # startup headroom gate in build_agent.
+    llm_memory_budget_tokens: int = 0
     # PTC safety: when True, analysis scripts may run on the no-isolation
     # subprocess backend (compute-only, credentials stripped). Default False —
     # without a real sandbox (cocoon/Docker) the tool is simply not registered.
@@ -90,6 +94,7 @@ class Settings:
             confirm_timeout_seconds=int(get("YAK_AGENT_CONFIRM_TIMEOUT_SECONDS", "600")),
             history_max_messages=int(get("YAK_AGENT_HISTORY_MAX_MESSAGES", "200")),
             history_tool_chars=int(get("YAK_AGENT_HISTORY_TOOL_CHARS", "2000")),
+            llm_memory_budget_tokens=int(get("YAK_AGENT_MEMORY_BUDGET_TOKENS", "0")),
             ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
             in ("1", "true", "yes"),
             reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
