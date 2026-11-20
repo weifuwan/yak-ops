@@ -217,24 +217,26 @@ export function DataAgentSessionWorkspace({
           aria-hidden={!detailsOpen}
           style={{ width: detailsOpen ? String(detailsWidth) + "px" : "0px" }}
           className={
-            "relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-white motion-reduce:transition-none " +
+            "relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-transparent motion-reduce:transition-none " +
             (detailsResizing
               ? "transition-none "
               : "transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ") +
             (detailsOpen
-              ? "border-l border-[#ecefed] opacity-100 max-lg:absolute max-lg:inset-0 max-lg:z-20 max-lg:!w-full max-lg:border-l-0"
-              : "pointer-events-none border-l-0 opacity-0")
+              ? "p-2 opacity-100 max-lg:absolute max-lg:inset-0 max-lg:z-20 max-lg:!w-full"
+              : "pointer-events-none p-0 opacity-0")
           }
         >
-          <MobileDetailsHeader onClose={() => setDetailsOpen(false)} />
-          {selectedMessage && selectedActivity ? (
-            <AgentDetailsPanel
-              message={selectedMessage}
-              selectedActivityId={selectedActivity.id}
-            />
-          ) : (
-            <DetailsEmptyState />
-          )}
+          <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-white">
+            <MobileDetailsHeader onClose={() => setDetailsOpen(false)} />
+            {selectedMessage && selectedActivity ? (
+              <AgentDetailsPanel
+                message={selectedMessage}
+                selectedActivityId={selectedActivity.id}
+              />
+            ) : (
+              <DetailsEmptyState />
+            )}
+          </div>
         </aside>
       </section>
     </>
