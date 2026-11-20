@@ -69,6 +69,33 @@ export const listDataSyncTasks = async (
   return projectSyncTaskPage(page);
 };
 
+/**
+ * Resolve workflow definition codes to the user-facing data-sync task names.
+ * The workflow instance name is system-generated, so run history must use this
+ * lightweight task projection instead.
+ */
+export const listDataSyncWorkflowNames = async (
+  signal?: AbortSignal,
+): Promise<Array<{ workflowCode: string; name: string }>> => {
+  const pageSize = 200;
+  const firstPage = await listDataSyncTasks({ pageNo: 1, pageSize }, signal);
+  const remainingPages =
+    firstPage.totalPage > 1
+      ? await Promise.all(
+          Array.from({ length: firstPage.totalPage - 1 }, (_, index) =>
+            listDataSyncTasks({ pageNo: index + 2, pageSize }, signal),
+          ),
+        )
+      : [];
+  return [firstPage, ...remainingPages].flatMap((page) =>
+    page.totalList.flatMap((task) =>
+      "workflowCode" in task && task.workflowCode
+        ? [{ workflowCode: task.workflowCode, name: task.name }]
+        : [],
+    ),
+  );
+};
+
 export const getDataSyncTask = async (
   id: string,
   signal?: AbortSignal,
