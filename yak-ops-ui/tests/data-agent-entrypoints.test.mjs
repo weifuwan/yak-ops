@@ -14,6 +14,7 @@ const sidebarNavigation = read("../apps/web/app/data-agent/components/sidebar/Da
 const conversationList = read("../apps/web/app/data-agent/components/sidebar/DataAgentConversationList.tsx");
 const sidebarFooter = read("../apps/web/app/data-agent/components/sidebar/DataAgentSidebarFooter.tsx");
 const sidebarResizer = read("../apps/web/app/data-agent/components/DataAgentSidebarResizer.tsx");
+const detailsResizer = read("../apps/web/app/data-agent/components/workspace/AgentDetailsResizer.tsx");
 const composer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const modelSelector = read("../apps/web/app/data-agent/components/workspace/ModelSelector.tsx");
 const conversationHook = read("../apps/web/hooks/useDataAgentConversation.ts");
@@ -369,4 +370,34 @@ test("tool activity is a single-line action that opens the message execution det
   assert.match(conversationPanel, /event\.key === "Escape"/);
   assert.match(detailsPanel, /message\.activities/);
   assert.match(detailsPanel, /activity\.kind !== "text"/);
+});
+
+
+test("Data Agent execution details panel has an accessible, bounded drag splitter", () => {
+  assert.match(conversationPanel, /const \[detailsWidth, setDetailsWidth\] = useState\(420\)/);
+  assert.match(conversationPanel, /const \[detailsMaxWidth, setDetailsMaxWidth\] = useState\(DETAILS_MAX_WIDTH\)/);
+  assert.match(conversationPanel, /new ResizeObserver\(updateMaxWidth\)/);
+  assert.match(conversationPanel, /Math\.floor\(element\.clientWidth \* 0\.55\)/);
+  assert.match(conversationPanel, /<AgentDetailsResizer/);
+  assert.match(conversationPanel, /onResize=\{setDetailsWidth\}/);
+  assert.match(conversationPanel, /onDraggingChange=\{setDetailsResizing\}/);
+  assert.match(conversationPanel, /detailsResizing/);
+  assert.match(conversationPanel, /style=\{\{ width: detailsOpen \? String\(detailsWidth\) \+ "px" : "0px" \}\}/);
+  assert.match(conversationPanel, /max-md:!w-full/);
+
+  assert.match(detailsResizer, /DETAILS_MIN_WIDTH = 280/);
+  assert.match(detailsResizer, /role="separator"/);
+  assert.match(detailsResizer, /aria-label="调整 Agent 详情面板宽度"/);
+  assert.match(detailsResizer, /aria-orientation="vertical"/);
+  assert.match(detailsResizer, /aria-valuemin=\{DETAILS_MIN_WIDTH\}/);
+  assert.match(detailsResizer, /aria-valuemax=\{maxWidth\}/);
+  assert.match(detailsResizer, /aria-valuenow=\{Math\.round\(width\)\}/);
+  assert.match(detailsResizer, /setPointerCapture/);
+  assert.match(detailsResizer, /hasPointerCapture/);
+  assert.match(detailsResizer, /onLostPointerCapture/);
+  assert.match(detailsResizer, /startWidthRef\.current - \(event\.clientX - startXRef\.current\)/);
+  assert.match(detailsResizer, /ArrowLeft/);
+  assert.match(detailsResizer, /ArrowRight/);
+  assert.match(detailsResizer, /document\.body\.style\.cursor = "col-resize"/);
+  assert.match(detailsResizer, /document\.body\.style\.userSelect = "none"/);
 });
