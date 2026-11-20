@@ -57,23 +57,25 @@ export function DataAgentConversationHeader({
           {isSending ? "正在处理" : "已就绪"}
         </div>
 
-        <button
-          type="button"
-          aria-label={detailsOpen ? "关闭执行详情" : "打开执行详情"}
-          aria-expanded={detailsOpen}
-          title={detailsOpen ? "关闭执行详情" : "打开执行详情"}
-          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] transition-colors hover:border-[#cbd2d1] hover:bg-[#f3f5f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 md:hidden"
-          onClick={onToggleDetails}
-        >
-          {detailsOpen ? <X size={15} /> : <PanelRight size={15} />}
-        </button>
+        {!detailsOpen ? (
+          <button
+            type="button"
+            aria-label="打开执行详情"
+            aria-expanded={false}
+            title="打开执行详情"
+            className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#e1e5e4] bg-white text-[#66716f] transition-colors hover:border-[#cbd2d1] hover:bg-[#f3f5f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 lg:hidden"
+            onClick={onToggleDetails}
+          >
+            <PanelRight size={15} />
+          </button>
+        ) : null}
 
         {!detailsOpen ? (
           <button
             type="button"
             aria-label="打开执行详情"
             title="打开执行详情"
-            className="hidden h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-[#e1e5e4] px-2 text-[11px] text-[#66716f] transition-colors hover:bg-[#f3f5f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 md:flex"
+            className="hidden h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-[#e1e5e4] px-2 text-[11px] text-[#66716f] transition-colors hover:bg-[#f3f5f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 lg:flex"
             onClick={onToggleDetails}
           >
             <PanelRight size={14} />
@@ -85,7 +87,7 @@ export function DataAgentConversationHeader({
       {detailsOpen ? (
         <div
           style={{ width: String(detailsWidth) + "px" }}
-          className="relative hidden h-full shrink-0 items-center border-l border-[#ecefed] px-3 md:flex"
+          className="relative hidden h-full shrink-0 items-center border-l border-[#ecefed] px-3 lg:flex"
         >
           <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-[13px] font-semibold text-[#303936]">
             Details
