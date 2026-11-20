@@ -208,7 +208,7 @@ export function DataAgentWorkspace({
         ) : null}
 
         {isRestoringSession ? (
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white ml-2 max-md:ml-0">
             <DataAgentSessionLoading />
           </main>
         ) : !hasMessages ? (
@@ -242,7 +242,7 @@ export function DataAgentWorkspace({
             </section>
           </main>
         ) : (
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white ml-2 max-md:ml-0">
             <DataAgentSessionWorkspace
               sessionId={sessionId ?? activeConversationId ?? "new"}
               title={activeConversation?.title ?? "新对话"}

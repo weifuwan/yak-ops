@@ -360,6 +360,7 @@ test("Data Agent session switching keeps the app shell visible and scopes the sk
   assert.match(conversationHook, /isRestoringSession,/);
   assert.match(workspace, /isRestoringSession \? \([\s\S]*?<DataAgentSessionLoading/);
   assert.match(workspace, /shouldShowInitialLoading/);
+  assert.equal((workspace.match(/ml-2 max-md:ml-0/g) ?? []).length, 2);
   assert.ok(workspace.indexOf("<DataAgentSidebar") < workspace.indexOf("{isRestoringSession ?"));
   assert.match(sessionLoading, /role="status"/);
   assert.match(sessionLoading, /aria-busy="true"/);
