@@ -1015,30 +1015,72 @@ export function DimensionEditor({
 
             <section className="bg-white p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <FormSectionHeader title="字段管理" />
-                <Button size="sm" variant="secondary" className="shrink-0" onClick={addField}>
+                <div className="min-w-0 flex-1">
+                  <FormSectionHeader title="字段管理" />
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="shrink-0"
+                  isDisabled={!recordId}
+                  onClick={() => addField("PROPERTY")}
+                >
                   <Plus size={13} />添加字段
                 </Button>
               </div>
-              <div className="min-w-0 overflow-x-auto">
-                <Table<DimensionFieldRecord>
-                  columns={fieldColumns}
-                  dataSource={fields}
-                  rowKey={(field) => field.id || field.tempId || field.fieldName}
-                  loading={Boolean(recordId && fieldsQuery.isFetching)}
-                  emptyText={fieldsQuery.isError ? "字段加载失败，请刷新后重试" : "暂无字段，点击右上角添加字段"}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: 820 }}
-                />
-              </div>
+              {!recordId ? (
+                <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
+                  请先保存基本信息，再配置字段
+                </div>
+              ) : (
+                <div className="min-w-0 overflow-x-auto">
+                  <Table<DimensionFieldRecord>
+                    columns={fieldColumns}
+                    dataSource={fields.filter((field) => field.fieldType !== "PARTITION")}
+                    rowKey={(field) => field.id || field.tempId || field.fieldName}
+                    loading={Boolean(recordId && fieldsQuery.isFetching)}
+                    emptyText={fieldsQuery.isError ? "字段加载失败，请刷新后重试" : "暂无字段，点击添加字段"}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 820 }}
+                  />
+                </div>
+              )}
             </section>
 
             <section className="bg-white p-4">
-              <FormSectionHeader title="分区字段管理" />
-              <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
-                暂无分区字段配置，分区字段管理将在后续阶段接入
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <FormSectionHeader title="分区字段管理" />
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="shrink-0"
+                  isDisabled={!recordId}
+                  onClick={() => addField("PARTITION")}
+                >
+                  <Plus size={13} />添加分区字段
+                </Button>
               </div>
+              {!recordId ? (
+                <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
+                  请先保存基本信息，再配置分区字段
+                </div>
+              ) : (
+                <div className="min-w-0 overflow-x-auto">
+                  <Table<DimensionFieldRecord>
+                    columns={fieldColumns}
+                    dataSource={fields.filter((field) => field.fieldType === "PARTITION")}
+                    rowKey={(field) => field.id || field.tempId || field.fieldName}
+                    loading={Boolean(recordId && fieldsQuery.isFetching)}
+                    emptyText={fieldsQuery.isError ? "分区字段加载失败，请刷新后重试" : "暂无分区字段"}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 820 }}
+                  />
+                </div>
+              )}
             </section>
 
             {error ? <p role="alert" className="px-1 text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
