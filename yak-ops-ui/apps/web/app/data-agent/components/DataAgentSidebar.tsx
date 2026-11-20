@@ -24,6 +24,7 @@ type DataAgentSidebarConversation = {
   id: string;
   title: string;
   updatedAt: string;
+  preview?: string;
 };
 
 type DataAgentSidebarProps = {
@@ -31,6 +32,8 @@ type DataAgentSidebarProps = {
   activeConversationId: string | null;
   onNewConversation: () => void;
   onSelectConversation: (id: string) => void;
+  onRenameConversation: (id: string, title: string) => Promise<void>;
+  onDeleteConversation: (id: string) => Promise<void>;
   busy?: boolean;
 };
 
@@ -39,6 +42,8 @@ export function DataAgentSidebar({
   activeConversationId,
   onNewConversation,
   onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
   busy = false,
 }: DataAgentSidebarProps) {
   const {
@@ -157,6 +162,8 @@ export function DataAgentSidebar({
         onSearchTermChange={setSearchTerm}
         onNewConversation={onNewConversation}
         onSelectConversation={selectConversation}
+        onRenameConversation={onRenameConversation}
+        onDeleteConversation={onDeleteConversation}
       />
 
       <DataAgentConversationList
