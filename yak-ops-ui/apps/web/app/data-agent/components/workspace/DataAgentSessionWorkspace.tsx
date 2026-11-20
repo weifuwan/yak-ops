@@ -89,9 +89,7 @@ export function DataAgentSessionWorkspace({
   trailingActions,
 }: DataAgentSessionWorkspaceProps) {
   const [selection, setSelection] = useState<ActivitySelection | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(
-    () => typeof window === "undefined" || window.innerWidth >= 1024,
-  );
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsWidth, setDetailsWidth] = useState(420);
   const [detailsMaxWidth, setDetailsMaxWidth] = useState(DETAILS_MAX_WIDTH);
   const [detailsResizing, setDetailsResizing] = useState(false);
