@@ -58,7 +58,7 @@ export function AgentToolActivity({
       aria-expanded={selected}
       aria-controls="agent-details-panel"
       className={
-        "group flex min-h-7 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 py-1 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 " +
+        "group flex min-h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 " +
         (selected
           ? "bg-[#DEDEDE] text-[#20201e]"
           : "bg-transparent text-[#20201e] hover:bg-[#e5e5e5]")
