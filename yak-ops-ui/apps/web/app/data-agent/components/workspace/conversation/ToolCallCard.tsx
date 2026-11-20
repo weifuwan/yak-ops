@@ -23,7 +23,7 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
   const StatusIcon: LucideIcon =
     toolCall.status === "running"
       ? LoaderCircle
-      : toolCall.status === "error"
+      : toolCall.status === "error" || toolCall.status === "interrupted"
         ? CircleAlert
         : toolCall.status === "rejected" || toolCall.status === "denied"
           ? XCircle
@@ -44,7 +44,7 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
             className={
               toolCall.status === "running"
                 ? "animate-spin"
-                : toolCall.status === "rejected" || toolCall.status === "denied" || toolCall.status === "error"
+                : toolCall.status === "rejected" || toolCall.status === "denied" || toolCall.status === "error" || toolCall.status === "interrupted"
                   ? "text-[#b96b6b]"
                   : "text-[#6c9b7e]"
             }
