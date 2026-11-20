@@ -1,12 +1,29 @@
 import { createAgentRequestHeaders, responseError, sessionPath } from "./http.ts";
-import { confirmAgentSession } from "./sessions.ts";
+import { confirmAgentSession, getAgentSessionStatus } from "./sessions.ts";
 import {
   DATA_AGENT_API_PREFIX,
+  DataAgentApiError,
   DataAgentStreamError,
   type AgentRequestIdentity,
   type AgentStreamEvent,
   type AgentToolCallRequest,
 } from "./types.ts";
+
+type StreamOptions = {
+  identity: AgentRequestIdentity;
+  signal: AbortSignal;
+  onEvent: (event: AgentStreamEvent) => void | Promise<void>;
+  onConfirmRequired: (
+    event: Extract<AgentStreamEvent, { type: "confirm_required" }>,
+  ) => void;
+};
+
+type StreamReadResult = {
+  cursor: number;
+  completed: boolean;
+  idle: boolean;
+  received: boolean;
+};
 
 function optionalIdentity(payload: Record<string, unknown>) {
   return {
@@ -35,6 +52,7 @@ function numericValue(value: unknown) {
 
 export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
   let eventName = "";
+  let eventId = "";
   const dataLines: string[] = [];
 
   for (const line of frame.split(/\r?\n/)) {
@@ -46,14 +64,28 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
     const value = rawValue.startsWith(" ") ? rawValue.slice(1) : rawValue;
 
     if (field === "event") eventName = value;
+    else if (field === "id") eventId = value;
     else if (field === "data") dataLines.push(value);
   }
 
   if (dataLines.length === 0) return null;
 
-  const payload = JSON.parse(dataLines.join("\n")) as Record<string, unknown>;
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(dataLines.join("\n")) as Record<string, unknown>;
+  } catch {
+    throw new DataAgentStreamError("Agent 返回了无法解析的 SSE 事件");
+  }
+
   const type = typeof payload.type === "string" ? payload.type : eventName;
   const identity = optionalIdentity(payload);
+  const seq = numericValue(payload.seq) || Number(eventId) || undefined;
+  const metadata = {
+    ...(seq ? { seq } : {}),
+    ...(eventId ? { eventId } : {}),
+    ...(typeof payload.turnId === "string" ? { turnId: payload.turnId } : {}),
+    ...(typeof payload.at === "string" ? { at: payload.at } : {}),
+  };
 
   switch (type) {
     case "text_delta":
@@ -61,6 +93,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         type,
         delta: typeof payload.delta === "string" ? payload.delta : "",
         ...identity,
+        ...metadata,
       };
     case "thinking_start":
     case "thinking_end":
@@ -68,6 +101,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         type,
         blockId: typeof payload.blockId === "string" ? payload.blockId : "",
         ...identity,
+        ...metadata,
       };
     case "thinking_delta":
       return {
@@ -75,6 +109,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         delta: typeof payload.delta === "string" ? payload.delta : "",
         blockId: typeof payload.blockId === "string" ? payload.blockId : "",
         ...identity,
+        ...metadata,
       };
     case "tool_start":
       return {
@@ -82,6 +117,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         tool: typeof payload.tool === "string" ? payload.tool : "",
         toolCallId: typeof payload.toolCallId === "string" ? payload.toolCallId : "",
         ...identity,
+        ...metadata,
       };
     case "tool_call_delta":
     case "tool_result_delta":
@@ -90,6 +126,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         toolCallId: typeof payload.toolCallId === "string" ? payload.toolCallId : "",
         delta: typeof payload.delta === "string" ? payload.delta : "",
         ...identity,
+        ...metadata,
       };
     case "tool_result":
       return {
@@ -97,6 +134,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         toolCallId: typeof payload.toolCallId === "string" ? payload.toolCallId : "",
         ...(typeof payload.state === "string" ? { state: payload.state } : {}),
         ...identity,
+        ...metadata,
       };
     case "progress":
       return {
@@ -108,6 +146,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
             ? payload.status
             : "running",
         ...identity,
+        ...metadata,
       };
     case "usage":
       return {
@@ -117,6 +156,7 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         cacheInputTokens: numericValue(payload.cacheInputTokens),
         cacheCreationInputTokens: numericValue(payload.cacheCreationInputTokens),
         ...identity,
+        ...metadata,
       };
     case "reply_end":
       return {
@@ -128,39 +168,196 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
             ? (payload.error as Record<string, unknown>)
             : null,
         ...identity,
+        ...metadata,
       };
     case "confirm_required":
       return {
         type,
         replyId: typeof payload.replyId === "string" ? payload.replyId : "",
         toolCalls: parseToolCalls(payload.toolCalls),
+        ...metadata,
       };
     case "done":
-      return { type };
+      return {
+        type,
+        ...(typeof payload.finishedReason === "string"
+          ? { finishedReason: payload.finishedReason }
+          : {}),
+        ...metadata,
+      };
     case "error":
       return {
         type,
-        message:
-          typeof payload.message === "string"
-            ? payload.message
-            : "Agent 执行失败",
+        message: typeof payload.message === "string" ? payload.message : "Agent 执行失败",
+        ...metadata,
+      };
+    case "replay_reset":
+      return {
+        type,
+        firstSeq: numericValue(payload.firstSeq),
+        ...metadata,
+      };
+    case "stream_idle":
+      return {
+        type,
+        ...(typeof payload.state === "string" ? { state: payload.state } : {}),
+        ...metadata,
       };
     default:
       return null;
   }
 }
 
+async function consumeAgentStream(
+  response: Response,
+  options: StreamOptions,
+  initialCursor: number,
+): Promise<StreamReadResult> {
+  if (!response.body) {
+    throw new DataAgentStreamError("浏览器未能读取 Agent 的流式响应");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let cursor = initialCursor;
+  let completed = false;
+  let idle = false;
+  let received = false;
+
+  const dispatch = async (frame: string) => {
+    const event = parseAgentSseFrame(frame);
+    if (!event) return;
+
+    received = true;
+    if (event.seq && event.seq > cursor) cursor = event.seq;
+    else if (event.eventId && /^\d+$/.test(event.eventId)) {
+      cursor = Math.max(cursor, Number(event.eventId));
+    }
+
+    if (event.type === "confirm_required") {
+      options.onConfirmRequired(event);
+    }
+    await options.onEvent(event);
+
+    if (event.type === "done" || event.type === "error") completed = true;
+    if (event.type === "stream_idle") idle = true;
+  };
+
+  try {
+    while (!completed && !idle) {
+      let result: ReadableStreamReadResult<Uint8Array>;
+      try {
+        result = await reader.read();
+      } catch (error) {
+        if (options.signal.aborted) throw error;
+        return { cursor, completed, idle, received };
+      }
+
+      buffer += decoder.decode(result.value, { stream: !result.done });
+      let boundary = /\r?\n\r?\n/.exec(buffer);
+      while (boundary) {
+        const frame = buffer.slice(0, boundary.index);
+        buffer = buffer.slice(boundary.index + boundary[0].length);
+        await dispatch(frame);
+        boundary = /\r?\n\r?\n/.exec(buffer);
+        if (completed || idle) break;
+      }
+
+      if (result.done) break;
+    }
+
+    if (!completed && !idle && buffer.trim()) {
+      await dispatch(buffer);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return { cursor, completed, idle, received };
+}
+
+function waitForRetry(milliseconds: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("The operation was aborted", "AbortError"));
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }, milliseconds);
+    const abort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("The operation was aborted", "AbortError"));
+    };
+    signal.addEventListener("abort", abort, { once: true });
+  });
+}
+
+export async function resumeAgentStream(
+  sessionId: string,
+  after: number,
+  options: StreamOptions,
+): Promise<void> {
+  let cursor = after;
+  let failures = 0;
+
+  while (!options.signal.aborted && failures < 8) {
+    try {
+      const response = await fetch(
+        DATA_AGENT_API_PREFIX +
+          sessionPath(sessionId) +
+          "/stream?after=" +
+          String(cursor),
+        {
+          method: "GET",
+          headers: createAgentRequestHeaders(options.identity, {
+            Accept: "text/event-stream",
+          }),
+          credentials: "include",
+          signal: options.signal,
+        },
+      );
+      if (!response.ok) throw await responseError(response);
+
+      const result = await consumeAgentStream(response, options, cursor);
+      cursor = result.cursor;
+      if (result.completed) return;
+
+      const status = await getAgentSessionStatus(
+        sessionId,
+        options.identity,
+        options.signal,
+      );
+      if (!status.busy) return;
+
+      failures = result.idle || !result.received ? failures + 1 : 0;
+    } catch (error) {
+      if (options.signal.aborted) throw error;
+      if (
+        error instanceof DataAgentApiError &&
+        (error.status === 401 || error.status === 403 || error.status === 404)
+      ) {
+        throw error;
+      }
+      failures += 1;
+    }
+
+    if (failures < 8) {
+      await waitForRetry(Math.min(1000 * 2 ** (failures - 1), 8000), options.signal);
+    }
+  }
+
+  if (!options.signal.aborted) {
+    throw new DataAgentStreamError("Agent 连接暂时中断，自动恢复次数已达上限；重新打开会话可继续恢复");
+  }
+}
+
 export async function sendAgentMessage(
   sessionId: string,
   message: string,
-  options: {
-    identity: AgentRequestIdentity;
-    signal: AbortSignal;
-    onEvent: (event: AgentStreamEvent) => void;
-    onConfirmRequired: (
-      event: Extract<AgentStreamEvent, { type: "confirm_required" }>,
-    ) => Promise<boolean>;
-  },
+  options: StreamOptions,
 ): Promise<void> {
   const response = await fetch(
     DATA_AGENT_API_PREFIX + sessionPath(sessionId) + "/messages",
@@ -177,54 +374,8 @@ export async function sendAgentMessage(
   );
 
   if (!response.ok) throw await responseError(response);
-  if (!response.body) {
-    throw new DataAgentStreamError("浏览器未能读取 Agent 的流式响应");
-  }
+  const result = await consumeAgentStream(response, options, 0);
+  if (result.completed) return;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let completed = false;
-
-  const dispatch = async (frame: string) => {
-    const event = parseAgentSseFrame(frame);
-    if (!event) return;
-
-    if (event.type === "confirm_required") {
-      const approved = await options.onConfirmRequired(event);
-      await confirmAgentSession(sessionId, approved, options.identity, options.signal);
-      return;
-    }
-
-    options.onEvent(event);
-    if (event.type === "done") completed = true;
-    if (event.type === "error") {
-      throw new DataAgentStreamError(event.message);
-    }
-  };
-
-  try {
-    while (true) {
-      const result = await reader.read();
-      buffer += decoder.decode(result.value, { stream: !result.done });
-
-      let boundary = /\r?\n\r?\n/.exec(buffer);
-      while (boundary) {
-        const frame = buffer.slice(0, boundary.index);
-        buffer = buffer.slice(boundary.index + boundary[0].length);
-        await dispatch(frame);
-        boundary = /\r?\n\r?\n/.exec(buffer);
-      }
-
-      if (result.done) break;
-    }
-
-    if (buffer.trim()) await dispatch(buffer);
-  } finally {
-    reader.releaseLock();
-  }
-
-  if (!completed && !options.signal.aborted) {
-    throw new DataAgentStreamError("Agent 响应连接意外结束，请重试");
-  }
+  await resumeAgentStream(sessionId, result.cursor, options);
 }
