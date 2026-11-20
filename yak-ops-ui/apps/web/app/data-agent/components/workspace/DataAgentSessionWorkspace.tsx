@@ -33,7 +33,7 @@ type DataAgentSessionWorkspaceProps = {
 
 function MobileDetailsHeader({ onClose }: { onClose: () => void }) {
   return (
-    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#ecefed] bg-white px-3 md:hidden">
+    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#ecefed] bg-white px-3 lg:hidden">
       <span className="text-xs font-semibold text-[#303936]">Details</span>
       <div className="flex items-center gap-1">
         <span className="flex h-7 items-center rounded-md border border-[#dfe4e2] bg-[#f3f5f4] px-2 text-[11px] font-medium text-[#3f4945]">
@@ -111,6 +111,8 @@ export function DataAgentSessionWorkspace({
 
     const updateWidth = () => {
       const availableWidth = element.clientWidth;
+      if (availableWidth <= 0) return;
+
       const nextMaxWidth = Math.min(
         DETAILS_MAX_WIDTH,
         Math.max(DETAILS_MIN_WIDTH, Math.floor(availableWidth * 0.55)),
@@ -220,7 +222,7 @@ export function DataAgentSessionWorkspace({
               ? "transition-none "
               : "transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ") +
             (detailsOpen
-              ? "border-l border-[#ecefed] opacity-100 max-md:absolute max-md:inset-0 max-md:z-20 max-md:!w-full max-md:border-l-0"
+              ? "border-l border-[#ecefed] opacity-100 max-lg:absolute max-lg:inset-0 max-lg:z-20 max-lg:!w-full max-lg:border-l-0"
               : "pointer-events-none border-l-0 opacity-0")
           }
         >
