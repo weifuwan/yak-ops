@@ -153,5 +153,6 @@ test("DIM business identifiers use enShortName instead of tableName", () => {
   assert.match(dimensionPo, /private String enShortName;/);
   assert.match(dimensionSql, /en_short_name varchar\(255\)/);
   assert.match(dimensionService, /dto\.setTableName\(null\)/);
-  assert.match(treeBuilder, /en_short_name/);
+  assert.match(treeBuilder, /getEnShortName\(\)/);
+  assert.match(dimensionService, /en_short_name/);
 });
