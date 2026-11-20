@@ -341,8 +341,15 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.doesNotMatch(detailsPanel, /AgentActivityDetails|Token 用量|Agent 执行过程/);
   assert.match(detailsTimeline, /Thought/);
   assert.match(detailsTimeline, /SquareTerminal/);
-  assert.match(detailsTimeline, /pl-9/);
+  assert.match(detailsTimeline, /pl-8/);
+  assert.match(detailsTimeline, /left-\[15px\]/);
+  assert.match(detailsTimeline, /w-\[2px\]/);
+  assert.match(detailsTimeline, /top-0 bottom-0/);
   assert.match(detailsTimeline, /bg-\[#e7e9e8\]/);
+  assert.match(detailsTimeline, /function TimelineNode/);
+  assert.match(detailsTimeline, /size=\{12\}/);
+  assert.match(detailsTimeline, /text-\[#9fa6a3\]/);
+  assert.doesNotMatch(detailsTimeline, /rounded-full bg-\[#c9cfcc\]/);
   assert.match(detailsTimeline, /aria-expanded=\{expanded\}/);
   assert.match(detailsTimeline, /DataAgentMarkdown/);
   assert.match(detailsTimeline, /输入参数/);
@@ -403,4 +410,14 @@ test("Data Agent execution details panel has an accessible, bounded drag splitte
   assert.match(detailsResizer, /ArrowRight/);
   assert.match(detailsResizer, /document\.body\.style\.cursor = "col-resize"/);
   assert.match(detailsResizer, /document\.body\.style\.userSelect = "none"/);
+});
+
+
+
+test("Data Agent details timeline uses a centered continuous 2px rail without dot markers", () => {
+  assert.match(detailsTimeline, /relative min-w-0 pl-8/);
+  assert.match(detailsTimeline, /left-\[15px\] top-0 w-\[2px\] bg-\[#e7e9e8\]/);
+  assert.match(detailsTimeline, /absolute -left-8 top-\[10px\] flex h-5 w-8 items-center justify-center/);
+  assert.match(detailsTimeline, /SquareTerminal[\s\S]*?size=\{12\}/);
+  assert.doesNotMatch(detailsTimeline, /size-1\.5 rounded-full|size-1\.5 rounded-full bg-/);
 });
