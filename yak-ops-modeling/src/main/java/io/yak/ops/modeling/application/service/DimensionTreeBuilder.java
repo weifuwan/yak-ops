@@ -118,7 +118,9 @@ public class DimensionTreeBuilder {
         if (notBlank(dto.getDirector())) wrapper.eq("director", dto.getDirector());
         if (dto.getSubmit() != null) wrapper.eq("submit", dto.getSubmit());
         if (notBlank(dto.getKeyword())) {
-            wrapper.and(q -> q.like("cn_name", dto.getKeyword()).or().like("table_name", dto.getKeyword()));
+            wrapper.and(q -> q.like("cn_name", dto.getKeyword())
+                    .or().like("table_name", dto.getKeyword())
+                    .or().like("en_short_name", dto.getKeyword()));
         }
         return dimensionTableDao.queryList(wrapper.orderByAsc("cn_name"));
     }
@@ -318,7 +320,8 @@ public class DimensionTreeBuilder {
     private void addTableNode(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId, String type) {
         DimensionTreeNodeVO tableNode = node(table.getId() + "-DIM", table.getCnName(), parentId,
                 type, true, table.getUpdateTime(), null);
-        tableNode.setSearchText(table.getTableName());
+        tableNode.setSearchText((table.getTableName() == null ? "" : table.getTableName())
+                + " " + (table.getEnShortName() == null ? "" : table.getEnShortName()));
         addNode(nodes, tableNode);
     }
 
