@@ -115,7 +115,7 @@ class DimensionModelingServiceImplTest {
     }
 
     @Test
-    void shouldAllowDimensionAndDimensionTableInCombinedLayer() {
+    void shouldPersistBusinessDimensionShortNameInCombinedLayer() {
         DwLayerVO layer = layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM);
         layer.setCnName("公共维度层");
         when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer);
@@ -132,6 +132,19 @@ class DimensionModelingServiceImplTest {
         verify(dimensionTableDao).insert(created.capture());
         assertEquals("sample_dimension", created.getValue().getEnShortName());
         assertNull(created.getValue().getTableName());
+    }
+
+    @Test
+    void shouldAllowDimensionTableInCombinedLayer() {
+        DwLayerVO layer = layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM);
+        when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer);
+        when(dimensionTableDao.insert(any())).thenReturn(1);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
+
+        DimensionTableVO result = service.create(dimensionDto(DimensionTableTypeEnum.DIMENSION));
+
+        assertEquals(DimensionTableTypeEnum.DIMENSION, result.getTableType());
+        verify(dimensionTableDao).insert(any());
     }
 
     @Test
