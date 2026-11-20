@@ -14,6 +14,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { listDataSyncWorkflowNames } from "@/service/data-sync";
 import { listWorkflowDefinitionNames } from "@/service/workflow/definition";
 import {
   listWorkflowInstances,
@@ -36,17 +37,27 @@ function stateLabel(state?: string | null) {
 function workflowDisplayName(
   item: WorkflowInstanceSummary,
   workflowNamesByCode: Map<string, string>,
+  dataSyncTaskNamesByWorkflowCode: Map<string, string>,
 ) {
+  const dataSyncTaskName = dataSyncTaskNamesByWorkflowCode
+    .get(String(item.workflowDefinitionCode))
+    ?.trim();
+  if (dataSyncTaskName) return dataSyncTaskName;
+
   const definitionName = workflowNamesByCode
     .get(String(item.workflowDefinitionCode))
     ?.trim();
-  if (definitionName) return definitionName;
-
-  const instanceName = item.name?.trim();
-  if (instanceName && !/^data_sync_\d+-\d+$/i.test(instanceName)) {
-    return instanceName;
+  if (definitionName && !/^data_sync_\d+(?:-\d+)?$/i.test(definitionName)) {
+    return definitionName;
   }
 
+  const instanceName = item.name?.trim();
+  const generatedDataSyncName = /^data_sync_(\d+)(?:-\d+)?$/i.exec(instanceName ?? "");
+  if (generatedDataSyncName) {
+    return "数据同步任务 #" + generatedDataSyncName[1];
+  }
+
+  if (instanceName) return instanceName;
   return item.workflowDefinitionCode
     ? "工作流 #" + item.workflowDefinitionCode
     : "未命名工作流";
@@ -80,6 +91,13 @@ export function RunHistoryPanel({ width }: { width: number }) {
     staleTime: 30_000,
   });
 
+  const dataSyncTaskNamesQuery = useQuery({
+    queryKey: ["data-development", "data-sync-workflow-names", workspaceId],
+    queryFn: ({ signal }) => listDataSyncWorkflowNames(signal),
+    enabled: Boolean(workspaceId),
+    staleTime: 30_000,
+  });
+
   const items: WorkflowInstanceSummary[] = query.data?.totalList ?? [];
   const workflowNamesByCode = useMemo(
     () =>
@@ -91,12 +109,22 @@ export function RunHistoryPanel({ width }: { width: number }) {
       ),
     [definitionsQuery.data],
   );
+  const dataSyncTaskNamesByWorkflowCode = useMemo(
+    () =>
+      new Map<string, string>(
+        (dataSyncTaskNamesQuery.data ?? []).map((task) => [
+          task.workflowCode,
+          task.name,
+        ] as const),
+      ),
+    [dataSyncTaskNamesQuery.data],
+  );
   const visibleItems = useMemo(() => {
     const search = keyword.trim().toLocaleLowerCase();
     if (!search) return items;
 
     return items.filter((item) => {
-      const displayName = workflowDisplayName(item, workflowNamesByCode);
+      const displayName = workflowDisplayName(item, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode);
       return [
         displayName,
         item.name ?? "",
@@ -104,7 +132,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
         String(item.workflowDefinitionCode),
       ].some((value) => value.toLocaleLowerCase().includes(search));
     });
-  }, [items, keyword, workflowNamesByCode]);
+  }, [items, keyword, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode]);
 
   return (
     <aside
@@ -159,7 +187,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
           </div>
         ) : (
           visibleItems.map((item) => {
-            const displayName = workflowDisplayName(item, workflowNamesByCode);
+            const displayName = workflowDisplayName(item, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode);
             return (
               <button
                 key={item.id}
