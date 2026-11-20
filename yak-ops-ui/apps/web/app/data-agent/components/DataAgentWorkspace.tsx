@@ -5,8 +5,7 @@ import { useDataAgentConversation } from "@/hooks/useDataAgentConversation";
 
 import { DataAgentSidebar } from "./DataAgentSidebar";
 import { DataAgentSidebarResizer } from "./DataAgentSidebarResizer";
-import { DataAgentConversationHeader } from "./workspace/DataAgentConversationHeader";
-import { ConversationPanel } from "./workspace/ConversationPanel";
+import { DataAgentSessionWorkspace } from "./workspace/DataAgentSessionWorkspace";
 import { DataAgentEmptyState } from "./workspace/DataAgentEmptyState";
 import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
@@ -209,27 +208,21 @@ export function DataAgentWorkspace({
           </main>
         ) : (
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-            <DataAgentConversationHeader
+            <DataAgentSessionWorkspace
               title={activeConversation?.title ?? "新对话"}
               isSending={isSending}
               sidebarOpen={sidebarOpen}
               onToggleSidebar={() => setSidebarOpen((open) => !open)}
+              messages={messages}
+              pendingConfirmation={pendingConfirmation}
+              onResolveConfirmation={resolveConfirmation}
+              scrollRef={messageScrollRef}
+              connectionError={connectionError}
+              composerKey={composerKey}
+              initialDraft={initialDraft}
+              onSubmit={handlePromptSubmit}
+              trailingActions={modelSelector}
             />
-
-            <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-              <ConversationPanel
-                messages={messages}
-                pendingConfirmation={pendingConfirmation}
-                onResolveConfirmation={resolveConfirmation}
-                scrollRef={messageScrollRef}
-                connectionError={connectionError}
-                composerKey={composerKey}
-                initialDraft={initialDraft}
-                isSending={isSending}
-                onSubmit={handlePromptSubmit}
-                trailingActions={modelSelector}
-              />
-            </section>
           </main>
         )}
       </div>
