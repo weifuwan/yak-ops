@@ -122,7 +122,7 @@ test("the welcome workspace keeps its centered prompt and shortcut layout", () =
   assert.ok(quickActions.includes('iconClass: "bg-[#d79a38] text-white"'));
   assert.ok(quickActions.includes('iconClass: "bg-[#59a67a] text-white"'));
   assert.match(workspace, /handleQuickAction/);
-  assert.match(workspace, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
+  assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.doesNotMatch(workspace, /workspacePanelOpen|AgentWorkspacePanel|PanelRight|FolderOpen|工作区面板|暂无工作区文件/);
 });
 
