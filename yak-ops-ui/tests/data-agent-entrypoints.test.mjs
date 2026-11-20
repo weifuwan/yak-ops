@@ -358,12 +358,12 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
 test("tool activity is a single-line action that opens the message execution details", () => {
   assert.match(activityTimeline, /onSelectActivity/);
   assert.match(activityItem, /selectedActivityId/);
-  assert.match(activityItem, /onSelect=\\{onSelectActivity\\}/);
+  assert.match(activityItem, /onSelect=\{onSelectActivity\}/);
   assert.match(toolActivity, /group-hover:translate-x-0 group-hover:opacity-100/);
   assert.match(toolActivity, /查看 .* 执行详情/);
   assert.match(conversationPanel, /selectedMessage/);
   assert.match(conversationPanel, /selectedActivity/);
-  assert.match(conversationPanel, /event\\.key === "Escape"/);
-  assert.match(detailsPanel, /message\\.activities/);
-  assert.match(detailsPanel, /activity\\.kind !== "text"/);
+  assert.match(conversationPanel, /event\.key === "Escape"/);
+  assert.match(detailsPanel, /message\.activities/);
+  assert.match(detailsPanel, /activity\.kind !== "text"/);
 });
