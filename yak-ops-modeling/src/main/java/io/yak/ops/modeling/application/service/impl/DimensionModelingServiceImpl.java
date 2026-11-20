@@ -686,7 +686,19 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             default:
                 throw new IllegalArgumentException("不支持的维度模型类型");
         }
-        validateUniqueFields(dto, existing == null ? null : existing.getId());
+        if (!isUniqueNameUnchanged(dto, existing)) {
+            validateUniqueFields(dto, existing == null ? null : existing.getId());
+        }
+    }
+
+    private boolean isUniqueNameUnchanged(DimensionTableDTO dto, DimensionTablePO existing) {
+        if (existing == null || existing.getTableType() != dto.getTableType()) return false;
+        if (dto.getTableType() == DimensionTableTypeEnum.DIM) {
+            String previous = notBlank(existing.getEnShortName())
+                    ? existing.getEnShortName() : existing.getTableName();
+            return Objects.equals(previous, dto.getEnShortName());
+        }
+        return Objects.equals(existing.getTableName(), dto.getTableName());
     }
 
     private void requireTableNameAndDirector(DimensionTableDTO dto) {
