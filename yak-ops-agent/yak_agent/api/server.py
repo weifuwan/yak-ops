@@ -127,6 +127,8 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         ):
+            if path.name.endswith(".meta.json"):
+                continue
             meta = persistence.read_meta(path.stem)
             if (
                 meta.get("owner") != identity.owner
@@ -136,10 +138,19 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
             items.append(
                 {
                     "sessionId": path.stem,
+                    "title": meta.get("title") or f"历史会话 · {path.stem[:6]}",
+                    "preview": meta.get("preview", ""),
                     "updatedAt": path.stat().st_mtime,
                 }
             )
     return items
+
+
+def _conversation_title(text: str) -> tuple[str, str]:
+    clean = " ".join(text.split())
+    if not clean:
+        return "新会话", ""
+    return clean[:40], clean[:120]
 
 
 @app.post("/agent/sessions/{sid}/messages")
@@ -150,9 +161,12 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     if session.busy:
         raise SessionBusy()
     await session.event_log.reset()
+    if not session.title:
+        session.title, session.preview = _conversation_title(body.message)
     turn = Turn(turn_id=uuid.uuid4().hex, started_at=time.time())
     session.turn = turn
     session.busy = True
+    persistence.persist(session)
     turn.task = asyncio.create_task(
         run_turn(
             session,
