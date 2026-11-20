@@ -116,7 +116,7 @@ export function AgentDetailsResizer({
 
   return (
     <div
-      className="group relative z-[3] w-0 shrink-0 self-stretch max-md:hidden"
+      className="group relative z-[3] w-0 shrink-0 self-stretch max-lg:hidden"
       data-dragging={dragging}
     >
       <div className="relative h-full w-0 shrink-0">
