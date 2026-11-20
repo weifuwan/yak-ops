@@ -48,7 +48,7 @@ function CodePanel({
       <div className="mb-1.5 text-[11px] font-medium text-[#737875]">
         {label}
       </div>
-      <pre className="m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-[#e8e9e8] bg-[#fafafa] p-3 font-mono text-[12px] leading-6 text-[#292d2b]">
+      <pre className="m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-[#e8e9e8] bg-[#fafafa] p-1 font-mono text-[12px] leading-6 text-[#292d2b]">
         {formatToolInput(value)}
       </pre>
     </section>
