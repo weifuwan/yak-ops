@@ -161,6 +161,7 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     if session.busy:
         raise SessionBusy()
     await session.event_log.reset()
+    turn_cursor = session.event_log.next_seq - 1
     if not session.title:
         session.title, session.preview = _conversation_title(body.message)
     turn = Turn(turn_id=uuid.uuid4().hex, started_at=time.time())
@@ -178,7 +179,7 @@ async def send_message(sid: str, body: MessageBody, request: Request) -> EventSo
     )
 
     async def event_stream():
-        async for item in subscribe(session, 0):
+        async for item in subscribe(session, turn_cursor):
             yield _sse_frame(item)
 
     return EventSourceResponse(event_stream())

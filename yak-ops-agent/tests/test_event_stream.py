@@ -127,6 +127,22 @@ class SlowAgent:
         )
 
 
+class FastAgent:
+    async def reply_stream(self, message: Any):
+        yield SimpleNamespace(
+            type=EventType.TEXT_BLOCK_DELTA,
+            delta="ok",
+            reply_id="reply-1",
+            block_id="block-1",
+        )
+        yield SimpleNamespace(
+            type=EventType.REPLY_END,
+            finished_reason=SimpleNamespace(value="completed"),
+            error=None,
+            reply_id="reply-1",
+        )
+
+
 class StreamDecouplingTests(unittest.TestCase):
     def _settings(self) -> SimpleNamespace:
         return SimpleNamespace(confirm_timeout_seconds=5)
@@ -188,6 +204,34 @@ class StreamDecouplingTests(unittest.TestCase):
         self.assertEqual([item["event"] for item in items], ["text_delta", "done"])
         self.assertEqual([item["id"] for item in items], ["2", "3"])
         self.assertIn("turnId", json.loads(items[0]["data"]))
+
+    def test_second_turn_does_not_emit_replay_reset(self) -> None:
+        session = _session()
+        session.agent = FastAgent()
+
+        async def scenario() -> list[list[str]]:
+            with (
+                patch.object(server, "_get_settings", return_value=self._settings()),
+                patch.object(server, "request_identity", return_value=self._identity()),
+                patch.object(server, "load_session", return_value=session),
+                patch.object(chat_service.persistence, "persist"),
+            ):
+                outcomes = []
+                for _ in range(2):
+                    response = await server.send_message(
+                        "sid",
+                        server.MessageBody(message="hello"),
+                        None,
+                    )
+                    items = [item async for item in response.body_iterator]
+                    outcomes.append([item["event"] for item in items])
+                return outcomes
+
+        first, second = asyncio.run(scenario())
+
+        self.assertNotIn("replay_reset", first)
+        self.assertNotIn("replay_reset", second)
+        self.assertEqual(second[0], "progress")
 
 
 if __name__ == "__main__":
