@@ -34,6 +34,7 @@ public class DimensionTableDTO extends PaginationBaseDTO {
     private String dimId;
     private String modifier;
     private String nameRuleId;
+    private String enShortName;
     private String tableName;
     private String cnName;
     private DimensionTableTypeEnum tableType;
