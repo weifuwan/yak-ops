@@ -1,4 +1,14 @@
-import { PanelLeft, PanelRight, PanelRightClose } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronsUpDown,
+  Clock3,
+  Cloud,
+  List,
+  PanelLeft,
+  PanelRight,
+  PanelRightClose,
+  SquarePlus,
+} from "lucide-react";
 
 type DataAgentConversationHeaderProps = {
   title: string;
@@ -6,9 +16,15 @@ type DataAgentConversationHeaderProps = {
   sidebarOpen: boolean;
   detailsOpen: boolean;
   detailsWidth: number;
+  expandAll: boolean;
   onToggleSidebar: () => void;
   onToggleDetails: () => void;
+  onToggleExpandAll: () => void;
+  onBackToLatest: () => void;
 };
+
+const PREVIEW_DURATION = "6m 40s";
+const PREVIEW_SCORE = "4.50";
 
 export function DataAgentConversationHeader({
   title,
@@ -16,8 +32,11 @@ export function DataAgentConversationHeader({
   sidebarOpen,
   detailsOpen,
   detailsWidth,
+  expandAll,
   onToggleSidebar,
   onToggleDetails,
+  onToggleExpandAll,
+  onBackToLatest,
 }: DataAgentConversationHeaderProps) {
   const statusLabel = isSending ? "正在处理" : "已就绪";
 
@@ -59,39 +78,76 @@ export function DataAgentConversationHeader({
 
           <div
             style={{ width: String(detailsWidth) + "px" }}
-            className="mr-2 hidden h-full shrink-0 items-center justify-end gap-1 px-2.5 lg:flex"
+            className="relative mr-2 hidden h-full shrink-0 items-center justify-between gap-2 border-y border-[#e7e9ea] bg-[#f7f8f8] px-2 @container lg:flex"
           >
-            <div
-              role="status"
-              aria-live="polite"
-              aria-label={statusLabel}
-              title={statusLabel}
-              className="mr-1 flex shrink-0 items-center"
-            >
-              <span
-                aria-hidden="true"
-                className={
-                  "size-1.5 rounded-full " +
-                  (isSending ? "animate-pulse bg-[#d6a34b]" : "bg-[#91a39a]")
-                }
-              />
+            <div className="relative z-10 flex min-w-0 shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                aria-label="Back to latest"
+                title="Back to latest"
+                className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#d7dcde] bg-white px-2.5 text-xs font-medium text-[#30383c] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-[#f9fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/20"
+                onClick={onBackToLatest}
+              >
+                <ArrowLeft size={14} strokeWidth={1.7} />
+                <span>Back to latest</span>
+              </button>
+
+              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[26rem]:hidden">
+                <Clock3 size={12} strokeWidth={1.6} />
+                {PREVIEW_DURATION}
+              </span>
+
+              <span className="flex shrink-0 cursor-default items-center gap-1 px-1 text-xs tabular-nums text-[#737d82] @max-[26rem]:hidden">
+                <span className="flex size-3.5 items-center justify-center rounded-full border border-current">
+                  <Cloud size={8} strokeWidth={1.6} />
+                </span>
+                {PREVIEW_SCORE}
+              </span>
             </div>
 
-            <button
-              type="button"
-              aria-current="page"
-              className="flex h-7 cursor-default items-center rounded-md bg-[#f1f3f2] px-2 text-[11px] font-medium text-[#3f4945]"
-            >
-              Timeline
-            </button>
-            <button
-              type="button"
-              disabled
-              title="变更记录暂未接入"
-              className="flex h-7 cursor-not-allowed items-center rounded-md px-2 text-[11px] text-[#a6aeaa]"
-            >
-              Changes
-            </button>
+            <span className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center text-sm font-semibold text-[#202629]">
+              Details
+            </span>
+
+            <div className="relative z-10 flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                aria-label={expandAll ? "Collapse all" : "Expand all"}
+                aria-pressed={expandAll}
+                title={expandAll ? "Collapse all" : "Expand all"}
+                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#d7dcde] bg-white text-[#485257] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/20"
+                onClick={onToggleExpandAll}
+              >
+                <ChevronsUpDown size={14} strokeWidth={1.6} />
+              </button>
+
+              <div
+                role="tablist"
+                aria-label="Details view"
+                className="flex h-8 shrink-0 items-center gap-0.5 rounded-full border border-[#d7dcde] bg-[#f0f2f3] p-[2px]"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  className="flex h-7 cursor-default items-center gap-1.5 rounded-full border border-[#e0e3e5] bg-white px-2.5 text-xs font-medium text-[#30383c] shadow-[0_1px_2px_rgba(0,0,0,0.07)]"
+                >
+                  <List size={13} strokeWidth={1.6} />
+                  Timeline
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  disabled
+                  title="变更记录暂未接入"
+                  className="flex h-7 cursor-not-allowed items-center gap-1.5 rounded-full px-2 text-xs text-[#899297] transition-colors"
+                >
+                  <SquarePlus size={12} strokeWidth={1.6} />
+                  Changes
+                </button>
+              </div>
+            </div>
           </div>
         </>
       ) : (
