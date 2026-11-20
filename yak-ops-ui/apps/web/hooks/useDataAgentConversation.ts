@@ -597,7 +597,9 @@ export function useDataAgentConversation({
           setIsSending(false);
           setIsReconnecting(false);
         }
-        setIsRestoringSession(false);
+        if (!controller.signal.aborted) {
+          setIsRestoringSession(false);
+        }
       });
 
     return () => {
