@@ -126,7 +126,7 @@ function ExpandableActivity({
           type="button"
           aria-expanded={expanded}
           aria-controls={"agent-details-content-" + activity.id}
-          className="flex min-h-9 w-full min-w-0 items-start gap-2 rounded-[9px] px-3 py-2 text-left transition-colors duration-200 hover:bg-[#f8f9f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#fe2c55]/20"
+          className="flex min-h-9 w-full min-w-0 items-start gap-2 rounded-[9px] px-3 py-2 text-left transition-colors duration-200 hover:bg-[#e5e5e5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#fe2c55]/20"
           onClick={onToggle}
         >
           <span className="min-w-0 flex-1 break-words text-[14px] leading-6 text-[#252927]">
