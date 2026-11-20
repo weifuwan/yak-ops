@@ -232,6 +232,7 @@ export function DataAgentWorkspace({
         ) : (
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
             <DataAgentSessionWorkspace
+              sessionId={sessionId ?? activeConversationId ?? "new"}
               title={activeConversation?.title ?? "新对话"}
               isSending={isSending}
               isReconnecting={isReconnecting}
