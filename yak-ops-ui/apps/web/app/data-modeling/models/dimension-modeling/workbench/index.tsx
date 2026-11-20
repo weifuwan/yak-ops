@@ -120,7 +120,7 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
           loading={tree.treeQuery.isFetching}
           initialLoading={tree.treeQuery.isPending && tree.treeQuery.isFetching}
           error={tree.treeQuery.isError}
-          emptyText={tree.keyword ? "没有匹配的维度表" : "暂无维度表，点击上方 + 新建"}
+          emptyText={tree.keyword ? "没有匹配的模型" : "暂无模型，点击上方 + 创建维度模型"}
           onRefresh={() => void tree.treeQuery.refetch()}
           onCreate={(type) => {
             const option = DIMENSION_CREATE_OPTIONS.find((item) => item.type === type);
