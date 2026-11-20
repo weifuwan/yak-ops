@@ -111,6 +111,7 @@ export function ConversationPanel({
       </div>
 
       <aside
+        id="agent-details-panel"
         aria-label="Agent 执行详情"
         aria-hidden={!detailsOpen}
         className={
