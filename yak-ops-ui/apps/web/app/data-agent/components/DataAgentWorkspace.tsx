@@ -11,11 +11,19 @@ import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
 
 type DataAgentWorkspaceProps = {
+  sessionId: string | null;
   initialPrompt?: string;
+  onSessionCreated: (sessionId: string) => void;
+  onNewConversation: () => void;
+  onSelectConversation: (sessionId: string) => void;
 };
 
 export function DataAgentWorkspace({
+  sessionId,
   initialPrompt = "",
+  onSessionCreated,
+  onNewConversation,
+  onSelectConversation,
 }: DataAgentWorkspaceProps) {
   const {
     conversations,
@@ -24,14 +32,20 @@ export function DataAgentWorkspace({
     messages,
     lastMessage,
     isSending,
+    isReconnecting,
     isLoading,
     connectionError,
+    sessionNotice,
+    sessionUsage,
     pendingConfirmation,
     createConversation,
     selectConversation,
     sendMessage,
     resolveConfirmation,
-  } = useDataAgentConversation();
+    stopCurrentTurn,
+    renameConversation,
+    deleteConversation,
+  } = useDataAgentConversation({ sessionId, onSessionCreated });
 
   const [selectedModel, setSelectedModel] = useState("DeepSeek");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -77,6 +91,7 @@ export function DataAgentWorkspace({
   function handleNewConversation() {
     if (isSending) return;
     createConversation();
+    onNewConversation();
     setModelMenuOpen(false);
     setInitialDraft("");
     setComposerKey((current) => current + 1);
@@ -85,6 +100,7 @@ export function DataAgentWorkspace({
   function handleSelectConversation(id: string) {
     if (isSending) return;
     selectConversation(id);
+    onSelectConversation(id);
     setModelMenuOpen(false);
     setInitialDraft("");
     setComposerKey((current) => current + 1);
@@ -166,6 +182,11 @@ export function DataAgentWorkspace({
               busy={isSending}
               onNewConversation={handleNewConversation}
               onSelectConversation={handleSelectConversation}
+              onRenameConversation={renameConversation}
+              onDeleteConversation={async (id) => {
+                await deleteConversation(id);
+                if (id === sessionId) onNewConversation();
+              }}
             />
           </div>
         </div>
@@ -196,6 +217,7 @@ export function DataAgentWorkspace({
 
               <DataAgentEmptyState
                 connectionError={connectionError}
+                sessionNotice={sessionNotice}
                 restored={Boolean(activeConversation?.restored)}
                 composerKey={composerKey}
                 initialDraft={initialDraft}
@@ -211,6 +233,10 @@ export function DataAgentWorkspace({
             <DataAgentSessionWorkspace
               title={activeConversation?.title ?? "新对话"}
               isSending={isSending}
+              isReconnecting={isReconnecting}
+              sessionUsage={sessionUsage}
+              sessionNotice={sessionNotice}
+              onStop={stopCurrentTurn}
               sidebarOpen={sidebarOpen}
               onToggleSidebar={() => setSidebarOpen((open) => !open)}
               messages={messages}
