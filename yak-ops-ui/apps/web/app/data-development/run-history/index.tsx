@@ -91,6 +91,23 @@ export function RunHistoryPanel({ width }: { width: number }) {
     staleTime: 30_000,
   });
 
+  const searchQuery = useQuery({
+    queryKey: ["data-development", "run-history-search", workspaceId, state, keyword.trim()],
+    queryFn: ({ signal }) =>
+      listWorkflowInstances(
+        undefined,
+        1,
+        100,
+        signal,
+        {
+          searchVal: keyword.trim(),
+          stateType: state === "ALL" ? undefined : state,
+        },
+      ),
+    enabled: Boolean(workspaceId && keyword.trim()),
+    staleTime: 5_000,
+  });
+
   const dataSyncTaskNamesQuery = useQuery({
     queryKey: ["data-development", "data-sync-workflow-names", workspaceId],
     queryFn: ({ signal }) => listDataSyncWorkflowNames(signal),
@@ -99,6 +116,18 @@ export function RunHistoryPanel({ width }: { width: number }) {
   });
 
   const items: WorkflowInstanceSummary[] = query.data?.totalList ?? [];
+  const searchableItems = useMemo(() => {
+    if (!keyword.trim()) return items;
+
+    const itemsById = new Map<number, WorkflowInstanceSummary>();
+    [...items, ...(searchQuery.data?.totalList ?? [])].forEach((item) => {
+      itemsById.set(item.id, item);
+    });
+    return Array.from(itemsById.values()).sort(
+      (left, right) =>
+        Date.parse(right.startTime ?? "") - Date.parse(left.startTime ?? ""),
+    );
+  }, [items, keyword, searchQuery.data]);
   const workflowNamesByCode = useMemo(
     () =>
       new Map<string, string>(
@@ -121,9 +150,9 @@ export function RunHistoryPanel({ width }: { width: number }) {
   );
   const visibleItems = useMemo(() => {
     const search = keyword.trim().toLocaleLowerCase();
-    if (!search) return items;
+    if (!search) return searchableItems;
 
-    return items.filter((item) => {
+    return searchableItems.filter((item) => {
       const displayName = workflowDisplayName(
         item,
         workflowNamesByCode,
@@ -136,7 +165,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
         String(item.workflowDefinitionCode),
       ].some((value) => value.toLocaleLowerCase().includes(search));
     });
-  }, [items, keyword, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode]);
+  }, [searchableItems, keyword, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode]);
 
   return (
     <aside
@@ -181,7 +210,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {query.isLoading || definitionsQuery.isLoading || dataSyncTaskNamesQuery.isLoading ? (
+        {query.isLoading || searchQuery.isLoading || definitionsQuery.isLoading || dataSyncTaskNamesQuery.isLoading ? (
           <div className="flex h-24 items-center justify-center text-[12px] text-[#9aa0a8]">
             加载中...
           </div>
@@ -191,7 +220,11 @@ export function RunHistoryPanel({ width }: { width: number }) {
           </div>
         ) : (
           visibleItems.map((item) => {
-            const displayName = workflowDisplayName(item, workflowNamesByCode, dataSyncTaskNamesByWorkflowCode);
+            const displayName = workflowDisplayName(
+              item,
+              workflowNamesByCode,
+              dataSyncTaskNamesByWorkflowCode,
+            );
             return (
               <button
                 key={item.id}
