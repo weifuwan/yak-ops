@@ -80,6 +80,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     @Transactional(rollbackFor = Exception.class)
     public DimensionTableVO create(DimensionTableDTO dto, String operator) {
         if (dto == null) throw new IllegalArgumentException("维度建模参数不能为空");
+        trimBasicFields(dto);
         normalizeRelations(dto);
         normalizeTypeFields(dto, null);
         validateBasicInfo(dto, null);
@@ -111,6 +112,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (dto == null || !notBlank(dto.getId())) {
             throw new IllegalArgumentException("主键不能为空");
         }
+        trimBasicFields(dto);
         DimensionTablePO existing = dimensionTableDao.queryById(dto.getId());
         if (existing == null) throw new IllegalArgumentException("维度建模记录不存在或不属于当前项目");
 
@@ -479,6 +481,26 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         return wrapper;
     }
 
+    private void trimBasicFields(DimensionTableDTO dto) {
+        dto.setId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getId()));
+        dto.setDwhId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getDwhId()));
+        dto.setEnShortName(org.apache.commons.lang3.StringUtils.trimToNull(dto.getEnShortName()));
+        dto.setTableName(org.apache.commons.lang3.StringUtils.trimToNull(dto.getTableName()));
+        dto.setCnName(org.apache.commons.lang3.StringUtils.trimToNull(dto.getCnName()));
+        dto.setBusTypeId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getBusTypeId()));
+        dto.setBusProcessId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getBusProcessId()));
+        dto.setDomainId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getDomainId()));
+        dto.setMartId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getMartId()));
+        dto.setSubjectId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getSubjectId()));
+        dto.setTimePeriodId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getTimePeriodId()));
+        dto.setDimId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getDimId()));
+        dto.setModifier(org.apache.commons.lang3.StringUtils.trimToNull(dto.getModifier()));
+        dto.setNameRuleId(org.apache.commons.lang3.StringUtils.trimToNull(dto.getNameRuleId()));
+        dto.setDirector(org.apache.commons.lang3.StringUtils.trimToNull(dto.getDirector()));
+        dto.setRemark(org.apache.commons.lang3.StringUtils.trimToNull(dto.getRemark()));
+        dto.setMartOrSubject(org.apache.commons.lang3.StringUtils.trimToNull(dto.getMartOrSubject()));
+    }
+
     private void normalizeRelations(DimensionTableDTO dto) {
         if (dto.getBusProcessIds() != null && !dto.getBusProcessIds().isEmpty()) {
             if (dto.getBusProcessIds().size() > 2) {
@@ -721,7 +743,8 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             }
         } else if (dto.getTableType() != null && notBlank(dto.getTableName())) {
             QueryWrapper<DimensionTablePO> wrapper = new QueryWrapper<DimensionTablePO>()
-                    .ne("table_type", DimensionTableTypeEnum.DIM.getCode())
+                    .and(q -> q.ne("table_type", DimensionTableTypeEnum.DIM.getCode())
+                            .or().isNull("table_type"))
                     .eq("table_name", dto.getTableName());
             if (notBlank(excludeId)) wrapper.ne("id", excludeId);
             if (dimensionTableDao.queryCount(wrapper) > 0) {
