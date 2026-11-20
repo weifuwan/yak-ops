@@ -78,6 +78,11 @@ async def forward_event(session: Session, event: Any) -> None:
             },
         )
     elif event_type == EventType.MODEL_CALL_END:
+        usage = session.usage
+        usage["inputTokens"] = usage.get("inputTokens", 0) + max(0, int(event.input_tokens or 0))
+        usage["outputTokens"] = usage.get("outputTokens", 0) + max(0, int(event.output_tokens or 0))
+        usage["cacheInputTokens"] = usage.get("cacheInputTokens", 0) + max(0, int(event.cache_input_tokens or 0))
+        usage["cacheCreationInputTokens"] = usage.get("cacheCreationInputTokens", 0) + max(0, int(event.cache_creation_input_tokens or 0))
         await emit(
             session,
             {
