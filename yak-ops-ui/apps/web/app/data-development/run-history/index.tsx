@@ -70,7 +70,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="工作流 / 实例"
-            className="h-8 pl-8"
+            className="h-6 pl-8"
           />
         </div>
         <Select
@@ -79,7 +79,7 @@ export function RunHistoryPanel({ width }: { width: number }) {
           value={state}
           onValueChange={(value) => setState(String(value ?? "ALL"))}
         >
-          <SelectTrigger variant="outlined" className="h-8">
+          <SelectTrigger variant="outlined" className="h-6">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

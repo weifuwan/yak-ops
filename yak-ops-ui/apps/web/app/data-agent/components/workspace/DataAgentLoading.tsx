@@ -22,6 +22,7 @@ export function DataAgentLoading({
       role="status"
       aria-label="正在加载 Data Agent"
       aria-busy="true"
+      
       aria-hidden={exiting}
       className={
         "fixed inset-0 z-[100] flex h-dvh w-screen flex-col overflow-hidden bg-[#f0f0f0] p-2 text-[#20201e] transition-opacity duration-200 ease-out motion-reduce:transition-none max-md:p-0 " +
