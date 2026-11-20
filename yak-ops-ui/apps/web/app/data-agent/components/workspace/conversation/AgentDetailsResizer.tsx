@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 
-const DETAILS_MIN_WIDTH = 280;
+const DETAILS_MIN_WIDTH = 320;
 const KEYBOARD_STEP = 16;
 
 const clampWidth = (width: number, maxWidth: number) =>
