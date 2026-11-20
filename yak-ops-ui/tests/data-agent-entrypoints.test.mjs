@@ -6,6 +6,7 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const page = read("../apps/web/app/data-agent/page.tsx");
 const welcome = read("../apps/web/app/data-agent/components/DataAgentWelcome.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
+const conversationHeader = read("../apps/web/app/data-agent/components/workspace/DataAgentConversationHeader.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
 const emptyStateStyles = read("../apps/web/app/data-agent/components/workspace/data-agent-empty-state.css");
 const quickActions = read("../apps/web/app/data-agent/components/workspace/quick-actions.ts");
@@ -62,10 +63,11 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(welcome, /ref=\{leftEyeRef\}/);
   assert.match(welcome, /ref=\{rightEyeRef\}/);
   assert.doesNotMatch(workspace, /你好，我是 Yak-OPS Data Agent|理解数据、构建任务|Enter 发送 · Shift/);
-  assert.ok(!workspace.includes('activeConversation?.title ?? "新对话"'));
+  assert.ok(workspace.includes('activeConversation?.title ?? "新对话"'));
   assert.ok(!workspace.includes("前端预览</span>"));
-  assert.match(workspace, /bg-\[#f0f0f0\] p-2 max-md:p-0/);
-  assert.match(workspace, /rounded-2xl border border-\[#e7e7e4\] bg-white/);
+  assert.match(workspace, /flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white/);
+  assert.match(workspace, /<DataAgentConversationHeader/);
+  assert.doesNotMatch(workspace, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
   assert.match(workspace, /<DataAgentSidebar/);
   assert.doesNotMatch(workspace, /前端预览模式|最近对话/);
   assert.match(sidebar, /w-full min-w-0 shrink-0 flex-col/);
@@ -82,6 +84,22 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.match(conversationList, /No sessions yet/);
   assert.match(sidebarFooter, /Upgrade to Pro/);
   assert.match(sidebarFooter, /Unlock more features/);
+});
+
+test("Data Agent conversation workspace is edge-to-edge with a dedicated session header", () => {
+  assert.match(workspace, /<DataAgentConversationHeader/);
+  assert.match(workspace, /title=\{activeConversation\?\.title \?\? "新对话"\}/);
+  assert.match(workspace, /<section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">/);
+  assert.doesNotMatch(workspace, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
+
+  assert.match(conversationHeader, /h-12 shrink-0 items-center justify-between border-b/);
+  assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
+  assert.match(conversationHeader, /onToggleSidebar/);
+  assert.match(conversationHeader, /isSending \? "正在处理" : "已就绪"/);
+  assert.match(conversationHeader, /cursor-pointer/);
+
+  assert.match(page, /<DataAgentWelcome onEnter=\{enterWorkspace\} \/>/);
+  assert.match(welcome, /rounded-\[14px\] border border-\[#dfe4e4\] bg-white/);
 });
 
 test("Data Agent sidebar keeps the Recent chats section visible when there are no sessions", () => {
@@ -438,7 +456,7 @@ test("Data Agent clickable controls use pointer cursors and drag splitters keep 
   assert.match(composer, /cursor-pointer/);
   assert.match(welcome, /cursor-pointer/);
   assert.match(emptyState, /cursor-pointer/);
-  assert.match(workspace, /cursor-pointer/);
+  assert.match(conversationHeader, /cursor-pointer/);
   assert.match(detailsResizer, /cursor-col-resize/);
   assert.match(sidebarResizer, /cursor-col-resize/);
   assert.match(composer, /disabled:cursor-not-allowed/);
