@@ -17,6 +17,7 @@ type ActivitySelection = {
 };
 
 type DataAgentSessionWorkspaceProps = {
+  sessionId: string;
   title: string;
   isSending: boolean;
   isReconnecting: boolean;
@@ -79,6 +80,7 @@ function DetailsEmptyState() {
 }
 
 export function DataAgentSessionWorkspace({
+  sessionId,
   title,
   isSending,
   isReconnecting,
@@ -148,6 +150,12 @@ export function DataAgentSessionWorkspace({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    setSelection(null);
+    setDetailsOpen(false);
+    setDetailsExpandAll(false);
+  }, [sessionId]);
 
   useEffect(() => {
     if (selection && (!selectedMessage || !selectedActivity)) {
