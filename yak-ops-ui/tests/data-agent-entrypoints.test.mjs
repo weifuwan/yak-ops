@@ -327,6 +327,8 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.doesNotMatch(toolActivity, /AgentActivityDetails/);
   assert.match(toolActivity, /<button/);
   assert.match(toolActivity, /ChevronRight/);
+  assert.match(toolActivity, /aria-expanded=\\{selected\\}/);
+  assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
   assert.match(toolActivity, /hover:bg-\[#f4f6f5\]/);
   assert.match(activityDetails, /输入参数/);
@@ -334,6 +336,7 @@ test("Data Agent renders ordered SSE activity with expandable tool input and out
   assert.match(activityDetails, /<details/);
   assert.match(activityDetails, /defaultOpen/);
   assert.match(conversationPanel, /AgentDetailsPanel/);
+  assert.match(conversationPanel, /id="agent-details-panel"/);
   assert.match(conversationPanel, /handleSelectActivity/);
   assert.match(conversationPanel, /duration-300/);
   assert.match(conversationPanel, /max-md:absolute max-md:inset-0/);
