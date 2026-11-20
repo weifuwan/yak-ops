@@ -89,6 +89,7 @@ const AUTHENTICATED_PATHS = new Set([
 
 const isAuthenticatedPath = (pathname: string) =>
   AUTHENTICATED_PATHS.has(pathname) ||
+  pathname.startsWith("/data-agent/") ||
   pathname.startsWith("/data-modeling/") ||
   pathname.startsWith("/data-sync/") ||
   pathname.startsWith("/operations/") ||
@@ -184,6 +185,8 @@ export default function AppRouter() {
 
           <Route path="/data-development" element={<DataDevelopmentPage />} />
           <Route path="/data-agent" element={<DataAgentPage />} />
+          <Route path="/data-agent/new" element={<DataAgentPage />} />
+          <Route path="/data-agent/sessions/:sessionId" element={<DataAgentPage />} />
 
           <Route
             element={
