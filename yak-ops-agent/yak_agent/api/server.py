@@ -36,6 +36,7 @@ import json
 import os
 import time
 import uuid
+from datetime import datetime
 from typing import Any
 
 import uvicorn
@@ -56,10 +57,13 @@ from yak_agent.service.errors import (
     ConfirmationInvalid,
     ConfirmationNotPending,
     SessionBusy,
+    SessionForbidden,
+    SessionNotFound,
 )
 from yak_agent.service.events import close as close_events
 from yak_agent.service.events import subscribe
 from yak_agent.service.session import (
+    SESSIONS,
     Turn,
     load_session,
     refresh_session_auth,
@@ -224,6 +228,83 @@ async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bo
         )
     session.confirm_future.set_result(flags)
     return {"accepted": True}
+
+
+def _iso(timestamp: float | None) -> str | None:
+    if not timestamp:
+        return None
+    return datetime.fromtimestamp(timestamp).astimezone().isoformat(timespec="seconds")
+
+
+def _updated_at(sid: str) -> float | None:
+    for path in (persistence.state_path(sid), persistence.meta_path(sid)):
+        if path.exists():
+            return path.stat().st_mtime
+    return None
+
+
+def _authorize_meta(sid: str, identity: Any) -> dict[str, Any]:
+    meta = persistence.read_meta(sid)
+    if not meta:
+        raise SessionNotFound()
+    if (
+        meta.get("owner") != identity.owner
+        or str(meta.get("workspace", "")) != identity.workspace_id
+    ):
+        raise SessionForbidden()
+    return meta
+
+
+@app.get("/agent/sessions/{sid}")
+async def session_status(sid: str, request: Request) -> dict[str, Any]:
+    """Current turn status, restored from memory or the persisted meta."""
+    identity = request_identity(request, _get_settings())
+    session = SESSIONS.get(sid)
+    if session is not None:
+        if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
+            raise SessionForbidden()
+        meta = persistence.read_meta(sid)
+        turn = session.turn
+        pending = session.pending_event
+        return {
+            "sessionId": sid,
+            "state": turn.status if turn else "idle",
+            "busy": session.busy,
+            "stale": False,
+            "turnId": turn.turn_id if turn else None,
+            "replyId": turn.reply_id if turn and turn.reply_id else None,
+            "startedAt": _iso(turn.started_at) if turn else None,
+            "pendingConfirmation": (
+                {
+                    "replyId": pending.reply_id,
+                    "toolCalls": [
+                        {"id": tc.id, "name": tc.name, "input": getattr(tc, "input", "")}
+                        for tc in pending.tool_calls
+                    ],
+                }
+                if pending is not None
+                else None
+            ),
+            "title": session.title or meta.get("title", ""),
+            "preview": session.preview or meta.get("preview", ""),
+            "updatedAt": _updated_at(sid),
+        }
+
+    meta = _authorize_meta(sid, identity)
+    active = meta.get("activeTurn") or {}
+    return {
+        "sessionId": sid,
+        "state": "stale" if active else "idle",
+        "busy": False,
+        "stale": bool(active),
+        "turnId": active.get("turnId"),
+        "replyId": None,
+        "startedAt": _iso(active.get("startedAt")),
+        "pendingConfirmation": None,
+        "title": meta.get("title", ""),
+        "preview": meta.get("preview", ""),
+        "updatedAt": _updated_at(sid),
+    }
 
 
 @app.post("/agent/sessions/{sid}/interrupt", status_code=202)

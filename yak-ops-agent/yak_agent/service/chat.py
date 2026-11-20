@@ -139,6 +139,7 @@ async def run_turn(
             if paused is None:
                 break
             turn.status = "awaiting_confirmation"
+            turn.reply_id = paused.reply_id
             session.pending_event = paused
             loop = asyncio.get_running_loop()
             session.confirm_future = loop.create_future()

@@ -27,6 +27,7 @@ class Turn:
     status: str = "running"  # running | awaiting_confirmation | interrupting
     task: asyncio.Task | None = None
     interrupt_requested: bool = False
+    reply_id: str = ""
 
 
 @dataclass
