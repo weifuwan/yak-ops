@@ -152,9 +152,12 @@ function ExpandableActivity({
         </div>
       )}
 
-      {expanded && canExpand ? (
-        <div id={"agent-details-content-" + activity.id}>
-          <ActivityDetails activity={activity} />
+      {canExpand ? (
+        <div
+          id={"agent-details-content-" + activity.id}
+          hidden={!expanded}
+        >
+          {expanded ? <ActivityDetails activity={activity} /> : null}
         </div>
       ) : null}
     </div>
