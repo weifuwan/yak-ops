@@ -171,20 +171,25 @@ export function AgentDetailsTimeline({
   );
 
   useEffect(() => {
-    const nextExpandedIds = expandAll
-      ? new Set(
-          activities
-            .filter(
-              (activity) =>
-                activity.kind === "tool" ||
-                Boolean(activity.content?.trim() || activity.input || activity.output),
-            )
-            .map((activity) => activity.id),
-        )
-      : new Set(selectedActivityId ? [selectedActivityId] : []);
+    if (!expandAll) return;
 
-    setExpandedActivityIds(nextExpandedIds);
-  }, [activities, expandAll, selectedActivityId]);
+    setExpandedActivityIds(
+      new Set(
+        activities
+          .filter(
+            (activity) =>
+              activity.kind === "tool" ||
+              Boolean(activity.content?.trim() || activity.input || activity.output),
+          )
+          .map((activity) => activity.id),
+      ),
+    );
+  }, [activities, expandAll]);
+
+  useEffect(() => {
+    if (expandAll) return;
+    setExpandedActivityIds(new Set(selectedActivityId ? [selectedActivityId] : []));
+  }, [expandAll, selectedActivityId]);
 
   return (
     <div className="relative min-w-0 pl-8">
