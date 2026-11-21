@@ -8,10 +8,14 @@ POST   /agent/sessions/{sid}/messages     send a message -> SSE event stream
                                            tool_start / tool_call_delta /
                                            tool_result_delta / tool_result /
                                            usage / reply_end /
-                                           confirm_required / done / error)
+                                           confirm_required / done / error;
+                                           ?queue=true adds queue_waiting /
+                                           queue_started / queue_cancelled)
 POST   /agent/sessions/{sid}/confirm      approve or deny pending writes
                                           {approved: bool | [bool, ...]}
 GET    /agent/sessions                    list persisted sessions
+GET    /agent/sessions/{sid}/queue        list queued messages
+DELETE /agent/sessions/{sid}/queue/{qid}  cancel one queued message
 GET    /agent/memory                      memory overview for (user, workspace)
 DELETE /agent/memory                      clear one workspace (?all=true: all)
 GET    /health                            liveness probe
@@ -27,6 +31,9 @@ Design notes
   restored on the next message.
 - Credentials live in the server process only; the frontend never sees the
   yak-ops token and cannot pass one.
+- One process serves one session: SESSIONS, EventLog, the confirm future and
+  the FIFO message queue are all in-process. Deploy with a single uvicorn
+  worker and sticky sessions; a restart drops not-yet-started queue items.
 
 Run:  python -m yak_agent.server             (defaults 127.0.0.1:8090)
 """
@@ -38,6 +45,7 @@ import json
 import os
 import time
 import uuid
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
@@ -62,18 +70,25 @@ from yak_agent.service.errors import (
     ConfirmationInvalid,
     ConfirmationNotPending,
     MemoryDisabled,
+    QueueItemNotFound,
     SessionBusy,
     SessionForbidden,
     SessionNotFound,
     SessionStateInvalid,
 )
 from yak_agent.service.events import close as close_events
-from yak_agent.service.events import subscribe
+from yak_agent.service.events import emit, subscribe
 from yak_agent.service.history import serialize_history
+from yak_agent.service.retention import retention_loop
 from yak_agent.service.session import (
     SESSIONS,
+    QueuedMessage,
+    Session,
     Turn,
+    cancel_queued_message,
+    enqueue_message,
     load_session,
+    queue_position,
     refresh_session_auth,
     remove_session,
 )
@@ -82,10 +97,24 @@ from yak_agent.service.session import (
 )
 from yak_agent.tools.validation import validate_registry
 
+_QUEUE_PREVIEW_CHARS = 120
+_QUEUE_WAIT_HEARTBEAT_SECONDS = 15.0
+_QUEUE_ATTACH_TIMEOUT_SECONDS = 5.0
+
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
+    settings = _get_settings()
+    retention_task: asyncio.Task | None = None
+    if settings.session_retention_days > 0 or settings.session_max_mb > 0:
+        retention_task = asyncio.create_task(retention_loop(settings))
     yield
+    if retention_task is not None:
+        retention_task.cancel()
+        try:
+            await retention_task
+        except asyncio.CancelledError:
+            pass
     await MEMORY.close_all()
 
 
@@ -228,34 +257,244 @@ async def clear_memory(
     return {"deleted": True, "scopes": scopes}
 
 
-@app.post("/agent/sessions/{sid}/messages")
-async def send_message(sid: str, body: MessageBody, request: Request) -> EventSourceResponse:
-    identity = request_identity(request, _get_settings())
-    session = load_session(sid, identity, _get_settings())
-    refresh_session_auth(session, identity.auth)
-    if session.busy:
-        raise SessionBusy()
-    await session.event_log.reset()
-    turn_cursor = session.event_log.next_seq - 1
-    if not session.title:
-        session.title, session.preview = _conversation_title(body.message)
+async def _begin_turn(
+    session: Session,
+    message: str,
+    settings: Settings,
+    queue_id: str = "",
+) -> tuple[Turn, int]:
+    """Claim the session, reset the event log, and start the turn task.
+
+    busy/turn are set before any await so a concurrent send or the retention
+    loop never observes an idle window between the claim and the reset. Returns
+    `(turn, cursor)`; the cursor is the replay start for the caller's SSE.
+    """
     turn = Turn(
         turn_id=uuid.uuid4().hex,
         started_at=time.time(),
-        message=body.message,
+        message=message,
+        queue_id=queue_id,
     )
-    session.turn = turn
     session.busy = True
-    persistence.persist(session)
+    session.turn = turn
+    session.idle_event.clear()
+    try:
+        await session.event_log.reset()
+        if not session.title:
+            session.title, session.preview = _conversation_title(message)
+        turn_cursor = session.event_log.next_seq - 1
+        if queue_id:
+            await emit(
+                session,
+                {"type": "queue_started", "queueId": queue_id, "turnId": turn.turn_id},
+            )
+        persistence.persist(session)
+    except BaseException:
+        session.busy = False
+        session.turn = None
+        session.idle_event.set()
+        raise
     turn.task = asyncio.create_task(
-        run_turn(
-            session,
-            body.message,
-            forward_event,
-            _get_settings().confirm_timeout_seconds,
-            turn,
-        )
+        run_turn(session, message, forward_event, settings.confirm_timeout_seconds, turn)
     )
+    # Yield one loop tick so run_turn has entered its try block. A cancel
+    # arriving right after task creation would otherwise abort the coroutine
+    # before its `finally`, leaving the session claimed busy forever.
+    await asyncio.sleep(0)
+    return turn, turn_cursor
+
+
+def _queue_waiting_frame(item: QueuedMessage, position: int) -> dict[str, Any]:
+    return {
+        "type": "queue_waiting",
+        "queueId": item.queue_id,
+        "position": position,
+        "messagePreview": item.message[:_QUEUE_PREVIEW_CHARS],
+    }
+
+
+async def _wait_queue_signal(item: QueuedMessage, timeout: float) -> None:
+    """Wake on started/cancelled, or return after `timeout` for the heartbeat."""
+    started = asyncio.ensure_future(item.started.wait())
+    cancelled = asyncio.ensure_future(item.cancelled.wait())
+    try:
+        await asyncio.wait(
+            {started, cancelled},
+            timeout=timeout,
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+    finally:
+        started.cancel()
+        cancelled.cancel()
+        await asyncio.gather(started, cancelled, return_exceptions=True)
+
+
+async def _queue_stream(
+    session: Session,
+    item: QueuedMessage,
+    initial_position: int,
+) -> AsyncIterator[dict[str, str]]:
+    """SSE for one queued message: position heartbeats, then the turn events.
+
+    Waiting events are request-local (not in the EventLog); once the item starts
+    the stream switches to the full log replay, and the first delivered event
+    marks the client as attached so the worker may start the next item (and
+    reset the log) without wiping events this client has not seen yet. The
+    initial position is captured at enqueue time — by the time the generator
+    first runs, the worker may already have started the item ahead of this one.
+    """
+    yield _sse_frame(_queue_waiting_frame(item, initial_position))
+    while True:
+        await _wait_queue_signal(item, _QUEUE_WAIT_HEARTBEAT_SECONDS)
+        if item.cancelled.is_set():
+            yield _sse_frame(
+                {
+                    "type": "queue_cancelled",
+                    "queueId": item.queue_id,
+                    "reason": item.cancel_reason or "cancelled",
+                }
+            )
+            return
+        if item.started.is_set():
+            break
+        # An item the worker already popped but has not marked started yet is
+        # next in line; position 0 would be meaningless to the frontend.
+        position = queue_position(session, item.queue_id) or 1
+        yield _sse_frame(_queue_waiting_frame(item, position))
+    attached = False
+    async for event in subscribe(session, item.turn_cursor):
+        turn_id = event.get("turnId")
+        if turn_id and turn_id != item.turn_id:
+            # The worker moved on (attach timed out, or this client was very
+            # slow) and reset the log for a later turn. Never show another
+            # turn's events as this message's stream.
+            return
+        if not attached:
+            attached = True
+            item.attached.set()
+        yield _sse_frame(event)
+
+
+async def _run_queue_worker(session: Session, settings: Settings) -> None:
+    """Execute queued items strictly one at a time, in FIFO order.
+
+    Items stay in `session.queue` until the worker has passed the idle wait, so
+    a direct send arriving in between still sees a non-empty queue (409). The
+    pop and the synchronous claim inside `_begin_turn` are adjacent statements
+    with no await in between, which makes the claim atomic in the event loop.
+    """
+    worker = asyncio.current_task()
+    try:
+        while session.queue:
+            await session.idle_event.wait()
+            if not session.queue:
+                break
+            item = session.queue.popleft()
+            if item.cancelled.is_set():
+                continue
+            try:
+                turn, cursor = await _begin_turn(
+                    session,
+                    item.message,
+                    settings,
+                    queue_id=item.queue_id,
+                )
+            except Exception as ex:  # noqa: BLE001 - notify the waiting stream, keep draining
+                item.cancel_reason = "start_failed"
+                item.cancelled.set()
+                audit.record_tool_call(
+                    "session_queue_start",
+                    {
+                        "session": session.sid,
+                        "caller": session.owner,
+                        "queueId": item.queue_id,
+                        "outcome": "start_failed",
+                    },
+                    False,
+                    0,
+                    f"{type(ex).__name__}: {ex}",
+                )
+                continue
+            item.turn_id = turn.turn_id
+            item.turn_cursor = cursor
+            item.started.set()
+            audit.record_tool_call(
+                "session_queue_start",
+                {
+                    "session": session.sid,
+                    "caller": session.owner,
+                    "queueId": item.queue_id,
+                    "turnId": turn.turn_id,
+                    "outcome": "started",
+                },
+                True,
+                0,
+                None,
+            )
+            try:
+                await asyncio.wait_for(
+                    item.attached.wait(),
+                    timeout=_QUEUE_ATTACH_TIMEOUT_SECONDS,
+                )
+            except TimeoutError:
+                pass  # slow or gone client: never roll the queue back for it
+            if turn.task is not None:
+                try:
+                    await turn.task
+                except asyncio.CancelledError:
+                    pass  # interrupted turn: run_turn already emitted its `done`
+                except Exception:  # noqa: BLE001 - run_turn already surfaced the error
+                    pass
+    finally:
+        if worker is not None and session.queue_worker is worker:
+            session.queue_worker = None
+
+
+def _ensure_queue_worker(session: Session, settings: Settings) -> None:
+    if session.queue_worker is not None and not session.queue_worker.done():
+        return
+    session.queue_worker = asyncio.create_task(_run_queue_worker(session, settings))
+
+
+@app.post("/agent/sessions/{sid}/messages")
+async def send_message(
+    sid: str,
+    body: MessageBody,
+    request: Request,
+    queue: bool = False,
+) -> EventSourceResponse:
+    settings = _get_settings()
+    identity = request_identity(request, settings)
+    session = load_session(sid, identity, settings)
+    refresh_session_auth(session, identity.auth)
+    if session.busy or session.queue:
+        # Strict FIFO: while items are queued, a newer message must not jump
+        # ahead of them even when the current turn has just finished.
+        if not queue or settings.session_queue_max <= 0:
+            raise SessionBusy()
+        # enqueue_message is synchronous, so the capacity check and append are
+        # atomic against concurrent sends.
+        item = enqueue_message(session, body.message, settings.session_queue_max)
+        if not session.title:
+            session.title, session.preview = _conversation_title(body.message)
+        persistence.persist(session)
+        position = queue_position(session, item.queue_id)
+        _ensure_queue_worker(session, settings)
+        audit.record_tool_call(
+            "session_queue_enqueue",
+            {
+                "session": sid,
+                "caller": identity.owner,
+                "queueId": item.queue_id,
+                "position": position,
+            },
+            True,
+            0,
+            None,
+        )
+        return EventSourceResponse(_queue_stream(session, item, position))
+
+    turn, turn_cursor = await _begin_turn(session, body.message, settings)
 
     async def event_stream():
         async for item in subscribe(session, turn_cursor):
@@ -291,6 +530,60 @@ def _sse_frame(item: dict[str, Any]) -> dict[str, str]:
     if "seq" in item:
         frame["id"] = str(item["seq"])
     return frame
+
+
+@app.get("/agent/sessions/{sid}/queue")
+async def get_session_queue(sid: str, request: Request) -> dict[str, Any]:
+    """Queued messages of one session; disk-only sessions have none in-process."""
+    identity = request_identity(request, _get_settings())
+    session = SESSIONS.get(sid)
+    if session is None:
+        # The queue lives in memory only: after a restart every session is
+        # disk-only and has no queue, but the caller still needs an ownership
+        # check before learning that.
+        _authorize_meta(sid, identity)
+        return {"items": [], "max": _get_settings().session_queue_max}
+    if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
+        raise SessionForbidden()
+    return {
+        "items": [
+            {
+                "queueId": item.queue_id,
+                "position": position,
+                "createdAt": _iso(item.created_at),
+                "messagePreview": item.message[:_QUEUE_PREVIEW_CHARS],
+            }
+            for position, item in enumerate(session.queue, start=1)
+        ],
+        "max": _get_settings().session_queue_max,
+    }
+
+
+@app.delete("/agent/sessions/{sid}/queue/{queue_id}")
+async def cancel_queue_item(sid: str, queue_id: str, request: Request) -> dict[str, bool]:
+    identity = request_identity(request, _get_settings())
+    session = SESSIONS.get(sid)
+    if session is not None:
+        if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
+            raise SessionForbidden()
+    else:
+        # Deliberately NOT load_session: loading a disk-only session just to
+        # find an empty queue would keep it resident and immune to retention.
+        _authorize_meta(sid, identity)
+        raise QueueItemNotFound()
+    cancel_queued_message(session, queue_id)
+    audit.record_tool_call(
+        "session_queue_cancel",
+        {
+            "session": sid,
+            "caller": identity.owner,
+            "queueId": queue_id,
+        },
+        True,
+        0,
+        None,
+    )
+    return {"cancelled": True}
 
 
 @app.post("/agent/sessions/{sid}/confirm")
@@ -367,8 +660,9 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
         pending = session.pending_event
         return {
             "sessionId": sid,
-            "state": turn.status if turn else "idle",
+            "state": turn.status if turn else ("queued" if session.queue else "idle"),
             "busy": session.busy,
+            "queued": len(session.queue),
             "stale": False,
             "turnId": turn.turn_id if turn else None,
             "replyId": turn.reply_id if turn and turn.reply_id else None,
@@ -397,6 +691,7 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
         "sessionId": sid,
         "state": "stale" if active else "idle",
         "busy": False,
+        "queued": 0,
         "stale": bool(active),
         "turnId": active.get("turnId"),
         "replyId": None,
@@ -439,9 +734,9 @@ async def rename_session(
             "title": title,
         }
     )
-    persistence.meta_path(sid).write_text(
+    persistence.write_atomic(
+        persistence.meta_path(sid),
         json.dumps(meta, ensure_ascii=False),
-        encoding="utf-8",
     )
     return {"sessionId": sid, "title": title}
 
@@ -528,6 +823,14 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
         # The worker would keep running and call persist() after the state and
         # workspace files are gone. Make the caller stop/wait for it first.
         raise SessionBusy()
+    # Cancel queued items first so their streams close with queue_cancelled
+    # instead of waiting on a session that is about to disappear.
+    for item in list(session.queue):
+        item.cancel_reason = "session_deleted"
+        item.cancelled.set()
+    session.queue.clear()
+    if session.queue_worker is not None:
+        session.queue_worker.cancel()
     if session.memory is not None:
         await session.memory.flush()
         state = getattr(session.agent, "state", None)

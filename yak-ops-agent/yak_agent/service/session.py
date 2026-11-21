@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import time
+import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -16,8 +19,11 @@ from yak_agent.memory import get_memory
 from yak_agent.service import persistence
 from yak_agent.service.errors import (
     ContextBudgetExceeded,
+    QueueItemNotFound,
+    QueueItemStarted,
     SessionForbidden,
     SessionNotFound,
+    SessionQueueFull,
     SessionStateInvalid,
     ToolConfigurationExceeded,
 )
@@ -38,6 +44,33 @@ class Turn:
     interrupt_requested: bool = False
     reply_id: str = ""
     message: str = ""
+    queue_id: str = ""  # queue item this turn was started from; "" for direct sends
+
+
+def _idle_event() -> asyncio.Event:
+    """Start in the idle state so a freshly created session can turn immediately."""
+    event = asyncio.Event()
+    event.set()
+    return event
+
+
+@dataclass
+class QueuedMessage:
+    """One message waiting for the current turn to finish.
+
+    Queue items live in memory only: a process restart drops them, and each
+    item carries the session credentials captured at enqueue time.
+    """
+
+    queue_id: str
+    message: str
+    created_at: float
+    started: asyncio.Event = field(default_factory=asyncio.Event)
+    attached: asyncio.Event = field(default_factory=asyncio.Event)
+    cancelled: asyncio.Event = field(default_factory=asyncio.Event)
+    cancel_reason: str = ""  # cancelled | session_deleted | start_failed
+    turn_id: str = ""
+    turn_cursor: int = 0  # replay start for this item's SSE, set when it starts
 
 
 @dataclass
@@ -55,6 +88,9 @@ class Session:
     persistent: bool = True
     turn: Turn | None = None
     event_log: EventLog = field(default_factory=EventLog)
+    queue: deque[QueuedMessage] = field(default_factory=deque)
+    queue_worker: asyncio.Task | None = None
+    idle_event: asyncio.Event = field(default_factory=_idle_event)
     title: str = ""
     preview: str = ""
     usage: dict[str, int] = field(default_factory=dict)
@@ -184,6 +220,41 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
 
 def remove_session(sid: str) -> None:
     SESSIONS.pop(sid, None)
+
+
+def queue_position(session: Session, queue_id: str) -> int:
+    """1-based position of one queued item; 0 when it is no longer queued."""
+    for position, item in enumerate(session.queue, start=1):
+        if item.queue_id == queue_id:
+            return position
+    return 0
+
+
+def enqueue_message(session: Session, message: str, max_len: int) -> QueuedMessage:
+    """Append one message to the FIFO queue; the caller starts the SSE stream."""
+    if max_len <= 0 or len(session.queue) >= max_len:
+        raise SessionQueueFull()
+    item = QueuedMessage(
+        queue_id=uuid.uuid4().hex,
+        message=message,
+        created_at=time.time(),
+    )
+    session.queue.append(item)
+    return item
+
+
+def cancel_queued_message(session: Session, queue_id: str) -> QueuedMessage:
+    """Cancel one not-yet-started item; raises when it is gone or already running."""
+    for item in session.queue:
+        if item.queue_id == queue_id:
+            session.queue.remove(item)
+            item.cancel_reason = "cancelled"
+            item.cancelled.set()
+            return item
+    turn = session.turn
+    if turn is not None and turn.queue_id == queue_id:
+        raise QueueItemStarted()
+    raise QueueItemNotFound()
 
 
 def refresh_session_auth(session: Session, auth: YakAuth | None) -> None:

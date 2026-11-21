@@ -26,16 +26,30 @@ def meta_path(sid: str) -> Path:
     return SESSION_DIR / f"{sid}.meta.json"
 
 
+def write_atomic(path: Path, text: str) -> None:
+    """Replace a file atomically: crash leaves either the old or the new content.
+
+    A failed write removes the temp file and keeps the previous content intact.
+    """
+    tmp = path.with_name(f"{path.name}.tmp-{os.getpid()}")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
 def persist(session: Any) -> None:
     if not session.persistent:
         return
     try:
         state = getattr(session.agent, "state", None)
         if state is not None:
-            state_path(session.sid).write_text(
-                state.model_dump_json(),
-                encoding="utf-8",
-            )
+            write_atomic(state_path(session.sid), state.model_dump_json())
         existing = read_meta(session.sid)
         usage = getattr(session, "usage", None) or existing.get("usage", {})
         meta = {
@@ -53,10 +67,7 @@ def persist(session: Any) -> None:
                 "status": turn.status,
                 "message": getattr(turn, "message", ""),
             }
-        meta_path(session.sid).write_text(
-            json.dumps(meta, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        write_atomic(meta_path(session.sid), json.dumps(meta, ensure_ascii=False))
     except Exception:  # noqa: BLE001 - persistence must never break a turn
         pass
 

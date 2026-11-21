@@ -24,6 +24,18 @@ class SessionBusy(AgentSessionError):
     default_message = "当前会话正在处理上一条消息，请稍后再试"
 
 
+class SessionQueueFull(AgentSessionError):
+    default_message = "当前会话排队已满，请等待队列清空后再试"
+
+
+class QueueItemNotFound(AgentSessionError):
+    default_message = "排队消息不存在或已结束"
+
+
+class QueueItemStarted(AgentSessionError):
+    default_message = "排队消息已开始执行，无法取消"
+
+
 class ConfirmationNotPending(AgentSessionError):
     default_message = "当前没有待确认的操作"
 

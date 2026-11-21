@@ -94,11 +94,21 @@ python -m venv .venv
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | POST | `/agent/sessions` | 创建会话 → `{sessionId}` |
-| POST | `/agent/sessions/{sid}/messages` | 发消息（body `{message}`）→ **SSE 事件流** |
+| POST | `/agent/sessions/{sid}/messages` | 发消息（body `{message}`）→ **SSE 事件流**；忙时可加 `?queue=true` 排队 |
 | POST | `/agent/sessions/{sid}/confirm` | 确认/拒绝挂起的写操作（body `{approved: bool 或 [bool...]}`） |
 | GET | `/agent/sessions` | 列出**当前用户在当前工作空间**的已持久化会话 |
+| GET | `/agent/sessions/{sid}/queue` | 当前排队消息 `items[]`（`queueId`/`position`/`createdAt`/`messagePreview`）与 `max` |
+| DELETE | `/agent/sessions/{sid}/queue/{queueId}` | 取消一条未开始的排队消息（已开始 409，不存在 404） |
 | DELETE | `/agent/sessions/{sid}` | 删除会话（进行中的会话返回 409，需先结束本轮） |
 | GET | `/health` | 存活检查 |
+
+**忙时排队（可选，前端按需接入）**：不带 `?queue=true` 的调用行为完全不变（忙时 409）。
+带 `?queue=true` 且会话忙时，消息进入 FIFO 队列（默认上限 5，满则 429；
+`YAK_AGENT_SESSION_QUEUE_MAX=0` 关闭排队），SSE 先收到 `queue_waiting`
+（每 15s 心跳一次，按 `queueId` 幂等更新位置），当前回合结束后自动开始并
+收到 `queue_started` 与后续正常事件；取消则收到 `queue_cancelled`
+（`reason`：`cancelled` / `session_deleted` / `start_failed`）。队列只在
+进程内存中：重启后未开始的消息丢失，前端应提示用户重发。
 
 **鉴权两层**：
 
@@ -120,11 +130,30 @@ SSE 事件类型：
 | `usage` | 单次模型调用 token 用量（含 cache 计数） |
 | `reply_end` | 一轮回复结束（`finishedReason`：completed/interrupted/exceed_max_iters/error，含 `error`） |
 | `confirm_required` | 写操作待确认，含 `toolCalls[]` |
+| `queue_waiting` | 消息已排队（`queueId`/`position`/`messagePreview`，每 15s 心跳；仅 `?queue=true` 请求，不参与断线重放） |
+| `queue_started` | 排队消息开始执行（`queueId`/`turnId`；写入 EventLog，可重放） |
+| `queue_cancelled` | 排队消息被取消（`queueId`/`reason`），发后关闭流 |
 | `done` / `error` | 本次消息流结束 / 异常 |
 
 **确认期间连接保持打开**——前端收到 `confirm_required` 后调用 `/confirm` 并在同一连接继续接收后续事件。`reply_end` 表示一次模型回复结束，`done` 才表示整轮 Agent 执行结束。
 
 会话按轮持久化（`AgentState` 序列化，`YAK_AGENT_SESSION_DIR` 可配），服务重启后按会话 ID 懒加载恢复；`createTime` 缺失的历史用户不写盘，仅当前进程内可用。服务端口与绑定地址：`YAK_AGENT_PORT` / `YAK_AGENT_HOST`。
+
+## 部署与存储边界
+
+- **单 worker + sticky session**：`SESSIONS`、`EventLog`、确认 future、ReMe
+  registry 与消息队列都在进程内，多副本会把同一会话的回合/事件/确认分裂到
+  不同进程。要求 uvicorn 单 worker，网关按 `sessionId` sticky；扩容前需先做
+  共享事件/会话存储（未实现）。
+- **文件存储**：state/meta 原子写（tmp + `os.replace`），崩溃只会留下完整
+  旧文件或完整新文件。备份只需 `sessions/`（会话状态与工作区）与 `memory/`
+  （用户级长期记忆）两个目录；`logs/audit/` 为审计留痕，可按需归档。
+- **保留清理（默认关闭）**：`YAK_AGENT_SESSION_RETENTION_DAYS`（按最后活动
+  天数）与 `YAK_AGENT_SESSION_MAX_MB`（按总容量、最旧优先）都为 0 时不启动
+  清理任务。启用后只删除**未被当前进程加载**的会话（state/meta/workspace/
+  offload 一起删），不删除用户级 `memory/`；首次启用建议
+  `YAK_AGENT_SESSION_CLEANUP_DRY_RUN=true` 观察日志。进程重启后，此前被
+  访问过而未清理的会话会重新成为清理候选。
 
 ## 已知边界
 

@@ -188,6 +188,33 @@ class SettingsLoadTests(unittest.TestCase):
         self.assertEqual(settings.tool_count_max, 30)
         self.assertEqual(settings.tool_schema_warn_tokens, 8000)
 
+    def test_queue_and_retention_defaults(self) -> None:
+        settings = self._load()
+
+        self.assertEqual(settings.session_queue_max, 5)
+        self.assertEqual(settings.session_retention_days, 0)
+        self.assertEqual(settings.session_max_mb, 0)
+        self.assertEqual(settings.session_cleanup_interval_seconds, 3600)
+        self.assertEqual(settings.session_cleanup_batch, 50)
+        self.assertFalse(settings.session_cleanup_dry_run)
+
+    def test_queue_and_retention_env_overrides(self) -> None:
+        settings = self._load(
+            YAK_AGENT_SESSION_QUEUE_MAX="0",
+            YAK_AGENT_SESSION_RETENTION_DAYS="30",
+            YAK_AGENT_SESSION_MAX_MB="512",
+            YAK_AGENT_SESSION_CLEANUP_INTERVAL_SECONDS="60",
+            YAK_AGENT_SESSION_CLEANUP_BATCH="10",
+            YAK_AGENT_SESSION_CLEANUP_DRY_RUN="true",
+        )
+
+        self.assertEqual(settings.session_queue_max, 0)
+        self.assertEqual(settings.session_retention_days, 30)
+        self.assertEqual(settings.session_max_mb, 512)
+        self.assertEqual(settings.session_cleanup_interval_seconds, 60)
+        self.assertEqual(settings.session_cleanup_batch, 10)
+        self.assertTrue(settings.session_cleanup_dry_run)
+
 
 if __name__ == "__main__":
     unittest.main()
