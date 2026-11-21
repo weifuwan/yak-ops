@@ -80,6 +80,13 @@ class Settings:
     # the agent is nudged to wrap up without further tool calls — the guardrail
     # against runaway multi-round turns.
     reply_token_budget: int = 25000
+    # Tool governance (PR B): audit every toolkit execution, warn when the
+    # model-visible tool inventory grows, and optionally fail when it exceeds
+    # an operator-set hard cap. 0 disables the hard cap.
+    tool_audit_enabled: bool = True
+    tool_count_warn: int = 20
+    tool_count_max: int = 0
+    tool_schema_warn_tokens: int = 6000
 
     @classmethod
     def load(cls) -> Settings:
@@ -122,4 +129,9 @@ class Settings:
             ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
             in ("1", "true", "yes"),
             reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
+            tool_audit_enabled=get("YAK_AGENT_TOOL_AUDIT_ENABLED", "true").strip().lower()
+            in ("1", "true", "yes"),
+            tool_count_warn=int(get("YAK_AGENT_TOOL_COUNT_WARN", "20")),
+            tool_count_max=int(get("YAK_AGENT_TOOL_COUNT_MAX", "0")),
+            tool_schema_warn_tokens=int(get("YAK_AGENT_TOOL_SCHEMA_WARN_TOKENS", "6000")),
         )

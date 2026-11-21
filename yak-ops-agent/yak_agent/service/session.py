@@ -19,8 +19,10 @@ from yak_agent.service.errors import (
     SessionForbidden,
     SessionNotFound,
     SessionStateInvalid,
+    ToolConfigurationExceeded,
 )
 from yak_agent.service.events import EventLog
+from yak_agent.tools.validation import ToolConfigurationError
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakAuth
 
@@ -94,9 +96,12 @@ def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
             auth=identity.auth,
             project_code=int(identity.workspace_id),
             memory=memory,
+            audit_caller=identity.owner,
         )
     except ContextBudgetError as ex:
         raise ContextBudgetExceeded(str(ex)) from ex
+    except ToolConfigurationError as ex:
+        raise ToolConfigurationExceeded(str(ex)) from ex
     session = Session(
         sid=sid,
         agent=agent,
@@ -150,9 +155,12 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
             auth=identity.auth,
             project_code=int(identity.workspace_id),
             memory=memory,
+            audit_caller=identity.owner,
         )
     except ContextBudgetError as ex:
         raise ContextBudgetExceeded(str(ex)) from ex
+    except ToolConfigurationError as ex:
+        raise ToolConfigurationExceeded(str(ex)) from ex
     stored_usage = meta.get("usage") or {}
     session = Session(
         sid=sid,

@@ -1,12 +1,10 @@
-"""Registry-driven tool execution: path rendering, parameter routing, audit."""
+"""Registry-driven tool execution: path rendering and parameter routing."""
 
 from __future__ import annotations
 
 import json
-import time
 from typing import Any
 
-from yak_agent import audit
 from yak_agent.yak_client import (
     YakApiError,
     YakAuth,
@@ -84,49 +82,28 @@ def execute(
     values: dict[str, Any],
     project_code: int,
 ) -> str:
-    started = time.monotonic()
-    ok = False
-    error: str | None = None
-    # Never persist free-form JSON params (may carry data-source credentials).
-    audit_params = {k: ("<json omitted>" if k.endswith("_json") else v) for k, v in values.items()}
-    try:
-        path = render_path(op, project_code, values)
-        query, body = split_params(op, values)
+    path = render_path(op, project_code, values)
+    query, body = split_params(op, values)
 
-        method = op["method"].upper()
-        raw = bool((op.get("response") or {}).get("raw"))
-        if method == "GET":
-            data = (
-                yak_download(auth, path, query or None)
-                if raw
-                else yak_get(auth, path, query or None)
-            )
-            if raw:
-                data = {"log": data, "bytes": len(data or "")}
-        else:
-            data = yak_write(
-                auth, method, path, body if body or method != "DELETE" else None, query or None
-            )
+    method = op["method"].upper()
+    raw = bool((op.get("response") or {}).get("raw"))
+    if method == "GET":
+        data = (
+            yak_download(auth, path, query or None) if raw else yak_get(auth, path, query or None)
+        )
+        if raw:
+            data = {"log": data, "bytes": len(data or "")}
+    else:
+        data = yak_write(
+            auth, method, path, body if body or method != "DELETE" else None, query or None
+        )
 
-        response_cfg = op.get("response") or {}
-        if isinstance(data, dict) and response_cfg.get("truncate_field"):
-            field = response_cfg["truncate_field"]
-            if isinstance(data.get(field), str):
-                data = {**data, field: truncate(data[field])}
-        payload = truncate(
-            json.dumps(data, ensure_ascii=False, default=str),
-            int(response_cfg.get("truncate", _MAX_PAYLOAD_CHARS)),
-        )
-        ok = True
-        return payload
-    except Exception as ex:
-        error = f"{type(ex).__name__}: {ex}"
-        raise
-    finally:
-        audit.record_tool_call(
-            op["id"],
-            audit_params,
-            ok,
-            int((time.monotonic() - started) * 1000),
-            error,
-        )
+    response_cfg = op.get("response") or {}
+    if isinstance(data, dict) and response_cfg.get("truncate_field"):
+        field = response_cfg["truncate_field"]
+        if isinstance(data.get(field), str):
+            data = {**data, field: truncate(data[field])}
+    return truncate(
+        json.dumps(data, ensure_ascii=False, default=str),
+        int(response_cfg.get("truncate", _MAX_PAYLOAD_CHARS)),
+    )

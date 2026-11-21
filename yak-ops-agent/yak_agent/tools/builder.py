@@ -15,12 +15,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from agentscope.tool import FunctionTool
+from agentscope.message import TextBlock, ToolResultState
+from agentscope.tool import FunctionTool, ToolChunk
 
 from yak_agent.config import Settings
 from yak_agent.tools.registry import is_read_only, load_allowlist, load_operations
 from yak_agent.tools.runtime import execute
 from yak_agent.tools.schema import build_schema
+from yak_agent.tools.validation import validate_registry
 from yak_agent.tools.workspace_tools import build_workspace_tools
 from yak_agent.yak_client import YakApiError, YakAuth
 
@@ -48,6 +50,7 @@ def build_tools(
     """
     if not project_code:
         raise YakApiError("project_code is required; refusing to build tools without a workspace")
+    validate_registry()
     auth = auth or build_auth(settings)
 
     tools: list[FunctionTool] = []
@@ -79,7 +82,7 @@ def build_tools(
 
         ptc_ready = _ptc.cocoon_available() or settings.ptc_allow_unsafe
 
-        def run_analysis_script(code: str, timeout_seconds: int = 60) -> str:
+        def run_analysis_script(code: str, timeout_seconds: int = 60) -> ToolChunk:
             """Write and run a Python analysis script in the sandboxed executor (cocoon: host mounts read-only, process limits, network only for the read-only yak-ops SDK). Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
 
             Args:
@@ -87,16 +90,27 @@ def build_tools(
                 timeout_seconds: Wall-clock limit, 5-300.
             """
             workdir = workspace.root if workspace is not None else None
-            return _ptc.format_result(
-                _ptc.run_analysis(
-                    code,
-                    timeout_seconds,
-                    workdir=workdir,
-                    workspace=workspace,
-                    allow_unsafe=settings.ptc_allow_unsafe,
-                    auth=auth,
-                    project_code=project_code,
-                )
+            result = _ptc.run_analysis(
+                code,
+                timeout_seconds,
+                workdir=workdir,
+                workspace=workspace,
+                allow_unsafe=settings.ptc_allow_unsafe,
+                auth=auth,
+                project_code=project_code,
+            )
+            return ToolChunk(
+                content=[TextBlock(text=_ptc.format_result(result))],
+                state=(
+                    ToolResultState.SUCCESS
+                    if result.get("exitCode") == 0
+                    else ToolResultState.ERROR
+                ),
+                metadata={
+                    key: result[key]
+                    for key in ("backend", "exitCode", "durationMs")
+                    if key in result
+                },
             )
 
         if ptc_ready:
