@@ -29,6 +29,8 @@ const editor = read("../apps/web/app/data-modeling/models/dimension-modeling/wor
 const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");
 const fieldGridUtils = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-utils.ts");
 const fieldGridTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-types.ts");
+const fieldGridSelect = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-select.tsx");
+const fieldSpreadsheetToolbar = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet-toolbar.tsx");
 const fieldReferenceDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-reference-dialog.tsx");
 const fieldBatchImportDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-batch-import-dialog.tsx");
 const createTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/types.ts");
@@ -458,7 +460,8 @@ test("dimension field management uses a spreadsheet editor instead of editable Y
   assert.match(fieldSpreadsheet, /role="grid"/);
   assert.match(fieldSpreadsheet, /role="gridcell"/);
   assert.match(fieldSpreadsheet, /ring-2 ring-inset ring-\[var\(--yak-color-primary\)\]/);
-  assert.match(fieldSpreadsheet, /<GridSelect/);
+  assert.match(fieldSpreadsheet, /<FieldGridSelect/);
+  assert.match(fieldGridSelect, /<Select<string>/);
   assert.match(fieldSpreadsheet, /<Checkbox/);
 });
 
@@ -471,8 +474,8 @@ test("field spreadsheet supports keyboard navigation, paste, row operations and 
   assert.match(fieldSpreadsheet, /ArrowUp/);
   assert.match(fieldSpreadsheet, /ArrowDown/);
   assert.match(fieldSpreadsheet, /navigator\.clipboard/);
-  assert.match(fieldSpreadsheet, /移除空白行/);
-  assert.match(fieldSpreadsheet, /插入/);
+  assert.match(fieldSpreadsheetToolbar, /移除空白行/);
+  assert.match(fieldSpreadsheetToolbar, /插入/);
   assert.match(fieldSpreadsheet, /validateDimensionFields\(fields\)/);
   assert.match(fieldGridUtils, /字段名称不能为空/);
   assert.match(fieldGridUtils, /字段名称重复/);
@@ -484,11 +487,12 @@ test("field spreadsheet exposes advanced columns, batch import and existing-tabl
   for (const title of ["字段标准", "标准代码", "度量单位", "来源表", "来源字段", "描述"]) {
     assert.match(fieldGridTypes, new RegExp(title));
   }
-  assert.match(fieldSpreadsheet, /字段显示设置/);
+  assert.match(fieldSpreadsheetToolbar, /字段显示设置/);
   assert.match(fieldSpreadsheet, /FieldBatchImportDialog/);
   assert.match(fieldSpreadsheet, /FieldReferenceDialog/);
   assert.match(fieldBatchImportDialog, /parseImportedFields/);
   assert.match(fieldBatchImportDialog, /可直接从 Excel 粘贴/);
+  assert.match(fieldReferenceDialog, /projectCode/);
   assert.match(fieldReferenceDialog, /listDataSources/);
   assert.match(fieldReferenceDialog, /listDataSourceDatabases/);
   assert.match(fieldReferenceDialog, /listDataSourceTables/);
