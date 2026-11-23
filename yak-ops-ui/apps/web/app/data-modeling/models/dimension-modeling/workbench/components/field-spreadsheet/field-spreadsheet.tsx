@@ -368,7 +368,7 @@ export function FieldSpreadsheet({
             }
           />
         );
-      case "precision":
+      case "fieldPrecision":
         return (
           <Input
             size="small"
@@ -376,11 +376,11 @@ export function FieldSpreadsheet({
             type="number"
             min={0}
             className={commonInputClass}
-            value={field.precision == null ? "" : String(field.precision)}
+            value={field.fieldPrecision == null ? "" : String(field.fieldPrecision)}
             placeholder="-"
             onChange={(event) =>
               updateRow(rowIndex, {
-                precision: event.target.value === "" ? undefined : Number(event.target.value),
+                fieldPrecision: event.target.value === "" ? undefined : Number(event.target.value),
               })
             }
           />
