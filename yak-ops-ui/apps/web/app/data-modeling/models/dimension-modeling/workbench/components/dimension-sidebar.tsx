@@ -50,6 +50,10 @@ import { findBusinessTypeTreeOption, mapBusinessTypeTreeOption } from "../utils/
 
 type ScopeOption = { value: string; label: string };
 
+const SOURCE_SCOPE_OPTIONS: Array<{ value: DimensionTreeGrouping; label: string }> = [
+  { value: "BUSINESS_TYPE", label: "业务分类" },
+];
+
 const COMMON_SCOPE_OPTIONS: Array<{ value: DimensionTreeGrouping; label: string }> = [
   { value: "DATA_DOMAIN", label: "数据域" },
   { value: "BUSINESS_TYPE", label: "业务分类" },
@@ -261,11 +265,13 @@ export function DimensionSidebar({
   onSelect,
 }: DimensionSidebarProps) {
   const [scopeKeyword, setScopeKeyword] = useState("");
-  const scopeTypeOptions = dwType === "APPLICATION_LAYER"
-    ? APPLICATION_SCOPE_OPTIONS
-    : COMMON_SCOPE_OPTIONS;
+  const scopeTypeOptions = dwType === "SOURCE_LAYER"
+    ? SOURCE_SCOPE_OPTIONS
+    : dwType === "APPLICATION_LAYER"
+      ? APPLICATION_SCOPE_OPTIONS
+      : COMMON_SCOPE_OPTIONS;
   const activeScope = scopeTypeOptions.find((option) => option.value === groupBy)
-    || (dwType === "APPLICATION_LAYER" ? APPLICATION_SCOPE_OPTIONS[0]! : COMMON_SCOPE_OPTIONS[0]!);
+    || scopeTypeOptions[0]!;
 
   const scopeOptionsQuery = useQuery<ModelingRecord[] | BusinessTypeTreeNode[]>({
     queryKey: [
@@ -446,32 +452,42 @@ export function DimensionSidebar({
         </div>
 
         <div className="flex h-6 w-full min-w-0">
-          <Select
-            size="small"
-            value={activeScope.value}
-            onValueChange={(value) => onGroupByChange(
-              String(value || activeScope.value) as DimensionTreeGrouping,
-            )}
-          >
-            <SelectTrigger
-              aria-label="选择目录类型"
-              variant="outlined"
-              className="!h-6 !w-[60px] !min-w-[60px] !shrink-0 !rounded-r-none !px-2 [&>span:last-child>svg]:!size-3"
+          {dwType === "SOURCE_LAYER" ? (
+            <span
+              title="业务分类"
+              aria-label="贴源层仅按业务分类筛选"
+              className="flex h-6 w-[60px] min-w-[60px] shrink-0 items-center justify-center rounded-l-[4px] border border-r-0 border-[var(--yak-components-select-border)] bg-white"
             >
-              <SelectValue className="!inline-flex !h-6 !items-center !justify-center !leading-none">
-                {() => <ScopeIcon scope={activeScope.value} />}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="!min-w-[148px]">
-              {scopeTypeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
-                  <ScopeIcon scope={option.value} />
-                  <SelectItemText>{option.label}</SelectItemText>
-                  <SelectItemIndicator />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <ScopeIcon scope="BUSINESS_TYPE" />
+            </span>
+          ) : (
+            <Select
+              size="small"
+              value={activeScope.value}
+              onValueChange={(value) => onGroupByChange(
+                String(value || activeScope.value) as DimensionTreeGrouping,
+              )}
+            >
+              <SelectTrigger
+                aria-label="选择目录类型"
+                variant="outlined"
+                className="!h-6 !w-[60px] !min-w-[60px] !shrink-0 !rounded-r-none !px-2 [&>span:last-child>svg]:!size-3"
+              >
+                <SelectValue className="!inline-flex !h-6 !items-center !justify-center !leading-none">
+                  {() => <ScopeIcon scope={activeScope.value} />}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="!min-w-[148px]">
+                {scopeTypeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="!min-h-7 !px-2">
+                    <ScopeIcon scope={option.value} />
+                    <SelectItemText>{option.label}</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {isBusinessTypeTree ? (
             <TreeSelect

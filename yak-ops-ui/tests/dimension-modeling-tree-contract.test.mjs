@@ -50,6 +50,22 @@ test("tree query sends warehouse, grouping, scope and keyword filters to the bac
   }
 });
 
+test("source layer only filters by business type without a grouping menu", () => {
+  assert.match(sidebar, /const SOURCE_SCOPE_OPTIONS:[\s\S]*?\{ value: "BUSINESS_TYPE", label: "业务分类" \}/);
+  assert.match(sidebar, /dwType === "SOURCE_LAYER"\s*\? SOURCE_SCOPE_OPTIONS/);
+  assert.match(sidebar, /dwType === "SOURCE_LAYER" \? \(\s*<span/);
+  assert.match(sidebar, /aria-label="贴源层仅按业务分类筛选"/);
+  assert.match(sidebar, /<ScopeIcon scope="BUSINESS_TYPE" \/>/);
+  assert.match(sidebar, /\) : \(\s*<Select\s+size="small"/);
+  assert.match(hook, /const \[groupBy, setGroupBy\] = useState<DimensionTreeGrouping>\("BUSINESS_TYPE"\)/);
+  assert.match(hook, /return dwType === "APPLICATION_LAYER" \? "DATA_MART" : "BUSINESS_TYPE"/);
+  assert.match(hook, /if \(dwType === "SOURCE_LAYER" && value !== "BUSINESS_TYPE"\) return/);
+  assert.match(hook, /setGroupBy\(defaultGrouping\(nextDwType\)\)/);
+  assert.match(hook, /selectOption: groupBy/);
+  assert.match(sidebar, /const COMMON_SCOPE_OPTIONS:[\s\S]*?"DATA_DOMAIN"/);
+  assert.match(sidebar, /const APPLICATION_SCOPE_OPTIONS:[\s\S]*?"SUBJECT_DOMAIN"/);
+});
+
 test("business category uses its real hierarchy API and Yak UI TreeSelect", () => {
   assert.match(sidebar, /businessTypeApi\.tree\(projectCode\)/);
   assert.match(sidebar, /<TreeSelect/);

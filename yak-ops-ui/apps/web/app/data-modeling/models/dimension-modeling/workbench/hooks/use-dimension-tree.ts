@@ -94,6 +94,8 @@ export function useDimensionTree(projectCode: string) {
   };
 
   const changeGroupBy = (value: DimensionTreeGrouping) => {
+    // A source table is grouped only by business category, never by data domain.
+    if (dwType === "SOURCE_LAYER" && value !== "BUSINESS_TYPE") return;
     setGroupBy(value);
     setScopeValue("");
   };
