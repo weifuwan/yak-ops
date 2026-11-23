@@ -291,6 +291,11 @@ export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
 
 export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
   {
+    label: "运维概览",
+    path: "/operations/overview",
+    icon: LayoutDashboard,
+  },
+  {
     id: "workflow-operations",
     label: "工作流运维",
     icon: GitBranch,
@@ -335,6 +340,12 @@ export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
         path: "/operations/realtime/instances",
       },
     ],
+  },
+  {
+    label: "任务告警",
+    path: "/operations/alerts",
+    icon: Bell,
+    groupLabel: "任务监控",
   },
 ];
 
@@ -405,7 +416,7 @@ const OPERATIONS_PRODUCT: GlobalProductMenuItem = {
   id: "operations",
   label: OPERATIONS_PRODUCT_LABEL,
   icon: Wrench,
-  path: "/operations/workflows/instances",
+  path: "/operations/overview",
 };
 
 const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
