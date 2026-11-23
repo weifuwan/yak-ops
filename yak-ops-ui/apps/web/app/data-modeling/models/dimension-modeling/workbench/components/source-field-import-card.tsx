@@ -287,14 +287,14 @@ export function SourceFieldImportCard({
               placeholder={
                 !dataSourceId
                   ? "请先选择数据源"
-                  : databasesQuery.isPending || tablesQuery.isPending
+                  : databasesQuery.isFetching || tablesQuery.isPending
                     ? "正在加载来源表..."
                     : "请选择来源表"
               }
               disabled={
                 !dataSourceId ||
                 !database ||
-                databasesQuery.isPending ||
+                databasesQuery.isFetching ||
                 tablesQuery.isPending
               }
               onChange={(value) => {
@@ -306,7 +306,7 @@ export function SourceFieldImportCard({
           </div>
         </div>
 
-        {dataSourceId && !database && !databasesQuery.isPending ? (
+        {dataSourceId && !database && !databasesQuery.isFetching ? (
           <p className="mt-2 text-xs text-[var(--yak-components-danger-text)]">
             当前数据源未绑定可用数据库，暂时无法加载来源表。
           </p>
