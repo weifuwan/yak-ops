@@ -72,7 +72,9 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
         latestPublished.addAll(latestDerivedIndicators());
         latestPublished.addAll(latestCompositeIndicators());
         latestPublished.sort(Comparator.comparingLong(
-                item -> item.getUpdateTime() == null ? 0L : item.getUpdateTime().getTime()).reversed());
+                (ModelingOverviewVO.LatestPublishItem item) ->
+                        item.getUpdateTime() == null ? 0L : item.getUpdateTime().getTime())
+                .reversed());
         if (latestPublished.size() > LATEST_PUBLISH_LIMIT) {
             latestPublished = new ArrayList<>(latestPublished.subList(0, LATEST_PUBLISH_LIMIT));
         }
