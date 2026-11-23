@@ -1,4 +1,5 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowDown } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 
 import { DataAgentPromptComposer } from "../DataAgentPromptComposer";
@@ -40,17 +41,78 @@ export function ConversationPanel({
   onStop,
   trailingActions,
 }: ConversationPanelProps) {
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  const updateScrollToBottom = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) {
+      setShowScrollToBottom(false);
+      return;
+    }
+
+    const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollToBottom(remaining > 48);
+  }, [scrollRef]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const update = () => updateScrollToBottom();
+    container.addEventListener("scroll", update, { passive: true });
+
+    // Message content can grow while the agent streams, without adding a new message.
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(container);
+    if (container.firstElementChild) {
+      resizeObserver.observe(container.firstElementChild);
+    }
+    update();
+
+    return () => {
+      container.removeEventListener("scroll", update);
+      resizeObserver.disconnect();
+    };
+  }, [scrollRef, updateScrollToBottom]);
+
+  useEffect(() => {
+    updateScrollToBottom();
+  }, [messages, updateScrollToBottom]);
+
+  const scrollToBottom = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  };
+
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-      <MessageList
-        messages={messages}
-        pendingConfirmation={pendingConfirmation}
-        onResolveConfirmation={onResolveConfirmation}
-        scrollRef={scrollRef}
-        selectedMessageId={selectedMessageId}
-        selectedActivityId={selectedActivityId}
-        onSelectActivity={onSelectActivity}
-      />
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <MessageList
+          messages={messages}
+          pendingConfirmation={pendingConfirmation}
+          onResolveConfirmation={onResolveConfirmation}
+          scrollRef={scrollRef}
+          selectedMessageId={selectedMessageId}
+          selectedActivityId={selectedActivityId}
+          onSelectActivity={onSelectActivity}
+        />
+        <button
+          type="button"
+          aria-label="滚动到底部"
+          title="滚动到底部"
+          aria-hidden={!showScrollToBottom}
+          tabIndex={showScrollToBottom ? 0 : -1}
+          onClick={scrollToBottom}
+          className={`absolute bottom-3 left-1/2 z-10 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151] shadow-sm transition-all duration-300 ease-out hover:border-[#d1d5db] hover:bg-[#f9fafb] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55] motion-reduce:transition-none ${
+            showScrollToBottom
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none translate-y-2 opacity-0"
+          }`}
+        >
+          <ArrowDown size={17} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+      </div>
 
       <div className="shrink-0 px-6 pb-5 pt-3 max-sm:px-4">
         <div className="mx-auto w-full max-w-3xl">
