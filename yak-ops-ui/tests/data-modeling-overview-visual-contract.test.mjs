@@ -38,8 +38,8 @@ test("data modeling overview keeps the current landing-page structure", () => {
     "PixelArrowIcon",
     "border-dotted",
     "border-b-[5px]",
-    'to="/data-modeling/models/positive"',
-    'to="/data-modeling/indicators/atom"',
+    'to="/kimball/models/positive"',
+    'to="/kimball/indicators/atom"',
   ]) {
     assert.ok(overview.includes(heroText), "overview hero should include " + heroText);
   }
