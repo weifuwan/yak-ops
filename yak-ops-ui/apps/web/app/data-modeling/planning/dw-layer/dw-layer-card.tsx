@@ -97,33 +97,28 @@ export function DwLayerCard({
         </span>
       </button>
 
-      <div
-        className="flex shrink-0 flex-row"
-        style={{ width: "100%", height: 49, boxSizing: "border-box", padding: "0 16px", borderTop: "1px solid #f4f6f9" }}
-      >
-        <div className="flex flex-1 items-center justify-center" style={{ lineHeight: "49px", textAlign: "center" }}>
+      <div className="flex h-[44px] shrink-0 items-center border-t border-[#f4f6f9] px-3" style={{ boxSizing: "border-box" }}>
+        <div className="flex flex-1 items-center justify-center">
           <Button
             size="sm"
             variant="ghost"
             isDisabled={opening}
-            className="inline-flex"
-            style={{ height: 24, padding: "0 2px", borderRadius: 0, color: "var(--yak-color-primary)", fontSize: 14, fontWeight: 500, gap: 8 }}
+            className="inline-flex h-6 gap-1.5 rounded-none px-1 text-[var(--yak-color-primary)]"
             onClick={() => onEdit(record)}
           >
             <SquarePen size={14} strokeWidth={1.8} />
-            <span style={{ fontSize: 12 }}>修改</span>
+            <span className="text-xs">修改</span>
           </Button>
         </div>
-        <div className="flex flex-1 items-center justify-center" style={{ lineHeight: "49px", textAlign: "center" }}>
+        <div className="flex flex-1 items-center justify-center">
           <Button
             size="sm"
             variant="ghost"
-            className="inline-flex"
-            style={{ height: 24, padding: "0 2px", borderRadius: 0, color: "var(--yak-color-primary)", fontSize: 14, fontWeight: 500, gap: 8 }}
+            className="inline-flex h-6 gap-1.5 rounded-none px-1 text-[var(--yak-color-primary)]"
             onClick={() => onDelete(record)}
           >
             <Trash2 size={14} strokeWidth={1.8} />
-            <span style={{ fontSize: 12 }}>删除</span>
+            <span className="text-xs">删除</span>
           </Button>
         </div>
       </div>
