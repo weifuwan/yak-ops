@@ -5,6 +5,7 @@ import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.User;
 import io.yak.ops.modeling.api.vo.ModelingBootstrapVO;
+import io.yak.ops.modeling.api.vo.ModelingOverviewVO;
 import io.yak.ops.modeling.application.ModelingModuleService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,4 +44,15 @@ public class ModelingController extends BaseController {
         projectService.checkProjectAndAuthThrowException(loginUser, projectCode, null);
         return Result.success(modelingModuleService.getBootstrap(projectCode));
     }
+
+    @Operation(summary = "queryModelingOverview", description = "Query project-scoped modeling statistics and latest published assets")
+    @GetMapping("/overview")
+    @ResponseStatus(HttpStatus.OK)
+    public Result<ModelingOverviewVO> queryOverview(
+                                                    @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                    @PathVariable("projectCode") long projectCode) {
+        projectService.checkProjectAndAuthThrowException(loginUser, projectCode, null);
+        return Result.success(modelingModuleService.getOverview(projectCode));
+    }
+
 }
