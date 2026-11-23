@@ -475,11 +475,13 @@ export function FieldSpreadsheet({
           <Button
             size="sm"
             variant="ghost"
-            className="!h-6 !px-1 text-xs text-[var(--yak-components-danger-text)]"
+            isIconOnly
+            title="删除字段"
+            aria-label="删除字段"
+            className="!size-6 !min-w-6 text-[var(--yak-components-danger-text)]"
             onClick={() => removeRow(rowIndex)}
           >
             <Trash2 size={12} />
-            删除
           </Button>
         );
     }
