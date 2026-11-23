@@ -7,6 +7,9 @@ import { test } from "node:test";
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
 const overview = read("../apps/web/app/data-modeling/overview/index.tsx");
+const overviewApi = read("../apps/web/service/data-modeling/overview.ts");
+const modelingController = read("../../yak-ops-api/src/main/java/io/yak/ops/api/controller/ModelingController.java");
+const modelingService = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/ModelingModuleServiceImpl.java");
 
 test("data modeling overview keeps the current landing-page structure", () => {
   for (const label of ["数据概览", "最新发布", "工作空间：", "全部"]) {
@@ -80,18 +83,34 @@ test("overview keeps all modeling statistic categories", () => {
   }
 });
 
-test("overview does not display fabricated metric counts or publish records", () => {
-  for (const fabricatedValue of ['num: "0"', 'num: "1"', 'num: "2"', 'num: "3"']) {
-    assert.equal(
-      overview.includes(fabricatedValue),
-      false,
-      "overview should not hard-code " + fabricatedValue,
-    );
-  }
-
-  assert.ok(overview.includes('num: "—"'));
-  assert.ok(overview.includes("统计接口待接入"));
+test("overview reads project-scoped real statistics instead of fabricated counts", () => {
+  assert.ok(overview.includes("modelingOverviewApi.get(projectCode)"));
+  assert.ok(overview.includes('queryKey: ["modeling", "overview", projectCode]'));
+  assert.ok(overview.includes("models?.dimension"));
+  assert.ok(overview.includes("models?.detail"));
+  assert.ok(overview.includes("models?.summary"));
+  assert.ok(overview.includes("models?.application"));
+  assert.ok(overview.includes("indicators?.derived"));
+  assert.ok(overview.includes("indicators?.composite"));
+  assert.ok(overview.includes("overview?.totalAssets"));
+  assert.equal(overview.includes("统计接口待接入"), false);
+  assert.ok(overview.includes("latestPublished"));
   assert.ok(overview.includes("暂无数据"));
+});
+
+test("overview API is backed by one project-scoped aggregation endpoint", () => {
+  assert.ok(overviewApi.includes('modelingBasePath(projectCode) + "/overview"'));
+  assert.ok(modelingController.includes('@GetMapping("/overview")'));
+  assert.ok(modelingController.includes("modelingModuleService.getOverview(projectCode)"));
+
+  for (const type of ["DIMENSION", "DETAIL", "SUMMARY", "APPLICATION"]) {
+    assert.ok(modelingService.includes("DimensionTableTypeEnum." + type));
+  }
+  for (const resource of ["atom-indicator", "derivative-indicator", "compose-indicator"]) {
+    assert.ok(modelingService.includes('"' + resource + '"'));
+  }
+  assert.ok(modelingService.includes('.eq("submit", Boolean.TRUE)'));
+  assert.ok(modelingService.includes("LATEST_PUBLISH_LIMIT = 5"));
 });
 
 test("workspace filter remains a controlled Yak UI Select", () => {
