@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { Button, Checkbox, Input, toast } from "@yak-ops/yak-ui";
 import { Trash2 } from "lucide-react";
@@ -20,7 +20,8 @@ import {
 import {
   DATA_TYPE_OPTIONS,
   defaultVisibleFieldColumns,
-  FIELD_GRID_COLUMNS,
+  FIELD_CATEGORY_OPTIONS,
+  fieldGridColumns,
   type FieldColumnKey,
   type FieldGridColumn,
   type FieldSpreadsheetProps,
@@ -52,7 +53,7 @@ export function FieldSpreadsheet({
   onChange,
 }: FieldSpreadsheetProps) {
   const [visibleColumns, setVisibleColumns] = useState<Set<FieldColumnKey>>(
-    () => defaultVisibleFieldColumns(modelType),
+    () => defaultVisibleFieldColumns(modelType, fieldType),
   );
   const [insertCount, setInsertCount] = useState("1");
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
@@ -60,13 +61,21 @@ export function FieldSpreadsheet({
   const [batchImportOpen, setBatchImportOpen] = useState(false);
   const cellRefs = useRef(new Map<string, HTMLDivElement>());
 
+  const availableColumns = useMemo(
+    () => fieldGridColumns(modelType, fieldType),
+    [modelType, fieldType],
+  );
   const columns = useMemo(
     () =>
-      FIELD_GRID_COLUMNS.filter(
+      availableColumns.filter(
         (column) => !column.configurable || visibleColumns.has(column.key),
       ),
-    [visibleColumns],
+    [availableColumns, visibleColumns],
   );
+
+  useEffect(() => {
+    setVisibleColumns(defaultVisibleFieldColumns(modelType, fieldType));
+  }, [modelType, fieldType]);
   const editableColumns = useMemo(
     () =>
       columns.filter((column) =>
@@ -101,10 +110,20 @@ export function FieldSpreadsheet({
     });
   };
 
+  const normalizeSectionField = (field: DimensionFieldRecord) => {
+    if (fieldType === "PARTITION") return { ...field, fieldType: "PARTITION" };
+    return {
+      ...field,
+      fieldType: field.fieldType && field.fieldType !== "PARTITION"
+        ? field.fieldType
+        : "PROPERTY",
+    };
+  };
+
   const updateRow = (rowIndex: number, patch: Partial<DimensionFieldRecord>) => {
     onChange(
       fields.map((field, index) =>
-        index === rowIndex ? { ...field, ...patch, fieldType } : field,
+        index === rowIndex ? normalizeSectionField({ ...field, ...patch }) : field,
       ),
     );
   };
@@ -160,7 +179,7 @@ export function FieldSpreadsheet({
         return;
       }
       if (name) names.add(name);
-      accepted.push({ ...field, fieldType });
+      accepted.push(normalizeSectionField(field));
     });
     if (accepted.length) onChange([...fields, ...accepted]);
     if (skipped) toast.warning("已跳过 " + skipped + " 个同名字段");
@@ -193,11 +212,10 @@ export function FieldSpreadsheet({
         const targetColumn = editableColumns[startColumn + columnOffset];
         if (!targetColumn) return;
         const targetIndex = startRow + rowOffset;
-        next[targetIndex] = {
+        next[targetIndex] = normalizeSectionField({
           ...next[targetIndex],
           ...patchFromClipboard(targetColumn.key, value),
-          fieldType,
-        };
+        });
       });
     });
     onChange(next);
@@ -444,6 +462,15 @@ export function FieldSpreadsheet({
             onChange={(event) => updateRow(rowIndex, { sourceField: event.target.value || undefined })}
           />
         );
+      case "fieldType":
+        return (
+          <FieldGridSelect
+            value={field.fieldType && field.fieldType !== "PARTITION" ? field.fieldType : "PROPERTY"}
+            options={FIELD_CATEGORY_OPTIONS}
+            placeholder="字段类别"
+            onChange={(value) => updateRow(rowIndex, { fieldType: value || "PROPERTY" })}
+          />
+        );
       case "remark":
         return (
           <Input
@@ -480,6 +507,7 @@ export function FieldSpreadsheet({
           insertCount={insertCount}
           validationIssueCount={validationIssues.length}
           referenceLabel={referenceLabel}
+          availableColumns={availableColumns}
           visibleColumns={visibleColumns}
           onInsertCountChange={setInsertCount}
           onInsertRows={insertRows}
