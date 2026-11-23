@@ -3,6 +3,7 @@ package io.yak.ops.api.service.impl;
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.enums.DataSyncScope;
+import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSyncService;
@@ -96,7 +97,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Override
     public PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
                                               int pageNo, int pageSize, String keyword, ReleaseState status,
-                                              DataSyncScope scope) {
+                                              DataSyncScope scope, DataSyncType syncType) {
         authorizeRead(user, projectCode);
         String search = keyword == null ? null : keyword.trim();
         Long taskCode = null;
@@ -119,7 +120,8 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         }
         Integer releaseState = status == null ? null : status.getCode();
         IPage<DataSyncTaskPageRow> page = taskDefinitionDao.queryDataSyncPage(
-                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState, taskCodes);
+                new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, search, taskCode, releaseState, taskCodes,
+                syncType == null ? null : syncType.toTaskExecuteType());
         List<DataSyncTaskVO> rows = page.getRecords().stream()
                 .map(row -> toTaskVO(row, ReleaseState.getEnum(row.getWorkflowReleaseState()),
                         row.getWorkflowCode(), false))
@@ -454,14 +456,15 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
     @Override
     public PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                      int pageSize, Long taskCode, TaskExecutionStatus status) {
+                                                      int pageSize, Long taskCode, TaskExecutionStatus status, DataSyncType syncType) {
         authorizeRead(user, projectCode);
         if (taskCode != null) {
             requireTask(projectCode, taskCode, true);
         }
         IPage<TaskInstance> instances = taskInstanceDao.queryByProjectAndTaskType(
                 new Page<>(pageNo, pageSize), projectCode, TASK_TYPE, taskCode,
-                status == null ? null : new int[]{status.getCode()});
+                status == null ? null : new int[]{status.getCode()},
+                syncType == null ? null : syncType.toTaskExecuteType());
         List<DataSyncInstanceVO> rows = toInstanceVOs(instances.getRecords());
         PageInfo<DataSyncInstanceVO> result = PageInfo.of(pageNo, pageSize);
         result.setTotalList(rows);
