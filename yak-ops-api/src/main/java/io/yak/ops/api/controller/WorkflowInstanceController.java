@@ -8,6 +8,7 @@ import io.yak.ops.api.dto.gantt.GanttDto;
 import io.yak.ops.api.dto.workflowInstance.WorkflowInstanceTaskListDTO;
 import io.yak.ops.api.dto.workflowInstance.WorkflowInstanceVariablesDTO;
 import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.enums.WorkflowBusinessType;
 import io.yak.ops.api.exceptions.ApiException;
 import io.yak.ops.api.service.WorkflowInstanceService;
 import io.yak.ops.api.utils.PageInfo;
@@ -99,6 +100,7 @@ public class WorkflowInstanceController extends BaseController {
                                                                                  @RequestParam(value = "executorName", required = false) String executorName,
                                                                                  @RequestParam(value = "stateType", required = false) WorkflowExecutionStatus stateType,
                                                                                  @RequestParam(value = "host", required = false) String host,
+                                                                                 @RequestParam(value = "businessType", required = false) WorkflowBusinessType businessType,
                                                                                  @RequestParam(value = "startDate", required = false) String startTime,
                                                                                  @RequestParam(value = "endDate", required = false) String endTime,
                                                                                  @RequestParam(value = "otherParamsJson", required = false) String otherParamsJson,
@@ -110,7 +112,7 @@ public class WorkflowInstanceController extends BaseController {
         return workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, workflowDefinitionCode,
                 startTime,
                 endTime,
-                searchVal, executorName, stateType, host, otherParamsJson, pageNo, pageSize);
+                searchVal, executorName, stateType, host, businessType, otherParamsJson, pageNo, pageSize);
     }
 
     /**
