@@ -28,7 +28,9 @@ export type FieldColumnKey =
 export type FieldGridColumn = {
   key: FieldColumnKey;
   title: string;
-  width: number;
+  minWidth: number;
+  width?: number;
+  flex?: number;
   configurable?: boolean;
   defaultVisible?: boolean;
 };
@@ -52,22 +54,22 @@ export type FieldSpreadsheetProps = {
 };
 
 export const FIELD_GRID_COLUMNS: FieldGridColumn[] = [
-  { key: "sequence", title: "序号", width: 44, defaultVisible: true },
-  { key: "fieldName", title: "字段名称", width: 220, defaultVisible: true },
-  { key: "dataType", title: "类型", width: 150, defaultVisible: true },
-  { key: "cnName", title: "字段显示名", width: 220, defaultVisible: true },
-  { key: "length", title: "长度", width: 96, configurable: true },
-  { key: "precision", title: "精度", width: 96, configurable: true },
-  { key: "fieldStdId", title: "关联字段标准", width: 180, configurable: true },
-  { key: "codeStdId", title: "关联标准代码", width: 180, configurable: true },
-  { key: "unitId", title: "度量单位", width: 150, configurable: true },
-  { key: "primaryFlag", title: "主键", width: 64, defaultVisible: true },
-  { key: "notNull", title: "非空", width: 64, defaultVisible: true },
-  { key: "sourceTb", title: "来源表", width: 220, configurable: true },
-  { key: "sourceField", title: "来源字段", width: 160, configurable: true },
-  { key: "fieldType", title: "字段类别", width: 120, configurable: true },
-  { key: "remark", title: "描述", width: 220, configurable: true },
-  { key: "actions", title: "操作", width: 72, defaultVisible: true },
+  { key: "sequence", title: "序号", minWidth: 44, width: 44, defaultVisible: true },
+  { key: "fieldName", title: "字段名称", minWidth: 180, flex: 1.3, defaultVisible: true },
+  { key: "dataType", title: "类型", minWidth: 120, flex: 0.8, defaultVisible: true },
+  { key: "cnName", title: "字段显示名", minWidth: 180, flex: 1.3, defaultVisible: true },
+  { key: "length", title: "长度", minWidth: 88, flex: 0.55, configurable: true },
+  { key: "precision", title: "精度", minWidth: 88, flex: 0.55, configurable: true },
+  { key: "fieldStdId", title: "关联字段标准", minWidth: 160, flex: 1, configurable: true },
+  { key: "codeStdId", title: "关联标准代码", minWidth: 160, flex: 1, configurable: true },
+  { key: "unitId", title: "度量单位", minWidth: 120, flex: 0.8, configurable: true },
+  { key: "primaryFlag", title: "主键", minWidth: 64, width: 64, defaultVisible: true },
+  { key: "notNull", title: "非空", minWidth: 64, width: 64, defaultVisible: true },
+  { key: "sourceTb", title: "来源表", minWidth: 180, flex: 1.2, configurable: true },
+  { key: "sourceField", title: "来源字段", minWidth: 150, flex: 1, configurable: true },
+  { key: "fieldType", title: "字段类别", minWidth: 110, flex: 0.75, configurable: true },
+  { key: "remark", title: "描述", minWidth: 200, flex: 1.5, configurable: true },
+  { key: "actions", title: "操作", minWidth: 80, width: 80, defaultVisible: true },
 ];
 
 export const DEFAULT_VISIBLE_FIELD_COLUMNS = new Set<FieldColumnKey>(
