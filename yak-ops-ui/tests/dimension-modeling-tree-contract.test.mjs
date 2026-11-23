@@ -136,6 +136,29 @@ test("backend tree filters selected parent scopes by descendants and preserves t
 });
 
 
+test("detail model uses the shared Yak-UI Cascader to select a domain and business process", () => {
+  const sharedHook = read("../apps/web/app/data-modeling/planning/common-layer/business-process/use-business-process-cascader.ts");
+  const oldHook = read("../apps/web/app/data-modeling/indicators/atom-indicator/hooks/use-business-process-cascader.ts");
+  const service = read("../apps/web/service/data-modeling/planning/common-layer/business-process.ts");
+
+  assert.match(editor, /import \{ useBusinessProcessCascader \}/);
+  assert.match(editor, /const processQuery = useBusinessProcessCascader\(projectCode, values\.busTypeId, selectedTableType === "DETAIL"\)/);
+  assert.match(editor, /<FormField label="业务过程" required>\s*<Cascader/);
+  assert.match(editor, /items=\{processQuery\.options\}/);
+  assert.match(editor, /value=\{values\.domainId && values\.busProcessId \? \[values\.domainId, values\.busProcessId\] : null\}/);
+  assert.match(editor, /columnLabels=\{\["数据域", "业务过程"\]\}/);
+  assert.match(editor, /domainId: path\?\.\[0\] \|\| ""/);
+  assert.match(editor, /busProcessId: path\?\.\[path\.length - 1\] \|\| ""/);
+  assert.match(editor, /processQuery\.refetch\(\)/);
+  assert.doesNotMatch(editor, /processOptions|processesQuery/);
+  assert.match(sharedHook, /businessProcessApi\.cascaderOption\(projectCode, busTypeId\)/);
+  assert.match(sharedHook, /enabled: Boolean\(projectCode && enabled\)/);
+  assert.match(sharedHook, /selectable: depth > 0 && children\.length === 0/);
+  assert.match(oldHook, /useBusinessProcessCascader/);
+  assert.match(service, /"\/option\/cascader"/);
+  assert.match(editor, /busTypeId: businessTypeId, domainId: "", busProcessId: ""/);
+});
+
 test("dimension editor selects hierarchical business category IDs through Yak-UI TreeSelect", () => {
   assert.ok(editor.includes('businessTypeApi.tree(projectCode)'));
   assert.ok(editor.includes('planningQueryKeys.businessTypeTree(projectCode)'));

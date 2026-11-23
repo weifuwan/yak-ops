@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Button,
+  Cascader,
   Input,
   Select,
   SelectContent,
@@ -40,7 +41,7 @@ import type { DimensionTab } from "../types";
 import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
 import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
-import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
+import { useBusinessProcessCascader } from "@/app/data-modeling/planning/common-layer/business-process/use-business-process-cascader";
 import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
 import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
 import { timePeriodApi } from "@/service/data-modeling/indicators/time-period";
@@ -247,11 +248,6 @@ export function DimensionEditor({
     queryFn: () => businessTypeApi.selectRelatedDomains<ModelingRecord>(projectCode, values.busTypeId),
     enabled: Boolean(projectCode && values.busTypeId),
   });
-  const processesQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "dimension-editor-processes", projectCode],
-    queryFn: () => businessProcessApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode),
-  });
   const martsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-marts", projectCode],
     queryFn: () => dataMartApi.all<ModelingRecord>(projectCode),
@@ -311,6 +307,7 @@ export function DimensionEditor({
 
   const layers = layersQuery.data || [];
   const selectedTableType = String(values.tableType || tab.createType || tab.record?.tableType || "");
+  const processQuery = useBusinessProcessCascader(projectCode, values.busTypeId, selectedTableType === "DETAIL");
   const layerOptions = useMemo(() => warehouseLayerOptions(
     layers,
     selectedTableType,
@@ -373,12 +370,6 @@ export function DimensionEditor({
       : !domainOptionsReady
         ? "正在加载可用数据域..."
         : "暂无可用数据域";
-  const processOptions = (processesQuery.data || [])
-    .filter((record) => !values.domainId || String(record.dataDomainId || record.domainId || "") === values.domainId)
-    .map((record) => ({
-      value: String(record.id || ""),
-      label: optionLabel(record, ["cnName", "processName", "enName"]),
-    })).filter((option) => option.value);
   const martSubjectOptions = [
     ...(martsQuery.data || []).map((record) => ({
       value: String(record.id || "") + "-MART",
@@ -1014,24 +1005,36 @@ export function DimensionEditor({
 
                 {isDetail ? (
                   <FormField label="业务过程" required>
-                    <OptionSelect
-                      value={values.busProcessId}
-                      options={processOptions}
-                      placeholder={processesQuery.isFetching ? "正在加载业务过程..." : "请选择业务过程"}
-                      onChange={(value) => {
-                        const process = (processesQuery.data || []).find(
-                          (item) => String(item.id || "") === value,
-                        );
+                    <Cascader
+                      ariaLabel="选择业务过程"
+                      items={processQuery.options}
+                      value={values.domainId && values.busProcessId ? [values.domainId, values.busProcessId] : null}
+                      columnLabels={["数据域", "业务过程"]}
+                      placeholder={processQuery.isFetching ? "正在加载业务过程..." : "请选择数据域及业务过程"}
+                      emptyText={processQuery.isError ? "业务过程加载失败，请重试" : "暂无可选业务过程"}
+                      disabled={processQuery.isFetching}
+                      size="small"
+                      variant="outlined"
+                      onValueChange={(path) => {
                         setValues((current) => ({
                           ...current,
-                          busProcessId: value,
-                          domainId: String(process?.dataDomainId || process?.domainId || current.domainId || ""),
+                          domainId: path?.[0] || "",
+                          busProcessId: path?.[path.length - 1] || "",
                         }));
                         setBasicDirty(true);
                         setDirty(true);
                         onDirtyChange(true);
                       }}
                     />
+                    {processQuery.isError ? (
+                      <button
+                        type="button"
+                        className="mt-1 cursor-pointer text-xs text-[var(--yak-color-primary)] hover:underline"
+                        onClick={() => void processQuery.refetch()}
+                      >
+                        重新加载业务过程
+                      </button>
+                    ) : null}
                   </FormField>
                 ) : null}
 
