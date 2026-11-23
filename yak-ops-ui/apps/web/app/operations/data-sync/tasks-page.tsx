@@ -214,21 +214,23 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
       extra={<Button size="sm" variant="secondary" onClick={() => void query.refetch()}>刷新</Button>}
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input
-          size="small"
-          variant="outlined"
-          className="w-[280px]"
-          placeholder="任务名称 / 任务 ID"
-          value={keywordInput}
-          onChange={(event) => setKeywordInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              setKeyword(keywordInput.trim());
-              setPageNo(1);
-            }
-          }}
-        />
-        <div className="w-[150px]">
+        <div className="w-[320px] max-w-full shrink-0">
+          <Input
+            size="small"
+            variant="outlined"
+            className="w-full"
+            placeholder="任务名称 / 任务 ID"
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                setKeyword(keywordInput.trim());
+                setPageNo(1);
+              }
+            }}
+          />
+        </div>
+        <div className="w-[150px] shrink-0">
           <Select
             size="small"
             items={STATUS_ITEMS}
@@ -249,7 +251,17 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" variant="secondary" onClick={() => { setKeyword(keywordInput.trim()); setPageNo(1); }}>搜索</Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="shrink-0"
+          onClick={() => {
+            setKeyword(keywordInput.trim());
+            setPageNo(1);
+          }}
+        >
+          搜索
+        </Button>
       </div>
       <div className="min-h-0 flex-1">
         <Table<DataSyncTaskListRecord>
