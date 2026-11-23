@@ -70,6 +70,21 @@ export type ConversationAction =
       updatedAt: string;
     }
   | {
+      type: "TOOL_INPUT_COMPLETED";
+      sessionId: string;
+      messageId: string;
+      toolCallId: string;
+      updatedAt: string;
+    }
+  | {
+      type: "TOOL_EXECUTION_STARTED";
+      sessionId: string;
+      messageId: string;
+      toolCallId: string;
+      toolName?: string;
+      updatedAt: string;
+    }
+  | {
       type: "TOOL_OUTPUT_DELTA";
       sessionId: string;
       messageId: string;
@@ -443,6 +458,7 @@ export function conversationReducer(
               toolName: action.toolName,
               input: existing?.input ?? "",
               output: existing?.output ?? "",
+              phase: "preparing",
               startedAt: existing?.startedAt ?? timestamp(action.updatedAt),
             }),
           };
@@ -481,6 +497,54 @@ export function conversationReducer(
         },
       );
 
+    case "TOOL_INPUT_COMPLETED":
+      return updateAssistantMessage(
+        state,
+        action.sessionId,
+        action.messageId,
+        action.updatedAt,
+        (message) => {
+          const activityId = "tool:" + action.toolCallId;
+          return {
+            ...message,
+            activities: updateActivity(message.activities ?? [], activityId, (activity) => ({
+              ...activity,
+              phase: "ready",
+            })),
+          };
+        },
+      );
+
+    case "TOOL_EXECUTION_STARTED":
+      return updateAssistantMessage(
+        state,
+        action.sessionId,
+        action.messageId,
+        action.updatedAt,
+        (message) => {
+          const activityId = "tool:" + action.toolCallId;
+          const activity = (message.activities ?? []).find(
+            (item) => item.id === activityId,
+          );
+          return {
+            ...message,
+            activities: upsertActivity(message.activities ?? [], {
+              id: activityId,
+              kind: "tool",
+              title: action.toolName || activity?.title || "工具调用",
+              status: "running",
+              replyId: activity?.replyId,
+              toolCallId: action.toolCallId,
+              toolName: action.toolName || activity?.toolName,
+              input: activity?.input ?? "",
+              output: activity?.output ?? "",
+              phase: "executing",
+              startedAt: activity?.startedAt ?? timestamp(action.updatedAt),
+            }),
+          };
+        },
+      );
+
     case "TOOL_OUTPUT_DELTA":
       return updateAssistantMessage(
         state,
@@ -503,6 +567,7 @@ export function conversationReducer(
               toolName: activity?.toolName,
               input: activity?.input ?? "",
               output: (activity?.output ?? "") + action.delta,
+              phase: activity?.phase ?? "executing",
               startedAt: activity?.startedAt ?? timestamp(action.updatedAt),
             }),
           };
@@ -527,6 +592,7 @@ export function conversationReducer(
             activities: updateActivity(message.activities ?? [], activityId, (activity) => ({
               ...activity,
               status,
+              phase: "completed",
               completedAt: timestamp(action.updatedAt),
             })),
           };
@@ -671,9 +737,13 @@ export function conversationReducer(
         action.sessionId,
         action.messageId,
         action.updatedAt,
-        (message) => ({
+        (message) => {
+          const finishedReason =
+            action.finishedReason ??
+            message.replyEnds?.[message.replyEnds.length - 1]?.finishedReason;
+          return {
           ...message,
-          status: action.finishedReason === "interrupted" ? "interrupted" : "complete",
+          status: finishedReason === "interrupted" ? "interrupted" : "complete",
           toolCalls: (message.toolCalls ?? []).map((call) =>
             call.status === "running" ? { ...call, status: "interrupted" as const } : call,
           ),
@@ -681,12 +751,16 @@ export function conversationReducer(
             activity.status === "running"
               ? {
                   ...activity,
-                  status: activity.kind === "tool" ? "interrupted" : "completed",
+                  status:
+                    finishedReason === "interrupted" && activity.kind === "tool"
+                      ? "interrupted"
+                      : "completed",
                   completedAt: timestamp(action.updatedAt),
                 }
               : activity,
           ),
-        }),
+          };
+        },
       );
 
     case "MESSAGE_FAILED":
