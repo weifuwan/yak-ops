@@ -471,6 +471,7 @@ export function FieldSpreadsheet({
   };
 
   const spreadsheetTitle = fieldType === "PARTITION" ? "分区字段" : "字段";
+  const referenceLabel = modelType === "SOURCE" ? "引用来源表" : "引用已有表";
 
   return (
     <>
@@ -478,7 +479,7 @@ export function FieldSpreadsheet({
         <FieldSpreadsheetToolbar
           insertCount={insertCount}
           validationIssueCount={validationIssues.length}
-          referenceLabel={modelType === "SOURCE" ? "引用来源表" : "引用已有表"}
+          referenceLabel={referenceLabel}
           visibleColumns={visibleColumns}
           onInsertCountChange={setInsertCount}
           onInsertRows={insertRows}
@@ -521,7 +522,7 @@ export function FieldSpreadsheet({
             </div>
           ) : fields.length === 0 ? (
             <div className="flex min-h-20 items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
-              暂无{spreadsheetTitle}，可插入行、引用已有表或批量导入
+              暂无{spreadsheetTitle}，可插入行、{referenceLabel}或批量导入
             </div>
           ) : (
             fields.map((field, rowIndex) => {
@@ -582,6 +583,7 @@ export function FieldSpreadsheet({
         open={referenceOpen}
         projectCode={projectCode}
         fieldType={fieldType}
+        title={modelType === "SOURCE" ? "引用来源表字段" : "引用已有表字段"}
         onClose={() => setReferenceOpen(false)}
         onImport={appendImportedFields}
       />
