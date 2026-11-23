@@ -1131,7 +1131,6 @@ export function DimensionEditor({
                 <section className="bg-white p-4">
                   <FormSectionHeader title="字段管理" />
                   <FieldSpreadsheet
-                    projectCode={projectCode}
                     modelType={selectedTableType}
                     fieldType="PROPERTY"
                     fields={propertyFields}
@@ -1147,7 +1146,6 @@ export function DimensionEditor({
                 <section className="bg-white p-4">
                   <FormSectionHeader title="分区字段管理" />
                   <FieldSpreadsheet
-                    projectCode={projectCode}
                     modelType={selectedTableType}
                     fieldType="PARTITION"
                     fields={partitionFields}
