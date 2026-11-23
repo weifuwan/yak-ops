@@ -487,19 +487,27 @@ test("field spreadsheet supports keyboard navigation, paste, row operations and 
   assert.match(fieldGridUtils, /fieldsForSave/);
 });
 
-test("source tables reuse the shared spreadsheet with source-field defaults", () => {
+test("source tables expose the DataWorks-style field column model", () => {
   assert.match(editor, /modelType=\{selectedTableType\}/);
-  assert.match(fieldGridTypes, /defaultVisibleFieldColumns/);
-  assert.match(fieldGridTypes, /modelType === "SOURCE"/);
-  assert.match(fieldGridTypes, /visible\.add\("sourceTb"\)/);
-  assert.match(fieldGridTypes, /visible\.add\("sourceField"\)/);
+  assert.match(fieldGridTypes, /fieldGridColumns/);
+  assert.match(fieldGridTypes, /modelType !== "SOURCE"/);
+  for (const key of ["sequence", "fieldName", "dataType", "cnName", "remark", "primaryFlag", "notNull", "sourceTb", "sourceField", "fieldType", "fieldStdId", "codeStdId", "actions"]) {
+    assert.match(fieldGridTypes, new RegExp('"' + key + '"'));
+  }
+  assert.match(fieldGridTypes, /FIELD_CATEGORY_OPTIONS/);
+  assert.match(fieldGridTypes, /PROPERTY/);
+  assert.match(fieldGridTypes, /DIMENSION/);
+  assert.match(fieldGridTypes, /MEASUREMENT/);
+  assert.match(fieldSpreadsheet, /<FieldGridSelect[\s\S]*?options=\{FIELD_CATEGORY_OPTIONS\}/);
+  assert.match(fieldSpreadsheet, /normalizeSectionField/);
+  assert.match(editor, /field\.fieldType && field\.fieldType !== "PARTITION"/);
+  assert.match(fieldSpreadsheetToolbar, /disabled=\{fixed\}/);
   assert.match(fieldSpreadsheet, /const referenceLabel = modelType === "SOURCE" \? "引用来源表" : "引用已有表"/);
   assert.match(fieldSpreadsheet, /引用来源表字段/);
-  assert.match(fieldSpreadsheetToolbar, /referenceLabel/);
 });
 
 test("field spreadsheet exposes advanced columns, batch import and existing-table references", () => {
-  for (const title of ["字段标准", "标准代码", "度量单位", "来源表", "来源字段", "描述"]) {
+  for (const title of ["关联字段标准", "关联标准代码", "度量单位", "来源表", "来源字段", "字段类别", "描述"]) {
     assert.match(fieldGridTypes, new RegExp(title));
   }
   assert.match(fieldSpreadsheetToolbar, /字段显示设置/);
