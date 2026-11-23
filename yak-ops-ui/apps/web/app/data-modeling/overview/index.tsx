@@ -269,17 +269,28 @@ export function DataModelingOverviewPage() {
       <section className="relative h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 overflow-hidden bg-[#F6F6F6]">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <PixelBlast
-            variant="cross"
-            pixelSize={6}
-            color="#A1A1AA"
-            accentColor="#D97706"
-            patternScale={3}
-            patternDensity={1.1}
-            pixelSizeJitter={0.6}
-            glow={0.2}
-            twinkle={0.75}
-            speed={0.3}
-            hoverEffect="grow"
+            variant="square"
+            pixelSize={3}
+            color="#FE2C55"
+            accentColor="#FE2C55"
+            patternScale={2}
+            patternDensity={1}
+            pixelSizeJitter={0}
+            softness={0}
+            smoothing={0}
+            glow={0}
+            twinkle={0}
+            speed={0.5}
+            drift={0}
+            hoverEffect="none"
+            enableRipples
+            rippleSpeed={0.3}
+            rippleThickness={0.1}
+            rippleIntensityScale={1}
+            autoRipple={0}
+            edgeFade={0.25}
+            intro
+            lightMode
           />
         </div>
 
