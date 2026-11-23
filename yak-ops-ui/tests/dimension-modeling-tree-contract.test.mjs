@@ -417,14 +417,27 @@ test("dimension editor uses Yak-UI warning alert for unsaved changes and unsubmi
   assert.doesNotMatch(editor, /border-\[#dce6fb\] bg-\[#eef4ff\]/);
 });
 
-test("basic information and field management are saved independently", () => {
+test("dimension editor uses one save action for basic information and fields", () => {
   const basicSaveStart = editor.indexOf("const saveBasicInfo = async");
   const fieldSaveStart = editor.indexOf("const saveFields = async");
+  const unifiedSaveStart = editor.indexOf("const saveChanges = async");
+  const submitStart = editor.indexOf("const submit = async");
   assert.ok(basicSaveStart >= 0 && fieldSaveStart > basicSaveStart);
+  assert.ok(unifiedSaveStart > fieldSaveStart && submitStart > unifiedSaveStart);
   assert.doesNotMatch(editor.slice(basicSaveStart, fieldSaveStart), /replaceFields/);
   assert.match(editor, /dimensionModelingApi\.replaceFields/);
-  assert.match(editor, /保存基本信息/);
-  assert.match(editor, /保存字段/);
+
+  const unifiedSave = editor.slice(unifiedSaveStart, submitStart);
+  assert.match(unifiedSave, /saveBasicInfo\(false\)/);
+  assert.match(unifiedSave, /saveFields\(false\)/);
+
+  const toolbarStart = editor.indexOf('<div className="flex flex-wrap items-center gap-1.5">');
+  const refreshStart = editor.indexOf('<Button size="sm" variant="ghost" onClick={() => void refresh()}>', toolbarStart);
+  const toolbar = editor.slice(toolbarStart, refreshStart);
+  assert.match(toolbar, /variant="ghost"/);
+  assert.match(toolbar, /<Save size=\{13\} \/>保存/);
+  assert.match(toolbar, /<Upload size=\{13\} \/>提交/);
+  assert.doesNotMatch(toolbar, /保存字段|保存基本信息/);
   assert.match(editor, /addField\("PARTITION"\)/);
 });
 
