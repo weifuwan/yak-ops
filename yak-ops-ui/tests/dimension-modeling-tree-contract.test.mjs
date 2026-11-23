@@ -31,8 +31,6 @@ const fieldGridUtils = read("../apps/web/app/data-modeling/models/dimension-mode
 const fieldGridTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-types.ts");
 const fieldGridSelect = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-select.tsx");
 const fieldSpreadsheetToolbar = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet-toolbar.tsx");
-const fieldReferenceDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-reference-dialog.tsx");
-const fieldBatchImportDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-batch-import-dialog.tsx");
 const createTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/types.ts");
 const dimensionPo = read("../../yak-ops-dao/src/main/java/io/yak/ops/dao/entity/DimensionTablePO.java");
 const dimensionService = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/impl/DimensionModelingServiceImpl.java");
@@ -502,26 +500,18 @@ test("source tables expose the DataWorks-style field column model", () => {
   assert.match(fieldSpreadsheet, /normalizeSectionField/);
   assert.match(editor, /field\.fieldType && field\.fieldType !== "PARTITION"/);
   assert.match(fieldSpreadsheetToolbar, /disabled=\{fixed\}/);
-  assert.match(fieldSpreadsheet, /const referenceLabel = modelType === "SOURCE" \? "引用来源表" : "引用已有表"/);
-  assert.match(fieldSpreadsheet, /引用来源表字段/);
+  assert.doesNotMatch(fieldSpreadsheetToolbar, /引用来源表|引用已有表|批量导入/);
+  assert.doesNotMatch(fieldSpreadsheet, /FieldReferenceDialog|FieldBatchImportDialog/);
 });
 
-test("field spreadsheet exposes advanced columns, batch import and existing-table references", () => {
+test("field spreadsheet exposes advanced columns without import actions", () => {
   for (const title of ["关联字段标准", "关联标准代码", "度量单位", "来源表", "来源字段", "字段类别", "描述"]) {
     assert.match(fieldGridTypes, new RegExp(title));
   }
   assert.match(fieldSpreadsheetToolbar, /字段显示设置/);
-  assert.match(fieldSpreadsheet, /FieldBatchImportDialog/);
-  assert.match(fieldSpreadsheet, /FieldReferenceDialog/);
-  assert.match(fieldBatchImportDialog, /parseImportedFields/);
-  assert.match(fieldBatchImportDialog, /可直接从 Excel 粘贴/);
-  assert.match(fieldReferenceDialog, /projectCode/);
-  assert.match(fieldReferenceDialog, /listDataSources/);
-  assert.match(fieldReferenceDialog, /listDataSourceDatabases/);
-  assert.match(fieldReferenceDialog, /listDataSourceTables/);
-  assert.match(fieldReferenceDialog, /listDataSourceColumns/);
-  assert.match(fieldReferenceDialog, /sourceTb: sourceTable/);
-  assert.match(fieldReferenceDialog, /sourceField: column\.name/);
+  assert.doesNotMatch(fieldSpreadsheetToolbar, /引用来源表|引用已有表|批量导入/);
+  assert.doesNotMatch(fieldSpreadsheet, /FieldBatchImportDialog|FieldReferenceDialog|appendImportedFields/);
+  assert.doesNotMatch(fieldGridUtils, /parseImportedFields/);
 });
 
 test("DIM business identifiers use enShortName instead of tableName", () => {
