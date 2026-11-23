@@ -63,6 +63,7 @@ public interface WorkflowInstanceService {
                                                                           String executorName,
                                                                           WorkflowExecutionStatus stateType,
                                                                           String host,
+                                                                          WorkflowBusinessType businessType,
                                                                           String otherParamsJson,
                                                                           Integer pageNo,
                                                                           Integer pageSize);
