@@ -6,6 +6,8 @@ import {
   Button,
   Cascader,
   Input,
+  Radio,
+  RadioGroup,
   Select,
   SelectContent,
   SelectItem,
@@ -1237,6 +1239,30 @@ type DimensionListProps = {
   onEdit: (record: DimensionTableRecord) => void;
 };
 
+type DimensionListStatus = "ALL" | "SUBMITTED" | "DRAFT";
+
+type DimensionListFilters = {
+  keyword: string;
+  status: DimensionListStatus;
+  dwhId: string;
+  busTypeId: string;
+  domainId: string;
+  director: string;
+  updateBy: string;
+  tableType: string;
+};
+
+const EMPTY_DIMENSION_LIST_FILTERS: DimensionListFilters = {
+  keyword: "",
+  status: "ALL",
+  dwhId: "",
+  busTypeId: "",
+  domainId: "",
+  director: "",
+  updateBy: "",
+  tableType: "",
+};
+
 const TABLE_TYPE_LABELS: Record<string, string> = {
   SOURCE: "贴源表",
   DIMENSION: "维度表",
@@ -1246,20 +1272,163 @@ const TABLE_TYPE_LABELS: Record<string, string> = {
   APPLICATION: "应用表",
 };
 
+const DIMENSION_LIST_FIELD_CLASS =
+  "grid min-w-0 grid-cols-[76px_minmax(0,1fr)] items-center gap-2";
+
+function ModelListFilterSelect({
+  value,
+  options,
+  placeholder = "全部",
+  onChange,
+}: {
+  value: string;
+  options: Option[];
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  const items = [{ value: "__all__", label: placeholder }, ...options];
+  return (
+    <Select
+      size="small"
+      items={Object.fromEntries(items.map((item) => [item.value, item.label]))}
+      value={value || "__all__"}
+      onValueChange={(nextValue) =>
+        onChange(nextValue === "__all__" ? "" : String(nextValue || ""))
+      }
+    >
+      <SelectTrigger variant="outlined" className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            <SelectItemText>{item.label}</SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProps) {
-  const [keyword, setKeyword] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [filters, setFilters] = useState<DimensionListFilters>(EMPTY_DIMENSION_LIST_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<DimensionListFilters>(
+    EMPTY_DIMENSION_LIST_FILTERS,
+  );
   const [pageNo, setPageNo] = useState(1);
   const pageSize = 10;
 
+  const layersQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-list-layers", projectCode],
+    queryFn: () => dwLayerApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode),
+  });
+  const businessTreeQuery = useQuery<BusinessTypeTreeNode[]>({
+    queryKey: planningQueryKeys.businessTypeTree(projectCode),
+    queryFn: () => businessTypeApi.tree(projectCode),
+    enabled: Boolean(projectCode),
+  });
+  const domainsQuery = useQuery<ModelingRecord[]>({
+    queryKey: ["modeling", "dimension-list-domains", projectCode],
+    queryFn: () => dataDomainApi.all<ModelingRecord>(projectCode),
+    enabled: Boolean(projectCode),
+  });
+  const filterRecordsQuery = useQuery<DimensionTableRecord[]>({
+    queryKey: ["modeling", "dimension-list-filter-records", projectCode, dwType],
+    queryFn: () => dimensionModelingApi.all(projectCode, { dwhType: dwType }),
+    enabled: Boolean(projectCode),
+    staleTime: 60_000,
+  });
+
+  const layerOptions = useMemo(
+    () =>
+      (layersQuery.data || [])
+        .filter((item) => warehouseEnumCode(item.dwType) === dwType)
+        .filter((item) => item.id)
+        .map((item) => ({
+          value: String(item.id),
+          label: optionLabel(item, ["cnName", "enShortName", "enName"]),
+        })),
+    [dwType, layersQuery.data],
+  );
+  const businessTreeOptions = useMemo(
+    () => (businessTreeQuery.data || []).map(mapBusinessTypeTreeOption),
+    [businessTreeQuery.data],
+  );
+  const domainOptions = useMemo(
+    () =>
+      (domainsQuery.data || [])
+        .filter((item) => item.id)
+        .map((item) => ({
+          value: String(item.id),
+          label: optionLabel(item, ["cnName", "enShortName", "enName"]),
+        })),
+    [domainsQuery.data],
+  );
+  const directorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (filterRecordsQuery.data || [])
+            .map((item) => String(item.director || "").trim())
+            .filter(Boolean),
+        ),
+      )
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, label: value })),
+    [filterRecordsQuery.data],
+  );
+  const updaterOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (filterRecordsQuery.data || [])
+            .map((item) => String(item.updateBy || "").trim())
+            .filter(Boolean),
+        ),
+      )
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, label: value })),
+    [filterRecordsQuery.data],
+  );
+  const tableTypeOptions = useMemo(
+    () =>
+      Object.entries(TABLE_TYPE_LABELS).map(([value, label]) => ({
+        value,
+        label,
+      })),
+    [],
+  );
+
   const pageQuery = useQuery({
-    queryKey: ["modeling", "dimension-page", projectCode, dwType, appliedKeyword, pageNo],
-    queryFn: () => dimensionModelingApi.page(projectCode, {
-      dwhType: dwType,
-      keyword: appliedKeyword || undefined,
+    queryKey: [
+      "modeling",
+      "dimension-page",
+      projectCode,
+      dwType,
+      appliedFilters,
       pageNo,
-      pageSize,
-    }),
+    ],
+    queryFn: () =>
+      dimensionModelingApi.page(projectCode, {
+        dwhType: dwType,
+        keyword: appliedFilters.keyword || undefined,
+        dwhId: appliedFilters.dwhId || undefined,
+        busTypeId: appliedFilters.busTypeId || undefined,
+        domainId: appliedFilters.domainId || undefined,
+        director: appliedFilters.director || undefined,
+        updateBy: appliedFilters.updateBy || undefined,
+        tableType: appliedFilters.tableType || undefined,
+        submit:
+          appliedFilters.status === "SUBMITTED"
+            ? true
+            : appliedFilters.status === "DRAFT"
+              ? false
+              : undefined,
+        pageNo,
+        pageSize,
+      }),
     enabled: Boolean(projectCode),
   });
 
@@ -1345,27 +1514,170 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
     },
   ];
 
+  const updateFilter = <K extends keyof DimensionListFilters>(
+    key: K,
+    value: DimensionListFilters[K],
+  ) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+
   const applySearch = () => {
     setPageNo(1);
-    setAppliedKeyword(keyword.trim());
+    setAppliedFilters({
+      ...filters,
+      keyword: filters.keyword.trim(),
+      director: filters.director.trim(),
+      updateBy: filters.updateBy.trim(),
+    });
+  };
+
+  const resetSearch = () => {
+    setFilters(EMPTY_DIMENSION_LIST_FILTERS);
+    setAppliedFilters(EMPTY_DIMENSION_LIST_FILTERS);
+    setPageNo(1);
   };
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col bg-white p-4">
-      <div className="mb-3 flex shrink-0 items-center gap-2 border-b border-[var(--yak-components-panel-border)] pb-3">
-        <div className="min-w-[220px] flex-1">
-          <Input
-            size="small"
-            variant="outlined"
-            value={keyword}
-            placeholder="搜索模型中文名、英文标识或维度缩写"
-            onChange={(event) => setKeyword(event.target.value)}
-            onKeyDown={(event) => { if (event.key === "Enter") applySearch(); }}
-          />
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col bg-white">
+      <section className="shrink-0 border-b border-[var(--yak-components-panel-border)] px-4 py-3">
+        <div className="grid grid-cols-1 gap-x-7 gap-y-2 xl:grid-cols-3">
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              模型名称：
+            </span>
+            <Input
+              size="small"
+              variant="outlined"
+              value={filters.keyword}
+              placeholder="搜索模型中文名、英文标识或维度缩写"
+              onChange={(event) => updateFilter("keyword", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") applySearch();
+              }}
+            />
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              状态：
+            </span>
+            <RadioGroup
+              aria-label="模型状态"
+              value={filters.status}
+              onValueChange={(value) =>
+                updateFilter("status", value as DimensionListStatus)
+              }
+              className="flex h-7 items-center gap-4"
+            >
+              {[
+                ["ALL", "全部"],
+                ["SUBMITTED", "已提交"],
+                ["DRAFT", "未提交"],
+              ].map(([value, label]) => (
+                <label
+                  key={value}
+                  className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-xs"
+                >
+                  <Radio value={value} />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              数仓分层：
+            </span>
+            <ModelListFilterSelect
+              value={filters.dwhId}
+              options={layerOptions}
+              placeholder="全部"
+              onChange={(value) => updateFilter("dwhId", value)}
+            />
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              业务分类：
+            </span>
+            <TreeSelect
+              ariaLabel="筛选业务分类"
+              items={businessTreeOptions}
+              value={filters.busTypeId || null}
+              placeholder="全部"
+              searchPlaceholder="搜索业务分类"
+              emptyText={
+                businessTreeQuery.isPending ? "正在加载业务分类..." : "暂无业务分类"
+              }
+              size="small"
+              variant="outlined"
+              className="w-full"
+              popupClassName="!min-w-[260px]"
+              onValueChange={(value) => updateFilter("busTypeId", value || "")}
+            />
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              数据域：
+            </span>
+            <ModelListFilterSelect
+              value={filters.domainId}
+              options={domainOptions}
+              placeholder="全部"
+              onChange={(value) => updateFilter("domainId", value)}
+            />
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              负责人：
+            </span>
+            <ModelListFilterSelect
+              value={filters.director}
+              options={directorOptions}
+              placeholder="全部"
+              onChange={(value) => updateFilter("director", value)}
+            />
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              最近修改人：
+            </span>
+            <ModelListFilterSelect
+              value={filters.updateBy}
+              options={updaterOptions}
+              placeholder="全部"
+              onChange={(value) => updateFilter("updateBy", value)}
+            />
+          </div>
+
+          <div className={DIMENSION_LIST_FIELD_CLASS}>
+            <span className="text-right text-xs text-[var(--yak-components-muted-text)]">
+              模型类型：
+            </span>
+            <ModelListFilterSelect
+              value={filters.tableType}
+              options={tableTypeOptions}
+              placeholder="全部"
+              onChange={(value) => updateFilter("tableType", value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pl-[84px]">
+            <Button size="sm" variant="primary" onClick={applySearch}>
+              搜索
+            </Button>
+            <Button size="sm" variant="secondary" onClick={resetSearch}>
+              重置
+            </Button>
+          </div>
         </div>
-        <Button size="sm" variant="secondary" onClick={applySearch}>搜索</Button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto">
+      </section>
+
+      <div className="min-h-0 flex-1 overflow-auto px-4 pt-3">
         <Table<DimensionTableRecord>
           columns={columns}
           dataSource={records}
@@ -1374,14 +1686,29 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
           emptyText="暂无模型"
           pagination={false}
           size="small"
-          scroll={{ x: 1120, y: "calc(100vh - 250px)" }}
+          scroll={{ x: 1120, y: "calc(100vh - 350px)" }}
         />
       </div>
-      <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--yak-components-panel-border)] pt-3 text-xs text-[var(--yak-components-muted-text)]">
+
+      <div className="mx-4 flex shrink-0 items-center justify-end gap-3 border-t border-[var(--yak-components-panel-border)] py-3 text-xs text-[var(--yak-components-muted-text)]">
         <span>共 {page?.total || 0} 条</span>
         <span>第 {pageNo} / {totalPage} 页</span>
-        <Button size="sm" variant="secondary" isDisabled={pageNo <= 1} onClick={() => setPageNo((current) => Math.max(1, current - 1))}>上一页</Button>
-        <Button size="sm" variant="secondary" isDisabled={pageNo >= totalPage} onClick={() => setPageNo((current) => Math.min(totalPage, current + 1))}>下一页</Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={pageNo <= 1}
+          onClick={() => setPageNo((current) => Math.max(1, current - 1))}
+        >
+          上一页
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={pageNo >= totalPage}
+          onClick={() => setPageNo((current) => Math.min(totalPage, current + 1))}
+        >
+          下一页
+        </Button>
       </div>
     </div>
   );
