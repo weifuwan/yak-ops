@@ -2,8 +2,12 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
+  DateField,
+  DateI18nProvider,
+  DateRangePicker,
   Input,
   Modal,
+  RangeCalendar,
   Select,
   SelectContent,
   SelectItem,
@@ -13,6 +17,7 @@ import {
   SelectValue,
   Table,
   toast,
+  type DateRange,
   type TableColumns,
 } from "@yak-ops/yak-ui";
 
@@ -82,22 +87,90 @@ function SelectField({
   );
 }
 
+function WorkflowInstanceDateRangePicker({
+  value,
+  onChange,
+}: {
+  value: DateRange | null;
+  onChange: (value: DateRange | null) => void;
+}) {
+  return (
+    <DateI18nProvider locale="zh-CN">
+      <DateRangePicker
+        aria-label="实例开始时间范围"
+        value={value}
+        onChange={onChange}
+        className="w-[236px] shrink-0"
+      >
+        <DateField.Group fullWidth>
+          <DateField.Input slot="start" className="min-w-0 px-2">
+            {(segment) => <DateField.Segment segment={segment} />}
+          </DateField.Input>
+          <DateRangePicker.RangeSeparator />
+          <DateField.Input slot="end" className="min-w-0 px-2">
+            {(segment) => <DateField.Segment segment={segment} />}
+          </DateField.Input>
+          <DateField.Suffix>
+            <DateRangePicker.Trigger aria-label="选择实例开始时间范围">
+              <DateRangePicker.TriggerIndicator />
+            </DateRangePicker.Trigger>
+          </DateField.Suffix>
+        </DateField.Group>
+        <DateRangePicker.Popover className="w-auto">
+          <RangeCalendar aria-label="实例开始时间范围" firstDayOfWeek="mon">
+            <RangeCalendar.Header>
+              <RangeCalendar.NavButton slot="previous" aria-label="上个月" />
+              <RangeCalendar.Heading />
+              <RangeCalendar.NavButton slot="next" aria-label="下个月" />
+            </RangeCalendar.Header>
+            <RangeCalendar.Grid>
+              <RangeCalendar.GridHeader>
+                {(day) => <RangeCalendar.HeaderCell>{day}</RangeCalendar.HeaderCell>}
+              </RangeCalendar.GridHeader>
+              <RangeCalendar.GridBody>
+                {(date) => <RangeCalendar.Cell date={date} />}
+              </RangeCalendar.GridBody>
+            </RangeCalendar.Grid>
+          </RangeCalendar>
+        </DateRangePicker.Popover>
+      </DateRangePicker>
+    </DateI18nProvider>
+  );
+}
+
 export function WorkflowInstancesOperationsPage() {
   const { currentWorkspace } = useWorkspace();
   const scope = currentWorkspace?.id ?? "";
   const queryClient = useQueryClient();
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [executorInput, setExecutorInput] = useState("");
+  const [executorName, setExecutorName] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [state, setState] = useState("ALL");
   const [businessType, setBusinessType] = useState("ALL");
   const [pageNo, setPageNo] = useState(1);
   const [selected, setSelected] = useState<WorkflowInstanceSummary>();
 
   const query = useQuery({
-    queryKey: ["operations", "workflow-instances", scope, pageNo, keyword, state, businessType],
+    queryKey: [
+      "operations",
+      "workflow-instances",
+      scope,
+      pageNo,
+      keyword,
+      executorName,
+      dateRange?.start.toString() ?? "",
+      dateRange?.end.toString() ?? "",
+      state,
+      businessType,
+    ],
     queryFn: ({ signal }) =>
       listWorkflowInstances(undefined, pageNo, PAGE_SIZE, signal, {
         searchVal: keyword || undefined,
+        executorName: executorName || undefined,
+        startDate: dateRange ? `${dateRange.start.toString()} 00:00:00` : undefined,
+        endDate: dateRange ? `${dateRange.end.toString()} 23:59:59` : undefined,
         stateType: state === "ALL" ? undefined : state,
         businessType:
           businessType === "ALL" ? undefined : (businessType as WorkflowBusinessType),
@@ -235,22 +308,6 @@ export function WorkflowInstancesOperationsPage() {
       extra={<Button size="sm" variant="secondary" onClick={() => void query.refetch()}>刷新</Button>}
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="w-[320px] max-w-full shrink-0">
-          <Input
-            size="small"
-            variant="outlined"
-            className="w-full"
-            placeholder="工作流名称 / 实例名称"
-            value={keywordInput}
-            onChange={(event) => setKeywordInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                setKeyword(keywordInput.trim());
-                setPageNo(1);
-              }
-            }}
-          />
-        </div>
         <SelectField
           value={businessType}
           items={BUSINESS_ITEMS}
@@ -269,12 +326,54 @@ export function WorkflowInstancesOperationsPage() {
             setPageNo(1);
           }}
         />
+        <div className="w-[150px] shrink-0">
+          <Input
+            size="small"
+            variant="outlined"
+            className="w-full"
+            placeholder="执行人"
+            value={executorInput}
+            onChange={(event) => setExecutorInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                setExecutorName(executorInput.trim());
+                setKeyword(keywordInput.trim());
+                setPageNo(1);
+              }
+            }}
+          />
+        </div>
+        <WorkflowInstanceDateRangePicker
+          value={dateRange}
+          onChange={(next) => {
+            setDateRange(next);
+            setPageNo(1);
+          }}
+        />
+        <div className="w-[280px] max-w-full shrink-0">
+          <Input
+            size="small"
+            variant="outlined"
+            className="w-full"
+            placeholder="工作流名称 / 实例名称"
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                setKeyword(keywordInput.trim());
+                setExecutorName(executorInput.trim());
+                setPageNo(1);
+              }
+            }}
+          />
+        </div>
         <Button
           size="sm"
           variant="secondary"
           className="shrink-0"
           onClick={() => {
             setKeyword(keywordInput.trim());
+            setExecutorName(executorInput.trim());
             setPageNo(1);
           }}
         >
