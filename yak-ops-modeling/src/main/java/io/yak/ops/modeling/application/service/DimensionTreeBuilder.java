@@ -309,7 +309,7 @@ public class DimensionTreeBuilder {
     }
 
     private void addDimensionLeaf(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId) {
-        addTableNode(nodes, table, parentId, "DIM");
+        addTableNode(nodes, table, parentId);
     }
 
     private void addTableNode(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId) {
