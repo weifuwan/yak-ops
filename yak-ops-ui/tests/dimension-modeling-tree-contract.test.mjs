@@ -26,7 +26,7 @@ const controller = read("../../yak-ops-api/src/main/java/io/yak/ops/api/controll
 const groupingEnum = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/domain/enums/DimensionTreeGroupingEnum.java");
 const treeBuilder = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/DimensionTreeBuilder.java");
 const editor = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/dimension-editor.tsx");
-const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");
+const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");\nconst sourceFieldImportCard = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/source-field-import-card.tsx");
 const fieldGridUtils = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-utils.ts");
 const fieldGridTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-types.ts");
 const fieldGridSelect = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-select.tsx");
@@ -465,6 +465,21 @@ test("dimension field management uses a spreadsheet editor instead of editable Y
   assert.match(fieldSpreadsheet, /<FieldGridSelect/);
   assert.match(fieldGridSelect, /<Select<string>/);
   assert.match(fieldSpreadsheet, /<Checkbox/);
+});
+
+test("field management can import source table metadata without affecting partition fields", () => {
+  assert.match(editor, /import SourceFieldImportCard/);
+  assert.match(editor, /<SourceFieldImportCard[\\s\\S]*?fields=\\{propertyFields\\}/);
+  assert.doesNotMatch(editor, /<FormSectionHeader title="分区字段管理" \\/>[\\s\\S]*?<SourceFieldImportCard/);
+  assert.match(sourceFieldImportCard, /listDataSources/);
+  assert.match(sourceFieldImportCard, /listDataSourceTables/);
+  assert.match(sourceFieldImportCard, /listDataSourceColumns/);
+  assert.match(sourceFieldImportCard, /导入全部字段/);
+  assert.match(sourceFieldImportCard, /导入部分字段/);
+  assert.match(sourceFieldImportCard, /同名字段会按来源表元数据覆盖/);
+  assert.match(sourceFieldImportCard, /fieldType: "PROPERTY"/);
+  assert.match(sourceFieldImportCard, /sourceTb: tableName/);
+  assert.match(sourceFieldImportCard, /sourceField: column\.name/);
 });
 
 test("field spreadsheet uses responsive min-width plus flex column sizing", () => {
