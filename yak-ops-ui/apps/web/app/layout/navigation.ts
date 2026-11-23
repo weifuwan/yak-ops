@@ -296,6 +296,11 @@ export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
     icon: LayoutDashboard,
   },
   {
+    label: "系统监控",
+    path: "/operations/system-monitor",
+    icon: Server,
+  },
+  {
     id: "workflow-operations",
     label: "工作流运维",
     icon: GitBranch,
