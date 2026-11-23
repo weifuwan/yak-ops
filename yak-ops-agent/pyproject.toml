@@ -43,6 +43,7 @@ known-first-party = ["yak_agent"]
 
 [project.optional-dependencies]
 dev = [
+    "coverage>=7",
     "ruff==0.17.5",
     "pre-commit>=3.0",
 ]

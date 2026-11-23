@@ -70,7 +70,25 @@ python -m venv .venv
 
 依赖清单见 `pyproject.toml`（含 AgentScope、FastAPI/uvicorn、httpx、Pydantic、cocoon 沙箱等）；开发环境用 `pip install -e ".[dev]"` 一并安装 ruff 与 pre-commit。
 
+CI 使用 uv 和已提交的 `uv.lock` 保证依赖可复现；本地推荐用同一套命令：
+
+```bash
+python -m pip install 'uv==0.13.6'
+cd yak-ops-agent
+uv sync --locked --extra dev
+uv run python -m unittest discover -s tests -q
+uv run ruff check yak_agent tests smoke
+uv run ruff format --check yak_agent tests smoke
+```
+
 要求 Python 3.11+（AgentScope 2.0 硬要求）。
+
+## CI
+
+`.github/workflows/agent-ci.yml` 在 `yak-ops-agent/**` 或 `yak-ops-openapi/**`
+变更时运行三个独立 job：`Lint`（ruff）、`Test (3.11/3.12)`（unittest +
+coverage artifact）、`Agent Contract`（allowlist/registry/OpenAPI 一致性）。
+本地等价命令见上方 uv 段落；不依赖真实模型、Java 后端或外部服务。
 
 ## 配置
 

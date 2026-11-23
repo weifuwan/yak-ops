@@ -30,3 +30,8 @@ metastore_db/
 # Temporary work
 .stage*
 *.py[cod]
+
+# Python coverage artifacts
+**/.coverage
+**/coverage.xml
+**/htmlcov/
