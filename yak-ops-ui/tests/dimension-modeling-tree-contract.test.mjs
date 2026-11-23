@@ -467,6 +467,24 @@ test("dimension field management uses a spreadsheet editor instead of editable Y
   assert.match(fieldSpreadsheet, /<Checkbox/);
 });
 
+test("field spreadsheet uses responsive min-width plus flex column sizing", () => {
+  assert.match(fieldGridTypes, /minWidth: number/);
+  assert.match(fieldGridTypes, /flex\?: number/);
+  assert.match(fieldGridTypes, /key: "sequence"[\s\S]*?width: 44/);
+  assert.match(fieldGridTypes, /key: "fieldName"[\s\S]*?minWidth: 180[\s\S]*?flex: 1\.3/);
+  assert.match(fieldGridTypes, /key: "cnName"[\s\S]*?minWidth: 180[\s\S]*?flex: 1\.3/);
+  assert.match(fieldGridTypes, /key: "remark"[\s\S]*?minWidth: 200[\s\S]*?flex: 1\.5/);
+  assert.match(fieldGridTypes, /key: "actions"[\s\S]*?width: 80/);
+  assert.match(fieldSpreadsheet, /minmax\(\$\{column\.minWidth\}px, \$\{column\.flex\}fr\)/);
+  assert.match(fieldSpreadsheet, /function gridMinWidth/);
+  assert.match(fieldSpreadsheet, /const templateColumns = useMemo\(\(\) => gridTemplate\(columns\)/);
+  assert.match(fieldSpreadsheet, /const minGridWidth = useMemo\(\(\) => gridMinWidth\(columns\)/);
+  assert.match(fieldSpreadsheet, /className="grid w-full bg-\[var\(--yak-color-hover\)\]"/);
+  assert.match(fieldSpreadsheet, /className="grid w-full"/);
+  assert.match(fieldSpreadsheet, /overflow-x-auto/);
+  assert.doesNotMatch(fieldSpreadsheet, /w-max min-w-full|column\.width \+ "px"/);
+});
+
 test("field spreadsheet supports keyboard navigation, paste, row operations and cell validation", () => {
   assert.match(fieldSpreadsheet, /handleGridPaste/);
   assert.match(fieldSpreadsheet, /event\.key === "Tab"/);
