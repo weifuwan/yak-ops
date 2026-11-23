@@ -1,26 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
-import {
-  Button,
-  Checkbox,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectTrigger,
-  SelectValue,
-  toast,
-} from "@yak-ops/yak-ui";
-import { Database, Import, Settings2, Trash2 } from "lucide-react";
+import { Button, Checkbox, Input, toast } from "@yak-ops/yak-ui";
+import { Trash2 } from "lucide-react";
 
 import type { DimensionFieldRecord } from "@/service/data-modeling/models/dimension-modeling";
 import FieldBatchImportDialog from "./field-batch-import-dialog";
+import FieldGridSelect from "./field-grid-select";
 import FieldReferenceDialog from "./field-reference-dialog";
+import FieldSpreadsheetToolbar from "./field-spreadsheet-toolbar";
 import {
   cellClipboardValue,
   createDraftField,
@@ -36,7 +23,6 @@ import {
   FIELD_GRID_COLUMNS,
   type FieldColumnKey,
   type FieldGridColumn,
-  type FieldOption,
   type FieldSpreadsheetProps,
 } from "./field-grid-types";
 
@@ -44,42 +30,6 @@ type ActiveCell = {
   rowId: string;
   column: FieldColumnKey;
 };
-
-function GridSelect({
-  value,
-  options,
-  placeholder,
-  onChange,
-}: {
-  value: string;
-  options: FieldOption[];
-  placeholder: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <Select<string>
-      size="small"
-      items={Object.fromEntries(options.map((option) => [option.value, option.label]))}
-      value={value || null}
-      onValueChange={(nextValue) => onChange(nextValue || "")}
-    >
-      <SelectTrigger
-        variant="outlined"
-        className="!h-[27px] w-full !rounded-none !border-0 !bg-transparent !px-2 !text-xs !shadow-none focus-visible:!ring-0"
-      >
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent emptyContent="暂无可选项">
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            <SelectItemText>{option.label}</SelectItemText>
-            <SelectItemIndicator />
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 function gridTemplate(columns: FieldGridColumn[]) {
   return columns.map((column) => column.width + "px").join(" ");
@@ -175,7 +125,14 @@ export function FieldSpreadsheet({
     const insertAt = activeIndex >= 0 ? activeIndex + 1 : fields.length;
     onChange([...fields.slice(0, insertAt), ...additions, ...fields.slice(insertAt)]);
     setInsertCount(String(count));
-    requestAnimationFrame(() => focusCell(insertAt, 0));
+    const firstInsertedRowId = fieldRowId(additions[0], insertAt);
+    const firstEditableColumn = editableColumns[0]?.key;
+    if (firstEditableColumn) {
+      setActiveCell({ rowId: firstInsertedRowId, column: firstEditableColumn });
+      requestAnimationFrame(() => {
+        cellRefs.current.get(cellKey(firstInsertedRowId, firstEditableColumn))?.focus();
+      });
+    }
   };
 
   const removeEmptyRows = () => {
@@ -372,7 +329,7 @@ export function FieldSpreadsheet({
         );
       case "dataType":
         return (
-          <GridSelect
+          <FieldGridSelect
             value={field.dataType || "STRING"}
             options={DATA_TYPE_OPTIONS}
             placeholder="类型"
@@ -426,7 +383,7 @@ export function FieldSpreadsheet({
         );
       case "fieldStdId":
         return (
-          <GridSelect
+          <FieldGridSelect
             value={field.fieldStdId || ""}
             options={fieldStandardOptions}
             placeholder="未关联"
@@ -435,7 +392,7 @@ export function FieldSpreadsheet({
         );
       case "codeStdId":
         return (
-          <GridSelect
+          <FieldGridSelect
             value={field.codeStdId || ""}
             options={codeStandardOptions}
             placeholder="未关联"
@@ -444,7 +401,7 @@ export function FieldSpreadsheet({
         );
       case "unitId":
         return (
-          <GridSelect
+          <FieldGridSelect
             value={field.unitId || ""}
             options={unitOptions}
             placeholder="未关联"
@@ -520,74 +477,17 @@ export function FieldSpreadsheet({
   return (
     <>
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={removeEmptyRows}>
-              移除空白行
-            </Button>
-            <div className="flex items-center gap-1 text-xs text-[var(--yak-components-muted-text)]">
-              <Button size="sm" variant="secondary" onClick={insertRows}>
-                插入
-              </Button>
-              <Input
-                size="small"
-                variant="outlined"
-                type="number"
-                min={1}
-                max={100}
-                value={insertCount}
-                className="w-14"
-                onChange={(event) => setInsertCount(event.target.value)}
-              />
-              <span>行</span>
-            </div>
-            <Button size="sm" variant="ghost" onClick={() => setReferenceOpen(true)}>
-              <Database size={13} />
-              引用已有表
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setBatchImportOpen(true)}>
-              <Import size={13} />
-              批量导入
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {validationIssues.length ? (
-              <span className="text-xs text-[var(--yak-components-danger-text)]">
-                {validationIssues.length} 个配置问题
-              </span>
-            ) : null}
-            <Popover>
-              <PopoverTrigger className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded border border-[var(--yak-components-control-border)] bg-white px-2.5 text-xs text-[var(--yak-components-panel-text)] hover:bg-[var(--yak-color-hover)]">
-                <Settings2 size={13} />
-                字段显示设置
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-52 p-2">
-                <div className="space-y-1">
-                  {FIELD_GRID_COLUMNS.filter((column) => column.configurable).map((column) => (
-                    <label
-                      key={column.key}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-[var(--yak-color-hover)]"
-                    >
-                      <Checkbox
-                        checked={visibleColumns.has(column.key)}
-                        onCheckedChange={(checked) =>
-                          setVisibleColumns((current) => {
-                            const next = new Set(current);
-                            if (checked === true) next.add(column.key);
-                            else next.delete(column.key);
-                            return next;
-                          })
-                        }
-                      />
-                      <span>{column.title}</span>
-                    </label>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
+        <FieldSpreadsheetToolbar
+          insertCount={insertCount}
+          validationIssueCount={validationIssues.length}
+          visibleColumns={visibleColumns}
+          onInsertCountChange={setInsertCount}
+          onInsertRows={insertRows}
+          onRemoveEmptyRows={removeEmptyRows}
+          onOpenReference={() => setReferenceOpen(true)}
+          onOpenBatchImport={() => setBatchImportOpen(true)}
+          onVisibleColumnsChange={setVisibleColumns}
+        />
 
         <div
           role="grid"
