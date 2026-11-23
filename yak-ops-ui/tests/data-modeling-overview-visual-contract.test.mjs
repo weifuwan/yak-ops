@@ -22,11 +22,25 @@ test("data modeling overview keeps the current landing-page structure", () => {
     false,
     "overview should not depend on the legacy external hero image",
   );
-  assert.equal(
-    overview.includes("radial-gradient(ellipse at 16% -12%"),
-    false,
-    "overview hero should not render decorative background effects",
+  assert.ok(
+    overview.includes('from "./components/PixelBlast"'),
+    "overview should use the PixelBlast hero background",
   );
+  for (const presetValue of [
+    'variant="cross"',
+    'pixelSize={6}',
+    'color="#A1A1AA"',
+    'accentColor="#D97706"',
+    'patternScale={3}',
+    'patternDensity={1.1}',
+    'pixelSizeJitter={0.6}',
+    'glow={0.2}',
+    'twinkle={0.75}',
+    'speed={0.3}',
+    'hoverEffect="grow"',
+  ]) {
+    assert.ok(overview.includes(presetValue), "overview should keep " + presetValue);
+  }
 });
 
 test("overview keeps all modeling statistic categories", () => {
