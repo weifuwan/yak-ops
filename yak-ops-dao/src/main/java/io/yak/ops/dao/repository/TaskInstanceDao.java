@@ -105,7 +105,8 @@ public interface TaskInstanceDao extends IDao<TaskInstance> {
                                                               List<Long> taskCodes);
 
     IPage<TaskInstance> queryByProjectAndTaskType(IPage<TaskInstance> page, long projectCode,
-                                                  String taskType, Long taskCode, int[] states);
+                                                  String taskType, Long taskCode, int[] states,
+                                                  TaskExecuteType taskExecuteType);
 
     IPage<TaskInstance> queryTaskInstanceListPaging(IPage<TaskInstance> page,
                                                     Long projectCode,
