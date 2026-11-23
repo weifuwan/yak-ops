@@ -5,6 +5,7 @@ import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.enums.DataSyncScope;
+import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
@@ -67,9 +68,10 @@ public class DataSyncController extends BaseController {
                                                       @RequestParam(defaultValue = "20") int pageSize,
                                                       @RequestParam(required = false) String keyword,
                                                       @RequestParam(required = false) ReleaseState status,
-                                                      @RequestParam(required = false) DataSyncScope scope) {
+                                                      @RequestParam(required = false) DataSyncScope scope,
+                                                      @RequestParam(required = false) DataSyncType syncType) {
         checkPageParams(pageNo, pageSize);
-        return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status, scope));
+        return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status, scope, syncType));
     }
 
     @GetMapping("/tasks/{taskCode}")
@@ -145,9 +147,10 @@ public class DataSyncController extends BaseController {
                                                           @RequestParam(defaultValue = "1") int pageNo,
                                                           @RequestParam(defaultValue = "20") int pageSize,
                                                           @RequestParam(required = false) Long taskCode,
-                                                          @RequestParam(required = false) TaskExecutionStatus status) {
+                                                          @RequestParam(required = false) TaskExecutionStatus status,
+                                                          @RequestParam(required = false) DataSyncType syncType) {
         checkPageParams(pageNo, pageSize);
-        return Result.success(dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status));
+        return Result.success(dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status, syncType));
     }
 
     @GetMapping("/instances/latest")
