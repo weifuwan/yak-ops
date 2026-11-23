@@ -238,7 +238,7 @@ function MonitorTableHeader({
   unit: string;
 }) {
   return (
-    <div className="flex h-11 items-center justify-between gap-4 border-b border-[var(--yak-components-panel-border)] px-4">
+    <div className="flex h-11 items-center justify-between gap-4 border-b border-[var(--yak-components-panel-border)] px-3">
       <div className="text-sm font-medium">{title}</div>
       <div className="shrink-0 text-xs tabular-nums text-[var(--yak-components-muted-text)]">
         {count} {unit}
@@ -260,20 +260,18 @@ function ServerTableCard({
 }) {
   return (
     <Card>
-      <CardContent className="p-0">
-        <MonitorTableHeader title={title} count={records.length} unit="个节点" />
-        <Table<MonitorServerView>
-          columns={columns}
-          dataSource={records}
-          rowKey={(record) => `${record.host}:${record.port}:${record.id}`}
-          loading={loading}
-          bordered
-          size="small"
-          scroll={{ x: 1080 }}
-          pagination={false}
-          emptyText="暂无在线节点"
-        />
-      </CardContent>
+      <MonitorTableHeader title={title} count={records.length} unit="个节点" />
+      <Table<MonitorServerView>
+        columns={columns}
+        dataSource={records}
+        rowKey={(record) => `${record.host}:${record.port}:${record.id}`}
+        loading={loading}
+        bordered
+        size="small"
+        scroll={{ x: 1080 }}
+        pagination={false}
+        emptyText="暂无在线节点"
+      />
     </Card>
   );
 }
@@ -469,24 +467,22 @@ export function SystemMonitorPage() {
         />
 
         <Card>
-          <CardContent className="p-0">
-            <MonitorTableHeader
-              title="数据库指标"
-              count={(databaseQuery.data ?? []).length}
-              unit="个数据源"
-            />
-            <Table<DatabaseMetrics>
-              columns={databaseColumns}
-              dataSource={databaseQuery.data ?? []}
-              rowKey={(record) => `${record.dbType || "database"}-${record.date || "current"}`}
-              loading={databaseQuery.isPending}
-              bordered
-              size="small"
-              scroll={{ x: 1050 }}
-              pagination={false}
-              emptyText="暂无数据库监控数据"
-            />
-          </CardContent>
+          <MonitorTableHeader
+            title="数据库指标"
+            count={(databaseQuery.data ?? []).length}
+            unit="个数据源"
+          />
+          <Table<DatabaseMetrics>
+            columns={databaseColumns}
+            dataSource={databaseQuery.data ?? []}
+            rowKey={(record) => `${record.dbType || "database"}-${record.date || "current"}`}
+            loading={databaseQuery.isPending}
+            bordered
+            size="small"
+            scroll={{ x: 1050 }}
+            pagination={false}
+            emptyText="暂无数据库监控数据"
+          />
         </Card>
       </div>
     </OperationsPageShell>
