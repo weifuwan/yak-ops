@@ -244,7 +244,7 @@ class DataSyncServiceImplTest {
     @Test
     void taskStatusFilterUsesNativeReleaseState() {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), eq(ReleaseState.ONLINE.getCode()), isNull())).thenReturn(new Page<>(1, 20));
+                isNull(), isNull(), eq(ReleaseState.ONLINE.getCode()), isNull(), isNull())).thenReturn(new Page<>(1, 20));
 
         assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE, null)
                 .getTotal());
@@ -270,7 +270,7 @@ class DataSyncServiceImplTest {
         page.setTotal(1);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 eq("sales"), isNull(), eq(ReleaseState.ONLINE.getCode()), eq(Collections.singletonList(22L))))
-                .thenReturn(page);
+                .thenReturn(page, isNull());
 
         PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20,
                 "sales", ReleaseState.ONLINE, DataSyncScope.MULTI_TABLE);
@@ -292,7 +292,7 @@ class DataSyncServiceImplTest {
 
         assertEquals(0, result.getTotal());
         assertTrue(result.getTotalList().isEmpty());
-        verify(taskDefinitionDao, never()).queryDataSyncPage(any(), eq(PROJECT_CODE), any(), any(), any(), any(), any());
+        verify(taskDefinitionDao, never()).queryDataSyncPage(any(), eq(PROJECT_CODE), any(), any(), any(), any(), any(), isNull());
     }
 
     @Test
@@ -329,7 +329,7 @@ class DataSyncServiceImplTest {
         page.setTotal(2);
         when(taskDefinitionDao.queryByCode(99L)).thenReturn(task);
         when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                eq(99L), isNull())).thenReturn(page);
+                eq(99L), isNull(), isNull())).thenReturn(page);
 
         assertEquals(2, service.listInstances(new User(), PROJECT_CODE, 1, 20, 99L, null).getTotal());
     }
@@ -570,10 +570,10 @@ class DataSyncServiceImplTest {
     @Test
     void taskListNeedsReadPermissionOnly() {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), isNull(), isNull())).thenReturn(new Page<>(1, 20));
+                isNull(), isNull(), isNull(), isNull(), isNull())).thenReturn(new Page<>(1, 20));
         User user = new User();
 
-        assertEquals(0, service.listTasks(user, PROJECT_CODE, 1, 20, null, null, null)
+        assertEquals(0, service.listTasks(user, PROJECT_CODE, 1, 20, null, null, null, null)
                 .getTotal());
 
         verify(projectService).checkProjectAndAuthThrowException(user, PROJECT_CODE, null);
@@ -585,7 +585,7 @@ class DataSyncServiceImplTest {
         Page<DataSyncTaskPageRow> page = new Page<>(2, 20);
         page.setTotal(45);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), isNull(), isNull())).thenReturn(page);
+                isNull(), isNull(), isNull(), isNull(), isNull())).thenReturn(page);
 
         PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null, null);
 
@@ -611,7 +611,7 @@ class DataSyncServiceImplTest {
         page.setRecords(Collections.singletonList(row));
         page.setTotal(1);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), isNull(), isNull(), isNull())).thenReturn(page);
+                isNull(), isNull(), isNull(), isNull(), isNull())).thenReturn(page);
 
         DataSyncTaskVO task = service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null, null)
                 .getTotalList().get(0);
