@@ -47,7 +47,7 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
     const label = mode === "create"
       ? DIMENSION_CREATE_OPTIONS.find((option) => option.type === createType)?.label || "新建模型"
       : mode === "list"
-        ? "维度表列表"
+        ? "模型列表"
         : String(record?.cnName || record?.enShortName || record?.tableName || "维度表");
     const nextTab: DimensionTab = { key, mode, dwType: tabDwType, createType, label, record };
     setTabs((current) => [...current, nextTab]);
