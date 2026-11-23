@@ -266,12 +266,32 @@ export function DataModelingOverviewPage() {
       {/* 上半部分：主视觉 */}
       <section
         aria-hidden="true"
-        className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 bg-[#F6F6F6] bg-cover bg-center bg-no-repeat"
+        className="relative h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 overflow-hidden bg-[#F7F8FA]"
         style={{
-          backgroundImage:
-            'url("https://img.alicdn.com/imgextra/i4/O1CN01d9iDld1SKva5mO2VE_!!6000000002229-55-tps-1920-500.svg")',
+          backgroundImage: [
+            "radial-gradient(ellipse at 16% -12%, rgba(69, 131, 255, 0.16) 0%, rgba(69, 131, 255, 0.07) 24%, transparent 48%)",
+            "radial-gradient(ellipse at 88% 18%, rgba(254, 44, 85, 0.08) 0%, rgba(254, 44, 85, 0.035) 22%, transparent 44%)",
+            "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 248, 250, 0.72) 48%, rgba(246, 246, 246, 0.96) 100%)",
+          ].join(", "),
         }}
-      />
+      >
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(58, 61, 81, 0.13) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 76%)",
+            maskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 76%)",
+          }}
+        />
+
+        <div className="absolute left-[8%] top-[18%] h-px w-[34%] bg-gradient-to-r from-transparent via-[#AEB9CC]/45 to-transparent" />
+        <div className="absolute right-[10%] top-[34%] h-px w-[24%] bg-gradient-to-r from-transparent via-[#D8A6B2]/35 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#F6F6F6] via-[#F6F6F6]/80 to-transparent" />
+      </section>
 
       {/* 下半部分：数据概览 */}
       <section className="min-h-[420px] w-full flex-1 bg-[#F6F6F6] pb-4 pt-6">
