@@ -169,6 +169,9 @@
         <if test="taskCode != null">
             and task_code = #{taskCode}
         </if>
+        <if test="taskExecuteType != null">
+            and task_execute_type = #{taskExecuteType}
+        </if>
         <if test="states != null and states.length != 0">
             and state in
             <foreach collection="states" item="state" open="(" separator="," close=")">
