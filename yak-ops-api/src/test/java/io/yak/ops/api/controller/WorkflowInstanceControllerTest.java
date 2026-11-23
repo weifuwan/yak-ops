@@ -68,7 +68,7 @@ public class WorkflowInstanceControllerTest extends AbstractControllerTest {
         Mockito.when(workflowInstanceService
                 .queryWorkflowInstanceList(Mockito.any(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any(),
                         Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(),
-                        Mockito.any(), Mockito.any()))
+                        Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(mockResult);
 
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
