@@ -79,7 +79,8 @@ export type AlertRecordType =
   | "FAULT_TOLERANCE_WARNING"
   | "TASK_FAILURE"
   | "TASK_SUCCESS"
-  | "TASK_TIMEOUT";
+  | "TASK_TIMEOUT"
+  | "TASK_RESULT";
 
 export interface AlertRecord {
   id: number;
