@@ -8,12 +8,13 @@ import {
 } from "@yak-ops/yak-ui";
 import { Database, Import, Settings2 } from "lucide-react";
 
-import { FIELD_GRID_COLUMNS, type FieldColumnKey } from "./field-grid-types";
+import type { FieldColumnKey, FieldGridColumn } from "./field-grid-types";
 
 export function FieldSpreadsheetToolbar({
   insertCount,
   validationIssueCount,
   referenceLabel = "引用已有表",
+  availableColumns,
   visibleColumns,
   onInsertCountChange,
   onInsertRows,
@@ -25,6 +26,7 @@ export function FieldSpreadsheetToolbar({
   insertCount: string;
   validationIssueCount: number;
   referenceLabel?: string;
+  availableColumns: FieldGridColumn[];
   visibleColumns: Set<FieldColumnKey>;
   onInsertCountChange: (value: string) => void;
   onInsertRows: () => void;
@@ -78,23 +80,33 @@ export function FieldSpreadsheetToolbar({
           </PopoverTrigger>
           <PopoverContent align="end" className="w-52 p-2">
             <div className="space-y-1">
-              {FIELD_GRID_COLUMNS.filter((column) => column.configurable).map((column) => (
-                <label
-                  key={column.key}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-[var(--yak-color-hover)]"
-                >
-                  <Checkbox
-                    checked={visibleColumns.has(column.key)}
-                    onCheckedChange={(checked) => {
-                      const next = new Set(visibleColumns);
-                      if (checked === true) next.add(column.key);
-                      else next.delete(column.key);
-                      onVisibleColumnsChange(next);
-                    }}
-                  />
-                  <span>{column.title}</span>
-                </label>
-              ))}
+              {availableColumns.map((column) => {
+                const fixed = !column.configurable;
+                return (
+                  <label
+                    key={column.key}
+                    className={[
+                      "flex items-center gap-2 rounded px-2 py-1.5 text-xs",
+                      fixed
+                        ? "cursor-default text-[var(--yak-components-muted-text)]"
+                        : "cursor-pointer hover:bg-[var(--yak-color-hover)]",
+                    ].join(" ")}
+                  >
+                    <Checkbox
+                      checked={fixed || visibleColumns.has(column.key)}
+                      disabled={fixed}
+                      onCheckedChange={(checked) => {
+                        if (fixed) return;
+                        const next = new Set(visibleColumns);
+                        if (checked === true) next.add(column.key);
+                        else next.delete(column.key);
+                        onVisibleColumnsChange(next);
+                      }}
+                    />
+                    <span>{column.title}</span>
+                  </label>
+                );
+              })}
             </div>
           </PopoverContent>
         </Popover>
