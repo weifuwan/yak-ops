@@ -318,8 +318,9 @@ public class DimensionTreeBuilder {
     }
 
     private void addTableNode(List<DimensionTreeNodeVO> nodes, DimensionTablePO table, String parentId, String type) {
-        DimensionTreeNodeVO tableNode = node(table.getId() + "-DIM", table.getCnName(), parentId,
+        DimensionTreeNodeVO tableNode = node(table.getId() + "-" + type, table.getCnName(), parentId,
                 type, true, table.getUpdateTime(), null);
+        tableNode.setModelId(table.getId());
         tableNode.setSearchText((table.getTableName() == null ? "" : table.getTableName())
                 + " " + (table.getEnShortName() == null ? "" : table.getEnShortName()));
         addNode(nodes, tableNode);
