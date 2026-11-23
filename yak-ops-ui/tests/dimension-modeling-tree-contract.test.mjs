@@ -470,8 +470,9 @@ test("dimension field management uses a spreadsheet editor instead of editable Y
 
 test("field management can import source table metadata without affecting partition fields", () => {
   assert.match(editor, /import SourceFieldImportCard/);
-  assert.match(editor, /<SourceFieldImportCard[\\s\\S]*?fields=\\{propertyFields\\}/);
-  assert.doesNotMatch(editor, /<FormSectionHeader title="分区字段管理" \\/>[\\s\\S]*?<SourceFieldImportCard/);
+  assert.match(editor, /<SourceFieldImportCard[\s\S]*?fields=\{propertyFields\}/);
+  const partitionSection = editor.slice(editor.indexOf('<FormSectionHeader title="分区字段管理" />'));
+  assert.doesNotMatch(partitionSection, /<SourceFieldImportCard/);
   assert.match(sourceFieldImportCard, /listDataSources/);
   assert.match(sourceFieldImportCard, /listDataSourceTables/);
   assert.match(sourceFieldImportCard, /listDataSourceColumns/);
