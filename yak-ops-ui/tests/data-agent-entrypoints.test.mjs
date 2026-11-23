@@ -239,10 +239,14 @@ test("conversation orchestration is separated from the workspace component", () 
   assert.match(emptyState, /已恢复服务端历史消息/);
   assert.match(composer, /isSubmitting\?: boolean/);
   assert.match(composer, /onStop\?: \(\) => void/);
-  assert.match(composer, /disabled=\{isSubmitting \? !onStop : !value\.trim\(\)\}/);
+  assert.match(composer, /disabled=\{!value\.trim\(\)\}/);
   assert.match(composer, /停止当前任务/);
+  assert.match(composer, /发送并排队/);
+  assert.doesNotMatch(workspace, /if \(isSending\) return false;/);
+  assert.match(conversationHook, /queue: true/);
   assert.match(conversationHook, /resumeAgentStream/);
   assert.match(conversationHook, /getAgentSessionMessages/);
+  assert.match(conversationHook, /getAgentSessionQueue/);
   assert.match(conversationHook, /interruptAgentSession/);
 });
 
@@ -446,7 +450,11 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(detailsTimeline, /TOOL_LABELS/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
+  assert.match(conversationHook, /case "tool_call_end"/);
+  assert.match(conversationHook, /case "tool_result_start"/);
   assert.match(conversationHook, /case "tool_result_delta"/);
+  assert.match(conversationHook, /case "queue_waiting"/);
+  assert.match(conversationHook, /case "queue_started"/);
   assert.match(conversationHook, /case "usage"/);
   assert.match(conversationHook, /case "reply_end"/);
   assert.match(reducer, /case "PROGRESS_UPDATED"/);
@@ -578,7 +586,9 @@ test("completed activity statuses use icon-only indicators and readable typograp
   assert.match(thinkingIndicator, /activity\.status === "completed" \? null : activityStatusLabel\(activity\.status\)/);
   assert.match(thinkingIndicator, /text-sm font-medium/);
   assert.match(thinkingIndicator, /text-xs tabular-nums/);
-  assert.match(toolActivity, /status === "completed" \? null : toolStatusLabel\(status\)/);
+  assert.match(toolActivity, /activity\.phase === "preparing"/);
+  assert.match(toolActivity, /activity\.phase === "ready"/);
+  assert.match(toolActivity, /runningLabel/);
   assert.match(toolActivity, /text-sm font-medium/);
   assert.match(toolActivity, /text-xs tabular-nums/);
   assert.match(toolCallCard, /toolCall\.status === "completed" \? null : toolStatusLabel\(toolCall\.status\)/);
