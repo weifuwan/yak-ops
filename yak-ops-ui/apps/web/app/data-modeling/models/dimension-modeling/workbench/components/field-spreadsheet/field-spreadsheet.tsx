@@ -4,9 +4,7 @@ import { Button, Checkbox, Input, toast } from "@yak-ops/yak-ui";
 import { Trash2 } from "lucide-react";
 
 import type { DimensionFieldRecord } from "@/service/data-modeling/models/dimension-modeling";
-import FieldBatchImportDialog from "./field-batch-import-dialog";
 import FieldGridSelect from "./field-grid-select";
-import FieldReferenceDialog from "./field-reference-dialog";
 import FieldSpreadsheetToolbar from "./field-spreadsheet-toolbar";
 import {
   cellClipboardValue,
@@ -41,7 +39,6 @@ function cellKey(rowId: string, column: FieldColumnKey) {
 }
 
 export function FieldSpreadsheet({
-  projectCode,
   modelType,
   fieldType,
   fields,
@@ -57,8 +54,6 @@ export function FieldSpreadsheet({
   );
   const [insertCount, setInsertCount] = useState("1");
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
-  const [referenceOpen, setReferenceOpen] = useState(false);
-  const [batchImportOpen, setBatchImportOpen] = useState(false);
   const cellRefs = useRef(new Map<string, HTMLDivElement>());
 
   const availableColumns = useMemo(
@@ -162,28 +157,6 @@ export function FieldSpreadsheet({
     onChange(next);
     setActiveCell(null);
     toast.success("已移除 " + removed + " 个空白行");
-  };
-
-  const appendImportedFields = (incoming: DimensionFieldRecord[]) => {
-    const names = new Set(
-      fields
-        .map((field) => field.fieldName?.trim().toLowerCase())
-        .filter((name): name is string => Boolean(name)),
-    );
-    const accepted: DimensionFieldRecord[] = [];
-    let skipped = 0;
-    incoming.forEach((field) => {
-      const name = field.fieldName?.trim().toLowerCase();
-      if (name && names.has(name)) {
-        skipped += 1;
-        return;
-      }
-      if (name) names.add(name);
-      accepted.push(normalizeSectionField(field));
-    });
-    if (accepted.length) onChange([...fields, ...accepted]);
-    if (skipped) toast.warning("已跳过 " + skipped + " 个同名字段");
-    if (accepted.length) toast.success("已导入 " + accepted.length + " 个字段");
   };
 
   const applyPaste = (text: string) => {
@@ -498,7 +471,6 @@ export function FieldSpreadsheet({
   };
 
   const spreadsheetTitle = fieldType === "PARTITION" ? "分区字段" : "字段";
-  const referenceLabel = modelType === "SOURCE" ? "引用来源表" : "引用已有表";
 
   return (
     <>
@@ -506,14 +478,11 @@ export function FieldSpreadsheet({
         <FieldSpreadsheetToolbar
           insertCount={insertCount}
           validationIssueCount={validationIssues.length}
-          referenceLabel={referenceLabel}
           availableColumns={availableColumns}
           visibleColumns={visibleColumns}
           onInsertCountChange={setInsertCount}
           onInsertRows={insertRows}
           onRemoveEmptyRows={removeEmptyRows}
-          onOpenReference={() => setReferenceOpen(true)}
-          onOpenBatchImport={() => setBatchImportOpen(true)}
           onVisibleColumnsChange={setVisibleColumns}
         />
 
@@ -550,7 +519,7 @@ export function FieldSpreadsheet({
             </div>
           ) : fields.length === 0 ? (
             <div className="flex min-h-20 items-center justify-center text-xs text-[var(--yak-components-muted-text)]">
-              暂无{spreadsheetTitle}，可插入行、{referenceLabel}或批量导入
+              暂无{spreadsheetTitle}，可插入行后直接编辑
             </div>
           ) : (
             fields.map((field, rowIndex) => {
@@ -607,20 +576,6 @@ export function FieldSpreadsheet({
         </div>
       </div>
 
-      <FieldReferenceDialog
-        open={referenceOpen}
-        projectCode={projectCode}
-        fieldType={fieldType}
-        title={modelType === "SOURCE" ? "引用来源表字段" : "引用已有表字段"}
-        onClose={() => setReferenceOpen(false)}
-        onImport={appendImportedFields}
-      />
-      <FieldBatchImportDialog
-        open={batchImportOpen}
-        fieldType={fieldType}
-        onClose={() => setBatchImportOpen(false)}
-        onImport={appendImportedFields}
-      />
     </>
   );
 }
