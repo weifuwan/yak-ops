@@ -6,33 +6,27 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@yak-ops/yak-ui";
-import { Database, Import, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 
 import type { FieldColumnKey, FieldGridColumn } from "./field-grid-types";
 
 export function FieldSpreadsheetToolbar({
   insertCount,
   validationIssueCount,
-  referenceLabel = "引用已有表",
   availableColumns,
   visibleColumns,
   onInsertCountChange,
   onInsertRows,
   onRemoveEmptyRows,
-  onOpenReference,
-  onOpenBatchImport,
   onVisibleColumnsChange,
 }: {
   insertCount: string;
   validationIssueCount: number;
-  referenceLabel?: string;
   availableColumns: FieldGridColumn[];
   visibleColumns: Set<FieldColumnKey>;
   onInsertCountChange: (value: string) => void;
   onInsertRows: () => void;
   onRemoveEmptyRows: () => void;
-  onOpenReference: () => void;
-  onOpenBatchImport: () => void;
   onVisibleColumnsChange: (columns: Set<FieldColumnKey>) => void;
 }) {
   return (
@@ -57,14 +51,6 @@ export function FieldSpreadsheetToolbar({
           />
           <span>行</span>
         </div>
-        <Button size="sm" variant="ghost" onClick={onOpenReference}>
-          <Database size={13} />
-          {referenceLabel}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onOpenBatchImport}>
-          <Import size={13} />
-          批量导入
-        </Button>
       </div>
 
       <div className="flex items-center gap-2">
