@@ -235,23 +235,49 @@ export function WorkflowInstancesOperationsPage() {
       extra={<Button size="sm" variant="secondary" onClick={() => void query.refetch()}>刷新</Button>}
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input
-          size="small"
-          variant="outlined"
-          className="w-[260px]"
-          placeholder="工作流名称 / 实例名称"
-          value={keywordInput}
-          onChange={(event) => setKeywordInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              setKeyword(keywordInput.trim());
-              setPageNo(1);
-            }
+        <div className="w-[320px] max-w-full shrink-0">
+          <Input
+            size="small"
+            variant="outlined"
+            className="w-full"
+            placeholder="工作流名称 / 实例名称"
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                setKeyword(keywordInput.trim());
+                setPageNo(1);
+              }
+            }}
+          />
+        </div>
+        <SelectField
+          value={businessType}
+          items={BUSINESS_ITEMS}
+          className="w-[150px] shrink-0"
+          onChange={(value) => {
+            setBusinessType(value || "ALL");
+            setPageNo(1);
           }}
         />
-        <SelectField value={businessType} items={BUSINESS_ITEMS} onChange={(value) => { setBusinessType(value || "ALL"); setPageNo(1); }} />
-        <SelectField value={state} items={WORKFLOW_STATE_ITEMS as unknown as Record<string, string>} onChange={(value) => { setState(value || "ALL"); setPageNo(1); }} />
-        <Button size="sm" variant="secondary" onClick={() => { setKeyword(keywordInput.trim()); setPageNo(1); }}>
+        <SelectField
+          value={state}
+          items={WORKFLOW_STATE_ITEMS as unknown as Record<string, string>}
+          className="w-[150px] shrink-0"
+          onChange={(value) => {
+            setState(value || "ALL");
+            setPageNo(1);
+          }}
+        />
+        <Button
+          size="sm"
+          variant="secondary"
+          className="shrink-0"
+          onClick={() => {
+            setKeyword(keywordInput.trim());
+            setPageNo(1);
+          }}
+        >
           搜索
         </Button>
       </div>
