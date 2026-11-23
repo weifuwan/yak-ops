@@ -96,12 +96,14 @@ function SourceSelect({
   placeholder,
   options,
   disabled,
+  triggerClassName = "w-full",
   onChange,
 }: {
   value: string;
   placeholder: string;
   options: Array<{ value: string; label: string }>;
   disabled?: boolean;
+  triggerClassName?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -112,7 +114,7 @@ function SourceSelect({
       disabled={disabled}
       onValueChange={(nextValue) => onChange(nextValue ?? "")}
     >
-      <SelectTrigger variant="outlined" className="w-full">
+      <SelectTrigger variant="outlined" className={triggerClassName}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent emptyContent={options.length ? undefined : "暂无可选项"}>
@@ -254,128 +256,125 @@ export function SourceFieldImportCard({
   const allSelected =
     columns.length > 0 && selectedColumns.size === columns.length;
 
-  const selectedTable = (tablesQuery.data || []).find(
-    (table) => table.name === tableName,
-  );
-
   return (
     <>
-      <div className="mb-3 rounded border border-[var(--yak-components-panel-border)] bg-[#fafbfc] p-3">
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          <div className="grid min-w-0 grid-cols-[84px_minmax(0,1fr)] items-center gap-2">
-            <span className="text-xs text-[var(--yak-components-muted-text)]">
-              选择数据源
-            </span>
-            <SourceSelect
-              value={dataSourceId}
-              options={dataSourceOptions}
-              placeholder={
-                dataSourcesQuery.isPending ? "正在加载数据源..." : "请选择数据源"
-              }
-              disabled={dataSourcesQuery.isPending}
-              onChange={setDataSourceId}
-            />
+      <div className="mb-3 rounded border border-[var(--yak-components-panel-border)] bg-white px-3 py-2.5">
+        <div className="grid grid-cols-[112px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
+          <span className="text-xs text-[var(--yak-components-panel-text)]">
+            查找已有表/视图：
+          </span>
+          <div className="flex min-w-0 items-center">
+            <div className="w-[180px] shrink-0">
+              <SourceSelect
+                value={dataSourceId}
+                options={dataSourceOptions}
+                placeholder={
+                  dataSourcesQuery.isPending ? "正在加载数据源..." : "请选择数据源"
+                }
+                disabled={dataSourcesQuery.isPending}
+                triggerClassName="w-full rounded-r-none"
+                onChange={setDataSourceId}
+              />
+            </div>
+            <div className="-ml-px min-w-0 flex-1">
+              <SourceSelect
+                value={tableName}
+                options={tableOptions}
+                placeholder={
+                  !dataSourceId
+                    ? "请先选择数据源"
+                    : databasesQuery.isFetching || tablesQuery.isPending
+                      ? "正在加载来源表..."
+                      : "请选择来源表"
+                }
+                disabled={
+                  !dataSourceId ||
+                  !database ||
+                  databasesQuery.isFetching ||
+                  tablesQuery.isPending
+                }
+                triggerClassName="w-full rounded-l-none"
+                onChange={(value) => {
+                  setTableName(value);
+                  setDialog(null);
+                  setSelectedColumns(new Set());
+                }}
+              />
+            </div>
           </div>
 
-          <div className="grid min-w-0 grid-cols-[84px_minmax(0,1fr)] items-center gap-2">
-            <span className="text-xs text-[var(--yak-components-muted-text)]">
-              选择来源表
-            </span>
-            <SourceSelect
-              value={tableName}
-              options={tableOptions}
-              placeholder={
-                !dataSourceId
-                  ? "请先选择数据源"
-                  : databasesQuery.isFetching || tablesQuery.isPending
-                    ? "正在加载来源表..."
-                    : "请选择来源表"
-              }
-              disabled={
-                !dataSourceId ||
-                !database ||
-                databasesQuery.isFetching ||
-                tablesQuery.isPending
-              }
-              onChange={(value) => {
-                setTableName(value);
-                setDialog(null);
-                setSelectedColumns(new Set());
-              }}
-            />
+          <span className="self-start pt-2 text-xs text-[var(--yak-components-panel-text)]">
+            已引用的表/视图：
+          </span>
+          <div className="min-h-8">
+            {tableName ? (
+              <div className="flex h-8 max-w-[560px] items-center gap-2 rounded bg-[#f7f7f8] px-2.5">
+                <span className="shrink-0 text-[11px] text-[var(--yak-components-muted-text)]">
+                  表
+                </span>
+                <span
+                  className="min-w-0 flex-1 truncate text-xs text-[var(--yak-components-panel-text)]"
+                  title={tableName}
+                >
+                  {tableName}
+                </span>
+                <button
+                  type="button"
+                  title="导入全部字段"
+                  aria-label="导入全部字段"
+                  disabled={columnsQuery.isPending || columnsQuery.isError || !columns.length}
+                  onClick={() => setDialog("all")}
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ListPlus size={14} />
+                </button>
+                <button
+                  type="button"
+                  title="导入部分字段"
+                  aria-label="导入部分字段"
+                  disabled={columnsQuery.isPending || columnsQuery.isError || !columns.length}
+                  onClick={openPartialDialog}
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ListChecks size={14} />
+                </button>
+                <button
+                  type="button"
+                  title="移除来源表"
+                  aria-label="移除来源表"
+                  onClick={() => {
+                    setTableName("");
+                    setDialog(null);
+                    setSelectedColumns(new Set());
+                  }}
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded text-[#b2b7c2] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
         {dataSourceId && !database && !databasesQuery.isFetching ? (
-          <p className="mt-2 text-xs text-[var(--yak-components-danger-text)]">
+          <p className="ml-[120px] mt-1 text-xs text-[var(--yak-components-danger-text)]">
             当前数据源未绑定可用数据库，暂时无法加载来源表。
           </p>
         ) : null}
 
         {tablesQuery.isError ? (
-          <p className="mt-2 text-xs text-[var(--yak-components-danger-text)]">
+          <p className="ml-[120px] mt-1 text-xs text-[var(--yak-components-danger-text)]">
             来源表加载失败，请检查数据源连接后重试。
           </p>
         ) : null}
 
-        {tableName ? (
-          <div className="mt-3 flex min-h-9 items-center gap-2 border-t border-[var(--yak-components-panel-border)] pt-3">
-            <span className="w-[84px] shrink-0 text-xs text-[var(--yak-components-muted-text)]">
-              已选来源表
-            </span>
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded border border-[var(--yak-components-control-border)] bg-white px-2.5 py-1.5">
-              <Database size={14} className="shrink-0 text-[#5664ff]" />
-              <span
-                className="min-w-0 flex-1 truncate text-xs text-[var(--yak-components-panel-text)]"
-                title={tableName}
-              >
-                {tableName}
-                {selectedTable?.remarks ? " · " + selectedTable.remarks : ""}
-              </span>
-              <button
-                type="button"
-                title="导入全部字段"
-                aria-label="导入全部字段"
-                disabled={columnsQuery.isPending || columnsQuery.isError || !columns.length}
-                onClick={() => setDialog("all")}
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eef0ff] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ListPlus size={15} />
-              </button>
-              <button
-                type="button"
-                title="导入部分字段"
-                aria-label="导入部分字段"
-                disabled={columnsQuery.isPending || columnsQuery.isError || !columns.length}
-                onClick={openPartialDialog}
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eef0ff] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ListChecks size={15} />
-              </button>
-              <button
-                type="button"
-                title="移除来源表"
-                aria-label="移除来源表"
-                onClick={() => {
-                  setTableName("");
-                  setDialog(null);
-                  setSelectedColumns(new Set());
-                }}
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded text-[var(--yak-components-muted-text)] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-        ) : null}
-
         {tableName && columnsQuery.isPending ? (
-          <p className="mt-2 text-xs text-[var(--yak-components-muted-text)]">
+          <p className="ml-[120px] mt-1 text-xs text-[var(--yak-components-muted-text)]">
             正在读取来源表字段...
           </p>
         ) : null}
         {tableName && columnsQuery.isError ? (
-          <p className="mt-2 text-xs text-[var(--yak-components-danger-text)]">
+          <p className="ml-[120px] mt-1 text-xs text-[var(--yak-components-danger-text)]">
             来源字段读取失败，请检查数据源连接后重试。
           </p>
         ) : null}
