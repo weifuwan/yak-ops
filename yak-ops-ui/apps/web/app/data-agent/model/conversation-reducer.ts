@@ -371,7 +371,7 @@ export function conversationReducer(
             content: message.content + action.delta,
             status: "streaming",
             activities: upsertActivity(activities, nextActivity),
-          };
+            };
         },
       );
 
@@ -491,6 +491,7 @@ export function conversationReducer(
               toolName: activity?.toolName,
               input: (activity?.input ?? "") + action.delta,
               output: activity?.output ?? "",
+              phase: activity?.phase ?? "preparing",
               startedAt: activity?.startedAt ?? timestamp(action.updatedAt),
             }),
           };
@@ -711,7 +712,7 @@ export function conversationReducer(
         (message) => ({
           ...message,
           status: "streaming",
-          toolCalls: (message.toolCalls ?? []).map((call) =>
+            toolCalls: (message.toolCalls ?? []).map((call) =>
             call.status === "awaiting-confirmation"
               ? {
                   ...call,
@@ -719,7 +720,7 @@ export function conversationReducer(
                 }
               : call,
           ),
-          activities: (message.activities ?? []).map((activity) =>
+            activities: (message.activities ?? []).map((activity) =>
             activity.status === "awaiting-confirmation"
               ? {
                   ...activity,
@@ -742,8 +743,8 @@ export function conversationReducer(
             action.finishedReason ??
             message.replyEnds?.[message.replyEnds.length - 1]?.finishedReason;
           return {
-          ...message,
-          status: finishedReason === "interrupted" ? "interrupted" : "complete",
+            ...message,
+            status: finishedReason === "interrupted" ? "interrupted" : "complete",
           toolCalls: (message.toolCalls ?? []).map((call) =>
             call.status === "running" ? { ...call, status: "interrupted" as const } : call,
           ),
