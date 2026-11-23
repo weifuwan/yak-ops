@@ -425,7 +425,7 @@ export function DataModelingOverviewPage() {
 
             <div className="mt-7 flex items-center gap-3">
               <Link
-                to="/data-modeling/models/positive"
+                to="/kimball/models/positive"
                 className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-[var(--yak-color-primary)] px-5 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:shadow-md"
               >
                 开始建模
@@ -433,7 +433,7 @@ export function DataModelingOverviewPage() {
               </Link>
 
               <Link
-                to="/data-modeling/indicators/atom"
+                to="/kimball/indicators/atom"
                 className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-[#10121A] px-5 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#20232D] hover:shadow-md"
               >
                 指标管理
