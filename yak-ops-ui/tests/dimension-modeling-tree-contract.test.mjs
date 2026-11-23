@@ -13,6 +13,7 @@ import {
   warehouseLayerOptions,
 } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/warehouse-layers.ts";
 import { availableDataDomains, defaultDataDomainId } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/default-data-domain.ts";
+import { buildApplicationScopeTree } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/application-scope-tree.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -173,6 +174,55 @@ test("dimension editor selects hierarchical business category IDs through Yak-UI
   assert.ok(businessTreeOptions.includes('value,'));
   assert.ok(businessTreeOptions.includes('label: String(node.title || value)'));
   assert.ok(sidebar.includes('from "../utils/business-type-tree-options"'));
+});
+
+test("application model groups marts and subject domains beneath nonselectable business categories", () => {
+  const businessTypes = [{
+    key: "retail", value: "retail", title: "零售", children: [
+      { key: "retail-child", value: "retail-child", title: "零售业务分类" },
+    ],
+  }, { key: "services", value: "services", title: "服务业" }];
+  const marts = [
+    { id: "mart-main", businessTypeId: "retail-child" },
+    { id: "mart-orphan", businessTypeId: "removed-business-type" },
+  ];
+  const scope = [
+    { key: "mart-main-MART", value: "mart-main-MART", title: "行业集市", type: "MART", children: [
+      { key: "subject-a-SUBJECT", value: "subject-a-SUBJECT", title: "商品", type: "SUBJECT", children: [
+        { key: "subject-child-SUBJECT", value: "subject-child-SUBJECT", title: "商品属性", type: "SUBJECT" },
+      ] },
+      { key: "mart-child-MART", value: "mart-child-MART", title: "子集市", type: "MART" },
+    ] },
+    { key: "mart-orphan-MART", value: "mart-orphan-MART", title: "遗留集市", type: "MART" },
+  ];
+  const tree = buildApplicationScopeTree(businessTypes, marts, scope);
+  assert.equal(tree[0].label, "零售");
+  assert.equal(tree[0].selectable, false);
+  assert.equal(tree[0].children?.[0]?.label, "零售业务分类");
+  assert.equal(tree[0].children?.[0]?.selectable, false);
+  assert.equal(tree[0].children?.[0]?.children?.[0]?.value, "mart-main-MART");
+  assert.equal(tree[0].children?.[0]?.children?.[0]?.children?.[0]?.value, "subject-a-SUBJECT");
+  assert.equal(tree[0].children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]?.value, "subject-child-SUBJECT");
+  assert.equal(tree[0].children?.[0]?.children?.[0]?.children?.[1]?.value, "mart-child-MART");
+  assert.equal(tree[1].selectable, false);
+  assert.equal(tree[2].label, "未关联业务分类");
+  assert.equal(tree[2].selectable, false);
+  assert.equal(tree[2].children?.[0]?.value, "mart-orphan-MART");
+  assert.deepEqual(buildApplicationScopeTree([], [], []), []);
+});
+
+test("application model TreeSelect preserves the save contract and disallows business category choice", () => {
+  assert.match(editor, /queryFn: \(\) => subjectDomainApi\.tree\(projectCode\)/);
+  assert.match(editor, /buildApplicationScopeTree\(/);
+  assert.match(editor, /<FormField label="集市\/主题" required>\s*<TreeSelect/);
+  assert.match(editor, /items=\{martSubjectOptions\}/);
+  assert.match(editor, /value=\{values\.martOrSubject \|\| null\}/);
+  assert.match(editor, /searchPlaceholder="搜索数据集市或主题域"/);
+  assert.match(editor, /onValueChange=\{\(value\) => changeValue\("martOrSubject", value \|\| ""\)\}/);
+  assert.match(editor, /martOrSubject: values\.martOrSubject \|\| null/);
+  assert.match(dimensionService, /"SUBJECT"\.equalsIgnoreCase\(type\)/);
+  assert.match(dimensionService, /"MART"\.equalsIgnoreCase\(type\)/);
+  assert.doesNotMatch(editor, /subjectsQuery|dimension-editor-marts/);
 });
 
 test("dimension creation groups each Base UI menu label with its items", () => {

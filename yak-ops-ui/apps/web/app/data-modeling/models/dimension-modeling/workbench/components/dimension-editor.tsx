@@ -43,7 +43,7 @@ import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-model
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import { useBusinessProcessCascader } from "@/app/data-modeling/planning/common-layer/business-process/use-business-process-cascader";
 import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
-import { subjectDomainApi } from "@/service/data-modeling/planning/application-layer/subject-domain";
+import { subjectDomainApi, type SubjectDomainDirectoryNode } from "@/service/data-modeling/planning/application-layer/subject-domain";
 import { timePeriodApi } from "@/service/data-modeling/indicators/time-period";
 import { modifierApi } from "@/service/data-modeling/indicators/modifier";
 import { dimensionReferenceApi } from "@/service/data-modeling/indicators/dimension-reference";
@@ -55,6 +55,8 @@ import { warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-lay
 import { availableDataDomains, defaultDataDomainId } from "../utils/default-data-domain";
 import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
+import { PlanningIcon } from "../../../../planning/components/icons";
+import { buildApplicationScopeTree } from "../utils/application-scope-tree";
 
 type Option = { value: string; label: string };
 
@@ -249,14 +251,14 @@ export function DimensionEditor({
     enabled: Boolean(projectCode && values.busTypeId),
   });
   const martsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "dimension-editor-marts", projectCode],
+    queryKey: planningQueryKeys.dataMartAll(projectCode),
     queryFn: () => dataMartApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode),
+    enabled: Boolean(projectCode && (values.tableType === "APPLICATION" || tab.createType === "APPLICATION" || tab.record?.tableType === "APPLICATION")),
   });
-  const subjectsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "dimension-editor-subjects", projectCode],
-    queryFn: () => subjectDomainApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode),
+  const applicationScopeQuery = useQuery<SubjectDomainDirectoryNode[]>({
+    queryKey: planningQueryKeys.subjectDomainTree(projectCode),
+    queryFn: () => subjectDomainApi.tree(projectCode),
+    enabled: Boolean(projectCode && (values.tableType === "APPLICATION" || tab.createType === "APPLICATION" || tab.record?.tableType === "APPLICATION")),
   });
   const timePeriodsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-time-periods", projectCode],
@@ -370,16 +372,25 @@ export function DimensionEditor({
       : !domainOptionsReady
         ? "正在加载可用数据域..."
         : "暂无可用数据域";
-  const martSubjectOptions = [
-    ...(martsQuery.data || []).map((record) => ({
-      value: String(record.id || "") + "-MART",
-      label: "数据集市 / " + optionLabel(record, ["martName", "cnName", "enName"]),
-    })),
-    ...(subjectsQuery.data || []).map((record) => ({
-      value: String(record.id || "") + "-SUBJECT",
-      label: "主题域 / " + optionLabel(record, ["domainName", "cnName", "enName"]),
-    })),
-  ].filter((option) => option.value);
+  const applicationScopeLoading = martsQuery.isPending || applicationScopeQuery.isPending || businessTypeTreeQuery.isPending;
+  const applicationScopeError = martsQuery.isError || applicationScopeQuery.isError || businessTypeTreeQuery.isError;
+  const martSubjectOptions = useMemo<TreeSelectOption[]>(() => {
+    if (!martsQuery.isSuccess || !applicationScopeQuery.isSuccess || !businessTypeTreeQuery.isSuccess) return [];
+    const addIcons = (nodes: readonly TreeSelectOption[]): TreeSelectOption[] => nodes.map((node) => ({
+      ...node,
+      icon: <PlanningIcon
+        name={node.value.endsWith("-SUBJECT") ? "subject-domain" : node.value.endsWith("-MART") ? "data-mart" : "business-type"}
+        size={13}
+        className="text-[#3a3d51]"
+      />,
+      children: node.children ? addIcons(node.children) : undefined,
+    }));
+    return addIcons(buildApplicationScopeTree(
+      businessTypeTreeQuery.data || [],
+      martsQuery.data || [],
+      applicationScopeQuery.data || [],
+    ));
+  }, [businessTypeTreeQuery.data, businessTypeTreeQuery.isSuccess, martsQuery.data, martsQuery.isSuccess, applicationScopeQuery.data, applicationScopeQuery.isSuccess]);
   const timePeriodOptions = (timePeriodsQuery.data || []).map((record) => ({
     value: String(record.id || ""),
     label: optionLabel(record, ["cnName", "enName", "enShortName"]),
@@ -947,12 +958,33 @@ export function DimensionEditor({
 
                 {isApplication ? (
                   <FormField label="集市/主题" required>
-                    <OptionSelect
-                      value={values.martOrSubject}
-                      options={martSubjectOptions}
-                      placeholder="请选择数据集市或主题域"
-                      onChange={(value) => changeValue("martOrSubject", value)}
+                    <TreeSelect
+                      ariaLabel="选择数据集市或主题域"
+                      items={martSubjectOptions}
+                      value={values.martOrSubject || null}
+                      placeholder={applicationScopeLoading ? "正在加载集市与主题..." : "请选择数据集市或主题域"}
+                      searchPlaceholder="搜索数据集市或主题域"
+                      emptyText={applicationScopeError ? "集市或主题域加载失败，请重试" : "暂无可选数据集市或主题域"}
+                      disabled={applicationScopeLoading || applicationScopeError}
+                      size="small"
+                      variant="outlined"
+                      className="w-full"
+                      popupClassName="!min-w-[300px]"
+                      onValueChange={(value) => changeValue("martOrSubject", value || "")}
                     />
+                    {applicationScopeError ? (
+                      <button
+                        type="button"
+                        className="mt-1 cursor-pointer text-xs text-[var(--yak-color-primary)] hover:underline"
+                        onClick={() => void Promise.all([
+                          martsQuery.refetch(),
+                          applicationScopeQuery.refetch(),
+                          businessTypeTreeQuery.refetch(),
+                        ])}
+                      >
+                        重新加载集市与主题
+                      </button>
+                    ) : null}
                   </FormField>
                 ) : (
                   <FormField label="业务分类">
