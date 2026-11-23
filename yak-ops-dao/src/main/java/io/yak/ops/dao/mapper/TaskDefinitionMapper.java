@@ -1,5 +1,6 @@
 package io.yak.ops.dao.mapper;
 
+import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskMainInfo;
@@ -52,7 +53,8 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
                                             @Param("keyword") String keyword,
                                             @Param("taskCode") Long taskCode,
                                             @Param("releaseState") Integer releaseState,
-                                            @Param("taskCodes") List<Long> taskCodes);
+                                            @Param("taskCodes") List<Long> taskCodes,
+                                            @Param("taskExecuteType") TaskExecuteType taskExecuteType);
 
     List<DataSyncOverviewTaskRow> queryDataSyncOverview(@Param("projectCode") long projectCode);
 
