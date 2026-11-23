@@ -53,6 +53,7 @@ const TYPE_LABELS: Record<AlertRecordType, string> = {
   TASK_FAILURE: "任务失败",
   TASK_SUCCESS: "任务成功",
   TASK_TIMEOUT: "任务超时",
+  TASK_RESULT: "任务结果",
 };
 
 const STATUS_OPTIONS: Record<string, string> = {
