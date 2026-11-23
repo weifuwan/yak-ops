@@ -135,6 +135,69 @@
         <if test="executorName != null and executorName != ''">
             and executor_name = #{executorName}
         </if>
+        <if test="businessType != null and businessType != ''">
+            <choose>
+                <when test="businessType == 'WORKFLOW'">
+                    and not exists (
+                select 1
+                from t_yak_ops_workflow_task_relation dsr
+                join t_yak_ops_task_definition dst
+                  on dst.code = dsr.post_task_code and dst.project_code = dsr.project_code
+                join t_yak_ops_workflow_definition dsw
+                  on dsw.code = dsr.workflow_definition_code and dsw.project_code = dsr.project_code
+                where dsr.workflow_definition_code = t_yak_ops_workflow_instance.workflow_definition_code
+                  and dsr.project_code = t_yak_ops_workflow_instance.project_code
+                  and dsr.pre_task_code = 0
+                  and dst.task_type = 'DATA_SYNC'
+                  and dst.flag = 1
+                  and dsw.flag = 1
+                  and dsw.name = concat('data_sync_', dst.code)
+                  and (select count(*) from t_yak_ops_workflow_task_relation related
+                       where related.workflow_definition_code = dsw.code) = 1
+                    )
+                </when>
+                <when test="businessType == 'DATA_SYNC_OFFLINE'">
+                    and exists (
+                select 1
+                from t_yak_ops_workflow_task_relation dsr
+                join t_yak_ops_task_definition dst
+                  on dst.code = dsr.post_task_code and dst.project_code = dsr.project_code
+                join t_yak_ops_workflow_definition dsw
+                  on dsw.code = dsr.workflow_definition_code and dsw.project_code = dsr.project_code
+                where dsr.workflow_definition_code = t_yak_ops_workflow_instance.workflow_definition_code
+                  and dsr.project_code = t_yak_ops_workflow_instance.project_code
+                  and dsr.pre_task_code = 0
+                  and dst.task_type = 'DATA_SYNC'
+                  and dst.flag = 1
+                  and dsw.flag = 1
+                  and dsw.name = concat('data_sync_', dst.code)
+                  and (select count(*) from t_yak_ops_workflow_task_relation related
+                       where related.workflow_definition_code = dsw.code) = 1
+                      and dst.task_execute_type = 0
+                    )
+                </when>
+                <when test="businessType == 'DATA_SYNC_REALTIME'">
+                    and exists (
+                select 1
+                from t_yak_ops_workflow_task_relation dsr
+                join t_yak_ops_task_definition dst
+                  on dst.code = dsr.post_task_code and dst.project_code = dsr.project_code
+                join t_yak_ops_workflow_definition dsw
+                  on dsw.code = dsr.workflow_definition_code and dsw.project_code = dsr.project_code
+                where dsr.workflow_definition_code = t_yak_ops_workflow_instance.workflow_definition_code
+                  and dsr.project_code = t_yak_ops_workflow_instance.project_code
+                  and dsr.pre_task_code = 0
+                  and dst.task_type = 'DATA_SYNC'
+                  and dst.flag = 1
+                  and dsw.flag = 1
+                  and dsw.name = concat('data_sync_', dst.code)
+                  and (select count(*) from t_yak_ops_workflow_task_relation related
+                       where related.workflow_definition_code = dsw.code) = 1
+                      and dst.task_execute_type = 1
+                    )
+                </when>
+            </choose>
+        </if>
         order by start_time desc, end_time desc
     </select>
     <update id="setFailoverByHostAndStateArray">
