@@ -231,6 +231,7 @@ export function useDataAgentConversation({
   const sendingRef = useRef(false);
   const activeSendCountRef = useRef(0);
   const streamControllerRef = useRef<AbortController | null>(null);
+  const streamControllersRef = useRef(new Set<AbortController>());
   const streamSessionIdRef = useRef<string | null>(null);
   const turnIdRef = useRef<string | null>(null);
   const lastEventCursorRef = useRef(0);
@@ -705,11 +706,7 @@ export function useDataAgentConversation({
           createStreamOptions(sessionId, assistantMessageId, controller.signal),
         );
         if (controller.signal.aborted) return;
-        restored = await restoreSessionSnapshot(
-          sessionId,
-          controller.signal,
-          assistantMessageId,
-        );
+        restored = await restoreSessionSnapshot(sessionId, controller.signal);
       }
     })()
       .catch((error: unknown) => {
@@ -754,6 +751,8 @@ export function useDataAgentConversation({
   useEffect(
     () => () => {
       streamControllerRef.current?.abort();
+      for (const controller of streamControllersRef.current) controller.abort();
+      streamControllersRef.current.clear();
       streamControllerRef.current = null;
       pendingConfirmationRef.current = null;
     },
@@ -802,6 +801,7 @@ export function useDataAgentConversation({
 
       const controller = new AbortController();
       streamControllerRef.current = controller;
+      streamControllersRef.current.add(controller);
       const now = new Date().toISOString();
       const userMessage: AgentMessage = {
         id: globalThis.crypto.randomUUID(),
@@ -877,6 +877,7 @@ export function useDataAgentConversation({
         }
         return { restoreDraft: false };
       } finally {
+        streamControllersRef.current.delete(controller);
         if (streamControllerRef.current === controller) {
           streamControllerRef.current = null;
         }
