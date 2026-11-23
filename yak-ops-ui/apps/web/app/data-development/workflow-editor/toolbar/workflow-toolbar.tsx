@@ -112,7 +112,7 @@ export function WorkflowToolbar({
         <ToolbarButton
           label="运维中心"
           icon={<Activity size={14} />}
-          onClick={() => navigate("/operations/offline-tasks")}
+          onClick={() => navigate("/operations/workflows/instances")}
         />
       </div>
     </div>
