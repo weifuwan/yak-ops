@@ -469,6 +469,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             else wrapper.in("dwh_id", layerIds);
         }
         if (notBlank(dto.getDwhId())) wrapper.eq("dwh_id", dto.getDwhId());
+        if (dto.getTableType() != null) wrapper.eq("table_type", dto.getTableType());
         if (notBlank(dto.getDomainId())) wrapper.eq("domain_id", dto.getDomainId());
         if (notBlank(dto.getMartId())) wrapper.eq("mart_id", dto.getMartId());
         if (notBlank(dto.getSubjectId())) wrapper.eq("subject_id", dto.getSubjectId());
