@@ -77,14 +77,15 @@ export const listDataSyncTasks = async (
  */
 export const listDataSyncWorkflowNames = async (
   signal?: AbortSignal,
+  syncType?: "OFFLINE" | "REALTIME",
 ): Promise<Array<{ workflowCode: string; name: string }>> => {
   const pageSize = 200;
-  const firstPage = await listDataSyncTasks({ pageNo: 1, pageSize }, signal);
+  const firstPage = await listDataSyncTasks({ pageNo: 1, pageSize, syncType }, signal);
   const remainingPages =
     firstPage.totalPage > 1
       ? await Promise.all(
           Array.from({ length: firstPage.totalPage - 1 }, (_, index) =>
-            listDataSyncTasks({ pageNo: index + 2, pageSize }, signal),
+            listDataSyncTasks({ pageNo: index + 2, pageSize, syncType }, signal),
           ),
         )
       : [];
