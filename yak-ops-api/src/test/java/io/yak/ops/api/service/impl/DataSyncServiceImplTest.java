@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.enums.DataSyncScope;
+import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ProjectService;
@@ -26,6 +27,7 @@ import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.enums.ReleaseState;
+import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.TaskDefinition;
@@ -248,6 +250,30 @@ class DataSyncServiceImplTest {
 
         assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE, null, null)
                 .getTotal());
+    }
+
+    @Test
+    void taskSyncTypeFilterMapsOfflineToBatchBeforePagination() {
+        when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), isNull(), isNull(), eq(TaskExecuteType.BATCH)))
+                .thenReturn(new Page<>(1, 20));
+
+        service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null, null, DataSyncType.OFFLINE);
+
+        verify(taskDefinitionDao).queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), isNull(), isNull(), eq(TaskExecuteType.BATCH));
+    }
+
+    @Test
+    void instanceSyncTypeFilterMapsRealtimeToStreamBeforePagination() {
+        when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), eq(TaskExecuteType.STREAM)))
+                .thenReturn(new Page<>(1, 20));
+
+        service.listInstances(new User(), PROJECT_CODE, 1, 20, null, null, DataSyncType.REALTIME);
+
+        verify(taskInstanceDao).queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
+                isNull(), isNull(), eq(TaskExecuteType.STREAM));
     }
 
     @Test
