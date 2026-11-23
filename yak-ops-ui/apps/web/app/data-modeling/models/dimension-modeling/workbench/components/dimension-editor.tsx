@@ -55,7 +55,8 @@ import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { buildApplicationScopeTree } from "../utils/application-scope-tree";
-import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";\nimport SourceFieldImportCard from "./source-field-import-card";
+import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";
+import SourceFieldImportCard from "./source-field-import-card";
 import {
   fieldsForSave,
   validateDimensionFields,
