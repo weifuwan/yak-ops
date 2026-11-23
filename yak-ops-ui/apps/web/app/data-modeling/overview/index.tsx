@@ -266,27 +266,8 @@ export function DataModelingOverviewPage() {
       {/* 上半部分：主视觉 */}
       <section
         aria-hidden="true"
-        className="relative h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 overflow-hidden bg-[#F7F8FA]"
-        style={{
-          backgroundImage: [
-            "radial-gradient(ellipse at 16% -12%, rgba(69, 131, 255, 0.16) 0%, rgba(69, 131, 255, 0.07) 24%, transparent 48%)",
-            "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 248, 250, 0.72) 48%, rgba(246, 246, 246, 0.96) 100%)",
-          ].join(", "),
-        }}
+        className="relative h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 overflow-hidden bg-[#F6F6F6]"
       >
-        <div
-          className="absolute inset-0 opacity-60"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(58, 61, 81, 0.13) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 76%)",
-            maskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 76%)",
-          }}
-        />
-
         <div className="relative z-10 mx-auto flex h-full w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px] items-center">
           <div className="max-w-[620px] -translate-y-3">
             <h1 className="m-0 text-[30px] font-semibold leading-[1.3] tracking-[-0.02em] text-[#10121A]">
@@ -299,7 +280,6 @@ export function DataModelingOverviewPage() {
           </div>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#F6F6F6] via-[#F6F6F6]/80 to-transparent" />
       </section>
 
       {/* 下半部分：数据概览 */}
