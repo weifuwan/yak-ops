@@ -320,7 +320,7 @@ export function DataModelingOverviewPage() {
           <div className="max-w-[720px] -translate-y-3">
             <h1 className="m-0 inline-block bg-[#F6F6F6] text-[36px] font-medium leading-[1.35] tracking-[-0.025em] text-[#10121A]">
               <span>让数据模型</span>
-              <span className="ml-1 border-b-[5px] border-dotted border-[color:color-mix(in_oklab,var(--yak-color-primary)_48%,transparent)] pb-1 font-semibold text-[var(--yak-color-primary)]">
+              <span className="ml-1 bg-[#F6F6F6] border-b-[5px] border-dotted border-[color:color-mix(in_oklab,var(--yak-color-primary)_48%,transparent)] pb-1 font-semibold text-[var(--yak-color-primary)]">
                 更清晰、更统一
               </span>
             </h1>
