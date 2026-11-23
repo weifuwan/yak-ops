@@ -19,7 +19,6 @@ import {
   listDataSourceDatabases,
   listDataSources,
   listDataSourceTables,
-  type DataSourceCatalogTable,
 } from "@/service/datasource";
 import type { DimensionFieldRecord } from "@/service/data-modeling/models/dimension-modeling";
 import { createDraftField, normalizeImportedDataType } from "./field-grid-utils";
