@@ -404,7 +404,7 @@ export function DimensionSidebar({
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="列表模式" onClick={onList}>
+          <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="模型列表" onClick={onList}>
             <List size={14} />
           </Button>
           <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="刷新目录" isDisabled={loading} onClick={onRefresh}>
