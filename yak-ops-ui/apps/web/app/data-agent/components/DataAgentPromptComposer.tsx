@@ -75,7 +75,7 @@ export function DataAgentPromptComposer({
 
   function submit() {
     const normalized = value.trim();
-    if (!normalized || isSubmitting) return;
+    if (!normalized) return;
 
     const accepted = onSubmit(normalized);
     if (accepted !== false) {
@@ -104,7 +104,6 @@ export function DataAgentPromptComposer({
               aria-label="向 Data Agent 发送消息"
               autoComplete="off"
               rows={1}
-              disabled={isSubmitting}
               value={value}
               placeholder={showAnimatedPlaceholder ? "" : placeholder}
               onChange={(event) => setValue(event.target.value)}
@@ -146,24 +145,26 @@ export function DataAgentPromptComposer({
 
             <div className="flex shrink-0 items-center gap-1.5">
               {trailingActions}
+              {isSubmitting && onStop ? (
+                <button
+                  type="button"
+                  aria-label="停止当前任务"
+                  title="停止当前任务"
+                  className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#fff1f1] text-[#c94b4b] transition-colors hover:bg-[#ffe4e4]"
+                  onClick={onStop}
+                >
+                  <Square size={12} fill="currentColor" strokeWidth={1.8} />
+                </button>
+              ) : null}
               <button
                 type="button"
-                aria-label={isSubmitting ? "停止当前任务" : "发送消息"}
-                title={isSubmitting ? "停止当前任务" : "发送消息"}
-                disabled={isSubmitting ? !onStop : !value.trim()}
-                className={
-                  "flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed " +
-                  (isSubmitting
-                    ? "bg-[#fff1f1] text-[#c94b4b] hover:bg-[#ffe4e4]"
-                    : "bg-[#000000] text-white hover:bg-[#727d7a] disabled:bg-[#e0e3e2] disabled:text-white")
-                }
-                onClick={isSubmitting ? onStop : submit}
+                aria-label={isSubmitting ? "发送并排队" : "发送消息"}
+                title={isSubmitting ? "发送并排队" : "发送消息"}
+                disabled={!value.trim()}
+                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#000000] text-white transition-colors hover:bg-[#727d7a] disabled:cursor-not-allowed disabled:bg-[#e0e3e2] disabled:text-white"
+                onClick={submit}
               >
-                {isSubmitting ? (
-                  <Square size={12} fill="currentColor" strokeWidth={1.8} />
-                ) : (
-                  <ArrowUp size={17} strokeWidth={1.8} />
-                )}
+                <ArrowUp size={17} strokeWidth={1.8} />
               </button>
             </div>
           </div>
