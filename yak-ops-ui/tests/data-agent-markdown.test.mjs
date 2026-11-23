@@ -48,6 +48,7 @@ test("Markdown styles restore list markers and follow Yak-OPS visual tokens", ()
   assert.match(markdownStyles, /data-streamdown="ordered-list"/);
   assert.match(markdownStyles, /data-streamdown="code-block"/);
   assert.match(markdownStyles, /data-streamdown="table-wrapper"/);
+  assert.match(markdownStyles, /border:\\s*0/);
   assert.match(globalStyles, /@theme inline/);
   assert.match(globalStyles, /node_modules\/streamdown\/dist/);
   assert.match(globalStyles, /node_modules\/@streamdown\/code\/dist/);
