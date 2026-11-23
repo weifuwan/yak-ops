@@ -161,7 +161,7 @@ test("warehouse layer selection binds IDs, displays real names, and handles seri
   const layers = [
     { id: "dim-default", enShortName: "DIM", cnName: "维度层", dwType: "PUBLIC_LAYER", dwModelType: "DIMENSION_DIM" },
     { id: "dim-custom", enShortName: "CUST_DIM", cnName: "公共维度层", dwType: { code: "PUBLIC_LAYER" }, dwModelType: { value: "DIM" } },
-    { id: "dim-app", enShortName: "DIM_APP", cnName: "应用维度", dwType: "APPLICATION_LAYER", dwModelType: "DIM" },
+    { id: "dim-app", enShortName: "DIM_APP", cnName: "应用维度", dwType: "APPLICATION_LAYER", dwModelType: "DIMENSION_DIM" },
     { id: "detail", enShortName: "DWD", cnName: "明细层", dwType: "PUBLIC_LAYER", dwModelType: "DETAIL" },
     { id: "source", enShortName: "ODS", cnName: "贴源层", dwType: "SOURCE_LAYER", dwModelType: "SOURCE" },
     { id: "summary", enShortName: "DWS", cnName: "汇总数据层", dwType: "PUBLIC_LAYER", dwModelType: "SUMMARY" },
