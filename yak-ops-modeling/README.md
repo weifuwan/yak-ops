@@ -97,7 +97,7 @@ If a legacy table does not contain `project_code`, initialization stops rather t
 
 ## Frontend
 
-The product is routed under `/data-modeling`. The warehouse planning screens use `@yak-ops/yak-ui` for page headers, buttons, inputs, selects, tables, pagination and modals. Shared CRUD presentation is implemented once and configured per planning entity.
+The product is routed under `/kimball`. The warehouse planning screens use `@yak-ops/yak-ui` for page headers, buttons, inputs, selects, tables, pagination and modals. Shared CRUD presentation is implemented once and configured per planning entity.
 
 ## Migration sequence
 
