@@ -23,6 +23,7 @@ import {
   listLatestDataSyncTaskInstances,
   runDataSyncTask,
   type DataSyncTaskListRecord,
+  type DataSyncScope,
   type DataSyncTaskRecord,
   type DataSyncType,
 } from "@/service/data-sync";
@@ -33,6 +34,12 @@ import { ACTIVE_INSTANCE_STATES, instanceStatusText, scopeText } from "../presen
 
 const PAGE_SIZE = 20;
 const STATUS_ITEMS = { ALL: "全部发布状态", ONLINE: "已发布", OFFLINE: "未发布" };
+const SCOPE_ITEMS: Record<DataSyncScope | "ALL", string> = {
+  ALL: "全部同步范围",
+  SINGLE_TABLE: "单表同步",
+  MULTI_TABLE: "多表同步",
+  DATABASE: "整库同步",
+};
 
 function isValidTask(record: DataSyncTaskListRecord): record is DataSyncTaskRecord {
   return !("configurationError" in record);
@@ -45,17 +52,19 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
   const scope = currentWorkspace?.id ?? "";
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [taskScope, setTaskScope] = useState<DataSyncScope | "ALL">("ALL");
   const [status, setStatus] = useState("ALL");
   const [pageNo, setPageNo] = useState(1);
 
   const query = useQuery({
-    queryKey: ["operations", "data-sync-tasks", scope, syncType, pageNo, keyword, status],
+    queryKey: ["operations", "data-sync-tasks", scope, syncType, pageNo, keyword, taskScope, status],
     queryFn: ({ signal }) =>
       listDataSyncTasks(
         {
           pageNo,
           pageSize: PAGE_SIZE,
           keyword: keyword || undefined,
+          scope: taskScope === "ALL" ? undefined : taskScope,
           status: status === "ALL" ? undefined : (status as "ONLINE" | "OFFLINE"),
           syncType,
         },
@@ -218,21 +227,26 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
       extra={<Button size="sm" variant="secondary" onClick={() => void query.refetch()}>刷新</Button>}
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="w-[320px] max-w-full shrink-0">
-          <Input
+        <div className="w-[150px] shrink-0">
+          <Select
             size="small"
-            variant="outlined"
-            className="w-full"
-            placeholder="任务名称 / 任务 ID"
-            value={keywordInput}
-            onChange={(event) => setKeywordInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                setKeyword(keywordInput.trim());
-                setPageNo(1);
-              }
+            items={SCOPE_ITEMS}
+            value={taskScope}
+            onValueChange={(value) => {
+              setTaskScope(String(value ?? "ALL") as DataSyncScope | "ALL");
+              setPageNo(1);
             }}
-          />
+          >
+            <SelectTrigger variant="outlined"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(SCOPE_ITEMS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  <SelectItemText>{label}</SelectItemText>
+                  <SelectItemIndicator />
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="w-[150px] shrink-0">
           <Select
@@ -254,6 +268,22 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="w-[320px] max-w-full shrink-0">
+          <Input
+            size="small"
+            variant="outlined"
+            className="w-full"
+            placeholder="任务名称 / 任务 ID"
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                setKeyword(keywordInput.trim());
+                setPageNo(1);
+              }
+            }}
+          />
         </div>
         <Button
           size="sm"
