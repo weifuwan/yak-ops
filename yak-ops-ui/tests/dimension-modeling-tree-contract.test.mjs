@@ -110,6 +110,13 @@ test("dimension tree rows follow the atom indicator tree visual contract", () =>
   assert.match(sidebar, /PlanningIcon name="data-domain"/);
 });
 
+test("dimension tree leaf opening uses modelId and only keeps suffix parsing as a legacy fallback", () => {
+  const workbench = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/index.tsx");
+  assert.match(api, /modelId\?: string/);
+  assert.match(workbench, /node\.modelId \|\| legacyId/);
+  assert.doesNotMatch(workbench, /endsWith\("-DIM"\)/);
+});
+
 test("dimension tree search preserves matching ancestors and expands only the matching path", () => {
   const tree = [{
     key: "root",
@@ -157,6 +164,8 @@ test("backend tree filters selected parent scopes by descendants and preserves t
   assert.match(treeBuilder, /wrapper\.in\("mart_id", collectDescendantIds/);
   assert.match(treeBuilder, /wrapper\.in\("subject_id", collectDescendantIds/);
   assert.match(treeBuilder, /roots\.removeIf\(node -> !retainPathToSelection/);
+  assert.match(treeBuilder, /tableNode\.setModelId\(table\.getId\(\)\)/);
+  assert.match(treeBuilder, /table\.getId\(\) \+ "-" \+ type/);
   assert.match(treeBuilder, /tableNode\.setSearchText\([\s\S]*table\.getEnShortName\(\)/);
   assert.match(treeBuilder, /应用层目录仅支持按数据集市或主题域分组/);
 });
