@@ -40,6 +40,7 @@ function DataAgentMarkdownComponent({
       skipHtml
       disallowedElements={DISALLOWED_ELEMENTS}
       lineNumbers={false}
+      controls={{ table: false }}
     >
       {content}
     </Streamdown>
