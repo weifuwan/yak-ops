@@ -148,6 +148,47 @@ class DimensionModelingServiceImplTest {
     }
 
     @Test
+    void shouldRejectNewDimensionInApplicationLayer() {
+        when(dwLayerService.selectById(LAYER_ID))
+                .thenReturn(layer(DwTypeEnum.APPLICATION_LAYER, DwModelEnum.DIMENSION_DIM));
+
+        DimensionTableDTO dto = dimensionDto(DimensionTableTypeEnum.DIM);
+        dto.setDomainId("domain-a");
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(dto));
+
+        assertEquals("创建维度仅支持公共层数仓分层", exception.getMessage());
+        verify(dimensionTableDao, never()).insert(any());
+    }
+
+    @Test
+    void shouldPreserveHistoricalDimensionBindingInApplicationLayer() {
+        when(dwLayerService.selectById(LAYER_ID))
+                .thenReturn(layer(DwTypeEnum.APPLICATION_LAYER, DwModelEnum.DIMENSION_DIM));
+        when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
+        DimensionTablePO existing = new DimensionTablePO();
+        existing.setId("table-id");
+        existing.setDwhId(LAYER_ID);
+        existing.setTableType(DimensionTableTypeEnum.DIM);
+        existing.setEnShortName("sample_dimension");
+        existing.setCnName("历史业务维度");
+        existing.setDomainId("domain-a");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(existing);
+        when(dimensionTableDao.updateById(any())).thenReturn(true);
+        when(dimensionTableDao.update(any(), any())).thenReturn(1);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
+
+        DimensionTableDTO dto = dimensionDto(DimensionTableTypeEnum.DIM);
+        dto.setId("table-id");
+        dto.setDomainId("domain-a");
+        DimensionTableVO result = service.updateById(dto);
+
+        assertEquals(LAYER_ID, result.getDwhId());
+        verify(dimensionTableDao).updateById(any());
+    }
+
+    @Test
     void shouldRejectCreateInNoneLayer() {
         DwLayerVO layer = layer(DwTypeEnum.NONE_LAYER, null);
         layer.setCnName("未分层");

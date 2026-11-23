@@ -47,6 +47,7 @@ import { fieldStandardApi } from "@/service/data-modeling/standards/field-standa
 import { codeStandardApi } from "@/service/data-modeling/standards/code-standard";
 import { unitStandardApi } from "@/service/data-modeling/standards/unit-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
+import { preferredWarehouseLayer, warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-layers";
 
 type Option = { value: string; label: string };
 
@@ -74,16 +75,6 @@ const DEFAULT_DW_TYPE_BY_CREATE_TYPE: Record<DimensionCreateType, string> = {
   DETAIL: "PUBLIC_LAYER",
   SUMMARY: "PUBLIC_LAYER",
   APPLICATION: "APPLICATION_LAYER",
-};
-
-const TABLE_TYPES_BY_MODEL: Record<string, string[]> = {
-  SOURCE: ["SOURCE"],
-  DIMENSION: ["DIMENSION"],
-  DIM: ["DIM"],
-  DIMENSION_DIM: ["DIMENSION", "DIM"],
-  DETAIL: ["DETAIL"],
-  SUMMARY: ["SUMMARY"],
-  APPLICATION: ["APPLICATION"],
 };
 
 const DATA_TYPE_OPTIONS: Option[] = [
@@ -182,12 +173,14 @@ function OptionSelect({
   placeholder,
   onChange,
   disabled,
+  emptyContent = "暂无可选项",
 }: {
   value: string;
   options: Option[];
   placeholder: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  emptyContent?: string;
 }) {
   return (
     <Select
@@ -203,7 +196,7 @@ function OptionSelect({
             : placeholder}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent emptyContent="暂无可选项">
+      <SelectContent emptyContent={emptyContent}>
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             <SelectItemText>{option.label}</SelectItemText>
@@ -318,28 +311,43 @@ export function DimensionEditor({
 
   const layers = layersQuery.data || [];
   const selectedTableType = String(values.tableType || tab.createType || tab.record?.tableType || "");
-  const layerOptions = useMemo(() => layers
-    .filter((layer) => {
-      const layerId = String(layer.id || "");
-      const layerType = String(layer.dwType || "");
-      if (tab.mode === "edit" && layerId === String(tab.record?.dwhId || "")) return true;
-      if (layerType === "NONE_LAYER") return false;
-      if (!selectedTableType) return true;
-      return (TABLE_TYPES_BY_MODEL[String(layer.dwModelType || "")] || []).includes(selectedTableType);
-    })
-    .map((layer) => ({
-      value: String(layer.id || ""),
-      label: optionLabel(layer, ["cnName", "enShortName", "enName"]),
-    }))
-    .filter((option) => option.value), [layers, selectedTableType, tab.mode, tab.record?.dwhId]);
-
+  const layerOptions = useMemo(() => warehouseLayerOptions(
+    layers,
+    selectedTableType,
+    tab.mode === "edit" ? String(tab.record?.dwhId || "") : "",
+  ), [layers, selectedTableType, tab.mode, tab.record?.dwhId]);
+  const displayedLayerOptions = useMemo(() => {
+    if (!values.dwhId || layerOptions.some((option) => option.value === values.dwhId)) {
+      return layerOptions;
+    }
+    // During a failed refresh, preserve the saved ID and a readable edit label.
+    if (tab.mode === "edit" && tab.record?.dwhName) {
+      return [{ value: values.dwhId, label: String(tab.record.dwhName) }, ...layerOptions];
+    }
+    return layerOptions;
+  }, [layerOptions, values.dwhId, tab.mode, tab.record?.dwhName]);
   const activeLayer = layers.find((layer) => String(layer.id || "") === values.dwhId);
-  const isUnassigned = String(activeLayer?.dwType || "") === "NONE_LAYER";
+  const isUnassigned = warehouseEnumCode(activeLayer?.dwType) === "NONE_LAYER";
   const tableTypeOptions = useMemo(() => {
-    const modelType = String(activeLayer?.dwModelType || "");
-    const allowed = TABLE_TYPES_BY_MODEL[modelType] || [];
+    const modelType = warehouseEnumCode(activeLayer?.dwModelType);
+    const allowed = ({
+      SOURCE: ["SOURCE"],
+      DIMENSION: ["DIMENSION"],
+      DIM: ["DIM"],
+      DIMENSION_DIM: ["DIMENSION", "DIM"],
+      DETAIL: ["DETAIL"],
+      SUMMARY: ["SUMMARY"],
+      APPLICATION: ["APPLICATION"],
+    } as Record<string, string[]>)[modelType] || [];
     return TABLE_TYPE_OPTIONS.filter((option) => allowed.includes(option.value));
   }, [activeLayer]);
+  const layerEmptyContent = layersQuery.isError
+    ? "数仓分层加载失败，请重试"
+    : layersQuery.isPending
+      ? "正在加载数仓分层..."
+      : layers.length === 0
+        ? "暂无数仓分层，请先在数仓规划中创建"
+        : "当前模型类型没有匹配的数仓分层";
   const isLegacyUntyped = tab.mode === "edit" && !selectedTableType && isUnassigned;
   const canChooseLegacyType = tab.mode === "edit" && !selectedTableType && !isUnassigned;
 
@@ -402,16 +410,14 @@ export function DimensionEditor({
     const preferredType = tab.createType
       ? DEFAULT_DW_TYPE_BY_CREATE_TYPE[tab.createType]
       : dwType;
-    const preferredLayer = layerOptions.find((option) =>
-      String(layers.find((layer) => String(layer.id || "") === option.value)?.dwType || "") === preferredType,
-    ) || layerOptions[0];
+    const preferredLayer = preferredWarehouseLayer(layerOptions, String(tab.createType || selectedTableType), preferredType);
     if (!preferredLayer) return;
     setValues((current) => ({
       ...current,
       dwhId: preferredLayer.value,
       tableType: String(tab.createType || current.tableType || ""),
     }));
-  }, [tab.mode, tab.createType, dwType, values.dwhId, layerOptions, layers]);
+  }, [tab.mode, tab.createType, dwType, values.dwhId, layerOptions, selectedTableType]);
 
   useEffect(() => {
     if (fieldsQuery.data && !fieldsDirty) {
@@ -855,8 +861,9 @@ export function DimensionEditor({
                 <FormField label="数仓分层" required>
                   <OptionSelect
                     value={values.dwhId}
-                    options={layerOptions}
-                    placeholder={layersQuery.isFetching ? "正在加载可用数仓分层..." : "请选择数仓分层"}
+                    options={displayedLayerOptions}
+                    placeholder={layersQuery.isPending ? "正在加载可用数仓分层..." : "请选择数仓分层"}
+                    emptyContent={layerEmptyContent}
                     onChange={(value) => {
                       setValues((current) => ({ ...current, dwhId: value }));
                       setBasicDirty(true);
@@ -864,6 +871,22 @@ export function DimensionEditor({
                       onDirtyChange(true);
                     }}
                   />
+                  {layersQuery.isError ? (
+                    <div className="mt-1 flex items-center gap-2 text-xs text-[#b45309]">
+                      <span>数仓分层加载失败</span>
+                      <button
+                        type="button"
+                        className="cursor-pointer text-[var(--yak-color-primary)] hover:underline"
+                        onClick={() => void layersQuery.refetch()}
+                      >
+                        重新加载
+                      </button>
+                    </div>
+                  ) : layersQuery.isSuccess && layerOptions.length === 0 ? (
+                    <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
+                      当前模型类型没有可用分层，请先在数仓规划中配置分层归属与模型类型。
+                    </p>
+                  ) : null}
                 </FormField>
 
                 {selectedTableType ? (

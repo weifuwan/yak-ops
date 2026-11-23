@@ -741,6 +741,13 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (tableType == null || !DwModelEnum.canCreate(layer.getDwModelType(), tableType.getCode())) {
             throw new IllegalArgumentException("当前数仓分层不支持所选维度模型类型");
         }
+        // New DIM business dimensions belong to the public layer.
+        // Keep previously saved application-layer DIM records editable without migrating their IDs.
+        if (tableType == DimensionTableTypeEnum.DIM && layer.getDwType() != DwTypeEnum.PUBLIC_LAYER
+                && (existing == null || existing.getTableType() != DimensionTableTypeEnum.DIM
+                    || !Objects.equals(existing.getDwhId(), dwhId))) {
+            throw new IllegalArgumentException("创建维度仅支持公共层数仓分层");
+        }
     }
 
     private boolean isLegacyUnlayeredRecord(DimensionTablePO existing) {

@@ -7,6 +7,11 @@ import {
   collectDimensionExpandedKeys,
   filterDimensionTree,
 } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/dimension-tree.ts";
+import {
+  preferredWarehouseLayer,
+  warehouseEnumCode,
+  warehouseLayerOptions,
+} from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/warehouse-layers.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -148,8 +153,45 @@ test("dimension creation offers six typed entries and excludes NONE_LAYER", () =
     assert.match(createTypes, new RegExp('type: "' + type + '"'));
   }
   assert.doesNotMatch(createTypes, /NONE_LAYER/);
-  assert.match(editor, /layerType === "NONE_LAYER"\) return false/);
+  assert.match(editor, /warehouseLayerOptions/);
   assert.match(dimensionService, /未分层仅用于历史数据管理/);
+});
+
+test("warehouse layer selection binds IDs, displays real names, and handles serialized enums", () => {
+  const layers = [
+    { id: "dim-default", enShortName: "DIM", cnName: "维度层", dwType: "PUBLIC_LAYER", dwModelType: "DIMENSION_DIM" },
+    { id: "dim-custom", enShortName: "CUST_DIM", cnName: "公共维度层", dwType: { code: "PUBLIC_LAYER" }, dwModelType: { value: "DIM" } },
+    { id: "dim-app", enShortName: "DIM_APP", cnName: "应用维度", dwType: "APPLICATION_LAYER", dwModelType: "DIM" },
+    { id: "detail", enShortName: "DWD", cnName: "明细层", dwType: "PUBLIC_LAYER", dwModelType: "DETAIL" },
+    { id: "source", enShortName: "ODS", cnName: "贴源层", dwType: "SOURCE_LAYER", dwModelType: "SOURCE" },
+    { id: "summary", enShortName: "DWS", cnName: "汇总数据层", dwType: "PUBLIC_LAYER", dwModelType: "SUMMARY" },
+    { id: "application", enShortName: "ADS", cnName: "应用数据层", dwType: "APPLICATION_LAYER", dwModelType: "APPLICATION" },
+    { id: "invalid", cnName: "错误配置", dwType: "SOURCE_LAYER", dwModelType: "DIM" },
+    { id: "legacy", cnName: "历史未分层", dwType: "NONE_LAYER", dwModelType: null },
+  ];
+  assert.equal(warehouseEnumCode({ name: "public_layer" }), "PUBLIC_LAYER");
+  const dimensions = warehouseLayerOptions(layers, "DIM");
+  assert.deepEqual(dimensions.map((item) => item.value), ["dim-default", "dim-custom"]);
+  assert.equal(dimensions[0].label, "公共层 · 维度层");
+  assert.equal(dimensions[1].label, "公共层 · 公共维度层");
+  assert.equal(preferredWarehouseLayer(dimensions, "DIM", "PUBLIC_LAYER")?.value, "dim-default");
+  assert.deepEqual(warehouseLayerOptions(layers, "DIMENSION").map((item) => item.value), ["dim-default", "dim-app"]);
+  assert.deepEqual(warehouseLayerOptions(layers, "SOURCE").map((item) => item.value), ["source"]);
+  assert.deepEqual(warehouseLayerOptions(layers, "DETAIL").map((item) => item.value), ["detail"]);
+  assert.deepEqual(warehouseLayerOptions(layers, "SUMMARY").map((item) => item.value), ["summary"]);
+  assert.deepEqual(warehouseLayerOptions(layers, "APPLICATION").map((item) => item.value), ["application"]);
+  assert.deepEqual(warehouseLayerOptions(layers, "DIM", "legacy").map((item) => item.value), ["dim-default", "dim-custom", "legacy"]);
+  assert.deepEqual(warehouseLayerOptions([], "DIM"), []);
+});
+
+test("dimension editor keeps dwhId when saving and distinguishes layer load states", () => {
+  assert.match(editor, /dwhId: values\.dwhId/);
+  assert.match(editor, /options=\{displayedLayerOptions\}/);
+  assert.match(editor, /emptyContent=\{layerEmptyContent\}/);
+  assert.match(editor, /layersQuery\.isError/);
+  assert.match(editor, /layersQuery\.isPending/);
+  assert.match(editor, /layersQuery\.isSuccess && layerOptions\.length === 0/);
+  assert.match(editor, /layersQuery\.refetch\(\)/);
 });
 
 test("basic information and field management are saved independently", () => {
