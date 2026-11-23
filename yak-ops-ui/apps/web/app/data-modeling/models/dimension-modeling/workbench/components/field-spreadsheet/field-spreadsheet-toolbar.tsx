@@ -13,6 +13,7 @@ import { FIELD_GRID_COLUMNS, type FieldColumnKey } from "./field-grid-types";
 export function FieldSpreadsheetToolbar({
   insertCount,
   validationIssueCount,
+  referenceLabel = "引用已有表",
   visibleColumns,
   onInsertCountChange,
   onInsertRows,
@@ -23,6 +24,7 @@ export function FieldSpreadsheetToolbar({
 }: {
   insertCount: string;
   validationIssueCount: number;
+  referenceLabel?: string;
   visibleColumns: Set<FieldColumnKey>;
   onInsertCountChange: (value: string) => void;
   onInsertRows: () => void;
@@ -55,7 +57,7 @@ export function FieldSpreadsheetToolbar({
         </div>
         <Button size="sm" variant="ghost" onClick={onOpenReference}>
           <Database size={13} />
-          引用已有表
+          {referenceLabel}
         </Button>
         <Button size="sm" variant="ghost" onClick={onOpenBatchImport}>
           <Import size={13} />
