@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@yak-ops/yak-ui";
 
+import PixelBlast from "./components/PixelBlast";
+
 const EMPTY_IMAGE =
   "https://img.alicdn.com/imgextra/i4/O1CN017NgExC1MdM1GSlL3J_!!6000000001457-2-tps-720-720.png";
 
@@ -264,10 +266,23 @@ export function DataModelingOverviewPage() {
   return (
     <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-[#F6F6F6] text-[#10121A]">
       {/* 上半部分：主视觉 */}
-      <section
-        aria-hidden="true"
-        className="relative h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 overflow-hidden bg-[#F6F6F6]"
-      >
+      <section className="relative h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 overflow-hidden bg-[#F6F6F6]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <PixelBlast
+            variant="cross"
+            pixelSize={6}
+            color="#A1A1AA"
+            accentColor="#D97706"
+            patternScale={3}
+            patternDensity={1.1}
+            pixelSizeJitter={0.6}
+            glow={0.2}
+            twinkle={0.75}
+            speed={0.3}
+            hoverEffect="grow"
+          />
+        </div>
+
         <div className="relative z-10 mx-auto flex h-full w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px] items-center">
           <div className="max-w-[620px] -translate-y-3">
             <h1 className="m-0 text-[30px] font-semibold leading-[1.3] tracking-[-0.02em] text-[#10121A]">
