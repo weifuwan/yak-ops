@@ -252,7 +252,7 @@ export function WorkflowInstancesOperationsPage() {
       minWidth: 250,
       render: (_value, record) => (
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium">{displayName(record)}</div>
+          <div className="truncate text-xs font-medium">{displayName(record)}</div>
           <div className="mt-0.5 text-xs text-[var(--yak-components-muted-text)]">
             实例 #{record.id} · 定义 #{record.workflowDefinitionCode}
           </div>
@@ -382,7 +382,7 @@ export function WorkflowInstancesOperationsPage() {
       </div>
       <div className="min-h-0 flex-1">
         <Table<WorkflowInstanceSummary>
-          className="min-h-full"
+          className="min-h-full [&_td]:!text-xs"
           columns={columns}
           dataSource={query.data?.totalList ?? []}
           rowKey="id"
@@ -408,6 +408,7 @@ export function WorkflowInstancesOperationsPage() {
         footer={<Button size="sm" variant="secondary" onClick={() => setSelected(undefined)}>关闭</Button>}
       >
         <Table<WorkflowInstanceTask>
+          className="[&_td]:!text-xs"
           columns={taskColumns}
           dataSource={taskQuery.data?.taskList ?? []}
           rowKey="id"
