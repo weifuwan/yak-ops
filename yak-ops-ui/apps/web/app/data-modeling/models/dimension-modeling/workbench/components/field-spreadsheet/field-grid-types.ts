@@ -13,7 +13,7 @@ export type FieldColumnKey =
   | "dataType"
   | "cnName"
   | "length"
-  | "precision"
+  | "fieldPrecision"
   | "fieldStdId"
   | "codeStdId"
   | "unitId"
@@ -59,7 +59,7 @@ export const FIELD_GRID_COLUMNS: FieldGridColumn[] = [
   { key: "dataType", title: "类型", minWidth: 120, flex: 0.8, defaultVisible: true },
   { key: "cnName", title: "字段显示名", minWidth: 180, flex: 1.3, defaultVisible: true },
   { key: "length", title: "长度", minWidth: 88, flex: 0.55, configurable: true },
-  { key: "precision", title: "精度", minWidth: 88, flex: 0.55, configurable: true },
+  { key: "fieldPrecision", title: "精度", minWidth: 88, flex: 0.55, configurable: true },
   { key: "fieldStdId", title: "关联字段标准", minWidth: 160, flex: 1, configurable: true },
   { key: "codeStdId", title: "关联标准代码", minWidth: 160, flex: 1, configurable: true },
   { key: "unitId", title: "度量单位", minWidth: 120, flex: 0.8, configurable: true },
