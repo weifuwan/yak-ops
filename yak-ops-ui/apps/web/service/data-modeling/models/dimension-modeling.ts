@@ -63,7 +63,7 @@ export type DimensionFieldRecord = {
   cnName?: string;
   dataType: string;
   length?: number;
-  precision?: number;
+  fieldPrecision?: number;
   remark?: string;
   primaryFlag?: boolean;
   notNull?: boolean;
