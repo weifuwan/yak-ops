@@ -2,6 +2,7 @@ import { requestJson, sessionPath } from "./http.ts";
 import type {
   AgentRequestIdentity,
   AgentSessionHistory,
+  AgentSessionQueue,
   AgentSessionStatus,
   AgentSessionSummary,
 } from "./types.ts";
@@ -50,6 +51,19 @@ export async function getAgentSessionMessages(
 ): Promise<AgentSessionHistory> {
   return requestJson<AgentSessionHistory>(
     sessionPath(sessionId) + "/messages",
+    identity,
+    { method: "GET" },
+    signal,
+  );
+}
+
+export async function getAgentSessionQueue(
+  sessionId: string,
+  identity: AgentRequestIdentity,
+  signal?: AbortSignal,
+): Promise<AgentSessionQueue> {
+  return requestJson<AgentSessionQueue>(
+    sessionPath(sessionId) + "/queue",
     identity,
     { method: "GET" },
     signal,
@@ -119,4 +133,3 @@ export async function confirmAgentSession(
     signal,
   );
 }
-
