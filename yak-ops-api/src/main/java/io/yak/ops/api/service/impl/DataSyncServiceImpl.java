@@ -200,7 +200,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
         IPage<TaskInstance> failures = taskInstanceDao.queryByProjectAndTaskType(
                 new Page<>(1, 5), projectCode, TASK_TYPE, null,
-                new int[]{TaskExecutionStatus.FAILURE.getCode()});
+                new int[]{TaskExecutionStatus.FAILURE.getCode()}, null);
         List<DataSyncOverviewVO.RecentFailure> recentFailures = failures.getRecords().stream()
                 .map(instance -> DataSyncOverviewVO.RecentFailure.builder()
                         .instanceId(String.valueOf(instance.getId()))
