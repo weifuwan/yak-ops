@@ -3,6 +3,7 @@ package io.yak.ops.api.service;
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
 import io.yak.ops.api.enums.DataSyncScope;
+import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
@@ -21,7 +22,7 @@ public interface DataSyncService {
 
     PageInfo<DataSyncTaskVO> listTasks(User user, long projectCode,
                                        int pageNo, int pageSize, String keyword, ReleaseState status,
-                                       DataSyncScope scope);
+                                       DataSyncScope scope, DataSyncType syncType);
 
     DataSyncOverviewVO getOverview(User user, long projectCode);
 
@@ -45,7 +46,7 @@ public interface DataSyncService {
     DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version);
 
     PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                               int pageSize, Long taskCode, TaskExecutionStatus status);
+                                               int pageSize, Long taskCode, TaskExecutionStatus status, DataSyncType syncType);
 
     List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                              List<Long> taskCodes, boolean activeOnly);
