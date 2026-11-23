@@ -64,12 +64,14 @@ export function FieldReferenceDialog({
   open,
   projectCode,
   fieldType,
+  title = "引用已有表字段",
   onClose,
   onImport,
 }: {
   open: boolean;
   projectCode: string;
   fieldType: FieldKind;
+  title?: string;
   onClose: () => void;
   onImport: (fields: DimensionFieldRecord[]) => void;
 }) {
@@ -181,7 +183,7 @@ export function FieldReferenceDialog({
       open={open}
       centered
       width={720}
-      title="引用已有表字段"
+      title={title}
       onClose={close}
       footer={
         <>
