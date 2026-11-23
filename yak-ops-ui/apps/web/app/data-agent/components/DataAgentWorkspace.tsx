@@ -115,7 +115,6 @@ export function DataAgentWorkspace({
   }
 
   function handlePromptSubmit(content: string) {
-    if (isSending) return false;
     setInitialDraft("");
     void sendMessage(content).then((result) => {
       if (!result.restoreDraft) return;
@@ -126,7 +125,6 @@ export function DataAgentWorkspace({
   }
 
   function handleQuickAction(prompt: string) {
-    if (isSending) return;
     setInitialDraft(prompt);
     setComposerKey((current) => current + 1);
   }
