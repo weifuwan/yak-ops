@@ -265,7 +265,7 @@ export function DataModelingOverviewPage() {
       {/* 上半部分：主视觉 */}
       <section
         aria-hidden="true"
-        className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 border-b border-[#EDF0F4] bg-[#F6F6F6] bg-cover bg-center bg-no-repeat"
+        className="h-[46vh] min-h-[360px] max-h-[468px] w-full shrink-0 bg-[#F6F6F6] bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage:
             'url("https://img.alicdn.com/imgextra/i4/O1CN01d9iDld1SKva5mO2VE_!!6000000002229-55-tps-1920-500.svg")',
