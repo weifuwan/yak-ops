@@ -111,7 +111,8 @@ public interface WorkflowInstanceDao extends IDao<WorkflowInstance> {
                                                                       int[] statusArray,
                                                                       String host,
                                                                       Date startTime,
-                                                                      Date endTime);
+                                                                      Date endTime,
+                                                                      String businessType);
 
     List<WorkflowInstanceSummaryDto> queryByWorkflowDefinitionCodeAndStatus(Long workflowDefinitionCode, int[] states);
 
