@@ -18,8 +18,8 @@ export default function IndicatorsIndexPage() {
   const { pathname } = useLocation();
 
   if (!currentWorkspace) return <ModelingWorkspaceEmptyState />;
-  if (pathname.replace(/\/$/, "") === "/data-modeling/indicators") {
-    return <Navigate replace to="/data-modeling/indicators/compose" />;
+  if (pathname.replace(/\/$/, "") === "/kimball/indicators") {
+    return <Navigate replace to="/kimball/indicators/compose" />;
   }
 
   const segment = pathname.slice(pathname.lastIndexOf("/") + 1);
