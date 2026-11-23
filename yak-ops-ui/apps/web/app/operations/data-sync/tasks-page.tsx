@@ -95,6 +95,10 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
     () => new Map<string, TaskInstanceRecord>((latestQuery.data ?? []).map((item) => [item.definitionId, item])),
     [latestQuery.data],
   );
+  const tableLoading =
+    query.isPending ||
+    query.isFetching ||
+    (validTasks.length > 0 && (latestQuery.isPending || dataSourcesQuery.isPending));
 
   const actionMutation = useMutation({
     mutationFn: async ({ task, stop }: { task: DataSyncTaskRecord; stop: boolean }) => {
@@ -271,7 +275,7 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
           rowKey="id"
           bordered
           size="medium"
-          loading={query.isPending || query.isFetching || latestQuery.isPending || dataSourcesQuery.isPending}
+          loading={tableLoading}
           scroll={{ x: 1280 }}
           emptyText={query.isError ? "任务列表加载失败" : syncType === "REALTIME" ? "暂无实时同步任务" : "暂无离线同步任务"}
           pagination={
