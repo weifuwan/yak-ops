@@ -66,6 +66,32 @@ entries:
     risk: readonly
     note: 下载任务实例完整日志文件（PTC 分析用）
 
+  # ---------------- datasource catalog (read) ----------------
+  # 新建/修改同步任务需要真实的数据源、库、表和字段；只暴露只读目录接口。
+  - operationId: queryDataSourceListPaging
+    tool: list_data_sources
+    domain: datasource
+    risk: readonly
+    note: 列出项目数据源（选择同步来源/目标）
+
+  - operationId: queryDataSource
+    tool: get_data_source
+    domain: datasource
+    risk: readonly
+    note: 数据源详情（默认 database，密码脱敏）
+
+  - operationId: getTables
+    tool: list_data_source_tables
+    domain: datasource
+    risk: readonly
+    note: 数据源下的表与主键（选择源表/目标表）
+
+  - operationId: getTableColumns
+    tool: list_data_source_columns
+    domain: datasource
+    risk: readonly
+    note: 表字段（生成字段映射与主键配置）
+
   # ---------------- programmatic tool calling ----------------
   # 非 REST 操作（沙箱内执行的模型脚本），无契约 operationId 对应；
   # kind: script 让一致性校验跳过契约核对，但仍计入工具审定。
@@ -100,6 +126,12 @@ entries:
     domain: data-sync
     risk: write
     note: 下线
+
+  - operationId: triggerWorkflowDefinition
+    tool: run_sync_task
+    domain: data-sync
+    risk: write
+    note: 手动运行已上线的同步任务（触发 workflow 实例）
 
   - operationId: deleteTask
     tool: delete_sync_task

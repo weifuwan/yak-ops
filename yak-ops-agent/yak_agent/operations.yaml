@@ -48,7 +48,8 @@ operations:
     summary: 获取数据同步任务定义详情
     description: |
       获取单个数据同步任务的完整定义。返回的 parameters 是修改参数的模板；
-      revision 用于 update/publish 的 expectedRevision（乐观锁）；definitionVersion 用于 publish 的 version。
+      revision 用于 update/publish 的 expectedRevision（乐观锁）；definitionVersion 用于 publish 的 version；
+      workflowCode 用于 run_sync_task 运行任务。
     params:
       - { name: task_code, type: integer, required: true, description: 任务编码，来自 list_sync_tasks, location: path }
 
@@ -127,6 +128,68 @@ operations:
       - { name: task_instance_id, type: integer, required: true, description: 任务实例 ID，来自 list_sync_instances（taskInstanceId）, location: query, as: taskInstanceId }
     response: { raw: true, truncate: 16000 }
 
+  # ---------------- datasource catalog (read) ----------------
+  # 新建/修改同步任务需要真实的 datasource-id、database、表名和字段；
+  # 这些只读接口与数据同步页面的编辑流程使用同一套目录。
+
+  - id: list_data_sources
+    domain: datasource
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/datasources
+    summary: 列出项目数据源（分页）
+    description: |
+      列出当前项目已授权的数据源，用于新建/修改同步任务时选择来源和目标。
+      返回 id、name、type、database、connectionParams（密码已脱敏）等字段；
+      可按名称关键字和数据库类型过滤。新建任务必须使用这里返回的真实 id，禁止编造。
+    params:
+      - { name: keyword, type: string, required: false, description: 名称关键字过滤, location: query, as: searchVal }
+      - { name: db_type, type: string, required: false, description: 数据库类型过滤，如 MYSQL、POSTGRESQL、ORACLE, location: query, as: type }
+      - { name: page_no, type: integer, required: false, description: 页码，从 1 开始, location: query, as: pageNo, min: 1, default: 1 }
+      - { name: page_size, type: integer, required: false, description: 每页条数，1-50, location: query, as: pageSize, min: 1, max: 50, default: 20 }
+
+  - id: get_data_source
+    domain: datasource
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/datasources/{data_source_id}
+    summary: 获取数据源详情
+    description: |
+      获取单个数据源的连接配置和默认 database。密码等敏感字段由服务端脱敏（******），
+      不会返回明文。用于确认同步任务 source/sink 的 datasource-id 与库名。
+    params:
+      - { name: data_source_id, type: integer, required: true, description: 数据源 ID，来自 list_data_sources, location: path }
+
+  - id: list_data_source_tables
+    domain: datasource
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/datasources/tables
+    summary: 列出数据源下的表（分页）
+    description: |
+      列出指定数据源、指定 database 下的表。返回 name、type、remarks、primaryKeys；
+      新建增量同步时用 primaryKeys 作为主键配置，也可用 keyword 检查目标表是否存在。
+    params:
+      - { name: data_source_id, type: integer, required: true, description: 数据源 ID，来自 list_data_sources, location: query, as: datasourceId }
+      - { name: database, type: string, required: true, description: 数据库名，通常取 get_data_source 返回的 database, location: query }
+      - { name: keyword, type: string, required: false, description: 表名关键字过滤, location: query }
+      - { name: page_no, type: integer, required: false, description: 页码，从 1 开始, location: query, as: pageNo, min: 1, default: 1 }
+      - { name: page_size, type: integer, required: false, description: 每页条数，1-200, location: query, as: pageSize, min: 1, max: 200, default: 50 }
+
+  - id: list_data_source_columns
+    domain: datasource
+    risk: readonly
+    method: GET
+    path: /projects/{project_code}/datasources/tableColumns
+    summary: 列出表字段
+    description: |
+      列出指定数据源、database、table 的字段（名称、类型、是否主键、注释）。
+      生成同步任务字段映射（projection）和主键配置时，源表与目标表分别调用一次。
+    params:
+      - { name: data_source_id, type: integer, required: true, description: 数据源 ID，来自 list_data_sources, location: query, as: datasourceId }
+      - { name: database, type: string, required: true, description: 数据库名, location: query }
+      - { name: table_name, type: string, required: true, description: 表名, location: query, as: tableName }
+
   # ---------------- write (human confirmation required) ----------------
 
   - id: create_sync_task
@@ -136,7 +199,9 @@ operations:
     path: /projects/{project_code}/data-sync/tasks
     summary: 创建数据同步任务（需确认）
     description: |
-      创建新的数据同步任务。参数从已有任务（get_sync_task）复制并修改，且必须先通过 preview_sync_task 校验。
+      创建新的数据同步任务。参数可从已有任务（get_sync_task）复制并修改，且必须先通过 preview_sync_task 校验。
+      新建任务的 datasource-id、database、表名和字段必须来自数据源目录工具
+      （list_data_sources / get_data_source / list_data_source_tables / list_data_source_columns），禁止编造。
       新建任务默认离线（OFFLINE），需发布后才可被执行。
     params:
       - { name: name, type: string, required: true, description: 项目内唯一的任务名, location: body }
@@ -180,6 +245,30 @@ operations:
     description: 将任务下线，停止新的调度执行。比删除温和，适合仅想停用的场景。
     params:
       - { name: task_code, type: integer, required: true, description: 任务编码, location: path }
+
+  - id: run_sync_task
+    domain: data-sync
+    risk: write
+    method: POST
+    path: /projects/{project_code}/executors/start-workflow-instance
+    summary: 运行数据同步任务（需确认）
+    description: |
+      手动运行一次已发布的数据同步任务（触发 workflow 实例）。运行前必须先 get_sync_task
+      取 workflowCode 并确认 status=ONLINE，同时确认没有运行中的执行实例（list_sync_instances）；
+      有运行中实例时先停止。成功返回 workflowInstanceId 列表（通常一个），可用实例详情/日志工具跟踪。
+      该操作会暂停等待用户确认。
+    params:
+      - { name: workflow_code, type: integer, required: true, description: 任务的 workflowCode，来自 get_sync_task, location: query, as: workflowDefinitionCode }
+      - { name: warning_type, type: string, required: false, description: 本次运行的告警类型，默认 NONE, location: query, as: warningType, enum: [NONE, SUCCESS, FAILURE, ALL], default: NONE }
+      - { name: warning_group_id, type: integer, required: false, description: 告警组 ID，仅 warning_type 非 NONE 时使用, location: query, as: warningGroupId }
+      - { name: exec_type, type: string, const: START_PROCESS, location: query, as: execType }
+      - { name: task_depend_type, type: string, const: TASK_POST, location: query, as: taskDependType }
+      - { name: failure_strategy, type: string, const: END, location: query, as: failureStrategy }
+      - { name: workflow_instance_priority, type: string, const: MEDIUM, location: query, as: workflowInstancePriority }
+      - { name: worker_group, type: string, const: default, location: query, as: workerGroup }
+      - { name: tenant_code, type: string, const: default, location: query, as: tenantCode }
+      - { name: environment_code, type: integer, const: -1, location: query, as: environmentCode }
+      - { name: dry_run, type: integer, const: 0, location: query, as: dryRun }
 
   - id: delete_sync_task
     domain: data-sync

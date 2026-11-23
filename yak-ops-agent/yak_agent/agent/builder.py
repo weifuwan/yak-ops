@@ -8,13 +8,14 @@ from typing import Any
 
 from agentscope.agent import Agent, ContextConfig, InjectionConfig, ReActConfig
 from agentscope.credential import OpenAICredential
-from agentscope.middleware import ReplyBudgetControlMiddleware, TracingMiddleware
+from agentscope.middleware import TracingMiddleware
 from agentscope.model import OpenAIChatModel
 from agentscope.skill import LocalSkillLoader
 from agentscope.tool import Toolkit
 
 from yak_agent.agent.budget import (
     COMPRESSION_TOOL_TOKENS,
+    CacheAwareReplyBudgetControlMiddleware,
     check_context_budget,
     enforce_context_budget,
     estimate_value_tokens,
@@ -100,9 +101,11 @@ def build_agent(
     )
 
     middlewares: list[Any] = [
-        # Cost/latency guardrail: output tokens weigh 2x; once the budget
-        # is exhausted the agent wraps up without further tool calls.
-        ReplyBudgetControlMiddleware(
+        # Cost/latency guardrail: bill only non-cached input (output weighs
+        # 2x). Charging cached context at full price made long sessions stop
+        # after the first tool call. Once the budget is exhausted the agent
+        # wraps up without further tool calls.
+        CacheAwareReplyBudgetControlMiddleware(
             token_budget=settings.reply_token_budget,
             input_token_weight=1.0,
             output_token_weight=2.0,
