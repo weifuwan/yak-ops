@@ -79,7 +79,7 @@ const AUTHENTICATED_PATHS = new Set([
   "/data-development",
   "/data-agent",
   "/data-agent/particle-preview",
-  "/data-modeling",
+  "/kimball",
   "/resources",
   "/resources/worker-groups",
   "/resources/environments",
@@ -101,7 +101,7 @@ const AUTHENTICATED_PATHS = new Set([
 const isAuthenticatedPath = (pathname: string) =>
   AUTHENTICATED_PATHS.has(pathname) ||
   pathname.startsWith("/data-agent/") ||
-  pathname.startsWith("/data-modeling/") ||
+  pathname.startsWith("/kimball/") ||
   pathname.startsWith("/data-sync/") ||
   pathname.startsWith("/operations/") ||
   pathname.startsWith("/resources/");
@@ -203,82 +203,82 @@ export default function AppRouter() {
             element={
               <AppLayout
                 productLabel={DATA_MODELING_PRODUCT_LABEL}
-                productPath="/data-modeling"
+                productPath="/kimball"
                 moduleNavigation={DATA_MODELING_MODULE_NAVIGATION}
               />
             }
           >
-            <Route path="/data-modeling" element={<DataModelingOverviewPage />} />
+            <Route path="/kimball" element={<DataModelingOverviewPage />} />
 
             <Route
-              path="/data-modeling/planning"
-              element={<Navigate replace to="/data-modeling/planning/business-type" />}
+              path="/kimball/planning"
+              element={<Navigate replace to="/kimball/planning/business-type" />}
             />
             <Route
-              path="/data-modeling/planning/business-type"
+              path="/kimball/planning/business-type"
               element={<BusinessTypePage />}
             />
             <Route
-              path="/data-modeling/planning/dw-layer"
+              path="/kimball/planning/dw-layer"
               element={<DwLayerPage />}
             />
             <Route
-              path="/data-modeling/planning/common-layer/data-domain"
+              path="/kimball/planning/common-layer/data-domain"
               element={<DataDomainPage />}
             />
             <Route
-              path="/data-modeling/planning/common-layer/business-process"
+              path="/kimball/planning/common-layer/business-process"
               element={<BusinessProcessPage />}
             />
             <Route
-              path="/data-modeling/planning/application-layer/data-market"
+              path="/kimball/planning/application-layer/data-market"
               element={<DataMartPage />}
             />
             <Route
-              path="/data-modeling/planning/application-layer/subject-domain"
+              path="/kimball/planning/application-layer/subject-domain"
               element={<SubjectDomainPage />}
             />
 
             <Route
-              path="/data-modeling/models"
-              element={<Navigate replace to="/data-modeling/models/positive" />}
+              path="/kimball/models"
+              element={<Navigate replace to="/kimball/models/positive" />}
             />
             <Route
-              path="/data-modeling/models/positive"
+              path="/kimball/models/positive"
               element={
                 <DimensionModelingPage />
               }
             />
             <Route
-              path="/data-modeling/models/reverse"
+              path="/kimball/models/reverse"
               element={
                 <ReverseModelingPage />
               }
             />
 
             <Route
-              path="/data-modeling/standards"
-              element={<Navigate replace to="/data-modeling/standards/fields" />}
+              path="/kimball/standards"
+              element={<Navigate replace to="/kimball/standards/fields" />}
             />
             <Route
-              path="/data-modeling/standards/fields"
+              path="/kimball/standards/fields"
               element={<FieldStandardPage />}
             />
             <Route
-              path="/data-modeling/standards/codes"
+              path="/kimball/standards/codes"
               element={<CodeStandardPage />}
             />
             <Route
-              path="/data-modeling/standards/units"
+              path="/kimball/standards/units"
               element={<UnitStandardPage />}
             />
             <Route
-              path="/data-modeling/standards/dictionary"
+              path="/kimball/standards/dictionary"
               element={<NamingDictionaryPage />}
             />
 
-            <Route path="/data-modeling/indicators" element={<IndicatorsIndexPage />} />
-            <Route path="/data-modeling/indicators/*" element={<IndicatorsIndexPage />} />
+            <Route path="/kimball/indicators" element={<IndicatorsIndexPage />} />
+            <Route path="/kimball/indicators/*" element={<IndicatorsIndexPage />} />
           </Route>
 
           <Route
