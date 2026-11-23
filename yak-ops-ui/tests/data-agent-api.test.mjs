@@ -7,6 +7,7 @@ import {
   createAgentSession,
   deleteAgentSession,
   getAgentSessionMessages,
+  getAgentSessionQueue,
   getAgentSessionStatus,
   interruptAgentSession,
   listAgentSessions,
@@ -28,6 +29,58 @@ test("SSE parser reads text, tool, confirmation, completion and error events", (
       'event: tool_start\ndata: {"type":"tool_start","tool":"list_sync_tasks","toolCallId":"tool-1"}',
     ),
     { type: "tool_start", tool: "list_sync_tasks", toolCallId: "tool-1" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame(
+      'event: reply_start\ndata: {"type":"reply_start","replyId":"reply-1","name":"yak_agent","role":"assistant"}',
+    ),
+    { type: "reply_start", replyId: "reply-1", name: "yak_agent", role: "assistant" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame(
+      'event: tool_call_end\ndata: {"type":"tool_call_end","toolCallId":"tool-1","replyId":"reply-1"}',
+    ),
+    { type: "tool_call_end", toolCallId: "tool-1", replyId: "reply-1" },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame(
+      'event: tool_result_start\ndata: {"type":"tool_result_start","tool":"list_sync_tasks","toolCallId":"tool-1","replyId":"reply-1"}',
+    ),
+    {
+      type: "tool_result_start",
+      tool: "list_sync_tasks",
+      toolCallId: "tool-1",
+      replyId: "reply-1",
+    },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame(
+      'event: queue_waiting\ndata: {"type":"queue_waiting","queueId":"queue-1","position":2,"messagePreview":"继续检查日志"}',
+    ),
+    {
+      type: "queue_waiting",
+      queueId: "queue-1",
+      position: 2,
+      messagePreview: "继续检查日志",
+    },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame(
+      'id: 9\nevent: queue_started\ndata: {"type":"queue_started","queueId":"queue-1","seq":9,"turnId":"turn-2"}',
+    ),
+    {
+      type: "queue_started",
+      queueId: "queue-1",
+      seq: 9,
+      eventId: "9",
+      turnId: "turn-2",
+    },
+  );
+  assert.deepEqual(
+    parseAgentSseFrame(
+      'event: queue_cancelled\ndata: {"type":"queue_cancelled","queueId":"queue-1","reason":"cancelled"}',
+    ),
+    { type: "queue_cancelled", queueId: "queue-1", reason: "cancelled" },
   );
   assert.deepEqual(
     parseAgentSseFrame(
@@ -139,8 +192,16 @@ test("session lifecycle endpoints carry the current user and workspace identity"
         ? []
         : init.method === "GET" && url.endsWith("/messages")
           ? { sessionId: "session-1", messages: [], truncated: false }
-          : init.method === "GET"
-            ? { sessionId: "session-1", state: "idle", busy: false, stale: false }
+          : init.method === "GET" && url.endsWith("/queue")
+            ? { items: [], max: 5 }
+            : init.method === "GET"
+              ? {
+                  sessionId: "session-1",
+                  state: "idle",
+                  busy: false,
+                  queued: 0,
+                  stale: false,
+                }
             : init.method === "DELETE"
               ? { deleted: true }
               : init.method === "PATCH"
@@ -161,12 +222,13 @@ test("session lifecycle endpoints carry the current user and workspace identity"
     await listAgentSessions(identity);
     await getAgentSessionStatus("session-1", identity);
     await getAgentSessionMessages("session-1", identity);
+    await getAgentSessionQueue("session-1", identity);
     await renameAgentSession("session-1", "新标题", identity);
     await interruptAgentSession("session-1", "turn-1", identity);
     await confirmAgentSession("session-1", true, identity, new AbortController().signal);
     await deleteAgentSession("session-1", identity);
 
-    assert.equal(calls.length, 8);
+    assert.equal(calls.length, 9);
     for (const call of calls) {
       const headers = new Headers(call.init.headers);
       assert.equal(headers.get("X-Yak-User-Id"), identity.userId);
@@ -177,15 +239,17 @@ test("session lifecycle endpoints carry the current user and workspace identity"
     assert.equal(calls[1].init.method, "GET");
     assert.equal(calls[2].init.method, "GET");
     assert.equal(calls[3].init.method, "GET");
-    assert.equal(calls[4].init.method, "PATCH");
-    assert.equal(calls[5].init.method, "POST");
+    assert.equal(calls[4].init.method, "GET");
+    assert.equal(calls[5].init.method, "PATCH");
     assert.equal(calls[6].init.method, "POST");
-    assert.equal(calls[7].init.method, "DELETE");
+    assert.equal(calls[7].init.method, "POST");
+    assert.equal(calls[8].init.method, "DELETE");
     assert.match(calls[2].url, /\/agent\/sessions\/session-1$/);
     assert.match(calls[3].url, /\/agent\/sessions\/session-1\/messages$/);
-    assert.match(calls[4].url, /\/agent\/sessions\/session-1$/);
-    assert.match(calls[5].url, /\/agent\/sessions\/session-1\/interrupt$/);
-    assert.match(calls[6].url, /\/agent\/sessions\/session-1\/confirm$/);
+    assert.match(calls[4].url, /\/agent\/sessions\/session-1\/queue$/);
+    assert.match(calls[5].url, /\/agent\/sessions\/session-1$/);
+    assert.match(calls[6].url, /\/agent\/sessions\/session-1\/interrupt$/);
+    assert.match(calls[7].url, /\/agent\/sessions\/session-1\/confirm$/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -277,6 +341,50 @@ test("conversation hook takes user and workspace identity from the active applic
 });
 
 
+test("queued sends opt in to the server FIFO message queue", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  const streamText = [
+    'event: queue_waiting\\ndata: {"type":"queue_waiting","queueId":"queue-1","position":1,"messagePreview":"继续检查"}',
+    'event: queue_cancelled\\ndata: {"type":"queue_cancelled","queueId":"queue-1","reason":"cancelled"}',
+    "",
+  ].join("\\n\\n");
+
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push({ url: String(input), init });
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(streamText));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  };
+
+  try {
+    const events = [];
+    await sendAgentMessage("session-1", "继续检查", {
+      identity,
+      signal: new AbortController().signal,
+      queue: true,
+      onEvent: (event) => events.push(event),
+      onConfirmRequired: () => undefined,
+    });
+
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /\/messages\?queue=true$/);
+    assert.deepEqual(events.map((event) => event.type), [
+      "queue_waiting",
+      "queue_cancelled",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("SSE reconnect resumes from the last acknowledged event sequence", async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
@@ -327,6 +435,7 @@ test("SSE reconnect resumes from the last acknowledged event sequence", async ()
 test("SSE stream forwards activity, tool details, usage and reply lifecycle events", async () => {
   const originalFetch = globalThis.fetch;
   const frames = [
+    { type: "reply_start", replyId: "reply-1", name: "yak_agent", role: "assistant" },
     { type: "progress", phase: "analysis", title: "正在分析你的需求", status: "running" },
     { type: "thinking_start", replyId: "reply-1", blockId: "block-1" },
     { type: "thinking_delta", replyId: "reply-1", blockId: "block-1", delta: "private" },
@@ -334,6 +443,8 @@ test("SSE stream forwards activity, tool details, usage and reply lifecycle even
     { type: "text_delta", replyId: "reply-1", blockId: "text-1", delta: "我先检查一下。" },
     { type: "tool_start", tool: "list_sync_tasks", toolCallId: "tool-1", replyId: "reply-1" },
     { type: "tool_call_delta", toolCallId: "tool-1", delta: "{\"keyword\":\"orders\"}" },
+    { type: "tool_call_end", toolCallId: "tool-1", replyId: "reply-1" },
+    { type: "tool_result_start", tool: "list_sync_tasks", toolCallId: "tool-1", replyId: "reply-1" },
     { type: "tool_result_delta", toolCallId: "tool-1", delta: "{\"total\":1}" },
     { type: "tool_result", toolCallId: "tool-1", state: "success" },
     { type: "usage", replyId: "reply-1", inputTokens: 120, outputTokens: 35, cacheInputTokens: 12, cacheCreationInputTokens: 3 },
