@@ -15,7 +15,7 @@ public class DimensionTableFieldVO {
     private String cnName;
     private DimensionDataTypeEnum dataType;
     private Integer length;
-    private Integer precision;
+    private Integer fieldPrecision;
     private String remark;
     private Boolean primaryFlag;
     private Boolean notNull;
