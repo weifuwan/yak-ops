@@ -259,7 +259,7 @@ function ServerTableCard({
   columns?: TableColumns<MonitorServerView>;
 }) {
   return (
-    <Card>
+    <Card className="p-3">
       <MonitorTableHeader title={title} count={records.length} unit="个节点" />
       <Table<MonitorServerView>
         columns={columns}
@@ -466,7 +466,7 @@ export function SystemMonitorPage() {
           loading={alertsQuery.isPending}
         />
 
-        <Card>
+        <Card className="p-3">
           <MonitorTableHeader
             title="数据库指标"
             count={(databaseQuery.data ?? []).length}
