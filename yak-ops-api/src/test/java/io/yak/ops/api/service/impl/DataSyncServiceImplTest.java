@@ -146,7 +146,7 @@ class DataSyncServiceImplTest {
         failurePage.setRecords(Collections.singletonList(
                 TaskInstance.builder().id(42).taskCode(99L).name("orders").build()));
         when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                isNull(), any(int[].class))).thenReturn(failurePage);
+                isNull(), any(int[].class), isNull())).thenReturn(failurePage);
 
         DataSyncOverviewVO overview = service.getOverview(new User(), PROJECT_CODE);
 
