@@ -273,20 +273,20 @@ export function DataModelingOverviewPage() {
             pixelSize={3}
             color="#FE2C55"
             accentColor="#FE2C55"
-            patternScale={2}
-            patternDensity={1}
-            pixelSizeJitter={0}
+            patternScale={2.8}
+            patternDensity={0.7}
+            pixelSizeJitter={0.27}
             softness={0}
-            smoothing={0}
+            smoothing={0.16}
             glow={0}
             twinkle={0}
-            speed={0.5}
-            drift={0}
+            speed={0.9}
+            drift={0.35}
             hoverEffect="none"
             enableRipples
             rippleSpeed={0.3}
             rippleThickness={0.1}
-            rippleIntensityScale={1}
+            rippleIntensityScale={0.95}
             autoRipple={0}
             edgeFade={0.25}
             intro
