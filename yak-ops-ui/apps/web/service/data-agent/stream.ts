@@ -1,5 +1,5 @@
 import { createAgentRequestHeaders, responseError, sessionPath } from "./http.ts";
-import { confirmAgentSession, getAgentSessionStatus } from "./sessions.ts";
+import { getAgentSessionStatus } from "./sessions.ts";
 import {
   DATA_AGENT_API_PREFIX,
   DataAgentApiError,
@@ -12,6 +12,7 @@ import {
 type StreamOptions = {
   identity: AgentRequestIdentity;
   signal: AbortSignal;
+  queue?: boolean;
   onEvent: (event: AgentStreamEvent) => void | Promise<void>;
   onConfirmRequired: (
     event: Extract<AgentStreamEvent, { type: "confirm_required" }>,
@@ -89,6 +90,14 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
   };
 
   switch (type) {
+    case "reply_start":
+      return {
+        type,
+        name: typeof payload.name === "string" ? payload.name : "",
+        role: typeof payload.role === "string" ? payload.role : "assistant",
+        ...identity,
+        ...metadata,
+      };
     case "text_delta":
       return {
         type,
@@ -129,6 +138,21 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         ...identity,
         ...metadata,
       };
+    case "tool_call_end":
+      return {
+        type,
+        toolCallId: typeof payload.toolCallId === "string" ? payload.toolCallId : "",
+        ...identity,
+        ...metadata,
+      };
+    case "tool_result_start":
+      return {
+        type,
+        tool: typeof payload.tool === "string" ? payload.tool : "",
+        toolCallId: typeof payload.toolCallId === "string" ? payload.toolCallId : "",
+        ...identity,
+        ...metadata,
+      };
     case "tool_result":
       return {
         type,
@@ -159,6 +183,13 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         ...identity,
         ...metadata,
       };
+    case "exceed_max_iters":
+      return {
+        type,
+        name: typeof payload.name === "string" ? payload.name : "",
+        ...identity,
+        ...metadata,
+      };
     case "reply_end":
       return {
         type,
@@ -176,6 +207,28 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         type,
         replyId: typeof payload.replyId === "string" ? payload.replyId : "",
         toolCalls: parseToolCalls(payload.toolCalls),
+        ...metadata,
+      };
+    case "queue_waiting":
+      return {
+        type,
+        queueId: typeof payload.queueId === "string" ? payload.queueId : "",
+        position: numericValue(payload.position),
+        messagePreview:
+          typeof payload.messagePreview === "string" ? payload.messagePreview : "",
+        ...metadata,
+      };
+    case "queue_started":
+      return {
+        type,
+        queueId: typeof payload.queueId === "string" ? payload.queueId : "",
+        ...metadata,
+      };
+    case "queue_cancelled":
+      return {
+        type,
+        queueId: typeof payload.queueId === "string" ? payload.queueId : "",
+        reason: typeof payload.reason === "string" ? payload.reason : "cancelled",
         ...metadata,
       };
     case "done":
@@ -241,7 +294,13 @@ async function consumeAgentStream(
     }
     await options.onEvent(event);
 
-    if (event.type === "done" || event.type === "error") completed = true;
+    if (
+      event.type === "done" ||
+      event.type === "error" ||
+      event.type === "queue_cancelled"
+    ) {
+      completed = true;
+    }
     if (event.type === "stream_idle") idle = true;
   };
 
@@ -331,7 +390,7 @@ export async function resumeAgentStream(
         options.identity,
         options.signal,
       );
-      if (!status.busy) return;
+      if (!status.busy && status.state !== "queued") return;
 
       failures = result.idle || !result.received ? failures + 1 : 0;
     } catch (error) {
@@ -360,8 +419,9 @@ export async function sendAgentMessage(
   message: string,
   options: StreamOptions,
 ): Promise<void> {
+  const queueSuffix = options.queue ? "?queue=true" : "";
   const response = await fetch(
-    DATA_AGENT_API_PREFIX + sessionPath(sessionId) + "/messages",
+    DATA_AGENT_API_PREFIX + sessionPath(sessionId) + "/messages" + queueSuffix,
     {
       method: "POST",
       headers: createAgentRequestHeaders(options.identity, {
