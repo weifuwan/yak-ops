@@ -40,6 +40,8 @@ import {
 } from "@/app/data-sync/editor/page";
 import { DataSyncTaskDetailPage } from "@/app/data-sync/detail";
 import { DataSyncInstanceRedirect } from "./data-sync-instance-redirect";
+import { OperationsOverviewPage } from "@/app/operations/overview/page";
+import { OperationsAlertsPage } from "@/app/operations/alerts/page";
 import {
   WorkflowInstancesOperationsPage,
   WorkflowSchedulesOperationsPage,
@@ -282,15 +284,17 @@ export default function AppRouter() {
             element={
               <AppLayout
                 productLabel={OPERATIONS_PRODUCT_LABEL}
-                productPath="/operations/workflows/instances"
+                productPath="/operations/overview"
                 navigation={OPERATIONS_NAVIGATION}
               />
             }
           >
             <Route
               path="/operations"
-              element={<Navigate replace to="/operations/workflows/instances" />}
+              element={<Navigate replace to="/operations/overview" />}
             />
+            <Route path="/operations/overview" element={<OperationsOverviewPage />} />
+            <Route path="/operations/alerts" element={<OperationsAlertsPage />} />
             <Route path="/operations/workflows/instances" element={<WorkflowInstancesOperationsPage />} />
             <Route path="/operations/workflows/schedules" element={<WorkflowSchedulesOperationsPage />} />
             <Route path="/operations/offline/tasks" element={<OfflineTasksOperationsPage />} />
