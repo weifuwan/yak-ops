@@ -179,18 +179,15 @@ function OptionSelect({
   emptyContent?: string;
 }) {
   return (
-    <Select
+    <Select<string>
       size="small"
-      value={value || undefined}
+      items={Object.fromEntries(options.map((option) => [option.value, option.label]))}
+      value={value || null}
       disabled={disabled}
-      onValueChange={(nextValue) => onChange(String(nextValue || ""))}
+      onValueChange={(nextValue) => onChange(nextValue ?? "")}
     >
       <SelectTrigger variant="outlined" className="w-full">
-        <SelectValue placeholder={placeholder}>
-          {(currentValue) => currentValue
-            ? options.find((option) => option.value === currentValue)?.label || "未知选项"
-            : placeholder}
-        </SelectValue>
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent emptyContent={options.length === 0 ? emptyContent : undefined}>
         {options.map((option) => (
@@ -400,6 +397,15 @@ export function DimensionEditor({
   const isSummary = selectedTableType === "SUMMARY";
   const isApplication = selectedTableType === "APPLICATION";
 
+  // Treat asynchronously loaded defaults as effective form values during the
+  // first render after queries resolve, even before the hydration effects run.
+  // This is intentionally create-only: saved records never receive defaults.
+  const isNewDraft = tab.mode === "create" && !recordId;
+  const resolvedDwhId = isNewDraft ? values.dwhId || layerOptions[0]?.value || "" : values.dwhId;
+  const resolvedDomainId = isNewDraft && (isDim || isSummary)
+    ? values.domainId || defaultDataDomainId(domainsQuery.data || [])
+    : values.domainId;
+
   // New models start with the first warehouse layer compatible with their creation type.
   // Selection is by record ID; never reset a saved or manually selected value.
   useEffect(() => {
@@ -478,7 +484,7 @@ export function DimensionEditor({
 
   const saveBasicInfo = async () => {
     if (saving) return;
-    if (!values.dwhId) {
+    if (!resolvedDwhId) {
       setError("请选择有效数仓分层");
       return;
     }
@@ -495,7 +501,7 @@ export function DimensionEditor({
         setError("请输入维度英文缩写");
         return;
       }
-      if (!values.domainId) {
+      if (!resolvedDomainId) {
         setError("请选择数据域");
         return;
       }
@@ -520,11 +526,11 @@ export function DimensionEditor({
 
     const payload: Record<string, unknown> = {
       id: recordId || undefined,
-      dwhId: values.dwhId,
+      dwhId: resolvedDwhId,
       tableType: selectedTableType || null,
       enShortName: isDim ? values.enShortName.trim() : null,
       busTypeId: values.busTypeId || null,
-      domainId: values.domainId || null,
+      domainId: resolvedDomainId || null,
       busProcessId: values.busProcessId || null,
       martOrSubject: values.martOrSubject || null,
       timePeriodId: values.timePeriodId || null,
@@ -547,6 +553,8 @@ export function DimensionEditor({
         : await dimensionModelingApi.create(projectCode, payload);
 
       if (!saved.id) throw new Error("保存成功但未返回模型ID");
+      // Persist the displayed defaults before the tab transitions to edit mode.
+      setValues((current) => ({ ...current, dwhId: resolvedDwhId, domainId: resolvedDomainId }));
       onSaved(saved);
       setBasicDirty(false);
       setDirty(fieldsDirty);
@@ -863,7 +871,7 @@ export function DimensionEditor({
               <div className="grid grid-cols-1 gap-x-8 gap-y-3 xl:grid-cols-2">
                 <FormField label="数仓分层" required>
                   <OptionSelect
-                    value={values.dwhId}
+                    value={resolvedDwhId}
                     options={displayedLayerOptions}
                     placeholder={layersQuery.isPending ? "正在加载可用数仓分层..." : "请选择数仓分层"}
                     emptyContent={layerEmptyContent}
@@ -943,7 +951,7 @@ export function DimensionEditor({
                 {isDim ? (
                   <FormField label="数据域" required>
                     <OptionSelect
-                      value={values.domainId}
+                      value={resolvedDomainId}
                       options={domainOptions}
                       placeholder={domainsQuery.isFetching ? "正在加载数据域..." : "请选择数据域"}
                       onChange={(value) => changeValue("domainId", value)}
@@ -977,7 +985,7 @@ export function DimensionEditor({
                 {isSummary ? (
                   <FormField label="数据域">
                     <OptionSelect
-                      value={values.domainId}
+                      value={resolvedDomainId}
                       options={domainOptions}
                       placeholder="请选择数据域"
                       onChange={(value) => changeValue("domainId", value)}

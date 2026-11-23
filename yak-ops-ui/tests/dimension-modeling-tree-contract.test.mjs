@@ -232,7 +232,26 @@ test("new dimensions choose the protected system-default data domain, otherwise 
   assert.match(editor, /tab\.mode !== "create" \|\| recordId \|\| \(!isDim && !isSummary\)/);
   assert.match(editor, /defaultDataDomainId\(domainsQuery\.data \|\| \[\]\)/);
   assert.match(editor, /setValues\(\(current\) => current\.domainId/);
-  assert.match(editor, /domainId: values\.domainId \|\| null/);
+  assert.match(editor, /domainId: resolvedDomainId \|\| null/);
+});
+
+test("async defaults remain visible in controlled Base UI Select before effects hydrate form state", () => {
+  // Passing undefined first creates an uncontrolled Select, so async updates may not display.
+  assert.ok(editor.includes('items={Object.fromEntries(options.map((option) => [option.value, option.label]))}'));
+  assert.ok(editor.includes('value={value || null}'));
+  assert.ok(editor.includes('<SelectValue placeholder={placeholder} />'));
+  assert.ok(!editor.includes('value={value || undefined}'));
+  assert.ok(editor.includes('const isNewDraft = tab.mode === "create" && !recordId'));
+  assert.ok(editor.includes('const resolvedDwhId = isNewDraft ? values.dwhId || layerOptions[0]?.value || "" : values.dwhId'));
+  assert.ok(editor.includes('const resolvedDomainId = isNewDraft && (isDim || isSummary)'));
+  assert.ok(editor.includes('value={resolvedDwhId}'));
+  assert.ok(editor.includes('value={resolvedDomainId}'));
+  assert.ok(editor.includes('dwhId: resolvedDwhId'));
+  assert.ok(editor.includes('domainId: resolvedDomainId || null'));
+  assert.ok(editor.includes('setValues((current) => ({ ...current, dwhId: resolvedDwhId, domainId: resolvedDomainId }))'));
+  assert.ok(editor.includes('if (tab.mode !== "create" || recordId || !layerOptions.length) return'));
+  assert.ok(editor.includes('setValues((current) => current.dwhId'));
+  assert.ok(editor.includes('setValues((current) => current.domainId'));
 });
 
 test("dimension editor only passes emptyContent to Yak-UI Select when there are no options", () => {
@@ -241,7 +260,7 @@ test("dimension editor only passes emptyContent to Yak-UI Select when there are 
 });
 
 test("dimension editor keeps dwhId when saving and distinguishes layer load states", () => {
-  assert.match(editor, /dwhId: values\.dwhId/);
+  assert.match(editor, /dwhId: resolvedDwhId/);
   assert.match(editor, /options=\{displayedLayerOptions\}/);
   assert.match(editor, /emptyContent=\{layerEmptyContent\}/);
   assert.match(editor, /layersQuery\.isError/);
