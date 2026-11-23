@@ -44,6 +44,7 @@ function inputValue(value: number | undefined) {
 }
 
 export function FieldSpreadsheet({
+  projectCode,
   fieldType,
   fields,
   fieldStandardOptions,
@@ -581,6 +582,7 @@ export function FieldSpreadsheet({
 
       <FieldReferenceDialog
         open={referenceOpen}
+        projectCode={projectCode}
         fieldType={fieldType}
         onClose={() => setReferenceOpen(false)}
         onImport={appendImportedFields}
