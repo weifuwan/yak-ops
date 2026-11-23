@@ -1,0 +1,122 @@
+name: Agent CI
+
+on:
+  pull_request:
+    paths:
+      - 'yak-ops-agent/**'
+      - 'yak-ops-openapi/**'
+      - '.github/workflows/agent-ci.yml'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'yak-ops-agent/**'
+      - 'yak-ops-openapi/**'
+      - '.github/workflows/agent-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: yak-ops-agent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.4.0
+        with:
+          version: '0.13.6'
+          python-version: '3.11'
+          enable-cache: true
+          cache-dependency-glob: yak-ops-agent/uv.lock
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install dependencies
+        run: uv sync --locked --extra dev
+      - name: Ruff lint
+        run: uv run ruff check --output-format=github yak_agent tests smoke
+      - name: Ruff format
+        run: uv run ruff format --check yak_agent tests smoke
+
+  test:
+    name: Test (${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yak-ops-agent
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.4.0
+        with:
+          version: '0.13.6'
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: yak-ops-agent/uv.lock
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install dependencies
+        run: uv sync --locked --extra dev
+      - name: Run tests
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: uv run coverage run --source=yak_agent -m unittest discover -s tests -q
+      - name: Coverage XML
+        if: ${{ !cancelled() }}
+        run: uv run coverage xml -o coverage.xml
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: yak-ops-agent/coverage.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  contract:
+    name: Agent Contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: yak-ops-agent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.4.0
+        with:
+          version: '0.13.6'
+          python-version: '3.11'
+          enable-cache: true
+          cache-dependency-glob: yak-ops-agent/uv.lock
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Validate allowlist / registry / OpenAPI
+        run: uv run python ../yak-ops-openapi/scripts/check_agent_operations.py
+      - name: Validate registry names
+        run: uv run python -c "from yak_agent.tools.validation import validate_registry; validate_registry()"
