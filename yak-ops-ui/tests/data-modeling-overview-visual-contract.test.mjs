@@ -18,8 +18,13 @@ test("data modeling overview keeps the current landing-page structure", () => {
     "overview should expose the page entry",
   );
   assert.ok(
+    overview.includes("radial-gradient(ellipse at 16% -12%"),
+    "overview should render the CSS landing hero",
+  );
+  assert.equal(
     overview.includes("O1CN01d9iDld1SKva5mO2VE"),
-    "overview should keep the landing hero",
+    false,
+    "overview should not depend on the legacy external hero image",
   );
 });
 
