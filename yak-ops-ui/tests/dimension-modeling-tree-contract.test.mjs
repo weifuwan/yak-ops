@@ -12,6 +12,7 @@ import {
   warehouseEnumCode,
   warehouseLayerOptions,
 } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/warehouse-layers.ts";
+import { defaultDataDomainId } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/default-data-domain.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -200,6 +201,38 @@ test("warehouse layer selection binds IDs, displays real names, and handles seri
   assert.deepEqual(warehouseLayerOptions(layers, "APPLICATION").map((item) => item.value), ["application"]);
   assert.deepEqual(warehouseLayerOptions(layers, "DIM", "legacy").map((item) => item.value), ["dim-default", "dim-custom", "legacy"]);
   assert.deepEqual(warehouseLayerOptions([], "DIM"), []);
+});
+
+test("new dimension models default to the first compatible warehouse layer without replacing an existing selection", () => {
+  assert.match(editor, /const firstLayerId = layerOptions\[0\]\?\.value/);
+  assert.match(editor, /tab\.mode !== "create" \|\| recordId \|\| !layerOptions\.length/);
+  assert.match(editor, /setValues\(\(current\) => current\.dwhId/);
+  assert.doesNotMatch(editor, /preferredWarehouseLayer\(layerOptions/);
+
+  const layerRows = [
+    { id: "invalid", cnName: "应用数据层", dwType: "APPLICATION_LAYER", dwModelType: "APPLICATION" },
+    { id: "dim-2", cnName: "企业维度层", dwType: "PUBLIC_LAYER", dwModelType: "DIMENSION_DIM" },
+    { id: "dim-1", cnName: "公共维度层", dwType: "PUBLIC_LAYER", dwModelType: "DIM" },
+  ];
+  assert.equal(warehouseLayerOptions(layerRows, "DIM")[0].value, "dim-2");
+  assert.equal(warehouseLayerOptions(layerRows, "APPLICATION")[0].value, "invalid");
+});
+
+test("new dimensions choose the protected system-default data domain, otherwise the first option", () => {
+  const domainRows = [
+    { id: "commerce", enShortName: "commerce", flag: 0 },
+    { id: "default", enShortName: "default", flag: 1, cnName: "默认" },
+    { id: "analytics", enShortName: "analytics", flag: 0 },
+  ];
+  assert.equal(defaultDataDomainId(domainRows), "default");
+  assert.equal(defaultDataDomainId(domainRows.slice(0, 1)), "commerce");
+  assert.equal(defaultDataDomainId([]), "");
+  assert.equal(defaultDataDomainId([{ id: "named", enShortName: "default", flag: 0 }, domainRows[0]]), "named");
+  assert.equal(defaultDataDomainId([{ id: "system", flag: "1" }, domainRows[0]]), "system");
+  assert.match(editor, /tab\.mode !== "create" \|\| recordId \|\| \(!isDim && !isSummary\)/);
+  assert.match(editor, /defaultDataDomainId\(domainsQuery\.data \|\| \[\]\)/);
+  assert.match(editor, /setValues\(\(current\) => current\.domainId/);
+  assert.match(editor, /domainId: values\.domainId \|\| null/);
 });
 
 test("dimension editor only passes emptyContent to Yak-UI Select when there are no options", () => {

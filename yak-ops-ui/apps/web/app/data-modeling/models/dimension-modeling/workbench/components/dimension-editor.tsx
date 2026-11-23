@@ -35,7 +35,7 @@ import type {
   DimensionTableRecord,
   DimensionVersionRecord,
 } from "@/service/data-modeling/models/dimension-modeling";
-import type { DimensionCreateType, DimensionTab } from "../types";
+import type { DimensionTab } from "../types";
 import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
 import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
@@ -49,7 +49,8 @@ import { fieldStandardApi } from "@/service/data-modeling/standards/field-standa
 import { codeStandardApi } from "@/service/data-modeling/standards/code-standard";
 import { unitStandardApi } from "@/service/data-modeling/standards/unit-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
-import { preferredWarehouseLayer, warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-layers";
+import { warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-layers";
+import { defaultDataDomainId } from "../utils/default-data-domain";
 import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
 
@@ -71,15 +72,6 @@ const TABLE_TYPE_OPTIONS: Option[] = [
   { value: "SUMMARY", label: "汇总表" },
   { value: "APPLICATION", label: "应用表" },
 ];
-
-const DEFAULT_DW_TYPE_BY_CREATE_TYPE: Record<DimensionCreateType, string> = {
-  DIM: "PUBLIC_LAYER",
-  SOURCE: "SOURCE_LAYER",
-  DIMENSION: "PUBLIC_LAYER",
-  DETAIL: "PUBLIC_LAYER",
-  SUMMARY: "PUBLIC_LAYER",
-  APPLICATION: "APPLICATION_LAYER",
-};
 
 const DATA_TYPE_OPTIONS: Option[] = [
   "INT", "BIGINT", "BOOLEAN", "STRING", "TEXT", "DECIMAL", "DATE",
@@ -214,7 +206,6 @@ function OptionSelect({
 
 export function DimensionEditor({
   projectCode,
-  dwType,
   tab,
   onSaved,
   onDirtyChange,
@@ -409,19 +400,27 @@ export function DimensionEditor({
   const isSummary = selectedTableType === "SUMMARY";
   const isApplication = selectedTableType === "APPLICATION";
 
+  // New models start with the first warehouse layer compatible with their creation type.
+  // Selection is by record ID; never reset a saved or manually selected value.
   useEffect(() => {
-    if (tab.mode !== "create" || values.dwhId || !layerOptions.length) return;
-    const preferredType = tab.createType
-      ? DEFAULT_DW_TYPE_BY_CREATE_TYPE[tab.createType]
-      : dwType;
-    const preferredLayer = preferredWarehouseLayer(layerOptions, String(tab.createType || selectedTableType), preferredType);
-    if (!preferredLayer) return;
-    setValues((current) => ({
-      ...current,
-      dwhId: preferredLayer.value,
-      tableType: String(tab.createType || current.tableType || ""),
-    }));
-  }, [tab.mode, tab.createType, dwType, values.dwhId, layerOptions, selectedTableType]);
+    if (tab.mode !== "create" || recordId || !layerOptions.length) return;
+    const firstLayerId = layerOptions[0]?.value;
+    if (!firstLayerId) return;
+    setValues((current) => current.dwhId
+      ? current
+      : { ...current, dwhId: firstLayerId });
+  }, [tab.mode, recordId, layerOptions]);
+
+  // Prefer the protected system-default data domain, falling back to the first
+  // available domain if the project has not received its default seed yet.
+  useEffect(() => {
+    if (tab.mode !== "create" || recordId || (!isDim && !isSummary) || !domainsQuery.isSuccess) return;
+    const nextDomainId = defaultDataDomainId(domainsQuery.data || []);
+    if (!nextDomainId) return;
+    setValues((current) => current.domainId
+      ? current
+      : { ...current, domainId: nextDomainId });
+  }, [tab.mode, recordId, isDim, isSummary, domainsQuery.isSuccess, domainsQuery.data]);
 
   useEffect(() => {
     if (fieldsQuery.data && !fieldsDirty) {
