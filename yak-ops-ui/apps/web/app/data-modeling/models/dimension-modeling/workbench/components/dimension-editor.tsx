@@ -282,17 +282,17 @@ export function DimensionEditor({
   const fieldStandardsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-field-standards", projectCode],
     queryFn: () => fieldStandardApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode && recordId),
+    enabled: Boolean(projectCode),
   });
   const codeStandardsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-code-standards", projectCode],
     queryFn: () => codeStandardApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode && recordId),
+    enabled: Boolean(projectCode),
   });
   const unitsQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-units", projectCode],
     queryFn: () => unitStandardApi.all<ModelingRecord>(projectCode),
-    enabled: Boolean(projectCode && recordId),
+    enabled: Boolean(projectCode),
   });
   const fieldsQuery = useQuery<DimensionFieldRecord[]>({
     queryKey: ["modeling", "dimension-fields", projectCode, recordId],
@@ -583,7 +583,7 @@ export function DimensionEditor({
       setNoticeDismissed(false);
       if (showSuccess) toast.success("基本信息已保存为草稿");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
-      return true;
+      return saved;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "保存失败，请检查填写内容后重试");
       toast.warning("基本信息保存失败");
@@ -593,8 +593,8 @@ export function DimensionEditor({
     }
   };
 
-  const saveFields = async (showSuccess = true) => {
-    if (!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching) return false;
+  const saveFields = async (showSuccess = true, targetRecordId = recordId) => {
+    if (!targetRecordId || !fieldsDirty || savingFields || Boolean(recordId && fieldsQuery.isFetching)) return false;
     const persistedFields = fieldsForSave(fields);
     const validationIssues = validateDimensionFields(persistedFields);
     if (validationIssues.length) {
@@ -606,11 +606,11 @@ export function DimensionEditor({
     try {
       const normalizedFields = persistedFields.map(({ tempId, ...field }) => ({
         ...field,
-        tableId: recordId,
+        tableId: targetRecordId,
       }));
       const savedFields = await dimensionModelingApi.replaceFields(
         projectCode,
-        recordId,
+        targetRecordId,
         normalizedFields,
       );
       setFields(savedFields.map((field) => ({
@@ -620,7 +620,7 @@ export function DimensionEditor({
       })));
       setFieldsDirty(false);
       try {
-        const updatedRecord = await dimensionModelingApi.getById(projectCode, recordId);
+        const updatedRecord = await dimensionModelingApi.getById(projectCode, targetRecordId);
         onSaved(updatedRecord);
       } catch {
         // The field save already succeeded; a failed metadata refresh must not report a failed save.
@@ -629,7 +629,7 @@ export function DimensionEditor({
       onDirtyChange(basicDirty);
       if (showSuccess) toast.success("字段信息已保存");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
-      await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-fields", projectCode, recordId] });
+      await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-fields", projectCode, targetRecordId] });
       return true;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "字段保存失败，请重试");
@@ -645,13 +645,19 @@ export function DimensionEditor({
 
     const hadBasicChanges = basicDirty;
     const hadFieldChanges = fieldsDirty;
+    let targetRecordId = recordId;
 
-    if (hadBasicChanges) {
+    if (hadBasicChanges || !targetRecordId) {
       const basicSaved = await saveBasicInfo(false);
       if (!basicSaved) return;
+      targetRecordId = String(basicSaved.id || "");
+      if (!targetRecordId) {
+        setError("保存成功但未返回模型ID");
+        return;
+      }
     }
     if (hadFieldChanges) {
-      const fieldsSaved = await saveFields(false);
+      const fieldsSaved = await saveFields(false, targetRecordId);
       if (!fieldsSaved) return;
     }
 
@@ -758,7 +764,7 @@ export function DimensionEditor({
             <Button
               size="sm"
               variant="ghost"
-              isDisabled={(!basicDirty && !fieldsDirty) || saving || savingFields || (fieldsDirty && (!recordId || fieldsQuery.isFetching || fieldsQuery.isError))}
+              isDisabled={(!basicDirty && !fieldsDirty) || saving || savingFields || Boolean(recordId && fieldsDirty && (fieldsQuery.isFetching || fieldsQuery.isError))}
               isPending={saving || savingFields}
               onClick={() => void saveChanges()}
             >
@@ -1117,46 +1123,34 @@ export function DimensionEditor({
               <>
                 <section className="bg-white p-4">
                   <FormSectionHeader title="字段管理" />
-                  {!recordId ? (
-                    <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
-                      请先保存基本信息，再配置字段
-                    </div>
-                  ) : (
-                    <FieldSpreadsheet
-                      projectCode={projectCode}
-                      modelType={selectedTableType}
-                      fieldType="PROPERTY"
-                      fields={propertyFields}
-                      fieldStandardOptions={fieldStandardOptions}
-                      codeStandardOptions={codeStandardOptions}
-                      unitOptions={unitOptions}
-                      loading={Boolean(recordId && fieldsQuery.isFetching)}
-                      error={fieldsQuery.isError}
-                      onChange={(nextFields) => updateFieldGroup("PROPERTY", nextFields)}
-                    />
-                  )}
+                  <FieldSpreadsheet
+                    projectCode={projectCode}
+                    modelType={selectedTableType}
+                    fieldType="PROPERTY"
+                    fields={propertyFields}
+                    fieldStandardOptions={fieldStandardOptions}
+                    codeStandardOptions={codeStandardOptions}
+                    unitOptions={unitOptions}
+                    loading={Boolean(recordId && fieldsQuery.isFetching)}
+                    error={Boolean(recordId && fieldsQuery.isError)}
+                    onChange={(nextFields) => updateFieldGroup("PROPERTY", nextFields)}
+                  />
                 </section>
 
                 <section className="bg-white p-4">
                   <FormSectionHeader title="分区字段管理" />
-                  {!recordId ? (
-                    <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
-                      请先保存基本信息，再配置分区字段
-                    </div>
-                  ) : (
-                    <FieldSpreadsheet
-                      projectCode={projectCode}
-                      modelType={selectedTableType}
-                      fieldType="PARTITION"
-                      fields={partitionFields}
-                      fieldStandardOptions={fieldStandardOptions}
-                      codeStandardOptions={codeStandardOptions}
-                      unitOptions={unitOptions}
-                      loading={Boolean(recordId && fieldsQuery.isFetching)}
-                      error={fieldsQuery.isError}
-                      onChange={(nextFields) => updateFieldGroup("PARTITION", nextFields)}
-                    />
-                  )}
+                  <FieldSpreadsheet
+                    projectCode={projectCode}
+                    modelType={selectedTableType}
+                    fieldType="PARTITION"
+                    fields={partitionFields}
+                    fieldStandardOptions={fieldStandardOptions}
+                    codeStandardOptions={codeStandardOptions}
+                    unitOptions={unitOptions}
+                    loading={Boolean(recordId && fieldsQuery.isFetching)}
+                    error={Boolean(recordId && fieldsQuery.isError)}
+                    onChange={(nextFields) => updateFieldGroup("PARTITION", nextFields)}
+                  />
                 </section>
               </>
             ) : null}
