@@ -50,6 +50,12 @@ export function AgentToolActivity({
   );
   const toolLabel =
     TOOL_LABELS[activity.toolName ?? ""] ?? activity.toolName ?? "工具调用";
+  const runningLabel =
+    activity.phase === "preparing"
+      ? "生成参数"
+      : activity.phase === "ready"
+        ? "参数已就绪"
+        : "执行中";
 
   return (
     <button
@@ -86,7 +92,11 @@ export function AgentToolActivity({
           size={12}
           className={status === "running" ? "animate-spin" : ""}
         />
-        {status === "completed" ? null : toolStatusLabel(status)}
+        {status === "completed"
+          ? null
+          : status === "running"
+            ? runningLabel
+            : toolStatusLabel(status)}
       </span>
       {duration ? (
         <span className="shrink-0 text-xs tabular-nums text-[#9aa39f]">
