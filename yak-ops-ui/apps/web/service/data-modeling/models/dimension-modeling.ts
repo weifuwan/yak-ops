@@ -20,6 +20,7 @@ export type DimensionTreeNode = {
   title: string;
   parentId?: string | null;
   type: string;
+  modelId?: string;
   total?: number;
   leaf: boolean;
   updateTime?: string;
