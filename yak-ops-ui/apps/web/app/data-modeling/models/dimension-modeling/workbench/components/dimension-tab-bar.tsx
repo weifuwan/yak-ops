@@ -1,5 +1,6 @@
-import { Table2, X } from "lucide-react";
+import { List, Table2, X } from "lucide-react";
 
+import { ModelTypeIcon, isModelTypeIconType } from "../../../../components/model-type-icon";
 import type { DimensionTab } from "../types";
 
 type Props = {
@@ -17,6 +18,8 @@ export function DimensionTabBar({ tabs, activeTabKey, onSelect, onClose }: Props
       <div role="tablist" aria-label="维度建模工作区选项卡" className="flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const active = tab.key === activeTabKey;
+          const modelType = tab.createType || tab.record?.tableType;
+          const hasModelTypeIcon = isModelTypeIconType(modelType);
           return (
             <div
               key={tab.key}
@@ -34,7 +37,13 @@ export function DimensionTabBar({ tabs, activeTabKey, onSelect, onClose }: Props
                 onClick={() => onSelect(tab.key)}
                 className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 pl-2 pr-0 text-left text-[13px] leading-none outline-none"
               >
-                <Table2 size={15} />
+                {tab.mode === "list" ? (
+                  <List size={15} />
+                ) : hasModelTypeIcon ? (
+                  <ModelTypeIcon type={modelType} size={15} />
+                ) : (
+                  <Table2 size={15} />
+                )}
                 <span className="min-w-0 flex-1 truncate whitespace-nowrap">{tab.label}</span>
                 {tab.dirty ? <span aria-label="有未保存修改" title="有未保存修改" className="mr-1.5 size-1.5 shrink-0 rounded-full bg-[#e6a23c]" /> : null}
               </button>
