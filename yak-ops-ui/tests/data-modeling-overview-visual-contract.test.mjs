@@ -29,8 +29,8 @@ test("data modeling overview keeps the current landing-page structure", () => {
   for (const presetValue of [
     'variant="square"',
     'pixelSize={3}',
-    'color="#FE2C55"',
-    'accentColor="#FE2C55"',
+    'color="#0033FF"',
+    'accentColor="#0033FF"',
     'patternScale={2.8}',
     'patternDensity={0.7}',
     'pixelSizeJitter={0.27}',
