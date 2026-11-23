@@ -3,6 +3,7 @@ import {
   Brain,
   CheckCircle2,
   CircleAlert,
+  Clock3,
   LoaderCircle,
   ShieldCheck,
   XCircle,
@@ -51,6 +52,10 @@ function formatDuration(startedAt?: number, completedAt?: number) {
 export function AgentThinkingIndicator({
   activity,
 }: AgentThinkingIndicatorProps) {
+  const LeadingIcon =
+    activity.kind === "progress" && activity.phase?.startsWith("queue:")
+      ? Clock3
+      : Brain;
   const Icon =
     activity.status === "running"
       ? LoaderCircle
@@ -71,7 +76,7 @@ export function AgentThinkingIndicator({
   return (
     <div className="flex min-w-0 items-center gap-2.5 py-1.5">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#000000]">
-        <Brain
+        <LeadingIcon
           size={13}
           className={activity.status === "running" ? "animate-pulse" : ""}
         />
