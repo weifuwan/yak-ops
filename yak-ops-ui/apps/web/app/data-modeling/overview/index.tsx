@@ -1,5 +1,13 @@
 import React, { useState } from "react";
 import {
+  Boxes,
+  ChartNoAxesCombined,
+  Database,
+  Layers3,
+  Table2,
+  type LucideIcon,
+} from "lucide-react";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,7 +26,7 @@ type StatisticValue = {
 
 type StatisticItem = {
   title: string;
-  image?: string;
+  icon?: LucideIcon;
   values?: StatisticValue[];
   total?: boolean;
   formula?: string;
@@ -27,32 +35,27 @@ type StatisticItem = {
 const STATISTICS: StatisticItem[] = [
   {
     title: "维度表模型",
-    image:
-      "https://img.alicdn.com/imgextra/i3/O1CN01bYykXi1ZHuHGBhaDL_!!6000000003170-2-tps-228-228.png",
+    icon: Boxes,
     values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "明细表模型",
-    image:
-      "https://img.alicdn.com/imgextra/i2/O1CN01l2o2g71MLUN0kZXpq_!!6000000001418-2-tps-228-228.png",
+    icon: Table2,
     values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "汇总表模型",
-    image:
-      "https://img.alicdn.com/imgextra/i3/O1CN01RHb33F1ySm4GYFQiu_!!6000000006578-2-tps-228-228.png",
+    icon: Layers3,
     values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "应用表模型",
-    image:
-      "https://img.alicdn.com/imgextra/i2/O1CN018Lu3ns1kR1wLd4FXZ_!!6000000004679-2-tps-228-228.png",
+    icon: Database,
     values: [{ num: "—", unit: "模型数量" }],
   },
   {
     title: "派生指标&复合指标",
-    image:
-      "https://img.alicdn.com/imgextra/i4/O1CN016myXwp1W58NunKeT1_!!6000000002736-2-tps-228-228.png",
+    icon: ChartNoAxesCombined,
     values: [
       { num: "—", unit: "指标数量" },
       { num: "—", unit: "向上取整" },
@@ -112,11 +115,9 @@ function StatisticCard({ item }: { item: StatisticItem }) {
 
   return (
     <div className="flex w-full flex-row items-center mb-4 rounded-[2px] border border-[#EDEFF7] bg-white p-1.5 transition-shadow hover:shadow-[0_1px_8px_-1px_#0000001f]">
-      <img
-        src={item.image}
-        alt=""
-        className="h-12 w-12 shrink-0 object-contain"
-      />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F3F4F8] text-[#3A3D51]">
+        {item.icon && <item.icon size={22} strokeWidth={1.75} aria-hidden="true" />}
+      </div>
 
       <div
         className="h-12 min-w-0 flex-1 overflow-hidden px-1.5 text-xs font-black leading-[48px] text-[#333946] whitespace-nowrap text-ellipsis"
