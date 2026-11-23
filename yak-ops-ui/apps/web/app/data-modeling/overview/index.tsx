@@ -287,7 +287,6 @@ export function DataModelingOverviewPage() {
           }}
         />
 
-        <div className="absolute left-[8%] top-[18%] h-px w-[34%] bg-gradient-to-r from-transparent via-[#AEB9CC]/45 to-transparent" />
         <div className="relative z-10 mx-auto flex h-full w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px] items-center">
           <div className="max-w-[620px] -translate-y-3">
             <h1 className="m-0 text-[30px] font-semibold leading-[1.3] tracking-[-0.02em] text-[#10121A]">
