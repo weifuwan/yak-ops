@@ -185,8 +185,8 @@ test("warehouse layer selection binds IDs, displays real names, and handles seri
 });
 
 test("dimension editor only passes emptyContent to Yak-UI Select when there are no options", () => {
-  assert.match(editor, /<SelectContent emptyContent=\\{options\\.length === 0 \\? emptyContent : undefined\\}>/);
-  assert.doesNotMatch(editor, /<SelectContent emptyContent=\\{emptyContent\\}>/);
+  assert.ok(editor.includes("<SelectContent emptyContent={options.length === 0 ? emptyContent : undefined}>"));
+  assert.ok(!editor.includes("<SelectContent emptyContent={emptyContent}>"));
 });
 
 test("dimension editor keeps dwhId when saving and distinguishes layer load states", () => {
