@@ -290,6 +290,34 @@ export function DataModelingOverviewPage() {
 
         <div className="absolute left-[8%] top-[18%] h-px w-[34%] bg-gradient-to-r from-transparent via-[#AEB9CC]/45 to-transparent" />
         <div className="absolute right-[10%] top-[34%] h-px w-[24%] bg-gradient-to-r from-transparent via-[#D8A6B2]/35 to-transparent" />
+
+        <div className="relative z-10 mx-auto flex h-full w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px] items-center">
+          <div className="max-w-[620px] -translate-y-3">
+            <div className="mb-4 inline-flex h-7 items-center rounded-full border border-[#E4E7EE] bg-white/70 px-3 text-xs font-medium text-[#555B68] shadow-[0_1px_2px_rgba(16,18,26,0.03)] backdrop-blur-sm">
+              数据建模
+            </div>
+
+            <h1 className="m-0 text-[30px] font-semibold leading-[1.3] tracking-[-0.02em] text-[#10121A]">
+              让数据模型更清晰、更统一
+            </h1>
+
+            <p className="mt-3 max-w-[520px] text-sm leading-6 text-[#777E8B]">
+              从数仓规划、数据标准到维度建模与指标管理，统一沉淀数据资产。
+            </p>
+
+            <div className="mt-6 flex items-center gap-2">
+              {["数仓规划", "数据标准", "维度建模", "数据指标"].map((label) => (
+                <span
+                  key={label}
+                  className="rounded-md border border-[#E7E9F0] bg-white/60 px-3 py-1.5 text-xs text-[#555B68] backdrop-blur-sm"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#F6F6F6] via-[#F6F6F6]/80 to-transparent" />
       </section>
 
