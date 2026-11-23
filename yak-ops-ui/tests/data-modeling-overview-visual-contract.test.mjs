@@ -32,6 +32,8 @@ test("data modeling overview keeps the current landing-page structure", () => {
     "从数仓规划、数据标准到维度建模与指标管理，统一沉淀数据资产。",
     "开始建模",
     "指标管理",
+    "border-dotted",
+    "border-b-[5px]",
     'to="/data-modeling/models/positive"',
     'to="/data-modeling/indicators/atom"',
   ]) {
