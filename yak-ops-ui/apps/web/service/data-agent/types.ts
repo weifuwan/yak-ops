@@ -20,6 +20,7 @@ export interface AgentSessionSummary {
 
 export type AgentSessionState =
   | "idle"
+  | "queued"
   | "running"
   | "awaiting_confirmation"
   | "interrupting"
@@ -29,6 +30,7 @@ export interface AgentSessionStatus {
   sessionId: string;
   state: AgentSessionState;
   busy: boolean;
+  queued: number;
   stale: boolean;
   turnId?: string | null;
   replyId?: string | null;
@@ -42,6 +44,18 @@ export interface AgentSessionStatus {
   preview: string;
   updatedAt?: number | null;
   usage?: AgentSessionUsage;
+}
+
+export interface AgentSessionQueueItem {
+  queueId: string;
+  position: number;
+  createdAt: string;
+  messagePreview: string;
+}
+
+export interface AgentSessionQueue {
+  items: AgentSessionQueueItem[];
+  max: number;
 }
 
 export type AgentHistoryBlock =
@@ -94,6 +108,11 @@ export type AgentStreamMetadata = {
 
 type AgentStreamPayload =
   | (AgentEventIdentity & {
+      type: "reply_start";
+      name: string;
+      role: string;
+    })
+  | (AgentEventIdentity & {
       type: "text_delta";
       delta: string;
       blockId?: string;
@@ -110,6 +129,15 @@ type AgentStreamPayload =
       type: "tool_call_delta";
       toolCallId: string;
       delta: string;
+    })
+  | (AgentEventIdentity & {
+      type: "tool_call_end";
+      toolCallId: string;
+    })
+  | (AgentEventIdentity & {
+      type: "tool_result_start";
+      tool: string;
+      toolCallId: string;
     })
   | (AgentEventIdentity & {
       type: "tool_result_delta";
@@ -135,6 +163,10 @@ type AgentStreamPayload =
       cacheCreationInputTokens: number;
     })
   | (AgentEventIdentity & {
+      type: "exceed_max_iters";
+      name: string;
+    })
+  | (AgentEventIdentity & {
       type: "reply_end";
       finishedReason: string;
       error?: Record<string, unknown> | null;
@@ -143,6 +175,21 @@ type AgentStreamPayload =
       type: "confirm_required";
       replyId: string;
       toolCalls: AgentToolCallRequest[];
+    }
+  | {
+      type: "queue_waiting";
+      queueId: string;
+      position: number;
+      messagePreview: string;
+    }
+  | {
+      type: "queue_started";
+      queueId: string;
+    }
+  | {
+      type: "queue_cancelled";
+      queueId: string;
+      reason: string;
     }
   | { type: "done"; finishedReason?: string }
   | { type: "error"; message: string }
