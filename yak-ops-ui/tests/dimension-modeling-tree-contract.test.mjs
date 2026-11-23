@@ -26,6 +26,10 @@ const controller = read("../../yak-ops-api/src/main/java/io/yak/ops/api/controll
 const groupingEnum = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/domain/enums/DimensionTreeGroupingEnum.java");
 const treeBuilder = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/DimensionTreeBuilder.java");
 const editor = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/dimension-editor.tsx");
+const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");
+const fieldGridUtils = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-utils.ts");
+const fieldReferenceDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-reference-dialog.tsx");
+const fieldBatchImportDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-batch-import-dialog.tsx");
 const createTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/types.ts");
 const dimensionPo = read("../../yak-ops-dao/src/main/java/io/yak/ops/dao/entity/DimensionTablePO.java");
 const dimensionService = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/impl/DimensionModelingServiceImpl.java");
@@ -438,7 +442,58 @@ test("dimension editor uses one save action for basic information and fields", (
   assert.match(toolbar, /<Save size=\{13\} \/>保存/);
   assert.match(toolbar, /<Upload size=\{13\} \/>提交/);
   assert.doesNotMatch(toolbar, /保存字段|保存基本信息/);
-  assert.match(editor, /addField\("PARTITION"\)/);
+  assert.match(editor, /fieldsForSave\(fields\)/);
+  assert.match(editor, /validateDimensionFields\(persistedFields\)/);
+  assert.match(editor, /fieldType="PROPERTY"/);
+  assert.match(editor, /fieldType="PARTITION"/);
+});
+
+test("dimension field management uses a spreadsheet editor instead of editable Yak-UI tables", () => {
+  assert.match(editor, /import FieldSpreadsheet/);
+  assert.match(editor, /<FieldSpreadsheet[\s\S]*?fieldType="PROPERTY"/);
+  assert.match(editor, /<FieldSpreadsheet[\s\S]*?fieldType="PARTITION"/);
+  assert.doesNotMatch(editor, /const fieldColumns:/);
+  assert.doesNotMatch(editor, /addField\(/);
+  assert.match(fieldSpreadsheet, /role="grid"/);
+  assert.match(fieldSpreadsheet, /role="gridcell"/);
+  assert.match(fieldSpreadsheet, /ring-2 ring-inset ring-\[var\(--yak-color-primary\)\]/);
+  assert.match(fieldSpreadsheet, /<GridSelect/);
+  assert.match(fieldSpreadsheet, /<Checkbox/);
+});
+
+test("field spreadsheet supports keyboard navigation, paste, row operations and cell validation", () => {
+  assert.match(fieldSpreadsheet, /handleGridPaste/);
+  assert.match(fieldSpreadsheet, /event\.key === "Tab"/);
+  assert.match(fieldSpreadsheet, /event\.key === "Enter"/);
+  assert.match(fieldSpreadsheet, /ArrowLeft/);
+  assert.match(fieldSpreadsheet, /ArrowRight/);
+  assert.match(fieldSpreadsheet, /ArrowUp/);
+  assert.match(fieldSpreadsheet, /ArrowDown/);
+  assert.match(fieldSpreadsheet, /navigator\.clipboard/);
+  assert.match(fieldSpreadsheet, /移除空白行/);
+  assert.match(fieldSpreadsheet, /插入/);
+  assert.match(fieldSpreadsheet, /validateDimensionFields\(fields\)/);
+  assert.match(fieldGridUtils, /字段名称不能为空/);
+  assert.match(fieldGridUtils, /字段名称重复/);
+  assert.match(fieldGridUtils, /精度不能大于长度/);
+  assert.match(fieldGridUtils, /fieldsForSave/);
+});
+
+test("field spreadsheet exposes advanced columns, batch import and existing-table references", () => {
+  for (const title of ["字段标准", "标准代码", "度量单位", "来源表", "来源字段", "描述"]) {
+    assert.match(fieldSpreadsheet, new RegExp(title));
+  }
+  assert.match(fieldSpreadsheet, /字段显示设置/);
+  assert.match(fieldSpreadsheet, /FieldBatchImportDialog/);
+  assert.match(fieldSpreadsheet, /FieldReferenceDialog/);
+  assert.match(fieldBatchImportDialog, /parseImportedFields/);
+  assert.match(fieldBatchImportDialog, /可直接从 Excel 粘贴/);
+  assert.match(fieldReferenceDialog, /listDataSources/);
+  assert.match(fieldReferenceDialog, /listDataSourceDatabases/);
+  assert.match(fieldReferenceDialog, /listDataSourceTables/);
+  assert.match(fieldReferenceDialog, /listDataSourceColumns/);
+  assert.match(fieldReferenceDialog, /sourceTb: sourceTable/);
+  assert.match(fieldReferenceDialog, /sourceField: column\.name/);
 });
 
 test("DIM business identifiers use enShortName instead of tableName", () => {
