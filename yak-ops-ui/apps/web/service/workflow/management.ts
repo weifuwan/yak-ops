@@ -52,6 +52,7 @@ export interface WorkflowInstanceSummary {
   scheduleTime?: string | null;
   workerGroup?: string | null;
   host?: string | null;
+  businessType?: WorkflowBusinessType | null;
 }
 
 export interface WorkflowInstanceDetail extends WorkflowInstanceSummary {
