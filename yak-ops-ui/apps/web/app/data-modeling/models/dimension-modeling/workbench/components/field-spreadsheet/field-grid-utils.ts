@@ -127,51 +127,6 @@ function parseOptionalNumber(value?: string) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function splitImportLine(line: string) {
-  if (line.includes("\t")) return line.split("\t");
-  return line.split(",");
-}
-
-function looksLikeHeader(cells: string[]) {
-  const first = String(cells[0] || "").trim().toLowerCase();
-  return ["字段名称", "字段名", "fieldname", "field_name", "name"].includes(first);
-}
-
-export function parseImportedFields(text: string, fieldType: FieldKind): DimensionFieldRecord[] {
-  const lines = text
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .filter((line) => line.trim());
-
-  const parsed = lines.map(splitImportLine);
-  const dataRows = parsed.length && looksLikeHeader(parsed[0]) ? parsed.slice(1) : parsed;
-
-  return dataRows
-    .map((cells) => {
-      const base = createDraftField(fieldType);
-      return {
-        ...base,
-        fieldName: String(cells[0] || "").trim(),
-        dataType: normalizeImportedDataType(cells[1]),
-        cnName: String(cells[2] || "").trim(),
-        remark: String(cells[3] || "").trim() || undefined,
-        length: parseOptionalNumber(cells[4]),
-        precision: parseOptionalNumber(cells[5]),
-        primaryFlag: parseBooleanCell(cells[6]),
-        notNull: parseBooleanCell(cells[7]),
-        sourceTb: String(cells[8] || "").trim() || undefined,
-        sourceField: String(cells[9] || "").trim() || undefined,
-        fieldType: fieldType === "PARTITION"
-          ? "PARTITION"
-          : normalizeFieldCategory(cells[10]),
-        fieldStdId: String(cells[11] || "").trim() || undefined,
-        codeStdId: String(cells[12] || "").trim() || undefined,
-      } satisfies DimensionFieldRecord;
-    })
-    .filter((field) => field.fieldName || !isEmptyDimensionField(field));
-}
-
 export function cellClipboardValue(field: DimensionFieldRecord, column: FieldColumnKey) {
   switch (column) {
     case "fieldName":
