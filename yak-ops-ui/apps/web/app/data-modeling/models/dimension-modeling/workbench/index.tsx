@@ -55,7 +55,11 @@ export function DimensionModelingWorkbench({ projectCode }: Props) {
   };
 
   const openEdit = async (node: DimensionTreeNode) => {
-    const id = node.key.endsWith("-DIM") ? node.key.slice(0, -4) : node.key;
+    const legacyId = node.key.replace(
+      /-(DIM|SOURCE|DIMENSION|DETAIL|SUMMARY|APPLICATION)$/,
+      "",
+    );
+    const id = String(node.modelId || legacyId);
     if (!id || id === "DimensionTable_ROOT") return;
 
     const existing = tabs.find((tab) => tab.mode === "edit" && String(tab.record?.id || "") === id);
