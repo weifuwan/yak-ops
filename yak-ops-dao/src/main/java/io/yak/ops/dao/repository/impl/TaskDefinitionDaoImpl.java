@@ -1,5 +1,6 @@
 package io.yak.ops.dao.repository.impl;
 
+import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.WorkflowDefinition;
@@ -112,8 +113,9 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     @Override
     public IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                                     String taskType, String keyword, Long taskCode,
-                                                    Integer releaseState, List<Long> taskCodes) {
-        return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState, taskCodes);
+                                                    Integer releaseState, List<Long> taskCodes, TaskExecuteType taskExecuteType) {
+        return mybatisMapper.queryDataSyncPage(page, projectCode, taskType, keyword, taskCode, releaseState, taskCodes,
+                taskExecuteType);
     }
 
     @Override
