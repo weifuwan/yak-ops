@@ -26,6 +26,17 @@ test("data modeling overview keeps the current landing-page structure", () => {
     overview.includes('from "./components/PixelBlast"'),
     "overview should use the PixelBlast hero background",
   );
+  for (const heroText of [
+    "让数据模型",
+    "更清晰、更统一",
+    "从数仓规划、数据标准到维度建模与指标管理，统一沉淀数据资产。",
+    "开始建模",
+    "指标管理",
+    'to="/data-modeling/models/positive"',
+    'to="/data-modeling/indicators/atom"',
+  ]) {
+    assert.ok(overview.includes(heroText), "overview hero should include " + heroText);
+  }
   for (const presetValue of [
     'variant="square"',
     'pixelSize={3}',
