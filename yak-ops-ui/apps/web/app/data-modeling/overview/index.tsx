@@ -298,14 +298,14 @@ export function DataModelingOverviewPage() {
 
         <div className="relative z-10 mx-auto flex h-full w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px] items-center">
           <div className="max-w-[720px] -translate-y-3">
-            <h1 className="m-0 inline-block text-[36px] font-medium leading-[1.35] tracking-[-0.025em] text-[#10121A]">
+            <h1 className="m-0 inline-block bg-[#F6F6F6] text-[36px] font-medium leading-[1.35] tracking-[-0.025em] text-[#10121A]">
               <span>让数据模型</span>
               <span className="ml-1 border-b-[5px] border-dotted border-[color:color-mix(in_oklab,var(--yak-color-primary)_48%,transparent)] pb-1 font-semibold text-[var(--yak-color-primary)]">
                 更清晰、更统一
               </span>
             </h1>
 
-            <p className="mt-4 inline-block max-w-[620px] text-base leading-7 text-[#555B68]">
+            <p className="mt-4 inline-block max-w-[620px] bg-[#F6F6F6] text-base leading-7 text-[#555B68]">
               从数仓规划、数据标准到维度建模与指标管理，统一沉淀数据资产。
             </p>
 
