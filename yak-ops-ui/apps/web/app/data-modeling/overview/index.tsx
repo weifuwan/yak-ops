@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
+  ArrowRight,
   Boxes,
   ChartNoAxesCombined,
   Database,
@@ -295,14 +297,35 @@ export function DataModelingOverviewPage() {
         </div>
 
         <div className="relative z-10 mx-auto flex h-full w-[calc(100%_-_160px)] min-w-[1200px] max-w-[1600px] items-center">
-          <div className="max-w-[620px] -translate-y-3">
-            <h1 className="m-0 text-[30px] font-semibold leading-[1.3] tracking-[-0.02em] text-[#10121A]">
-              让数据模型更清晰、更统一
+          <div className="max-w-[720px] -translate-y-3">
+            <h1 className="m-0 inline-block bg-white/90 text-[36px] font-medium leading-[1.35] tracking-[-0.025em] text-[#10121A]">
+              <span>让数据模型</span>
+              <span className="ml-1 font-semibold text-[var(--yak-color-primary)]">
+                更清晰、更统一
+              </span>
             </h1>
 
-            <p className="mt-3 max-w-[520px] text-sm leading-6 text-[#777E8B]">
+            <p className="mt-4 inline-block max-w-[620px] bg-white/90 text-base leading-7 text-[#555B68]">
               从数仓规划、数据标准到维度建模与指标管理，统一沉淀数据资产。
             </p>
+
+            <div className="mt-7 flex items-center gap-3">
+              <Link
+                to="/data-modeling/models/positive"
+                className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-[var(--yak-color-primary)] px-5 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:shadow-md"
+              >
+                开始建模
+                <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
+              </Link>
+
+              <Link
+                to="/data-modeling/indicators/atom"
+                className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-[#10121A] px-5 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#20232D] hover:shadow-md"
+              >
+                指标管理
+                <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </div>
 
