@@ -19,6 +19,7 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 const api = read("../apps/web/service/data-modeling/models/dimension-modeling.ts");
 const hook = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/hooks/use-dimension-tree.ts");
 const sidebar = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/dimension-sidebar.tsx");
+const businessTreeOptions = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/business-type-tree-options.tsx");
 const controller = read("../../yak-ops-api/src/main/java/io/yak/ops/api/controller/DimensionModelingController.java");
 const groupingEnum = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/domain/enums/DimensionTreeGroupingEnum.java");
 const treeBuilder = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/DimensionTreeBuilder.java");
@@ -52,7 +53,8 @@ test("business category uses its real hierarchy API and Yak UI TreeSelect", () =
   assert.match(sidebar, /<TreeSelect/);
   assert.match(sidebar, /items=\{businessTypeTreeOptions\}/);
   assert.match(sidebar, /searchPlaceholder="搜索业务分类"/);
-  assert.match(sidebar, /children: children\.length \? children : undefined/);
+  assert.match(businessTreeOptions, /children: children\.length \? children : undefined/);
+  assert.match(sidebar, /mapBusinessTypeTreeOption/);
   assert.doesNotMatch(sidebar, /businessTypeApi\.all/);
 });
 
@@ -132,6 +134,22 @@ test("backend tree filters selected parent scopes by descendants and preserves t
   assert.match(treeBuilder, /应用层目录仅支持按数据集市或主题域分组/);
 });
 
+
+test("dimension editor selects hierarchical business category IDs through Yak-UI TreeSelect", () => {
+  assert.ok(editor.includes('businessTypeApi.tree(projectCode)'));
+  assert.ok(editor.includes('planningQueryKeys.businessTypeTree(projectCode)'));
+  assert.ok(!editor.includes('businessTypeApi.all<ModelingRecord>'));
+  assert.ok(editor.includes('<TreeSelect'));
+  assert.ok(editor.includes('items={businessTypeTreeOptions}'));
+  assert.ok(editor.includes('value={values.busTypeId || null}'));
+  assert.ok(editor.includes('searchPlaceholder="搜索业务分类"'));
+  assert.ok(editor.includes('onValueChange={(value) => changeValue("busTypeId", value || "")}'));
+  assert.ok(editor.includes('businessTypeTreeQuery.refetch()'));
+  assert.ok(editor.includes('busTypeId: values.busTypeId || null'));
+  assert.ok(businessTreeOptions.includes('value,'));
+  assert.ok(businessTreeOptions.includes('label: String(node.title || value)'));
+  assert.ok(sidebar.includes('from "../utils/business-type-tree-options"'));
+});
 
 test("dimension creation groups each Base UI menu label with its items", () => {
   const menu = sidebar.match(

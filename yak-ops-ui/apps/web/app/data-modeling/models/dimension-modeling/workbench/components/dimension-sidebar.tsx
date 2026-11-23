@@ -46,6 +46,7 @@ import type {
 } from "@/service/data-modeling/models/dimension-modeling";
 import { DIMENSION_WAREHOUSE_OPTIONS } from "../hooks/use-dimension-tree";
 import { DIMENSION_CREATE_OPTIONS, type DimensionSidebarProps } from "../types";
+import { findBusinessTypeTreeOption, mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 
 type ScopeOption = { value: string; label: string };
 
@@ -76,35 +77,6 @@ function recordLabel(record: ModelingRecord, fields: string[]) {
     }
   }
   return "未命名";
-}
-
-function mapBusinessTypeTreeOption(node: BusinessTypeTreeNode): TreeSelectOption | null {
-  const value = String(node.value || node.key || "");
-  if (!value) return null;
-
-  const children = (node.children || [])
-    .map(mapBusinessTypeTreeOption)
-    .filter((option): option is TreeSelectOption => option !== null);
-
-  return {
-    value,
-    label: String(node.title || value),
-    icon: <PlanningIcon name="business-type" size={13} className="text-[#3a3d51]" />,
-    searchText: [node.key, node.value, node.parentId].filter(Boolean).join(" "),
-    children: children.length ? children : undefined,
-  };
-}
-
-function findBusinessTypeTreeOption(
-  options: readonly TreeSelectOption[],
-  value: string,
-): TreeSelectOption | undefined {
-  for (const option of options) {
-    if (option.value === value) return option;
-    const child = findBusinessTypeTreeOption(option.children || [], value);
-    if (child) return child;
-  }
-  return undefined;
 }
 
 function ExpandArrowIcon({ expanded }: { expanded: boolean }) {

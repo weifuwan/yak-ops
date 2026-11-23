@@ -13,8 +13,10 @@ import {
   SelectValue,
   Table,
   Textarea,
+  TreeSelect,
   toast,
   type TableColumns,
+  type TreeSelectOption,
 } from "@yak-ops/yak-ui";
 import {
   Download,
@@ -35,7 +37,7 @@ import type {
 } from "@/service/data-modeling/models/dimension-modeling";
 import type { DimensionCreateType, DimensionTab } from "../types";
 import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
-import { businessTypeApi } from "@/service/data-modeling/planning/business-type";
+import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
 import { businessProcessApi } from "@/service/data-modeling/planning/common-layer/business-process";
 import { dataMartApi } from "@/service/data-modeling/planning/application-layer/data-mart";
@@ -48,6 +50,8 @@ import { codeStandardApi } from "@/service/data-modeling/standards/code-standard
 import { unitStandardApi } from "@/service/data-modeling/standards/unit-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { preferredWarehouseLayer, warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-layers";
+import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
+import { planningQueryKeys } from "../../../../planning/query-keys";
 
 type Option = { value: string; label: string };
 
@@ -237,9 +241,9 @@ export function DimensionEditor({
     queryFn: () => dwLayerApi.all<ModelingRecord>(projectCode),
     enabled: Boolean(projectCode),
   });
-  const businessTypesQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "dimension-editor-business-types", projectCode],
-    queryFn: () => businessTypeApi.all<ModelingRecord>(projectCode),
+  const businessTypeTreeQuery = useQuery<BusinessTypeTreeNode[]>({
+    queryKey: planningQueryKeys.businessTypeTree(projectCode),
+    queryFn: () => businessTypeApi.tree(projectCode),
     enabled: Boolean(projectCode),
   });
   const domainsQuery = useQuery<ModelingRecord[]>({
@@ -351,10 +355,11 @@ export function DimensionEditor({
   const isLegacyUntyped = tab.mode === "edit" && !selectedTableType && isUnassigned;
   const canChooseLegacyType = tab.mode === "edit" && !selectedTableType && !isUnassigned;
 
-  const businessTypeOptions = (businessTypesQuery.data || []).map((record) => ({
-    value: String(record.id || ""),
-    label: optionLabel(record, ["businessName", "cnName", "enName"]),
-  })).filter((option) => option.value);
+  const businessTypeTreeOptions = useMemo<TreeSelectOption[]>(() => (
+    (businessTypeTreeQuery.data || [])
+      .map(mapBusinessTypeTreeOption)
+      .filter((option): option is TreeSelectOption => option !== null)
+  ), [businessTypeTreeQuery.data]);
   const domainOptions = (domainsQuery.data || []).map((record) => ({
     value: String(record.id || ""),
     label: optionLabel(record, ["cnName", "domainName", "enName"]),
@@ -919,12 +924,29 @@ export function DimensionEditor({
                   </FormField>
                 ) : (
                   <FormField label="业务分类">
-                    <OptionSelect
-                      value={values.busTypeId}
-                      options={businessTypeOptions}
-                      placeholder={businessTypesQuery.isFetching ? "正在加载业务分类..." : "请选择业务分类"}
-                      onChange={(value) => changeValue("busTypeId", value)}
+                    <TreeSelect
+                      ariaLabel="选择业务分类"
+                      items={businessTypeTreeOptions}
+                      value={values.busTypeId || null}
+                      placeholder={businessTypeTreeQuery.isPending ? "正在加载业务分类..." : "请选择业务分类"}
+                      searchPlaceholder="搜索业务分类"
+                      emptyText={businessTypeTreeQuery.isError ? "业务分类加载失败，请重试" : "暂无业务分类"}
+                      disabled={businessTypeTreeQuery.isPending && !businessTypeTreeQuery.data}
+                      size="small"
+                      variant="outlined"
+                      className="w-full"
+                      popupClassName="!min-w-[280px]"
+                      onValueChange={(value) => changeValue("busTypeId", value || "")}
                     />
+                    {businessTypeTreeQuery.isError ? (
+                      <button
+                        type="button"
+                        className="mt-1 cursor-pointer text-xs text-[var(--yak-color-primary)] hover:underline"
+                        onClick={() => void businessTypeTreeQuery.refetch()}
+                      >
+                        重新加载业务分类
+                      </button>
+                    ) : null}
                   </FormField>
                 )}
 
