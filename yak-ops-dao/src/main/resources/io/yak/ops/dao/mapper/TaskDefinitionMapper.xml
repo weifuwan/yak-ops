@@ -182,6 +182,9 @@
         <if test="releaseState != null">
             and w.release_state = #{releaseState}
         </if>
+        <if test="taskExecuteType != null">
+            and t.task_execute_type = #{taskExecuteType}
+        </if>
         <if test="keyword != null and keyword != ''">
             and (lower(t.name) like concat('%', lower(#{keyword}), '%')
             <if test="taskCode != null">
