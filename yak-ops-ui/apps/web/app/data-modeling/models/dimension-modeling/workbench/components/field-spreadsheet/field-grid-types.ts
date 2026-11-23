@@ -75,7 +75,7 @@ export const DEFAULT_VISIBLE_FIELD_COLUMNS = new Set<FieldColumnKey>(
   FIELD_GRID_COLUMNS.filter((column) => column.defaultVisible).map((column) => column.key),
 );
 
-const SOURCE_PROPERTY_COLUMN_KEYS = new Set<FieldColumnKey>([
+const SOURCE_PROPERTY_COLUMN_KEYS: FieldColumnKey[] = [
   "sequence",
   "fieldName",
   "dataType",
@@ -89,9 +89,9 @@ const SOURCE_PROPERTY_COLUMN_KEYS = new Set<FieldColumnKey>([
   "fieldStdId",
   "codeStdId",
   "actions",
-]);
+];
 
-const SOURCE_PARTITION_COLUMN_KEYS = new Set<FieldColumnKey>([
+const SOURCE_PARTITION_COLUMN_KEYS: FieldColumnKey[] = [
   "sequence",
   "fieldName",
   "dataType",
@@ -104,14 +104,17 @@ const SOURCE_PARTITION_COLUMN_KEYS = new Set<FieldColumnKey>([
   "fieldStdId",
   "codeStdId",
   "actions",
-]);
+];
 
 export function fieldGridColumns(modelType?: string, fieldKind: FieldKind = "PROPERTY") {
   if (modelType !== "SOURCE") return FIELD_GRID_COLUMNS;
-  const allowed = fieldKind === "PARTITION"
+  const order = fieldKind === "PARTITION"
     ? SOURCE_PARTITION_COLUMN_KEYS
     : SOURCE_PROPERTY_COLUMN_KEYS;
-  return FIELD_GRID_COLUMNS.filter((column) => allowed.has(column.key));
+  const byKey = new Map(FIELD_GRID_COLUMNS.map((column) => [column.key, column]));
+  return order
+    .map((key) => byKey.get(key))
+    .filter((column): column is FieldGridColumn => Boolean(column));
 }
 
 export function defaultVisibleFieldColumns(modelType?: string, fieldKind: FieldKind = "PROPERTY") {
