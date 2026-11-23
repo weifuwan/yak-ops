@@ -162,6 +162,9 @@ public class WorkflowInstanceSummaryVO {
     @Schema(description = "duration string, e.g. 1h 2m 3s")
     private String duration;
 
+    @Schema(description = "operations business type")
+    private String businessType;
+
     /**
      * Create a {@link WorkflowInstanceSummaryVO} from a {@link WorkflowInstanceSummaryDto} DAO DTO.
      */
@@ -197,6 +200,7 @@ public class WorkflowInstanceSummaryVO {
                 dto.getDryRun(),
                 dto.getNextWorkflowInstanceId(),
                 dto.getRestartTime(),
-                dto.getDuration());
+                dto.getDuration(),
+                dto.getBusinessType());
     }
 }
