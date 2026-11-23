@@ -34,6 +34,9 @@ const fieldGridSelect = read("../apps/web/app/data-modeling/models/dimension-mod
 const fieldSpreadsheetToolbar = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet-toolbar.tsx");
 const createTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/types.ts");
 const dimensionPo = read("../../yak-ops-dao/src/main/java/io/yak/ops/dao/entity/DimensionTablePO.java");
+const dimensionFieldPo = read("../../yak-ops-dao/src/main/java/io/yak/ops/dao/entity/DimensionTableFieldPO.java");
+const dimensionFieldDto = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/api/dto/dimension/DimensionTableFieldDTO.java");
+const dimensionFieldVo = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/api/vo/dimension/DimensionTableFieldVO.java");
 const dimensionService = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/impl/DimensionModelingServiceImpl.java");
 const dimensionSql = read("../../yak-ops-modeling/src/main/resources/sql/modeling_postgresql.sql");
 
@@ -466,6 +469,24 @@ test("dimension field management uses a spreadsheet editor instead of editable Y
   assert.match(fieldSpreadsheet, /<FieldGridSelect/);
   assert.match(fieldGridSelect, /<Select<string>/);
   assert.match(fieldSpreadsheet, /<Checkbox/);
+});
+
+test("dimension field precision uses fieldPrecision end to end", () => {
+  assert.match(dimensionFieldPo, /@TableField\("field_precision"\)[\s\S]*?private Integer fieldPrecision;/);
+  assert.doesNotMatch(dimensionFieldPo, /private Integer precision;/);
+  assert.match(dimensionFieldDto, /private Integer fieldPrecision;/);
+  assert.doesNotMatch(dimensionFieldDto, /private Integer precision;/);
+  assert.match(dimensionFieldVo, /private Integer fieldPrecision;/);
+  assert.doesNotMatch(dimensionFieldVo, /private Integer precision;/);
+  assert.match(dimensionService, /\.set\("field_precision", po\.getFieldPrecision\(\)\)/);
+  assert.doesNotMatch(dimensionService, /po\.getPrecision\(\)/);
+  assert.match(api, /fieldPrecision\?: number/);
+  assert.doesNotMatch(api, /\bprecision\?: number/);
+  assert.match(fieldGridTypes, /"fieldPrecision"/);
+  assert.doesNotMatch(fieldGridTypes, /"precision"/);
+  assert.match(fieldGridUtils, /field\.fieldPrecision/);
+  assert.match(fieldSpreadsheet, /field\.fieldPrecision/);
+  assert.match(sourceFieldImportCard, /fieldPrecision: column\.scale/);
 });
 
 test("field management can import source table metadata without affecting partition fields", () => {
