@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   Boxes,
   ChartNoAxesCombined,
   Database,
@@ -72,6 +71,27 @@ const STATISTICS: StatisticItem[] = [
     formula: "统计接口待接入",
   },
 ];
+
+function PixelArrowIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="size-3 -rotate-90 sm:size-4"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1.5 5.30469L4.5 5.30469V8.30469H1.5L1.5 5.30469ZM7.5 11.3047V8.30469H4.5L4.5 11.3047H7.5ZM10.5 11.3047V14.3047H7.5L7.5 11.3047L10.5 11.3047ZM13.5 8.30469L13.5 11.3047H10.5L10.5 8.30469H13.5ZM13.5 8.30469V5.30469L16.5 5.30469V8.30469H13.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 function InfoIcon() {
   return (
@@ -315,7 +335,7 @@ export function DataModelingOverviewPage() {
                 className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-[var(--yak-color-primary)] px-5 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:shadow-md"
               >
                 开始建模
-                <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
+                <PixelArrowIcon />
               </Link>
 
               <Link
@@ -323,7 +343,7 @@ export function DataModelingOverviewPage() {
                 className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-[#10121A] px-5 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#20232D] hover:shadow-md"
               >
                 指标管理
-                <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
+                <PixelArrowIcon />
               </Link>
             </div>
           </div>
