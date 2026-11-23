@@ -165,8 +165,11 @@ export function WorkflowInstancesOperationsPage() {
     return workflowNames.get(String(record.workflowDefinitionCode)) || record.name || `工作流 #${record.workflowDefinitionCode}`;
   };
   const businessLabel = (record: WorkflowInstanceSummary) => {
-    const type = syncWorkflowMeta.get(String(record.workflowDefinitionCode))?.type;
-    return type ? BUSINESS_ITEMS[type] : "工作流";
+    const type =
+      record.businessType ??
+      syncWorkflowMeta.get(String(record.workflowDefinitionCode))?.type ??
+      "WORKFLOW";
+    return BUSINESS_ITEMS[type] ?? "工作流";
   };
 
   const columns: TableColumns<WorkflowInstanceSummary> = [
