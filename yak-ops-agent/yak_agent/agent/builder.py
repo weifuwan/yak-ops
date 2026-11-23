@@ -8,19 +8,20 @@ from typing import Any
 
 from agentscope.agent import Agent, ContextConfig, InjectionConfig, ReActConfig
 from agentscope.credential import OpenAICredential
-from agentscope.middleware import ReplyBudgetControlMiddleware, TracingMiddleware
+from agentscope.middleware import TracingMiddleware
 from agentscope.model import OpenAIChatModel
 from agentscope.skill import LocalSkillLoader
 from agentscope.tool import Toolkit
 
 from yak_agent.agent.budget import (
     COMPRESSION_TOOL_TOKENS,
+    CacheAwareReplyBudgetControlMiddleware,
     check_context_budget,
     enforce_context_budget,
     estimate_value_tokens,
 )
 from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, SYSTEM_PROMPT
-from yak_agent.config import Settings
+from yak_agent.config import PLATFORM_TIMEZONE, Settings
 from yak_agent.memory.middleware import MEMORY_PROMPT_TOKENS, build_memory_search_tool
 from yak_agent.tools import build_tools
 from yak_agent.tools.audit_middleware import ToolAuditMiddleware
@@ -100,9 +101,11 @@ def build_agent(
     )
 
     middlewares: list[Any] = [
-        # Cost/latency guardrail: output tokens weigh 2x; once the budget
-        # is exhausted the agent wraps up without further tool calls.
-        ReplyBudgetControlMiddleware(
+        # Cost/latency guardrail: bill only non-cached input (output weighs
+        # 2x). Charging cached context at full price made long sessions stop
+        # after the first tool call. Once the budget is exhausted the agent
+        # wraps up without further tool calls.
+        CacheAwareReplyBudgetControlMiddleware(
             token_budget=settings.reply_token_budget,
             input_token_weight=1.0,
             output_token_weight=2.0,
@@ -136,7 +139,7 @@ def build_agent(
             max_iters=12,
             interruption_message="已中断本次回复，请告诉我接下来要做什么。",
         ),
-        injection_config=InjectionConfig(timezone="Asia/Shanghai"),
+        injection_config=InjectionConfig(timezone=PLATFORM_TIMEZONE),
         context_config=ContextConfig(
             trigger_ratio=_TRIGGER_RATIO,
             reserve_ratio=0.2,

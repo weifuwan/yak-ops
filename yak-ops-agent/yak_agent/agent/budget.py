@@ -1,10 +1,14 @@
-"""Validate context headroom before long-term memory is enabled."""
+"""Budget guardrails: context headroom and per-reply token accounting."""
 
 from __future__ import annotations
 
 import json
+from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from typing import Any
+
+from agentscope.event import ModelCallEndEvent
+from agentscope.middleware import ReplyBudgetControlMiddleware
 
 # AgentScope's base `count_tokens` estimates input size as bytes / 4; keep the
 # startup gate consistent with the number the framework will use later.
@@ -88,3 +92,42 @@ def enforce_context_budget(report: BudgetReport) -> None:
         f"基础提示+工具+摘要+记忆预计 {report.used} tokens。"
         "请调大 LLM_CONTEXT_SIZE，或减少工具/记忆预算。"
     )
+
+
+class CacheAwareReplyBudgetControlMiddleware(ReplyBudgetControlMiddleware):
+    """Reply budget that bills only non-cached input tokens.
+
+    AgentScope's default middleware charges the full prompt on every model
+    call, including prompt-cache hits. Long sessions re-send the same context
+    each iteration, so the first tool call alone can exhaust the budget even
+    when almost all input is cached. That turns the cost guardrail into a
+    one-tool-per-reply cap and blocks any read-then-write sequence.
+
+    This subclass keeps the same per-reply budget and wrap-up behavior, but
+    accumulates:
+
+        (input_tokens - cache_input_tokens) + output_weight * output_tokens
+
+    Cache creation tokens are still counted as new input. Providers that do
+    not report cache usage fall back to the default full-input accounting.
+    """
+
+    async def on_reply(
+        self,
+        agent: Any,
+        input_kwargs: dict[str, Any],
+        next_handler: Callable[..., AsyncGenerator[Any, None]],
+    ) -> AsyncGenerator[Any, None]:
+        async def billable_events(**kwargs: Any) -> AsyncGenerator[Any, None]:
+            async for event in next_handler(**kwargs):
+                if isinstance(event, ModelCallEndEvent):
+                    event = event.model_copy(
+                        update={
+                            "input_tokens": max(0, event.input_tokens - event.cache_input_tokens),
+                            "cache_input_tokens": 0,
+                        }
+                    )
+                yield event
+
+        async for event in super().on_reply(agent, input_kwargs, billable_events):
+            yield event

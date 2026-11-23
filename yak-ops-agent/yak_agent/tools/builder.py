@@ -22,6 +22,7 @@ from yak_agent.config import Settings
 from yak_agent.tools.registry import is_read_only, load_allowlist, load_operations
 from yak_agent.tools.runtime import execute
 from yak_agent.tools.schema import build_schema
+from yak_agent.tools.time_tools import build_time_tools
 from yak_agent.tools.validation import validate_registry
 from yak_agent.tools.workspace_tools import build_workspace_tools
 from yak_agent.yak_client import YakApiError, YakAuth
@@ -73,6 +74,7 @@ def build_tools(
                 is_concurrency_safe=readonly,
             )
         )
+    tools.extend(build_time_tools())
 
     # PTC tool: only registered when a sandboxed backend is available (cocoon,
     # a default dependency) or the operator explicitly allowed the unsafe

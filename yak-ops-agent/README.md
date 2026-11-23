@@ -14,14 +14,24 @@
 
 | 能力 | 说明 |
 | --- | --- |
-| **Skill（技能）** | `yak_agent/skills/data-sync-troubleshooting/SKILL.md`：数据同步排障知识（状态语义、排查步骤、常见根因、耗时口径、高危红线），模型按需加载 |
+| **Skill（技能）** | `yak_agent/skills/`：`data-sync-troubleshooting` 数据同步排障知识（状态语义、排查步骤、常见根因、耗时口径、高危红线）；`current-time` 服务器时间口径（平台时区 / UTC / 相对窗口换算），配合 `get_current_time` 工具使用，模型按需加载 |
 | **审计留痕** | 每次工具调用落 JSONL（`logs/audit/YYYY-MM-DD.jsonl`，`YAK_AGENT_AUDIT_DIR` 可改）：时间、工具、脱敏参数、成功与否、耗时——`parameters_json` 类参数只记占位符，不落盘数据源凭据 |
 | **短期记忆** | Agent 内部 context：同一会话内后续问题复用已取数据（省 token） |
-| **Middleware** | `ReplyBudgetControlMiddleware`：单回复加权 token 预算（输出 ×2，`YAK_AGENT_REPLY_TOKEN_BUDGET` 默认 25000），超限后收敛不再调工具——长回合的成本/时延护栏；`TracingMiddleware`：OpenTelemetry 全链路追踪，未配置 TracerProvider 时零开销，配置 collector（OTLP）后输出完整 span 树（reply/model_call/tool 层级含 token 计数与 HITL 状态） |
+| **Middleware** | `CacheAwareReplyBudgetControlMiddleware`：单回复加权 token 预算（只计非缓存输入 + 输出 ×2，`YAK_AGENT_REPLY_TOKEN_BUDGET` 默认 25000），避免长会话把缓存命中的上下文重复计费；超限后收敛不再调工具——长回合的成本/时延护栏；`TracingMiddleware`：OpenTelemetry 全链路追踪，未配置 TracerProvider 时零开销，配置 collector（OTLP）后输出完整 span 树（reply/model_call/tool 层级含 token 计数与 HITL 状态） |
 | **PTC（程序化工具调用）** | `run_analysis_script`：模型写 Python 脚本在受限执行器里跑，脚本经生成的只读 `yak_agent_sdk` 调 yak-ops API（含 `download_task_log` 全量日志），**只有结论进上下文**；写操作在 SDK import 时硬禁，静态预检拒绝写符号，超时/输出截断/全量审计 |
 | **会话工作区** | 每会话持久目录（`sessions/{sid}/workspace/`）：脚本产物跨轮存活；stdout 超长时自动 offload 落盘；`read_workspace_file` / `list_workspace_files` 只读工具回读（路径逃逸防护）。执行后端可插拔：本地=cocoon 沙箱（默认）或受限子进程，生产=DockerWorkspace |
 
-## 工具（数据同步，7 读 + 7 写）
+## 工具（数据同步 8 读 + 8 写，数据源目录 4 读）
+
+| 数据源目录工具（只读，自动执行） | REST 端点 |
+| --- | --- |
+| `list_data_sources` | `GET /projects/{code}/datasources`（keyword/type 过滤，密码脱敏） |
+| `get_data_source` | `GET .../datasources/{id}`（默认 database、连接配置，密码脱敏） |
+| `list_data_source_tables` | `GET .../datasources/tables`（库下表 + primaryKeys） |
+| `list_data_source_columns` | `GET .../datasources/tableColumns`（字段、类型、主键） |
+
+新建/修改同步任务时，先用以上工具取得真实的 datasource-id、库、表和字段，再构造
+`parameters`；不允许编造数据源 ID 或表名。
 
 | 读工具（自动执行） | REST 端点 |
 | --- | --- |
@@ -40,9 +50,12 @@
 | `update_sync_task` | `PUT .../tasks/{taskCode}`（带 expectedRevision 乐观锁） |
 | `publish_sync_task` | `POST .../tasks/{taskCode}/publish` |
 | `unpublish_sync_task` | `POST .../tasks/{taskCode}/unpublish` |
+| `run_sync_task` | `POST /executors/start-workflow-instance`（workflowCode，需确认） |
 | `delete_sync_task` | `DELETE .../tasks/{taskCode}`（不可恢复） |
 | `stop_task_instance` | `POST .../task-instances/{id}/stop` |
 | `force_success_task_instance` | `POST .../task-instances/{id}/force-success` |
+
+宿主侧只读工具：`get_current_time`（agent 服务器当前时间：平台时区 Asia/Shanghai、UTC、接口用的 UTC `yyyy-MM-dd HH:mm:ss`、epoch 毫秒），用于时间问答与相对时间窗口计算，无需确认。
 
 安全边界（宿主侧固化，模型不可见/不可传）：凭证注入（每请求的 session cookie 或 token）、projectCode 来自会话绑定的工作空间、`Result<T>` 业务码校验、16KB 截断、写操作 HITL 确认。
 
