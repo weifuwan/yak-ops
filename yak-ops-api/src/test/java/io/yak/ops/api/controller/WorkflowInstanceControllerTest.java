@@ -345,6 +345,7 @@ public class WorkflowInstanceControllerTest extends AbstractControllerTest {
         dto.setState(WorkflowExecutionStatus.SUCCESS);
         dto.setExecutorName("admin");
         dto.setDuration("1h 2m");
+        dto.setBusinessType("DATA_SYNC_OFFLINE");
 
         WorkflowInstanceSummaryVO result = WorkflowInstanceSummaryVO.fromSummaryDto(dto);
 
@@ -354,5 +355,6 @@ public class WorkflowInstanceControllerTest extends AbstractControllerTest {
         Assertions.assertEquals(WorkflowExecutionStatus.SUCCESS, result.getState());
         Assertions.assertEquals("admin", result.getExecutorName());
         Assertions.assertEquals("1h 2m", result.getDuration());
+        Assertions.assertEquals("DATA_SYNC_OFFLINE", result.getBusinessType());
     }
 }
