@@ -8,6 +8,7 @@ import {
   GitBranch,
   ListChecks,
   RefreshCw,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Button,
@@ -45,6 +46,18 @@ const RANGE_ITEMS: Record<RangeKey, string> = {
 };
 
 const number = (value: number) => value.toLocaleString("zh-CN");
+const ALERT_TYPE_LABELS: Record<string, string> = {
+  WORKFLOW_INSTANCE_FAILURE: "工作流失败",
+  WORKFLOW_INSTANCE_SUCCESS: "工作流成功",
+  WORKFLOW_INSTANCE_BLOCKED: "工作流阻塞",
+  WORKFLOW_INSTANCE_TIMEOUT: "工作流超时",
+  FAULT_TOLERANCE_WARNING: "服务异常",
+  TASK_FAILURE: "任务失败",
+  TASK_SUCCESS: "任务成功",
+  TASK_TIMEOUT: "任务超时",
+  TASK_RESULT: "任务结果",
+};
+
 
 function formatDate(value: Date) {
   const pad = (item: number) => String(item).padStart(2, "0");
@@ -79,7 +92,7 @@ function MetricCard({
 }: {
   label: string;
   value: number;
-  icon: typeof GitBranch;
+  icon: LucideIcon;
   hint?: string;
 }) {
   return (
@@ -361,7 +374,7 @@ export function OperationsOverviewPage() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{record.title || "告警"}</div>
                       <div className="mt-0.5 truncate text-[var(--yak-components-muted-text)]">
-                        {record.alertType || "-"}
+                        {record.alertType ? ALERT_TYPE_LABELS[record.alertType] ?? record.alertType : "-"}
                       </div>
                     </div>
                     <div className="shrink-0 text-[var(--yak-components-muted-text)]">
