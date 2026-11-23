@@ -21,7 +21,7 @@ export const DIMENSION_CREATE_OPTIONS: Array<{
   group: "dimension" | "table";
 }> = [
   { type: "DIM", label: "创建维度", dwType: "PUBLIC_LAYER", group: "dimension" },
-  { type: "SOURCE", label: "创建源表", dwType: "SOURCE_LAYER", group: "table" },
+  { type: "SOURCE", label: "创建贴源表", dwType: "SOURCE_LAYER", group: "table" },
   { type: "DIMENSION", label: "创建维度表", dwType: "PUBLIC_LAYER", group: "table" },
   { type: "DETAIL", label: "创建明细表", dwType: "PUBLIC_LAYER", group: "table" },
   { type: "SUMMARY", label: "创建汇总表", dwType: "PUBLIC_LAYER", group: "table" },
