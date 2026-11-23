@@ -476,6 +476,8 @@ test("field management can import source table metadata without affecting partit
   assert.match(sourceFieldImportCard, /listDataSources/);
   assert.match(sourceFieldImportCard, /listDataSourceTables/);
   assert.match(sourceFieldImportCard, /listDataSourceColumns/);
+  assert.match(sourceFieldImportCard, /databasesQuery\.isFetching/);
+  assert.doesNotMatch(sourceFieldImportCard, /databasesQuery\.isPending/);
   assert.match(sourceFieldImportCard, /导入全部字段/);
   assert.match(sourceFieldImportCard, /导入部分字段/);
   assert.match(sourceFieldImportCard, /同名字段会按来源表元数据覆盖/);
