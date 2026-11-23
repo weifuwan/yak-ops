@@ -37,6 +37,7 @@ test("the renderer enables streaming repair, Shiki highlighting and Chinese punc
   assert.match(markdown, /mode="streaming"/);
   assert.match(markdown, /isAnimating=\{isStreaming\}/);
   assert.match(markdown, /lineNumbers=\{false\}/);
+  assert.match(markdown, /controls=\{\{ table: false \}\}/);
   assert.match(markdown, /skipHtml/);
   assert.match(markdown, /disallowedElements=\{DISALLOWED_ELEMENTS\}/);
 });
@@ -48,7 +49,7 @@ test("Markdown styles restore list markers and follow Yak-OPS visual tokens", ()
   assert.match(markdownStyles, /data-streamdown="ordered-list"/);
   assert.match(markdownStyles, /data-streamdown="code-block"/);
   assert.match(markdownStyles, /data-streamdown="table-wrapper"/);
-  assert.match(markdownStyles, /border:\\s*0/);
+  assert.match(markdownStyles, /border:\s*0/);
   assert.match(globalStyles, /@theme inline/);
   assert.match(globalStyles, /node_modules\/streamdown\/dist/);
   assert.match(globalStyles, /node_modules\/@streamdown\/code\/dist/);
