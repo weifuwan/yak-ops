@@ -40,6 +40,7 @@ export type FieldValidationIssue = {
 
 export type FieldSpreadsheetProps = {
   projectCode: string;
+  modelType?: string;
   fieldType: FieldKind;
   fields: DimensionFieldRecord[];
   fieldStandardOptions: FieldOption[];
@@ -71,6 +72,15 @@ export const FIELD_GRID_COLUMNS: FieldGridColumn[] = [
 export const DEFAULT_VISIBLE_FIELD_COLUMNS = new Set<FieldColumnKey>(
   FIELD_GRID_COLUMNS.filter((column) => column.defaultVisible).map((column) => column.key),
 );
+
+export function defaultVisibleFieldColumns(modelType?: string) {
+  const visible = new Set(DEFAULT_VISIBLE_FIELD_COLUMNS);
+  if (modelType === "SOURCE") {
+    visible.add("sourceTb");
+    visible.add("sourceField");
+  }
+  return visible;
+}
 
 export const DATA_TYPE_OPTIONS: FieldOption[] = [
   "INT",
