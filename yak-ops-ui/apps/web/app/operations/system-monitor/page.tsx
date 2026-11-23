@@ -4,7 +4,6 @@ import {
   Activity,
   AlertTriangle,
   Cpu,
-  Database,
   HardDrive,
   MemoryStick,
   RefreshCw,
@@ -138,8 +137,8 @@ function ResourceOverview({ servers }: { servers: MonitorServerView[] }) {
 
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="mb-4 text-sm font-medium">资源使用概览</div>
+      <CardContent className="p-4">
+        <div className="mb-3 text-sm font-medium">资源使用概览</div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <UsageItem label="系统 CPU" value={values.cpu} icon={Cpu} />
           <UsageItem label="系统内存" value={values.memory} icon={MemoryStick} />
@@ -229,6 +228,25 @@ const commonServerColumns: TableColumns<MonitorServerView> = [
   },
 ];
 
+function MonitorTableHeader({
+  title,
+  count,
+  unit,
+}: {
+  title: string;
+  count: number;
+  unit: string;
+}) {
+  return (
+    <div className="flex h-11 items-center justify-between gap-4 border-b border-[var(--yak-components-panel-border)] px-4">
+      <div className="text-sm font-medium">{title}</div>
+      <div className="shrink-0 text-xs tabular-nums text-[var(--yak-components-muted-text)]">
+        {count} {unit}
+      </div>
+    </div>
+  );
+}
+
 function ServerTableCard({
   title,
   records,
@@ -243,12 +261,7 @@ function ServerTableCard({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="flex items-center justify-between gap-4 px-5 py-4">
-          <div className="text-sm font-medium">{title}</div>
-          <div className="shrink-0 text-xs tabular-nums text-[var(--yak-components-muted-text)]">
-            {records.length} 个节点
-          </div>
-        </div>
+        <MonitorTableHeader title={title} count={records.length} unit="个节点" />
         <Table<MonitorServerView>
           columns={columns}
           dataSource={records}
@@ -418,7 +431,7 @@ export function SystemMonitorPage() {
         </Button>
       }
     >
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
         {hasError ? (
           <div className="rounded-md border border-[var(--yak-components-panel-border)] px-4 py-3 text-sm text-[var(--yak-components-muted-text)]">
             部分系统监控数据加载失败，已成功返回的节点和指标仍会正常展示。
@@ -457,15 +470,11 @@ export function SystemMonitorPage() {
 
         <Card>
           <CardContent className="p-0">
-            <div className="flex items-center justify-between gap-4 px-5 py-4">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Database size={15} />
-                数据库指标
-              </div>
-              <div className="shrink-0 text-xs text-[var(--yak-components-muted-text)]">
-                {(databaseQuery.data ?? []).length} 个数据源
-              </div>
-            </div>
+            <MonitorTableHeader
+              title="数据库指标"
+              count={(databaseQuery.data ?? []).length}
+              unit="个数据源"
+            />
             <Table<DatabaseMetrics>
               columns={databaseColumns}
               dataSource={databaseQuery.data ?? []}
