@@ -124,7 +124,7 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
       minWidth: 220,
       render: (_v, r) => (
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium">{r.name}</div>
+          <div className="truncate text-xs font-medium">{r.name}</div>
           <div className="mt-0.5 text-xs text-[var(--yak-components-muted-text)]">任务 #{r.id} · V{r.definitionVersion}</div>
         </div>
       ),
@@ -269,7 +269,7 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
       </div>
       <div className="min-h-0 flex-1">
         <Table<DataSyncTaskListRecord>
-          className="min-h-full"
+          className="min-h-full [&_td]:!text-xs"
           columns={columns}
           dataSource={query.data?.totalList ?? []}
           rowKey="id"
