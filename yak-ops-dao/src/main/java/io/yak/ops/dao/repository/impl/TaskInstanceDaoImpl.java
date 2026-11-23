@@ -198,8 +198,9 @@ public class TaskInstanceDaoImpl extends BaseDao<TaskInstance, TaskInstanceMappe
 
     @Override
     public IPage<TaskInstance> queryByProjectAndTaskType(IPage<TaskInstance> page, long projectCode,
-                                                         String taskType, Long taskCode, int[] states) {
-        return mybatisMapper.queryByProjectAndTaskType(page, projectCode, taskType, taskCode, states);
+                                                         String taskType, Long taskCode, int[] states,
+                                                         TaskExecuteType taskExecuteType) {
+        return mybatisMapper.queryByProjectAndTaskType(page, projectCode, taskType, taskCode, states, taskExecuteType);
     }
 
     @Override
