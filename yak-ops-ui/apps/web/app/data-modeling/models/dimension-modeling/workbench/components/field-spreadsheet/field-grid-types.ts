@@ -40,7 +40,6 @@ export type FieldValidationIssue = {
 };
 
 export type FieldSpreadsheetProps = {
-  projectCode: string;
   modelType?: string;
   fieldType: FieldKind;
   fields: DimensionFieldRecord[];
