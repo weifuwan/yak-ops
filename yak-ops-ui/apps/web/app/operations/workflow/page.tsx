@@ -17,7 +17,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
-import { listDataSyncTasks } from "@/service/data-sync";
+import { listDataSyncWorkflowNames } from "@/service/data-sync";
 import { listWorkflowDefinitionNames } from "@/service/workflow/definition";
 import { stopWorkflowInstance } from "@/service/workflow/execution";
 import {
@@ -115,15 +115,13 @@ export function WorkflowInstancesOperationsPage() {
 
   const offlineTasks = useQuery({
     queryKey: ["operations", "data-sync-workflow-names", scope, "OFFLINE"],
-    queryFn: ({ signal }) =>
-      listDataSyncTasks({ pageNo: 1, pageSize: 200, syncType: "OFFLINE" }, signal),
+    queryFn: ({ signal }) => listDataSyncWorkflowNames(signal, "OFFLINE"),
     enabled: Boolean(scope),
     staleTime: 30_000,
   });
   const realtimeTasks = useQuery({
     queryKey: ["operations", "data-sync-workflow-names", scope, "REALTIME"],
-    queryFn: ({ signal }) =>
-      listDataSyncTasks({ pageNo: 1, pageSize: 200, syncType: "REALTIME" }, signal),
+    queryFn: ({ signal }) => listDataSyncWorkflowNames(signal, "REALTIME"),
     enabled: Boolean(scope),
     staleTime: 30_000,
   });
@@ -137,15 +135,11 @@ export function WorkflowInstancesOperationsPage() {
   );
   const syncWorkflowMeta = useMemo(() => {
     const meta = new Map<string, { name: string; type: WorkflowBusinessType }>();
-    for (const task of offlineTasks.data?.totalList ?? []) {
-      if ("workflowCode" in task) {
-        meta.set(String(task.workflowCode), { name: task.name, type: "DATA_SYNC_OFFLINE" });
-      }
+    for (const task of offlineTasks.data ?? []) {
+      meta.set(String(task.workflowCode), { name: task.name, type: "DATA_SYNC_OFFLINE" });
     }
-    for (const task of realtimeTasks.data?.totalList ?? []) {
-      if ("workflowCode" in task) {
-        meta.set(String(task.workflowCode), { name: task.name, type: "DATA_SYNC_REALTIME" });
-      }
+    for (const task of realtimeTasks.data ?? []) {
+      meta.set(String(task.workflowCode), { name: task.name, type: "DATA_SYNC_REALTIME" });
     }
     return meta;
   }, [offlineTasks.data, realtimeTasks.data]);
