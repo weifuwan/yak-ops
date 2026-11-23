@@ -55,7 +55,7 @@ import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { buildApplicationScopeTree } from "../utils/application-scope-tree";
-import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";
+import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";\nimport SourceFieldImportCard from "./source-field-import-card";
 import {
   fieldsForSave,
   validateDimensionFields,
@@ -1130,6 +1130,11 @@ export function DimensionEditor({
               <>
                 <section className="bg-white p-4">
                   <FormSectionHeader title="字段管理" />
+                  <SourceFieldImportCard
+                    projectCode={projectCode}
+                    fields={propertyFields}
+                    onChange={(nextFields) => updateFieldGroup("PROPERTY", nextFields)}
+                  />
                   <FieldSpreadsheet
                     modelType={selectedTableType}
                     fieldType="PROPERTY"
