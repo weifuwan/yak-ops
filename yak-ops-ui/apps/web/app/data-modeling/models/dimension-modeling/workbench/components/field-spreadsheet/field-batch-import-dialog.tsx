@@ -53,7 +53,7 @@ export function FieldBatchImportDialog({
           variant="outlined"
           rows={12}
           value={text}
-          placeholder={"可直接从 Excel 粘贴。列顺序：字段名称、类型、字段显示名、描述、长度、精度、主键、非空、来源表、来源字段"}
+          placeholder={"可直接从 Excel 粘贴。列顺序：字段名称、类型、字段显示名、描述、长度、精度、主键、非空、来源表、来源字段、字段类别、字段标准ID、标准代码ID"}
           onValueChange={setText}
         />
         <div className="text-xs text-[var(--yak-components-muted-text)]">
