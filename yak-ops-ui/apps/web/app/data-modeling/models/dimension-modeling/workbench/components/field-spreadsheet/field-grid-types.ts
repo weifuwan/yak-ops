@@ -39,6 +39,7 @@ export type FieldValidationIssue = {
 };
 
 export type FieldSpreadsheetProps = {
+  projectCode: string;
   fieldType: FieldKind;
   fields: DimensionFieldRecord[];
   fieldStandardOptions: FieldOption[];
