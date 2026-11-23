@@ -5,6 +5,7 @@ import io.yak.ops.api.dto.workflowInstance.WorkflowInstanceTaskListDTO;
 import io.yak.ops.api.dto.workflowInstance.WorkflowInstanceVariablesDTO;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
+import io.yak.ops.api.enums.WorkflowBusinessType;
 import io.yak.ops.api.vo.WorkflowInstanceSummaryVO;
 import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.dao.entity.User;
