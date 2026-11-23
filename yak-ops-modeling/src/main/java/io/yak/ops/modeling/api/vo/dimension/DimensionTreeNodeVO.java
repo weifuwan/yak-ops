@@ -13,6 +13,7 @@ public class DimensionTreeNodeVO {
     private String title;
     private String parentId;
     private String type;
+    private String modelId;
     private Integer total;
     private boolean leaf;
     private Date updateTime;
