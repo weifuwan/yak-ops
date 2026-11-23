@@ -53,6 +53,7 @@ import { warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-lay
 import { availableDataDomains, defaultDataDomainId } from "../utils/default-data-domain";
 import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
+import { ModelTypeIcon, isModelTypeIconType } from "../../../../components/model-type-icon";
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { buildApplicationScopeTree } from "../utils/application-scope-tree";
 import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";
@@ -1266,14 +1267,82 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
   const records = page?.totalList || [];
   const totalPage = Math.max(1, page?.totalPage || 1);
   const columns: TableColumns<DimensionTableRecord> = [
-    { key: "sequence", title: "序号", width: 64, align: "center", render: (_value, _record, index) => (pageNo - 1) * pageSize + index + 1 },
-    { key: "cnName", title: "表中文名", dataIndex: "cnName", width: 180, ellipsis: true },
-    { key: "tableName", title: "英文标识", width: 180, ellipsis: true, render: (_value, record) => record.tableType === "DIM" ? record.enShortName || record.tableName || "-" : record.tableName || "-" },
-    { key: "tableType", title: "模型类型", width: 110, render: (_value, record) => TABLE_TYPE_LABELS[String(record.tableType || "")] || "-" },
-    { key: "dwhName", title: "数仓分层", dataIndex: "dwhName", width: 140, ellipsis: true },
-    { key: "submit", title: "状态", width: 88, render: (_value, record) => record.submit === true || record.submit === "true" ? "已提交" : "草稿" },
-    { key: "updateTime", title: "最近修改时间", dataIndex: "updateTime", width: 170 },
-    { key: "actions", title: "操作", width: 90, align: "center", render: (_value, record) => <Button size="sm" variant="ghost" className="px-1 text-xs" onClick={() => onEdit(record)}>编辑</Button> },
+    {
+      key: "sequence",
+      title: "序号",
+      width: 64,
+      align: "center",
+      render: (_value, _record, index) => (pageNo - 1) * pageSize + index + 1,
+    },
+    {
+      key: "cnName",
+      title: "模型中文名",
+      dataIndex: "cnName",
+      minWidth: 200,
+      ellipsis: true,
+    },
+    {
+      key: "tableName",
+      title: "英文标识",
+      minWidth: 220,
+      ellipsis: true,
+      render: (_value, record) =>
+        record.tableType === "DIM"
+          ? record.enShortName || record.tableName || "-"
+          : record.tableName || "-",
+    },
+    {
+      key: "tableType",
+      title: "模型类型",
+      width: 132,
+      render: (_value, record) => {
+        const type = String(record.tableType || "");
+        const label = TABLE_TYPE_LABELS[type] || "-";
+        return isModelTypeIconType(type) ? (
+          <span className="inline-flex items-center gap-1.5">
+            <ModelTypeIcon type={type} size={14} />
+            <span>{label}</span>
+          </span>
+        ) : label;
+      },
+    },
+    {
+      key: "dwhName",
+      title: "数仓分层",
+      dataIndex: "dwhName",
+      minWidth: 160,
+      ellipsis: true,
+    },
+    {
+      key: "submit",
+      title: "状态",
+      width: 88,
+      render: (_value, record) =>
+        record.submit === true || record.submit === "true" ? "已提交" : "草稿",
+    },
+    {
+      key: "updateTime",
+      title: "最近修改时间",
+      dataIndex: "updateTime",
+      minWidth: 180,
+      ellipsis: true,
+    },
+    {
+      key: "actions",
+      title: "操作",
+      width: 80,
+      align: "center",
+      render: (_value, record) => (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="px-1 text-xs"
+          onClick={() => onEdit(record)}
+        >
+          编辑
+        </Button>
+      ),
+    },
   ];
 
   const applySearch = () => {
@@ -1289,7 +1358,7 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
             size="small"
             variant="outlined"
             value={keyword}
-            placeholder="搜索中文名称、英文表名或维度缩写"
+            placeholder="搜索模型中文名、英文标识或维度缩写"
             onChange={(event) => setKeyword(event.target.value)}
             onKeyDown={(event) => { if (event.key === "Enter") applySearch(); }}
           />
@@ -1302,10 +1371,10 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
           dataSource={records}
           rowKey={(record) => String(record.id || "")}
           loading={pageQuery.isFetching}
-          emptyText="暂无维度表"
+          emptyText="暂无模型"
           pagination={false}
           size="small"
-          scroll={{ x: 980, y: "calc(100vh - 250px)" }}
+          scroll={{ x: 1120, y: "calc(100vh - 250px)" }}
         />
       </div>
       <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--yak-components-panel-border)] pt-3 text-xs text-[var(--yak-components-muted-text)]">
