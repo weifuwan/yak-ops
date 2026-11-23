@@ -4,6 +4,7 @@ import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -401,31 +402,35 @@ export function DimensionSidebar({
               <Plus size={14} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-44">
-              <DropdownMenuLabel>维度模型</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onCreate("DIM")}>
-                <Layers3 size={14} />
-                创建维度
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>维度模型</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onCreate("DIM")}>
+                  <Layers3 size={14} />
+                  创建维度
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>逻辑模型</DropdownMenuLabel>
-              {DIMENSION_CREATE_OPTIONS.filter((option) => option.group === "table").map((option) => {
-                const Icon = option.type === "SOURCE"
-                  ? Database
-                  : option.type === "SUMMARY"
-                    ? BarChart3
-                    : option.type === "APPLICATION"
-                      ? AppWindow
-                      : Table2;
-                return (
-                  <DropdownMenuItem
-                    key={option.type}
-                    onClick={() => onCreate(option.type)}
-                  >
-                    <Icon size={14} />
-                    {option.label}
-                  </DropdownMenuItem>
-                );
-              })}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>逻辑模型</DropdownMenuLabel>
+                {DIMENSION_CREATE_OPTIONS.filter((option) => option.group === "table").map((option) => {
+                  const Icon = option.type === "SOURCE"
+                    ? Database
+                    : option.type === "SUMMARY"
+                      ? BarChart3
+                      : option.type === "APPLICATION"
+                        ? AppWindow
+                        : Table2;
+                  return (
+                    <DropdownMenuItem
+                      key={option.type}
+                      onClick={() => onCreate(option.type)}
+                    >
+                      <Icon size={14} />
+                      {option.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button size="sm" variant="ghost" className="!h-7 !w-7 !p-0" title="列表模式" onClick={onList}>
