@@ -260,9 +260,10 @@ public class WorkflowInstanceServiceTest {
                 Mockito.any(),
                 eq("192.168.xx.xx"),
                 eq(start),
-                eq(end)))
+                eq(end),
+                isNull()))
                 .thenReturn(pageReturn);
-        when(usersService.queryUser(workflowInstance.getExecutorId(), isNull())).thenReturn(loginUser);
+        when(usersService.queryUser(workflowInstance.getExecutorId())).thenReturn(loginUser);
 
         Result successRes =
                 workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "2020-01-01 00:00:00",
