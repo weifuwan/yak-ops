@@ -271,17 +271,17 @@ export function DataModelingOverviewPage() {
           <PixelBlast
             variant="square"
             pixelSize={3}
-            color="#0033FF"
-            accentColor="#0033FF"
-            patternScale={2.8}
-            patternDensity={0.7}
-            pixelSizeJitter={0.27}
+            color="#A9ABB5"
+            accentColor="#A9ABB5"
+            patternScale={1.5}
+            patternDensity={0.62}
+            pixelSizeJitter={0.06}
             softness={0}
-            smoothing={0.16}
-            glow={0}
+            smoothing={0}
+            glow={0.08}
             twinkle={0}
-            speed={0.9}
-            drift={0.35}
+            speed={0.25}
+            drift={0}
             hoverEffect="none"
             enableRipples
             rippleSpeed={0.3}
