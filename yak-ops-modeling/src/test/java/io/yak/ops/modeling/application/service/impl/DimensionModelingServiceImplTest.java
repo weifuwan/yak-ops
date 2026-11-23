@@ -317,10 +317,48 @@ class DimensionModelingServiceImplTest {
     }
 
     @Test
-    void shouldRejectDomainNotAssociatedWithSelectedBusinessType() {
+    void shouldAllowAnyExistingDomainWhenSelectedBusinessTypeHasNoLinks() {
+        when(dwLayerService.selectById(LAYER_ID))
+                .thenReturn(layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM));
         when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
         when(businessTypeDao.queryById("business-type-id")).thenReturn(new BusinessTypePO());
         when(businessTypeRelatedDataDomainDao.queryCount(any())).thenReturn(0L);
+        when(dimensionTableDao.insert(any())).thenReturn(1);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
+
+        DimensionTableDTO dto = dimensionDto(DimensionTableTypeEnum.DIM);
+        dto.setDomainId("domain-a");
+        dto.setBusTypeId("business-type-id");
+
+        DimensionTableVO saved = service.create(dto);
+        assertEquals("domain-a", saved.getDomainId());
+        verify(dimensionTableDao).insert(any());
+    }
+
+    @Test
+    void shouldAcceptLinkedDomainWhenBusinessTypeHasAssociations() {
+        when(dwLayerService.selectById(LAYER_ID))
+                .thenReturn(layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION_DIM));
+        when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
+        when(businessTypeDao.queryById("business-type-id")).thenReturn(new BusinessTypePO());
+        when(businessTypeRelatedDataDomainDao.queryCount(any())).thenReturn(2L, 1L);
+        when(dimensionTableDao.insert(any())).thenReturn(1);
+        when(versionManagementDao.queryOne(any())).thenReturn(null);
+
+        DimensionTableDTO dto = dimensionDto(DimensionTableTypeEnum.DIM);
+        dto.setDomainId("domain-a");
+        dto.setBusTypeId("business-type-id");
+
+        DimensionTableVO saved = service.create(dto);
+        assertEquals("domain-a", saved.getDomainId());
+        verify(dimensionTableDao).insert(any());
+    }
+
+    @Test
+    void shouldRejectDomainNotAssociatedWithSelectedBusinessType() {
+        when(dataDomainDao.queryById("domain-a")).thenReturn(new DataDomainPO());
+        when(businessTypeDao.queryById("business-type-id")).thenReturn(new BusinessTypePO());
+        when(businessTypeRelatedDataDomainDao.queryCount(any())).thenReturn(2L, 0L);
 
         when(dwLayerService.selectById(LAYER_ID)).thenReturn(layer(DwTypeEnum.PUBLIC_LAYER, DwModelEnum.DIMENSION));
         DimensionTableDTO dto = dimensionDto(DimensionTableTypeEnum.DIMENSION);

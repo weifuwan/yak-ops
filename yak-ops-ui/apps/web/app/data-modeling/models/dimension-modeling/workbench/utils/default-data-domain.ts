@@ -14,3 +14,20 @@ export function defaultDataDomainId(domains: readonly ModelingRecord[]): string 
 
   return String(preferred?.id || "");
 }
+
+/**
+ * Restrict domains only when the business category has an explicit association.
+ * null means relations are unresolved (loading or failed): never fall back to
+ * all domains before a successful response.
+ */
+export function availableDataDomains(
+  allDomains: readonly ModelingRecord[],
+  businessTypeId: string,
+  relatedDomains: readonly ModelingRecord[] | null,
+): ModelingRecord[] {
+  if (!businessTypeId) return [...allDomains];
+  if (relatedDomains === null) return [];
+  if (relatedDomains.length === 0) return [...allDomains];
+  const linkedIds = new Set(relatedDomains.map((domain) => String(domain.id || "")).filter(Boolean));
+  return allDomains.filter((domain) => linkedIds.has(String(domain.id || "")));
+}

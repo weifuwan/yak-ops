@@ -50,7 +50,7 @@ import { codeStandardApi } from "@/service/data-modeling/standards/code-standard
 import { unitStandardApi } from "@/service/data-modeling/standards/unit-standard";
 import type { ModelingRecord } from "@/service/data-modeling/shared/types";
 import { warehouseEnumCode, warehouseLayerOptions } from "../utils/warehouse-layers";
-import { defaultDataDomainId } from "../utils/default-data-domain";
+import { availableDataDomains, defaultDataDomainId } from "../utils/default-data-domain";
 import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
 
@@ -235,9 +235,16 @@ export function DimensionEditor({
     enabled: Boolean(projectCode),
   });
   const domainsQuery = useQuery<ModelingRecord[]>({
-    queryKey: ["modeling", "dimension-editor-domains", projectCode],
+    queryKey: planningQueryKeys.dataDomainAll(projectCode),
     queryFn: () => dataDomainApi.all<ModelingRecord>(projectCode),
     enabled: Boolean(projectCode),
+  });
+  // Query the selected category's linked domains; an empty successful response means
+  // this business category has no restrictions and all data domains are available.
+  const relatedDomainsQuery = useQuery<ModelingRecord[]>({
+    queryKey: planningQueryKeys.businessTypeRelatedDomains(projectCode, values.busTypeId),
+    queryFn: () => businessTypeApi.selectRelatedDomains<ModelingRecord>(projectCode, values.busTypeId),
+    enabled: Boolean(projectCode && values.busTypeId),
   });
   const processesQuery = useQuery<ModelingRecord[]>({
     queryKey: ["modeling", "dimension-editor-processes", projectCode],
@@ -348,10 +355,23 @@ export function DimensionEditor({
       .map(mapBusinessTypeTreeOption)
       .filter((option): option is TreeSelectOption => option !== null)
   ), [businessTypeTreeQuery.data]);
-  const domainOptions = (domainsQuery.data || []).map((record) => ({
+  const domainOptionsReady = domainsQuery.isSuccess && (!values.busTypeId || relatedDomainsQuery.isSuccess);
+  const availableDomains = useMemo(() => availableDataDomains(
+    domainsQuery.data || [],
+    values.busTypeId,
+    !values.busTypeId || relatedDomainsQuery.isSuccess ? relatedDomainsQuery.data || [] : null,
+  ), [domainsQuery.data, values.busTypeId, relatedDomainsQuery.isSuccess, relatedDomainsQuery.data]);
+  const domainOptions = availableDomains.map((record) => ({
     value: String(record.id || ""),
     label: optionLabel(record, ["cnName", "domainName", "enName"]),
   })).filter((option) => option.value);
+  const domainEmptyContent = domainsQuery.isError
+    ? "数据域加载失败，请重试"
+    : relatedDomainsQuery.isError && values.busTypeId
+      ? "关联数据域加载失败，请重试"
+      : !domainOptionsReady
+        ? "正在加载可用数据域..."
+        : "暂无可用数据域";
   const processOptions = (processesQuery.data || [])
     .filter((record) => !values.domainId || String(record.dataDomainId || record.domainId || "") === values.domainId)
     .map((record) => ({
@@ -403,7 +423,9 @@ export function DimensionEditor({
   const isNewDraft = tab.mode === "create" && !recordId;
   const resolvedDwhId = isNewDraft ? values.dwhId || layerOptions[0]?.value || "" : values.dwhId;
   const resolvedDomainId = isNewDraft && (isDim || isSummary)
-    ? values.domainId || defaultDataDomainId(domainsQuery.data || [])
+    ? domainOptions.some((option) => option.value === values.domainId)
+      ? values.domainId
+      : domainOptionsReady ? defaultDataDomainId(availableDomains) : ""
     : values.domainId;
 
   // New models start with the first warehouse layer compatible with their creation type.
@@ -417,16 +439,16 @@ export function DimensionEditor({
       : { ...current, dwhId: firstLayerId });
   }, [tab.mode, recordId, layerOptions]);
 
-  // Prefer the protected system-default data domain, falling back to the first
-  // available domain if the project has not received its default seed yet.
+  // Hydrate only from the active category's completed domain query.
+  // Preserve any valid manual selection, but never keep a stale relation.
   useEffect(() => {
-    if (tab.mode !== "create" || recordId || (!isDim && !isSummary) || !domainsQuery.isSuccess) return;
-    const nextDomainId = defaultDataDomainId(domainsQuery.data || []);
-    if (!nextDomainId) return;
+    if (tab.mode !== "create" || recordId || (!isDim && !isSummary) || !domainOptionsReady) return;
+    const nextDomainId = defaultDataDomainId(availableDomains);
     setValues((current) => current.domainId
-      ? current
-      : { ...current, domainId: nextDomainId });
-  }, [tab.mode, recordId, isDim, isSummary, domainsQuery.isSuccess, domainsQuery.data]);
+      && availableDomains.some((domain) => String(domain.id || "") === current.domainId)
+        ? current
+        : { ...current, domainId: nextDomainId });
+  }, [tab.mode, recordId, isDim, isSummary, domainOptionsReady, availableDomains]);
 
   useEffect(() => {
     if (fieldsQuery.data && !fieldsDirty) {
@@ -440,6 +462,18 @@ export function DimensionEditor({
 
   const changeValue = (key: string, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
+    setBasicDirty(true);
+    setDirty(true);
+    onDirtyChange(true);
+    setNoticeDismissed(false);
+    setError("");
+  };
+
+  const changeBusinessType = (businessTypeId: string) => {
+    if (businessTypeId === values.busTypeId) return;
+    // A previously selected domain (and its business process) may not belong to
+    // the new category; let the linked-domain query choose a fresh default.
+    setValues((current) => ({ ...current, busTypeId: businessTypeId, domainId: "", busProcessId: "" }));
     setBasicDirty(true);
     setDirty(true);
     onDirtyChange(true);
@@ -934,7 +968,7 @@ export function DimensionEditor({
                       variant="outlined"
                       className="w-full"
                       popupClassName="!min-w-[280px]"
-                      onValueChange={(value) => changeValue("busTypeId", value || "")}
+                      onValueChange={(value) => changeBusinessType(value || "")}
                     />
                     {businessTypeTreeQuery.isError ? (
                       <button
@@ -953,9 +987,19 @@ export function DimensionEditor({
                     <OptionSelect
                       value={resolvedDomainId}
                       options={domainOptions}
-                      placeholder={domainsQuery.isFetching ? "正在加载数据域..." : "请选择数据域"}
+                      placeholder={!domainOptionsReady ? "正在加载可用数据域..." : "请选择数据域"}
+                      emptyContent={domainEmptyContent}
                       onChange={(value) => changeValue("domainId", value)}
                     />
+                    {values.busTypeId && relatedDomainsQuery.isError ? (
+                      <button
+                        type="button"
+                        className="mt-1 cursor-pointer text-xs text-[var(--yak-color-primary)] hover:underline"
+                        onClick={() => void relatedDomainsQuery.refetch()}
+                      >
+                        重新加载关联数据域
+                      </button>
+                    ) : null}
                   </FormField>
                 ) : null}
 
@@ -987,7 +1031,8 @@ export function DimensionEditor({
                     <OptionSelect
                       value={resolvedDomainId}
                       options={domainOptions}
-                      placeholder="请选择数据域"
+                      placeholder={!domainOptionsReady ? "正在加载可用数据域..." : "请选择数据域"}
+                      emptyContent={domainEmptyContent}
                       onChange={(value) => changeValue("domainId", value)}
                     />
                   </FormField>

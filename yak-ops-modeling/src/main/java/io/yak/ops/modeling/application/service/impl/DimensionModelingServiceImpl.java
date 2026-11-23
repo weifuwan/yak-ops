@@ -560,12 +560,19 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 throw new IllegalArgumentException("所选业务分类不存在或不属于当前项目");
             }
             if (notBlank(dto.getDomainId())) {
-                long relationCount = businessTypeRelatedDataDomainDao.queryCount(
+                long linkedDomainCount = businessTypeRelatedDataDomainDao.queryCount(
                         new QueryWrapper<BusinessTypeRelatedDataDomainPO>()
-                                .eq("bus_type_id", dto.getBusTypeId())
-                                .eq("data_id", dto.getDomainId()));
-                if (relationCount == 0) {
-                    throw new IllegalArgumentException("所选数据域未关联到当前业务分类");
+                                .eq("bus_type_id", dto.getBusTypeId()));
+                // A category with no links is unrestricted; otherwise the selected
+                // domain must be one of the explicitly associated domains.
+                if (linkedDomainCount > 0) {
+                    long relationCount = businessTypeRelatedDataDomainDao.queryCount(
+                            new QueryWrapper<BusinessTypeRelatedDataDomainPO>()
+                                    .eq("bus_type_id", dto.getBusTypeId())
+                                    .eq("data_id", dto.getDomainId()));
+                    if (relationCount == 0) {
+                        throw new IllegalArgumentException("所选数据域未关联到当前业务分类");
+                    }
                 }
             }
         }

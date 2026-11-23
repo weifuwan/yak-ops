@@ -12,7 +12,7 @@ import {
   warehouseEnumCode,
   warehouseLayerOptions,
 } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/warehouse-layers.ts";
-import { defaultDataDomainId } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/default-data-domain.ts";
+import { availableDataDomains, defaultDataDomainId } from "../apps/web/app/data-modeling/models/dimension-modeling/workbench/utils/default-data-domain.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -144,7 +144,7 @@ test("dimension editor selects hierarchical business category IDs through Yak-UI
   assert.ok(editor.includes('items={businessTypeTreeOptions}'));
   assert.ok(editor.includes('value={values.busTypeId || null}'));
   assert.ok(editor.includes('searchPlaceholder="搜索业务分类"'));
-  assert.ok(editor.includes('onValueChange={(value) => changeValue("busTypeId", value || "")}'));
+  assert.ok(editor.includes('onValueChange={(value) => changeBusinessType(value || "")}'));
   assert.ok(editor.includes('businessTypeTreeQuery.refetch()'));
   assert.ok(editor.includes('busTypeId: values.busTypeId || null'));
   assert.ok(businessTreeOptions.includes('value,'));
@@ -230,7 +230,7 @@ test("new dimensions choose the protected system-default data domain, otherwise 
   assert.equal(defaultDataDomainId([{ id: "named", enShortName: "default", flag: 0 }, domainRows[0]]), "named");
   assert.equal(defaultDataDomainId([{ id: "system", flag: "1" }, domainRows[0]]), "system");
   assert.match(editor, /tab\.mode !== "create" \|\| recordId \|\| \(!isDim && !isSummary\)/);
-  assert.match(editor, /defaultDataDomainId\(domainsQuery\.data \|\| \[\]\)/);
+  assert.match(editor, /defaultDataDomainId\(availableDomains\)/);
   assert.match(editor, /setValues\(\(current\) => current\.domainId/);
   assert.match(editor, /domainId: resolvedDomainId \|\| null/);
 });
@@ -252,6 +252,39 @@ test("async defaults remain visible in controlled Base UI Select before effects 
   assert.ok(editor.includes('if (tab.mode !== "create" || recordId || !layerOptions.length) return'));
   assert.ok(editor.includes('setValues((current) => current.dwhId'));
   assert.ok(editor.includes('setValues((current) => current.domainId'));
+});
+
+test("dimension domain choices respect business category associations and fall back only on no links", () => {
+  const all = [
+    { id: "default", cnName: "默认", enShortName: "default", flag: 1 },
+    { id: "finance", cnName: "财务域", flag: 0 },
+    { id: "market", cnName: "营销域", flag: 0 },
+  ];
+  assert.deepEqual(availableDataDomains(all, "", null).map((domain) => domain.id),
+    ["default", "finance", "market"]);
+  assert.deepEqual(availableDataDomains(all, "category-a", null), []);
+  assert.deepEqual(availableDataDomains(all, "category-a", []).map((domain) => domain.id),
+    ["default", "finance", "market"]);
+  assert.deepEqual(availableDataDomains(all, "category-a", [{ id: "finance" }]).map((domain) => domain.id),
+    ["finance"]);
+  assert.deepEqual(availableDataDomains(all, "category-a", [{ id: "deleted" }]), []);
+  assert.equal(defaultDataDomainId(availableDataDomains(all, "category-a", [{ id: "finance" }])),
+    "finance");
+  assert.equal(defaultDataDomainId(availableDataDomains(all, "category-a", [])), "default");
+});
+
+test("dimension editor reloads linked domains per selected business type and resets stale dependents", () => {
+  assert.match(editor, /planningQueryKeys\.businessTypeRelatedDomains\(projectCode, values\.busTypeId\)/);
+  assert.match(editor, /businessTypeApi\.selectRelatedDomains<ModelingRecord>\(projectCode, values\.busTypeId\)/);
+  assert.match(editor, /enabled: Boolean\(projectCode && values\.busTypeId\)/);
+  assert.match(editor, /const domainOptionsReady = domainsQuery\.isSuccess && \(!values\.busTypeId \|\| relatedDomainsQuery\.isSuccess\)/);
+  assert.match(editor, /const availableDomains = useMemo\(\(\) => availableDataDomains\(/);
+  assert.match(editor, /domainOptionsReady \? defaultDataDomainId\(availableDomains\) : ""/);
+  assert.match(editor, /busTypeId: businessTypeId, domainId: "", busProcessId: ""/);
+  assert.match(editor, /onValueChange=\{\(value\) => changeBusinessType\(value \|\| ""\)\}/);
+  assert.match(editor, /relatedDomainsQuery\.refetch\(\)/);
+  assert.match(editor, /emptyContent=\{domainEmptyContent\}/);
+  assert.match(editor, /domainId: resolvedDomainId \|\| null/);
 });
 
 test("dimension editor only passes emptyContent to Yak-UI Select when there are no options", () => {
