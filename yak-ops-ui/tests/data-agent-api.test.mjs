@@ -345,10 +345,10 @@ test("queued sends opt in to the server FIFO message queue", async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
   const streamText = [
-    'event: queue_waiting\\ndata: {"type":"queue_waiting","queueId":"queue-1","position":1,"messagePreview":"继续检查"}',
-    'event: queue_cancelled\\ndata: {"type":"queue_cancelled","queueId":"queue-1","reason":"cancelled"}',
+    'event: queue_waiting\ndata: {"type":"queue_waiting","queueId":"queue-1","position":1,"messagePreview":"继续检查"}',
+    'event: queue_cancelled\ndata: {"type":"queue_cancelled","queueId":"queue-1","reason":"cancelled"}',
     "",
-  ].join("\\n\\n");
+  ].join("\n\n");
 
   globalThis.fetch = async (input, init = {}) => {
     calls.push({ url: String(input), init });
