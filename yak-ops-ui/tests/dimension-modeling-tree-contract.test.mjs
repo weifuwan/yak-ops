@@ -130,17 +130,17 @@ test("backend tree filters selected parent scopes by descendants and preserves t
 
 test("dimension creation groups each Base UI menu label with its items", () => {
   const menu = sidebar.match(
-    /<DropdownMenuContent align="end" side="bottom" className="w-44">([\\s\\S]*?)<\\/DropdownMenuContent>/,
+    /<DropdownMenuContent align="end" side="bottom" className="w-44">([\s\S]*?)<\/DropdownMenuContent>/,
   )?.[1];
   assert.ok(menu, "dimension creation dropdown should exist");
 
-  const groups = [...menu.matchAll(/<DropdownMenuGroup>([\\s\\S]*?)<\\/DropdownMenuGroup>/g)]
+  const groups = [...menu.matchAll(/<DropdownMenuGroup>([\s\S]*?)<\/DropdownMenuGroup>/g)]
     .map((match) => match[1]);
   assert.equal(groups.length, 2);
-  assert.match(groups[0], /<DropdownMenuLabel>维度模型<\\/DropdownMenuLabel>/);
-  assert.match(groups[0], /onClick=\\{\\(\\) => onCreate\\("DIM"\\)\\}/);
-  assert.match(groups[1], /<DropdownMenuLabel>逻辑模型<\\/DropdownMenuLabel>/);
-  assert.match(groups[1], /DIMENSION_CREATE_OPTIONS\\.filter/);
+  assert.match(groups[0], /<DropdownMenuLabel>维度模型<\/DropdownMenuLabel>/);
+  assert.match(groups[0], /onClick=\{\(\) => onCreate\("DIM"\)\}/);
+  assert.match(groups[1], /<DropdownMenuLabel>逻辑模型<\/DropdownMenuLabel>/);
+  assert.match(groups[1], /DIMENSION_CREATE_OPTIONS\.filter/);
 });
 
 test("dimension creation offers six typed entries and excludes NONE_LAYER", () => {
