@@ -17,6 +17,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { listDataSources } from "@/service/datasource";
 import {
   listDataSyncTasks,
   listLatestDataSyncTaskInstances,
@@ -62,6 +63,22 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
       ),
     enabled: Boolean(scope),
   });
+
+  const dataSourcesQuery = useQuery({
+    queryKey: ["operations", "data-sources", scope],
+    queryFn: ({ signal }) => listDataSources({ pageNo: 1, pageSize: 200 }, signal),
+    enabled: Boolean(scope),
+    staleTime: 30_000,
+  });
+  const dataSourceNames = useMemo(
+    () =>
+      new Map(
+        (dataSourcesQuery.data?.totalList ?? []).flatMap((item) =>
+          item.id ? [[item.id, item.name || `数据源 #${item.id}`] as const] : [],
+        ),
+      ),
+    [dataSourcesQuery.data],
+  );
 
   const validTasks = useMemo(
     () => (query.data?.totalList ?? []).filter(isValidTask),
@@ -123,7 +140,9 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
           <div className="text-xs">
             <div>{r.sourceDatabase || "默认库"}.{r.sourceTable || "*"}</div>
             <div className="mt-0.5 text-[var(--yak-components-muted-text)]">
-              数据源 #{r.sourceDataSourceId} → 数据源 #{r.targetDataSourceId} · {r.targetDatabase || "默认库"}.{r.targetTable || "*"}
+              {dataSourceNames.get(r.sourceDataSourceId) || `数据源 #${r.sourceDataSourceId}`} →{" "}
+              {dataSourceNames.get(r.targetDataSourceId) || `数据源 #${r.targetDataSourceId}`} ·{" "}
+              {r.targetDatabase || "默认库"}.{r.targetTable || "*"}
             </div>
           </div>
         ) : (
@@ -240,7 +259,7 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
           rowKey="id"
           bordered
           size="medium"
-          loading={query.isPending || query.isFetching || latestQuery.isPending}
+          loading={query.isPending || query.isFetching || latestQuery.isPending || dataSourcesQuery.isPending}
           scroll={{ x: 1280 }}
           emptyText={query.isError ? "任务列表加载失败" : syncType === "REALTIME" ? "暂无实时同步任务" : "暂无离线同步任务"}
           pagination={
