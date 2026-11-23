@@ -74,12 +74,10 @@ function MetricCard({
   label,
   value,
   icon: Icon,
-  hint,
 }: {
   label: string;
   value: string | number;
   icon: LucideIcon;
-  hint?: string;
 }) {
   return (
     <Card>
@@ -89,11 +87,6 @@ function MetricCard({
           <Icon size={18} className="shrink-0 text-[var(--yak-components-muted-text)]" />
         </div>
         <div className="mt-3 text-3xl font-semibold tabular-nums">{value}</div>
-        {hint ? (
-          <div className="mt-2 truncate text-xs text-[var(--yak-components-muted-text)]">
-            {hint}
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );
@@ -146,12 +139,7 @@ function ResourceOverview({ servers }: { servers: MonitorServerView[] }) {
   return (
     <Card>
       <CardContent className="p-5">
-        <div className="mb-4">
-          <div className="text-sm font-medium">资源使用概览</div>
-          <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-            当前在线 Master、Worker 与 Alert Server 的平均使用率
-          </div>
-        </div>
+        <div className="mb-4 text-sm font-medium">资源使用概览</div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <UsageItem label="系统 CPU" value={values.cpu} icon={Cpu} />
           <UsageItem label="系统内存" value={values.memory} icon={MemoryStick} />
@@ -243,13 +231,11 @@ const commonServerColumns: TableColumns<MonitorServerView> = [
 
 function ServerTableCard({
   title,
-  description,
   records,
   loading,
   columns = commonServerColumns,
 }: {
   title: string;
-  description: string;
   records: MonitorServerView[];
   loading: boolean;
   columns?: TableColumns<MonitorServerView>;
@@ -258,10 +244,7 @@ function ServerTableCard({
     <Card>
       <CardContent className="p-0">
         <div className="flex items-center justify-between gap-4 px-5 py-4">
-          <div>
-            <div className="text-sm font-medium">{title}</div>
-            <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">{description}</div>
-          </div>
+          <div className="text-sm font-medium">{title}</div>
           <div className="shrink-0 text-xs tabular-nums text-[var(--yak-components-muted-text)]">
             {records.length} 个节点
           </div>
@@ -446,12 +429,7 @@ export function SystemMonitorPage() {
           <MetricCard label="Master 节点" value={masters.length} icon={Server} />
           <MetricCard label="Worker 节点" value={workers.length} icon={Server} />
           <MetricCard label="Alert Server" value={alertServers.length} icon={AlertTriangle} />
-          <MetricCard
-            label="繁忙节点"
-            value={busyCount}
-            icon={AlertTriangle}
-            hint={busyCount > 0 ? "存在负载保护节点" : "当前节点状态正常"}
-          />
+          <MetricCard label="繁忙节点" value={busyCount} icon={AlertTriangle} />
           <MetricCard label="平均 CPU" value={percent(avgCpu)} icon={Cpu} />
           <MetricCard label="平均内存" value={percent(avgMemory)} icon={MemoryStick} />
         </div>
@@ -460,14 +438,12 @@ export function SystemMonitorPage() {
 
         <ServerTableCard
           title="Master 节点"
-          description="Master 服务状态与主机 / JVM 资源使用情况"
           records={masters}
           loading={mastersQuery.isPending}
         />
 
         <ServerTableCard
           title="Worker 节点"
-          description="Worker 分组、执行线程池与主机 / JVM 资源使用情况"
           records={workers}
           loading={workersQuery.isPending}
           columns={workerColumns}
@@ -475,7 +451,6 @@ export function SystemMonitorPage() {
 
         <ServerTableCard
           title="Alert Server"
-          description="告警服务节点状态与资源使用情况"
           records={alertServers}
           loading={alertsQuery.isPending}
         />
@@ -483,14 +458,9 @@ export function SystemMonitorPage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex items-center justify-between gap-4 px-5 py-4">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Database size={15} />
-                  数据库指标
-                </div>
-                <div className="mt-1 text-xs text-[var(--yak-components-muted-text)]">
-                  调度元数据库健康状态与连接使用情况
-                </div>
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Database size={15} />
+                数据库指标
               </div>
               <div className="shrink-0 text-xs text-[var(--yak-components-muted-text)]">
                 {(databaseQuery.data ?? []).length} 个数据源
