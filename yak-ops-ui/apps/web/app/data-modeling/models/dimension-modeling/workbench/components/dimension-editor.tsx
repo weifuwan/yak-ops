@@ -491,7 +491,14 @@ export function DimensionEditor({
         fieldType === "PARTITION"
           ? current.filter((field) => field.fieldType !== "PARTITION")
           : current.filter((field) => field.fieldType === "PARTITION");
-      const normalized = nextFields.map((field) => ({ ...field, fieldType }));
+      const normalized = nextFields.map((field) => ({
+        ...field,
+        fieldType: fieldType === "PARTITION"
+          ? "PARTITION"
+          : field.fieldType && field.fieldType !== "PARTITION"
+            ? field.fieldType
+            : "PROPERTY",
+      }));
       return fieldType === "PARTITION"
         ? [...otherFields, ...normalized]
         : [...normalized, ...otherFields];
