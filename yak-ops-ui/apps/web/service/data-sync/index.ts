@@ -62,6 +62,7 @@ export const listDataSyncTasks = async (
           keyword: params.keyword,
           status: params.status,
           scope: params.scope,
+          syncType: params.syncType,
         }),
     ),
     { signal },
@@ -176,6 +177,7 @@ export const listDataSyncInstances = async (
           pageSize: params.pageSize,
           taskCode: params.taskId,
           status: params.status,
+          syncType: params.syncType,
         }),
     ),
   );
