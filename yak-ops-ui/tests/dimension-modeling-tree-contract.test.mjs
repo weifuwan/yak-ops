@@ -26,7 +26,8 @@ const controller = read("../../yak-ops-api/src/main/java/io/yak/ops/api/controll
 const groupingEnum = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/domain/enums/DimensionTreeGroupingEnum.java");
 const treeBuilder = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/service/DimensionTreeBuilder.java");
 const editor = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/dimension-editor.tsx");
-const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");\nconst sourceFieldImportCard = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/source-field-import-card.tsx");
+const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");
+const sourceFieldImportCard = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/source-field-import-card.tsx");
 const fieldGridUtils = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-utils.ts");
 const fieldGridTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-types.ts");
 const fieldGridSelect = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-select.tsx");
