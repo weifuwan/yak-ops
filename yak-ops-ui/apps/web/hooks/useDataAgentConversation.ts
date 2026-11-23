@@ -9,12 +9,14 @@ import {
   DataAgentApiError,
   deleteAgentSession,
   getAgentSessionMessages,
+  getAgentSessionQueue,
   getAgentSessionStatus,
   interruptAgentSession,
   listAgentSessions,
   renameAgentSession,
   resumeAgentStream,
   sendAgentMessage,
+  type AgentSessionQueueItem,
   type AgentSessionStatus,
   type AgentSessionSummary,
   type AgentSessionUsage,
@@ -119,6 +121,64 @@ function appendActiveTurn(
   };
 }
 
+function appendQueuedTurns(
+  conversation: AgentConversation,
+  queueItems: AgentSessionQueueItem[],
+) {
+  if (queueItems.length === 0) {
+    return { conversation, firstAssistantMessageId: null as string | null };
+  }
+
+  const messages = [...conversation.messages];
+  let firstAssistantMessageId: string | null = null;
+
+  for (const item of queueItems) {
+    const userId = "queue-user:" + item.queueId;
+    const assistantId = "queue-assistant:" + item.queueId;
+    firstAssistantMessageId ??= assistantId;
+
+    if (messages.some((message) => message.id === userId || message.id === assistantId)) {
+      continue;
+    }
+
+    const createdAt = item.createdAt || new Date().toISOString();
+    const startedAt = Number.isFinite(Date.parse(createdAt))
+      ? Date.parse(createdAt)
+      : Date.now();
+
+    messages.push({
+      id: userId,
+      role: "user",
+      content: item.messagePreview,
+      createdAt,
+      status: "complete",
+    });
+    messages.push({
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      createdAt,
+      status: "streaming",
+      toolCalls: [],
+      activities: [
+        {
+          id: "progress:queue:" + item.queueId,
+          kind: "progress",
+          title: "已排队 · 第 " + item.position + " 个",
+          phase: "queue:" + item.queueId,
+          status: "running",
+          startedAt,
+        },
+      ],
+    });
+  }
+
+  return {
+    conversation: { ...conversation, messages },
+    firstAssistantMessageId,
+  };
+}
+
 function createSessionSummary(
   session: AgentSessionSummary,
 ): AgentConversation {
@@ -169,6 +229,7 @@ export function useDataAgentConversation({
     : null;
 
   const sendingRef = useRef(false);
+  const activeSendCountRef = useRef(0);
   const streamControllerRef = useRef<AbortController | null>(null);
   const streamSessionIdRef = useRef<string | null>(null);
   const turnIdRef = useRef<string | null>(null);
@@ -209,9 +270,10 @@ export function useDataAgentConversation({
     ) => {
       if (!requestIdentity) throw new Error("请先登录并选择工作空间");
 
-      const [status, history] = await Promise.all([
+      const [status, history, queue] = await Promise.all([
         getAgentSessionStatus(targetSessionId, requestIdentity, signal),
         getAgentSessionMessages(targetSessionId, requestIdentity, signal),
+        getAgentSessionQueue(targetSessionId, requestIdentity, signal),
       ]);
       if (signal.aborted) return { status, assistantMessageId: null };
 
@@ -230,12 +292,18 @@ export function useDataAgentConversation({
         preferredAssistantId,
       );
       conversation = activeTurn.conversation;
+      const queuedTurns = appendQueuedTurns(conversation, queue.items);
+      conversation = queuedTurns.conversation;
 
       dispatch({ type: "HYDRATE_CONVERSATION", conversation });
       setSessionUsage(normalizeUsage(status.usage ?? history.usage));
 
       if (status.stale) {
         setSessionNotice("上一轮执行因 Agent 服务重启而中断，已恢复此前保存的对话记录。");
+      } else if (queue.items.length > 0) {
+        setSessionNotice(
+          "当前还有 " + queue.items.length + " 条消息排队，Agent 会按发送顺序继续执行。",
+        );
       } else if (history.truncated) {
         setSessionNotice("历史消息较多，当前展示最近一段对话记录。");
       } else {
@@ -271,7 +339,8 @@ export function useDataAgentConversation({
 
       return {
         status,
-        assistantMessageId: activeTurn.assistantMessageId,
+        assistantMessageId:
+          activeTurn.assistantMessageId ?? queuedTurns.firstAssistantMessageId,
       };
     },
     [requestIdentity, setPending],
@@ -313,6 +382,8 @@ export function useDataAgentConversation({
         const updatedAt = event.at || new Date().toISOString();
 
         switch (event.type) {
+          case "reply_start":
+            break;
           case "replay_reset":
             await restoreSessionSnapshot(targetSessionId, signal, assistantMessageId);
             break;
@@ -373,6 +444,25 @@ export function useDataAgentConversation({
               updatedAt,
             });
             break;
+          case "tool_call_end":
+            dispatch({
+              type: "TOOL_INPUT_COMPLETED",
+              sessionId: targetSessionId,
+              messageId: assistantMessageId,
+              toolCallId: event.toolCallId,
+              updatedAt,
+            });
+            break;
+          case "tool_result_start":
+            dispatch({
+              type: "TOOL_EXECUTION_STARTED",
+              sessionId: targetSessionId,
+              messageId: assistantMessageId,
+              toolCallId: event.toolCallId,
+              toolName: event.tool,
+              updatedAt,
+            });
+            break;
           case "tool_result_delta":
             dispatch({
               type: "TOOL_OUTPUT_DELTA",
@@ -391,6 +481,46 @@ export function useDataAgentConversation({
               toolCallId: event.toolCallId,
               state: event.state,
               updatedAt,
+            });
+            break;
+          case "queue_waiting":
+            dispatch({
+              type: "PROGRESS_UPDATED",
+              sessionId: targetSessionId,
+              messageId: assistantMessageId,
+              phase: "queue:" + event.queueId,
+              title: "已排队 · 第 " + event.position + " 个",
+              status: "running",
+              updatedAt,
+            });
+            break;
+          case "queue_started":
+            dispatch({
+              type: "PROGRESS_UPDATED",
+              sessionId: targetSessionId,
+              messageId: assistantMessageId,
+              phase: "queue:" + event.queueId,
+              title: "排队结束，开始执行",
+              status: "completed",
+              updatedAt,
+            });
+            break;
+          case "queue_cancelled":
+            dispatch({
+              type: "PROGRESS_UPDATED",
+              sessionId: targetSessionId,
+              messageId: assistantMessageId,
+              phase: "queue:" + event.queueId,
+              title: "排队已取消",
+              status: "error",
+              updatedAt,
+            });
+            dispatch({
+              type: "MESSAGE_COMPLETED",
+              sessionId: targetSessionId,
+              messageId: assistantMessageId,
+              updatedAt,
+              finishedReason: "interrupted",
             });
             break;
           case "progress":
@@ -422,6 +552,8 @@ export function useDataAgentConversation({
               },
               updatedAt,
             });
+            break;
+          case "exceed_max_iters":
             break;
           case "reply_end":
             dispatch({
@@ -467,6 +599,7 @@ export function useDataAgentConversation({
     streamControllerRef.current = null;
     streamSessionIdRef.current = null;
     sendingRef.current = false;
+    activeSendCountRef.current = 0;
     turnIdRef.current = null;
     lastEventCursorRef.current = 0;
     setIsSending(false);
@@ -548,29 +681,35 @@ export function useDataAgentConversation({
     setConnectionError("");
 
     void (async () => {
-      const restored = await restoreSessionSnapshot(sessionId, controller.signal);
+      let restored = await restoreSessionSnapshot(sessionId, controller.signal);
       if (controller.signal.aborted) return;
       setIsRestoringSession(false);
 
-      if (!restored.status.busy) {
-        setIsSending(false);
-        sendingRef.current = false;
-        return;
-      }
+      while (
+        !controller.signal.aborted &&
+        (restored.status.busy ||
+          restored.status.state === "queued" ||
+          restored.status.queued > 0)
+      ) {
+        const assistantMessageId =
+          restored.assistantMessageId ||
+          "turn:" + (restored.status.turnId || sessionId);
+        sendingRef.current = true;
+        activeSendCountRef.current = Math.max(1, activeSendCountRef.current);
+        setIsSending(true);
+        setIsReconnecting(true);
 
-      const assistantMessageId =
-        restored.assistantMessageId || "turn:" + (restored.status.turnId || sessionId);
-      sendingRef.current = true;
-      setIsSending(true);
-      setIsReconnecting(true);
-
-      await resumeAgentStream(
-        sessionId,
-        0,
-        createStreamOptions(sessionId, assistantMessageId, controller.signal),
-      );
-      if (!controller.signal.aborted) {
-        await restoreSessionSnapshot(sessionId, controller.signal, assistantMessageId);
+        await resumeAgentStream(
+          sessionId,
+          0,
+          createStreamOptions(sessionId, assistantMessageId, controller.signal),
+        );
+        if (controller.signal.aborted) return;
+        restored = await restoreSessionSnapshot(
+          sessionId,
+          controller.signal,
+          assistantMessageId,
+        );
       }
     })()
       .catch((error: unknown) => {
@@ -589,6 +728,7 @@ export function useDataAgentConversation({
         }
         if (!controller.signal.aborted) {
           sendingRef.current = false;
+          activeSendCountRef.current = 0;
           setIsSending(false);
           setIsReconnecting(false);
         }
@@ -642,12 +782,18 @@ export function useDataAgentConversation({
 
   const sendMessage = useCallback(
     async (content: string): Promise<SendMessageResult> => {
-      if (sendingRef.current) return { restoreDraft: false };
       if (!requestIdentity) {
         setConnectionError("请先登录并选择工作空间，再使用 Data Agent。");
         return { restoreDraft: true };
       }
 
+      let resolvedSessionId = sessionId ?? streamSessionIdRef.current;
+      if (sendingRef.current && !resolvedSessionId) {
+        setSessionNotice("会话正在创建，请稍后再次发送。");
+        return { restoreDraft: true };
+      }
+
+      activeSendCountRef.current += 1;
       sendingRef.current = true;
       setIsSending(true);
       setIsReconnecting(false);
@@ -656,7 +802,6 @@ export function useDataAgentConversation({
 
       const controller = new AbortController();
       streamControllerRef.current = controller;
-      let resolvedSessionId = sessionId;
       const now = new Date().toISOString();
       const userMessage: AgentMessage = {
         id: globalThis.crypto.randomUUID(),
@@ -698,9 +843,10 @@ export function useDataAgentConversation({
 
         await sendAgentMessage(targetSessionId, content, {
           ...createStreamOptions(targetSessionId, assistantMessage.id, controller.signal),
+          queue: true,
         });
 
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && activeSendCountRef.current === 1) {
           await restoreSessionSnapshot(
             targetSessionId,
             controller.signal,
@@ -735,9 +881,11 @@ export function useDataAgentConversation({
           streamControllerRef.current = null;
         }
         if (!controller.signal.aborted) {
-          sendingRef.current = false;
-          setIsSending(false);
-          setIsReconnecting(false);
+          activeSendCountRef.current = Math.max(0, activeSendCountRef.current - 1);
+          const hasActiveSends = activeSendCountRef.current > 0;
+          sendingRef.current = hasActiveSends;
+          setIsSending(hasActiveSends);
+          if (!hasActiveSends) setIsReconnecting(false);
         }
       }
     },
