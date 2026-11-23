@@ -41,9 +41,17 @@ import {
 import { DataSyncTaskDetailPage } from "@/app/data-sync/detail";
 import { DataSyncInstanceRedirect } from "./data-sync-instance-redirect";
 import {
-  OfflineTaskOperationsPage,
-  RealtimeTaskOperationsPage,
-} from "@/app/operations/dashboard/page";
+  WorkflowInstancesOperationsPage,
+  WorkflowSchedulesOperationsPage,
+} from "@/app/operations/workflow/page";
+import {
+  OfflineTasksOperationsPage,
+  RealtimeTasksOperationsPage,
+} from "@/app/operations/data-sync/tasks-page";
+import {
+  OfflineInstancesOperationsPage,
+  RealtimeInstancesOperationsPage,
+} from "@/app/operations/data-sync/instances-page";
 import { useAuth } from "@/hooks/use-auth";
 
 import AppLayout from "../layout/AppLayout";
@@ -274,21 +282,27 @@ export default function AppRouter() {
             element={
               <AppLayout
                 productLabel={OPERATIONS_PRODUCT_LABEL}
-                productPath="/operations/offline-tasks"
+                productPath="/operations/workflows/instances"
                 navigation={OPERATIONS_NAVIGATION}
               />
             }
           >
             <Route
               path="/operations"
-              element={<Navigate replace to="/operations/offline-tasks" />}
+              element={<Navigate replace to="/operations/workflows/instances" />}
             />
-            <Route path="/operations/offline-tasks" element={<OfflineTaskOperationsPage />} />
+            <Route path="/operations/workflows/instances" element={<WorkflowInstancesOperationsPage />} />
+            <Route path="/operations/workflows/schedules" element={<WorkflowSchedulesOperationsPage />} />
+            <Route path="/operations/offline/tasks" element={<OfflineTasksOperationsPage />} />
+            <Route path="/operations/offline/instances" element={<OfflineInstancesOperationsPage />} />
+            <Route path="/operations/realtime/tasks" element={<RealtimeTasksOperationsPage />} />
+            <Route path="/operations/realtime/instances" element={<RealtimeInstancesOperationsPage />} />
+            <Route path="/operations/offline-tasks" element={<Navigate replace to="/operations/offline/tasks" />} />
+            <Route path="/operations/realtime-tasks" element={<Navigate replace to="/operations/realtime/tasks" />} />
             <Route
               path="/operations/offline-tasks/instances/:id"
               element={<DataSyncInstanceRedirect />}
             />
-            <Route path="/operations/realtime-tasks" element={<RealtimeTaskOperationsPage />} />
             <Route
               path="/operations/realtime-tasks/instances/:id"
               element={<DataSyncInstanceRedirect />}
