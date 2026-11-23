@@ -106,6 +106,15 @@ export function normalizeImportedDataType(typeName?: string) {
   return raw.split(/[ (]/)[0] || DEFAULT_DATA_TYPE;
 }
 
+export function normalizeFieldCategory(value?: string) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized || normalized === "属性") return "PROPERTY";
+  if (normalized === "维度") return "DIMENSION";
+  if (normalized === "度量") return "MEASUREMENT";
+  if (["PROPERTY", "DIMENSION", "MEASUREMENT"].includes(normalized)) return normalized;
+  return "PROPERTY";
+}
+
 function parseBooleanCell(value?: string) {
   const normalized = String(value || "").trim().toLowerCase();
   return ["1", "true", "yes", "y", "是", "√", "checked"].includes(normalized);
@@ -153,6 +162,11 @@ export function parseImportedFields(text: string, fieldType: FieldKind): Dimensi
         notNull: parseBooleanCell(cells[7]),
         sourceTb: String(cells[8] || "").trim() || undefined,
         sourceField: String(cells[9] || "").trim() || undefined,
+        fieldType: fieldType === "PARTITION"
+          ? "PARTITION"
+          : normalizeFieldCategory(cells[10]),
+        fieldStdId: String(cells[11] || "").trim() || undefined,
+        codeStdId: String(cells[12] || "").trim() || undefined,
       } satisfies DimensionFieldRecord;
     })
     .filter((field) => field.fieldName || !isEmptyDimensionField(field));
@@ -184,6 +198,8 @@ export function cellClipboardValue(field: DimensionFieldRecord, column: FieldCol
       return field.sourceTb || "";
     case "sourceField":
       return field.sourceField || "";
+    case "fieldType":
+      return field.fieldType || "PROPERTY";
     case "remark":
       return field.remark || "";
     default:
@@ -220,6 +236,8 @@ export function patchFromClipboard(
       return { sourceTb: value.trim() || undefined };
     case "sourceField":
       return { sourceField: value.trim() || undefined };
+    case "fieldType":
+      return { fieldType: normalizeFieldCategory(value) };
     case "remark":
       return { remark: value.trim() || undefined };
     default:
@@ -240,5 +258,6 @@ export const EDITABLE_FIELD_COLUMNS: FieldColumnKey[] = [
   "notNull",
   "sourceTb",
   "sourceField",
+  "fieldType",
   "remark",
 ];
