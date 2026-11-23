@@ -7,6 +7,7 @@ export type WorkflowWarningType = "NONE" | "SUCCESS" | "FAILURE" | "ALL";
 export type WorkflowFailureStrategy = "END" | "CONTINUE";
 export type WorkflowPriority = "HIGHEST" | "HIGH" | "MEDIUM" | "LOW" | "LOWEST";
 export type WorkflowMissedFirePolicy = "SKIP_MISSED" | "FIRE_ONCE_NOW" | "FIRE_ALL_MISSED";
+export type WorkflowBusinessType = "WORKFLOW" | "DATA_SYNC_OFFLINE" | "DATA_SYNC_REALTIME";
 
 export interface WorkflowScheduleParam {
   startTime: string;
@@ -129,6 +130,23 @@ function scheduleQuery(
   return params.toString();
 }
 
+export async function listWorkflowSchedules(
+  pageNo = 1,
+  pageSize = 20,
+  searchVal?: string,
+  signal?: AbortSignal,
+): Promise<PageInfo<WorkflowScheduleRecord>> {
+  const params = new URLSearchParams({
+    pageNo: String(pageNo),
+    pageSize: String(pageSize),
+  });
+  if (searchVal?.trim()) params.set("searchVal", searchVal.trim());
+  return HttpUtils.getData<PageInfo<WorkflowScheduleRecord>>(
+    scheduleBase() + "?" + params.toString(),
+    { signal },
+  );
+}
+
 /** Query the schedule attached to one workflow definition. */
 export async function getWorkflowSchedule(
   workflowDefinitionCode: number,
@@ -235,6 +253,7 @@ export interface WorkflowInstanceQuery {
   executorName?: string;
   stateType?: string;
   host?: string;
+  businessType?: WorkflowBusinessType;
   startDate?: string;
   endDate?: string;
 }
