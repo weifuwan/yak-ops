@@ -196,7 +196,7 @@ function OptionSelect({
             : placeholder}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent emptyContent={emptyContent}>
+      <SelectContent emptyContent={options.length === 0 ? emptyContent : undefined}>
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             <SelectItemText>{option.label}</SelectItemText>
