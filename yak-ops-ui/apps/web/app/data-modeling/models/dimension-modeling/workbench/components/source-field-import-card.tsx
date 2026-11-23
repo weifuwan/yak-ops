@@ -46,7 +46,7 @@ function sourceColumnToField(
     cnName: column.remarks || "",
     dataType: normalizeImportedDataType(column.typeName),
     length: column.size,
-    precision: column.scale,
+    fieldPrecision: column.scale,
     remark: column.remarks || undefined,
     primaryFlag: Boolean(column.primaryKey),
     notNull: column.nullable === false,
