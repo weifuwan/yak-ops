@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert,
   Button,
   Input,
   Select,
@@ -725,6 +726,9 @@ export function DimensionEditor({
   const isSubmitted = tab.record?.submit === true || tab.record?.submit === "true";
   const currentVersion = Number(tab.record?.currentVersion || 0);
   const showNotice = dirty || Boolean(recordId && !isSubmitted);
+  const noticeMessage = dirty
+    ? "当前存在未保存的修改，请先保存相关内容，再提交生成版本。"
+    : "当前草稿尚未提交，确认内容无误后，可点击「提交」生成版本。";
 
   const fieldColumns: TableColumns<DimensionFieldRecord> = [
     {
@@ -890,12 +894,17 @@ export function DimensionEditor({
         </div>
 
         {showNotice && !noticeDismissed ? (
-          <div className="flex shrink-0 items-center gap-2 border-b border-[#dce6fb] bg-[#eef4ff] px-4 py-1.5 text-xs text-[#63748f]">
-            <span>{dirty ? "请分别保存基本信息和字段变更，再提交生成完整版本。" : "当前存在未提交的内容，保存基本信息和字段后可提交生成完整版本。"}</span>
-            <button type="button" aria-label="关闭提示" className="ml-auto flex size-5 items-center justify-center rounded hover:bg-black/5" onClick={() => setNoticeDismissed(true)}>
+          <Alert className="shrink-0 rounded-none border-x-0 border-t-0 px-4 py-1.5">
+            <span>{noticeMessage}</span>
+            <button
+              type="button"
+              aria-label="关闭提示"
+              className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yak-color-primary)]"
+              onClick={() => setNoticeDismissed(true)}
+            >
               <X size={12} />
             </button>
-          </div>
+          </Alert>
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-color-hover)] p-3.5">

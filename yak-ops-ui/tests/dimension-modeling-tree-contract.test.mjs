@@ -317,6 +317,17 @@ test("model type is hidden for creation and typed edits while legacy migration r
   assert.ok(editor.includes('tableType: selectedTableType || null'));
 });
 
+test("dimension editor uses Yak-UI warning alert for unsaved changes and unsubmitted drafts", () => {
+  assert.match(editor, /import \{[\s\S]*?Alert,[\s\S]*?\} from "@yak-ops\/yak-ui"/);
+  assert.match(editor, /<Alert className="shrink-0 rounded-none border-x-0 border-t-0 px-4 py-1\.5">/);
+  assert.match(editor, /const noticeMessage = dirty/);
+  assert.match(editor, /当前存在未保存的修改，请先保存相关内容，再提交生成版本/);
+  assert.match(editor, /当前草稿尚未提交，确认内容无误后，可点击「提交」生成版本/);
+  assert.match(editor, /showNotice && !noticeDismissed/);
+  assert.match(editor, /onClick=\{\(\) => setNoticeDismissed\(true\)\}/);
+  assert.doesNotMatch(editor, /border-\[#dce6fb\] bg-\[#eef4ff\]/);
+});
+
 test("basic information and field management are saved independently", () => {
   const basicSaveStart = editor.indexOf("const saveBasicInfo = async");
   const fieldSaveStart = editor.indexOf("const saveFields = async");
