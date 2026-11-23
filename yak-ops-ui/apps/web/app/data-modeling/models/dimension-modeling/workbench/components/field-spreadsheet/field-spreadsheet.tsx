@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import type { ClipboardEvent, KeyboardEvent } from "react";
 import {
   Button,
   Checkbox,
@@ -248,14 +249,14 @@ export function FieldSpreadsheet({
     return true;
   };
 
-  const handleGridPaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+  const handleGridPaste = (event: ClipboardEvent<HTMLDivElement>) => {
     if (!activeCell) return;
     const text = event.clipboardData.getData("text/plain");
     if (!text) return;
     if (applyPaste(text)) event.preventDefault();
   };
 
-  const handleGridKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleGridKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!activeCell) return;
     const target = event.target as HTMLElement;
     const interactiveTarget =
@@ -301,7 +302,7 @@ export function FieldSpreadsheet({
   };
 
   const handleCellKeyDown = (
-    event: React.KeyboardEvent<HTMLDivElement>,
+    event: KeyboardEvent<HTMLDivElement>,
     rowIndex: number,
     column: FieldColumnKey,
   ) => {
@@ -654,7 +655,7 @@ export function FieldSpreadsheet({
                             ? "z-[1] ring-2 ring-inset ring-[var(--yak-color-primary)]"
                             : "",
                           issue
-                            ? "bg-[color-mix(in_srgb,var(--yak-components-danger-text)_6%,white)] ring-1 ring-inset ring-[var(--yak-components-danger-text)]"
+                            ? "ring-1 ring-inset ring-[var(--yak-components-danger-text)]"
                             : "",
                         ].join(" ")}
                         onFocus={() => {
