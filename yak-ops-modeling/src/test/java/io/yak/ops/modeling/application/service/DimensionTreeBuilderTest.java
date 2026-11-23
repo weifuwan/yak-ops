@@ -48,8 +48,10 @@ class DimensionTreeBuilderTest {
     @Test
     void shouldBuildSourceLayerTreeFromPersistedDimensionTables() {
         when(dwLayerService.all(any())).thenReturn(Collections.singletonList(layer("source-layer")));
+        DimensionTablePO sourceTable = table("table-1", "business-child", null, null);
+        sourceTable.setTableType(DimensionTableTypeEnum.SOURCE);
         when(dimensionTableDao.queryList(any(QueryWrapper.class)))
-                .thenReturn(Collections.singletonList(table("table-1", "business-child", null, null)));
+                .thenReturn(Collections.singletonList(sourceTable));
         when(businessTypeService.all()).thenReturn(Arrays.asList(
                 businessType("business-root", null),
                 businessType("business-child", "business-root")));
@@ -65,7 +67,9 @@ class DimensionTreeBuilderTest {
         assertEquals(1, root.getChildren().size());
         assertEquals("business-root", root.getChildren().get(0).getKey());
         assertEquals("business-child", root.getChildren().get(0).getChildren().get(0).getKey());
-        assertEquals("table-1-DIM", root.getChildren().get(0).getChildren().get(0).getChildren().get(0).getKey());
+        DimensionTreeNodeVO sourceLeaf = root.getChildren().get(0).getChildren().get(0).getChildren().get(0);
+        assertEquals("table-1-DIM", sourceLeaf.getKey());
+        assertEquals("SOURCE", sourceLeaf.getType());
     }
 
     @Test
@@ -96,8 +100,10 @@ class DimensionTreeBuilderTest {
     @Test
     void shouldKeepTheAncestorPathWhenFilteringApplicationLayerBySubjectDomain() {
         when(dwLayerService.all(any())).thenReturn(Collections.singletonList(layer("application-layer")));
+        DimensionTablePO applicationTable = table("table-1", "business-1", "mart-1", "subject-1");
+        applicationTable.setTableType(DimensionTableTypeEnum.APPLICATION);
         when(dimensionTableDao.queryList(any(QueryWrapper.class)))
-                .thenReturn(Collections.singletonList(table("table-1", "business-1", "mart-1", "subject-1")));
+                .thenReturn(Collections.singletonList(applicationTable));
         when(businessTypeService.all()).thenReturn(Collections.singletonList(businessType("business-1", null)));
         when(dataMartService.all()).thenReturn(Collections.singletonList(mart("mart-1", "business-1")));
         when(subjectDomainService.all()).thenReturn(Collections.singletonList(subject("subject-1", "mart-1")));
@@ -116,7 +122,9 @@ class DimensionTreeBuilderTest {
         assertEquals("mart-1", dataMart.getKey());
         DimensionTreeNodeVO subjectDomain = dataMart.getChildren().get(0);
         assertEquals("subject-1", subjectDomain.getKey());
-        assertEquals("table-1-DIM", subjectDomain.getChildren().get(0).getKey());
+        DimensionTreeNodeVO applicationLeaf = subjectDomain.getChildren().get(0);
+        assertEquals("table-1-DIM", applicationLeaf.getKey());
+        assertEquals("APPLICATION", applicationLeaf.getType());
     }
 
     @Test
