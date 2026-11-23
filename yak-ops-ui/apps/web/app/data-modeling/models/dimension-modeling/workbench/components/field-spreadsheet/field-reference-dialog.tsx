@@ -62,11 +62,13 @@ function OptionSelect({
 
 export function FieldReferenceDialog({
   open,
+  projectCode,
   fieldType,
   onClose,
   onImport,
 }: {
   open: boolean;
+  projectCode: string;
   fieldType: FieldKind;
   onClose: () => void;
   onImport: (fields: DimensionFieldRecord[]) => void;
@@ -78,17 +80,17 @@ export function FieldReferenceDialog({
   const [excludedColumns, setExcludedColumns] = useState<Set<string>>(() => new Set());
 
   const dataSourcesQuery = useQuery({
-    queryKey: ["modeling", "field-reference", "datasources", currentUser?.id],
+    queryKey: ["modeling", "field-reference", "datasources", currentUser?.id, projectCode],
     queryFn: () => listDataSources({ pageNo: 1, pageSize: 100 }),
     enabled: Boolean(open && currentUser?.id),
   });
   const databasesQuery = useQuery({
-    queryKey: ["modeling", "field-reference", "databases", currentUser?.id, dataSourceId],
+    queryKey: ["modeling", "field-reference", "databases", currentUser?.id, projectCode, dataSourceId],
     queryFn: () => listDataSourceDatabases(dataSourceId),
     enabled: Boolean(open && dataSourceId),
   });
   const tablesQuery = useQuery({
-    queryKey: ["modeling", "field-reference", "tables", currentUser?.id, dataSourceId, database],
+    queryKey: ["modeling", "field-reference", "tables", currentUser?.id, projectCode, dataSourceId, database],
     queryFn: () => listDataSourceTables(dataSourceId, { database, limit: 200 }),
     enabled: Boolean(open && dataSourceId && database),
   });
@@ -102,6 +104,7 @@ export function FieldReferenceDialog({
       "field-reference",
       "columns",
       currentUser?.id,
+      projectCode,
       dataSourceId,
       database,
       selectedTable?.schema,
