@@ -19,6 +19,10 @@ from pathlib import Path
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 _AGENT_ROOT = Path(__file__).resolve().parent.parent
 
+# Model-visible time zone: injected runtime state and the get_current_time tool
+# speak in this zone. yak-ops REST timestamps are UTC wall-clock strings.
+PLATFORM_TIMEZONE = "Asia/Shanghai"
+
 
 def _load_env_file() -> dict:
     """Parse .env and return the values not already in os.environ.

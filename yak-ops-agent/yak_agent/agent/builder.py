@@ -20,7 +20,7 @@ from yak_agent.agent.budget import (
     estimate_value_tokens,
 )
 from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, SYSTEM_PROMPT
-from yak_agent.config import Settings
+from yak_agent.config import PLATFORM_TIMEZONE, Settings
 from yak_agent.memory.middleware import MEMORY_PROMPT_TOKENS, build_memory_search_tool
 from yak_agent.tools import build_tools
 from yak_agent.tools.audit_middleware import ToolAuditMiddleware
@@ -136,7 +136,7 @@ def build_agent(
             max_iters=12,
             interruption_message="已中断本次回复，请告诉我接下来要做什么。",
         ),
-        injection_config=InjectionConfig(timezone="Asia/Shanghai"),
+        injection_config=InjectionConfig(timezone=PLATFORM_TIMEZONE),
         context_config=ContextConfig(
             trigger_ratio=_TRIGGER_RATIO,
             reserve_ratio=0.2,
