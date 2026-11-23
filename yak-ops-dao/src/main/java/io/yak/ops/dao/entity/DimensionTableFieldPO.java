@@ -18,7 +18,7 @@ public class DimensionTableFieldPO extends ModelingBasePO {
     private DimensionDataTypeEnum dataType;
     private Integer length;
     @TableField("field_precision")
-    private Integer precision;
+    private Integer fieldPrecision;
     private String remark;
     private Boolean primaryFlag;
     /** Physical column is can_null; API exposes the inverse notNull flag. */
