@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   Boxes,
@@ -16,6 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@yak-ops/yak-ui";
+
+import { useWorkspace } from "@/hooks/use-workspace";
+import {
+  modelingOverviewApi,
+  type ModelingLatestPublish,
+  type ModelingOverview,
+} from "@/service/data-modeling/overview";
 
 import PixelBlast from "./components/PixelBlast";
 
@@ -35,42 +43,75 @@ type StatisticItem = {
   formula?: string;
 };
 
-const STATISTICS: StatisticItem[] = [
-  {
-    title: "维度表模型",
-    icon: Boxes,
-    values: [{ num: "—", unit: "模型数量" }],
-  },
-  {
-    title: "明细表模型",
-    icon: Table2,
-    values: [{ num: "—", unit: "模型数量" }],
-  },
-  {
-    title: "汇总表模型",
-    icon: Layers3,
-    values: [{ num: "—", unit: "模型数量" }],
-  },
-  {
-    title: "应用表模型",
-    icon: Database,
-    values: [{ num: "—", unit: "模型数量" }],
-  },
-  {
-    title: "派生指标&复合指标",
-    icon: ChartNoAxesCombined,
-    values: [
-      { num: "—", unit: "指标数量" },
-      { num: "—", unit: "向上取整" },
-    ],
-  },
-  {
-    title: "合计",
-    total: true,
-    values: [{ num: "—", unit: "" }],
-    formula: "统计接口待接入",
-  },
-];
+function countText(value: number | undefined, loading: boolean) {
+  if (loading) return "…";
+  return typeof value === "number" ? String(value) : "—";
+}
+
+function buildStatistics(
+  overview: ModelingOverview | undefined,
+  loading: boolean,
+  error: boolean,
+): StatisticItem[] {
+  const models = overview?.modelStatistics;
+  const indicators = overview?.indicatorStatistics;
+
+  return [
+    {
+      title: "维度表模型",
+      icon: Boxes,
+      values: [{ num: countText(models?.dimension, loading), unit: "模型数量" }],
+    },
+    {
+      title: "明细表模型",
+      icon: Table2,
+      values: [{ num: countText(models?.detail, loading), unit: "模型数量" }],
+    },
+    {
+      title: "汇总表模型",
+      icon: Layers3,
+      values: [{ num: countText(models?.summary, loading), unit: "模型数量" }],
+    },
+    {
+      title: "应用表模型",
+      icon: Database,
+      values: [{ num: countText(models?.application, loading), unit: "模型数量" }],
+    },
+    {
+      title: "派生指标&复合指标",
+      icon: ChartNoAxesCombined,
+      values: [
+        { num: countText(indicators?.derived, loading), unit: "派生指标" },
+        { num: countText(indicators?.composite, loading), unit: "复合指标" },
+      ],
+    },
+    {
+      title: "合计",
+      total: true,
+      values: [{ num: countText(overview?.totalAssets, loading), unit: "" }],
+      formula: error
+        ? "统计加载失败"
+        : overview
+          ? `模型 ${models?.total ?? 0} · 指标 ${indicators?.total ?? 0}`
+          : "正在加载统计",
+    },
+  ];
+}
+
+function formatPublishTime(value?: string | number) {
+  if (value === undefined || value === null || value === "") return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 
 function PixelArrowIcon() {
   return (
@@ -171,8 +212,17 @@ function StatisticCard({ item }: { item: StatisticItem }) {
 /**
  * 数据概览
  */
-function DataOverviewCard() {
+function DataOverviewCard({
+  overview,
+  loading,
+  error,
+}: {
+  overview?: ModelingOverview;
+  loading: boolean;
+  error: boolean;
+}) {
   const [workspaceFilter, setWorkspaceFilter] = useState("all");
+  const statistics = buildStatistics(overview, loading, error);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
@@ -237,7 +287,7 @@ function DataOverviewCard() {
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 gap-x-4 min-[1500px]:grid-cols-3">
-          {STATISTICS.map((item) => (
+          {statistics.map((item) => (
             <StatisticCard key={item.title} item={item} />
           ))}
         </div>
@@ -249,10 +299,17 @@ function DataOverviewCard() {
 /**
  * 最新发布
  */
-function LatestPublishCard() {
+function LatestPublishCard({
+  items,
+  loading,
+  error,
+}: {
+  items: ModelingLatestPublish[];
+  loading: boolean;
+  error: boolean;
+}) {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
-      {/* Header */}
       <div className="flex min-h-5 w-full items-center">
         <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
           最新发布
@@ -262,20 +319,48 @@ function LatestPublishCard() {
         </div>
       </div>
 
-      {/* Empty State */}
-      <div className="relative mt-2 w-full">
-        <div className="flex h-[250px] w-full flex-col items-center justify-center overflow-hidden">
-          <div
-            className="h-[240px] w-[320px] max-w-full shrink rounded-none bg-contain bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url("${EMPTY_IMAGE}")`,
-            }}
-          />
-
-          <div className="mt-2 shrink-0 px-6 text-center text-xs leading-6 text-[#777E8B]">
-            暂无数据
+      <div className="relative mt-3 min-h-[250px] w-full">
+        {loading ? (
+          <div className="flex h-[250px] items-center justify-center text-xs text-[#9299A5]">
+            正在加载最新发布...
           </div>
-        </div>
+        ) : error ? (
+          <div className="flex h-[250px] items-center justify-center text-xs text-[#9299A5]">
+            最新发布加载失败
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex h-[250px] w-full flex-col items-center justify-center overflow-hidden">
+            <div
+              className="h-[210px] w-[280px] max-w-full shrink rounded-none bg-contain bg-center bg-no-repeat"
+              style={{
+                backgroundImage: `url("${EMPTY_IMAGE}")`,
+              }}
+            />
+            <div className="mt-1 shrink-0 px-6 text-center text-xs leading-6 text-[#777E8B]">
+              暂无数据
+            </div>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#EEF0F5]">
+            {items.map((item) => (
+              <div key={item.assetType + "-" + item.id} className="py-3 first:pt-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="shrink-0 rounded bg-[#F3F4F8] px-1.5 py-0.5 text-[11px] text-[#555B68]">
+                    {item.assetTypeLabel}
+                  </span>
+                  <span className="min-w-0 truncate text-sm font-medium text-[#303642]" title={item.name}>
+                    {item.name}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2 text-xs text-[#9299A5]">
+                  <span>{item.updateBy || "—"}</span>
+                  <span>·</span>
+                  <span>{formatPublishTime(item.updateTime)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -285,6 +370,15 @@ function LatestPublishCard() {
  * 数据建模首页
  */
 export function DataModelingOverviewPage() {
+  const { currentWorkspace } = useWorkspace();
+  const projectCode = currentWorkspace?.id ? String(currentWorkspace.id) : "";
+  const overviewQuery = useQuery({
+    queryKey: ["modeling", "overview", projectCode],
+    queryFn: () => modelingOverviewApi.get(projectCode),
+    enabled: Boolean(projectCode),
+  });
+  const overview = overviewQuery.data;
+
   return (
     <main className="flex min-h-[calc(100vh-38px)] w-full flex-col overflow-x-auto bg-[#F6F6F6] text-[#10121A]">
       {/* 上半部分：主视觉 */}
@@ -358,12 +452,20 @@ export function DataModelingOverviewPage() {
           <div className="-mx-2 grid grid-cols-[repeat(24,minmax(0,1fr))]">
             {/* 左侧：数据概览 */}
             <div className="col-span-[24] flex px-2 min-[1200px]:col-span-[17] min-[1500px]:col-span-[16]">
-              <DataOverviewCard />
+              <DataOverviewCard
+                overview={overview}
+                loading={overviewQuery.isPending && Boolean(projectCode)}
+                error={overviewQuery.isError}
+              />
             </div>
 
             {/* 右侧：最新发布 */}
             <div className="col-span-[24] flex px-2 min-[1200px]:col-span-[7] min-[1500px]:col-span-[8]">
-              <LatestPublishCard />
+              <LatestPublishCard
+                items={overview?.latestPublished || []}
+                loading={overviewQuery.isPending && Boolean(projectCode)}
+                error={overviewQuery.isError}
+              />
             </div>
           </div>
         </div>
