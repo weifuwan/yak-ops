@@ -23,6 +23,8 @@ from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, SYSTEM_PROMPT
 from yak_agent.config import Settings
 from yak_agent.memory.middleware import MEMORY_PROMPT_TOKENS, build_memory_search_tool
 from yak_agent.tools import build_tools
+from yak_agent.tools.audit_middleware import ToolAuditMiddleware
+from yak_agent.tools.validation import check_tool_inventory, validate_tool_names
 from yak_agent.workspace import SessionWorkspace
 
 _SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
@@ -42,6 +44,11 @@ def _skill_prompt_tokens() -> int:
     return (total + 3) // 4
 
 
+def _skill_tool_available() -> bool:
+    """The Toolkit registers a Skill viewer only when at least one skill loads."""
+    return _SKILLS_DIR.exists() and any(_SKILLS_DIR.rglob("SKILL.md"))
+
+
 def build_agent(
     settings: Settings,
     state: Any | None = None,
@@ -49,6 +56,7 @@ def build_agent(
     auth: Any | None = None,
     project_code: int | None = None,
     memory: Any | None = None,
+    audit_caller: str = "",
 ) -> Agent:
     """Assemble the data-sync copilot from open-box AgentScope components."""
     model = OpenAIChatModel(
@@ -64,6 +72,9 @@ def build_agent(
     )
     if memory is not None:
         tools.append(build_memory_search_tool(memory))
+    validate_tool_names(tools)
+    internal_count = (1 if _COMPRESSION_ENABLED else 0) + (1 if _skill_tool_available() else 0)
+    check_tool_inventory(tools, internal_count=internal_count, settings=settings)
     system_prompt = SYSTEM_PROMPT
     if workspace is not None:
         system_prompt = f"{SYSTEM_PROMPT}\n\n{OFFLOAD_INSTRUCTIONS}"
@@ -100,6 +111,12 @@ def build_agent(
         # TracerProvider is configured, full span tree when one is.
         TracingMiddleware(),
     ]
+    if settings.tool_audit_enabled:
+        # Outermost acting middleware: audits every toolkit execution.
+        middlewares.insert(
+            0,
+            ToolAuditMiddleware(caller=audit_caller, workspace_id=project_code),
+        )
     if memory is not None:
         # Outermost middleware: supplies the memory tool instructions in the
         # system prompt. Retrieval/write-back timing is owned by run_turn.

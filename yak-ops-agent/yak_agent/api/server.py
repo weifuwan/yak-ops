@@ -80,6 +80,7 @@ from yak_agent.service.session import (
 from yak_agent.service.session import (
     create_session as create_agent_session,
 )
+from yak_agent.tools.validation import validate_registry
 
 
 @asynccontextmanager
@@ -541,6 +542,9 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
 
 
 def main() -> None:
+    # Fail before binding the port when operations/allowlist or reserved tool
+    # names are invalid. Per-session assembly performs the same check.
+    validate_registry()
     host = os.environ.get("YAK_AGENT_HOST", "127.0.0.1")
     port = int(os.environ.get("YAK_AGENT_PORT", "8090"))
     uvicorn.run(app, host=host, port=port, log_level="info")

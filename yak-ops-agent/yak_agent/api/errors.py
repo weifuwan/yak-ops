@@ -17,6 +17,7 @@ from yak_agent.service.errors import (
     SessionForbidden,
     SessionNotFound,
     SessionStateInvalid,
+    ToolConfigurationExceeded,
 )
 
 _STATUS_BY_ERROR: dict[type[AgentSessionError], int] = {
@@ -28,6 +29,7 @@ _STATUS_BY_ERROR: dict[type[AgentSessionError], int] = {
     SessionStateInvalid: HTTPStatus.UNPROCESSABLE_ENTITY,
     ContextBudgetExceeded: HTTPStatus.UNPROCESSABLE_ENTITY,
     MemoryDisabled: HTTPStatus.CONFLICT,
+    ToolConfigurationExceeded: HTTPStatus.UNPROCESSABLE_ENTITY,
 }
 
 

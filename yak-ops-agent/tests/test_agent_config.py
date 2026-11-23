@@ -13,6 +13,7 @@ from unittest.mock import patch
 from yak_agent import config
 from yak_agent.agent.builder import build_agent
 from yak_agent.config import Settings
+from yak_agent.tools.audit_middleware import ToolAuditMiddleware
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakAuth
 
@@ -73,6 +74,28 @@ class AgentConfigTests(unittest.TestCase):
 
     def test_compression_tool_is_enabled(self) -> None:
         self.assertTrue(self.agent.context_config.compression_tool_enabled)
+
+    def test_tool_audit_middleware_is_wired(self) -> None:
+        self.assertTrue(
+            any(
+                isinstance(middleware, ToolAuditMiddleware)
+                for middleware in self.agent._acting_middlewares
+            )
+        )
+
+    def test_tool_audit_can_be_disabled(self) -> None:
+        agent = build_agent(
+            _settings(tool_audit_enabled=False),
+            auth=YakAuth(base_url="http://yak.example", token="test-token"),
+            project_code=1,
+        )
+
+        self.assertFalse(
+            any(
+                isinstance(middleware, ToolAuditMiddleware)
+                for middleware in agent._acting_middlewares
+            )
+        )
         self.assertEqual(self.agent.context_config.context_buffer_ratio, 0.2)
 
     def test_compression_tool_is_registered_for_model_input(self) -> None:
@@ -143,6 +166,27 @@ class SettingsLoadTests(unittest.TestCase):
         self.assertEqual(settings.llm_context_size, 64000)
         self.assertEqual(settings.confirm_timeout_seconds, 120)
         self.assertEqual(settings.llm_memory_budget_tokens, 3000)
+
+    def test_tool_governance_defaults(self) -> None:
+        settings = self._load()
+
+        self.assertTrue(settings.tool_audit_enabled)
+        self.assertEqual(settings.tool_count_warn, 20)
+        self.assertEqual(settings.tool_count_max, 0)
+        self.assertEqual(settings.tool_schema_warn_tokens, 6000)
+
+    def test_tool_governance_env_overrides(self) -> None:
+        settings = self._load(
+            YAK_AGENT_TOOL_AUDIT_ENABLED="false",
+            YAK_AGENT_TOOL_COUNT_WARN="24",
+            YAK_AGENT_TOOL_COUNT_MAX="30",
+            YAK_AGENT_TOOL_SCHEMA_WARN_TOKENS="8000",
+        )
+
+        self.assertFalse(settings.tool_audit_enabled)
+        self.assertEqual(settings.tool_count_warn, 24)
+        self.assertEqual(settings.tool_count_max, 30)
+        self.assertEqual(settings.tool_schema_warn_tokens, 8000)
 
 
 if __name__ == "__main__":

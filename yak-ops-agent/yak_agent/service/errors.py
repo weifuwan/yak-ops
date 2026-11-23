@@ -42,3 +42,7 @@ class ContextBudgetExceeded(AgentSessionError):
 
 class MemoryDisabled(AgentSessionError):
     default_message = "长期记忆未启用"
+
+
+class ToolConfigurationExceeded(AgentSessionError):
+    default_message = "工具配置无效或超过数量上限，请检查 operations/allowlist 与工具名"

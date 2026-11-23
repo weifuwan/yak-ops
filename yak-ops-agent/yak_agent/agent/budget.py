@@ -54,6 +54,11 @@ def _tool_tokens(tool: Any) -> int:
     return estimate_tokens(json.dumps(schema, ensure_ascii=False, default=str))
 
 
+def tool_schema_tokens(tools: list[Any]) -> int:
+    """Estimate the model-visible schema size of a tool inventory."""
+    return sum(_tool_tokens(tool) for tool in tools)
+
+
 def check_context_budget(
     *,
     context_size: int,
