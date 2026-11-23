@@ -39,10 +39,6 @@ function cellKey(rowId: string, column: FieldColumnKey) {
   return rowId + "::" + column;
 }
 
-function inputValue(value: number | undefined) {
-  return value == null ? "" : String(value);
-}
-
 export function FieldSpreadsheet({
   projectCode,
   fieldType,
@@ -356,7 +352,7 @@ export function FieldSpreadsheet({
             type="number"
             min={0}
             className={commonInputClass}
-            value={inputValue(field.length)}
+            value={field.length == null ? "" : String(field.length)}
             placeholder="-"
             onChange={(event) =>
               updateRow(rowIndex, {
@@ -373,7 +369,7 @@ export function FieldSpreadsheet({
             type="number"
             min={0}
             className={commonInputClass}
-            value={inputValue(field.precision)}
+            value={field.precision == null ? "" : String(field.precision)}
             placeholder="-"
             onChange={(event) =>
               updateRow(rowIndex, {
