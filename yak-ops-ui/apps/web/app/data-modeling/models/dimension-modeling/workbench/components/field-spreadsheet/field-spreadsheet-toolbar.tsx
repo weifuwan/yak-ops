@@ -78,8 +78,8 @@ export function FieldSpreadsheetToolbar({
             <Settings2 size={13} />
             字段显示设置
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-52 p-2">
-            <div className="space-y-1">
+          <PopoverContent align="end" className="w-[360px] p-2">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
               {availableColumns.map((column) => {
                 const fixed = !column.configurable;
                 return (
