@@ -14,6 +14,7 @@ import io.yak.ops.api.dto.gantt.Task;
 import io.yak.ops.api.dto.workflowInstance.WorkflowInstanceTaskListDTO;
 import io.yak.ops.api.dto.workflowInstance.WorkflowInstanceVariablesDTO;
 import io.yak.ops.api.enums.Status;
+import io.yak.ops.api.enums.WorkflowBusinessType;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.permission.TaskDatasourcePermissionChecker;
 import io.yak.ops.api.permission.TaskSubWorkflowPermissionChecker;
@@ -219,6 +220,7 @@ public class WorkflowInstanceServiceImpl extends BaseServiceImpl implements Work
                                                                                  String executorName,
                                                                                  WorkflowExecutionStatus stateType,
                                                                                  String host,
+                                                                                 WorkflowBusinessType businessType,
                                                                                  String otherParamsJson,
                                                                                  Integer pageNo,
                                                                                  Integer pageSize) {
@@ -248,7 +250,8 @@ public class WorkflowInstanceServiceImpl extends BaseServiceImpl implements Work
                 statusArray,
                 host,
                 start,
-                end);
+                end,
+                businessType == null ? null : businessType.name());
 
         List<WorkflowInstanceSummaryDto> workflowInstances = workflowInstanceList.getRecords();
         List<Integer> userIds = Collections.emptyList();
