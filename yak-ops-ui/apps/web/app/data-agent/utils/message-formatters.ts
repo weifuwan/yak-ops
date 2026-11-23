@@ -59,6 +59,7 @@ export function agentErrorMessage(error: unknown) {
         return "当前用户没有访问 Agent 配置项目的权限，请检查项目授权和 YAK_OPS_PROJECT_CODE。";
       }
       if (status === 404) return "Agent 会话不存在或已失效，请新建对话。";
+      if (status === 429) return "当前会话排队已满，请等待前面的任务执行后再发送。";
     }
     return error.message;
   }
