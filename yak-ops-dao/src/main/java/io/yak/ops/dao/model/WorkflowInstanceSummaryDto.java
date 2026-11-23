@@ -87,4 +87,9 @@ public class WorkflowInstanceSummaryDto {
      */
     private String duration;
 
+    /**
+     * Product-facing business classification used by the operations center.
+     */
+    private String businessType;
+
 }
