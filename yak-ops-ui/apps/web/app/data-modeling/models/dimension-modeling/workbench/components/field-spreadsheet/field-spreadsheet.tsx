@@ -19,7 +19,7 @@ import {
 } from "./field-grid-utils";
 import {
   DATA_TYPE_OPTIONS,
-  DEFAULT_VISIBLE_FIELD_COLUMNS,
+  defaultVisibleFieldColumns,
   FIELD_GRID_COLUMNS,
   type FieldColumnKey,
   type FieldGridColumn,
@@ -41,6 +41,7 @@ function cellKey(rowId: string, column: FieldColumnKey) {
 
 export function FieldSpreadsheet({
   projectCode,
+  modelType,
   fieldType,
   fields,
   fieldStandardOptions,
@@ -51,7 +52,7 @@ export function FieldSpreadsheet({
   onChange,
 }: FieldSpreadsheetProps) {
   const [visibleColumns, setVisibleColumns] = useState<Set<FieldColumnKey>>(
-    () => new Set(DEFAULT_VISIBLE_FIELD_COLUMNS),
+    () => defaultVisibleFieldColumns(modelType),
   );
   const [insertCount, setInsertCount] = useState("1");
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
@@ -477,6 +478,7 @@ export function FieldSpreadsheet({
         <FieldSpreadsheetToolbar
           insertCount={insertCount}
           validationIssueCount={validationIssues.length}
+          referenceLabel={modelType === "SOURCE" ? "引用来源表" : "引用已有表"}
           visibleColumns={visibleColumns}
           onInsertCountChange={setInsertCount}
           onInsertRows={insertRows}
