@@ -312,7 +312,10 @@ class DeleteSessionTests(unittest.TestCase):
         )
         session_service.SESSIONS["sid"] = session
         try:
-            with patch.object(server, "request_identity", return_value=identity):
+            with (
+                patch.object(server, "_get_settings", return_value=object()),
+                patch.object(server, "request_identity", return_value=identity),
+            ):
                 with self.assertRaises(SessionBusy):
                     asyncio.run(server.delete_session("sid", None))
 
