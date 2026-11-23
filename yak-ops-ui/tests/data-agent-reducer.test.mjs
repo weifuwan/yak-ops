@@ -209,6 +209,23 @@ test("conversation reducer keeps text, thinking and tool activity in stream orde
     updatedAt: "2026-11-19T10:00:03.100Z",
   });
   state = conversationReducer(state, {
+    type: "TOOL_INPUT_COMPLETED",
+    sessionId: "session-activity",
+    messageId: "assistant-1",
+    toolCallId: "tool-1",
+    updatedAt: "2026-11-19T10:00:03.200Z",
+  });
+  assert.equal(state.conversations[0].messages[1].activities[2].phase, "ready");
+  state = conversationReducer(state, {
+    type: "TOOL_EXECUTION_STARTED",
+    sessionId: "session-activity",
+    messageId: "assistant-1",
+    toolCallId: "tool-1",
+    toolName: "list_sync_tasks",
+    updatedAt: "2026-11-19T10:00:03.300Z",
+  });
+  assert.equal(state.conversations[0].messages[1].activities[2].phase, "executing");
+  state = conversationReducer(state, {
     type: "TOOL_OUTPUT_DELTA",
     sessionId: "session-activity",
     messageId: "assistant-1",
@@ -268,9 +285,39 @@ test("conversation reducer keeps text, thinking and tool activity in stream orde
   assert.equal(message.activities[2].input, "{\"keyword\":\"orders\"}");
   assert.equal(message.activities[2].output, "{\"total\":1}");
   assert.equal(message.activities[2].status, "completed");
+  assert.equal(message.activities[2].phase, "completed");
   assert.equal(message.activities[3].title, "需求分析完成");
   assert.equal(message.usage[0].outputTokens, 35);
   assert.equal(message.replyEnds[0].finishedReason, "completed");
+});
+
+test("done without a finished reason preserves reply_end interrupted state", () => {
+  const { userMessage, assistantMessage } = createMessages();
+  let state = conversationReducer(initialConversationState, {
+    type: "MESSAGE_PAIR_ADDED",
+    sessionId: "session-interrupted",
+    title: "中断任务",
+    updatedAt: now,
+    userMessage,
+    assistantMessage,
+  });
+
+  state = conversationReducer(state, {
+    type: "REPLY_ENDED",
+    sessionId: "session-interrupted",
+    messageId: "assistant-1",
+    replyId: "reply-1",
+    finishedReason: "interrupted",
+    updatedAt: now,
+  });
+  state = conversationReducer(state, {
+    type: "MESSAGE_COMPLETED",
+    sessionId: "session-interrupted",
+    messageId: "assistant-1",
+    updatedAt: now,
+  });
+
+  assert.equal(state.conversations[0].messages[1].status, "interrupted");
 });
 
 test("tool result states and failed turns are reflected in activity status", () => {
