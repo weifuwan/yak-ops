@@ -28,6 +28,7 @@ const treeBuilder = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeli
 const editor = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/dimension-editor.tsx");
 const fieldSpreadsheet = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-spreadsheet.tsx");
 const fieldGridUtils = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-utils.ts");
+const fieldGridTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-grid-types.ts");
 const fieldReferenceDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-reference-dialog.tsx");
 const fieldBatchImportDialog = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/field-spreadsheet/field-batch-import-dialog.tsx");
 const createTypes = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/types.ts");
@@ -481,7 +482,7 @@ test("field spreadsheet supports keyboard navigation, paste, row operations and 
 
 test("field spreadsheet exposes advanced columns, batch import and existing-table references", () => {
   for (const title of ["字段标准", "标准代码", "度量单位", "来源表", "来源字段", "描述"]) {
-    assert.match(fieldSpreadsheet, new RegExp(title));
+    assert.match(fieldGridTypes, new RegExp(title));
   }
   assert.match(fieldSpreadsheet, /字段显示设置/);
   assert.match(fieldSpreadsheet, /FieldBatchImportDialog/);
