@@ -217,6 +217,21 @@ test("dimension editor keeps dwhId when saving and distinguishes layer load stat
   assert.match(editor, /layersQuery\.refetch\(\)/);
 });
 
+test("model type is hidden for creation and typed edits while legacy migration remains editable", () => {
+  const basicInfo = editor.slice(
+    editor.indexOf('<FormSectionHeader title="基本信息" />'),
+    editor.indexOf('{isApplication ? (', editor.indexOf('<FormSectionHeader title="基本信息" />')),
+  );
+  assert.ok(!basicInfo.includes('value={modelTypeLabel}'));
+  assert.ok(!basicInfo.includes('selectedTableType ? ('));
+  assert.ok(basicInfo.includes('{canChooseLegacyType ? ('));
+  assert.ok(basicInfo.includes('value={values.tableType}'));
+  assert.ok(basicInfo.includes('onChange={(value) => changeValue("tableType", value)}'));
+  assert.ok(!basicInfo.includes('value="历史记录未记录模型类型，迁移时可指定"'));
+  assert.ok(editor.includes('tableType: String(tab.createType || tab.record?.tableType || "")'));
+  assert.ok(editor.includes('tableType: selectedTableType || null'));
+});
+
 test("basic information and field management are saved independently", () => {
   const basicSaveStart = editor.indexOf("const saveBasicInfo = async");
   const fieldSaveStart = editor.indexOf("const saveFields = async");

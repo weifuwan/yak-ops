@@ -408,7 +408,6 @@ export function DimensionEditor({
   const isDetail = selectedTableType === "DETAIL";
   const isSummary = selectedTableType === "SUMMARY";
   const isApplication = selectedTableType === "APPLICATION";
-  const modelTypeLabel = TABLE_TYPE_OPTIONS.find((option) => option.value === selectedTableType)?.label || "未识别类型";
 
   useEffect(() => {
     if (tab.mode !== "create" || values.dwhId || !layerOptions.length) return;
@@ -894,11 +893,7 @@ export function DimensionEditor({
                   ) : null}
                 </FormField>
 
-                {selectedTableType ? (
-                  <FormField label="模型类型" required>
-                    <Input size="small" variant="outlined" value={modelTypeLabel} disabled />
-                  </FormField>
-                ) : canChooseLegacyType ? (
+                {canChooseLegacyType ? (
                   <FormField label="模型类型" required>
                     <OptionSelect
                       value={values.tableType}
@@ -906,10 +901,6 @@ export function DimensionEditor({
                       placeholder="请选择迁移后的模型类型"
                       onChange={(value) => changeValue("tableType", value)}
                     />
-                  </FormField>
-                ) : isLegacyUntyped ? (
-                  <FormField label="模型类型">
-                    <Input size="small" variant="outlined" value="历史记录未记录模型类型，迁移时可指定" disabled />
                   </FormField>
                 ) : null}
 
