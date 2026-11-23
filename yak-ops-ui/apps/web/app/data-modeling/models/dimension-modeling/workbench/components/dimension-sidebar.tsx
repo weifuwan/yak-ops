@@ -23,8 +23,6 @@ import {
   type TreeSelectOption,
 } from "@yak-ops/yak-ui";
 import {
-  AppWindow,
-  BarChart3,
   Database,
   Layers3,
   List,
@@ -34,6 +32,7 @@ import {
   Table2,
 } from "lucide-react";
 
+import { ModelTypeIcon, isModelTypeIconType } from "../../../../components/model-type-icon";
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { businessTypeApi, type BusinessTypeTreeNode } from "@/service/data-modeling/planning/business-type";
 import { dataDomainApi } from "@/service/data-modeling/planning/common-layer/data-domain";
@@ -117,6 +116,9 @@ function FolderIcon({ className }: { className?: string }) {
 }
 
 function DimensionNodeIcon({ type }: { type: string }) {
+  if (isModelTypeIconType(type)) {
+    return <ModelTypeIcon type={type} size={14} className="shrink-0" />;
+  }
   if (type === "ROOT_NODE" || type === "FOLDER") {
     return <FolderIcon className="shrink-0 text-[var(--yak-components-muted-text)]" />;
   }
@@ -383,31 +385,22 @@ export function DimensionSidebar({
               <DropdownMenuGroup>
                 <DropdownMenuLabel>维度模型</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onCreate("DIM")}>
-                  <Layers3 size={14} />
+                  <ModelTypeIcon type="DIM" size={14} />
                   创建维度
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuLabel>逻辑模型</DropdownMenuLabel>
-                {DIMENSION_CREATE_OPTIONS.filter((option) => option.group === "table").map((option) => {
-                  const Icon = option.type === "SOURCE"
-                    ? Database
-                    : option.type === "SUMMARY"
-                      ? BarChart3
-                      : option.type === "APPLICATION"
-                        ? AppWindow
-                        : Table2;
-                  return (
-                    <DropdownMenuItem
-                      key={option.type}
-                      onClick={() => onCreate(option.type)}
-                    >
-                      <Icon size={14} />
-                      {option.label}
-                    </DropdownMenuItem>
-                  );
-                })}
+                {DIMENSION_CREATE_OPTIONS.filter((option) => option.group === "table").map((option) => (
+                  <DropdownMenuItem
+                    key={option.type}
+                    onClick={() => onCreate(option.type)}
+                  >
+                    <ModelTypeIcon type={option.type} size={14} />
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
