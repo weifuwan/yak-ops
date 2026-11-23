@@ -509,7 +509,7 @@ export function WorkflowSchedulesOperationsPage() {
       </div>
       <div className="min-h-0 flex-1">
         <Table<WorkflowScheduleRecord>
-          className="min-h-full"
+          className="min-h-full [&_td]:!text-xs"
           columns={columns}
           dataSource={query.data?.totalList ?? []}
           rowKey="id"
