@@ -246,7 +246,7 @@ class DataSyncServiceImplTest {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 isNull(), isNull(), eq(ReleaseState.ONLINE.getCode()), isNull(), isNull())).thenReturn(new Page<>(1, 20));
 
-        assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE, null)
+        assertEquals(0, service.listTasks(new User(), PROJECT_CODE, 1, 20, null, ReleaseState.ONLINE, null, null)
                 .getTotal());
     }
 
@@ -269,11 +269,11 @@ class DataSyncServiceImplTest {
         Page<DataSyncTaskPageRow> page = new Page<>(2, 20);
         page.setTotal(1);
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
-                eq("sales"), isNull(), eq(ReleaseState.ONLINE.getCode()), eq(Collections.singletonList(22L))))
-                .thenReturn(page, isNull());
+                eq("sales"), isNull(), eq(ReleaseState.ONLINE.getCode()), eq(Collections.singletonList(22L)), isNull()))
+                .thenReturn(page);
 
         PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20,
-                "sales", ReleaseState.ONLINE, DataSyncScope.MULTI_TABLE);
+                "sales", ReleaseState.ONLINE, DataSyncScope.MULTI_TABLE, null);
 
         assertEquals(1, result.getTotal());
         assertEquals(2, result.getCurrentPage());
@@ -288,7 +288,7 @@ class DataSyncServiceImplTest {
                         ReleaseState.ONLINE, 1)));
 
         PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 1, 20,
-                null, null, DataSyncScope.DATABASE);
+                null, null, DataSyncScope.DATABASE, null);
 
         assertEquals(0, result.getTotal());
         assertTrue(result.getTotalList().isEmpty());
@@ -331,7 +331,7 @@ class DataSyncServiceImplTest {
         when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 eq(99L), isNull(), isNull())).thenReturn(page);
 
-        assertEquals(2, service.listInstances(new User(), PROJECT_CODE, 1, 20, 99L, null).getTotal());
+        assertEquals(2, service.listInstances(new User(), PROJECT_CODE, 1, 20, 99L, null, null).getTotal());
     }
 
     @Test
@@ -523,10 +523,10 @@ class DataSyncServiceImplTest {
     void instanceStatusFilterUsesTaskExecutionStatusCode() {
         when(taskInstanceDao.queryByProjectAndTaskType(any(), eq(PROJECT_CODE),
                 eq("DATA_SYNC"), isNull(), argThat(states -> states != null && states.length == 1
-                        && states[0] == TaskExecutionStatus.DISPATCH.getCode())))
+                        && states[0] == TaskExecutionStatus.DISPATCH.getCode()), isNull()))
                 .thenReturn(new Page<>(1, 20));
         assertEquals(0, service.listInstances(new User(), PROJECT_CODE, 1, 20,
-                null, TaskExecutionStatus.DISPATCH).getTotal());
+                null, TaskExecutionStatus.DISPATCH, null).getTotal());
     }
 
     private static TaskDefinition taskDefinition(long taskCode) {
@@ -587,7 +587,7 @@ class DataSyncServiceImplTest {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 isNull(), isNull(), isNull(), isNull(), isNull())).thenReturn(page);
 
-        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null, null);
+        PageInfo<DataSyncTaskVO> result = service.listTasks(new User(), PROJECT_CODE, 2, 20, null, null, null, null);
 
         assertEquals(45, result.getTotal());
         assertEquals(2, result.getCurrentPage());
@@ -613,7 +613,7 @@ class DataSyncServiceImplTest {
         when(taskDefinitionDao.queryDataSyncPage(any(), eq(PROJECT_CODE), eq("DATA_SYNC"),
                 isNull(), isNull(), isNull(), isNull(), isNull())).thenReturn(page);
 
-        DataSyncTaskVO task = service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null, null)
+        DataSyncTaskVO task = service.listTasks(new User(), PROJECT_CODE, 1, 20, null, null, null, null)
                 .getTotalList().get(0);
 
         assertEquals("101", task.getWorkflowCode());
