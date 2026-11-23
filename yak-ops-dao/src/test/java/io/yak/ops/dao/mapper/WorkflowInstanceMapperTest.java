@@ -174,6 +174,7 @@ public class WorkflowInstanceMapperTest extends BaseDaoTest {
                 stateArray,
                 workflowInstance.getHost(),
                 null,
+                null,
                 null);
         Assertions.assertNotEquals(0, processInstanceIPage.getTotal());
 
