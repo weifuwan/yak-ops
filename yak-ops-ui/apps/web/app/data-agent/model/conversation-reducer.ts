@@ -712,7 +712,7 @@ export function conversationReducer(
         (message) => ({
           ...message,
           status: "streaming",
-            toolCalls: (message.toolCalls ?? []).map((call) =>
+          toolCalls: (message.toolCalls ?? []).map((call) =>
             call.status === "awaiting-confirmation"
               ? {
                   ...call,
@@ -720,7 +720,7 @@ export function conversationReducer(
                 }
               : call,
           ),
-            activities: (message.activities ?? []).map((activity) =>
+          activities: (message.activities ?? []).map((activity) =>
             activity.status === "awaiting-confirmation"
               ? {
                   ...activity,
@@ -745,21 +745,23 @@ export function conversationReducer(
           return {
             ...message,
             status: finishedReason === "interrupted" ? "interrupted" : "complete",
-          toolCalls: (message.toolCalls ?? []).map((call) =>
-            call.status === "running" ? { ...call, status: "interrupted" as const } : call,
-          ),
-          activities: (message.activities ?? []).map((activity) =>
-            activity.status === "running"
-              ? {
-                  ...activity,
-                  status:
-                    finishedReason === "interrupted" && activity.kind === "tool"
-                      ? "interrupted"
-                      : "completed",
-                  completedAt: timestamp(action.updatedAt),
-                }
-              : activity,
-          ),
+            toolCalls: (message.toolCalls ?? []).map((call) =>
+              call.status === "running"
+                ? { ...call, status: "interrupted" as const }
+                : call,
+            ),
+            activities: (message.activities ?? []).map((activity) =>
+              activity.status === "running"
+                ? {
+                    ...activity,
+                    status:
+                      finishedReason === "interrupted" && activity.kind === "tool"
+                        ? "interrupted"
+                        : "completed",
+                    completedAt: timestamp(action.updatedAt),
+                  }
+                : activity,
+            ),
           };
         },
       );
