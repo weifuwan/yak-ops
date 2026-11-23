@@ -627,6 +627,43 @@ WHERE NOT EXISTS (
     WHERE existing.project_code = p.code AND UPPER(existing.en_short_name) = 'ODS'
 );
 
+-- Seed the project-scoped default data domain and its default business process.
+-- Matching the service's system-default flag and naming convention keeps CRUD behavior consistent.
+-- Existing domains (including user-defined 'default' records) are never overwritten.
+INSERT INTO t_yak_ops_data_domain (
+    id, project_code, en_short_name, en_name, cn_name, reviewer, director,
+    remark, flag, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('DD', p.code, 'DEFAULT'), p.code, 'default', 'default data domain', '默认',
+       NULL, 'admin', '系统默认数据域，可用于管理尚未明确归属的数据资产。', 1,
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_data_domain existing
+    WHERE existing.project_code = p.code
+      AND (existing.flag = 1 OR LOWER(existing.en_short_name) = 'default')
+);
+
+INSERT INTO t_yak_ops_business_process (
+    id, project_code, en_short_name, en_name, cn_name, data_domain_id,
+    director, remark, flag, create_time, create_by, update_time, update_by
+)
+SELECT CONCAT('BP', p.code, 'DEFAULT'), p.code, 'default_default',
+       'default data domain_default', '默认_默认', domain.id,
+       'admin', '默认数据域下的默认业务过程', 1,
+       CURRENT_TIMESTAMP, 'sys', CURRENT_TIMESTAMP, 'sys'
+FROM t_yak_ops_project p
+JOIN t_yak_ops_data_domain domain
+  ON domain.project_code = p.code
+ AND domain.flag = 1
+ AND LOWER(domain.en_short_name) = 'default'
+WHERE NOT EXISTS (
+    SELECT 1 FROM t_yak_ops_business_process existing
+    WHERE existing.project_code = p.code
+      AND existing.data_domain_id = domain.id
+      AND (existing.flag = 1 OR LOWER(existing.en_short_name) = 'default_default')
+);
+
 -- Seed the standard unit directories for every existing project.
 -- Deterministic IDs and NOT EXISTS make this section safe to execute repeatedly.
 INSERT INTO t_yak_ops_standard_directory (

@@ -13,10 +13,11 @@ The scripts are organized in two ordered sections:
 1. **DDL** creates all modeling tables, indexes and table comments.
 2. **DML** normalizes warehouse-layer enum values, initializes atomic-indicator `dw_type`, and seeds default data for projects that already exist in `t_yak_ops_project`:
    - Five conventional warehouse layers: ODS, DIM, DWS, DWD and ADS.
+   - One protected system-default data domain (`default`) and its default business process per existing project.
    - Five unit-standard directories: currency, object quantity, ratio, ranking and time.
    - One time-period root, nine time-period categories, and seven common time-period assets.
 
-All default-data statements are project-scoped and use deterministic IDs with `NOT EXISTS` checks. Re-running a complete schema script does not duplicate those defaults. Projects created later retain the service-layer lazy-initialization fallback.
+All default-data statements are project-scoped and use deterministic IDs with `NOT EXISTS` checks. Re-running a complete schema script does not duplicate those defaults or overwrite an existing data domain. The default data domain is marked `flag = 1`, which protects it from deletion and locks its identifying names. The matching default business process is also marked `flag = 1`, consistent with normal data-domain creation. Data domains for projects created after startup are seeded on the next schema initialization; the warehouse layers also support their existing service-layer lazy initialization.
 
 All 22 modeling tables use the `t_yak_ops_` prefix and a non-null `project_code`. The MyBatis-Plus tenant interceptor supplies the project code from the authenticated Yak Ops workspace and scopes reads, updates and deletes for the explicit DAO tenant allowlist.
 
@@ -54,7 +55,7 @@ After rebuilding, verify that:
 1. All 22 modeling tables exist and each has `project_code`.
 2. The modifier, atomic, derivative and composite indicator tables have `dw_type` and no `dwh_id`; the dimension-model table retains `dwh_id`.
 3. The modifier table has the four project-scoped indexes `idx_yak_indicator_modifier_5` through `idx_yak_indicator_modifier_8`.
-4. Each existing project has the five default warehouse layers, the five unit-standard directories, and the seeded time-period hierarchy/assets.
+4. Each existing project has the five default warehouse layers, one system-default data domain with its default business process, the five unit-standard directories, and the seeded time-period hierarchy/assets.
 5. Base tables and existing project/user/role data remain unchanged.
 
 Example MySQL checks:
@@ -84,6 +85,10 @@ SHOW INDEX FROM t_yak_ops_indicator_modifier;
 SELECT project_code, COUNT(*) AS layer_count
 FROM t_yak_ops_dw_layer
 GROUP BY project_code;
+
+SELECT project_code, id, en_short_name, cn_name, flag
+FROM t_yak_ops_data_domain
+WHERE en_short_name = 'default';
 ```
 
 ## Schema compatibility
