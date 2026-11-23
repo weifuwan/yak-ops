@@ -216,9 +216,10 @@ public class WorkflowInstanceDaoImpl extends BaseDao<WorkflowInstance, WorkflowI
                                                                              int[] statusArray,
                                                                              String host,
                                                                              Date startTime,
-                                                                             Date endTime) {
+                                                                             Date endTime,
+                                                                             String businessType) {
         return mybatisMapper.queryWorkflowInstanceListPaging(page, projectCode, workflowDefinitionCode, searchVal,
-                executorName, statusArray, host, startTime, endTime);
+                executorName, statusArray, host, startTime, endTime, businessType);
     }
 
     @Override
