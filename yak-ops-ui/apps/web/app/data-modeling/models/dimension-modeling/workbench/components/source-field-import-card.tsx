@@ -13,7 +13,7 @@ import {
   SelectValue,
   toast,
 } from "@yak-ops/yak-ui";
-import { Database, ListChecks, ListPlus, X } from "lucide-react";
+import { ListChecks, ListPlus, X } from "lucide-react";
 
 import {
   listDataSourceColumns,
