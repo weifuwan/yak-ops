@@ -207,6 +207,7 @@ public class WorkflowInstanceServiceTest {
                     "test_user",
                     WorkflowExecutionStatus.RUNNING_EXECUTION,
                     "192.168.xx.xx",
+                        null,
                     "",
                     1,
                     10);
@@ -230,7 +231,7 @@ public class WorkflowInstanceServiceTest {
         when(workflowInstanceDao.queryWorkflowInstanceListPaging(Mockito.any(Page.class), Mockito.any(),
                 Mockito.any(),
                 Mockito.any(), Mockito.any(), Mockito.any(),
-                eq("192.168.xx.xx"), Mockito.any(), Mockito.any())).thenReturn(pageReturn);
+                eq("192.168.xx.xx"), Mockito.any(), Mockito.any(), isNull())).thenReturn(pageReturn);
         assertThrows(ServiceException.class, () -> workflowInstanceService.queryWorkflowInstanceList(
                 loginUser,
                 projectCode,
@@ -241,6 +242,7 @@ public class WorkflowInstanceServiceTest {
                 loginUser.getUserName(),
                 WorkflowExecutionStatus.RUNNING_EXECUTION,
                 "192.168.xx.xx",
+                        null,
                 "",
                 1,
                 10));
@@ -260,21 +262,23 @@ public class WorkflowInstanceServiceTest {
                 eq(start),
                 eq(end)))
                 .thenReturn(pageReturn);
-        when(usersService.queryUser(workflowInstance.getExecutorId())).thenReturn(loginUser);
+        when(usersService.queryUser(workflowInstance.getExecutorId(), isNull())).thenReturn(loginUser);
 
         Result successRes =
                 workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "2020-01-01 00:00:00",
                         "2020-01-02 00:00:00", "", loginUser.getUserName(), WorkflowExecutionStatus.RUNNING_EXECUTION,
-                        "192.168.xx.xx", "", 1, 10);
+                        "192.168.xx.xx",
+                        null, "", 1, 10);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) successRes.getCode());
 
         // data parameter empty
         when(workflowInstanceDao.queryWorkflowInstanceListPaging(Mockito.any(Page.class), eq(project.getCode()),
                 eq(1L), eq(""), eq(""), Mockito.any(),
-                eq("192.168.xx.xx"), eq(null), eq(null))).thenReturn(pageReturn);
+                eq("192.168.xx.xx"), eq(null), eq(null), isNull())).thenReturn(pageReturn);
         successRes = workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "",
                 "", "", loginUser.getUserName(), WorkflowExecutionStatus.RUNNING_EXECUTION,
-                "192.168.xx.xx", "", 1, 10);
+                "192.168.xx.xx",
+                        null, "", 1, 10);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) successRes.getCode());
 
         // executor null
@@ -283,18 +287,20 @@ public class WorkflowInstanceServiceTest {
         Result executorExistRes =
                 workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "2020-01-01 00:00:00",
                         "2020-01-02 00:00:00", "", "admin", WorkflowExecutionStatus.RUNNING_EXECUTION,
-                        "192.168.xx.xx", "", 1, 10);
+                        "192.168.xx.xx",
+                        null, "", 1, 10);
 
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) executorExistRes.getCode());
 
         // executor name empty
         when(workflowInstanceDao.queryWorkflowInstanceListPaging(Mockito.any(Page.class), eq(project.getCode()),
                 eq(1L), eq(""), eq("admin"), Mockito.any(),
-                eq("192.168.xx.xx"), eq(start), eq(end))).thenReturn(pageReturn);
+                eq("192.168.xx.xx"), eq(start), eq(end), isNull())).thenReturn(pageReturn);
         Result executorEmptyRes =
                 workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "2020-01-01 00:00:00",
                         "2020-01-02 00:00:00", "", "", WorkflowExecutionStatus.RUNNING_EXECUTION,
-                        "192.168.xx.xx", "", 1, 10);
+                        "192.168.xx.xx",
+                        null, "", 1, 10);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) executorEmptyRes.getCode());
 
     }
