@@ -21,6 +21,7 @@ export type FieldColumnKey =
   | "notNull"
   | "sourceTb"
   | "sourceField"
+  | "fieldType"
   | "remark"
   | "actions";
 
@@ -58,13 +59,14 @@ export const FIELD_GRID_COLUMNS: FieldGridColumn[] = [
   { key: "cnName", title: "字段显示名", width: 220, defaultVisible: true },
   { key: "length", title: "长度", width: 96, configurable: true },
   { key: "precision", title: "精度", width: 96, configurable: true },
-  { key: "fieldStdId", title: "字段标准", width: 180, configurable: true },
-  { key: "codeStdId", title: "标准代码", width: 180, configurable: true },
+  { key: "fieldStdId", title: "关联字段标准", width: 180, configurable: true },
+  { key: "codeStdId", title: "关联标准代码", width: 180, configurable: true },
   { key: "unitId", title: "度量单位", width: 150, configurable: true },
   { key: "primaryFlag", title: "主键", width: 64, defaultVisible: true },
   { key: "notNull", title: "非空", width: 64, defaultVisible: true },
   { key: "sourceTb", title: "来源表", width: 220, configurable: true },
   { key: "sourceField", title: "来源字段", width: 160, configurable: true },
+  { key: "fieldType", title: "字段类别", width: 120, configurable: true },
   { key: "remark", title: "描述", width: 220, configurable: true },
   { key: "actions", title: "操作", width: 72, defaultVisible: true },
 ];
@@ -73,13 +75,51 @@ export const DEFAULT_VISIBLE_FIELD_COLUMNS = new Set<FieldColumnKey>(
   FIELD_GRID_COLUMNS.filter((column) => column.defaultVisible).map((column) => column.key),
 );
 
-export function defaultVisibleFieldColumns(modelType?: string) {
-  const visible = new Set(DEFAULT_VISIBLE_FIELD_COLUMNS);
-  if (modelType === "SOURCE") {
-    visible.add("sourceTb");
-    visible.add("sourceField");
-  }
-  return visible;
+const SOURCE_PROPERTY_COLUMN_KEYS = new Set<FieldColumnKey>([
+  "sequence",
+  "fieldName",
+  "dataType",
+  "cnName",
+  "remark",
+  "primaryFlag",
+  "notNull",
+  "sourceTb",
+  "sourceField",
+  "fieldType",
+  "fieldStdId",
+  "codeStdId",
+  "actions",
+]);
+
+const SOURCE_PARTITION_COLUMN_KEYS = new Set<FieldColumnKey>([
+  "sequence",
+  "fieldName",
+  "dataType",
+  "cnName",
+  "remark",
+  "primaryFlag",
+  "notNull",
+  "sourceTb",
+  "sourceField",
+  "fieldStdId",
+  "codeStdId",
+  "actions",
+]);
+
+export function fieldGridColumns(modelType?: string, fieldKind: FieldKind = "PROPERTY") {
+  if (modelType !== "SOURCE") return FIELD_GRID_COLUMNS;
+  const allowed = fieldKind === "PARTITION"
+    ? SOURCE_PARTITION_COLUMN_KEYS
+    : SOURCE_PROPERTY_COLUMN_KEYS;
+  return FIELD_GRID_COLUMNS.filter((column) => allowed.has(column.key));
+}
+
+export function defaultVisibleFieldColumns(modelType?: string, fieldKind: FieldKind = "PROPERTY") {
+  return new Set<FieldColumnKey>(
+    fieldGridColumns(modelType, fieldKind)
+      .filter((column) => column.defaultVisible)
+      .map((column) => column.key),
+  );
 }
 
 export const DATA_TYPE_OPTIONS: FieldOption[] = [
@@ -98,3 +138,10 @@ export const DATA_TYPE_OPTIONS: FieldOption[] = [
   "MAP",
   "STRUCT",
 ].map((value) => ({ value, label: value }));
+
+
+export const FIELD_CATEGORY_OPTIONS: FieldOption[] = [
+  { value: "PROPERTY", label: "属性" },
+  { value: "DIMENSION", label: "维度" },
+  { value: "MEASUREMENT", label: "度量" },
+];
