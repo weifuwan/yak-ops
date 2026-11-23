@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowDown } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 
@@ -104,13 +104,30 @@ export function ConversationPanel({
           aria-hidden={!showScrollToBottom}
           tabIndex={showScrollToBottom ? 0 : -1}
           onClick={scrollToBottom}
-          className={`absolute bottom-3 left-1/2 z-10 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151] shadow-sm transition-all duration-300 ease-out hover:border-[#d1d5db] hover:bg-[#f9fafb] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55] motion-reduce:transition-none ${
+          className={`absolute bottom-3 left-1/2 z-10 flex h-9 w-9 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151] shadow-sm transition-all duration-300 ease-out hover:border-[#d1d5db] hover:bg-[#f9fafb] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55] motion-reduce:transition-none ${
             showScrollToBottom
               ? "translate-y-0 opacity-100"
               : "pointer-events-none translate-y-2 opacity-0"
           }`}
         >
-          <ArrowDown size={17} strokeWidth={1.75} aria-hidden="true" />
+          <svg
+            aria-hidden="true"
+            className="text-default"
+            focusable="false"
+            height="20"
+            viewBox="0 0 20 20"
+            width="20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10 3.75v11.5m0 0 4.25-4.25M10 15.25 5.75 11"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.4"
+            />
+          </svg>
         </button>
       </div>
 
