@@ -117,7 +117,7 @@ test("Data Agent restores the original empty workspace and uses a shared split h
   assert.doesNotMatch(conversationHeader, /border-b/);
   assert.match(conversationHeader, /aria-label=\{sidebarOpen \? "收起侧边栏" : "展开侧边栏"\}/);
   assert.match(conversationHeader, /onToggleSidebar/);
-  assert.match(conversationHeader, /isReconnecting \?[\s\S]*?"正在重新连接"/);
+  assert.match(conversationHeader, /const statusLabel = isReconnecting[\s\S]*?"正在重新连接"/);
   assert.match(conversationHeader, /detailsOpen/);
   assert.match(conversationHeader, /Timeline/);
   assert.match(conversationHeader, /Changes/);
@@ -288,7 +288,7 @@ test("Data Agent prompt composer preserves Yakable-style input interactions", ()
   assert.match(composer, /onCompositionStart/);
   assert.match(composer, /event\.shiftKey/);
   assert.match(composer, /rounded-\[14px\] border/);
-  assert.match(composer, /aria-label=\{isSubmitting \? "正在发送消息" : "发送消息"\}/);
+  assert.match(composer, /aria-label=\{isSubmitting \? "发送并排队" : "发送消息"\}/);
 });
 
 test("the Data Development sparkle shortcut navigates to Data Agent", () => {
@@ -445,7 +445,7 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(detailsTimeline, /selectedActivityId/);
   assert.match(detailsTimeline, /expandedActivityIds/);
   assert.match(detailsTimeline, /new Set\(selectedActivityId \? \[selectedActivityId\] : \[\]\)/);
-  assert.match(detailsTimeline, /activities\.filter/);
+  assert.match(detailsTimeline, /activities[\s\S]*?\.filter/);
   assert.match(detailsTimeline, /expandAll/);
   assert.match(detailsTimeline, /TOOL_LABELS/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
@@ -550,7 +550,8 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
   assert.match(conversationHeader, /<PanelRightClose size=\{16\}/);
   assert.match(conversationHeader, /style=\{\{ right: String\(detailsWidth \+ 12\)/);
   assert.doesNotMatch(conversationHeader, /aria-label="关闭执行详情"|<X size=\{16\}/);
-  assert.match(conversationHeader, /relative mr-2 hidden h-full shrink-0 items-center justify-between gap-2 border-y/);
+  assert.match(conversationHeader, /relative mr-2 hidden h-full shrink-0 items-center justify-between gap-2[\s\S]*?@container lg:flex/);
+  assert.doesNotMatch(conversationHeader, /border-y/);
   assert.match(conversationHeader, /Back to latest/);
   assert.doesNotMatch(conversationHeader, /PREVIEW_DURATION|PREVIEW_SCORE|Cloud/);
   assert.match(conversationHeader, /metricsMessage: AgentMessage \\| null/);
@@ -583,7 +584,8 @@ test("completed activity statuses use icon-only indicators and readable typograp
   const thinkingIndicator = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentThinkingIndicator.tsx");
   const toolCallCard = read("../apps/web/app/data-agent/components/workspace/conversation/ToolCallCard.tsx");
 
-  assert.match(thinkingIndicator, /activity\.status === "completed" \? null : activityStatusLabel\(activity\.status\)/);
+  assert.match(thinkingIndicator, /activity\.status !== "completed"/);
+  assert.match(thinkingIndicator, /activityStatusLabel\(activity\.status\)/);
   assert.match(thinkingIndicator, /text-sm font-medium/);
   assert.match(thinkingIndicator, /text-xs tabular-nums/);
   assert.match(toolActivity, /activity\.phase === "preparing"/);
