@@ -78,7 +78,7 @@ export function ConversationPanel({
             placeholder="继续向 Data Agent 提问..."
           />
           <p className="mb-0 mt-2 text-center text-[11px] text-[#aaaaaa]">
-            Agent 正在实时处理消息；涉及写操作时，需要你确认后才会执行
+            Agent 运行时仍可继续发送，新消息会按顺序排队；涉及写操作时需要你确认
           </p>
         </div>
       </div>
