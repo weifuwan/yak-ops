@@ -87,6 +87,17 @@ class Settings:
     tool_count_warn: int = 20
     tool_count_max: int = 0
     tool_schema_warn_tokens: int = 6000
+    # Busy-session FIFO queue (opt-in via POST /messages?queue=true). 0 disables
+    # queueing entirely: busy sessions keep answering 409.
+    session_queue_max: int = 5
+    # Session retention: 0 disables both thresholds (never delete on a schedule).
+    # Days use the newest file mtime of the session; capacity deletes oldest
+    # first. Only sessions NOT loaded in this process are eligible.
+    session_retention_days: int = 0
+    session_max_mb: int = 0
+    session_cleanup_interval_seconds: int = 3600
+    session_cleanup_batch: int = 50
+    session_cleanup_dry_run: bool = False
 
     @classmethod
     def load(cls) -> Settings:
@@ -134,4 +145,15 @@ class Settings:
             tool_count_warn=int(get("YAK_AGENT_TOOL_COUNT_WARN", "20")),
             tool_count_max=int(get("YAK_AGENT_TOOL_COUNT_MAX", "0")),
             tool_schema_warn_tokens=int(get("YAK_AGENT_TOOL_SCHEMA_WARN_TOKENS", "6000")),
+            session_queue_max=int(get("YAK_AGENT_SESSION_QUEUE_MAX", "5")),
+            session_retention_days=int(get("YAK_AGENT_SESSION_RETENTION_DAYS", "0")),
+            session_max_mb=int(get("YAK_AGENT_SESSION_MAX_MB", "0")),
+            session_cleanup_interval_seconds=int(
+                get("YAK_AGENT_SESSION_CLEANUP_INTERVAL_SECONDS", "3600")
+            ),
+            session_cleanup_batch=int(get("YAK_AGENT_SESSION_CLEANUP_BATCH", "50")),
+            session_cleanup_dry_run=get("YAK_AGENT_SESSION_CLEANUP_DRY_RUN", "false")
+            .strip()
+            .lower()
+            in ("1", "true", "yes"),
         )

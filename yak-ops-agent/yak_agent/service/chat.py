@@ -266,3 +266,4 @@ async def run_turn(
         session.busy = False
         session.turn = None
         persistence.persist(session)
+        session.idle_event.set()
