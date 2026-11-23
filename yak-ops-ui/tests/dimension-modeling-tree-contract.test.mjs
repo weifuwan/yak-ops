@@ -483,6 +483,17 @@ test("field spreadsheet supports keyboard navigation, paste, row operations and 
   assert.match(fieldGridUtils, /fieldsForSave/);
 });
 
+test("source tables reuse the shared spreadsheet with source-field defaults", () => {
+  assert.match(editor, /modelType=\{selectedTableType\}/);
+  assert.match(fieldGridTypes, /defaultVisibleFieldColumns/);
+  assert.match(fieldGridTypes, /modelType === "SOURCE"/);
+  assert.match(fieldGridTypes, /visible\.add\("sourceTb"\)/);
+  assert.match(fieldGridTypes, /visible\.add\("sourceField"\)/);
+  assert.match(fieldSpreadsheet, /const referenceLabel = modelType === "SOURCE" \? "引用来源表" : "引用已有表"/);
+  assert.match(fieldSpreadsheet, /引用来源表字段/);
+  assert.match(fieldSpreadsheetToolbar, /referenceLabel/);
+});
+
 test("field spreadsheet exposes advanced columns, batch import and existing-table references", () => {
   for (const title of ["字段标准", "标准代码", "度量单位", "来源表", "来源字段", "描述"]) {
     assert.match(fieldGridTypes, new RegExp(title));
