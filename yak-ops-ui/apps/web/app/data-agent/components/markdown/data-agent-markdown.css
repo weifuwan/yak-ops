@@ -131,8 +131,8 @@
   max-width: 100%;
   overflow: auto;
   margin: 0.8rem 0;
-  border: 1px solid #e7eae9;
-  border-radius: 10px;
+  border: 0;
+  border-radius: 0;
   background: #ffffff;
 }
 
