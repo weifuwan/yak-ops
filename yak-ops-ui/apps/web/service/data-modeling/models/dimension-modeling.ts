@@ -100,6 +100,13 @@ export const dimensionModelingApi = {
     );
   },
 
+  all(projectCode: string, params: Record<string, unknown> = {}) {
+    return HttpUtils.postData<DimensionTableRecord[]>(
+      resourcePath(projectCode) + "/all",
+      params,
+    );
+  },
+
   getById(projectCode: string, id: string) {
     return HttpUtils.getData<DimensionTableRecord>(
       resourcePath(projectCode) + "/" + encodeURIComponent(id),
