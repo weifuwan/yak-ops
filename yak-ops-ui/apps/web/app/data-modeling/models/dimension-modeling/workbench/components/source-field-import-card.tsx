@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -23,6 +23,7 @@ import {
   type DataSourceCatalogColumn,
   type DataSourceRecord,
 } from "@/service/datasource";
+import DatabaseIcons from "@/app/datasource/icons/DatabaseIcons";
 import type { DimensionFieldRecord } from "@/service/data-modeling/models/dimension-modeling";
 import {
   createDraftField,
@@ -101,11 +102,13 @@ function SourceSelect({
 }: {
   value: string;
   placeholder: string;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string; icon?: ReactNode }>;
   disabled?: boolean;
   triggerClassName?: string;
   onChange: (value: string) => void;
 }) {
+  const selectedOption = options.find((option) => option.value === value);
+
   return (
     <Select<string>
       size="small"
@@ -115,11 +118,23 @@ function SourceSelect({
       onValueChange={(nextValue) => onChange(nextValue ?? "")}
     >
       <SelectTrigger variant="outlined" className={triggerClassName}>
-        <SelectValue placeholder={placeholder} />
+        <span className="flex min-w-0 items-center gap-1.5">
+          {selectedOption?.icon ? (
+            <span className="flex size-4 shrink-0 items-center justify-center">
+              {selectedOption.icon}
+            </span>
+          ) : null}
+          <SelectValue placeholder={placeholder} />
+        </span>
       </SelectTrigger>
       <SelectContent emptyContent={options.length ? undefined : "暂无可选项"}>
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
+            {option.icon ? (
+              <span className="flex size-4 shrink-0 items-center justify-center">
+                {option.icon}
+              </span>
+            ) : null}
             <SelectItemText>{option.label}</SelectItemText>
             <SelectItemIndicator />
           </SelectItem>
@@ -203,6 +218,7 @@ export function SourceFieldImportCard({
         .map((item: DataSourceRecord) => ({
           value: String(item.id),
           label: item.name || String(item.id),
+          icon: <DatabaseIcons dbType={item.dbType} width="14px" height="14px" />,
         })),
     [dataSources],
   );
