@@ -31,7 +31,20 @@ type ActiveCell = {
 };
 
 function gridTemplate(columns: FieldGridColumn[]) {
-  return columns.map((column) => column.width + "px").join(" ");
+  return columns
+    .map((column) =>
+      column.flex
+        ? `minmax(${column.minWidth}px, ${column.flex}fr)`
+        : `${column.width ?? column.minWidth}px`,
+    )
+    .join(" ");
+}
+
+function gridMinWidth(columns: FieldGridColumn[]) {
+  return columns.reduce(
+    (total, column) => total + (column.width ?? column.minWidth),
+    0,
+  );
 }
 
 function cellKey(rowId: string, column: FieldColumnKey) {
@@ -67,6 +80,8 @@ export function FieldSpreadsheet({
       ),
     [availableColumns, visibleColumns],
   );
+  const templateColumns = useMemo(() => gridTemplate(columns), [columns]);
+  const minGridWidth = useMemo(() => gridMinWidth(columns), [columns]);
 
   useEffect(() => {
     setVisibleColumns(defaultVisibleFieldColumns(modelType, fieldType));
@@ -495,8 +510,11 @@ export function FieldSpreadsheet({
         >
           <div
             role="row"
-            className="grid w-max min-w-full bg-[var(--yak-color-hover)]"
-            style={{ gridTemplateColumns: gridTemplate(columns) }}
+            className="grid w-full bg-[var(--yak-color-hover)]"
+            style={{
+              minWidth: minGridWidth,
+              gridTemplateColumns: templateColumns,
+            }}
           >
             {columns.map((column) => (
               <div
@@ -528,8 +546,11 @@ export function FieldSpreadsheet({
                 <div
                   key={rowId}
                   role="row"
-                  className="grid w-max min-w-full"
-                  style={{ gridTemplateColumns: gridTemplate(columns) }}
+                  className="grid w-full"
+                  style={{
+                    minWidth: minGridWidth,
+                    gridTemplateColumns: templateColumns,
+                  }}
                 >
                   {columns.map((column) => {
                     const active =
