@@ -36,7 +36,7 @@ export function isEmptyDimensionField(field: DimensionFieldRecord) {
     !field.primaryFlag &&
     !field.notNull &&
     field.length == null &&
-    field.precision == null
+    field.fieldPrecision == null
   );
 }
 
@@ -66,15 +66,15 @@ export function validateDimensionFields(fields: DimensionFieldRecord[]): FieldVa
     if (field.length != null && Number(field.length) < 0) {
       issues.push({ rowId, column: "length", message: "长度不能小于 0" });
     }
-    if (field.precision != null && Number(field.precision) < 0) {
-      issues.push({ rowId, column: "precision", message: "精度不能小于 0" });
+    if (field.fieldPrecision != null && Number(field.fieldPrecision) < 0) {
+      issues.push({ rowId, column: "fieldPrecision", message: "精度不能小于 0" });
     }
     if (
       field.length != null &&
-      field.precision != null &&
-      Number(field.precision) > Number(field.length)
+      field.fieldPrecision != null &&
+      Number(field.fieldPrecision) > Number(field.length)
     ) {
-      issues.push({ rowId, column: "precision", message: "精度不能大于长度" });
+      issues.push({ rowId, column: "fieldPrecision", message: "精度不能大于长度" });
     }
   }
 
@@ -137,8 +137,8 @@ export function cellClipboardValue(field: DimensionFieldRecord, column: FieldCol
       return field.cnName || "";
     case "length":
       return field.length == null ? "" : String(field.length);
-    case "precision":
-      return field.precision == null ? "" : String(field.precision);
+    case "fieldPrecision":
+      return field.fieldPrecision == null ? "" : String(field.fieldPrecision);
     case "fieldStdId":
       return field.fieldStdId || "";
     case "codeStdId":
@@ -175,8 +175,8 @@ export function patchFromClipboard(
       return { cnName: value.trim() };
     case "length":
       return { length: parseOptionalNumber(value) };
-    case "precision":
-      return { precision: parseOptionalNumber(value) };
+    case "fieldPrecision":
+      return { fieldPrecision: parseOptionalNumber(value) };
     case "fieldStdId":
       return { fieldStdId: value.trim() || undefined };
     case "codeStdId":
@@ -205,7 +205,7 @@ export const EDITABLE_FIELD_COLUMNS: FieldColumnKey[] = [
   "dataType",
   "cnName",
   "length",
-  "precision",
+  "fieldPrecision",
   "fieldStdId",
   "codeStdId",
   "unitId",
