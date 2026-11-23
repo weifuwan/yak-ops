@@ -1,5 +1,6 @@
 package io.yak.ops.dao.repository;
 
+import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
@@ -48,7 +49,7 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
 
     IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                              String taskType, String keyword, Long taskCode,
-                                             Integer releaseState, List<Long> taskCodes);
+                                             Integer releaseState, List<Long> taskCodes, TaskExecuteType taskExecuteType);
 
     List<DataSyncOverviewTaskRow> queryDataSyncOverview(long projectCode);
 
