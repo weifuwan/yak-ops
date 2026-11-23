@@ -289,7 +289,7 @@ export function DataModelingOverviewPage() {
             rippleIntensityScale={0.95}
             autoRipple={0}
             edgeFade={0.25}
-            intro
+            intro={false}
             lightMode
           />
         </div>
