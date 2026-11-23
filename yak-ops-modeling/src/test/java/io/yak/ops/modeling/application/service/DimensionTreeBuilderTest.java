@@ -68,7 +68,8 @@ class DimensionTreeBuilderTest {
         assertEquals("business-root", root.getChildren().get(0).getKey());
         assertEquals("business-child", root.getChildren().get(0).getChildren().get(0).getKey());
         DimensionTreeNodeVO sourceLeaf = root.getChildren().get(0).getChildren().get(0).getChildren().get(0);
-        assertEquals("table-1-DIM", sourceLeaf.getKey());
+        assertEquals("table-1-SOURCE", sourceLeaf.getKey());
+        assertEquals("table-1", sourceLeaf.getModelId());
         assertEquals("SOURCE", sourceLeaf.getType());
     }
 
@@ -93,8 +94,9 @@ class DimensionTreeBuilderTest {
         assertEquals(1, root.getChildren().size());
         assertEquals("business-root", root.getChildren().get(0).getKey());
         assertEquals(1, root.getTotal());
-        assertEquals("table-child-DIM",
-                root.getChildren().get(0).getChildren().get(0).getChildren().get(0).getKey());
+        DimensionTreeNodeVO selectedLeaf = root.getChildren().get(0).getChildren().get(0).getChildren().get(0);
+        assertEquals("table-child-DIM", selectedLeaf.getKey());
+        assertEquals("table-child", selectedLeaf.getModelId());
     }
 
     @Test
@@ -123,7 +125,8 @@ class DimensionTreeBuilderTest {
         DimensionTreeNodeVO subjectDomain = dataMart.getChildren().get(0);
         assertEquals("subject-1", subjectDomain.getKey());
         DimensionTreeNodeVO applicationLeaf = subjectDomain.getChildren().get(0);
-        assertEquals("table-1-DIM", applicationLeaf.getKey());
+        assertEquals("table-1-APPLICATION", applicationLeaf.getKey());
+        assertEquals("table-1", applicationLeaf.getModelId());
         assertEquals("APPLICATION", applicationLeaf.getType());
     }
 
