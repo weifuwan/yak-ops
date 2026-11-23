@@ -1123,6 +1123,7 @@ export function DimensionEditor({
                     </div>
                   ) : (
                     <FieldSpreadsheet
+                      projectCode={projectCode}
                       fieldType="PROPERTY"
                       fields={propertyFields}
                       fieldStandardOptions={fieldStandardOptions}
@@ -1143,6 +1144,7 @@ export function DimensionEditor({
                     </div>
                   ) : (
                     <FieldSpreadsheet
+                      projectCode={projectCode}
                       fieldType="PARTITION"
                       fields={partitionFields}
                       fieldStandardOptions={fieldStandardOptions}
