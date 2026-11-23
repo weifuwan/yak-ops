@@ -23,10 +23,8 @@ import {
 import {
   Download,
   History,
-  Plus,
   RefreshCw,
   Save,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -57,6 +55,11 @@ import { mapBusinessTypeTreeOption } from "../utils/business-type-tree-options";
 import { planningQueryKeys } from "../../../../planning/query-keys";
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { buildApplicationScopeTree } from "../utils/application-scope-tree";
+import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";
+import {
+  fieldsForSave,
+  validateDimensionFields,
+} from "./field-spreadsheet/field-grid-utils";
 
 type Option = { value: string; label: string };
 
@@ -76,11 +79,6 @@ const TABLE_TYPE_OPTIONS: Option[] = [
   { value: "SUMMARY", label: "汇总表" },
   { value: "APPLICATION", label: "应用表" },
 ];
-
-const DATA_TYPE_OPTIONS: Option[] = [
-  "INT", "BIGINT", "BOOLEAN", "STRING", "TEXT", "DECIMAL", "DATE",
-  "DATETIME", "TIMESTAMP", "JSON", "ARRAY", "DOUBLE", "MAP", "STRUCT",
-].map((value) => ({ value, label: value }));
 
 const STORAGE_POLICY_OPTIONS: Option[] = [
   { value: "REAL_TIME_INCREMENTAL", label: "实时增量" },
@@ -484,39 +482,25 @@ export function DimensionEditor({
     setError("");
   };
 
-  const changeField = (field: DimensionFieldRecord, updates: Partial<DimensionFieldRecord>) => {
-    const identity = field.id || field.tempId;
-    setFields((current) => current.map((item) =>
-      (item.id || item.tempId) === identity ? { ...item, ...updates } : item,
-    ));
+  const updateFieldGroup = (
+    fieldType: "PROPERTY" | "PARTITION",
+    nextFields: DimensionFieldRecord[],
+  ) => {
+    setFields((current) => {
+      const otherFields =
+        fieldType === "PARTITION"
+          ? current.filter((field) => field.fieldType !== "PARTITION")
+          : current.filter((field) => field.fieldType === "PARTITION");
+      const normalized = nextFields.map((field) => ({ ...field, fieldType }));
+      return fieldType === "PARTITION"
+        ? [...otherFields, ...normalized]
+        : [...normalized, ...otherFields];
+    });
     setFieldsDirty(true);
     setDirty(true);
     onDirtyChange(true);
     setNoticeDismissed(false);
-  };
-
-  const addField = (fieldType: "PROPERTY" | "PARTITION" = "PROPERTY") => {
-    const tempId = "draft-" + String(Date.now()) + "-" + String(fields.length);
-    setFields((current) => [...current, {
-      tempId,
-      fieldName: "",
-      cnName: "",
-      dataType: "STRING",
-      fieldType,
-      primaryFlag: false,
-      notNull: false,
-    }]);
-    setFieldsDirty(true);
-    setDirty(true);
-    onDirtyChange(true);
-  };
-
-  const removeField = (field: DimensionFieldRecord) => {
-    const identity = field.id || field.tempId;
-    setFields((current) => current.filter((item) => (item.id || item.tempId) !== identity));
-    setFieldsDirty(true);
-    setDirty(true);
-    onDirtyChange(true);
+    setError("");
   };
 
   const saveBasicInfo = async (showSuccess = true) => {
@@ -611,9 +595,16 @@ export function DimensionEditor({
 
   const saveFields = async (showSuccess = true) => {
     if (!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching) return false;
+    const persistedFields = fieldsForSave(fields);
+    const validationIssues = validateDimensionFields(persistedFields);
+    if (validationIssues.length) {
+      setError("字段配置存在 " + validationIssues.length + " 个问题，请先处理");
+      toast.warning("字段配置校验未通过");
+      return false;
+    }
     setSavingFields(true);
     try {
-      const normalizedFields = fields.map(({ tempId, ...field }) => ({
+      const normalizedFields = persistedFields.map(({ tempId, ...field }) => ({
         ...field,
         tableId: recordId,
       }));
@@ -756,136 +747,8 @@ export function DimensionEditor({
     ? "当前存在未保存的修改，请先保存相关内容，再提交生成版本。"
     : "当前草稿尚未提交，确认内容无误后，可点击「提交」生成版本。";
 
-  const fieldColumns: TableColumns<DimensionFieldRecord> = [
-    {
-      key: "sequence",
-      title: "序号",
-      width: 58,
-      align: "center",
-      render: (_value, _record, index) => index + 1,
-    },
-    {
-      key: "fieldName",
-      title: "字段名称",
-      width: 190,
-      render: (_value, field) => (
-        <Input
-          size="small"
-          variant="outlined"
-          value={field.fieldName || ""}
-          placeholder="请输入字段名称"
-          onChange={(event) => changeField(field, { fieldName: event.target.value })}
-        />
-      ),
-    },
-    {
-      key: "dataType",
-      title: "类型",
-      width: 150,
-      render: (_value, field) => (
-        <OptionSelect
-          value={field.dataType || "STRING"}
-          options={DATA_TYPE_OPTIONS}
-          placeholder="请选择类型"
-          onChange={(value) => changeField(field, { dataType: value })}
-        />
-      ),
-    },
-    {
-      key: "cnName",
-      title: "字段显示名",
-      width: 190,
-      render: (_value, field) => (
-        <Input
-          size="small"
-          variant="outlined"
-          value={field.cnName || ""}
-          placeholder="请输入字段显示名"
-          onChange={(event) => changeField(field, { cnName: event.target.value })}
-        />
-      ),
-    },
-    {
-      key: "fieldStdId",
-      title: "字段标准",
-      width: 170,
-      render: (_value, field) => (
-        <OptionSelect
-          value={field.fieldStdId || ""}
-          options={fieldStandardOptions}
-          placeholder={fieldStandardsQuery.isFetching ? "加载中..." : "未关联"}
-          onChange={(value) => changeField(field, { fieldStdId: value || undefined })}
-        />
-      ),
-    },
-    {
-      key: "codeStdId",
-      title: "标准代码",
-      width: 170,
-      render: (_value, field) => (
-        <OptionSelect
-          value={field.codeStdId || ""}
-          options={codeStandardOptions}
-          placeholder={codeStandardsQuery.isFetching ? "加载中..." : "未关联"}
-          onChange={(value) => changeField(field, { codeStdId: value || undefined })}
-        />
-      ),
-    },
-    {
-      key: "unitId",
-      title: "度量单位",
-      width: 150,
-      render: (_value, field) => (
-        <OptionSelect
-          value={field.unitId || ""}
-          options={unitOptions}
-          placeholder={unitsQuery.isFetching ? "加载中..." : "未关联"}
-          onChange={(value) => changeField(field, { unitId: value || undefined })}
-        />
-      ),
-    },
-    {
-      key: "primaryFlag",
-      title: "主键",
-      width: 72,
-      align: "center",
-      render: (_value, field) => (
-        <input
-          aria-label="主键"
-          type="checkbox"
-          checked={Boolean(field.primaryFlag)}
-          onChange={(event) => changeField(field, { primaryFlag: event.target.checked })}
-          className="size-3.5 cursor-pointer accent-[#315efb]"
-        />
-      ),
-    },
-    {
-      key: "notNull",
-      title: "非空",
-      width: 72,
-      align: "center",
-      render: (_value, field) => (
-        <input
-          aria-label="非空"
-          type="checkbox"
-          checked={Boolean(field.notNull)}
-          onChange={(event) => changeField(field, { notNull: event.target.checked })}
-          className="size-3.5 cursor-pointer accent-[#315efb]"
-        />
-      ),
-    },
-    {
-      key: "actions",
-      title: "操作",
-      width: 72,
-      align: "center",
-      render: (_value, field) => (
-        <Button size="sm" variant="ghost" className="!h-6 !px-2 text-xs text-[var(--yak-components-danger-text)]" onClick={() => removeField(field)}>
-          <Trash2 size={12} />删除
-        </Button>
-      ),
-    },
-  ];
+  const propertyFields = fields.filter((field) => field.fieldType !== "PARTITION");
+  const partitionFields = fields.filter((field) => field.fieldType === "PARTITION");
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 bg-white">
@@ -1252,77 +1115,46 @@ export function DimensionEditor({
 
             {!isDim ? (
               <>
-              <section className="bg-white p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <FormSectionHeader title="字段管理" />
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="shrink-0"
-                    isDisabled={!recordId || fieldsQuery.isError}
-                    onClick={() => addField("PROPERTY")}
-                  >
-                    <Plus size={13} />添加字段
-                  </Button>
-                </div>
-                {!recordId ? (
-                  <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
-                    请先保存基本信息，再配置字段
-                  </div>
-                ) : (
-                  <div className="min-w-0 overflow-x-auto">
-                    <Table<DimensionFieldRecord>
-                      columns={fieldColumns}
-                      dataSource={fields.filter((field) => field.fieldType !== "PARTITION")}
-                      rowKey={(field) => field.id || field.tempId || field.fieldName}
+                <section className="bg-white p-4">
+                  <FormSectionHeader title="字段管理" />
+                  {!recordId ? (
+                    <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
+                      请先保存基本信息，再配置字段
+                    </div>
+                  ) : (
+                    <FieldSpreadsheet
+                      fieldType="PROPERTY"
+                      fields={propertyFields}
+                      fieldStandardOptions={fieldStandardOptions}
+                      codeStandardOptions={codeStandardOptions}
+                      unitOptions={unitOptions}
                       loading={Boolean(recordId && fieldsQuery.isFetching)}
-                      emptyText={fieldsQuery.isError ? "字段加载失败，请刷新后重试" : "暂无字段，点击添加字段"}
-                      pagination={false}
-                      size="small"
-                      scroll={{ x: 1320 }}
+                      error={fieldsQuery.isError}
+                      onChange={(nextFields) => updateFieldGroup("PROPERTY", nextFields)}
                     />
-                  </div>
-                )}
-              </section>
-  
-              <section className="bg-white p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <FormSectionHeader title="分区字段管理" />
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="shrink-0"
-                    isDisabled={!recordId || fieldsQuery.isError}
-                    onClick={() => addField("PARTITION")}
-                  >
-                    <Plus size={13} />添加分区字段
-                  </Button>
-                </div>
-                {!recordId ? (
-                  <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
-                    请先保存基本信息，再配置分区字段
-                  </div>
-                ) : (
-                  <div className="min-w-0 overflow-x-auto">
-                    <Table<DimensionFieldRecord>
-                      columns={fieldColumns}
-                      dataSource={fields.filter((field) => field.fieldType === "PARTITION")}
-                      rowKey={(field) => field.id || field.tempId || field.fieldName}
+                  )}
+                </section>
+
+                <section className="bg-white p-4">
+                  <FormSectionHeader title="分区字段管理" />
+                  {!recordId ? (
+                    <div className="flex min-h-16 items-center justify-center rounded border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
+                      请先保存基本信息，再配置分区字段
+                    </div>
+                  ) : (
+                    <FieldSpreadsheet
+                      fieldType="PARTITION"
+                      fields={partitionFields}
+                      fieldStandardOptions={fieldStandardOptions}
+                      codeStandardOptions={codeStandardOptions}
+                      unitOptions={unitOptions}
                       loading={Boolean(recordId && fieldsQuery.isFetching)}
-                      emptyText={fieldsQuery.isError ? "分区字段加载失败，请刷新后重试" : "暂无分区字段"}
-                      pagination={false}
-                      size="small"
-                      scroll={{ x: 820 }}
+                      error={fieldsQuery.isError}
+                      onChange={(nextFields) => updateFieldGroup("PARTITION", nextFields)}
                     />
-                  </div>
-                )}
-              </section>
-  
-                </>
+                  )}
+                </section>
+              </>
             ) : null}
 
             {error ? <p role="alert" className="px-1 text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
