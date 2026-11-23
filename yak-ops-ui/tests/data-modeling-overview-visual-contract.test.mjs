@@ -46,6 +46,7 @@ test("data modeling overview keeps the current landing-page structure", () => {
     'rippleIntensityScale={0.95}',
     'autoRipple={0}',
     'edgeFade={0.25}',
+    'intro={false}',
     'lightMode',
   ]) {
     assert.ok(overview.includes(presetValue), "overview should keep " + presetValue);
