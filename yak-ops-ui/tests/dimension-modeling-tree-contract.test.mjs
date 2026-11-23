@@ -474,6 +474,8 @@ test("field management can import source table metadata without affecting partit
   const partitionSection = editor.slice(editor.indexOf('<FormSectionHeader title="分区字段管理" />'));
   assert.doesNotMatch(partitionSection, /<SourceFieldImportCard/);
   assert.match(sourceFieldImportCard, /listDataSources/);
+  assert.match(sourceFieldImportCard, /DatabaseIcons/);
+  assert.match(sourceFieldImportCard, /dbType=\{item\.dbType\}/);
   assert.match(sourceFieldImportCard, /listDataSourceTables/);
   assert.match(sourceFieldImportCard, /listDataSourceColumns/);
   assert.match(sourceFieldImportCard, /databasesQuery\.isFetching/);
