@@ -91,7 +91,7 @@ function MetricCard({
   hint,
 }: {
   label: string;
-  value: number;
+  value?: number;
   icon: LucideIcon;
   hint?: string;
 }) {
@@ -102,7 +102,9 @@ function MetricCard({
           <div className="text-xs text-[var(--yak-components-muted-text)]">{label}</div>
           <Icon size={18} aria-hidden="true" className="text-[var(--yak-components-muted-text)]" />
         </div>
-        <div className="mt-3 text-3xl font-semibold tabular-nums">{number(value)}</div>
+        <div className="mt-3 text-3xl font-semibold tabular-nums">
+          {value === undefined ? "-" : number(value)}
+        </div>
         {hint ? (
           <div className="mt-2 text-xs text-[var(--yak-components-muted-text)]">{hint}</div>
         ) : null}
@@ -190,17 +192,21 @@ export function OperationsOverviewPage() {
   const { currentWorkspace } = useWorkspace();
   const scope = currentWorkspace?.id ?? "";
   const [range, setRange] = useState<RangeKey>("7d");
-  const dates = useMemo(() => rangeDates(range), [range]);
 
   const workflowQuery = useQuery({
     queryKey: ["operations", "overview", "workflow-state", scope, range],
-    queryFn: ({ signal }) =>
-      getWorkflowInstanceStateCount(dates.startDate, dates.endDate, signal),
+    queryFn: ({ signal }) => {
+      const dates = rangeDates(range);
+      return getWorkflowInstanceStateCount(dates.startDate, dates.endDate, signal);
+    },
     enabled: Boolean(scope),
   });
   const taskQuery = useQuery({
     queryKey: ["operations", "overview", "task-state", scope, range],
-    queryFn: ({ signal }) => getTaskInstanceStateCount(dates.startDate, dates.endDate, signal),
+    queryFn: ({ signal }) => {
+      const dates = rangeDates(range);
+      return getTaskInstanceStateCount(dates.startDate, dates.endDate, signal);
+    },
     enabled: Boolean(scope),
   });
   const definitionQuery = useQuery({
@@ -304,31 +310,31 @@ export function OperationsOverviewPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <MetricCard
               label="工作流定义"
-              value={definitionQuery.data?.count ?? 0}
+              value={definitionQuery.data?.count}
               icon={GitBranch}
               hint="当前项目"
             />
             <MetricCard
               label="工作流实例"
-              value={workflowQuery.data?.totalCount ?? 0}
+              value={workflowQuery.data?.totalCount}
               icon={Activity}
               hint={RANGE_ITEMS[range]}
             />
             <MetricCard
               label="任务实例"
-              value={taskQuery.data?.totalCount ?? 0}
+              value={taskQuery.data?.totalCount}
               icon={ListChecks}
               hint={RANGE_ITEMS[range]}
             />
             <MetricCard
               label="待处理命令"
-              value={pendingQuery.data?.total ?? 0}
+              value={pendingQuery.data?.total}
               icon={Clock3}
               hint="当前项目"
             />
             <MetricCard
               label="异常命令"
-              value={errorQuery.data?.total ?? 0}
+              value={errorQuery.data?.total}
               icon={CircleAlert}
               hint="当前项目"
             />
