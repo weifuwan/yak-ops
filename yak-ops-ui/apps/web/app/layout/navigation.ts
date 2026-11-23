@@ -291,16 +291,50 @@ export const RESOURCE_MANAGEMENT_NAVIGATION: ProductNavigationItem[] = [
 
 export const OPERATIONS_NAVIGATION: ProductNavigationItem[] = [
   {
-    label: "离线任务",
-    path: "/operations/offline-tasks",
-    icon: ArrowRightLeft,
+    id: "workflow-operations",
+    label: "工作流运维",
+    icon: GitBranch,
     groupLabel: "任务运维",
+    children: [
+      {
+        label: "工作流实例",
+        path: "/operations/workflows/instances",
+      },
+      {
+        label: "周期调度",
+        path: "/operations/workflows/schedules",
+      },
+    ],
   },
   {
-    label: "实时任务",
-    path: "/operations/realtime-tasks",
+    id: "offline-sync-operations",
+    label: "离线同步运维",
+    icon: ArrowRightLeft,
+    children: [
+      {
+        label: "离线任务",
+        path: "/operations/offline/tasks",
+      },
+      {
+        label: "离线实例",
+        path: "/operations/offline/instances",
+      },
+    ],
+  },
+  {
+    id: "realtime-sync-operations",
+    label: "实时同步运维",
     icon: Activity,
-    groupLabel: "任务运维",
+    children: [
+      {
+        label: "实时任务",
+        path: "/operations/realtime/tasks",
+      },
+      {
+        label: "实时实例",
+        path: "/operations/realtime/instances",
+      },
+    ],
   },
 ];
 
@@ -371,7 +405,7 @@ const OPERATIONS_PRODUCT: GlobalProductMenuItem = {
   id: "operations",
   label: OPERATIONS_PRODUCT_LABEL,
   icon: Wrench,
-  path: "/operations/offline-tasks",
+  path: "/operations/workflows/instances",
 };
 
 const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
