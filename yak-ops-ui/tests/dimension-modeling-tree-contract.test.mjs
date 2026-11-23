@@ -436,7 +436,8 @@ test("dimension editor uses one save action for basic information and fields", (
 
   const unifiedSave = editor.slice(unifiedSaveStart, submitStart);
   assert.match(unifiedSave, /saveBasicInfo\(false\)/);
-  assert.match(unifiedSave, /saveFields\(false\)/);
+  assert.match(unifiedSave, /targetRecordId = String\(basicSaved\.id \|\| ""\)/);
+  assert.match(unifiedSave, /saveFields\(false, targetRecordId\)/);
 
   const toolbarStart = editor.indexOf('<div className="flex flex-wrap items-center gap-1.5">');
   const refreshStart = editor.indexOf('<Button size="sm" variant="ghost" onClick={() => void refresh()}>', toolbarStart);
@@ -449,6 +450,9 @@ test("dimension editor uses one save action for basic information and fields", (
   assert.match(editor, /validateDimensionFields\(persistedFields\)/);
   assert.match(editor, /fieldType="PROPERTY"/);
   assert.match(editor, /fieldType="PARTITION"/);
+  assert.doesNotMatch(editor, /请先保存基本信息，再配置字段/);
+  assert.doesNotMatch(editor, /请先保存基本信息，再配置分区字段/);
+  assert.match(editor, /const saveFields = async \(showSuccess = true, targetRecordId = recordId\)/);
 });
 
 test("dimension field management uses a spreadsheet editor instead of editable Yak-UI tables", () => {
