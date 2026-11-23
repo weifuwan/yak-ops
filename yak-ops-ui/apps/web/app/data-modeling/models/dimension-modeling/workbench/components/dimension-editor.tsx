@@ -26,8 +26,8 @@ import {
   Plus,
   RefreshCw,
   Save,
-  Send,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 
@@ -519,46 +519,46 @@ export function DimensionEditor({
     onDirtyChange(true);
   };
 
-  const saveBasicInfo = async () => {
-    if (saving) return;
+  const saveBasicInfo = async (showSuccess = true) => {
+    if (saving) return false;
     if (!resolvedDwhId) {
       setError("请选择有效数仓分层");
-      return;
+      return false;
     }
     if (!selectedTableType && !isLegacyUntyped) {
       setError("请选择模型类型");
-      return;
+      return false;
     }
     if (!values.cnName.trim()) {
       setError("请输入中文名称");
-      return;
+      return false;
     }
     if (isDim) {
       if (!values.enShortName.trim()) {
         setError("请输入维度英文缩写");
-        return;
+        return false;
       }
       if (!resolvedDomainId) {
         setError("请选择数据域");
-        return;
+        return false;
       }
     } else {
       if (!values.tableName.trim()) {
         setError("请输入英文表名");
-        return;
+        return false;
       }
       if (!isLegacyUntyped && !values.director.trim()) {
         setError("请选择负责人");
-        return;
+        return false;
       }
     }
     if (isDetail && !values.busProcessId) {
       setError("请选择业务过程");
-      return;
+      return false;
     }
     if (isApplication && !values.martOrSubject) {
       setError("请选择数据集市或主题域");
-      return;
+      return false;
     }
 
     const payload: Record<string, unknown> = {
@@ -597,18 +597,20 @@ export function DimensionEditor({
       setDirty(fieldsDirty);
       onDirtyChange(fieldsDirty);
       setNoticeDismissed(false);
-      toast.success("基本信息已保存为草稿");
+      if (showSuccess) toast.success("基本信息已保存为草稿");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
+      return true;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "保存失败，请检查填写内容后重试");
       toast.warning("基本信息保存失败");
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
-  const saveFields = async () => {
-    if (!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching) return;
+  const saveFields = async (showSuccess = true) => {
+    if (!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching) return false;
     setSavingFields(true);
     try {
       const normalizedFields = fields.map(({ tempId, ...field }) => ({
@@ -634,15 +636,37 @@ export function DimensionEditor({
       }
       setDirty(basicDirty);
       onDirtyChange(basicDirty);
-      toast.success("字段信息已保存");
+      if (showSuccess) toast.success("字段信息已保存");
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] });
       await queryClient.invalidateQueries({ queryKey: ["modeling", "dimension-fields", projectCode, recordId] });
+      return true;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "字段保存失败，请重试");
       toast.warning("字段保存失败");
+      return false;
     } finally {
       setSavingFields(false);
     }
+  };
+
+  const saveChanges = async () => {
+    if (saving || savingFields || (!basicDirty && !fieldsDirty)) return;
+
+    const hadBasicChanges = basicDirty;
+    const hadFieldChanges = fieldsDirty;
+
+    if (hadBasicChanges) {
+      const basicSaved = await saveBasicInfo(false);
+      if (!basicSaved) return;
+    }
+    if (hadFieldChanges) {
+      const fieldsSaved = await saveFields(false);
+      if (!fieldsSaved) return;
+    }
+
+    setDirty(false);
+    onDirtyChange(false);
+    toast.success("模型信息已保存");
   };
 
   const submit = async () => {
@@ -868,14 +892,23 @@ export function DimensionEditor({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--yak-components-panel-border)] px-4 py-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button size="sm" variant="primary" isDisabled={!basicDirty || saving} isPending={saving} onClick={() => void saveBasicInfo()}>
-              <Save size={13} />保存基本信息
+            <Button
+              size="sm"
+              variant="ghost"
+              isDisabled={(!basicDirty && !fieldsDirty) || saving || savingFields || (fieldsDirty && (!recordId || fieldsQuery.isFetching || fieldsQuery.isError))}
+              isPending={saving || savingFields}
+              onClick={() => void saveChanges()}
+            >
+              <Save size={13} />保存
             </Button>
-            <Button size="sm" variant="secondary" isDisabled={!recordId || !fieldsDirty || savingFields || fieldsQuery.isFetching || fieldsQuery.isError} isPending={savingFields} onClick={() => void saveFields()}>
-              <Save size={13} />保存字段
-            </Button>
-            <Button size="sm" variant="secondary" isDisabled={!recordId || dirty || isSubmitted || submitting || fieldsQuery.isFetching || fieldsQuery.isError} isPending={submitting} onClick={() => void submit()}>
-              <Send size={13} />提交
+            <Button
+              size="sm"
+              variant="ghost"
+              isDisabled={!recordId || dirty || isSubmitted || submitting || fieldsQuery.isFetching || fieldsQuery.isError}
+              isPending={submitting}
+              onClick={() => void submit()}
+            >
+              <Upload size={13} />提交
             </Button>
             <Button size="sm" variant="ghost" onClick={() => void refresh()}>
               <RefreshCw size={13} />刷新
