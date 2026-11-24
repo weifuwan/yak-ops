@@ -92,6 +92,15 @@ public class DataSourceServiceImpl extends BaseServiceImpl implements DataSource
         return checkProjectDataSource(loginUser, projectCode, datasourceId, false);
     }
 
+    @Override
+    public DataSource getDataSourceForPublish(User loginUser, long projectCode, Integer datasourceId) {
+        DataSource source = checkProjectDataSource(loginUser, projectCode, datasourceId, true);
+        if (source.getType() != DbType.DORIS) {
+            throw new IllegalArgumentException("物理建表发布目前仅支持 Doris 数据源");
+        }
+        return source;
+    }
+
     private void checkDataSourcePermission(User user, DataSource source, boolean write, String permission) {
         if (source.getProjectCode() > 0) {
             if (write) {

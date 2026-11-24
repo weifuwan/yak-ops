@@ -71,7 +71,8 @@ public class DataSyncController extends BaseController {
                                                       @RequestParam(required = false) DataSyncScope scope,
                                                       @RequestParam(required = false) DataSyncType syncType) {
         checkPageParams(pageNo, pageSize);
-        return Result.success(dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status, scope, syncType));
+        return Result.success(
+                dataSyncService.listTasks(user, projectCode, pageNo, pageSize, keyword, status, scope, syncType));
     }
 
     @GetMapping("/tasks/{taskCode}")
@@ -150,7 +151,8 @@ public class DataSyncController extends BaseController {
                                                           @RequestParam(required = false) TaskExecutionStatus status,
                                                           @RequestParam(required = false) DataSyncType syncType) {
         checkPageParams(pageNo, pageSize);
-        return Result.success(dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status, syncType));
+        return Result.success(
+                dataSyncService.listInstances(user, projectCode, pageNo, pageSize, taskCode, status, syncType));
     }
 
     @GetMapping("/instances/latest")

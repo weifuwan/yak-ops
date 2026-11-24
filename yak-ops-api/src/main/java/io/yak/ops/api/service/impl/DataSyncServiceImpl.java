@@ -455,8 +455,10 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     @Override
-    public PageInfo<DataSyncInstanceVO> listInstances(User user, long projectCode, int pageNo,
-                                                      int pageSize, Long taskCode, TaskExecutionStatus status, DataSyncType syncType) {
+    public PageInfo<DataSyncInstanceVO> listInstances(
+                                                      User user, long projectCode, int pageNo, int pageSize,
+                                                      Long taskCode, TaskExecutionStatus status,
+                                                      DataSyncType syncType) {
         authorizeRead(user, projectCode);
         if (taskCode != null) {
             requireTask(projectCode, taskCode, true);

@@ -13,11 +13,15 @@ import java.util.Date;
 public class DimensionTableFieldDTO {
     private String id;
     private String tableId;
+    private Integer ordinal;
     private String fieldName;
     private String cnName;
     private DimensionDataTypeEnum dataType;
     private Integer length;
     private Integer fieldPrecision;
+    private Integer fieldScale;
+    private Integer datetimePrecision;
+    private String defaultValue;
     private String remark;
     private Boolean primaryFlag;
     private Boolean notNull;

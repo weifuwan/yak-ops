@@ -38,6 +38,10 @@ public class SchemaDao {
             "t_yak_ops_subject_domain",
             "t_yak_ops_dimension_table",
             "t_yak_ops_dimension_table_fields",
+            "t_yak_ops_dimension_table_doris_config",
+            "t_yak_ops_dimension_table_doris_key_fields",
+            "t_yak_ops_dimension_table_doris_distribution_fields",
+            "t_yak_ops_dimension_table_publish",
             "t_yak_ops_standard_directory",
             "t_yak_ops_field_standard",
             "t_yak_ops_code_standard",
@@ -164,6 +168,7 @@ public class SchemaDao {
         String sqlFilePath = String.format("sql/modeling_%s.sql", db);
         try {
             new SqlScriptRunner(dataSource, sqlFilePath).execute();
+            ensureDimensionFieldSchema();
             log.info("Ensured data modeling schema using {}", sqlFilePath);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath, ex);
@@ -208,6 +213,121 @@ public class SchemaDao {
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to ensure dimension short-name schema", ex);
+        }
+    }
+
+    /**
+     * Additive upgrade for Doris physical-model field metadata. Legacy rows receive stable
+     * ordinals in create_time order, while already assigned ordinals remain unchanged.
+     */
+    private void ensureDimensionFieldSchema() {
+        final String tableName = "t_yak_ops_dimension_table_fields";
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            if (!tableExists(metadata, connection, tableName)) {
+                return;
+            }
+            ensureColumn(metadata, connection, tableName, "ordinal", "integer NULL");
+            ensureColumn(metadata, connection, tableName, "field_scale", "integer NULL");
+            ensureColumn(metadata, connection, tableName, "datetime_precision", "integer NULL");
+            ensureColumn(metadata, connection, tableName, "default_value", "varchar(255) NULL");
+            migrateMissingDimensionFieldOrdinals(connection, tableName);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to ensure dimension field schema", ex);
+        }
+    }
+
+    private void ensureColumn(
+            DatabaseMetaData metadata,
+            Connection connection,
+            String tableName,
+            String columnName,
+            String definition) throws SQLException {
+        if (!columnExists(metadata, connection, tableName, columnName)) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE " + quoteIdentifier(tableName)
+                        + " ADD COLUMN " + columnName + " " + definition);
+            }
+            log.info("Added {} to {}", columnName, tableName);
+        }
+    }
+
+    /**
+     * Backfill field ordinals for installations created before the ordinal column existed.
+     * Fully legacy tables are ordered by create_time and id; partially migrated tables retain
+     * their explicit ordinals and receive missing values after the current maximum.
+     */
+    private void migrateMissingDimensionFieldOrdinals(Connection connection, String tableName)
+            throws SQLException {
+        java.util.Map<String, java.util.List<FieldOrdinalRow>> rowsByTable =
+                new java.util.LinkedHashMap<>();
+        String selectSql = "SELECT id, table_id, ordinal FROM " + quoteIdentifier(tableName)
+                + " ORDER BY table_id, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time, id";
+        try (PreparedStatement statement = connection.prepareStatement(selectSql);
+                ResultSet result = statement.executeQuery()) {
+            while (result.next()) {
+                String tableId = result.getString("table_id");
+                int value = result.getInt("ordinal");
+                Integer ordinal = result.wasNull() ? null : value;
+                rowsByTable.computeIfAbsent(tableId, key -> new java.util.ArrayList<>())
+                        .add(new FieldOrdinalRow(result.getString("id"), ordinal));
+            }
+        }
+
+        String updateSql = "UPDATE " + quoteIdentifier(tableName)
+                + " SET ordinal = ? WHERE id = ? AND ordinal IS NULL";
+        int migratedRows = 0;
+        boolean originalAutoCommit = connection.getAutoCommit();
+        if (originalAutoCommit) {
+            connection.setAutoCommit(false);
+        }
+        try (PreparedStatement update = connection.prepareStatement(updateSql)) {
+            for (java.util.List<FieldOrdinalRow> rows : rowsByTable.values()) {
+                boolean allOrdinalsMissing = rows.stream().allMatch(row -> row.ordinal == null);
+                int nextOrdinal = rows.stream()
+                        .filter(row -> row.ordinal != null)
+                        .mapToInt(row -> row.ordinal)
+                        .max()
+                        .orElse(-1) + 1;
+                for (int index = 0; index < rows.size(); index++) {
+                    FieldOrdinalRow row = rows.get(index);
+                    if (row.ordinal != null) {
+                        continue;
+                    }
+                    update.setInt(1, allOrdinalsMissing ? index : nextOrdinal++);
+                    update.setString(2, row.id);
+                    update.addBatch();
+                    migratedRows++;
+                }
+            }
+            if (migratedRows > 0) {
+                update.executeBatch();
+            }
+            if (originalAutoCommit) {
+                connection.commit();
+            }
+        } catch (SQLException ex) {
+            if (originalAutoCommit) {
+                connection.rollback();
+            }
+            throw ex;
+        } finally {
+            if (originalAutoCommit) {
+                connection.setAutoCommit(true);
+            }
+        }
+        if (migratedRows > 0) {
+            log.info("Migrated {} historical dimension field ordinals in {}", migratedRows, tableName);
+        }
+    }
+
+    private static final class FieldOrdinalRow {
+        private final String id;
+        private final Integer ordinal;
+
+        private FieldOrdinalRow(String id, Integer ordinal) {
+            this.id = id;
+            this.ordinal = ordinal;
         }
     }
 

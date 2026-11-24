@@ -1,5 +1,5 @@
 -- Yak Ops modeling schema reset (MySQL).
--- WARNING: destructive. Drops the 22 logical modeling tables (current and legacy names)
+-- WARNING: destructive. Drops the 26 logical modeling tables (current and legacy names)
 -- and all modeling data belonging to every Yak Ops project.
 -- Base tables such as t_yak_ops_project, users, roles and permissions are not touched.
 -- Legacy t_cockpit_ names are included so startup compatibility logic cannot rename old data back.
@@ -36,6 +36,10 @@ DROP TABLE IF EXISTS `t_yak_ops_business_process`;
 DROP TABLE IF EXISTS `t_yak_ops_data_mart`;
 DROP TABLE IF EXISTS `t_yak_ops_subject_domain`;
 DROP TABLE IF EXISTS `t_yak_ops_dimension_table`;
+DROP TABLE IF EXISTS `t_yak_ops_dimension_table_publish`;
+DROP TABLE IF EXISTS `t_yak_ops_dimension_table_doris_distribution_fields`;
+DROP TABLE IF EXISTS `t_yak_ops_dimension_table_doris_key_fields`;
+DROP TABLE IF EXISTS `t_yak_ops_dimension_table_doris_config`;
 DROP TABLE IF EXISTS `t_yak_ops_dimension_table_fields`;
 DROP TABLE IF EXISTS `t_yak_ops_standard_directory`;
 DROP TABLE IF EXISTS `t_yak_ops_field_standard`;

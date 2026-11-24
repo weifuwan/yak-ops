@@ -8,15 +8,23 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum DimensionDataTypeEnum {
+    TINYINT("TINYINT", "TINYINT"),
+    SMALLINT("SMALLINT", "SMALLINT"),
     INT("INT", "INT"),
     BIGINT("BIGINT", "BIGINT"),
     BOOLEAN("BOOLEAN", "BOOLEAN"),
+    CHAR("CHAR", "CHAR"),
+    VARCHAR("VARCHAR", "VARCHAR"),
     STRING("STRING", "STRING"),
     TEXT("TEXT", "TEXT"),
     DECIMAL("DECIMAL", "DECIMAL"),
     DATE("DATE", "DATE"),
     DATETIME("DATETIME", "DATETIME"),
     TIMESTAMP("TIMESTAMP", "TIMESTAMP"),
+    TIME("TIME", "TIME"),
+    FLOAT("FLOAT", "FLOAT"),
+    BINARY("BINARY", "BINARY"),
+    VARBINARY("VARBINARY", "VARBINARY"),
     JSON("JSON", "JSON"),
     ARRAY("ARRAY", "ARRAY"),
     DOUBLE("DOUBLE", "DOUBLE"),
