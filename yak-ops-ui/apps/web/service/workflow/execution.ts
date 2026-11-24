@@ -79,3 +79,62 @@ export async function stopWorkflowInstance(workflowInstanceId: number): Promise<
     undefined,
   );
 }
+
+export type WorkflowBackfillRunMode = "RUN_MODE_SERIAL" | "RUN_MODE_PARALLEL";
+export type WorkflowBackfillDependentMode = "OFF_MODE" | "ALL_DEPENDENT";
+export type WorkflowBackfillExecutionOrder = "ASC_ORDER" | "DESC_ORDER";
+
+export interface WorkflowBackfillOptions {
+  backfillTime:
+    | { complementStartDate: string; complementEndDate: string }
+    | { complementScheduleDateList: string };
+  runMode: WorkflowBackfillRunMode;
+  expectedParallelismNumber: number;
+  complementDependentMode: WorkflowBackfillDependentMode;
+  allLevelDependent: boolean;
+  executionOrder: WorkflowBackfillExecutionOrder;
+  workerGroup?: string;
+  environmentCode?: number;
+  tenantCode?: string;
+  failureStrategy?: WorkflowFailureStrategy;
+  workflowInstancePriority?: WorkflowPriority;
+  startParams?: Record<string, string>;
+  startNodeList?: number | string;
+  taskDependType?: WorkflowTaskDependType;
+}
+
+/** Submit a complement-data run through the existing DolphinScheduler executor endpoint. */
+export async function startWorkflowBackfill(
+  workflowDefinitionCode: string,
+  options: WorkflowBackfillOptions,
+): Promise<number[]> {
+  const ids = await HttpUtils.postData<number[]>(
+    YAK_OPS_API_PREFIX +
+      "/projects/" +
+      encodeURIComponent(requireActiveProjectCode()) +
+      "/executors/start-workflow-instance?" +
+      queryString({
+        workflowDefinitionCode,
+        execType: "COMPLEMENT_DATA",
+        scheduleTime: JSON.stringify(options.backfillTime),
+        failureStrategy: options.failureStrategy ?? "END",
+        startNodeList: options.startNodeList,
+        taskDependType: options.taskDependType ?? "TASK_POST",
+        warningType: "NONE",
+        workflowInstancePriority: options.workflowInstancePriority ?? "MEDIUM",
+        workerGroup: options.workerGroup || "default",
+        tenantCode: options.tenantCode || "default",
+        environmentCode: options.environmentCode ?? -1,
+        runMode: options.runMode,
+        expectedParallelismNumber: options.expectedParallelismNumber,
+        complementDependentMode: options.complementDependentMode,
+        allLevelDependent: options.allLevelDependent,
+        executionOrder: options.executionOrder,
+        dryRun: 0,
+        startParams: options.startParams ? JSON.stringify(options.startParams) : undefined,
+      }),
+    undefined,
+  );
+  if (!ids?.length) throw new Error("补数提交成功，但后端未返回工作流实例编号");
+  return ids;
+}
