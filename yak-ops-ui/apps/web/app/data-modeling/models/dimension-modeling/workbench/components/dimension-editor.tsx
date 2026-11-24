@@ -1187,7 +1187,6 @@ export function DimensionEditor({
               </>
             ) : null}
 
-
             {error ? <p role="alert" className="px-1 text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
           </div>
         </div>
@@ -1273,6 +1272,7 @@ export function DimensionEditor({
           projectCode={projectCode}
           tableId={recordId}
           tableType={selectedTableType}
+          modelName={String(tab.record?.cnName || tab.record?.tableName || "")}
           fields={fields}
           open={publishOpen}
           onOpenChange={setPublishOpen}
