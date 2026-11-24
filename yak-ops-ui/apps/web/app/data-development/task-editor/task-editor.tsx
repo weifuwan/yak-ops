@@ -19,6 +19,11 @@ const ShellTaskEditor = lazy(async () => {
   return { default: module.ShellTaskEditor };
 });
 
+const PythonTaskEditor = lazy(async () => {
+  const module = await import("./python");
+  return { default: module.PythonTaskEditor };
+});
+
 type TaskEditorProps = {
   workflowCode: number;
   task: WorkflowTaskRecord;
@@ -38,6 +43,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   const isHttpTask = taskType.toUpperCase() === "HTTP";
   const isJavaTask = taskType.toUpperCase() === "JAVA";
   const isShellTask = taskType.toUpperCase() === "SHELL";
+  const isPythonTask = taskType.toUpperCase() === "PYTHON";
   const isConditionsTask = taskType.toUpperCase() === "CONDITIONS";
   const isSwitchTask = taskType.toUpperCase() === "SWITCH";
   const isDependentTask = taskType.toUpperCase() === "DEPENDENT";
@@ -93,6 +99,31 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
           onDirtyChange={handleDirtyChange}
           onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
         />
+      ) : isPythonTask ? (
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              aria-label="正在加载 Python 编辑器"
+              className="flex min-h-0 flex-1 items-center justify-center"
+            >
+              <LoadingIndicator />
+              <span className="sr-only">正在加载 Python 编辑器</span>
+            </div>
+          }
+        >
+          <PythonTaskEditor
+            workflowCode={workflowCode}
+            task={task}
+            taskName={taskName}
+            isDraft={isDraft}
+            readOnly={readOnly}
+            canRun={readOnly && !isDraft}
+            onApplyTask={applyTask}
+            onDirtyChange={handleDirtyChange}
+            onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+          />
+        </Suspense>
       ) : isShellTask ? (
         <Suspense
           fallback={
