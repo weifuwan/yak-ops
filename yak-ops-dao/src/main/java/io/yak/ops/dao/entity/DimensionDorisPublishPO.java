@@ -20,6 +20,7 @@ public class DimensionDorisPublishPO extends ModelingBasePO {
     private String targetTable;
     private String ddl;
     private String ddlHash;
+    private String physicalConfig;
     private DorisPublishStatusEnum status;
     private String errorMessage;
     private Long executionDurationMs;
