@@ -255,7 +255,7 @@ function HttpRequestWorkspace({
                 />
               </div>
               <p className="text-[11px] leading-4 text-[var(--yak-components-muted-text)]">
-                URL、请求头、参数和 Body 均支持 ${"变量名"} 及 $[yyyyMMdd] 时间占位符。
+                URL、请求头、参数和 Body 均支持 {"${变量名}"} 及 $[yyyyMMdd] 时间占位符。
               </p>
             </div>
 
@@ -400,7 +400,7 @@ function HttpRequestWorkspace({
         </HttpSection>
 
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-[var(--yak-components-muted-text)]">
-          <span>响应结果输出变量：<code className="rounded bg-white px-1 py-0.5">${taskName}.response</code></span>
+          <span>响应结果输出变量：<code className="rounded bg-white px-1 py-0.5">{"${" + taskName + ".response}"}</code></span>
           <span>本节点参数结构与后端 HttpParameters 保持一致</span>
         </div>
       </div>
