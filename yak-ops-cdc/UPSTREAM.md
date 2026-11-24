@@ -10,7 +10,7 @@ Baseline: Flink 1.20.3, Debezium 1.9.8.Final. Yak Ops application/task integrati
 
 The CLI runs with a local Flink MiniCluster only. Remote, YARN, and Kubernetes deployment code is removed. Flink home is optional; `--flink-home` or `FLINK_HOME` can supply a Flink configuration directory. Any non-local `--target` or `execution.target` is rejected.
 
-Build the CLI, MySQL source and JDBC sink from the repository root:
+Build the CLI, MySQL source, Doris sink and JDBC sink from the repository root:
 
 ```sh
 bash mvnw -pl :yak-ops-cdc-cli,:yak-ops-cdc-pipeline-connector-mysql,:yak-ops-cdc-pipeline-connector-doris,:yak-ops-cdc-pipeline-connector-jdbc -am clean package
