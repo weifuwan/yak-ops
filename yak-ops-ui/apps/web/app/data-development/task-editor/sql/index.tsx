@@ -81,7 +81,7 @@ function SqlField({
   );
 }
 
-function filterSqlResourceTree(options: TreeSelectOption[]): TreeSelectOption[] {
+function filterSqlResourceTree(options: readonly TreeSelectOption[]): TreeSelectOption[] {
   return options.flatMap((option) => {
     const children = filterSqlResourceTree(option.children ?? []);
     if (option.selectable === false) {
@@ -91,7 +91,7 @@ function filterSqlResourceTree(options: TreeSelectOption[]): TreeSelectOption[] 
   });
 }
 
-function hasResourceValue(options: TreeSelectOption[], value: string): boolean {
+function hasResourceValue(options: readonly TreeSelectOption[], value: string): boolean {
   return options.some((option) =>
     option.value === value || hasResourceValue(option.children ?? [], value),
   );
