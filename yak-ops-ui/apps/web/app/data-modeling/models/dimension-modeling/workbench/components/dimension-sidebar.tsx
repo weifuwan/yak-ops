@@ -117,7 +117,7 @@ function FolderIcon({ className }: { className?: string }) {
 
 function DimensionNodeIcon({ type }: { type: string }) {
   if (isModelTypeIconType(type)) {
-    return <ModelTypeIcon type={type} size={14} className="shrink-0" />;
+    return <ModelTypeIcon type={type} size={16} className="shrink-0" />;
   }
   if (type === "ROOT_NODE" || type === "FOLDER") {
     return <FolderIcon className="shrink-0 text-[var(--yak-components-muted-text)]" />;
@@ -385,7 +385,7 @@ export function DimensionSidebar({
               <DropdownMenuGroup>
                 <DropdownMenuLabel>维度模型</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onCreate("DIM")}>
-                  <ModelTypeIcon type="DIM" size={14} />
+                  <ModelTypeIcon type="DIM" size={16} />
                   创建维度
                 </DropdownMenuItem>
               </DropdownMenuGroup>
@@ -397,7 +397,7 @@ export function DimensionSidebar({
                     key={option.type}
                     onClick={() => onCreate(option.type)}
                   >
-                    <ModelTypeIcon type={option.type} size={14} />
+                    <ModelTypeIcon type={option.type} size={16} />
                     {option.label}
                   </DropdownMenuItem>
                 ))}
