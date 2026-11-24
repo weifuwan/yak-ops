@@ -33,7 +33,7 @@ const DEFAULT_ICON: TaskTypeIconSpec = {
 const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
   CONDITIONS: { icon: GitBranch, background: "var(--yak-color-primary)" },
   DEPENDENT: { icon: GitBranch, background: "#8b5cf6" },
-  SUB_WORKFLOW: { icon: Workflow, background: "#8b5cf6" },
+  SUB_WORKFLOW: { icon: Workflow, background: "var(--yak-color-primary)" },
   SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" },
 
   DATA_SYNC: { icon: ArrowLeftRight, background: "#f59e0b" },
@@ -102,7 +102,21 @@ export function TaskTypeBadgeIcon({
             : "0 1px 2px rgba(16, 24, 40, 0.14)",
       }}
     >
-      {normalized === "SWITCH" ? (
+      {normalized === "SUB_WORKFLOW" ? (
+        <svg
+          aria-hidden="true"
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 1024 1024"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M42.6496 341.3504A42.6496 42.6496 0 0 0 0 384v256a42.6496 42.6496 0 0 0 42.6496 42.6496h256a42.6496 42.6496 0 0 0 42.6496-42.6496v-85.3504H512v256a85.3504 85.3504 0 0 0 85.3504 85.3504h85.3504v85.3504a42.6496 42.6496 0 0 0 42.6496 42.6496h256a42.6496 42.6496 0 0 0 42.6496-42.6496v-256a42.6496 42.6496 0 0 0-42.6496-42.6496h-256a42.6496 42.6496 0 0 0-42.6496 42.6496v85.3504H604.16V213.3504h78.4384v85.3504a42.6496 42.6496 0 0 0 42.6496 42.6496h256a42.6496 42.6496 0 0 0 42.6496-42.6496v-256a42.6496 42.6496 0 0 0-42.6496-42.6496h-256a42.6496 42.6496 0 0 0-42.6496 42.6496V128h-85.3504A85.3504 85.3504 0 0 0 512 213.3504v256H341.3504V384a42.6496 42.6496 0 0 0-42.6496-42.6496zM256 426.6496v170.6496H85.3504V426.6496z m512-341.3504h170.6496V256H768zM768 768h170.6496v170.6496H768z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : normalized === "SWITCH" ? (
         <svg
           aria-hidden="true"
           width={iconSize}
