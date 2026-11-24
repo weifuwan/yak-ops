@@ -258,7 +258,7 @@ function SqlTaskWorkspace({
                 onValueChange={(value) => {
                   const source = dataSources.find((item) => item.id === value);
                   updateField("datasource", value);
-                  if (source?.dbType) updateField("type", toSqlTaskDbType(source.dbType));
+                  updateField("type", source?.dbType ? toSqlTaskDbType(source.dbType) : "");
                 }}
               />
               {dataSourcesError ? (
@@ -515,7 +515,7 @@ function SqlTaskWorkspace({
                   value={form.title}
                   disabled={readOnly}
                   onChange={(event) => updateField("title", event.target.value)}
-                  placeholder="默认使用 SQL 任务名称"
+                  placeholder="留空时使用节点名称 + query result sets"
                   aria-label="SQL 结果通知标题"
                   className="w-full max-w-[480px]"
                 />
