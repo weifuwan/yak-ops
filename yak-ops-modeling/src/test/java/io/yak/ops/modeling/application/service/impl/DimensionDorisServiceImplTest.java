@@ -194,7 +194,8 @@ class DimensionDorisServiceImplTest {
         DimensionDorisPublishPO previous = new DimensionDorisPublishPO();
         previous.setDdlHash(preview.getDdlHash());
         previous.setStatus(DorisPublishStatusEnum.SUCCESS);
-        when(dimensionDorisPublishDao.queryOne(any())).thenReturn(previous);
+        when(dimensionDorisPublishDao.queryList(any()))
+                .thenReturn(Collections.singletonList(previous));
         when(dimensionDorisPublishDao.insert(any())).thenReturn(1);
         when(dimensionDorisPublishDao.updateById(any())).thenReturn(true);
 
