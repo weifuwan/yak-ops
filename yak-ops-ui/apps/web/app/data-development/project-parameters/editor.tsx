@@ -104,7 +104,7 @@ export function ProjectParameterEditor({
   };
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto bg-[#f7f8fa] p-5">
+    <div className="h-full min-h-0 w-full min-w-0 overflow-y-auto bg-[#f7f8fa] p-5">
       <div className="mx-auto w-full max-w-[980px]">
         <section className="rounded-lg border border-[#e6e9ee] bg-white p-5">
           <div className="mb-5 flex items-start justify-between gap-4">
