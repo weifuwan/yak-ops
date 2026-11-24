@@ -64,7 +64,11 @@ export type DimensionFieldRecord = {
   cnName?: string;
   dataType: string;
   length?: number;
-  fieldPrecision?: number;\n  ordinal?: number;\n  fieldScale?: number;\n  datetimePrecision?: number;\n  defaultValue?: string;
+  fieldPrecision?: number;
+  ordinal?: number;
+  fieldScale?: number;
+  datetimePrecision?: number;
+  defaultValue?: string;
   remark?: string;
   primaryFlag?: boolean;
   notNull?: boolean;
