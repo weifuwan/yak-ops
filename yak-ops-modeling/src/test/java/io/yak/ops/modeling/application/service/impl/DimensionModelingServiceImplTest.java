@@ -4,15 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.DataDomainPO;
+import io.yak.ops.dao.entity.DimensionDorisConfigPO;
+import io.yak.ops.dao.entity.DimensionDorisDistributionFieldPO;
+import io.yak.ops.dao.entity.DimensionDorisKeyFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
+import io.yak.ops.dao.entity.VersionManagementPO;
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
 import io.yak.ops.dao.entity.enums.DwModelEnum;
@@ -40,6 +46,9 @@ import io.yak.ops.modeling.api.vo.dimension.DimensionTableVO;
 import io.yak.ops.modeling.api.vo.dwlayer.DwLayerVO;
 import io.yak.ops.modeling.application.service.DimensionTreeBuilder;
 import io.yak.ops.modeling.application.service.DwLayerService;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -387,6 +396,82 @@ class DimensionModelingServiceImplTest {
 
         assertEquals("所选数据域未关联到当前业务分类", exception.getMessage());
         verify(dimensionTableDao, never()).insert(any());
+    }
+
+    @Test
+    void shouldRestoreDorisPhysicalConfigurationWhenRollingBackVersion() throws Exception {
+        DimensionTablePO current = new DimensionTablePO();
+        current.setId("table-id");
+        current.setTableType(DimensionTableTypeEnum.DETAIL);
+        current.setTableName("dwd_order_detail");
+        current.setCnName("订单明细");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(current);
+        when(dimensionTableDao.update(any(), any())).thenReturn(1);
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.emptyList());
+
+        VersionManagementPO version = new VersionManagementPO();
+        version.setVersionNumber(2);
+        version.setVersionData("snapshot-json");
+        when(versionManagementDao.queryOne(any())).thenReturn(version);
+
+        JsonNode root = org.mockito.Mockito.mock(JsonNode.class);
+        when(root.isObject()).thenReturn(true);
+        when(root.has("table")).thenReturn(true);
+        when(objectMapper.readTree("snapshot-json")).thenReturn(root);
+
+        Class<?> snapshotType = Class.forName(
+                DimensionModelingServiceImpl.class.getName() + "$DimensionTableVersionSnapshot");
+        Constructor<?> constructor = snapshotType.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        Object snapshot = constructor.newInstance();
+
+        DimensionTablePO snapshotTable = new DimensionTablePO();
+        snapshotTable.setId("old-table-id");
+        snapshotTable.setTableType(DimensionTableTypeEnum.DETAIL);
+        snapshotTable.setTableName("dwd_order_detail");
+        snapshotTable.setCnName("订单明细");
+        setSnapshotValue(snapshotType, snapshot, "table", snapshotTable);
+        setSnapshotValue(snapshotType, snapshot, "fields", Collections.emptyList());
+
+        DimensionDorisConfigPO config = new DimensionDorisConfigPO();
+        config.setId("old-config-id");
+        DimensionDorisKeyFieldPO key = new DimensionDorisKeyFieldPO();
+        key.setId("old-key-id");
+        key.setFieldId("field-id");
+        key.setOrdinal(0);
+        DimensionDorisDistributionFieldPO distribution = new DimensionDorisDistributionFieldPO();
+        distribution.setId("old-distribution-id");
+        distribution.setFieldId("field-id");
+        distribution.setOrdinal(0);
+        setSnapshotValue(snapshotType, snapshot, "dorisConfig", config);
+        setSnapshotValue(snapshotType, snapshot, "dorisKeyFields", Collections.singletonList(key));
+        setSnapshotValue(
+                snapshotType, snapshot, "dorisDistributionFields", Collections.singletonList(distribution));
+        doReturn(snapshot).when(objectMapper).treeToValue(any(JsonNode.class), any(Class.class));
+
+        service.rollbackToVersion("table-id", 2);
+
+        ArgumentCaptor<DimensionDorisConfigPO> configCaptor =
+                ArgumentCaptor.forClass(DimensionDorisConfigPO.class);
+        ArgumentCaptor<DimensionDorisKeyFieldPO> keyCaptor =
+                ArgumentCaptor.forClass(DimensionDorisKeyFieldPO.class);
+        ArgumentCaptor<DimensionDorisDistributionFieldPO> distributionCaptor =
+                ArgumentCaptor.forClass(DimensionDorisDistributionFieldPO.class);
+        verify(dimensionDorisConfigDao).insert(configCaptor.capture());
+        verify(dimensionDorisKeyFieldDao).insert(keyCaptor.capture());
+        verify(dimensionDorisDistributionFieldDao).insert(distributionCaptor.capture());
+        assertEquals("table-id", configCaptor.getValue().getTableId());
+        assertEquals("table-id", keyCaptor.getValue().getTableId());
+        assertEquals("table-id", distributionCaptor.getValue().getTableId());
+        assertEquals("field-id", keyCaptor.getValue().getFieldId());
+        assertEquals("field-id", distributionCaptor.getValue().getFieldId());
+    }
+
+    private void setSnapshotValue(Class<?> snapshotType, Object snapshot, String name, Object value)
+            throws Exception {
+        Field field = snapshotType.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(snapshot, value);
     }
 
     private DwLayerVO layer(DwTypeEnum layerType, DwModelEnum modelType) {
