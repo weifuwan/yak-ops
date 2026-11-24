@@ -225,7 +225,8 @@ export function DorisPublishModal({
       })),
     [dateFields],
   );
-  const defaultDistributionField = primaryFields[0] || physicalFields[0];
+  const defaultDistributionField =
+    primaryFields.find((field) => String(field.id) !== partitionFieldId) || physicalFields[0];
   const selectedPartitionField = dateFields.find(
     (field) => String(field.id) === partitionFieldId,
   );
