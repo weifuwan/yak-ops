@@ -102,10 +102,8 @@ export function AutocompleteContent({
           )}
         >
           {emptyContent != null ? (
-            <BaseAutocomplete.Empty
-              className="px-3 py-6 text-center text-[length:var(--yak-font-size-control-small)] text-[var(--yak-components-muted-text)]"
-            >
-              {emptyContent}
+            <BaseAutocomplete.Empty className="text-center text-[length:var(--yak-font-size-control-small)] text-[var(--yak-components-muted-text)]">
+              <div className="px-3 py-4">{emptyContent}</div>
             </BaseAutocomplete.Empty>
           ) : null}
           <BaseAutocomplete.List className="max-h-80 overflow-y-auto p-1 outline-none">
