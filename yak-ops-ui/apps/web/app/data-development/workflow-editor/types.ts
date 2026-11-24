@@ -65,6 +65,9 @@ export type WorkflowNodeData = {
   task?: WorkflowTaskRecord;
   focused?: boolean;
   readOnly?: boolean;
+  // Derived from the active canvas edges; never persisted to the backend.
+  connectedSourceHandleIds?: string[];
+  connectedTargetHandleIds?: string[];
   menuOpen?: boolean;
   onRun?: () => void;
   onOpenMenu?: (position: { x: number; y: number }) => void;
