@@ -225,6 +225,10 @@ export function DorisPublishModal({
       })),
     [dateFields],
   );
+  const defaultDistributionField = primaryFields[0] || physicalFields[0];
+  const selectedPartitionField = dateFields.find(
+    (field) => String(field.id) === partitionFieldId,
+  );
 
   const toggleDistributionField = (id: string, checked: boolean) => {
     setDistributionFieldIds((current) =>
@@ -474,7 +478,7 @@ export function DorisPublishModal({
           <h3 className="mb-3 text-xs font-medium text-[var(--yak-components-field-label)]">
             系统识别结果
           </h3>
-          <div className="grid grid-cols-2 gap-3 rounded-md bg-[var(--yak-components-panel-muted)] p-3 text-xs">
+          <div className="grid grid-cols-2 gap-3 rounded-md bg-[#f7f8fa] p-3 text-xs">
             <div className="space-y-1">
               <p className="m-0 text-[var(--yak-components-muted-text)]">建表方式</p>
               <p className="m-0 font-medium">
@@ -491,11 +495,21 @@ export function DorisPublishModal({
             </div>
             <div className="space-y-1">
               <p className="m-0 text-[var(--yak-components-muted-text)]">数据分布</p>
-              <p className="m-0 font-medium">HASH · 自动推荐</p>
+              <p className="m-0 font-medium">
+                HASH · 自动推荐{defaultDistributionField ? `（${defaultDistributionField.fieldName}）` : ""}
+              </p>
             </div>
             <div className="space-y-1">
               <p className="m-0 text-[var(--yak-components-muted-text)]">分桶</p>
               <p className="m-0 font-medium">{bucketCount.trim() ? `固定 ${bucketCount} 个` : "自动分桶"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="m-0 text-[var(--yak-components-muted-text)]">时间分区</p>
+              <p className="m-0 font-medium">
+                {partitionEnabled
+                  ? `${selectedPartitionField?.fieldName || "待选择字段"} · ${PARTITION_UNIT_OPTIONS.find((option) => option.value === partitionUnit)?.label || "按月"}`
+                  : "未启用"}
+              </p>
             </div>
           </div>
           {!primaryFields.length ? (
