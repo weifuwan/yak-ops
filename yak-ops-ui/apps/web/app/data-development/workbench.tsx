@@ -137,16 +137,6 @@ export function DataDevelopmentWorkbench() {
     .filter((tab) => !contextProtectedTabIds.has(tab.id));
 
   return (
-      <section
-        aria-label="数据开发工作区"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)]"
-      >
-        {fullPage}
-      </section>
-    );
-  }
-
-  return (
     <section
       aria-label="数据开发工作区"
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)]"
