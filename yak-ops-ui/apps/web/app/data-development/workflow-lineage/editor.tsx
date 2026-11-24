@@ -156,7 +156,7 @@ export function WorkflowLineageEditor({
   ).length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#f7f8fa] p-4">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col bg-[#f7f8fa] p-4">
       <div className="mb-3 flex shrink-0 items-center gap-3 rounded-md border border-[#e6e9ee] bg-white px-4 py-3">
         <GitBranch size={16} className="text-[#697586]" />
         <div className="min-w-0 flex-1">
