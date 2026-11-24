@@ -211,6 +211,9 @@ public class DimensionModelingController extends BaseController {
                                                            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                                            @PathVariable("id") String id,
                                                            @RequestBody DimensionDorisPublishDTO dto) {
+        if (dto == null || dto.getDatasourceId() == null) {
+            throw new IllegalArgumentException("请选择 Doris 数据源");
+        }
         DataSource datasource = dataSourceService.getDataSourceForCatalog(
                 loginUser, projectCode, dto.getDatasourceId());
         return Result.success(dimensionDorisService.preview(id, dto, datasource));
@@ -224,6 +227,9 @@ public class DimensionModelingController extends BaseController {
                                                         @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
                                                         @PathVariable("id") String id,
                                                         @RequestBody DimensionDorisPublishDTO dto) {
+        if (dto == null || dto.getDatasourceId() == null) {
+            throw new IllegalArgumentException("请选择 Doris 数据源");
+        }
         DataSource datasource = dataSourceService.getDataSourceForPublish(
                 loginUser, projectCode, dto.getDatasourceId());
         return Result.success(
