@@ -279,6 +279,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             // the connector's schema factory. Do not pass the same column twice.
             schemaKeyIds.remove(config.partitionFieldId);
         }
+        if (config.dataModel == DorisDataModelEnum.UNIQUE && schemaKeyIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "主键更新表至少需要一个非分区主键字段，分区字段由 Doris 自动加入 UNIQUE KEY");
+        }
         List<String> keyNames = resolveFieldNames(schemaKeyIds, fieldsById, "主键");
         List<String> distributionNames =
                 resolveFieldNames(config.distributionFieldIds, fieldsById, "HASH 分布");
