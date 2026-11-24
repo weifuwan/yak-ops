@@ -24,6 +24,12 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- Keep Master runtime aligned with the Yak-OPS BOM's Commons Lang 3.17.0. -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
         <!-- yak-ops -->
         <dependency>
             <groupId>io.yak.ops</groupId>
