@@ -49,7 +49,7 @@ const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
   MR: { icon: Layers, background: "#22c55e" },
 
   GRPC: { icon: Globe, background: "#3b82f6" },
-  HTTP: { icon: Globe, background: "#3b82f6" },
+  HTTP: { icon: Globe, background: "var(--yak-color-primary)" },
   FLINK: { icon: Activity, background: "#3b82f6" },
   FLINK_STREAM: { icon: Activity, background: "#3b82f6" },
   DINKY: { icon: Server, background: "#3b82f6" },
@@ -102,7 +102,21 @@ export function TaskTypeBadgeIcon({
             : "0 1px 2px rgba(16, 24, 40, 0.14)",
       }}
     >
-      {normalized === "CONDITIONS" ? (
+      {normalized === "HTTP" ? (
+        <svg
+          aria-hidden="true"
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 1024 1024"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M192 469.333h-85.333V384h-64v256h64V533.333H192V640h64V384h-64v85.333zM298.667 448h64v192h64V448h64v-64h-192v64z m234.666 0h64v192h64V448h64v-64h-192v64z m384-64H768v256h64v-85.333h85.333c36.267 0 64-27.734 64-64V448c0-36.267-27.733-64-64-64z m0 106.667H832V448h85.333v42.667z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : normalized === "CONDITIONS" ? (
         <svg
           aria-hidden="true"
           width={iconSize}
