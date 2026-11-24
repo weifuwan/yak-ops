@@ -230,6 +230,12 @@ export function DorisPublishModal({
   const selectedPartitionField = dateFields.find(
     (field) => String(field.id) === partitionFieldId,
   );
+  const distributionSummary = customDistribution
+    ? physicalFields
+        .filter((field) => distributionFieldIds.includes(String(field.id)))
+        .map((field) => field.fieldName)
+        .join("、") || "待选择字段"
+    : defaultDistributionField?.fieldName || "待选择字段";
 
   const toggleDistributionField = (id: string, checked: boolean) => {
     setDistributionFieldIds((current) =>
@@ -497,7 +503,7 @@ export function DorisPublishModal({
             <div className="space-y-1">
               <p className="m-0 text-[var(--yak-components-muted-text)]">数据分布</p>
               <p className="m-0 font-medium">
-                HASH · 自动推荐{defaultDistributionField ? `（${defaultDistributionField.fieldName}）` : ""}
+                HASH · {customDistribution ? "自定义" : "自动推荐"}（{distributionSummary}）
               </p>
             </div>
             <div className="space-y-1">
