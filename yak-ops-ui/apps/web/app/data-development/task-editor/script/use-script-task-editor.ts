@@ -32,7 +32,6 @@ type UseScriptTaskEditorOptions = ScriptTaskEditorProps & {
 export function useScriptTaskEditor({
   taskType,
   workflowCode,
-  taskName,
   task,
   isDraft,
   readOnly,
