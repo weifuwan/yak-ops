@@ -24,6 +24,9 @@ jobs:
       - name: Install UI dependencies
         working-directory: yak-ops-ui
         run: npm ci
+      - name: SQL task editor contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:sql-editor
       - name: TypeScript typecheck
         working-directory: yak-ops-ui
         run: npm run typecheck
