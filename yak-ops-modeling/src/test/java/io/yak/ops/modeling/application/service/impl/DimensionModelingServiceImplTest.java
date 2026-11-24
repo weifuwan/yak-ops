@@ -449,6 +449,66 @@ class DimensionModelingServiceImplTest {
         assertEquals(Boolean.FALSE, fieldCaptor.getValue().getCanNull());
     }
 
+    @Test
+    void shouldMigrateLegacyVersionKeyFieldsIntoPrimaryFlagOnRollback() throws Exception {
+        DimensionTablePO current = new DimensionTablePO();
+        current.setId("table-id");
+        current.setTableType(DimensionTableTypeEnum.DETAIL);
+        current.setTableName("dwd_order_detail");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(current);
+        when(dimensionTableDao.update(any(), any())).thenReturn(1);
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionTableFieldDao.insert(any())).thenReturn(1);
+
+        VersionManagementPO version = new VersionManagementPO();
+        version.setVersionNumber(2);
+        version.setVersionData("snapshot-json");
+        when(versionManagementDao.queryOne(any())).thenReturn(version);
+
+        JsonNode root = org.mockito.Mockito.mock(JsonNode.class);
+        JsonNode legacyKeys = org.mockito.Mockito.mock(JsonNode.class);
+        JsonNode legacyKey = org.mockito.Mockito.mock(JsonNode.class);
+        JsonNode legacyFieldId = org.mockito.Mockito.mock(JsonNode.class);
+        when(root.isObject()).thenReturn(true);
+        when(root.has("table")).thenReturn(true);
+        when(root.get("dorisKeyFields")).thenReturn(legacyKeys);
+        when(legacyKeys.isArray()).thenReturn(true);
+        when(legacyKeys.iterator()).thenReturn(Collections.singletonList(legacyKey).iterator());
+        when(legacyKey.hasNonNull("fieldId")).thenReturn(true);
+        when(legacyKey.get("fieldId")).thenReturn(legacyFieldId);
+        when(legacyFieldId.asText()).thenReturn("field-id");
+        when(objectMapper.readTree("snapshot-json")).thenReturn(root);
+
+        Class<?> snapshotType = Class.forName(
+                DimensionModelingServiceImpl.class.getName() + "$DimensionTableVersionSnapshot");
+        Constructor<?> constructor = snapshotType.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        Object snapshot = constructor.newInstance();
+
+        DimensionTablePO snapshotTable = new DimensionTablePO();
+        snapshotTable.setId("old-table-id");
+        snapshotTable.setTableType(DimensionTableTypeEnum.DETAIL);
+        snapshotTable.setTableName("dwd_order_detail");
+        setSnapshotValue(snapshotType, snapshot, "table", snapshotTable);
+
+        DimensionTableFieldPO snapshotField = new DimensionTableFieldPO();
+        snapshotField.setId("field-id");
+        snapshotField.setTableId("table-id");
+        snapshotField.setFieldName("customer_id");
+        snapshotField.setPrimaryFlag(Boolean.FALSE);
+        snapshotField.setCanNull(Boolean.TRUE);
+        setSnapshotValue(snapshotType, snapshot, "fields", Collections.singletonList(snapshotField));
+        doReturn(snapshot).when(objectMapper).treeToValue(any(JsonNode.class), any(Class.class));
+
+        service.rollbackToVersion("table-id", 2);
+
+        ArgumentCaptor<DimensionTableFieldPO> fieldCaptor =
+                ArgumentCaptor.forClass(DimensionTableFieldPO.class);
+        verify(dimensionTableFieldDao).insert(fieldCaptor.capture());
+        assertEquals(Boolean.TRUE, fieldCaptor.getValue().getPrimaryFlag());
+        assertEquals(Boolean.FALSE, fieldCaptor.getValue().getCanNull());
+    }
+
     private void setSnapshotValue(Class<?> snapshotType, Object snapshot, String name, Object value)
             throws Exception {
         Field field = snapshotType.getDeclaredField(name);
