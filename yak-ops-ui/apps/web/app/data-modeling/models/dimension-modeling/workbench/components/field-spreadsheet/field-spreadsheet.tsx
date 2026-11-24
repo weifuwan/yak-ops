@@ -16,7 +16,6 @@ import {
   validateDimensionFields,
 } from "./field-grid-utils";
 import {
-  DATA_TYPE_OPTIONS,
   defaultVisibleFieldColumns,
   FIELD_CATEGORY_OPTIONS,
   fieldGridColumns,
