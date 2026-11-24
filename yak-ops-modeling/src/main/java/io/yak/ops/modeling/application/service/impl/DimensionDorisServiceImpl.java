@@ -352,6 +352,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
         config.dataModel = config.keyFieldIds.isEmpty()
                 ? DorisDataModelEnum.DUPLICATE : DorisDataModelEnum.UNIQUE;
+        config.keyFieldNames = config.keyFieldIds.stream()
+                .map(id -> fieldsById.get(id).getFieldName())
+                .collect(Collectors.toList());
         config.distributionType = DorisDistributionTypeEnum.HASH;
         config.bucketMode = advanced != null && advanced.getBucketCount() != null
                 ? DorisBucketModeEnum.FIXED : DorisBucketModeEnum.AUTO;
@@ -379,6 +382,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             }
             config.partitionStrategy = DorisPartitionStrategyEnum.AUTO_RANGE;
             config.partitionFieldId = partitionFieldId;
+            config.partitionFieldName = partitionField.getFieldName();
             config.partitionUnit = partitionUnit;
         }
 
@@ -403,6 +407,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 throw new IllegalArgumentException("HASH 分布字段不属于当前模型: " + distributionFieldId);
             }
         }
+        config.distributionFieldNames = config.distributionFieldIds.stream()
+                .map(id -> fieldsById.get(id).getFieldName())
+                .collect(Collectors.toList());
         return config;
     }
 
@@ -410,13 +417,16 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("dataModel", config.dataModel.name());
         snapshot.put("keyFieldIds", config.keyFieldIds);
+        snapshot.put("keyFieldNames", config.keyFieldNames);
         snapshot.put("distributionType", config.distributionType.name());
         snapshot.put("distributionFieldIds", config.distributionFieldIds);
+        snapshot.put("distributionFieldNames", config.distributionFieldNames);
         snapshot.put("distributionMode", config.customDistribution ? "CUSTOM" : "AUTO");
         snapshot.put("bucketMode", config.bucketMode.name());
         snapshot.put("bucketCount", config.bucketCount);
         snapshot.put("partitionStrategy", config.partitionStrategy.name());
         snapshot.put("partitionFieldId", config.partitionFieldId);
+        snapshot.put("partitionFieldName", config.partitionFieldName);
         snapshot.put("partitionUnit", config.partitionUnit == null ? null : config.partitionUnit.name());
         snapshot.put("tableProperties", Collections.emptyMap());
         try {
@@ -447,13 +457,16 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     private static class ResolvedDorisConfig {
         private DorisDataModelEnum dataModel;
         private List<String> keyFieldIds = Collections.emptyList();
+        private List<String> keyFieldNames = Collections.emptyList();
         private DorisDistributionTypeEnum distributionType;
         private List<String> distributionFieldIds = Collections.emptyList();
+        private List<String> distributionFieldNames = Collections.emptyList();
         private boolean customDistribution;
         private DorisBucketModeEnum bucketMode;
         private Integer bucketCount;
         private DorisPartitionStrategyEnum partitionStrategy;
         private String partitionFieldId;
+        private String partitionFieldName;
         private DorisPartitionUnitEnum partitionUnit;
     }
 
