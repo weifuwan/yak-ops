@@ -57,6 +57,7 @@ export function FieldSpreadsheet({
   fieldStandardOptions,
   codeStandardOptions,
   unitOptions,
+  fieldTypeOptions,
   loading = false,
   error = false,
   onChange,
@@ -334,7 +335,7 @@ export function FieldSpreadsheet({
         return (
           <FieldGridSelect
             value={field.dataType || "STRING"}
-            options={DATA_TYPE_OPTIONS}
+            options={fieldTypeOptions || []}
             placeholder="类型"
             onChange={(value) => updateRow(rowIndex, { dataType: value })}
           />
