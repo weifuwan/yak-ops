@@ -3,10 +3,14 @@ import type { ScriptLanguage } from "./types";
 
 export function ScriptEditorPanel({
   rawScript,
+  readOnly,
+  onChange,
   language,
   scriptLabel,
 }: {
   rawScript: string;
+  readOnly: boolean;
+  onChange: (value: string) => void;
   language: ScriptLanguage;
   scriptLabel: string;
 }) {
@@ -18,8 +22,8 @@ export function ScriptEditorPanel({
       <div className="min-h-0 min-w-0 flex-1">
         <ScriptCodeEditor
           value={rawScript}
-          readOnly={false}
-          onChange={() => undefined}
+          readOnly={readOnly}
+          onChange={onChange}
           language={language}
           scriptLabel={scriptLabel}
         />
