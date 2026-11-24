@@ -59,6 +59,7 @@ import { ModelTypeIcon, isModelTypeIconType } from "../../../../components/model
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { buildApplicationScopeTree } from "../utils/application-scope-tree";
 import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";
+import { DorisPhysicalConfig } from "./doris-physical-config";
 import SourceFieldImportCard from "./source-field-import-card";
 import {
   fieldsForSave,
@@ -1167,6 +1168,15 @@ export function DimensionEditor({
                   />
                 </section>
               </>
+            ) : null}
+
+            {recordId && selectedTableType !== "DIM" ? (
+              <DorisPhysicalConfig
+                projectCode={projectCode}
+                tableId={recordId}
+                tableType={selectedTableType}
+                fields={fields}
+              />
             ) : null}
 
             {error ? <p role="alert" className="px-1 text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
