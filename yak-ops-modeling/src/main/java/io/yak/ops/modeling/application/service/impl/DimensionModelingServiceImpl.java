@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.common.service.BaseServiceImpl;
@@ -13,9 +14,6 @@ import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DataMartPO;
 import io.yak.ops.dao.entity.DimensionTableFieldPO;
-import io.yak.ops.dao.entity.DimensionDorisConfigPO;
-import io.yak.ops.dao.entity.DimensionDorisDistributionFieldPO;
-import io.yak.ops.dao.entity.DimensionDorisKeyFieldPO;
 import io.yak.ops.dao.entity.DimensionDorisPublishPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.ModifierPO;
@@ -32,9 +30,6 @@ import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
-import io.yak.ops.dao.repository.modeling.DimensionDorisConfigDao;
-import io.yak.ops.dao.repository.modeling.DimensionDorisDistributionFieldDao;
-import io.yak.ops.dao.repository.modeling.DimensionDorisKeyFieldDao;
 import io.yak.ops.dao.repository.modeling.DimensionDorisPublishDao;
 import io.yak.ops.dao.repository.modeling.FieldStandardDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
@@ -79,9 +74,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     @Resource private SubjectDomainDao subjectDomainDao;
     @Resource private ModifierDao modifierDao;
     @Resource private DimensionTableFieldDao dimensionTableFieldDao;
-    @Resource private DimensionDorisConfigDao dimensionDorisConfigDao;
-    @Resource private DimensionDorisKeyFieldDao dimensionDorisKeyFieldDao;
-    @Resource private DimensionDorisDistributionFieldDao dimensionDorisDistributionFieldDao;
     @Resource private DimensionDorisPublishDao dimensionDorisPublishDao;
     @Resource private VersionManagementDao versionManagementDao;
     @Resource private DwLayerService dwLayerService;
@@ -215,12 +207,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             throw new IllegalArgumentException("该维度表已被指标修饰词引用，不能删除");
         }
         dimensionTableFieldDao.deleteByWrapper(new QueryWrapper<DimensionTableFieldPO>().eq("table_id", id));
-        dimensionDorisConfigDao.deleteByWrapper(
-                new QueryWrapper<DimensionDorisConfigPO>().eq("table_id", id));
-        dimensionDorisKeyFieldDao.deleteByWrapper(
-                new QueryWrapper<DimensionDorisKeyFieldPO>().eq("table_id", id));
-        dimensionDorisDistributionFieldDao.deleteByWrapper(
-                new QueryWrapper<DimensionDorisDistributionFieldPO>().eq("table_id", id));
         dimensionDorisPublishDao.deleteByWrapper(
                 new QueryWrapper<DimensionDorisPublishPO>().eq("table_id", id));
         versionManagementDao.deleteByWrapper(new QueryWrapper<VersionManagementPO>()
@@ -344,8 +330,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 snapshot.table.setUpdateBy("sys");
                 restoreSnapshot(snapshot.table, id);
                 restoreFields(id, snapshot.fields == null ? Collections.emptyList() : snapshot.fields);
-                restoreDorisConfig(
-                        id, snapshot.dorisConfig, snapshot.dorisKeyFields, snapshot.dorisDistributionFields);
             } else {
                 // Backward compatibility: historical versions stored only DimensionTablePO.
                 DimensionTablePO snapshot = objectMapper.treeToValue(root, DimensionTablePO.class);
@@ -359,7 +343,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 snapshot.initUpdate();
                 snapshot.setUpdateBy("sys");
                 restoreSnapshot(snapshot, id);
-                clearDorisConfig(id);
             }
             DimensionTablePO restored = dimensionTableDao.queryById(id);
             saveVersion(restored);
@@ -472,7 +455,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 if (modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", old.getId())) > 0) {
                     throw new IllegalArgumentException("字段已被指标修饰词引用，不能删除: " + old.getFieldName());
                 }
-                assertDorisFieldNotReferenced(tableId, old.getId());
+
                 dimensionTableFieldDao.deleteById(old.getId());
             }
         }
@@ -490,7 +473,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         if (modifierDao.queryCount(new QueryWrapper<ModifierPO>().eq("dimension_fd_id", fieldId)) > 0) {
             throw new IllegalArgumentException("该维度字段已被指标修饰词引用，不能删除");
         }
-        assertDorisFieldNotReferenced(tableId, fieldId);
+
         dimensionTableFieldDao.deleteById(fieldId);
         markTableDraft(tableId);
         return fieldId;
@@ -856,19 +839,10 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
     private void saveVersion(DimensionTablePO po) {
         try {
             DimensionTableVersionSnapshot snapshot = new DimensionTableVersionSnapshot();
-            snapshot.schemaVersion = 3;
+            snapshot.schemaVersion = 4;
             snapshot.table = po;
             snapshot.fields = dimensionTableFieldDao.queryList(new QueryWrapper<DimensionTableFieldPO>()
                     .eq("table_id", po.getId()).orderByAsc("ordinal").orderByAsc("create_time"));
-            snapshot.dorisConfig = dimensionDorisConfigDao.queryOne(
-                    new QueryWrapper<DimensionDorisConfigPO>().eq("table_id", po.getId()));
-            snapshot.dorisKeyFields = safeList(dimensionDorisKeyFieldDao.queryList(
-                    new QueryWrapper<DimensionDorisKeyFieldPO>()
-                            .eq("table_id", po.getId()).orderByAsc("ordinal")));
-            snapshot.dorisDistributionFields = safeList(
-                    dimensionDorisDistributionFieldDao.queryList(
-                            new QueryWrapper<DimensionDorisDistributionFieldPO>()
-                                    .eq("table_id", po.getId()).orderByAsc("ordinal")));
             VersionManagementPO version = new VersionManagementPO();
             version.setSourceTableId(po.getId());
             version.setVersionType(VERSION_TYPE);
@@ -907,44 +881,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
         dimensionTableDao.update(null, wrapper);
-    }
-
-    private void restoreDorisConfig(
-            String tableId,
-            DimensionDorisConfigPO snapshotConfig,
-            List<DimensionDorisKeyFieldPO> snapshotKeys,
-            List<DimensionDorisDistributionFieldPO> snapshotDistribution) {
-        clearDorisConfig(tableId);
-        if (snapshotConfig != null) {
-            snapshotConfig.setId(null);
-            snapshotConfig.setTableId(tableId);
-            snapshotConfig.setProjectCode(null);
-            snapshotConfig.initInsert();
-            dimensionDorisConfigDao.insert(snapshotConfig);
-        }
-        for (DimensionDorisKeyFieldPO key : safeList(snapshotKeys)) {
-            key.setId(null);
-            key.setTableId(tableId);
-            key.setProjectCode(null);
-            key.initInsert();
-            dimensionDorisKeyFieldDao.insert(key);
-        }
-        for (DimensionDorisDistributionFieldPO field : safeList(snapshotDistribution)) {
-            field.setId(null);
-            field.setTableId(tableId);
-            field.setProjectCode(null);
-            field.initInsert();
-            dimensionDorisDistributionFieldDao.insert(field);
-        }
-    }
-
-    private void clearDorisConfig(String tableId) {
-        dimensionDorisConfigDao.deleteByWrapper(
-                new QueryWrapper<DimensionDorisConfigPO>().eq("table_id", tableId));
-        dimensionDorisKeyFieldDao.deleteByWrapper(
-                new QueryWrapper<DimensionDorisKeyFieldPO>().eq("table_id", tableId));
-        dimensionDorisDistributionFieldDao.deleteByWrapper(
-                new QueryWrapper<DimensionDorisDistributionFieldPO>().eq("table_id", tableId));
     }
 
     private void restoreFields(String tableId, List<DimensionTableFieldPO> snapshotFields) {
@@ -1032,13 +968,11 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class DimensionTableVersionSnapshot {
         public int schemaVersion;
         public DimensionTablePO table;
         public List<DimensionTableFieldPO> fields;
-        public DimensionDorisConfigPO dorisConfig;
-        public List<DimensionDorisKeyFieldPO> dorisKeyFields;
-        public List<DimensionDorisDistributionFieldPO> dorisDistributionFields;
 
         public DimensionTableVersionSnapshot() {
         }
@@ -1049,6 +983,10 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
         BeanUtils.copyProperties(dto, po);
         po.setTableId(tableId);
         po.setCanNull(dto.getNotNull() == null ? null : !dto.getNotNull());
+        if (Boolean.TRUE.equals(po.getPrimaryFlag())) {
+            // A logical primary key is always non-null; Doris UNIQUE KEY derives from this flag.
+            po.setCanNull(Boolean.FALSE);
+        }
         if (po.getFieldType() == null) po.setFieldType(io.yak.ops.dao.entity.enums.DimensionFieldTypeEnum.PROPERTY);
         validateFieldStandardReferences(po);
         po.setProjectCode(null);
@@ -1098,25 +1036,6 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
         dimensionTableFieldDao.update(null, wrapper);
-    }
-
-    private void assertDorisFieldNotReferenced(String tableId, String fieldId) {
-        if (dimensionDorisKeyFieldDao.queryCount(new QueryWrapper<DimensionDorisKeyFieldPO>()
-                        .eq("table_id", tableId).eq("field_id", fieldId)) > 0
-                || dimensionDorisDistributionFieldDao.queryCount(
-                                new QueryWrapper<DimensionDorisDistributionFieldPO>()
-                                        .eq("table_id", tableId).eq("field_id", fieldId))
-                        > 0) {
-            throw new IllegalArgumentException(
-                    "字段已被 Doris Key 或分布配置引用，请先调整 Doris 物理配置");
-        }
-        DimensionDorisConfigPO partitionConfig = dimensionDorisConfigDao.queryOne(
-                new QueryWrapper<DimensionDorisConfigPO>()
-                        .eq("table_id", tableId).eq("partition_field_id", fieldId));
-        if (partitionConfig != null) {
-            throw new IllegalArgumentException(
-                    "字段已被 Doris 分区配置引用，请先调整 Doris 物理配置");
-        }
     }
 
     private int nextFieldOrdinal(String tableId) {
