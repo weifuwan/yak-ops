@@ -162,9 +162,9 @@ test("floating workflow node picker uses larger Dify-style icons and a wider res
 
 test("workflow task icons use Dify-style solid color containers and white glyphs", () => {
   assert.match(taskTypeBadgeIcon, /const TASK_TYPE_ICON_MAP/);
-  assert.match(taskTypeBadgeIcon, /border-\\[0\\.5px\\] border-white\\/10 text-white/);
-  assert.match(taskTypeBadgeIcon, /backgroundColor: spec\\.background/);
-  assert.match(taskTypeBadgeIcon, /<Icon size=\\{iconSize\\} strokeWidth=\\{2\\.1\\}/);
+  assert.ok(taskTypeBadgeIcon.includes("border-[0.5px] border-white/10 text-white"));
+  assert.ok(taskTypeBadgeIcon.includes("backgroundColor: spec.background"));
+  assert.ok(taskTypeBadgeIcon.includes("<Icon size={iconSize} strokeWidth={2.1}"));
   assert.doesNotMatch(taskTypeBadgeIcon, /<text/);
 
   for (const taskType of [
@@ -180,5 +180,5 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
     assert.ok(taskTypeBadgeIcon.includes(taskType), `missing task icon mapping: ${taskType}`);
   }
 
-  assert.match(workflowNode, /size=\\{24\\}/);
+  assert.ok(workflowNode.includes("size={24}"));
 });
