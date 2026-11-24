@@ -210,9 +210,9 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PutMapping("/{id}/doris-config")
     public Result<DimensionDorisConfigVO> saveDorisConfig(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @PathVariable("id") String id,
-            @RequestBody DimensionDorisConfigDTO dto) {
+                                                          @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                          @PathVariable("id") String id,
+                                                          @RequestBody DimensionDorisConfigDTO dto) {
         return Result.success(
                 dimensionDorisService.saveConfig(id, dto, loginUser.getUserName()));
     }
@@ -225,10 +225,10 @@ public class DimensionModelingController extends BaseController {
     @Operation(description = "Preview Doris create table DDL")
     @PostMapping("/{id}/ddl/preview")
     public Result<DimensionDorisPublishVO> previewDorisDdl(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @RequestBody DimensionDorisPublishDTO dto) {
+                                                           @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                           @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                                           @PathVariable("id") String id,
+                                                           @RequestBody DimensionDorisPublishDTO dto) {
         DataSource datasource = dataSourceService.getDataSourceForCatalog(
                 loginUser, projectCode, dto.getDatasourceId());
         return Result.success(dimensionDorisService.preview(id, dto, datasource));
@@ -238,10 +238,10 @@ public class DimensionModelingController extends BaseController {
     @OperatorLog(auditType = AuditType.MODELING_UPDATE)
     @PostMapping("/{id}/publish")
     public Result<DimensionDorisPublishVO> publishDoris(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
-            @PathVariable("id") String id,
-            @RequestBody DimensionDorisPublishDTO dto) {
+                                                        @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                        @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+                                                        @PathVariable("id") String id,
+                                                        @RequestBody DimensionDorisPublishDTO dto) {
         DataSource datasource = dataSourceService.getDataSourceForPublish(
                 loginUser, projectCode, dto.getDatasourceId());
         // Validate the generated DDL before creating a model version.
