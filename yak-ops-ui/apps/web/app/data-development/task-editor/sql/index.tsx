@@ -125,7 +125,7 @@ function SqlStatementsSection({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0">
       <SqlSectionHeader title={title} />
       {statements.length ? (
         <div className="space-y-2">
@@ -164,7 +164,7 @@ function SqlStatementsSection({
           暂无{title}
         </div>
       )}
-      <div className="flex justify-end">
+      <div className="mt-3 flex justify-end">
         <Button
           type="button"
           size="sm"
