@@ -442,13 +442,21 @@ export function FieldSpreadsheet({
           <Checkbox
             checked={Boolean(field.primaryFlag)}
             aria-label="主键"
-            onCheckedChange={(checked) => updateRow(rowIndex, { primaryFlag: checked === true })}
+            onCheckedChange={(checked) =>
+              updateRow(
+                rowIndex,
+                checked === true
+                  ? { primaryFlag: true, notNull: true }
+                  : { primaryFlag: false },
+              )
+            }
           />
         );
       case "notNull":
         return (
           <Checkbox
             checked={Boolean(field.notNull)}
+            disabled={Boolean(field.primaryFlag)}
             aria-label="非空"
             onCheckedChange={(checked) => updateRow(rowIndex, { notNull: checked === true })}
           />
