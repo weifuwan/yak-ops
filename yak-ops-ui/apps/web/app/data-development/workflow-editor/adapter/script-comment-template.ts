@@ -3,15 +3,18 @@ function pad(value: number): string {
 }
 
 export function formatScriptCreatedAt(date: Date): string {
-  return [
+  const datePart = [
     date.getFullYear(),
     pad(date.getMonth() + 1),
     pad(date.getDate()),
-  ].join("-") + " " + [
+  ].join("-");
+  const timePart = [
     pad(date.getHours()),
     pad(date.getMinutes()),
     pad(date.getSeconds()),
   ].join(":");
+
+  return datePart + " " + timePart;
 }
 
 export function buildScriptTaskCommentTemplate(
