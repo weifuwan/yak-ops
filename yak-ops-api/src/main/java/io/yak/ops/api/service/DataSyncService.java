@@ -46,8 +46,8 @@ public interface DataSyncService {
     DataSyncTaskVersionVO getVersion(User user, long projectCode, long taskCode, int version);
 
     PageInfo<DataSyncInstanceVO> listInstances(
-            User user, long projectCode, int pageNo, int pageSize,
-            Long taskCode, TaskExecutionStatus status, DataSyncType syncType);
+                                               User user, long projectCode, int pageNo, int pageSize,
+                                               Long taskCode, TaskExecutionStatus status, DataSyncType syncType);
 
     List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                              List<Long> taskCodes, boolean activeOnly);
