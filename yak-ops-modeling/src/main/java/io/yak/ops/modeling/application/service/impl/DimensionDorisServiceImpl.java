@@ -41,6 +41,7 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -410,14 +411,27 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 // administrator dropped the table, recreate it from the current model snapshot.
                 try (Statement statement = connection.createStatement()) {
                     statement.execute(ddl);
+                } catch (SQLException ex) {
+                    // Another model or an external actor may create the target after our
+                    // existence check. The generated DDL is strict CREATE, so this is surfaced
+                    // as a conflict instead of silently succeeding through IF NOT EXISTS.
+                    if (tableExists(connection, dto.getTargetDatabase(), table.getTableName())) {
+                        publish.setStatus(DorisPublishStatusEnum.CONFLICT);
+                        publish.setErrorMessage(
+                                "目标 Doris 表在发布过程中已被创建，本次发布未覆盖现有表。");
+                    } else {
+                        throw ex;
+                    }
                 }
-                if (tableMatchesDdl(
-                        connection, dto.getTargetDatabase(), table.getTableName(), tableId)) {
-                    publish.setStatus(DorisPublishStatusEnum.SUCCESS);
-                } else {
-                    publish.setStatus(DorisPublishStatusEnum.CONFLICT);
-                    publish.setErrorMessage(
-                            "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
+                if (publish.getStatus() != DorisPublishStatusEnum.CONFLICT) {
+                    if (tableMatchesDdl(
+                            connection, dto.getTargetDatabase(), table.getTableName(), tableId)) {
+                        publish.setStatus(DorisPublishStatusEnum.SUCCESS);
+                    } else {
+                        publish.setStatus(DorisPublishStatusEnum.CONFLICT);
+                        publish.setErrorMessage(
+                                "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -598,7 +612,11 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             schema.setPartitionInfo(Tuple2.of(
                     partitionFieldName, config.getPartitionUnit().name().toLowerCase(Locale.ROOT)));
         }
-        return DorisSchemaFactory.generateCreateTableDDL(schema);
+        String generatedDdl = DorisSchemaFactory.generateCreateTableDDL(schema);
+        // The connector emits IF NOT EXISTS by default. Physical publishing must use strict
+        // CREATE so a table created concurrently by another model cannot be reported as success.
+        return generatedDdl.replaceFirst(
+                "(?i)^CREATE TABLE IF NOT EXISTS\\s+", "CREATE TABLE ");
     }
 
     private DataType toFlinkType(DimensionTableFieldPO field) {
