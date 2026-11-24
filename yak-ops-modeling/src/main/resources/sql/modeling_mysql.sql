@@ -503,56 +503,6 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_fields (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-维度表字段元数据';
 
 
-CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_doris_config (
-  id varchar(32) NOT NULL,
-  project_code bigint NOT NULL,
-  table_id varchar(32) NOT NULL,
-  data_model varchar(32) NOT NULL DEFAULT 'DUPLICATE',
-  partition_strategy varchar(32) NOT NULL DEFAULT 'NONE',
-  partition_field_id varchar(32) NULL,
-  partition_unit varchar(32) NULL,
-  distribution_type varchar(32) NOT NULL DEFAULT 'HASH',
-  bucket_mode varchar(32) NOT NULL DEFAULT 'AUTO',
-  bucket_count integer NULL,
-  table_properties text NULL,
-  create_by varchar(100) NULL,
-  create_time timestamp NULL,
-  update_by varchar(100) NULL,
-  update_time timestamp NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_yak_dimension_doris_config_1 (project_code, table_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-Doris物理建表配置';
-
-CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_doris_key_fields (
-  id varchar(32) NOT NULL,
-  project_code bigint NOT NULL,
-  table_id varchar(32) NOT NULL,
-  field_id varchar(32) NOT NULL,
-  ordinal integer NOT NULL,
-  create_by varchar(100) NULL,
-  create_time timestamp NULL,
-  update_by varchar(100) NULL,
-  update_time timestamp NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_yak_dimension_doris_key_1 (project_code, table_id, field_id),
-  KEY idx_yak_dimension_doris_key_1 (project_code, table_id, ordinal)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-Doris Unique Key字段';
-
-CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_doris_distribution_fields (
-  id varchar(32) NOT NULL,
-  project_code bigint NOT NULL,
-  table_id varchar(32) NOT NULL,
-  field_id varchar(32) NOT NULL,
-  ordinal integer NOT NULL,
-  create_by varchar(100) NULL,
-  create_time timestamp NULL,
-  update_by varchar(100) NULL,
-  update_time timestamp NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_yak_dimension_doris_distribution_1 (project_code, table_id, field_id),
-  KEY idx_yak_dimension_doris_distribution_1 (project_code, table_id, ordinal)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能建模-Doris Hash分布字段';
-
 CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_publish (
   id varchar(32) NOT NULL,
   project_code bigint NOT NULL,
@@ -565,6 +515,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_publish (
   target_table varchar(255) NOT NULL,
   ddl longtext NULL,
   ddl_hash varchar(64) NULL,
+  physical_config longtext NULL,
   status varchar(32) NOT NULL,
   error_message text NULL,
   execution_duration_ms bigint NULL,
