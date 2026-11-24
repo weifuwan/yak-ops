@@ -20,8 +20,8 @@ limitations under the License.
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-cdc-pipeline-connectors</artifactId>
-            <version>1.4.0</version>
+        <artifactId>yak-ops-cdc-pipeline-connectors</artifactId>
+        <version>1.4.0</version>
     </parent>
     <artifactId>yak-ops-cdc-pipeline-connector-doris</artifactId>
     <name>yak-ops-cdc-pipeline-connector-doris</name>
