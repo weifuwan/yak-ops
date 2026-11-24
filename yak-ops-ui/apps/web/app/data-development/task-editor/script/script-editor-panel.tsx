@@ -1,19 +1,12 @@
-import { Button } from "@yak-ops/yak-ui";
-import { FileCode2, Search } from "lucide-react";
-
 import { ScriptCodeEditor } from "./script-code-editor";
 import type { ScriptLanguage } from "./types";
 
 export function ScriptEditorPanel({
   rawScript,
-  readOnly,
-  onChange,
   language,
   scriptLabel,
 }: {
   rawScript: string;
-  readOnly: boolean;
-  onChange: (value: string) => void;
   language: ScriptLanguage;
   scriptLabel: string;
 }) {
@@ -21,48 +14,20 @@ export function ScriptEditorPanel({
   const scriptCharacterCount = rawScript.length;
 
   return (
-    <>
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-[#e8ebef] bg-[#fbfcfe] px-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <FileCode2 size={14} className="shrink-0 text-[#5b6b82]" />
-          <span className="text-xs font-semibold text-[#303846]">{scriptLabel}</span>
-          <span className="rounded bg-[#eef2f7] px-1.5 py-0.5 text-[10px] text-[#687385]">
-            {language === "python" ? "Python" : "Shell"}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px] text-[#8b93a1]">
-          <span className="hidden sm:inline-flex items-center gap-1">
-            <Search size={12} />
-            Ctrl + F 查找
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            isDisabled={readOnly || !rawScript}
-            onClick={() => onChange("")}
-            className="!h-6 !px-2 text-[11px]"
-          >
-            清空脚本
-          </Button>
-        </div>
+    <div className="flex min-h-[250px] min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 min-w-0 flex-1">
+        <ScriptCodeEditor
+          value={rawScript}
+          readOnly={false}
+          onChange={() => undefined}
+          language={language}
+          scriptLabel={scriptLabel}
+        />
       </div>
-
-      <div className="flex min-h-[250px] min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="min-h-0 min-w-0 flex-1">
-          <ScriptCodeEditor
-            value={rawScript}
-            readOnly={readOnly}
-            onChange={onChange}
-            language={language}
-            scriptLabel={scriptLabel}
-          />
-        </div>
-        <div className="flex h-6 shrink-0 items-center justify-between border-t border-[#f0f1f3] bg-white px-3 text-[10px] text-[#98a1ad]">
-          <span>行数：{scriptLineCount}　字符：{scriptCharacterCount}</span>
-          <span>{language === "python" ? "Python" : "Shell"} · UTF-8 · LF</span>
-        </div>
+      <div className="flex h-6 shrink-0 items-center justify-between border-t border-[#f0f1f3] bg-white px-3 text-[10px] text-[#98a1ad]">
+        <span>行数：{scriptLineCount}　字符：{scriptCharacterCount}</span>
+        <span>{language === "python" ? "Python" : "Shell"} · UTF-8 · LF</span>
       </div>
-    </>
+    </div>
   );
 }
