@@ -85,6 +85,8 @@ export function ScriptTaskEditor({
       ) : (
         <ScriptEditorWorkspace
           form={editor.form}
+          readOnly={readOnly}
+          updateField={editor.updateField}
           language={language}
           scriptLabel={scriptLabel}
         />
