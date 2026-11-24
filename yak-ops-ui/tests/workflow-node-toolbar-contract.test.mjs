@@ -121,11 +121,12 @@ test("workflow branch handle circle has an inset SVG viewport to avoid edge clip
 test("workflow node connector plus opens a local downstream picker without touching the left sidebar", () => {
   assert.match(workflowTypes, /kind: "downstream-popover"/);
   assert.match(workflowNode, /kind: "downstream-popover"[\s\S]*?anchor:/);
-  assert.match(workflowSelector, /requestNodeCreation\(task\.taskType, insertionRequest\)/);
-  const creationRequestStart = workflowStore.indexOf("requestNodeCreation: (taskType");
+  assert.match(workflowSelector, /requestNodeCreation\([\s\S]*?isPopover \? "popover" : "sidebar"/);
+  const creationRequestStart = workflowStore.lastIndexOf("requestNodeCreation: (");
   const creationRequestEnd = workflowStore.indexOf("cancelNodeCreation:", creationRequestStart);
   const creationRequestAction = workflowStore.slice(creationRequestStart, creationRequestEnd);
-  assert.doesNotMatch(creationRequestAction, /selectorRequest:\s*null|edgeSelectorRequest:\s*null/);
+  assert.match(creationRequestAction, /edgeSelectorRequest:\s*source === "popover" \? null : current\.edgeSelectorRequest/);
+  assert.doesNotMatch(creationRequestAction, /selectorRequest:\s*null/);
   assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
   assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
   const insertionStart = workflowStore.indexOf("createNodeFromRequest: (taskCode");
@@ -155,7 +156,7 @@ test("canvas toolbar plus opens an anchored root picker while top toolbar alone 
 
 test("all node creation entry points share a confirm-before-create naming dialog", () => {
   assert.doesNotMatch(workflowSelector, /generateWorkflowTaskCode/);
-  assert.match(workflowSelector, /requestNodeCreation\(task\.taskType, insertionRequest\)/);
+  assert.match(workflowSelector, /requestNodeCreation\([\s\S]*?isPopover \? "popover" : "sidebar"/);
   assert.match(workflowCanvas, /requestNodeCreation\(\s*taskType,\s*\{ kind: "add" \},\s*instance\.screenToFlowPosition/s);
   assert.match(workflowCanvas, /open=\{Boolean\(nodeCreationRequest\)\}/);
   assert.match(workflowSelector, /if \(nodeCreationRequest\) return;/);
@@ -164,7 +165,9 @@ test("all node creation entry points share a confirm-before-create naming dialog
   assert.match(workflowCanvas, /generateWorkflowTaskCode\(\)/);
   assert.match(workflowCanvas, /createNodeFromRequest\(\s*taskCode,\s*Number\(projectCode\),\s*normalizedName/s);
   assert.match(workflowCanvas, /if \(!open && !nodeCreationPending\) cancelNodeCreation\(\)/);
-  assert.match(workflowStore, /requestNodeCreation: \(taskType, insertionRequest, position\)/);
+  assert.match(workflowStore, /source\?: "sidebar" \| "popover" \| "drop"/);
+  assert.match(workflowStore, /source === "popover" \? null : current\.edgeSelectorRequest/);
+  assert.match(workflowCanvas, /instance\.screenToFlowPosition\([\s\S]*?\),\s*"drop"/);
   assert.match(workflowStore, /defaultName: getNextDraftNodeName\(taskType, state\.nodes\)/);
   assert.match(workflowStore, /createDraftNode\([\s\S]*?normalizedName/);
   assert.doesNotMatch(workflowCanvas, /addDroppedNode|renameDraftNode|pendingNodeRename/);

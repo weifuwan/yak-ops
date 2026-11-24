@@ -475,6 +475,7 @@ export function WorkflowCanvas({
         x: event.clientX,
         y: event.clientY,
       }),
+      "drop",
     );
   };
 

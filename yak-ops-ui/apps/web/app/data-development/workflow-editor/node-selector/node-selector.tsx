@@ -276,7 +276,12 @@ function WorkflowNodePicker({
               : request
         : (request as WorkflowSelectorRequest | null) ?? undefined;
 
-    requestNodeCreation(task.taskType, insertionRequest);
+    requestNodeCreation(
+      task.taskType,
+      insertionRequest,
+      undefined,
+      isPopover ? "popover" : "sidebar",
+    );
   };
 
   if (!request) return null;

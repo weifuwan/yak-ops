@@ -71,6 +71,7 @@ export type WorkflowEditorState = {
     taskType: string,
     insertionRequest?: WorkflowNodeInsertionRequest,
     position?: XYPosition,
+    source?: "sidebar" | "popover" | "drop",
   ) => void;
   cancelNodeCreation: () => void;
   createNodeFromRequest: (
@@ -423,16 +424,23 @@ export function createWorkflowStore(
         closeEdgeSelector: () =>
           set({ edgeSelectorRequest: null }),
 
-        requestNodeCreation: (taskType, insertionRequest, position) => {
+        requestNodeCreation: (
+          taskType,
+          insertionRequest,
+          position,
+          source = "sidebar",
+        ) => {
           const state = get();
-          set({
+          set((current) => ({
             nodeCreationRequest: {
               taskType,
               insertionRequest,
               position,
               defaultName: getNextDraftNodeName(taskType, state.nodes),
             },
-          });
+            edgeSelectorRequest:
+              source === "popover" ? null : current.edgeSelectorRequest,
+          }));
         },
 
         cancelNodeCreation: () =>
