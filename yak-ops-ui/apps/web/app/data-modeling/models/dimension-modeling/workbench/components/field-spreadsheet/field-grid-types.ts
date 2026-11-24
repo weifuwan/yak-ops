@@ -14,6 +14,9 @@ export type FieldColumnKey =
   | "cnName"
   | "length"
   | "fieldPrecision"
+  | "fieldScale"
+  | "datetimePrecision"
+  | "defaultValue"
   | "fieldStdId"
   | "codeStdId"
   | "unitId"
@@ -47,7 +50,8 @@ export type FieldSpreadsheetProps = {
   fields: DimensionFieldRecord[];
   fieldStandardOptions: FieldOption[];
   codeStandardOptions: FieldOption[];
-  unitOptions: FieldOption[];\n  fieldTypeOptions?: FieldOption[];
+  unitOptions: FieldOption[];
+  fieldTypeOptions?: FieldOption[];
   loading?: boolean;
   error?: boolean;
   onChange: (fields: DimensionFieldRecord[]) => void;
@@ -59,7 +63,10 @@ export const FIELD_GRID_COLUMNS: FieldGridColumn[] = [
   { key: "dataType", title: "类型", minWidth: 120, flex: 0.8, defaultVisible: true },
   { key: "cnName", title: "字段显示名", minWidth: 180, flex: 1.3, defaultVisible: true },
   { key: "length", title: "长度", minWidth: 88, flex: 0.55, configurable: true },
-  { key: "fieldPrecision", title: "精度", minWidth: 88, flex: 0.55, configurable: true },\n  { key: "fieldScale", title: "小数位", minWidth: 76, flex: 0.5, configurable: true },\n  { key: "datetimePrecision", title: "时间精度", minWidth: 88, flex: 0.55, configurable: true },\n  { key: "defaultValue", title: "默认值", minWidth: 120, flex: 0.8, configurable: true },
+  { key: "fieldPrecision", title: "精度", minWidth: 88, flex: 0.55, configurable: true },
+  { key: "fieldScale", title: "小数位", minWidth: 76, flex: 0.5, configurable: true },
+  { key: "datetimePrecision", title: "时间精度", minWidth: 88, flex: 0.55, configurable: true },
+  { key: "defaultValue", title: "默认值", minWidth: 120, flex: 0.8, configurable: true },
   { key: "fieldStdId", title: "关联字段标准", minWidth: 160, flex: 1, configurable: true },
   { key: "codeStdId", title: "关联标准代码", minWidth: 160, flex: 1, configurable: true },
   { key: "unitId", title: "度量单位", minWidth: 120, flex: 0.8, configurable: true },
