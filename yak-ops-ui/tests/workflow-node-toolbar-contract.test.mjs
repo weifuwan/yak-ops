@@ -169,6 +169,7 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
 
   for (const taskType of [
     "CONDITIONS",
+    "SWITCH",
     "DATA_SYNC",
     "SQL",
     "PYTHON",
@@ -180,6 +181,9 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
     assert.ok(taskTypeBadgeIcon.includes(taskType), `missing task icon mapping: ${taskType}`);
   }
 
+  assert.ok(taskTypeBadgeIcon.includes('SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" }'));
+  assert.ok(taskTypeBadgeIcon.includes('normalized === "SWITCH"'));
+  assert.ok(taskTypeBadgeIcon.includes("M938.728542 177.940913a128.063937 0 0 1 0 241.450882"));
   assert.ok(taskTypeBadgeIcon.includes('PYTHON: { icon: Code2, background: "var(--yak-color-primary)" }'));
   assert.ok(taskTypeBadgeIcon.includes('normalized === "PYTHON"'));
   assert.ok(taskTypeBadgeIcon.includes('viewBox="0 0 1029 1024"'));
