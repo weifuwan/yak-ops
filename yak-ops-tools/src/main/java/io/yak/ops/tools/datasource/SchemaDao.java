@@ -280,6 +280,15 @@ public class SchemaDao {
             ensureColumn(metadata, connection, publishTable, "physical_config", physicalConfigType);
 
             if (tableExists(metadata, connection, fieldTable)) {
+                try (Statement statement = connection.createStatement()) {
+                    int normalized = statement.executeUpdate(
+                            "UPDATE " + quoteIdentifier(fieldTable)
+                                    + " SET can_null = FALSE"
+                                    + " WHERE primary_flag = TRUE AND (can_null IS NULL OR can_null = TRUE)");
+                    if (normalized > 0) {
+                        log.info("Normalized {} primary fields to NOT NULL", normalized);
+                    }
+                }
                 for (String keyTable : legacyKeyTables) {
                     if (!tableExists(metadata, connection, keyTable)) {
                         continue;
