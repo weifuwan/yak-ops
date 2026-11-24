@@ -1,4 +1,4 @@
-import { normalizeNodeLocalParams } from "../common/node-resource-params/adapter";
+import { normalizeNodeLocalParams } from "../common/node-resource-params/adapter.ts";
 import type { SqlExecutionType, SqlSource, SqlTaskForm } from "./types";
 
 export function readSqlTaskObject(value: unknown): Record<string, unknown> {
