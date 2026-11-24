@@ -432,6 +432,7 @@ function SqlTaskWorkspace({
             </SqlField>
           </div>
           <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
+            最大返回行数填写 0 表示使用后端默认上限 10000。
           </p>
         </CollapseSection>
 
