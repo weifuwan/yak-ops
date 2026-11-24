@@ -6,16 +6,28 @@ import { ManualRunPanel } from "../manual-run";
 import { RunHistoryPanel } from "../run-history";
 import { DataCatalogPanel } from "../data-catalog";
 import { OperationHistoryPanel } from "../operation-history";
+import { BackfillPanel } from "../backfill/panel";
+import { WorkflowLineagePanel } from "../workflow-lineage/panel";
+import { TaskInstanceRecordsPanel } from "../task-instance-records/panel";
+import { ProjectParametersPanel } from "../project-parameters/panel";
 import type { DataDevelopmentSection } from "./development-rail";
 
 const PANEL_COPY: Record<
-  Exclude<DataDevelopmentSection, "development" | "resource" | "manual" | "catalog" | "history" | "operation-check">,
+  Exclude<
+    DataDevelopmentSection,
+    | "development"
+    | "resource"
+    | "manual"
+    | "catalog"
+    | "history"
+    | "operation-check"
+    | "backfill"
+    | "lineage"
+    | "task-instances"
+    | "parameters"
+  >,
   { title: string; content: string }
 > = {
-  backfill: { title: "补数中心", content: "在主工作区配置补数日期、运行模式和依赖策略。" },
-  lineage: { title: "依赖分析", content: "在主工作区查看当前项目工作流的上下游依赖。" },
-  "task-instances": { title: "任务运行记录", content: "在主工作区筛选任务实例并查看执行详情和日志。" },
-  parameters: { title: "项目参数", content: "在主工作区维护当前项目的全局参数。" },
   component: { title: "组件管理", content: "该能力暂未接入当前后端。" },
   "ai-processing": { title: "AI 数据处理", content: "该能力暂未接入当前后端。" },
   review: { title: "代码评审列表", content: "该能力暂未接入当前后端。" },
@@ -53,6 +65,14 @@ export function DevelopmentPanel({
   }
 
   if (activeSection === "manual") return <ManualRunPanel width={width} />;
+  if (activeSection === "backfill") return <BackfillPanel width={width} />;
+  if (activeSection === "lineage") return <WorkflowLineagePanel width={width} />;
+  if (activeSection === "task-instances") {
+    return <TaskInstanceRecordsPanel width={width} />;
+  }
+  if (activeSection === "parameters") {
+    return <ProjectParametersPanel width={width} />;
+  }
   if (activeSection === "history") return <RunHistoryPanel width={width} />;
   if (activeSection === "catalog") return <DataCatalogPanel width={width} />;
   if (activeSection === "operation-check") {

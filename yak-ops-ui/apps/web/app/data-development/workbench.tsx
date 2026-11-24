@@ -6,8 +6,12 @@ import {
   Ellipsis,
   X,
   XCircle,
+  CalendarClock,
   ClipboardList,
+  GitBranch,
   History,
+  ListChecks,
+  SlidersHorizontal,
   Table2,
 } from "lucide-react";
 import {
@@ -32,11 +36,10 @@ import { AuditDetailView } from "./operation-history/detail-view";
 import { TaskTypeBadgeIcon } from "./workflow-editor/components/task-type-badge-icon";
 import { WorkflowTreeIcon } from "./workflow-editor/components/workflow-tree-icon";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
-import type { DataDevelopmentSection } from "./layout/development-rail";
-import { BackfillCenterPage } from "./features/backfill-center-page";
-import { WorkflowLineagePage } from "./features/workflow-lineage-page";
-import { TaskInstanceRecordsPage } from "./features/task-instance-records-page";
-import { ProjectParametersPage } from "./features/project-parameters-page";
+import { BackfillEditor } from "./backfill/editor";
+import { WorkflowLineageEditor } from "./workflow-lineage/editor";
+import { TaskInstanceDetailView } from "./task-instance-records/detail-view";
+import { ProjectParameterEditor } from "./project-parameters/editor";
 
 type TabContextMenuState = {
   tabId: string;
@@ -49,7 +52,7 @@ type PendingTabClose = {
   dirtyTitles: string[];
 };
 
-export function DataDevelopmentWorkbench({ activeSection }: { activeSection: DataDevelopmentSection }) {
+export function DataDevelopmentWorkbench() {
   const {
     tabs,
     dirtyTabIds,
@@ -133,23 +136,7 @@ export function DataDevelopmentWorkbench({ activeSection }: { activeSection: Dat
     .slice(contextTabIndex + 1)
     .filter((tab) => !contextProtectedTabIds.has(tab.id));
 
-  const fullPage = (() => {
-    switch (activeSection) {
-      case "backfill":
-        return <BackfillCenterPage />;
-      case "lineage":
-        return <WorkflowLineagePage />;
-      case "task-instances":
-        return <TaskInstanceRecordsPage />;
-      case "parameters":
-        return <ProjectParametersPage />;
-      default:
-        return null;
-    }
-  })();
-
-  if (fullPage) {
-    return (
+  return (
       <section
         aria-label="数据开发工作区"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)]"
@@ -210,6 +197,14 @@ export function DataDevelopmentWorkbench({ activeSection }: { activeSection: Dat
                       <History size={15} className="shrink-0 text-[#667085]" />
                     ) : tab.kind === "catalog-table" ? (
                       <Table2 size={15} className="shrink-0 text-[#667085]" />
+                    ) : tab.kind === "backfill-workflow" ? (
+                      <CalendarClock size={15} className="shrink-0 text-[#667085]" />
+                    ) : tab.kind === "workflow-lineage" ? (
+                      <GitBranch size={15} className="shrink-0 text-[#667085]" />
+                    ) : tab.kind === "task-instance" ? (
+                      <ListChecks size={15} className="shrink-0 text-[#667085]" />
+                    ) : tab.kind === "project-parameter" ? (
+                      <SlidersHorizontal size={15} className="shrink-0 text-[#667085]" />
                     ) : (
                       <ClipboardList size={15} className="shrink-0 text-[#667085]" />
                     )}
@@ -478,6 +473,54 @@ export function DataDevelopmentWorkbench({ activeSection }: { activeSection: Dat
                 className={tabClassName}
               >
                 <AuditDetailView record={tab.record} />
+              </div>
+            );
+          }
+
+          if (tab.kind === "backfill-workflow") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <BackfillEditor workflow={tab.workflow} />
+              </div>
+            );
+          }
+
+          if (tab.kind === "workflow-lineage") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <WorkflowLineageEditor workflow={tab.workflow} />
+              </div>
+            );
+          }
+
+          if (tab.kind === "task-instance") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <TaskInstanceDetailView record={tab.record} />
+              </div>
+            );
+          }
+
+          if (tab.kind === "project-parameter") {
+            return (
+              <div
+                key={tab.id}
+                aria-hidden={!isActive}
+                className={tabClassName}
+              >
+                <ProjectParameterEditor record={tab.record} />
               </div>
             );
           }

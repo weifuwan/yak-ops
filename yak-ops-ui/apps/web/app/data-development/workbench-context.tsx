@@ -13,6 +13,8 @@ import type {
   WorkflowTaskRecord,
 } from "@/service/workflow/definition";
 import type { AuditRecord } from "@/service/audit";
+import type { ProjectParameterRecord } from "@/service/project/parameter";
+import type { TaskInstanceRecord } from "@/service/workflow/task-instances";
 import type { WorkflowStoreApi } from "./workflow-editor/store/workflow-store";
 
 export type WorkflowWorkbenchTab =
@@ -56,6 +58,30 @@ export type WorkflowWorkbenchTab =
       kind: "audit-record";
       record: AuditRecord;
       title: string;
+    }
+  | {
+      id: string;
+      kind: "backfill-workflow";
+      workflow: WorkflowDefinitionRecord;
+      title: string;
+    }
+  | {
+      id: string;
+      kind: "workflow-lineage";
+      workflow: WorkflowDefinitionRecord;
+      title: string;
+    }
+  | {
+      id: string;
+      kind: "task-instance";
+      record: TaskInstanceRecord;
+      title: string;
+    }
+  | {
+      id: string;
+      kind: "project-parameter";
+      record: ProjectParameterRecord | null;
+      title: string;
     };
 
 type DataDevelopmentWorkbenchContextValue = {
@@ -76,6 +102,10 @@ type DataDevelopmentWorkbenchContextValue = {
     objectType?: string,
   ) => void;
   openAuditRecord: (record: AuditRecord, title?: string) => void;
+  openBackfillWorkflow: (workflow: WorkflowDefinitionRecord) => void;
+  openWorkflowLineage: (workflow: WorkflowDefinitionRecord) => void;
+  openTaskInstanceRecord: (record: TaskInstanceRecord) => void;
+  openProjectParameter: (record: ProjectParameterRecord | null) => void;
   updateTaskTab: (id: string, task: WorkflowTaskRecord) => void;
   syncWorkflowTaskRecords: (workflowCode: number, tasks: WorkflowTaskRecord[]) => void;
   updateWorkflowDefinition: (workflow: WorkflowDefinitionRecord) => void;
@@ -216,6 +246,38 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       title,
     });
 
+  const openBackfillWorkflow = (workflow: WorkflowDefinitionRecord) =>
+    openTab({
+      id: "backfill-workflow:" + workflow.code,
+      kind: "backfill-workflow",
+      workflow,
+      title: "补数 · " + workflow.name,
+    });
+
+  const openWorkflowLineage = (workflow: WorkflowDefinitionRecord) =>
+    openTab({
+      id: "workflow-lineage:" + workflow.code,
+      kind: "workflow-lineage",
+      workflow,
+      title: "依赖 · " + workflow.name,
+    });
+
+  const openTaskInstanceRecord = (record: TaskInstanceRecord) =>
+    openTab({
+      id: "task-instance:" + record.id,
+      kind: "task-instance",
+      record,
+      title: record.name || "任务 #" + record.id,
+    });
+
+  const openProjectParameter = (record: ProjectParameterRecord | null) =>
+    openTab({
+      id: record ? "project-parameter:" + record.code : "project-parameter:new",
+      kind: "project-parameter",
+      record,
+      title: record?.paramName || "新建项目参数",
+    });
+
   const updateTaskTab = (id: string, task: WorkflowTaskRecord) => {
     setTabs((current) => current.map((tab) =>
       tab.id === id && tab.kind === "task" ? { ...tab, title: task.name, task } : tab,
@@ -317,6 +379,10 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     openWorkflowInstance,
     openCatalogTable,
     openAuditRecord,
+    openBackfillWorkflow,
+    openWorkflowLineage,
+    openTaskInstanceRecord,
+    openProjectParameter,
     updateTaskTab,
     syncWorkflowTaskRecords,
     updateWorkflowDefinition,
