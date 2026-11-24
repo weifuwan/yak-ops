@@ -60,6 +60,7 @@ class DimensionDorisServiceImplTest {
     @Test
     void shouldGenerateDuplicateDdlUsingTheDorisSdkTypeMapper() {
         DimensionTableFieldPO id = field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT);
+        id.setCanNull(Boolean.FALSE);
         DimensionTableFieldPO amount = field("field-amount", "amount", DimensionDataTypeEnum.DECIMAL);
         amount.setFieldPrecision(12);
         amount.setFieldScale(2);
