@@ -201,12 +201,19 @@ class DimensionDorisServiceImplTest {
         Connection connection = mock(Connection.class);
         DatabaseMetaData metadata = mock(DatabaseMetaData.class);
         ResultSet noTables = mock(ResultSet.class);
+        ResultSet columns = mock(ResultSet.class);
         Statement statement = mock(Statement.class);
         when(connection.getMetaData()).thenReturn(metadata);
         when(metadata.getSearchStringEscape()).thenReturn("\\");
         when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
                 .thenReturn(noTables);
         when(noTables.next()).thenReturn(false, false);
+        when(metadata.getColumns(anyString(), isNull(), anyString(), isNull()))
+                .thenReturn(columns);
+        when(columns.next()).thenReturn(true, false);
+        when(columns.getString("TABLE_NAME")).thenReturn("dwd_order_detail");
+        when(columns.getString("COLUMN_NAME")).thenReturn("customer_id");
+        when(columns.getString("TYPE_NAME")).thenReturn("BIGINT");
         when(connection.createStatement()).thenReturn(statement);
         doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
 
