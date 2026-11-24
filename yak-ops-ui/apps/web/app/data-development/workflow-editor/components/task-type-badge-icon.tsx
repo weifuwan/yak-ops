@@ -32,7 +32,7 @@ const DEFAULT_ICON: TaskTypeIconSpec = {
 // solid-color icon container and white glyph instead of text badges.
 const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
   CONDITIONS: { icon: GitBranch, background: "var(--yak-color-primary)" },
-  DEPENDENT: { icon: GitBranch, background: "#8b5cf6" },
+  DEPENDENT: { icon: GitBranch, background: "var(--yak-color-primary)" },
   SUB_WORKFLOW: { icon: Workflow, background: "var(--yak-color-primary)" },
   SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" },
 
@@ -102,7 +102,25 @@ export function TaskTypeBadgeIcon({
             : "0 1px 2px rgba(16, 24, 40, 0.14)",
       }}
     >
-      {normalized === "SUB_WORKFLOW" ? (
+      {normalized === "DEPENDENT" ? (
+        <svg
+          aria-hidden="true"
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 1024 1024"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M576 256h448v64H576zM0 704h448v64H0z m256 256h768v64H256zM0 0h768v64H0z"
+            fill="currentColor"
+          />
+          <path
+            d="M704 0h64v192h-64zM256 832h64v192h-64zM0 0h64v768H0z m960 256h64v768h-64z m-658.748 0l480.666 480.683-45.252 45.252L256 301.26z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : normalized === "SUB_WORKFLOW" ? (
         <svg
           aria-hidden="true"
           width={iconSize}
