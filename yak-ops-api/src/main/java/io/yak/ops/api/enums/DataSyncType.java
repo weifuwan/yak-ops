@@ -3,6 +3,7 @@ package io.yak.ops.api.enums;
 import io.yak.ops.common.enums.TaskExecuteType;
 
 public enum DataSyncType {
+
     OFFLINE(TaskExecuteType.BATCH),
     REALTIME(TaskExecuteType.STREAM);
 
