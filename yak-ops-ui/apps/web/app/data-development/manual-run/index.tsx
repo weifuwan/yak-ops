@@ -93,17 +93,6 @@ export function ManualRunPanel({ width }: { width: number }) {
         style={{ scrollbarColor: "var(--yak-color-scrollbar) transparent" }}
       >
         <section aria-label="工作流列表">
-          <div
-            className="mb-1 flex h-6 items-center px-2"
-            style={{
-              fontSize: "0.875rem",
-              lineHeight: "1.5",
-              color: "oklch(50% .001 107)",
-            }}
-          >
-            最近工作流
-          </div>
-
           {query.isLoading ? (
             <div className="flex h-24 items-center justify-center text-[12px] text-[#9aa0a8]">
               加载中...
@@ -116,7 +105,7 @@ export function ManualRunPanel({ width }: { width: number }) {
             <div className="flex flex-col gap-3">
               {groups.map((group) => (
                 <section key={group.id} aria-label={group.label}>
-                  <h3 className="mb-1 mt-0 px-2 text-[10px] font-medium uppercase tracking-[0.04em] text-[#999999]">
+                  <h3 className="mb-1 mt-0 px-2 text-xs font-medium tracking-[0.02em] text-[#999999]">
                     {group.label}
                   </h3>
                   <nav className="flex flex-col gap-0.5" aria-label={group.label}>
