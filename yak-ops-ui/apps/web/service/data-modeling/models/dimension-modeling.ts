@@ -64,7 +64,7 @@ export type DimensionFieldRecord = {
   cnName?: string;
   dataType: string;
   length?: number;
-  fieldPrecision?: number;
+  fieldPrecision?: number;\n  ordinal?: number;\n  fieldScale?: number;\n  datetimePrecision?: number;\n  defaultValue?: string;
   remark?: string;
   primaryFlag?: boolean;
   notNull?: boolean;
@@ -74,6 +74,52 @@ export type DimensionFieldRecord = {
   unitId?: string;
   fieldStdId?: string;
   codeStdId?: string;
+};
+
+
+export type DorisDataModel = "DUPLICATE" | "UNIQUE";
+export type DorisPartitionStrategy = "NONE" | "AUTO_RANGE";
+export type DorisPartitionUnit = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR";
+export type DorisBucketMode = "AUTO" | "FIXED";
+export type DorisConfig = {
+  tableId?: string;
+  dataModel?: DorisDataModel;
+  keyFieldIds?: string[];
+  distributionType?: "HASH";
+  distributionFieldIds?: string[];
+  bucketMode?: DorisBucketMode;
+  bucketCount?: number;
+  partitionStrategy?: DorisPartitionStrategy;
+  partitionFieldId?: string;
+  partitionUnit?: DorisPartitionUnit;
+  tableProperties?: Record<string, string>;
+};
+export type DorisFieldTypeOption = {
+  code: string;
+  label: string;
+  parameterType: "NONE" | "LENGTH" | "DECIMAL" | "DATETIME_PRECISION";
+  maxLength?: number;
+  maxPrecision?: number;
+  maxScale?: number;
+};
+export type DorisPublishRequest = { datasourceId: number; targetDatabase: string };
+export type DorisPublishRecord = {
+  id?: string;
+  tableId?: string;
+  versionNumber?: number;
+  datasourceId?: number;
+  datasourceName?: string;
+  targetDatabase?: string;
+  targetTable?: string;
+  ddl?: string;
+  ddlHash?: string;
+  status?: string;
+  errorMessage?: string;
+  executionDurationMs?: number;
+  startedAt?: string;
+  finishedAt?: string;
+  createTime?: string;
+  createBy?: string;
 };
 
 export type DimensionVersionRecord = {
@@ -158,6 +204,31 @@ export const dimensionModelingApi = {
     return HttpUtils.getData<DimensionVersionRecord[]>(
       resourcePath(projectCode) + "/version-history/" + encodeURIComponent(id),
     );
+  },
+
+
+  dorisConfig(projectCode: string, id: string) {
+    return HttpUtils.getData<DorisConfig>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/doris-config");
+  },
+
+  saveDorisConfig(projectCode: string, id: string, payload: DorisConfig) {
+    return HttpUtils.putData<DorisConfig>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/doris-config", payload);
+  },
+
+  dorisFieldTypes(projectCode: string) {
+    return HttpUtils.getData<DorisFieldTypeOption[]>(resourcePath(projectCode) + "/options/doris/field-types");
+  },
+
+  previewDorisDdl(projectCode: string, id: string, payload: DorisPublishRequest) {
+    return HttpUtils.postData<DorisPublishRecord>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/ddl/preview", payload);
+  },
+
+  publishDoris(projectCode: string, id: string, payload: DorisPublishRequest) {
+    return HttpUtils.postData<DorisPublishRecord>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/publish", payload);
+  },
+
+  dorisPublishHistory(projectCode: string, id: string) {
+    return HttpUtils.getData<DorisPublishRecord[]>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/publish-history");
   },
 
   rollback(projectCode: string, id: string, targetVersion: number) {
