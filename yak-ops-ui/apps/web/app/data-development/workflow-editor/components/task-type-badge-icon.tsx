@@ -31,7 +31,7 @@ const DEFAULT_ICON: TaskTypeIconSpec = {
 // Keep the existing task-type color families, but render them with Dify's
 // solid-color icon container and white glyph instead of text badges.
 const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
-  CONDITIONS: { icon: GitBranch, background: "#8b5cf6" },
+  CONDITIONS: { icon: GitBranch, background: "var(--yak-color-primary)" },
   DEPENDENT: { icon: GitBranch, background: "#8b5cf6" },
   SUB_WORKFLOW: { icon: Workflow, background: "#8b5cf6" },
   SWITCH: { icon: GitBranch, background: "#8b5cf6" },
@@ -102,7 +102,23 @@ export function TaskTypeBadgeIcon({
             : "0 1px 2px rgba(16, 24, 40, 0.14)",
       }}
     >
-      <Icon size={iconSize} strokeWidth={2.1} aria-hidden="true" />
+      {normalized === "CONDITIONS" ? (
+        <svg
+          aria-hidden="true"
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 1024 1024"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M597.358 218.697a47.982 47.982 0 0 1 0-96.036h213.284c26.551 0 48.055 21.504 48.055 47.981V384a47.982 47.982 0 0 1-96.036 0v-97.426L537.234 512l225.427 225.426V640a47.982 47.982 0 1 1 96.036 0v213.358a47.982 47.982 0 0 1-48.055 47.981H597.358a47.982 47.982 0 0 1 0-95.963h97.426L449.463 559.982H128a47.982 47.982 0 1 1 0-95.964h321.463l245.321-245.32h-97.426z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : (
+        <Icon size={iconSize} strokeWidth={2.1} aria-hidden="true" />
+      )}
     </span>
   );
 }
