@@ -275,7 +275,9 @@ public class SchemaDao {
             if (!tableExists(metadata, connection, publishTable)) {
                 return;
             }
-            ensureColumn(metadata, connection, publishTable, "physical_config", "text NULL");
+            String physicalConfigType = "mysql".equalsIgnoreCase(dbType.getDb())
+                    ? "longtext NULL" : "text NULL";
+            ensureColumn(metadata, connection, publishTable, "physical_config", physicalConfigType);
 
             if (tableExists(metadata, connection, fieldTable)) {
                 for (String keyTable : legacyKeyTables) {
