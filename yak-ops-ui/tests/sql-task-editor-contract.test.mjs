@@ -112,6 +112,15 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.match(editor, /title="前置 SQL"/);
   assert.match(editor, /title="后置 SQL"/);
   assert.match(editor, /title="结果通知"/);
+  assert.match(editor, /function SqlSectionHeader/);
+  assert.match(editor, /bg-\\[#5664ff\\]/);
+  const statementsSection = editor.slice(
+    editor.indexOf("function SqlStatementsSection"),
+    editor.indexOf("function SqlTaskWorkspace"),
+  );
+  assert.match(statementsSection, /<SqlSectionHeader title={title} \/>/);
+  assert.doesNotMatch(statementsSection, /<CollapseSection/);
+  assert.match(statementsSection, /添加\{title\}/);
   assert.match(workflowStore, /sqlSource: "SCRIPT"/);
 });
 
