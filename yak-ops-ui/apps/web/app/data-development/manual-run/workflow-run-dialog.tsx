@@ -120,7 +120,16 @@ export function WorkflowRunDialog({ workflow, open, onOpenChange }: Props) {
       open={open && Boolean(workflow)}
       centered
       width={520}
-      title="运行工作流"
+      title={
+        <div className="flex min-w-0 flex-col gap-0.5">
+          {workflow ? (
+            <span className="truncate text-xs font-normal leading-4 text-[var(--yak-components-field-description)]">
+              {workflow.name}
+            </span>
+          ) : null}
+          <span>运行工作流</span>
+        </div>
+      }
       onClose={() => {
         if (!running) onOpenChange(false);
       }}
@@ -149,10 +158,6 @@ export function WorkflowRunDialog({ workflow, open, onOpenChange }: Props) {
     >
       {workflow ? (
         <>
-          <p className="text-xs leading-4 text-[var(--yak-components-field-description)]">
-            {workflow.name}
-          </p>
-
           <div className="space-y-4">
             <Field>
               <FieldLabel>Worker Group</FieldLabel>
