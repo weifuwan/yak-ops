@@ -32,6 +32,11 @@ import { AuditDetailView } from "./operation-history/detail-view";
 import { TaskTypeBadgeIcon } from "./workflow-editor/components/task-type-badge-icon";
 import { WorkflowTreeIcon } from "./workflow-editor/components/workflow-tree-icon";
 import { useDataDevelopmentWorkbench } from "./workbench-context";
+import type { DataDevelopmentSection } from "./layout/development-rail";
+import { BackfillCenterPage } from "./features/backfill-center-page";
+import { WorkflowLineagePage } from "./features/workflow-lineage-page";
+import { TaskInstanceRecordsPage } from "./features/task-instance-records-page";
+import { ProjectParametersPage } from "./features/project-parameters-page";
 
 type TabContextMenuState = {
   tabId: string;
@@ -44,7 +49,7 @@ type PendingTabClose = {
   dirtyTitles: string[];
 };
 
-export function DataDevelopmentWorkbench() {
+export function DataDevelopmentWorkbench({ activeSection }: { activeSection: DataDevelopmentSection }) {
   const {
     tabs,
     dirtyTabIds,
@@ -127,6 +132,11 @@ export function DataDevelopmentWorkbench() {
   const contextTabsToCloseRight = tabs
     .slice(contextTabIndex + 1)
     .filter((tab) => !contextProtectedTabIds.has(tab.id));
+
+  if (activeSection === "backfill") return <BackfillCenterPage />;
+  if (activeSection === "lineage") return <WorkflowLineagePage />;
+  if (activeSection === "task-instances") return <TaskInstanceRecordsPage />;
+  if (activeSection === "parameters") return <ProjectParametersPage />;
 
   return (
     <section

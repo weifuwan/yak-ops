@@ -35,6 +35,9 @@ public class BackfillWorkflowDTOValidator implements IValidator<BackfillWorkflow
         if (CollectionUtils.isEmpty(backfillParams.getBackfillDateList())) {
             throw new IllegalArgumentException("backfillDateList is empty");
         }
+        if (backfillParams.getExpectedParallelismNumber() == null) {
+            backfillParams.setExpectedParallelismNumber(0);
+        }
         if (backfillParams.getExpectedParallelismNumber() < 0) {
             throw new IllegalArgumentException("expectedParallelismNumber should >= 0");
         }

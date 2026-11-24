@@ -11,6 +11,13 @@ import { PanelResizer } from "./panel-resizer";
 
 const DEFAULT_PANEL_WIDTH = 280;
 
+const FULL_PAGE_SECTIONS = new Set<DataDevelopmentSection>([
+  "backfill",
+  "lineage",
+  "task-instances",
+  "parameters",
+]);
+
 export function DataDevelopmentLayout() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] =
@@ -21,7 +28,7 @@ export function DataDevelopmentLayout() {
 
   const handleSectionChange = (section: DataDevelopmentSection) => {
     setActiveSection(section);
-    setPanelCollapsed(false);
+    setPanelCollapsed(FULL_PAGE_SECTIONS.has(section));
   };
 
   return (
@@ -61,7 +68,7 @@ export function DataDevelopmentLayout() {
         <PanelResizer width={panelWidth} onResize={setPanelWidth} />
       )}
 
-      <DataDevelopmentWorkbench />
+      <DataDevelopmentWorkbench activeSection={activeSection} />
     </div>
   );
 }

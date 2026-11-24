@@ -129,6 +129,17 @@ public class TaskInstanceController extends BaseController {
         return result;
     }
 
+    @Operation(summary = "query-task-instance-by-id", description = "QUERY_TASK_INSTANCE_DETAIL")
+    @GetMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public Result<TaskInstance> queryTaskInstanceById(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
+            @PathVariable(value = "id") Integer id) {
+        TaskInstance taskInstance = taskInstanceService.queryTaskInstanceById(loginUser, projectCode, id);
+        return Result.success(SensitivePropertyUtils.mask(taskInstance));
+    }
+
     /**
      * change one task instance's state from FAILURE to FORCED_SUCCESS
      *

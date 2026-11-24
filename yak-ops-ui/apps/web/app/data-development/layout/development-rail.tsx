@@ -3,6 +3,10 @@ import {
   Bot,
   Box,
   CircleHelp,
+  CalendarClock,
+  GitBranch,
+  ListChecks,
+  SlidersHorizontal,
   Ear,
   FileText,
   History,
@@ -24,6 +28,10 @@ import {
 export type DataDevelopmentSection =
   | "development"
   | "manual"
+  | "backfill"
+  | "lineage"
+  | "task-instances"
+  | "parameters"
   | "component"
   | "catalog"
   | "resource"
@@ -45,6 +53,10 @@ type RailItem = {
 const RAIL_ITEMS: RailItem[] = [
   { id: "development", label: "数据开发", icon: SquareCode },
   { id: "manual", label: "手动运行", icon: Ear },
+  { id: "backfill", label: "补数中心", icon: CalendarClock },
+  { id: "lineage", label: "依赖分析", icon: GitBranch },
+  { id: "task-instances", label: "任务运行记录", icon: ListChecks },
+  { id: "parameters", label: "项目参数", icon: SlidersHorizontal },
   { id: "component", label: "组件管理", icon: Puzzle },
   { id: "catalog", label: "数据目录", icon: Table2 },
   { id: "resource", label: "资源管理", icon: Archive },

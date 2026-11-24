@@ -3,6 +3,7 @@ package io.yak.ops.api.service;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 public interface TaskInstanceService {
@@ -41,6 +42,11 @@ public interface TaskInstanceService {
                                TaskExecuteType taskExecuteType,
                                Integer pageNo,
                                Integer pageSize);
+
+    /**
+     * Query one task instance under the given project.
+     */
+    TaskInstance queryTaskInstanceById(User loginUser, long projectCode, Integer taskInstanceId);
 
     /**
      * change one task instance's state from failure to forced success

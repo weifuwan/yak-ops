@@ -167,6 +167,19 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
         return result;
     }
 
+    @Override
+    public TaskInstance queryTaskInstanceById(User loginUser, long projectCode, Integer taskInstanceId) {
+        projectService.checkProjectAndAuthThrowException(loginUser, projectCode, TASK_INSTANCE);
+        TaskInstance taskInstance = taskInstanceDao.queryOptionalById(taskInstanceId)
+                .orElseThrow(() -> new ServiceException(Status.TASK_INSTANCE_NOT_FOUND));
+        if (!Long.valueOf(projectCode).equals(taskInstance.getProjectCode())) {
+            throw new ServiceException(Status.TASK_INSTANCE_NOT_FOUND);
+        }
+        taskInstance.setDuration(DateUtils.format2Duration(
+                taskInstance.getStartTime(), taskInstance.getEndTime()));
+        return taskInstance;
+    }
+
     /**
      * change one task instance's state from failure to forced success
      *
