@@ -162,7 +162,7 @@ function HttpKeyValueSection({
                         aria-label={title + "名称 " + (index + 1)}
                         className="w-full"
                       />
-                      <AutocompleteContent>
+                      <AutocompleteContent emptyContent="没有匹配的请求头，可直接输入自定义名称">
                         {(header: string) => (
                           <AutocompleteItem key={header} value={header}>
                             <span className="min-w-0 truncate">{header}</span>
