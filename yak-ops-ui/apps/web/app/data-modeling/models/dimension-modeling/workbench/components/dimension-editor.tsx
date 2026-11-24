@@ -1173,6 +1173,7 @@ export function DimensionEditor({
                     fieldStandardOptions={fieldStandardOptions}
                     codeStandardOptions={codeStandardOptions}
                     unitOptions={unitOptions}
+                    fieldTypeOptions={dorisFieldTypeOptions}
                     loading={Boolean(recordId && fieldsQuery.isFetching)}
                     error={Boolean(recordId && fieldsQuery.isError)}
                     onChange={(nextFields) => updateFieldGroup("PARTITION", nextFields)}
