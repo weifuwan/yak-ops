@@ -41,7 +41,10 @@ export function isEmptyDimensionField(field: DimensionFieldRecord) {
 }
 
 export function fieldsForSave(fields: DimensionFieldRecord[]) {
-  return fields.filter((field) => !isEmptyDimensionField(field));
+  return fields.filter((field) => !isEmptyDimensionField(field)).map((field, ordinal) => ({
+    ...field,
+    ordinal,
+  }));
 }
 
 export function validateDimensionFields(fields: DimensionFieldRecord[]): FieldValidationIssue[] {
