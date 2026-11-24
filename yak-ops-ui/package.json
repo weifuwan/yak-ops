@@ -34,7 +34,7 @@
     "test:dimension-modeling-tree": "node --experimental-strip-types --test tests/dimension-modeling-tree-contract.test.mjs",
     "test:modeling-overview": "node --experimental-strip-types --test tests/data-modeling-overview-visual-contract.test.mjs",
     "test:workflow-logic": "node --experimental-strip-types --test tests/workflow-logic-contract.test.mjs tests/workflow-node-toolbar-contract.test.mjs tests/workflow-task-favorites-contract.test.mjs",
-    "test:shell-editor": "node --experimental-strip-types --test tests/shell-task-editor-contract.test.mjs tests/node-resource-params.test.mjs",
+    "test:shell-editor": "node --experimental-strip-types --test tests/shell-task-editor-contract.test.mjs tests/python-task-editor-contract.test.mjs tests/node-resource-params.test.mjs",
     "test:python-editor": "node --experimental-strip-types --test tests/python-task-editor-contract.test.mjs"
   },
   "devDependencies": {
