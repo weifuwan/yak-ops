@@ -114,6 +114,10 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.match(editor, /title="前置 SQL"/);
   assert.match(editor, /title="后置 SQL"/);
   assert.match(editor, /title="结果通知"/);
+  assert.doesNotMatch(editor, /文件模式只保存资源路径/);
+  assert.doesNotMatch(editor, /将查询结果发送到告警组/);
+  assert.doesNotMatch(editor, /日志展示行数只控制执行日志打印的结果行数/);
+  assert.match(editor, /最大返回行数填写 0 表示使用后端默认上限 10000。/);
   assert.match(editor, /function SqlSectionHeader/);
   assert.match(editor, /bg-\[#5664ff\]/);
   const statementsSection = editor.slice(
