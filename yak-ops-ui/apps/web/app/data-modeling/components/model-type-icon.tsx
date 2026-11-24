@@ -53,13 +53,7 @@ function iconContent(type: ModelTypeIconType) {
       );
     case "DETAIL":
       return (
-        <>
-          <rect x="2.5" y="2.5" width="11" height="11" rx="1.25" />
-          <circle cx="4.2" cy="5.15" r=".45" fill="currentColor" stroke="none" />
-          <circle cx="4.2" cy="8" r=".45" fill="currentColor" stroke="none" />
-          <circle cx="4.2" cy="10.85" r=".45" fill="currentColor" stroke="none" />
-          <path d="M5.6 5.15h5.8M5.6 8h5.8M5.6 10.85h5.8" />
-        </>
+        <path d="M1028.65361 658.152594v219.55471A146.618049 146.618049 0 0 1 881.663198 1023.999535H146.990412A146.618049 146.618049 0 0 1 0 877.707304V146.292696A146.618049 146.618049 0 0 1 146.990412 0.000465h734.672786A146.618049 146.618049 0 0 1 1028.65361 146.292696V658.152594zM94.952641 929.419257a73.076297 73.076297 0 0 0 52.084316 21.50398h734.858969a73.681388 73.681388 0 0 0 67.816665-45.288686c3.677088-8.843628 5.585449-18.385438 5.538904-28.020338V731.228892H73.402115v146.385321a72.610843 72.610843 0 0 0 21.597071 51.805044zM404.014178 402.152827v255.999767h220.625254v-255.999767H404.014178z m220.625254-73.076297v-255.999767H404.014178v255.999767h220.625254zM330.565518 402.152827H73.402115v255.999767h257.163403v-255.999767zM94.999186 94.487652a72.517752 72.517752 0 0 0-21.597071 51.665408V329.07653h257.163403v-255.999767H147.083503a73.35557 73.35557 0 0 0-52.037771 21.364344z m860.252309 51.665408a72.610843 72.610843 0 0 0-45.288686-67.490848 73.541751 73.541751 0 0 0-28.066883-5.538904h-183.854379v255.999767h257.209948V146.15306z m0 256.046313h-257.163402v255.999767h257.163402v-255.999767z" />
       );
     case "SUMMARY":
       return (
@@ -99,11 +93,17 @@ export function ModelTypeIcon({
     <svg
       {...props}
       aria-hidden={props["aria-label"] ? undefined : true}
-      viewBox={type === "SOURCE" ? "0 0 1024 1024" : "0 0 16 16"}
+      viewBox={
+        type === "SOURCE"
+          ? "0 0 1024 1024"
+          : type === "DETAIL"
+            ? "0 0 1070 1024"
+            : "0 0 16 16"
+      }
       width={size}
       height={size}
-      fill={type === "SOURCE" ? "currentColor" : "none"}
-      stroke={type === "SOURCE" ? "none" : "currentColor"}
+      fill={type === "SOURCE" || type === "DETAIL" ? "currentColor" : "none"}
+      stroke={type === "SOURCE" || type === "DETAIL" ? "none" : "currentColor"}
       strokeWidth="1.45"
       strokeLinecap="round"
       strokeLinejoin="round"
