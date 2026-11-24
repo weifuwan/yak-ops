@@ -74,6 +74,7 @@ class DimensionDorisServiceImplTest {
         assertTrue(preview.getDdl().contains("BUCKETS AUTO"));
         assertTrue(preview.getPhysicalConfig().contains("\"dataModel\":\"DUPLICATE\""));
         assertEquals(64, preview.getDdlHash().length());
+        verify(dimensionDorisPublishDao, never()).insert(any());
     }
 
     @Test
