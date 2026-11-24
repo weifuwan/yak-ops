@@ -207,7 +207,7 @@ public class WorkflowInstanceServiceTest {
                     "test_user",
                     WorkflowExecutionStatus.RUNNING_EXECUTION,
                     "192.168.xx.xx",
-                        null,
+                    null,
                     "",
                     1,
                     10);
@@ -242,7 +242,7 @@ public class WorkflowInstanceServiceTest {
                 loginUser.getUserName(),
                 WorkflowExecutionStatus.RUNNING_EXECUTION,
                 "192.168.xx.xx",
-                        null,
+                null,
                 "",
                 1,
                 10));
@@ -269,7 +269,7 @@ public class WorkflowInstanceServiceTest {
                 workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "2020-01-01 00:00:00",
                         "2020-01-02 00:00:00", "", loginUser.getUserName(), WorkflowExecutionStatus.RUNNING_EXECUTION,
                         "192.168.xx.xx",
-                        null, "", 1, 10);
+                null, "", 1, 10);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) successRes.getCode());
 
         // data parameter empty
