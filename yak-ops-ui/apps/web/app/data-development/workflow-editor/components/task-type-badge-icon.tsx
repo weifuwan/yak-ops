@@ -41,7 +41,7 @@ const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
   SEATUNNEL: { icon: ArrowLeftRight, background: "#f59e0b" },
   SQOOP: { icon: ArrowLeftRight, background: "#f59e0b" },
 
-  SQL: { icon: Database, background: "#22c55e" },
+  SQL: { icon: Database, background: "var(--yak-color-primary)" },
   PROCEDURE: { icon: Code2, background: "#22c55e" },
   JAVA: { icon: Coffee, background: "var(--yak-color-primary)" },
   PYTHON: { icon: Code2, background: "var(--yak-color-primary)" },
@@ -102,7 +102,29 @@ export function TaskTypeBadgeIcon({
             : "0 1px 2px rgba(16, 24, 40, 0.14)",
       }}
     >
-      {normalized === "DEPENDENT" ? (
+      {normalized === "SQL" ? (
+        <svg
+          aria-hidden="true"
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 1024 1024"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M268.8 460.8C262.4 454.4 243.2 454.4 224 448 172.8 435.2 147.2 422.4 153.6 396.8c0-25.6 25.6-44.8 64-44.8 44.8 0 64 19.2 70.4 57.6l44.8-12.8C326.4 345.6 281.6 313.6 211.2 313.6 140.8 320 108.8 345.6 102.4 396.8 102.4 441.6 128 467.2 198.4 486.4c0 0 6.4 0 6.4 0 12.8 0 19.2 6.4 25.6 6.4 44.8 12.8 64 32 64 51.2 0 32-25.6 51.2-70.4 51.2C172.8 595.2 147.2 576 140.8 524.8L89.6 537.6c12.8 64 57.6 102.4 134.4 96s115.2-32 121.6-89.6C345.6 505.6 320 473.6 268.8 460.8z"
+            fill="currentColor"
+          />
+          <path
+            d="M537.6 313.6C441.6 320 390.4 371.2 384 473.6c6.4 96 51.2 147.2 140.8 153.6l70.4 83.2 51.2-12.8L576 627.2c70.4-19.2 102.4-70.4 108.8-147.2C678.4 377.6 627.2 320 537.6 313.6zM531.2 595.2c-64-6.4-96-44.8-96-115.2 6.4-76.8 38.4-115.2 102.4-121.6 64 6.4 96 44.8 102.4 121.6C633.6 550.4 595.2 588.8 531.2 595.2z"
+            fill="currentColor"
+          />
+          <path
+            d="M780.8 588.8 780.8 320 736 320 736 627.2 947.2 627.2 947.2 588.8Z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : normalized === "DEPENDENT" ? (
         <svg
           aria-hidden="true"
           width={iconSize}
