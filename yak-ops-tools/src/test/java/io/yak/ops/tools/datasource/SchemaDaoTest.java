@@ -63,8 +63,13 @@ class SchemaDaoTest {
         when(connection.getMetaData()).thenReturn(metadata);
         when(connection.createStatement()).thenReturn(statement);
         when(metadata.getTables(anyString(), nullable(String.class), anyString(), any()))
-                .thenReturn(tables);
-        when(tables.next()).thenReturn(true);
+                .thenAnswer(invocation -> {
+                    String tableName = invocation.getArgument(2);
+                    ResultSet result = mock(ResultSet.class);
+                    when(result.next()).thenReturn(true);
+                    when(result.getString("TABLE_NAME")).thenReturn(tableName);
+                    return result;
+                });
         when(metadata.getColumns(anyString(), nullable(String.class), anyString(), anyString()))
                 .thenReturn(columns);
         when(columns.next()).thenReturn(false);
