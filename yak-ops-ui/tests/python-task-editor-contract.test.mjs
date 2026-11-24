@@ -7,9 +7,7 @@ import {
   parsePythonTaskForm,
 } from "../apps/web/app/data-development/task-editor/python/adapter.ts";
 
-import {
-  buildScriptTaskCommentTemplate,
-} from "../apps/web/app/data-development/workflow-editor/adapter/script-comment-template.ts";
+import { buildScriptTaskCommentTemplate } from "../apps/web/app/data-development/workflow-editor/adapter/script-comment-template.ts";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const pythonEditor = read("../apps/web/app/data-development/task-editor/python/index.tsx");
