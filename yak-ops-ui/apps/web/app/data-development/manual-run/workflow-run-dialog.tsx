@@ -2,10 +2,17 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
+  Field,
+  FieldLabel,
+  Modal,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
 } from "@yak-ops/yak-ui";
 
 import type { WorkflowDefinitionRecord } from "@/service/workflow/definition";
@@ -22,6 +29,19 @@ type Props = {
   workflow: WorkflowDefinitionRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+};
+
+const FAILURE_STRATEGIES: Record<WorkflowFailureStrategy, string> = {
+  END: "失败即结束",
+  CONTINUE: "失败后继续",
+};
+
+const PRIORITIES: Record<WorkflowPriority, string> = {
+  HIGHEST: "最高",
+  HIGH: "高",
+  MEDIUM: "中",
+  LOW: "低",
+  LOWEST: "最低",
 };
 
 function parseParams(text: string): Record<string, string> {
@@ -96,111 +116,182 @@ export function WorkflowRunDialog({ workflow, open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Modal
+      open={open && Boolean(workflow)}
+      centered
+      width={520}
+      title="运行工作流"
+      onClose={() => {
+        if (!running) onOpenChange(false);
+      }}
+      bodyClassName="space-y-4"
+      footer={
+        <>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+            isDisabled={running}
+          >
+            取消
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => void run()}
+            isPending={running}
+            isDisabled={running}
+          >
+            {running ? "启动中..." : "开始运行"}
+          </Button>
+        </>
+      }
+    >
       {workflow ? (
-        <DialogContent className="w-[520px]">
-          <DialogTitle className="text-base font-semibold">
-            运行工作流
-          </DialogTitle>
-          <DialogDescription className="mt-1 text-[12px] text-[#7c828c]">
+        <>
+          <p className="text-xs leading-4 text-[var(--yak-components-field-description)]">
             {workflow.name}
-          </DialogDescription>
+          </p>
 
-          <div className="mt-5 space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] text-[#657080]">Worker Group</span>
-              <select
+          <div className="space-y-4">
+            <Field>
+              <FieldLabel>Worker Group</FieldLabel>
+              <Select<string>
+                size="small"
+                items={Object.fromEntries(groups.map((group) => [group, group]))}
                 value={workerGroup}
-                onChange={(event) => setWorkerGroup(event.target.value)}
-                className="h-9 w-full rounded-[4px] border border-[#d8dce3] bg-white px-2 text-[13px] outline-none focus:border-[#8aa8ff]"
+                onValueChange={(next) => {
+                  if (next) setWorkerGroup(next);
+                }}
               >
-                {groups.map((group) => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger variant="outlined">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      <SelectItemText>{group}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
 
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] text-[#657080]">Environment</span>
-              <select
+            <Field>
+              <FieldLabel>Environment</FieldLabel>
+              <Select<string>
+                size="small"
+                items={Object.fromEntries([
+                  ["-1", "不使用环境"],
+                  ...environments.map((environment) => [
+                    String(environment.code),
+                    environment.name,
+                  ]),
+                ])}
                 value={environmentCode}
-                onChange={(event) => setEnvironmentCode(event.target.value)}
-                className="h-9 w-full rounded-[4px] border border-[#d8dce3] bg-white px-2 text-[13px] outline-none focus:border-[#8aa8ff]"
+                onValueChange={(next) => {
+                  if (next) setEnvironmentCode(next);
+                }}
               >
-                <option value="-1">不使用环境</option>
-                {environments.map((environment) => (
-                  <option key={String(environment.code)} value={String(environment.code)}>
-                    {environment.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger variant="outlined">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="-1">
+                    <SelectItemText>不使用环境</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                  {environments.map((environment) => (
+                    <SelectItem
+                      key={String(environment.code)}
+                      value={String(environment.code)}
+                    >
+                      <SelectItemText>{environment.name}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="mb-1.5 block text-[12px] text-[#657080]">失败策略</span>
-                <select
+              <Field>
+                <FieldLabel>失败策略</FieldLabel>
+                <Select<WorkflowFailureStrategy>
+                  size="small"
+                  items={FAILURE_STRATEGIES}
                   value={failureStrategy}
-                  onChange={(event) =>
-                    setFailureStrategy(event.target.value as WorkflowFailureStrategy)
-                  }
-                  className="h-9 w-full rounded-[4px] border border-[#d8dce3] bg-white px-2 text-[13px] outline-none"
+                  onValueChange={(next) => {
+                    if (next) setFailureStrategy(next);
+                  }}
                 >
-                  <option value="END">失败即结束</option>
-                  <option value="CONTINUE">失败后继续</option>
-                </select>
-              </label>
+                  <SelectTrigger variant="outlined">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(FAILURE_STRATEGIES).map(([value, label]) => (
+                      <SelectItem
+                        key={value}
+                        value={value as WorkflowFailureStrategy}
+                      >
+                        <SelectItemText>{label}</SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
 
-              <label className="block">
-                <span className="mb-1.5 block text-[12px] text-[#657080]">优先级</span>
-                <select
+              <Field>
+                <FieldLabel>优先级</FieldLabel>
+                <Select<WorkflowPriority>
+                  size="small"
+                  items={PRIORITIES}
                   value={priority}
-                  onChange={(event) =>
-                    setPriority(event.target.value as WorkflowPriority)
-                  }
-                  className="h-9 w-full rounded-[4px] border border-[#d8dce3] bg-white px-2 text-[13px] outline-none"
+                  onValueChange={(next) => {
+                    if (next) setPriority(next);
+                  }}
                 >
-                  <option value="HIGHEST">最高</option>
-                  <option value="HIGH">高</option>
-                  <option value="MEDIUM">中</option>
-                  <option value="LOW">低</option>
-                  <option value="LOWEST">最低</option>
-                </select>
-              </label>
+                  <SelectTrigger variant="outlined">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PRIORITIES).map(([value, label]) => (
+                      <SelectItem key={value} value={value as WorkflowPriority}>
+                        <SelectItemText>{label}</SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
 
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] text-[#657080]">运行参数</span>
-              <textarea
+            <Field>
+              <FieldLabel>运行参数</FieldLabel>
+              <Textarea
+                size="small"
+                variant="outlined"
+                rows={4}
+                className="min-h-24 resize-none leading-5"
                 value={paramsText}
-                onChange={(event) => setParamsText(event.target.value)}
+                onValueChange={setParamsText}
                 placeholder={"每行一个参数，例如：\nbiz_date=2026-11-18"}
-                className="h-24 w-full resize-none rounded-[4px] border border-[#d8dce3] bg-white p-2 text-[12px] leading-5 outline-none focus:border-[#8aa8ff]"
               />
-            </label>
-
-            {error ? (
-              <div className="rounded-[4px] bg-[#fff2f0] px-3 py-2 text-[12px] leading-5 text-[#d4380d]">
-                {error}
-              </div>
-            ) : null}
+            </Field>
           </div>
 
-          <div className="mt-6 flex justify-end gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => onOpenChange(false)}
-              isDisabled={running}
+          {error ? (
+            <div
+              role="alert"
+              className="rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-alert-danger-border)] bg-[var(--yak-components-alert-danger-bg)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-alert-danger-text)]"
             >
-              取消
-            </Button>
-            <Button size="sm" onClick={run} isDisabled={running}>
-              {running ? "启动中..." : "开始运行"}
-            </Button>
-          </div>
-        </DialogContent>
+              {error}
+            </div>
+          ) : null}
+        </>
       ) : null}
-    </Dialog>
+    </Modal>
   );
 }
