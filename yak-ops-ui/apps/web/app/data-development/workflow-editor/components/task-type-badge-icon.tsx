@@ -23,54 +23,72 @@ type TaskTypeIconSpec = {
   background: string;
 };
 
+// Dify-inspired solid icon palette, using the light-theme 500 color scale.
+const TASK_TYPE_ICON_COLORS = {
+  blue: "#2e90fa",
+  cyan: "#06aed4",
+  indigo: "#6172f3",
+  violet: "#875bf7",
+  green: "#17b26a",
+  warning: "#f79009",
+  gray: "#676f83",
+} as const;
+
 const DEFAULT_ICON: TaskTypeIconSpec = {
   icon: Workflow,
-  background: "#64748b",
+  background: TASK_TYPE_ICON_COLORS.gray,
 };
 
-// Keep the existing task-type color families, but render them with Dify's
-// solid-color icon container and white glyph instead of text badges.
+// Keep colors semantic and consistent by node family, following Dify's
+// workflow block palette rather than coupling node icons to the Yak-OPS brand.
 const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
-  CONDITIONS: { icon: GitBranch, background: "var(--yak-color-primary)" },
-  DEPENDENT: { icon: GitBranch, background: "var(--yak-color-primary)" },
-  SUB_WORKFLOW: { icon: Workflow, background: "var(--yak-color-primary)" },
-  SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" },
+  // Logic
+  CONDITIONS: { icon: GitBranch, background: TASK_TYPE_ICON_COLORS.cyan },
+  DEPENDENT: { icon: GitBranch, background: TASK_TYPE_ICON_COLORS.blue },
+  SUB_WORKFLOW: { icon: Workflow, background: TASK_TYPE_ICON_COLORS.cyan },
+  SWITCH: { icon: GitBranch, background: TASK_TYPE_ICON_COLORS.green },
 
-  DATA_SYNC: { icon: ArrowLeftRight, background: "#f59e0b" },
-  DATAX: { icon: ArrowLeftRight, background: "#f59e0b" },
-  SEATUNNEL: { icon: ArrowLeftRight, background: "#f59e0b" },
-  SQOOP: { icon: ArrowLeftRight, background: "#f59e0b" },
+  // Data integration
+  DATA_SYNC: { icon: ArrowLeftRight, background: TASK_TYPE_ICON_COLORS.cyan },
+  DATAX: { icon: ArrowLeftRight, background: TASK_TYPE_ICON_COLORS.cyan },
+  SEATUNNEL: { icon: ArrowLeftRight, background: TASK_TYPE_ICON_COLORS.cyan },
+  SQOOP: { icon: ArrowLeftRight, background: TASK_TYPE_ICON_COLORS.cyan },
 
-  SQL: { icon: Database, background: "var(--yak-color-primary)" },
-  PROCEDURE: { icon: Code2, background: "#22c55e" },
-  JAVA: { icon: Coffee, background: "var(--yak-color-primary)" },
-  PYTHON: { icon: Code2, background: "var(--yak-color-primary)" },
-  SPARK: { icon: Zap, background: "#22c55e" },
-  MR: { icon: Layers, background: "#22c55e" },
+  // Code and data processing
+  SQL: { icon: Database, background: TASK_TYPE_ICON_COLORS.green },
+  PROCEDURE: { icon: Code2, background: TASK_TYPE_ICON_COLORS.blue },
+  JAVA: { icon: Coffee, background: TASK_TYPE_ICON_COLORS.blue },
+  PYTHON: { icon: Code2, background: TASK_TYPE_ICON_COLORS.blue },
+  SPARK: { icon: Zap, background: TASK_TYPE_ICON_COLORS.indigo },
+  MR: { icon: Layers, background: TASK_TYPE_ICON_COLORS.indigo },
 
-  GRPC: { icon: Globe, background: "#3b82f6" },
-  HTTP: { icon: Globe, background: "var(--yak-color-primary)" },
-  FLINK: { icon: Activity, background: "#3b82f6" },
-  FLINK_STREAM: { icon: Activity, background: "#3b82f6" },
-  DINKY: { icon: Server, background: "#3b82f6" },
-  K8S: { icon: Boxes, background: "#3b82f6" },
+  // Network and streaming
+  GRPC: { icon: Globe, background: TASK_TYPE_ICON_COLORS.violet },
+  HTTP: { icon: Globe, background: TASK_TYPE_ICON_COLORS.violet },
+  FLINK: { icon: Activity, background: TASK_TYPE_ICON_COLORS.cyan },
+  FLINK_STREAM: { icon: Activity, background: TASK_TYPE_ICON_COLORS.cyan },
+  DINKY: { icon: Server, background: TASK_TYPE_ICON_COLORS.cyan },
+  K8S: { icon: Boxes, background: TASK_TYPE_ICON_COLORS.indigo },
 
-  SHELL: { icon: Terminal, background: "#64748b" },
-  REMOTESHELL: { icon: Terminal, background: "#64748b" },
-  HIVECLI: { icon: Terminal, background: "#64748b" },
+  // Terminal
+  SHELL: { icon: Terminal, background: TASK_TYPE_ICON_COLORS.gray },
+  REMOTESHELL: { icon: Terminal, background: TASK_TYPE_ICON_COLORS.gray },
+  HIVECLI: { icon: Terminal, background: TASK_TYPE_ICON_COLORS.gray },
 
-  EMR: { icon: Cloud, background: "#14b8a6" },
-  EMR_SERVERLESS: { icon: Cloud, background: "#14b8a6" },
-  DMS: { icon: Database, background: "#14b8a6" },
-  DATA_FACTORY: { icon: Workflow, background: "#14b8a6" },
-  ALIYUN_SERVERLESS_SPARK: { icon: Cloud, background: "#14b8a6" },
+  // Cloud and platform
+  EMR: { icon: Cloud, background: TASK_TYPE_ICON_COLORS.indigo },
+  EMR_SERVERLESS: { icon: Cloud, background: TASK_TYPE_ICON_COLORS.indigo },
+  DMS: { icon: Database, background: TASK_TYPE_ICON_COLORS.green },
+  DATA_FACTORY: { icon: Workflow, background: TASK_TYPE_ICON_COLORS.cyan },
+  ALIYUN_SERVERLESS_SPARK: { icon: Cloud, background: TASK_TYPE_ICON_COLORS.indigo },
 
-  JUPYTER: { icon: BookOpen, background: "#f97316" },
-  MLFLOW: { icon: Brain, background: "#ec4899" },
-  OPENMLDB: { icon: Database, background: "#ec4899" },
-  DVC: { icon: Layers, background: "#ec4899" },
-  SAGEMAKER: { icon: Brain, background: "#ec4899" },
-  KUBEFLOW: { icon: Workflow, background: "#ec4899" },
+  // AI and data science
+  JUPYTER: { icon: BookOpen, background: TASK_TYPE_ICON_COLORS.warning },
+  MLFLOW: { icon: Brain, background: TASK_TYPE_ICON_COLORS.indigo },
+  OPENMLDB: { icon: Database, background: TASK_TYPE_ICON_COLORS.green },
+  DVC: { icon: Layers, background: TASK_TYPE_ICON_COLORS.blue },
+  SAGEMAKER: { icon: Brain, background: TASK_TYPE_ICON_COLORS.indigo },
+  KUBEFLOW: { icon: Workflow, background: TASK_TYPE_ICON_COLORS.indigo },
 };
 
 export function TaskTypeBadgeIcon({
