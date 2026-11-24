@@ -385,6 +385,31 @@ export function FieldSpreadsheet({
             }
           />
         );
+      case "fieldScale":
+        return (
+          <Input size="small" variant="outlined" type="number" min={0}
+            className={commonInputClass}
+            value={field.fieldScale == null ? "" : String(field.fieldScale)}
+            placeholder="小数位"
+            onChange={(event) => updateRow(rowIndex, { fieldScale: event.target.value === "" ? undefined : Number(event.target.value) })}
+          />
+        );
+      case "datetimePrecision":
+        return (
+          <Input size="small" variant="outlined" type="number" min={0}
+            className={commonInputClass}
+            value={field.datetimePrecision == null ? "" : String(field.datetimePrecision)}
+            placeholder="时间精度"
+            onChange={(event) => updateRow(rowIndex, { datetimePrecision: event.target.value === "" ? undefined : Number(event.target.value) })}
+          />
+        );
+      case "defaultValue":
+        return (
+          <Input size="small" variant="outlined" className={commonInputClass}
+            value={field.defaultValue || ""} placeholder="默认值"
+            onChange={(event) => updateRow(rowIndex, { defaultValue: event.target.value || undefined })}
+          />
+        );
       case "fieldStdId":
         return (
           <FieldGridSelect
