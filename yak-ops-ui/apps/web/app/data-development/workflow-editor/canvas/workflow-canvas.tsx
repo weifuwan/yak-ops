@@ -93,12 +93,6 @@ type PendingNodeRun = {
   scopeDescription: string;
 };
 
-type PendingNodeRename = {
-  id: string;
-  name: string;
-  taskType: string;
-};
-
 export function WorkflowCanvas({
   workflowCode,
   selectedTaskCode,
@@ -151,11 +145,17 @@ export function WorkflowCanvas({
   const edgeSelectorRequest = useWorkflowStore(
     (state) => state.edgeSelectorRequest,
   );
-  const addDroppedNode = useWorkflowStore(
-    (state) => state.addDroppedNode,
+  const nodeCreationRequest = useWorkflowStore(
+    (state) => state.nodeCreationRequest,
   );
-  const renameDraftNode = useWorkflowStore(
-    (state) => state.renameDraftNode,
+  const requestNodeCreation = useWorkflowStore(
+    (state) => state.requestNodeCreation,
+  );
+  const cancelNodeCreationRequest = useWorkflowStore(
+    (state) => state.cancelNodeCreation,
+  );
+  const createNodeFromRequest = useWorkflowStore(
+    (state) => state.createNodeFromRequest,
   );
   const selectTaskCode = useWorkflowStore(
     (state) => state.selectTaskCode,
@@ -189,10 +189,15 @@ export function WorkflowCanvas({
   const [pendingRun, setPendingRun] =
     useState<PendingNodeRun | null>(null);
   const [runPending, setRunPending] = useState(false);
-  const [pendingNodeRename, setPendingNodeRename] =
-    useState<PendingNodeRename | null>(null);
+  const [nodeCreationPending, setNodeCreationPending] = useState(false);
   const [nodeNameValue, setNodeNameValue] = useState("");
   const [nodeNameError, setNodeNameError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!nodeCreationRequest) return;
+    setNodeNameValue(nodeCreationRequest.defaultName);
+    setNodeNameError(null);
+  }, [nodeCreationRequest]);
 
   function requestNodeRun(
     node: WorkflowCanvasNode,
@@ -390,41 +395,43 @@ export function WorkflowCanvas({
     }
   };
 
-  const cancelNodeRename = () => {
-    if (pendingNodeRename) {
-      removeNodes([pendingNodeRename.id]);
-    }
-    setPendingNodeRename(null);
+  const cancelNodeCreation = () => {
+    if (nodeCreationPending) return;
+    cancelNodeCreationRequest();
     setNodeNameError(null);
   };
 
-  const finishNodeRename = () => {
-    setPendingNodeRename(null);
-    setNodeNameError(null);
-  };
-
-  const confirmNodeRename = () => {
-    if (!pendingNodeRename) return;
+  const confirmNodeCreation = async () => {
+    if (!nodeCreationRequest || nodeCreationPending) return;
 
     const normalizedName = nodeNameValue.trim();
     if (!normalizedName) {
       setNodeNameError("请输入节点名称");
       return;
     }
-
-    const renamed = renameDraftNode(
-      pendingNodeRename.id,
-      normalizedName,
-    );
-    if (!renamed) {
-      toast.warning("节点名称修改失败", {
-        description: "该节点可能已被移除，请重新添加。",
-      });
-      finishNodeRename();
+    if (!projectCode) {
+      toast.warning("请先选择工作空间");
       return;
     }
 
-    finishNodeRename();
+    setNodeCreationPending(true);
+    try {
+      const taskCode = await generateWorkflowTaskCode();
+      const createdNodeId = createNodeFromRequest(
+        taskCode,
+        Number(projectCode),
+        normalizedName,
+      );
+      if (!createdNodeId) {
+        setNodeNameError("节点创建请求已失效，请重新选择节点类型");
+      }
+    } catch (error) {
+      toast.error("创建节点失败", {
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
+    } finally {
+      setNodeCreationPending(false);
+    }
   };
 
   const handleDragOver = (
@@ -434,7 +441,7 @@ export function WorkflowCanvas({
     event.dataTransfer.dropEffect = "copy";
   };
 
-  const handleDrop = async (
+  const handleDrop = (
     event: DragEvent<HTMLDivElement>,
   ) => {
     event.preventDefault();
@@ -461,25 +468,14 @@ export function WorkflowCanvas({
       toast.warning("请先选择工作空间");
       return;
     }
-    try {
-      const taskCode = await generateWorkflowTaskCode();
-      const createdNode = addDroppedNode(
-        taskType,
-        instance.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        }),
-        taskCode,
-        Number(projectCode),
-      );
-      setPendingNodeRename({ ...createdNode, taskType });
-      setNodeNameValue(createdNode.name);
-      setNodeNameError(null);
-    } catch (error) {
-      toast.error("创建节点失败", {
-        description: error instanceof Error ? error.message : "请稍后重试。",
-      });
-    }
+    requestNodeCreation(
+      taskType,
+      { kind: "add" },
+      instance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      }),
+    );
   };
 
   return (
@@ -797,16 +793,20 @@ export function WorkflowCanvas({
       </Dialog>
 
       <Dialog
-        open={Boolean(pendingNodeRename)}
+        open={Boolean(nodeCreationRequest)}
         onOpenChange={(open) => {
-          if (!open) cancelNodeRename();
+          if (!open && !nodeCreationPending) cancelNodeCreation();
         }}
       >
-        {pendingNodeRename ? (
+        {nodeCreationRequest ? (
           <DialogContent className="w-[420px]">
             <DialogTitle className="text-base font-semibold">
-              设置节点名称
+              新建节点
             </DialogTitle>
+            <DialogDescription className="mt-2 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+              将创建一个 {nodeCreationRequest.taskType} 节点。
+              确认后才会添加到画布，取消不会创建节点。
+            </DialogDescription>
             <div className="mt-5">
               <Input
                 id="workflow-draft-node-name"
@@ -816,6 +816,7 @@ export function WorkflowCanvas({
                 maxLength={128}
                 value={nodeNameValue}
                 placeholder="请输入节点名称"
+                disabled={nodeCreationPending}
                 onChange={(event) => {
                   setNodeNameValue(event.target.value);
                   if (nodeNameError) setNodeNameError(null);
@@ -827,7 +828,7 @@ export function WorkflowCanvas({
                     !event.nativeEvent.isComposing
                   ) {
                     event.preventDefault();
-                    confirmNodeRename();
+                    void confirmNodeCreation();
                   }
                 }}
               />
@@ -841,17 +842,19 @@ export function WorkflowCanvas({
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={cancelNodeRename}
+                isDisabled={nodeCreationPending}
+                onClick={cancelNodeCreation}
               >
                 取消
               </Button>
               <Button
                 size="sm"
                 variant="primary"
+                isPending={nodeCreationPending}
                 isDisabled={!nodeNameValue.trim()}
-                onClick={confirmNodeRename}
+                onClick={() => void confirmNodeCreation()}
               >
-                确定
+                创建节点
               </Button>
             </div>
           </DialogContent>

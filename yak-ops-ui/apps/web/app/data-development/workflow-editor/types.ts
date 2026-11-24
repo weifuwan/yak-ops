@@ -35,6 +35,13 @@ export type WorkflowNodeInsertionRequest =
   | WorkflowSelectorRequest
   | WorkflowEdgeSelectorRequest;
 
+export type WorkflowNodeCreationRequest = {
+  taskType: string;
+  insertionRequest?: WorkflowNodeInsertionRequest;
+  position?: XYPosition;
+  defaultName: string;
+};
+
 export type WorkflowBranchOutputKind =
   | "success"
   | "failed"

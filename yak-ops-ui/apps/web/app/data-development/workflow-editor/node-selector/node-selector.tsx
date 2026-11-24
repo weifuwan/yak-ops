@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Input, toast } from "@yak-ops/yak-ui";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { generateWorkflowTaskCode } from "@/service/workflow/definition";
 
 import {
   listWorkflowTaskTypes,
@@ -149,8 +148,8 @@ function WorkflowNodePicker({
   const closeSelector = useWorkflowStore((state) =>
     isPopover ? state.closeEdgeSelector : state.closeSelector,
   );
-  const insertNode = useWorkflowStore(
-    (state) => state.insertNodeFromSelector,
+  const requestNodeCreation = useWorkflowStore(
+    (state) => state.requestNodeCreation,
   );
   const { currentWorkspace } = useWorkspace();
   const projectCode = currentWorkspace?.id ?? "";
@@ -250,39 +249,28 @@ function WorkflowNodePicker({
     return Array.from(groups.entries());
   }, [deferredSearch, query.data]);
 
-  const handleSelectTaskType = async (task: WorkflowTaskTypeRecord) => {
+  const handleSelectTaskType = (task: WorkflowTaskTypeRecord) => {
     if (!projectCode) {
       toast.warning("请先选择工作空间");
       return;
     }
-    try {
-      const taskCode = await generateWorkflowTaskCode();
-      const insertionRequest: WorkflowNodeInsertionRequest | undefined =
-        isPopover && request
-          ? request.kind === "upstream-popover"
-            ? { kind: "upstream", nodeId: request.nodeId }
-            : request.kind === "downstream-popover"
-              ? {
-                  kind: "downstream",
-                  nodeId: request.nodeId,
-                  sourceHandle: request.sourceHandle,
-                }
-              : request.kind === "add-popover"
-                ? { kind: "add" }
-                : request
-          : undefined;
-      insertNode(
-        task.taskType,
-        taskCode,
-        Number(projectCode),
-        insertionRequest,
-      );
-      if (isPopover) closeSelector();
-    } catch (error) {
-      toast.error("创建节点失败", {
-        description: error instanceof Error ? error.message : "请稍后重试。",
-      });
-    }
+
+    const insertionRequest: WorkflowNodeInsertionRequest | undefined =
+      isPopover && request
+        ? request.kind === "upstream-popover"
+          ? { kind: "upstream", nodeId: request.nodeId }
+          : request.kind === "downstream-popover"
+            ? {
+                kind: "downstream",
+                nodeId: request.nodeId,
+                sourceHandle: request.sourceHandle,
+              }
+            : request.kind === "add-popover"
+              ? { kind: "add" }
+              : request
+        : (request as WorkflowSelectorRequest | null) ?? undefined;
+
+    requestNodeCreation(task.taskType, insertionRequest);
   };
 
   if (!request) return null;

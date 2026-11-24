@@ -29,6 +29,7 @@ import type {
   WorkflowSelectorRequest,
   WorkflowPopoverSelectorRequest,
   WorkflowNodeInsertionRequest,
+  WorkflowNodeCreationRequest,
 } from "../types";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -46,6 +47,7 @@ export type WorkflowEditorState = {
   edgeStyle: WorkflowEdgeStyle;
   selectorRequest: WorkflowSelectorRequest | null;
   edgeSelectorRequest: WorkflowPopoverSelectorRequest | null;
+  nodeCreationRequest: WorkflowNodeCreationRequest | null;
   draftNodeSequence: number;
   draftEdgeSequence: number;
 
@@ -65,13 +67,17 @@ export type WorkflowEditorState = {
   closeSelector: () => void;
   openEdgeSelector: (request: WorkflowPopoverSelectorRequest) => void;
   closeEdgeSelector: () => void;
-  addDroppedNode: (
+  requestNodeCreation: (
     taskType: string,
-    position: XYPosition,
+    insertionRequest?: WorkflowNodeInsertionRequest,
+    position?: XYPosition,
+  ) => void;
+  cancelNodeCreation: () => void;
+  createNodeFromRequest: (
     taskCode: number,
     projectCode: number,
-  ) => { id: string; name: string };
-  renameDraftNode: (nodeId: string, name: string) => boolean;
+    name: string,
+  ) => string | null;
   updateTaskDefinition: (nodeId: string, task: WorkflowTaskRecord) => boolean;
   setSwitchPreview: (
     nodeId: string,
@@ -79,12 +85,6 @@ export type WorkflowEditorState = {
     edges: WorkflowCanvasEdge[],
   ) => void;
   clearSwitchPreview: (nodeId: string) => void;
-  insertNodeFromSelector: (
-    taskType: string,
-    taskCode: number,
-    projectCode: number,
-    requestOverride?: WorkflowNodeInsertionRequest,
-  ) => string;
   addConnection: (connection: Connection) => string | null;
   removeNodes: (ids: string[]) => void;
   removeEdges: (ids: string[]) => void;
@@ -370,6 +370,7 @@ export function createWorkflowStore(
         edgeStyle: "bezier",
         selectorRequest: null,
         edgeSelectorRequest: null,
+        nodeCreationRequest: null,
         draftNodeSequence: 0,
         draftEdgeSequence: 0,
 
@@ -422,68 +423,22 @@ export function createWorkflowStore(
         closeEdgeSelector: () =>
           set({ edgeSelectorRequest: null }),
 
-        addDroppedNode: (taskType, position, taskCode, projectCode) => {
+        requestNodeCreation: (taskType, insertionRequest, position) => {
           const state = get();
-          const sequence = state.draftNodeSequence + 1;
-          const name = getNextDraftNodeName(taskType, state.nodes);
-          const node = createDraftNode(
-            taskType,
-            position,
-            workflowCode,
-            projectCode,
-            taskCode,
-            name,
-          );
-
-          set((current) => ({
-            nodes: [
-              ...current.nodes.map((item) => ({
-                ...item,
-                selected: false,
-              })),
-              { ...node, selected: true },
-            ],
-            edges: current.edges.map((edge) => ({
-              ...edge,
-              selected: false,
-            })),
-            draftNodeSequence: sequence,
-          }));
-
-          return {
-            id: node.id,
-            name: node.data.name,
-          };
+          set({
+            nodeCreationRequest: {
+              taskType,
+              insertionRequest,
+              position,
+              defaultName: getNextDraftNodeName(taskType, state.nodes),
+            },
+            selectorRequest: null,
+            edgeSelectorRequest: null,
+          });
         },
 
-        renameDraftNode: (nodeId, name) => {
-          const normalizedName = name.trim();
-          if (!normalizedName) return false;
-
-          const target = get().nodes.find(
-            (node) => node.id === nodeId && node.data.draft,
-          );
-          if (!target) return false;
-
-          set((state) => ({
-            nodes: state.nodes.map((node) =>
-              node.id === nodeId
-                ? {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      name: normalizedName,
-                      task: node.data.task
-                        ? { ...node.data.task, name: normalizedName }
-                        : node.data.task,
-                    },
-                  }
-                : node,
-            ),
-          }));
-
-          return true;
-        },
+        cancelNodeCreation: () =>
+          set({ nodeCreationRequest: null }),
 
         updateTaskDefinition: (nodeId, task) => {
           if (!get().nodes.some((node) => node.id === nodeId)) return false;
@@ -551,12 +506,16 @@ export function createWorkflowStore(
             previewNodeId: state.previewNodeId === nodeId ? null : state.previewNodeId,
           })),
 
-        insertNodeFromSelector: (taskType, taskCode, projectCode, requestOverride) => {
+        createNodeFromRequest: (taskCode, projectCode, name) => {
           const state = get();
+          const creationRequest = state.nodeCreationRequest;
+          const normalizedName = name.trim();
+          if (!creationRequest || !normalizedName) return null;
+
           const request =
-            requestOverride ?? state.selectorRequest ?? ({ kind: "add" } as const);
+            creationRequest.insertionRequest ?? ({ kind: "add" } as const);
           const sequence = state.draftNodeSequence + 1;
-          let position = getDefaultPosition(state.nodes);
+          let position = creationRequest.position ?? getDefaultPosition(state.nodes);
           let edges = state.edges;
           let edgeSequence = state.draftEdgeSequence;
           const previewSourceHandle = state.previewEdges?.find(
@@ -564,8 +523,9 @@ export function createWorkflowStore(
           )?.sourceHandle;
 
           if (
-            request.kind === "upstream" ||
-            request.kind === "downstream"
+            !creationRequest.position &&
+            (request.kind === "upstream" ||
+              request.kind === "downstream")
           ) {
             const anchor = state.nodes.find(
               (node) => node.id === request.nodeId,
@@ -584,7 +544,7 @@ export function createWorkflowStore(
             }
           }
 
-          if (request.kind === "edge") {
+          if (!creationRequest.position && request.kind === "edge") {
             const edge = state.edges.find(
               (item) => item.id === request.edgeId,
             );
@@ -614,12 +574,12 @@ export function createWorkflowStore(
           }
 
           const node = createDraftNode(
-            taskType,
+            creationRequest.taskType,
             position,
             workflowCode,
             projectCode,
             taskCode,
-            getNextDraftNodeName(taskType, state.nodes),
+            normalizedName,
           );
 
           if (
@@ -708,6 +668,7 @@ export function createWorkflowStore(
             previewEdges: nextPreviewEdges,
             draftNodeSequence: sequence,
             draftEdgeSequence: edgeSequence,
+            nodeCreationRequest: null,
           });
 
           return node.id;
@@ -798,6 +759,7 @@ export function createWorkflowStore(
             edges: graph.edges,
             previewEdges: null,
             previewNodeId: null,
+            nodeCreationRequest: null,
           }),
 
         selectTaskCode: (taskCode) => {

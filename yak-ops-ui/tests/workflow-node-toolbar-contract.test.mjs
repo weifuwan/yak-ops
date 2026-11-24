@@ -92,7 +92,7 @@ test("edge plus opens an anchored Dify-style picker without replacing the left s
   assert.match(workflowStore, /WorkflowPopoverSelectorRequest/);
   assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
   assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
-  assert.match(workflowStore, /requestOverride/);
+  assert.match(workflowStore, /requestNodeCreation/);
   assert.match(workflowNode, /openEdgeSelector\(\{\s*kind: "downstream-popover"/);
   assert.match(workflowNode, /data-workflow-edge-picker-trigger/);
   assert.match(workflowEditor, /WorkflowEdgeNodeSelector/);
@@ -121,12 +121,14 @@ test("workflow branch handle circle has an inset SVG viewport to avoid edge clip
 test("workflow node connector plus opens a local downstream picker without touching the left sidebar", () => {
   assert.match(workflowTypes, /kind: "downstream-popover"/);
   assert.match(workflowNode, /kind: "downstream-popover"[\s\S]*?anchor:/);
-  assert.match(workflowSelector, /if \(isPopover\) closeSelector\(\)/);
+  assert.match(workflowSelector, /requestNodeCreation\(task\.taskType, insertionRequest\)/);
+  assert.match(workflowStore, /selectorRequest: null,\s*edgeSelectorRequest: null/s);
   assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
   assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
-  const insertionStart = workflowStore.indexOf("insertNodeFromSelector: (taskType");
+  const insertionStart = workflowStore.indexOf("createNodeFromRequest: (taskCode");
   const insertionEnd = workflowStore.indexOf("addConnection:", insertionStart);
   const insertion = workflowStore.slice(insertionStart, insertionEnd);
+  assert.match(insertion, /nodeCreationRequest/);
   assert.doesNotMatch(insertion, /selectorRequest\s*:/);
   assert.doesNotMatch(insertion, /edgeSelectorRequest\s*:/);
 });
@@ -146,6 +148,23 @@ test("canvas toolbar plus opens an anchored root picker while top toolbar alone 
   assert.ok(workflowToolbar.includes('onClick={() => openSelector({ kind: "add" })}'));
 });
 
+
+
+test("all node creation entry points share a confirm-before-create naming dialog", () => {
+  assert.doesNotMatch(workflowSelector, /generateWorkflowTaskCode/);
+  assert.match(workflowSelector, /requestNodeCreation\(task\.taskType, insertionRequest\)/);
+  assert.match(workflowCanvas, /requestNodeCreation\(\s*taskType,\s*\{ kind: "add" \},\s*instance\.screenToFlowPosition/s);
+  assert.match(workflowCanvas, /open=\{Boolean\(nodeCreationRequest\)\}/);
+  assert.match(workflowCanvas, /defaultName/);
+  assert.match(workflowCanvas, /generateWorkflowTaskCode\(\)/);
+  assert.match(workflowCanvas, /createNodeFromRequest\(\s*taskCode,\s*Number\(projectCode\),\s*normalizedName/s);
+  assert.match(workflowCanvas, /if \(!open && !nodeCreationPending\) cancelNodeCreation\(\)/);
+  assert.match(workflowStore, /requestNodeCreation: \(taskType, insertionRequest, position\)/);
+  assert.match(workflowStore, /defaultName: getNextDraftNodeName\(taskType, state\.nodes\)/);
+  assert.match(workflowStore, /createDraftNode\([\s\S]*?normalizedName/);
+  assert.doesNotMatch(workflowCanvas, /addDroppedNode|renameDraftNode|pendingNodeRename/);
+  assert.doesNotMatch(workflowStore, /addDroppedNode|renameDraftNode|insertNodeFromSelector/);
+});
 
 test("floating workflow node picker uses larger Dify-style icons and a wider responsive panel", () => {
   assert.ok(workflowSelector.includes("group flex h-9 w-full"));
