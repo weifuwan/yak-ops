@@ -159,6 +159,7 @@ test("all node creation entry points share a confirm-before-create naming dialog
   assert.match(workflowSelector, /requestNodeCreation\([\s\S]*?isPopover \? "popover" : "sidebar"/);
   assert.match(workflowCanvas, /requestNodeCreation\(\s*taskType,\s*\{ kind: "add" \},\s*instance\.screenToFlowPosition/s);
   assert.match(workflowCanvas, /open=\{Boolean\(nodeCreationRequest\)\}/);
+  assert.doesNotMatch(workflowCanvas, /将创建一个 \{nodeCreationRequest\.taskType\} 节点/);
   assert.match(workflowSelector, /if \(nodeCreationRequest\) return;/);
   assert.match(workflowSelector, /nodeCreationRequest, request/);
   assert.match(workflowCanvas, /defaultName/);

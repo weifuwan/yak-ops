@@ -804,10 +804,6 @@ export function WorkflowCanvas({
             <DialogTitle className="text-base font-semibold">
               新建节点
             </DialogTitle>
-            <DialogDescription className="mt-2 text-sm leading-6 text-[var(--yak-components-muted-text)]">
-              将创建一个 {nodeCreationRequest.taskType} 节点。
-              确认后才会添加到画布，取消不会创建节点。
-            </DialogDescription>
             <div className="mt-5">
               <Input
                 id="workflow-draft-node-name"
