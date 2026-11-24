@@ -16,6 +16,8 @@ public class DimensionDorisPublishVO {
     private String targetTable;
     private String ddl;
     private String ddlHash;
+    /** Immutable resolved Doris physical configuration used to generate this DDL. */
+    private String physicalConfig;
     private DorisPublishStatusEnum status;
     private String errorMessage;
     private Long executionDurationMs;
