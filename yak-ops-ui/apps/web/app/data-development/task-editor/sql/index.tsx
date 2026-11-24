@@ -97,14 +97,24 @@ function hasResourceValue(options: readonly TreeSelectOption[], value: string): 
   );
 }
 
+function SqlSectionHeader({ title }: { title: string }) {
+  return (
+    <div className="mb-3 flex min-w-0 items-center gap-2">
+      <span aria-hidden="true" className="h-4 w-1 shrink-0 bg-[#5664ff]" />
+      <h3 className="m-0 shrink-0 text-sm font-semibold leading-5 text-[var(--yak-components-panel-text)]">
+        {title}
+      </h3>
+      <span aria-hidden="true" className="h-px min-w-0 flex-1 bg-[var(--yak-components-panel-border)]" />
+    </div>
+  );
+}
+
 function SqlStatementsSection({
-  id,
   title,
   statements,
   disabled,
   onChange,
 }: {
-  id: string;
   title: string;
   statements: string[];
   disabled: boolean;
@@ -115,13 +125,8 @@ function SqlStatementsSection({
   };
 
   return (
-    <CollapseSection
-      id={id}
-      title={title}
-      extra={<span className="text-[11px] tabular-nums text-[var(--yak-components-muted-text)]">{statements.length} 条</span>}
-      triggerClassName="!h-8 rounded-sm px-3"
-      contentClassName="space-y-3 pt-3"
-    >
+    <div className="space-y-3">
+      <SqlSectionHeader title={title} />
       {statements.length ? (
         <div className="space-y-2">
           {statements.map((statement, index) => (
@@ -171,7 +176,7 @@ function SqlStatementsSection({
           添加{title}
         </Button>
       </div>
-    </CollapseSection>
+    </div>
   );
 }
 
@@ -388,14 +393,12 @@ function SqlTaskWorkspace({
           contentClassName="space-y-3 pt-3"
         >
           <SqlStatementsSection
-            id="sql-pre-statements"
             title="前置 SQL"
             statements={form.preStatements}
             disabled={readOnly}
             onChange={(value) => updateField("preStatements", value)}
           />
           <SqlStatementsSection
-            id="sql-post-statements"
             title="后置 SQL"
             statements={form.postStatements}
             disabled={readOnly}
