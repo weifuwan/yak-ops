@@ -321,17 +321,9 @@ export function DorisPublishModal({
         payload,
       );
       setPreview(result);
-      await Promise.all([
-        client.invalidateQueries({
-          queryKey: ["modeling", "doris-publish-history", projectCode, tableId],
-        }),
-        client.invalidateQueries({
-          queryKey: ["modeling", "dimension-tree", projectCode],
-        }),
-        client.invalidateQueries({
-          queryKey: ["modeling", "dimension-versions", projectCode, tableId],
-        }),
-      ]);
+      await client.invalidateQueries({
+        queryKey: ["modeling", "doris-publish-history", projectCode, tableId],
+      });
       if (result.status === "SUCCESS") {
         try {
           onModelUpdated(await dimensionModelingApi.getById(projectCode, tableId));
