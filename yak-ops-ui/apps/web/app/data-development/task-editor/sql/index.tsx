@@ -379,9 +379,6 @@ function SqlTaskWorkspace({
                   ) : null}
                 </div>
               </SqlField>
-              <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-                文件模式只保存资源路径，任务执行时由后端读取 SQL 文件内容。
-              </p>
             </div>
           )}
         </CollapseSection>
@@ -435,7 +432,6 @@ function SqlTaskWorkspace({
             </SqlField>
           </div>
           <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-            最大返回行数填写 0 表示使用后端默认上限 10000；日志展示行数只控制执行日志打印的结果行数。
           </p>
         </CollapseSection>
 
@@ -459,9 +455,6 @@ function SqlTaskWorkspace({
                   updateField("sendEmail", checked);
                 }}
               />
-              <span className="text-xs text-[var(--yak-components-muted-text)]">
-                将查询结果发送到告警组
-              </span>
             </div>
           </SqlField>
 
