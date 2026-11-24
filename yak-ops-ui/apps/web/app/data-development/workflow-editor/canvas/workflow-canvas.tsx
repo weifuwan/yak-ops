@@ -291,7 +291,7 @@ export function WorkflowCanvas({
             setContextMenu({ node, x, y }),
         },
       })),
-    [nodes, focusedNodeId, isWorkflowOnline, contextMenu],
+    [nodes, connectedHandleIds, focusedNodeId, isWorkflowOnline, contextMenu],
   );
   const renderEdges = useMemo(
     () =>
