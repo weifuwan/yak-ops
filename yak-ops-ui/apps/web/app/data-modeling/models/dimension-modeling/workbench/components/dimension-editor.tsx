@@ -1469,7 +1469,7 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
         const label = TABLE_TYPE_LABELS[type] || "-";
         return isModelTypeIconType(type) ? (
           <span className="inline-flex items-center gap-1.5">
-            <ModelTypeIcon type={type} size={14} />
+            <ModelTypeIcon type={type} size={16} />
             <span>{label}</span>
           </span>
         ) : label;
