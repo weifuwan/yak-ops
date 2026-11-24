@@ -217,8 +217,8 @@ public class SchemaDao {
     }
 
     /**
-     * Additive upgrade for Doris physical-model field metadata. Existing rows keep their
-     * original field order through create_time until an explicit ordinal is saved.
+     * Additive upgrade for Doris physical-model field metadata. Legacy rows receive stable
+     * ordinals in create_time order, while already assigned ordinals remain unchanged.
      */
     private void ensureDimensionFieldSchema() {
         final String tableName = "t_yak_ops_dimension_table_fields";
@@ -262,7 +262,7 @@ public class SchemaDao {
         java.util.Map<String, java.util.List<FieldOrdinalRow>> rowsByTable =
                 new java.util.LinkedHashMap<>();
         String selectSql = "SELECT id, table_id, ordinal FROM " + quoteIdentifier(tableName)
-                + " ORDER BY table_id, create_time, id";
+                + " ORDER BY table_id, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time, id";
         try (PreparedStatement statement = connection.prepareStatement(selectSql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
