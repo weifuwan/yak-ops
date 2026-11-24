@@ -24,6 +24,11 @@ const PythonTaskEditor = lazy(async () => {
   return { default: module.PythonTaskEditor };
 });
 
+const SqlTaskEditor = lazy(async () => {
+  const module = await import("./sql");
+  return { default: module.SqlTaskEditor };
+});
+
 type TaskEditorProps = {
   workflowCode: number;
   task: WorkflowTaskRecord;
@@ -44,6 +49,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   const isJavaTask = taskType.toUpperCase() === "JAVA";
   const isShellTask = taskType.toUpperCase() === "SHELL";
   const isPythonTask = taskType.toUpperCase() === "PYTHON";
+  const isSqlTask = taskType.toUpperCase() === "SQL";
   const isConditionsTask = taskType.toUpperCase() === "CONDITIONS";
   const isSwitchTask = taskType.toUpperCase() === "SWITCH";
   const isDependentTask = taskType.toUpperCase() === "DEPENDENT";
@@ -89,7 +95,32 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
       aria-label={taskName + " 节点内容"}
       className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
-      {isHttpTask ? (
+      {isSqlTask ? (
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              aria-label="正在加载 SQL 编辑器"
+              className="flex min-h-0 flex-1 items-center justify-center"
+            >
+              <LoadingIndicator />
+              <span className="sr-only">正在加载 SQL 编辑器</span>
+            </div>
+          }
+        >
+          <SqlTaskEditor
+            workflowCode={workflowCode}
+            task={task}
+            taskName={taskName}
+            isDraft={isDraft}
+            readOnly={readOnly}
+            canRun={readOnly && !isDraft}
+            onApplyTask={applyTask}
+            onDirtyChange={handleDirtyChange}
+            onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+          />
+        </Suspense>
+      ) : isHttpTask ? (
         <HttpTaskEditor
           workflowCode={workflowCode}
           task={task}
