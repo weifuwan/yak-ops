@@ -77,7 +77,7 @@ export function ScriptCodeEditor({
       editor.dispose();
       editorRef.current = null;
     };
-  }, []);
+  }, [language, scriptLabel]);
 
   useEffect(() => {
     const editor = editorRef.current;
