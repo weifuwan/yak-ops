@@ -300,7 +300,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         Map<String, FieldSchema> fieldSchemas = new LinkedHashMap<>();
         for (DimensionTableFieldPO field : fields) {
             String dorisType = DorisTypeMapper.toDorisType(toFlinkType(field));
-            boolean keyField = config.keyFieldIds.contains(field.getId());
+            boolean keyField = keyNames.contains(field.getFieldName());
             boolean partitionField = field.getId().equals(config.partitionFieldId);
             if (Boolean.FALSE.equals(field.getCanNull()) && !keyField && !partitionField) {
                 throw new IllegalArgumentException(
