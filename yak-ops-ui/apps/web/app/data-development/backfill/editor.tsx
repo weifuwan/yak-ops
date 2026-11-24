@@ -57,7 +57,7 @@ const PRIORITY_ITEMS = {
   HIGH: "高",
   MEDIUM: "中",
   LOW: "低",
-  LOWEST: "低",
+  LOWEST: "最低",
 };
 const DATE_MODE_OPTIONS = [
   { value: "range", label: "时间范围" },
