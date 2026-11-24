@@ -41,15 +41,7 @@ function iconContent(type: ModelTypeIconType) {
       );
     case "DIMENSION":
       return (
-        <>
-          <rect x="2.5" y="3.1" width="11" height="10.2" rx="1.25" />
-          <path d="M2.5 6.45h11M6 6.45v6.85" />
-          <path
-            d="m11.75 1.35.5 1.05 1.05.5-1.05.5-.5 1.05-.5-1.05-1.05-.5 1.05-.5.5-1.05Z"
-            fill="currentColor"
-            stroke="none"
-          />
-        </>
+        <path d="M192 326.509714v370.907429L512 882.688l320-185.270857V326.509714L512 141.238857 192 326.509714zM512 42.642286l405.357714 234.642285v469.357715L512 981.284571l-405.357714-234.642285V277.284571L512 42.642286zM277.211429 425.398857l192.073142 111.177143v215.405714h85.284572V536.576l192.073143-111.177143-42.788572-73.874286L512 462.701714l-191.926857-111.177143-42.788572 73.874286z" />
       );
     case "DETAIL":
       return (
@@ -94,7 +86,7 @@ export function ModelTypeIcon({
       {...props}
       aria-hidden={props["aria-label"] ? undefined : true}
       viewBox={
-        type === "SOURCE"
+        type === "SOURCE" || type === "DIMENSION"
           ? "0 0 1024 1024"
           : type === "DETAIL"
             ? "0 0 1070 1024"
@@ -102,8 +94,16 @@ export function ModelTypeIcon({
       }
       width={size}
       height={size}
-      fill={type === "SOURCE" || type === "DETAIL" ? "currentColor" : "none"}
-      stroke={type === "SOURCE" || type === "DETAIL" ? "none" : "currentColor"}
+      fill={
+        type === "SOURCE" || type === "DETAIL" || type === "DIMENSION"
+          ? "currentColor"
+          : "none"
+      }
+      stroke={
+        type === "SOURCE" || type === "DETAIL" || type === "DIMENSION"
+          ? "none"
+          : "currentColor"
+      }
       strokeWidth="1.45"
       strokeLinecap="round"
       strokeLinejoin="round"
