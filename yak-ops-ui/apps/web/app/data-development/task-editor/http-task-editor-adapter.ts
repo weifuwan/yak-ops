@@ -2,7 +2,7 @@ import {
   buildNodeResourceList,
   normalizeNodeLocalParams,
   normalizeNodeResourceList,
-} from "./common/node-resource-params/adapter";
+} from "./common/node-resource-params/adapter.ts";
 import type { NodeLocalParam } from "./common/node-resource-params/types";
 
 export const HTTP_REQUEST_METHODS = ["GET", "POST", "PUT", "DELETE"] as const;
