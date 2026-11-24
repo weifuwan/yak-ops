@@ -128,7 +128,7 @@ export async function startWorkflowBackfill(
         runMode: options.runMode,
         expectedParallelismNumber: options.expectedParallelismNumber,
         complementDependentMode: options.complementDependentMode,
-        allLevelDependent: options.allLevelDependent,
+        allLevelDependent: options.allLevelDependent ? "true" : "false",
         executionOrder: options.executionOrder,
         dryRun: 0,
         startParams: options.startParams ? JSON.stringify(options.startParams) : undefined,

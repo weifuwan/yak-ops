@@ -133,9 +133,9 @@ public class TaskInstanceController extends BaseController {
     @GetMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.OK)
     public Result<TaskInstance> queryTaskInstanceById(
-            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-            @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
-            @PathVariable(value = "id") Integer id) {
+                                                       @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                       @Parameter(name = "projectCode", description = "PROJECT_CODE", required = true) @PathVariable long projectCode,
+                                                       @PathVariable(value = "id") Integer id) {
         TaskInstance taskInstance = taskInstanceService.queryTaskInstanceById(loginUser, projectCode, id);
         return Result.success(SensitivePropertyUtils.mask(taskInstance));
     }

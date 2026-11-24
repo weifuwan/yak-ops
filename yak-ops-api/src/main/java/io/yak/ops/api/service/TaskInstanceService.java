@@ -2,8 +2,8 @@ package io.yak.ops.api.service;
 
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.enums.TaskExecuteType;
-import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.TaskInstance;
+import io.yak.ops.dao.entity.User;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 public interface TaskInstanceService {

@@ -74,7 +74,9 @@ public class BackfillWorkflowRequestTransformer implements ITransformer<Workflow
         final List<ZonedDateTime> backfillDateList = parseBackfillDateList(workflowBackFillRequest);
         return BackfillWorkflowDTO.BackfillParamsDTO.builder()
                 .runMode(workflowBackFillRequest.getBackfillRunMode())
-                .expectedParallelismNumber(workflowBackFillRequest.getExpectedParallelismNumber() == null ? 0 : workflowBackFillRequest.getExpectedParallelismNumber())
+                .expectedParallelismNumber(workflowBackFillRequest.getExpectedParallelismNumber() == null
+                        ? 0
+                        : workflowBackFillRequest.getExpectedParallelismNumber())
                 .backfillDateList(backfillDateList)
                 .backfillDependentMode(workflowBackFillRequest.getBackfillDependentMode())
                 .allLevelDependent(workflowBackFillRequest.isAllLevelDependent())
