@@ -237,7 +237,7 @@ function defaultTaskParams(
     case "SQL":
       return {
         type: "",
-        datasource: 0,
+        datasource: "",
         sql: "",
         sqlSource: "SCRIPT",
         sqlResource: "",
