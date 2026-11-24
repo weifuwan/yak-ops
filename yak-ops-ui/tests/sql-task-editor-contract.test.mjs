@@ -144,10 +144,10 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.match(statementsSection, /添加\{title\}/);
   assert.match(workflowStore, /sqlSource: "SCRIPT"/);
   const sqlCaseStart = workflowStore.indexOf('case "SQL":');
-  const sqlCaseEnd = workflowStore.indexOf("\\n    default:", sqlCaseStart);
+  const sqlCaseEnd = workflowStore.indexOf("\n    default:", sqlCaseStart);
   const sqlDefaults = workflowStore.slice(sqlCaseStart, sqlCaseEnd < 0 ? undefined : sqlCaseEnd);
   assert.match(sqlDefaults, /datasource: ""/);
-  assert.doesNotMatch(sqlDefaults, /datasource:\\s*0/);
+  assert.doesNotMatch(sqlDefaults, /datasource:\s*0/);
   assert.ok(editor.includes("const legacyDatasourceId = Number(form.datasource);"));
   assert.ok(editor.includes("legacyDatasourceId > 0"));
 });
