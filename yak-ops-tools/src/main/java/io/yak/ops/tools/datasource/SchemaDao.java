@@ -229,6 +229,8 @@ public class SchemaDao {
             ensureColumn(metadata, connection, tableName, "field_scale", "integer NULL");
             ensureColumn(metadata, connection, tableName, "datetime_precision", "integer NULL");
             ensureColumn(metadata, connection, tableName, "default_value", "varchar(255) NULL");
+            ensureColumn(metadata, connection, tableName, "primary_flag", "boolean NULL");
+            ensureColumn(metadata, connection, tableName, "can_null", "boolean NULL");
             migrateMissingDimensionFieldOrdinals(connection, tableName);
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to ensure dimension field schema", ex);
