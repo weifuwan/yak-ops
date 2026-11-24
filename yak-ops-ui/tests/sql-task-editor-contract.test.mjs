@@ -57,6 +57,21 @@ test("SQL adapter preserves the backend SqlParameters contract and unknown field
   assert.equal(params.untouched, true);
 });
 
+test("SQL adapter treats the default datasource zero sentinel as unselected", () => {
+  assert.equal(parseSqlTaskForm({ datasource: 0 }).datasource, "");
+  assert.equal(parseSqlTaskForm({ datasource: "0" }).datasource, "");
+  assert.equal(parseSqlTaskForm({}).datasource, "");
+  assert.equal(parseSqlTaskForm({ datasource: 42 }).datasource, "42");
+
+  const emptyDatasourceForm = parseSqlTaskForm({
+    datasource: 0,
+    type: "MYSQL",
+    sql: "select 1",
+    sqlSource: "SCRIPT",
+  });
+  assert.match(validateSqlTaskForm(emptyDatasourceForm) ?? "", /请选择有效的数据源/);
+});
+
 test("SQL file mode persists only the resource path and normalizes legacy source values", () => {
   const form = parseSqlTaskForm({
     sql: "",
@@ -128,6 +143,11 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.doesNotMatch(statementsSection, /<CollapseSection/);
   assert.match(statementsSection, /添加\{title\}/);
   assert.match(workflowStore, /sqlSource: "SCRIPT"/);
+  const sqlDefaults = workflowStore.match(/case "SQL":\\s*return \\{[\\s\\S]*?\\n      \\};/)?.[0] ?? "";
+  assert.match(sqlDefaults, /datasource: ""/);
+  assert.doesNotMatch(sqlDefaults, /datasource:\\s*0/);
+  assert.match(editor, /const legacyDatasourceId = Number\\(form\\.datasource\\)/);
+  assert.match(editor, /Number\\.isSafeInteger\\(legacyDatasourceId\\)[\\s\\S]*?legacyDatasourceId > 0/);
 });
 
 test("TreeSelect search autofocus does not move the surrounding page", () => {
