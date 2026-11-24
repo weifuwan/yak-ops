@@ -13,7 +13,7 @@ import {
   SelectValue,
   toast,
 } from "@yak-ops/yak-ui";
-import { ListChecks, ListPlus, X } from "lucide-react";
+import { ListChecks, X } from "lucide-react";
 
 import {
   listDataSourceColumns,
@@ -342,7 +342,18 @@ export function SourceFieldImportCard({
                   onClick={() => setDialog("all")}
                   className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ListPlus size={14} />
+                  <svg
+                    aria-hidden="true"
+                    focusable="false"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 1024 1024"
+                    fill="currentColor"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M332.5 448H473c35.8 0 28.8-139.4-72-247.1-21-22.4-45.6-36.1-77.7-51.2-68.8-32.4-134.3-19.3-134.3-19.3s49.5-26.7 93.4-26.6c0 0 141.1-17.4 241.6 112.1C594.4 306.6 607.5 448 648.7 448h169.9s-30.7 33.2-99.9 102.4L578.3 687 332.5 448z" />
+                    <path d="M215.5 435.4c-19.1 0.3-34.4 16-34.1 35.2v281c0 19.4 15.3 35.1 34.1 35.1h580.3c19.1-0.3 34.4-16 34.2-35.1v-35.1c0-19.4 15.3-35.2 34.1-35.2 18.9 0 34.2 15.8 34.2 35.2v70.2c-0.1 38.8-30.6 70.2-68.3 70.2H181.4c-37.7 0-68.3-31.4-68.3-70.2V435.4c0-38.8 30.6-70.3 68.3-70.3h34.1c18.8 0 34.2 15.7 34.2 35.1 0.3 19.2-15 35-34.2 35.2z" />
+                  </svg>
                 </button>
                 <button
                   type="button"
