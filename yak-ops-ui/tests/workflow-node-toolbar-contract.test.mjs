@@ -169,6 +169,7 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
 
   for (const taskType of [
     "CONDITIONS",
+    "DEPENDENT",
     "SWITCH",
     "SUB_WORKFLOW",
     "DATA_SYNC",
@@ -183,6 +184,10 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
   }
 
   assert.ok(taskTypeBadgeIcon.includes('SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" }'));
+  assert.ok(taskTypeBadgeIcon.includes('DEPENDENT: { icon: GitBranch, background: "var(--yak-color-primary)" }'));
+  assert.ok(taskTypeBadgeIcon.includes('normalized === "DEPENDENT"'));
+  assert.ok(taskTypeBadgeIcon.includes("M576 256h448v64H576zM0 704h448v64H0z"));
+  assert.ok(taskTypeBadgeIcon.includes("M704 0h64v192h-64zM256 832h64v192h-64z"));
   assert.ok(taskTypeBadgeIcon.includes('SUB_WORKFLOW: { icon: Workflow, background: "var(--yak-color-primary)" }'));
   assert.ok(taskTypeBadgeIcon.includes('normalized === "SUB_WORKFLOW"'));
   assert.ok(taskTypeBadgeIcon.includes("M42.6496 341.3504A42.6496 42.6496 0 0 0 0 384"));
