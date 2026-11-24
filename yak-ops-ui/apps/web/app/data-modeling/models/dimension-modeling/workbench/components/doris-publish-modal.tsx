@@ -658,6 +658,11 @@ export function DorisPublishModal({
               value={preview.ddl}
               className="min-h-[180px] resize-y font-mono text-xs leading-5"
             />
+            {preview.errorMessage ? (
+              <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">
+                {preview.errorMessage}
+              </p>
+            ) : null}
           </section>
         ) : null}
       </div>
