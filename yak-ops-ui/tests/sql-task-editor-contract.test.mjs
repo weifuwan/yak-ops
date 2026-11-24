@@ -68,7 +68,7 @@ test("SQL file mode persists only the resource path and normalizes legacy source
   assert.equal(params.sqlResource, "/resources/report.sql");
   assert.equal(params.oldField, "preserve");
 
-  const scriptForm = { ...form, sqlSource: "SCRIPT" as const, sql: "select 1" };
+  const scriptForm = { ...form, sqlSource: "SCRIPT", sql: "select 1" };
   const scriptParams = buildSqlTaskParams(scriptForm);
   assert.equal(scriptParams.sql, "select 1");
   assert.equal(scriptParams.sqlResource, "");
