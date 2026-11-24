@@ -29,6 +29,14 @@ function readNumberText(value: unknown, fallback: number): string {
     : String(fallback);
 }
 
+function readDatasourceText(value: unknown): string {
+  const normalized = readString(value).trim();
+  if (!normalized || Number(normalized) === 0) return "";
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? String(parsed) : normalized;
+}
+
 function readStatements(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map((item) => readString(item))
@@ -53,7 +61,7 @@ export function parseSqlTaskForm(value: unknown): SqlTaskForm {
 
   return {
     type: toSqlTaskDbType(readString(raw.type)),
-    datasource: readNumberText(raw.datasource, 0),
+    datasource: readDatasourceText(raw.datasource),
     sql,
     sqlSource,
     sqlResource,
