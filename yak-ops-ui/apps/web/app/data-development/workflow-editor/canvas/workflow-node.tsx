@@ -218,7 +218,7 @@ export function WorkflowTaskNode({
           <div className="flex items-center rounded-t-2xl px-3 pb-2 pt-3">
             <TaskTypeBadgeIcon
               taskType={data.taskType || "TASK"}
-              size={28}
+              size={24}
             />
             <div className="ml-2 min-w-0 grow">
               <div className="truncate text-[13px] font-semibold uppercase text-[var(--yak-components-panel-text)]">
