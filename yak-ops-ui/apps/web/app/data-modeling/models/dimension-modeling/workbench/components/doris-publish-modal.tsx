@@ -516,6 +516,11 @@ export function DorisPublishModal({
               当前模型没有设置主键，系统会按普通明细表创建。需要数据更新合并时，请先在字段管理中设置主键。
             </p>
           ) : null}
+          {!physicalFields.length ? (
+            <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">
+              当前模型还没有字段，请先完成字段管理并提交模型，再进行 Doris 发布。
+            </p>
+          ) : null}
         </section>
 
         <section className="border-t border-[var(--yak-components-panel-border)] pt-3">
