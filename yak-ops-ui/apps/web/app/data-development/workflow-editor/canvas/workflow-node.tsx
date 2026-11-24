@@ -18,6 +18,34 @@ import type { WorkflowNodeData } from "../types";
 // CONDITIONS is the visual baseline for all right-side branch connectors.
 const BRANCH_HANDLE_RIGHT_OFFSET = -21;
 
+function ConnectionHandleIndicator({
+  connected,
+  side,
+  showOnHover = true,
+}: {
+  connected: boolean;
+  side: "left" | "right";
+  showOnHover?: boolean;
+}) {
+  const visibility = connected
+    ? "opacity-100"
+    : showOnHover
+      ? "opacity-0 group-hover:opacity-70"
+      : "opacity-0";
+
+  return (
+    <span
+      aria-hidden="true"
+      className={[
+        "pointer-events-none absolute top-1 z-0 h-2 w-0.5 rounded-full",
+        "bg-[var(--yak-color-primary)] transition-opacity duration-150",
+        side === "left" ? "left-1.5" : "right-1.5",
+        visibility,
+      ].join(" ")}
+    />
+  );
+}
+
 function AddHandleButton({ visibility }: { visibility: string }) {
   const maskId = "workflow-handle-plus-" + useId().replace(/:/g, "");
 
@@ -110,6 +138,10 @@ export function WorkflowTaskNode({
     (state) => state.openEdgeSelector,
   );
   const branchOutputs = data.branchOutputsPreview ?? data.branchOutputs ?? [];
+  const targetConnected =
+    data.connectedTargetHandleIds?.includes("target") ?? false;
+  const sourceConnected =
+    data.connectedSourceHandleIds?.includes("source") ?? false;
   const { openTask } = useDataDevelopmentWorkbench();
 
   const openCurrentTask = () => {
@@ -137,9 +169,11 @@ export function WorkflowTaskNode({
     ? "visible pointer-events-auto opacity-100"
     : "invisible pointer-events-none opacity-0 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 focus-within:visible focus-within:pointer-events-auto focus-within:opacity-100";
 
-  const addButtonVisibility = selected
-    ? "opacity-100"
-    : "opacity-0 group-hover:opacity-100";
+  const addButtonVisibility = data.readOnly
+    ? "opacity-0"
+    : selected
+      ? "opacity-100"
+      : "opacity-0 group-hover:opacity-100";
 
   return (
     <div className="group relative">
@@ -186,12 +220,20 @@ export function WorkflowTaskNode({
         type="target"
         position={Position.Left}
         isConnectable={!data.readOnly}
+        aria-label="输入连接点"
+        title="输入连接点"
         className={[
           "!z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
           "!top-4 !-left-[9px] !translate-y-0",
           "before:absolute before:-inset-1",
         ].join(" ")}
-      />
+      >
+        <ConnectionHandleIndicator
+          connected={targetConnected}
+          side="left"
+          showOnHover={!data.readOnly}
+        />
+      </Handle>
 
       <div
         onDoubleClick={(event) => {
@@ -231,6 +273,8 @@ export function WorkflowTaskNode({
             {branchOutputs.length > 0 ? (
               <div>
                 {branchOutputs.map((output) => {
+                  const connected =
+                    data.connectedSourceHandleIds?.includes(output.id) ?? false;
                   const labelClass =
                     output.kind === "success"
                       ? "text-[#16A34A]"
@@ -279,6 +323,11 @@ export function WorkflowTaskNode({
                           "before:absolute before:-inset-1",
                         ].join(" ")}
                       >
+                        <ConnectionHandleIndicator
+                          connected={connected}
+                          side="right"
+                          showOnHover={!data.readOnly}
+                        />
                         <AddHandleButton visibility={addButtonVisibility} />
                       </Handle>
                     </div>
@@ -315,12 +364,19 @@ export function WorkflowTaskNode({
               },
             });
           }}
+          aria-label="输出连接点"
+          title="输出连接点"
           className={[
             "group/handle !z-[10] !size-4 !rounded-none !border-none !bg-transparent !outline-none",
             "!top-4 !-right-[9px] !translate-y-0",
             "before:absolute before:-inset-1",
           ].join(" ")}
         >
+          <ConnectionHandleIndicator
+            connected={sourceConnected}
+            side="right"
+            showOnHover={!data.readOnly}
+          />
           <AddHandleButton visibility={addButtonVisibility} />
         </Handle>
       ) : null}
