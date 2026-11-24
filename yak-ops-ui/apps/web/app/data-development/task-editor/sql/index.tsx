@@ -220,10 +220,15 @@ function SqlTaskWorkspace({
       icon: <DatabaseIcons dbType={item.dbType} width="16px" height="16px" />,
       searchText: [item.dbType, item.database, item.schema].filter(Boolean).join(" "),
     }] : []);
-    if (form.datasource && !options.some((item) => item.value === form.datasource)) {
+    const legacyDatasourceId = Number(form.datasource);
+    if (
+      Number.isSafeInteger(legacyDatasourceId) &&
+      legacyDatasourceId > 0 &&
+      !options.some((item) => item.value === form.datasource)
+    ) {
       options.unshift({
         value: form.datasource,
-        label: "数据源 #" + form.datasource,
+        label: "数据源 #" + legacyDatasourceId,
         icon: <DatabaseIcons dbType={form.type} width="16px" height="16px" />,
         searchText: form.type,
       });
