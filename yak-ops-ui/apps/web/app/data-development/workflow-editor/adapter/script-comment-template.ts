@@ -1,5 +1,3 @@
-export type ScriptTaskCommentType = "SHELL" | "PYTHON";
-
 function pad(value: number): string {
   return String(value).padStart(2, "0");
 }
@@ -17,7 +15,6 @@ export function formatScriptCreatedAt(date: Date): string {
 }
 
 export function buildScriptTaskCommentTemplate(
-  taskType: ScriptTaskCommentType,
   createdBy: string,
   createdAt: Date = new Date(),
 ): string {
