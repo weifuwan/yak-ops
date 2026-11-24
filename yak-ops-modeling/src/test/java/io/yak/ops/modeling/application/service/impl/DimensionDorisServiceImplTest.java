@@ -241,20 +241,18 @@ class DimensionDorisServiceImplTest {
         Connection connection = mock(Connection.class);
         DatabaseMetaData metadata = mock(DatabaseMetaData.class);
         ResultSet existingTable = mock(ResultSet.class);
-        Statement statement = mock(Statement.class);
         when(connection.getMetaData()).thenReturn(metadata);
         when(metadata.getSearchStringEscape()).thenReturn("\\");
         when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
                 .thenReturn(existingTable);
         when(existingTable.next()).thenReturn(true);
         when(existingTable.getString("TABLE_NAME")).thenReturn("dwd_order_detail");
-        when(connection.createStatement()).thenReturn(statement);
         doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
 
         DimensionDorisPublishVO published =
                 service.publish("table-id", request(), dorisDatasource(), "tester");
 
-        verify(statement, never()).execute(anyString());
+        verify(connection, never()).createStatement();
         assertEquals(DorisPublishStatusEnum.CONFLICT, published.getStatus());
     }
 
