@@ -329,6 +329,7 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 snapshot.table.initUpdate();
                 snapshot.table.setUpdateBy("sys");
                 restoreSnapshot(snapshot.table, id);
+                migrateLegacyDorisPrimaryFields(root, snapshot.fields);
                 restoreFields(id, snapshot.fields == null ? Collections.emptyList() : snapshot.fields);
             } else {
                 // Backward compatibility: historical versions stored only DimensionTablePO.
@@ -881,6 +882,37 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
                 .set("update_time", po.getUpdateTime())
                 .set("update_by", po.getUpdateBy());
         dimensionTableDao.update(null, wrapper);
+    }
+
+    /**
+     * V3 snapshots stored Doris UNIQUE keys separately from logical fields. When rolling
+     * back one of those snapshots, fold the old Key references into primaryFlag so the
+     * new single-source-of-truth model keeps the same key semantics.
+     */
+    private void migrateLegacyDorisPrimaryFields(
+            JsonNode snapshotRoot, List<DimensionTableFieldPO> snapshotFields) {
+        if (snapshotRoot == null || snapshotFields == null) {
+            return;
+        }
+        JsonNode legacyKeys = snapshotRoot.get("dorisKeyFields");
+        if (legacyKeys == null || !legacyKeys.isArray()) {
+            return;
+        }
+        Set<String> legacyKeyIds = new HashSet<>();
+        for (JsonNode legacyKey : legacyKeys) {
+            if (legacyKey != null && legacyKey.hasNonNull("fieldId")) {
+                String fieldId = legacyKey.get("fieldId").asText();
+                if (notBlank(fieldId)) {
+                    legacyKeyIds.add(fieldId);
+                }
+            }
+        }
+        for (DimensionTableFieldPO field : snapshotFields) {
+            if (field != null && legacyKeyIds.contains(field.getId())) {
+                field.setPrimaryFlag(Boolean.TRUE);
+                field.setCanNull(Boolean.FALSE);
+            }
+        }
     }
 
     private void restoreFields(String tableId, List<DimensionTableFieldPO> snapshotFields) {
