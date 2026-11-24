@@ -27,15 +27,15 @@ jobs:
       - name: SQL task editor contract tests
         working-directory: yak-ops-ui
         run: npm run test:sql-editor
+      - name: Build UI
+        working-directory: yak-ops-ui
+        run: npm run build
       - name: TypeScript typecheck
         working-directory: yak-ops-ui
         run: npm run typecheck
       - name: Management access token contract tests
         working-directory: yak-ops-ui
         run: npm run test:management-token
-      - name: Build UI
-        working-directory: yak-ops-ui
-        run: npm run build
       - name: Data Agent frontend contract tests
         working-directory: yak-ops-ui
         run: npm run test:data-agent
