@@ -31,7 +31,7 @@ The complete dialect scripts already include all modifier-scope indexes and the 
 
 ## Full modeling reset and rebuild
 
-The reset scripts below remove the 23 current logical modeling tables and also drop the three retired Doris configuration tables when present under both their current `t_yak_ops_` names and their former `t_cockpit_` names. The legacy names are included because `SchemaDao.ensureModelingSchema()` can automatically rename a remaining `t_cockpit_` table back to its current name during schema initialization.
+The reset scripts below remove the 23 current logical modeling tables and also drop the three retired Doris configuration tables when present under both their current `t_yak_ops_` names and their former `t_cockpit_` names. The legacy names are included so reset can also clean up installations that still have former `t_cockpit_` tables. The 23 current logical tables are renamed in place when appropriate; the three retired Doris config tables are migrated and dropped by the dedicated Doris schema migration.
 
 **Destructive scope:** all modeling records for every project are deleted. Yak Ops base tables—including `t_yak_ops_project`, users, roles, permissions, workflow and datasource tables—are not dropped or modified by these reset scripts.
 
@@ -86,6 +86,7 @@ SHOW COLUMNS FROM t_yak_ops_dimension_table LIKE 'dwh_id';
 SHOW COLUMNS FROM t_yak_ops_dimension_table_fields LIKE 'ordinal';
 SHOW COLUMNS FROM t_yak_ops_dimension_table_fields LIKE 'field_scale';
 SHOW COLUMNS FROM t_yak_ops_dimension_table_fields LIKE 'datetime_precision';
+SHOW COLUMNS FROM t_yak_ops_dimension_table_publish LIKE 'physical_config';
 SHOW COLUMNS FROM t_yak_ops_dimension_table_fields LIKE 'default_value';
 SHOW INDEX FROM t_yak_ops_dimension_table_publish;
 SHOW INDEX FROM t_yak_ops_indicator_modifier;
