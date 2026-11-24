@@ -109,7 +109,7 @@ test("HTTP editor uses the shared resource and local parameter panel and has a d
   assert.match(editor, /placeholder="选择或输入请求头名称"/);
   assert.match(editor, /placeholder="参数名称"/);
   assert.match(editor, /openOnInputClick/);
-  assert.match(editor, /无匹配项，可直接输入自定义请求头名称/);
+  assert.doesNotMatch(editor, /AutocompleteContent emptyContent=/);
   assert.match(editor, /"Authorization"/);
   assert.match(editor, /"X-Tenant-Id"/);
   assert.match(editor, /title="查询参数"/);
