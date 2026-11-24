@@ -12,6 +12,7 @@
     <artifactId>yak-ops-cdc-pipeline-connectors</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>yak-ops-cdc-pipeline-connector-doris</module>
         <module>yak-ops-cdc-pipeline-connector-mysql</module>
         <module>yak-ops-cdc-pipeline-connector-jdbc-parent</module>
     </modules>
