@@ -38,6 +38,10 @@ public class SchemaDao {
             "t_yak_ops_subject_domain",
             "t_yak_ops_dimension_table",
             "t_yak_ops_dimension_table_fields",
+            "t_yak_ops_dimension_table_doris_config",
+            "t_yak_ops_dimension_table_doris_key_fields",
+            "t_yak_ops_dimension_table_doris_distribution_fields",
+            "t_yak_ops_dimension_table_publish",
             "t_yak_ops_standard_directory",
             "t_yak_ops_field_standard",
             "t_yak_ops_code_standard",
@@ -164,6 +168,7 @@ public class SchemaDao {
         String sqlFilePath = String.format("sql/modeling_%s.sql", db);
         try {
             new SqlScriptRunner(dataSource, sqlFilePath).execute();
+            ensureDimensionFieldSchema();
             log.info("Ensured data modeling schema using {}", sqlFilePath);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath, ex);
@@ -208,6 +213,41 @@ public class SchemaDao {
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to ensure dimension short-name schema", ex);
+        }
+    }
+
+    /**
+     * Additive upgrade for Doris physical-model field metadata. Existing rows keep their
+     * original field order through create_time until an explicit ordinal is saved.
+     */
+    private void ensureDimensionFieldSchema() {
+        final String tableName = "t_yak_ops_dimension_table_fields";
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            if (!tableExists(metadata, connection, tableName)) {
+                return;
+            }
+            ensureColumn(metadata, connection, tableName, "ordinal", "integer NULL");
+            ensureColumn(metadata, connection, tableName, "field_scale", "integer NULL");
+            ensureColumn(metadata, connection, tableName, "datetime_precision", "integer NULL");
+            ensureColumn(metadata, connection, tableName, "default_value", "varchar(255) NULL");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to ensure dimension field schema", ex);
+        }
+    }
+
+    private void ensureColumn(
+            DatabaseMetaData metadata,
+            Connection connection,
+            String tableName,
+            String columnName,
+            String definition) throws SQLException {
+        if (!columnExists(metadata, connection, tableName, columnName)) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE " + quoteIdentifier(tableName)
+                        + " ADD COLUMN " + columnName + " " + definition);
+            }
+            log.info("Added {} to {}", columnName, tableName);
         }
     }
 

@@ -25,6 +25,10 @@ import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
+import io.yak.ops.dao.repository.modeling.DimensionDorisConfigDao;
+import io.yak.ops.dao.repository.modeling.DimensionDorisDistributionFieldDao;
+import io.yak.ops.dao.repository.modeling.DimensionDorisKeyFieldDao;
+import io.yak.ops.dao.repository.modeling.DimensionDorisPublishDao;
 import io.yak.ops.dao.repository.modeling.FieldStandardDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
 import io.yak.ops.dao.repository.modeling.SubjectDomainDao;
@@ -86,6 +90,18 @@ class DimensionModelingServiceImplTest {
 
     @Mock
     private DimensionTableFieldDao dimensionTableFieldDao;
+
+    @Mock
+    private DimensionDorisConfigDao dimensionDorisConfigDao;
+
+    @Mock
+    private DimensionDorisKeyFieldDao dimensionDorisKeyFieldDao;
+
+    @Mock
+    private DimensionDorisDistributionFieldDao dimensionDorisDistributionFieldDao;
+
+    @Mock
+    private DimensionDorisPublishDao dimensionDorisPublishDao;
 
     @Mock
     private VersionManagementDao versionManagementDao;

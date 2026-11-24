@@ -31,6 +31,11 @@ class DimensionTableFieldMappingTest {
         assertNotNull(precisionField);
         assertEquals("field_precision", precisionField.getColumn());
 
+        assertFieldColumn(tableInfo, "ordinal", "ordinal");
+        assertFieldColumn(tableInfo, "fieldScale", "field_scale");
+        assertFieldColumn(tableInfo, "datetimePrecision", "datetime_precision");
+        assertFieldColumn(tableInfo, "defaultValue", "default_value");
+
         String sqlSelect = tableInfo.getAllSqlSelect();
         assertNotNull(sqlSelect);
         assertTrue(sqlSelect.contains("field_precision"));
@@ -40,5 +45,14 @@ class DimensionTableFieldMappingTest {
                 .anyMatch(field -> "fieldPrecision".equals(field.getName())));
         assertFalse(Arrays.stream(DimensionTableFieldPO.class.getDeclaredFields())
                 .anyMatch(field -> "precision".equals(field.getName())));
+    }
+
+    private void assertFieldColumn(TableInfo tableInfo, String property, String column) {
+        TableFieldInfo field = tableInfo.getFieldList().stream()
+                .filter(item -> property.equals(item.getProperty()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(field);
+        assertEquals(column, field.getColumn());
     }
 }

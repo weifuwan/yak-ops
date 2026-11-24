@@ -474,11 +474,15 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_fields (
   id varchar(32) NOT NULL,
   project_code bigint NOT NULL,
   table_id varchar(32) NULL,
+  ordinal integer NULL,
   field_name varchar(50) NULL,
   cn_name varchar(255) NULL,
   data_type varchar(50) NULL,
   length integer NULL,
   field_precision integer NULL,
+  field_scale integer NULL,
+  datetime_precision integer NULL,
+  default_value varchar(255) NULL,
   remark varchar(2048) NULL,
   primary_flag boolean NULL,
   can_null boolean NULL,
@@ -498,6 +502,96 @@ CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_1 ON t_yak_ops_dimension_tab
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_2 ON t_yak_ops_dimension_table_fields (unit_id);
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_3 ON t_yak_ops_dimension_table_fields (field_std_id);
 CREATE INDEX IF NOT EXISTS idx_yak_dimension_fields_4 ON t_yak_ops_dimension_table_fields (code_std_id);
+
+
+CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_doris_config (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  table_id varchar(32) NOT NULL,
+  data_model varchar(32) NOT NULL DEFAULT 'DUPLICATE',
+  partition_strategy varchar(32) NOT NULL DEFAULT 'NONE',
+  partition_field_id varchar(32) NULL,
+  partition_unit varchar(32) NULL,
+  distribution_type varchar(32) NOT NULL DEFAULT 'HASH',
+  bucket_mode varchar(32) NOT NULL DEFAULT 'AUTO',
+  bucket_count integer NULL,
+  table_properties text NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_yak_dimension_doris_config_1
+    ON t_yak_ops_dimension_table_doris_config (project_code, table_id);
+
+CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_doris_key_fields (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  table_id varchar(32) NOT NULL,
+  field_id varchar(32) NOT NULL,
+  ordinal integer NOT NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_yak_dimension_doris_key_1
+    ON t_yak_ops_dimension_table_doris_key_fields (project_code, table_id, field_id);
+CREATE INDEX IF NOT EXISTS idx_yak_dimension_doris_key_1
+    ON t_yak_ops_dimension_table_doris_key_fields (project_code, table_id, ordinal);
+
+CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_doris_distribution_fields (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  table_id varchar(32) NOT NULL,
+  field_id varchar(32) NOT NULL,
+  ordinal integer NOT NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_yak_dimension_doris_distribution_1
+    ON t_yak_ops_dimension_table_doris_distribution_fields (project_code, table_id, field_id);
+CREATE INDEX IF NOT EXISTS idx_yak_dimension_doris_distribution_1
+    ON t_yak_ops_dimension_table_doris_distribution_fields (project_code, table_id, ordinal);
+
+CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_publish (
+  id varchar(32) NOT NULL,
+  project_code bigint NOT NULL,
+  table_id varchar(32) NOT NULL,
+  version_id varchar(32) NULL,
+  version_number integer NULL,
+  datasource_id integer NOT NULL,
+  datasource_name varchar(255) NULL,
+  target_database varchar(255) NOT NULL,
+  target_table varchar(255) NOT NULL,
+  ddl text NULL,
+  ddl_hash varchar(64) NULL,
+  status varchar(32) NOT NULL,
+  error_message text NULL,
+  execution_duration_ms bigint NULL,
+  started_at timestamp NULL,
+  finished_at timestamp NULL,
+  create_by varchar(100) NULL,
+  create_time timestamp NULL,
+  update_by varchar(100) NULL,
+  update_time timestamp NULL,
+  PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS idx_yak_dimension_publish_1
+    ON t_yak_ops_dimension_table_publish (project_code, table_id, create_time);
+CREATE INDEX IF NOT EXISTS idx_yak_dimension_publish_2
+    ON t_yak_ops_dimension_table_publish (project_code, datasource_id, target_database, target_table);
+
+
+COMMENT ON TABLE t_yak_ops_dimension_table_doris_config IS '智能建模-Doris物理建表配置';
+COMMENT ON TABLE t_yak_ops_dimension_table_doris_key_fields IS '智能建模-Doris Unique Key字段';
+COMMENT ON TABLE t_yak_ops_dimension_table_doris_distribution_fields IS '智能建模-Doris Hash分布字段';
+COMMENT ON TABLE t_yak_ops_dimension_table_publish IS '智能建模-Doris物理发布记录';
 
 -- Table descriptions
 COMMENT ON TABLE t_yak_ops_business_type IS '智能建模-业务分类';

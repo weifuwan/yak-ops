@@ -53,6 +53,7 @@ Each resource uses typed `page`, `list`, `getById`, `create`, `update` and `dele
 - Data marts
 - Subject domains
 - Existing dimension table and field metadata
+- Doris physical configuration, ordered UNIQUE KEY/HASH fields and physical publish history
 - Dimension tree grouping by business type, data domain, mart and subject domain
 
 ### Migrated modeling assets
@@ -65,7 +66,7 @@ Core forward data modeling and reverse engineering remain outside this migration
 
 ## Workspace isolation
 
-All 22 modeling tables use the `t_yak_ops_` prefix and must have a non-null `project_code`.
+All 26 modeling tables use the `t_yak_ops_` prefix and must have a non-null `project_code`.
 
 - API routes are rooted at `/projects/{projectCode}/modeling`.
 - `ModelingProjectAccessInterceptor` validates read/write access against the active Yak Ops project.
@@ -83,11 +84,11 @@ The module owns three complete, additive schema scripts:
 - `sql/modeling_postgresql.sql`
 - `sql/modeling_h2.sql`
 
-Each script defines the same 22 tables and 62 indexes, with the same logical column set. Table names, table comments and index names are aligned across dialects. All table and index DDL is kept before the initialization DML. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
+Each script defines the same 26 tables with aligned table and index definitions, with the same logical column set. Table names, table comments and index names are aligned across dialects. All table and index DDL is kept before the initialization DML. The scripts only create missing tables and indexes; they do not drop or recreate existing tables.
 
 The DML section normalizes legacy warehouse-layer codes, initializes atomic-indicator `dw_type`, and seeds project-scoped defaults for warehouse layers, unit directories and time-period categories/assets.
 
-For a modeling-only reset, use the matching `sql/modeling_drop_<dialect>.sql` script, then run the matching complete `sql/modeling_<dialect>.sql` script. The reset scripts remove only the 22 logical modeling tables (including their legacy `t_cockpit_` names) and preserve Yak Ops base tables such as projects, users, roles and permissions. They delete modeling data for every project and must be run manually after a backup; they are never part of application startup. See `src/main/resources/sql/README.md` for the exact rebuild procedure and verification checks.
+For a modeling-only reset, use the matching `sql/modeling_drop_<dialect>.sql` script, then run the matching complete `sql/modeling_<dialect>.sql` script. The reset scripts remove only the 26 logical modeling tables (including their legacy `t_cockpit_` names) and preserve Yak Ops base tables such as projects, users, roles and permissions. They delete modeling data for every project and must be run manually after a backup; they are never part of application startup. See `src/main/resources/sql/README.md` for the exact rebuild procedure and verification checks.
 
 All four indicator-asset tables (modifier, atomic, derivative and composite) use `dw_type` directly and do not reference concrete warehouse-layer IDs. The dimension-model table intentionally retains `dwh_id`. The complete schema includes the corresponding classification indexes; the retired one-time patch scripts are not part of a clean rebuild.
 

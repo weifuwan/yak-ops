@@ -6,14 +6,22 @@ import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.modeling.api.dto.dimension.DimensionTableDTO;
+import io.yak.ops.modeling.api.dto.dimension.DimensionDorisConfigDTO;
+import io.yak.ops.modeling.api.dto.dimension.DimensionDorisPublishDTO;
 import io.yak.ops.modeling.api.dto.dimension.DimensionTableFieldDTO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableFieldVO;
+import io.yak.ops.modeling.api.vo.dimension.DimensionDorisConfigVO;
+import io.yak.ops.modeling.api.vo.dimension.DimensionDorisFieldTypeOptionVO;
+import io.yak.ops.modeling.api.vo.dimension.DimensionDorisPublishVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTableVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionTreeNodeVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionVersionHistoryVO;
 import io.yak.ops.modeling.api.vo.tree.OptionVO;
 import io.yak.ops.modeling.application.service.DimensionModelingService;
+import io.yak.ops.modeling.application.service.DimensionDorisService;
+import io.yak.ops.api.service.DataSourceService;
 
 import java.util.List;
 
@@ -40,6 +48,12 @@ public class DimensionModelingController extends BaseController {
 
     @Resource
     private DimensionModelingService dimensionModelingService;
+
+    @Resource
+    private DimensionDorisService dimensionDorisService;
+
+    @Resource
+    private DataSourceService dataSourceService;
 
     @Operation(description = "Create dimension table")
     @OperatorLog(auditType = AuditType.MODELING_CREATE)
@@ -186,5 +200,62 @@ public class DimensionModelingController extends BaseController {
                                       @PathVariable("id") String id,
                                       @PathVariable("fieldId") String fieldId) {
         return Result.success(dimensionModelingService.deleteField(id, fieldId));
+    }
+    @GetMapping("/{id}/doris-config")
+    public Result<DimensionDorisConfigVO> dorisConfig(@PathVariable("id") String id) {
+        return Result.success(dimensionDorisService.getConfig(id));
+    }
+
+    @Operation(description = "Save Doris physical table configuration")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
+    @PutMapping("/{id}/doris-config")
+    public Result<DimensionDorisConfigVO> saveDorisConfig(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @PathVariable("id") String id,
+            @RequestBody DimensionDorisConfigDTO dto) {
+        return Result.success(
+                dimensionDorisService.saveConfig(id, dto, loginUser.getUserName()));
+    }
+
+    @GetMapping("/options/doris/field-types")
+    public Result<List<DimensionDorisFieldTypeOptionVO>> dorisFieldTypes() {
+        return Result.success(dimensionDorisService.getFieldTypeOptions());
+    }
+
+    @Operation(description = "Preview Doris create table DDL")
+    @PostMapping("/{id}/ddl/preview")
+    public Result<DimensionDorisPublishVO> previewDorisDdl(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable("id") String id,
+            @RequestBody DimensionDorisPublishDTO dto) {
+        DataSource datasource = dataSourceService.getDataSourceForCatalog(
+                loginUser, projectCode, dto.getDatasourceId());
+        return Result.success(dimensionDorisService.preview(id, dto, datasource));
+    }
+
+    @Operation(description = "Publish dimension model to Doris")
+    @OperatorLog(auditType = AuditType.MODELING_UPDATE)
+    @PostMapping("/{id}/publish")
+    public Result<DimensionDorisPublishVO> publishDoris(
+            @Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+            @Parameter(hidden = true) @PathVariable("projectCode") long projectCode,
+            @PathVariable("id") String id,
+            @RequestBody DimensionDorisPublishDTO dto) {
+        DataSource datasource = dataSourceService.getDataSourceForPublish(
+                loginUser, projectCode, dto.getDatasourceId());
+        // Validate the generated DDL before creating a model version.
+        dimensionDorisService.preview(id, dto, datasource);
+        DimensionTableVO model = dimensionModelingService.selectById(id);
+        if (!Boolean.TRUE.equals(model.getSubmit())) {
+            dimensionModelingService.submit(id, loginUser.getUserName());
+        }
+        return Result.success(
+                dimensionDorisService.publish(id, dto, datasource, loginUser.getUserName()));
+    }
+
+    @GetMapping("/{id}/publish-history")
+    public Result<List<DimensionDorisPublishVO>> publishHistory(@PathVariable("id") String id) {
+        return Result.success(dimensionDorisService.history(id));
     }
 }
