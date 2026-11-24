@@ -81,22 +81,16 @@ export type DimensionFieldRecord = {
 };
 
 
-export type DorisDataModel = "DUPLICATE" | "UNIQUE";
-export type DorisPartitionStrategy = "NONE" | "AUTO_RANGE";
 export type DorisPartitionUnit = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR";
-export type DorisBucketMode = "AUTO" | "FIXED";
-export type DorisConfig = {
-  tableId?: string;
-  dataModel?: DorisDataModel;
-  keyFieldIds?: string[];
-  distributionType?: "HASH";
+export type DorisPublishAdvanced = {
+  customDistribution?: boolean;
   distributionFieldIds?: string[];
-  bucketMode?: DorisBucketMode;
+  /** Null means automatic bucket sizing; a positive value requests a fixed bucket count. */
   bucketCount?: number;
-  partitionStrategy?: DorisPartitionStrategy;
-  partitionFieldId?: string;
-  partitionUnit?: DorisPartitionUnit;
-  tableProperties?: Record<string, string>;
+  partition?: {
+    fieldId: string;
+    unit: DorisPartitionUnit;
+  };
 };
 export type DorisFieldTypeOption = {
   code: string;
@@ -106,7 +100,7 @@ export type DorisFieldTypeOption = {
   maxPrecision?: number;
   maxScale?: number;
 };
-export type DorisPublishRequest = { datasourceId: number; targetDatabase: string };
+export type DorisPublishRequest = { datasourceId: number; targetDatabase: string; advanced?: DorisPublishAdvanced };
 export type DorisPublishRecord = {
   id?: string;
   tableId?: string;
@@ -117,6 +111,7 @@ export type DorisPublishRecord = {
   targetTable?: string;
   ddl?: string;
   ddlHash?: string;
+  physicalConfig?: string;
   status?: string;
   errorMessage?: string;
   executionDurationMs?: number;
@@ -210,14 +205,6 @@ export const dimensionModelingApi = {
     );
   },
 
-
-  dorisConfig(projectCode: string, id: string) {
-    return HttpUtils.getData<DorisConfig>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/doris-config");
-  },
-
-  saveDorisConfig(projectCode: string, id: string, payload: DorisConfig) {
-    return HttpUtils.putData<DorisConfig>(resourcePath(projectCode) + "/" + encodeURIComponent(id) + "/doris-config", payload);
-  },
 
   dorisFieldTypes(projectCode: string) {
     return HttpUtils.getData<DorisFieldTypeOption[]>(resourcePath(projectCode) + "/options/doris/field-types");
