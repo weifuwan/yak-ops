@@ -113,7 +113,7 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.match(editor, /title="后置 SQL"/);
   assert.match(editor, /title="结果通知"/);
   assert.match(editor, /function SqlSectionHeader/);
-  assert.match(editor, /bg-\\[#5664ff\\]/);
+  assert.match(editor, /bg-\[#5664ff\]/);
   const statementsSection = editor.slice(
     editor.indexOf("function SqlStatementsSection"),
     editor.indexOf("function SqlTaskWorkspace"),
