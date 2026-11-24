@@ -27,6 +27,7 @@ import {
   History,
   RefreshCw,
   Save,
+  Send,
   Upload,
   X,
 } from "lucide-react";
@@ -59,7 +60,8 @@ import { ModelTypeIcon, isModelTypeIconType } from "../../../../components/model
 import { PlanningIcon } from "../../../../planning/components/icons";
 import { buildApplicationScopeTree } from "../utils/application-scope-tree";
 import FieldSpreadsheet from "./field-spreadsheet/field-spreadsheet";
-import { DorisPhysicalConfig } from "./doris-physical-config";
+import { DorisPublishModal } from "./doris-publish-modal";
+import { DorisPublishHistoryPanel } from "./doris-publish-history-panel";
 import SourceFieldImportCard from "./source-field-import-card";
 import {
   fieldsForSave,
@@ -228,6 +230,8 @@ export function DimensionEditor({
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishHistoryOpen, setPublishHistoryOpen] = useState(false);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [error, setError] = useState("");
 
@@ -770,6 +774,7 @@ export function DimensionEditor({
 
   const isSubmitted = tab.record?.submit === true || tab.record?.submit === "true";
   const currentVersion = Number(tab.record?.currentVersion || 0);
+  const canOpenPublish = Boolean(recordId && selectedTableType !== "DIM" && isSubmitted && !dirty && !submitting && !fieldsQuery.isFetching && !fieldsQuery.isError);
   const showNotice = dirty || Boolean(recordId && !isSubmitted);
   const noticeMessage = dirty
     ? "当前存在未保存的修改，请先保存相关内容，再提交生成版本。"
@@ -805,7 +810,7 @@ export function DimensionEditor({
               <RefreshCw size={13} />刷新
             </Button>
             <span className="mx-1 h-4 w-px bg-[var(--yak-components-control-border)]" />
-            <Button size="sm" variant="ghost" isDisabled title="发布能力将在后续阶段接入">发布</Button>
+            <Button size="sm" variant="ghost" isDisabled={!canOpenPublish} onClick={() => setPublishOpen(true)}><Send size={13} />发布</Button>
             <Button size="sm" variant="ghost" isDisabled title="日志能力将在后续阶段接入">日志</Button>
             <Button size="sm" variant="ghost" isDisabled title="质量规则将在后续阶段接入">质量规则</Button>
             <Button size="sm" variant="ghost" isDisabled title="模型开发将在后续阶段接入">模型开发</Button>
@@ -1182,14 +1187,6 @@ export function DimensionEditor({
               </>
             ) : null}
 
-            {recordId && selectedTableType !== "DIM" ? (
-              <DorisPhysicalConfig
-                projectCode={projectCode}
-                tableId={recordId}
-                tableType={selectedTableType}
-                fields={fields}
-              />
-            ) : null}
 
             {error ? <p role="alert" className="px-1 text-xs text-[var(--yak-components-danger-text)]">{error}</p> : null}
           </div>
@@ -1223,6 +1220,13 @@ export function DimensionEditor({
             </div>
           </section>
         ) : null}
+        {publishHistoryOpen && recordId ? (
+          <DorisPublishHistoryPanel
+            projectCode={projectCode}
+            tableId={recordId}
+            onClose={() => setPublishHistoryOpen(false)}
+          />
+        ) : null}
         <nav aria-label="维度表辅助面板" className="flex h-full w-9 shrink-0 flex-col border-l border-[#e5e7eb] bg-white">
           <button
             type="button"
@@ -1230,7 +1234,10 @@ export function DimensionEditor({
             aria-label="版本管理"
             aria-pressed={versionOpen}
             disabled={!recordId}
-            onClick={() => setVersionOpen((open) => !open)}
+            onClick={() => {
+              setPublishHistoryOpen(false);
+              setVersionOpen((open) => !open);
+            }}
             className={[
               "relative flex w-full shrink-0 cursor-pointer flex-col items-center justify-center border-b border-[#e5e7eb] px-0 py-2 text-xs leading-[18px] transition-colors hover:bg-[#f7f9fc] hover:text-[#315efb] disabled:cursor-not-allowed disabled:opacity-40",
               versionOpen ? "bg-white text-[#315efb]" : "bg-white text-[#7c8796]",
@@ -1242,15 +1249,36 @@ export function DimensionEditor({
           </button>
           <button
             type="button"
-            title="发布记录（后续接入）"
+            title="发布记录"
             aria-label="发布记录"
-            disabled
-            className="flex w-full shrink-0 cursor-not-allowed flex-col items-center justify-center border-b border-[#e5e7eb] bg-white px-0 py-2 text-xs leading-[18px] text-[#a0a7b3] opacity-60"
+            aria-pressed={publishHistoryOpen}
+            disabled={!recordId}
+            onClick={() => {
+              setVersionOpen(false);
+              setPublishHistoryOpen((open) => !open);
+            }}
+            className={[
+              "relative flex w-full shrink-0 cursor-pointer flex-col items-center justify-center border-b border-[#e5e7eb] px-0 py-2 text-xs leading-[18px] transition-colors hover:bg-[#f7f9fc] hover:text-[#315efb] disabled:cursor-not-allowed disabled:opacity-40",
+              publishHistoryOpen ? "bg-white text-[#315efb]" : "bg-white text-[#7c8796]",
+            ].join(" ")}
           >
+            {publishHistoryOpen ? <span aria-hidden="true" className="absolute inset-y-0 left-0 z-[1] w-0.5 bg-[#315efb]" /> : null}
+            <History size={14} className="mb-1" />
             <span className="[writing-mode:vertical-rl] [text-orientation:upright] [word-break:keep-all] whitespace-nowrap tracking-[2px]">发布记录</span>
           </button>
         </nav>
       </aside>
+      {recordId && selectedTableType !== "DIM" ? (
+        <DorisPublishModal
+          projectCode={projectCode}
+          tableId={recordId}
+          tableType={selectedTableType}
+          fields={fields}
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          onModelUpdated={onSaved}
+        />
+      ) : null}
     </div>
   );
 }
