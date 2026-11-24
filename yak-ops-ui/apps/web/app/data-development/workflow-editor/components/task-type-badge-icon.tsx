@@ -1,243 +1,77 @@
-type TaskTypeBadgeSpec = {
-  label: string;
-  stroke: string;
-  fill: string;
-  text: string;
+import {
+  Activity,
+  ArrowLeftRight,
+  BookOpen,
+  Boxes,
+  Brain,
+  Cloud,
+  Code2,
+  Coffee,
+  Database,
+  GitBranch,
+  Globe,
+  Layers,
+  Server,
+  Terminal,
+  Workflow,
+  Zap,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+type TaskTypeIconSpec = {
+  icon: LucideIcon;
+  background: string;
 };
 
-const DEFAULT_BADGE: TaskTypeBadgeSpec = {
-  label: "TK",
-  stroke: "#98a2b3",
-  fill: "#f8fafc",
-  text: "#667085",
+const DEFAULT_ICON: TaskTypeIconSpec = {
+  icon: Workflow,
+  background: "#64748b",
 };
 
-const TASK_TYPE_BADGES: Record<string, TaskTypeBadgeSpec> = {
-  CONDITIONS: {
-    label: "IF",
-    stroke: "#8b5cf6",
-    fill: "#f5f3ff",
-    text: "#7c3aed",
-  },
-  DEPENDENT: {
-    label: "DP",
-    stroke: "#8b5cf6",
-    fill: "#f5f3ff",
-    text: "#7c3aed",
-  },
-  SUB_WORKFLOW: {
-    label: "SUB",
-    stroke: "#8b5cf6",
-    fill: "#f5f3ff",
-    text: "#7c3aed",
-  },
-  SWITCH: {
-    label: "SW",
-    stroke: "#8b5cf6",
-    fill: "#f5f3ff",
-    text: "#7c3aed",
-  },
+// Keep the existing task-type color families, but render them with Dify's
+// solid-color icon container and white glyph instead of text badges.
+const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
+  CONDITIONS: { icon: GitBranch, background: "#8b5cf6" },
+  DEPENDENT: { icon: GitBranch, background: "#8b5cf6" },
+  SUB_WORKFLOW: { icon: Workflow, background: "#8b5cf6" },
+  SWITCH: { icon: GitBranch, background: "#8b5cf6" },
 
-  DATA_SYNC: {
-    label: "DI",
-    stroke: "#f59e0b",
-    fill: "#fff7ed",
-    text: "#ea580c",
-  },
-  DATAX: {
-    label: "DX",
-    stroke: "#f59e0b",
-    fill: "#fff7ed",
-    text: "#ea580c",
-  },
-  SEATUNNEL: {
-    label: "ST",
-    stroke: "#f59e0b",
-    fill: "#fff7ed",
-    text: "#ea580c",
-  },
-  SQOOP: {
-    label: "SQ",
-    stroke: "#f59e0b",
-    fill: "#fff7ed",
-    text: "#ea580c",
-  },
+  DATA_SYNC: { icon: ArrowLeftRight, background: "#f59e0b" },
+  DATAX: { icon: ArrowLeftRight, background: "#f59e0b" },
+  SEATUNNEL: { icon: ArrowLeftRight, background: "#f59e0b" },
+  SQOOP: { icon: ArrowLeftRight, background: "#f59e0b" },
 
-  SQL: {
-    label: "SQL",
-    stroke: "#22c55e",
-    fill: "#f0fdf4",
-    text: "#16a34a",
-  },
-  PROCEDURE: {
-    label: "PR",
-    stroke: "#22c55e",
-    fill: "#f0fdf4",
-    text: "#16a34a",
-  },
-  JAVA: {
-    label: "JV",
-    stroke: "#22c55e",
-    fill: "#f0fdf4",
-    text: "#16a34a",
-  },
-  PYTHON: {
-    label: "PY",
-    stroke: "#22c55e",
-    fill: "#f0fdf4",
-    text: "#16a34a",
-  },
-  SPARK: {
-    label: "SP",
-    stroke: "#22c55e",
-    fill: "#f0fdf4",
-    text: "#16a34a",
-  },
-  MR: {
-    label: "MR",
-    stroke: "#22c55e",
-    fill: "#f0fdf4",
-    text: "#16a34a",
-  },
+  SQL: { icon: Database, background: "#22c55e" },
+  PROCEDURE: { icon: Code2, background: "#22c55e" },
+  JAVA: { icon: Coffee, background: "#22c55e" },
+  PYTHON: { icon: Code2, background: "#22c55e" },
+  SPARK: { icon: Zap, background: "#22c55e" },
+  MR: { icon: Layers, background: "#22c55e" },
 
-  GRPC: {
-    label: "GR",
-    stroke: "#3b82f6",
-    fill: "#eff6ff",
-    text: "#2563eb",
-  },
-  HTTP: {
-    label: "HT",
-    stroke: "#3b82f6",
-    fill: "#eff6ff",
-    text: "#2563eb",
-  },
-  FLINK: {
-    label: "FL",
-    stroke: "#3b82f6",
-    fill: "#eff6ff",
-    text: "#2563eb",
-  },
-  FLINK_STREAM: {
-    label: "FS",
-    stroke: "#3b82f6",
-    fill: "#eff6ff",
-    text: "#2563eb",
-  },
-  DINKY: {
-    label: "DK",
-    stroke: "#3b82f6",
-    fill: "#eff6ff",
-    text: "#2563eb",
-  },
-  K8S: {
-    label: "K8",
-    stroke: "#3b82f6",
-    fill: "#eff6ff",
-    text: "#2563eb",
-  },
+  GRPC: { icon: Globe, background: "#3b82f6" },
+  HTTP: { icon: Globe, background: "#3b82f6" },
+  FLINK: { icon: Activity, background: "#3b82f6" },
+  FLINK_STREAM: { icon: Activity, background: "#3b82f6" },
+  DINKY: { icon: Server, background: "#3b82f6" },
+  K8S: { icon: Boxes, background: "#3b82f6" },
 
-  SHELL: {
-    label: "SH",
-    stroke: "#98a2b3",
-    fill: "#f8fafc",
-    text: "#667085",
-  },
-  REMOTESHELL: {
-    label: "RS",
-    stroke: "#98a2b3",
-    fill: "#f8fafc",
-    text: "#667085",
-  },
-  HIVECLI: {
-    label: "HC",
-    stroke: "#98a2b3",
-    fill: "#f8fafc",
-    text: "#667085",
-  },
+  SHELL: { icon: Terminal, background: "#64748b" },
+  REMOTESHELL: { icon: Terminal, background: "#64748b" },
+  HIVECLI: { icon: Terminal, background: "#64748b" },
 
-  EMR: {
-    label: "EM",
-    stroke: "#14b8a6",
-    fill: "#f0fdfa",
-    text: "#0f766e",
-  },
-  EMR_SERVERLESS: {
-    label: "ES",
-    stroke: "#14b8a6",
-    fill: "#f0fdfa",
-    text: "#0f766e",
-  },
-  DMS: {
-    label: "DM",
-    stroke: "#14b8a6",
-    fill: "#f0fdfa",
-    text: "#0f766e",
-  },
-  DATA_FACTORY: {
-    label: "DF",
-    stroke: "#14b8a6",
-    fill: "#f0fdfa",
-    text: "#0f766e",
-  },
-  ALIYUN_SERVERLESS_SPARK: {
-    label: "AS",
-    stroke: "#14b8a6",
-    fill: "#f0fdfa",
-    text: "#0f766e",
-  },
+  EMR: { icon: Cloud, background: "#14b8a6" },
+  EMR_SERVERLESS: { icon: Cloud, background: "#14b8a6" },
+  DMS: { icon: Database, background: "#14b8a6" },
+  DATA_FACTORY: { icon: Workflow, background: "#14b8a6" },
+  ALIYUN_SERVERLESS_SPARK: { icon: Cloud, background: "#14b8a6" },
 
-  JUPYTER: {
-    label: "NB",
-    stroke: "#f97316",
-    fill: "#fff7ed",
-    text: "#ea580c",
-  },
-  MLFLOW: {
-    label: "ML",
-    stroke: "#ec4899",
-    fill: "#fdf2f8",
-    text: "#db2777",
-  },
-  OPENMLDB: {
-    label: "OM",
-    stroke: "#ec4899",
-    fill: "#fdf2f8",
-    text: "#db2777",
-  },
-  DVC: {
-    label: "DV",
-    stroke: "#ec4899",
-    fill: "#fdf2f8",
-    text: "#db2777",
-  },
-  SAGEMAKER: {
-    label: "SM",
-    stroke: "#ec4899",
-    fill: "#fdf2f8",
-    text: "#db2777",
-  },
-  KUBEFLOW: {
-    label: "KF",
-    stroke: "#ec4899",
-    fill: "#fdf2f8",
-    text: "#db2777",
-  },
+  JUPYTER: { icon: BookOpen, background: "#f97316" },
+  MLFLOW: { icon: Brain, background: "#ec4899" },
+  OPENMLDB: { icon: Database, background: "#ec4899" },
+  DVC: { icon: Layers, background: "#ec4899" },
+  SAGEMAKER: { icon: Brain, background: "#ec4899" },
+  KUBEFLOW: { icon: Workflow, background: "#ec4899" },
 };
-
-function fallbackBadge(taskType: string): TaskTypeBadgeSpec {
-  const normalized = taskType.trim().toUpperCase();
-  const compact = normalized.replace(/[^A-Z0-9]/g, "");
-  const label =
-    compact.length >= 2
-      ? compact.slice(0, Math.min(3, compact.length))
-      : DEFAULT_BADGE.label;
-
-  return {
-    ...DEFAULT_BADGE,
-    label,
-  };
-}
 
 export function TaskTypeBadgeIcon({
   taskType,
@@ -247,45 +81,28 @@ export function TaskTypeBadgeIcon({
   size?: number;
 }) {
   const normalized = taskType.trim().toUpperCase();
-  const spec = TASK_TYPE_BADGES[normalized] ?? fallbackBadge(normalized);
-  const fontSize =
-    spec.label.length >= 3 ? 5.1 : 5.9;
+  const spec = TASK_TYPE_ICON_MAP[normalized] ?? DEFAULT_ICON;
+  const Icon = spec.icon;
+  const iconSize =
+    size >= 24 ? 16 : size >= 20 ? 14 : Math.max(10, Math.round(size * 0.75));
+  const radius = size >= 24 ? 8 : size >= 20 ? 6 : 5;
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
+    <span
       aria-hidden="true"
-      className="block shrink-0"
+      className="inline-flex shrink-0 items-center justify-center border-[0.5px] border-white/10 text-white"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        backgroundColor: spec.background,
+        boxShadow:
+          size >= 24
+            ? "0 2px 5px rgba(16, 24, 40, 0.16)"
+            : "0 1px 2px rgba(16, 24, 40, 0.14)",
+      }}
     >
-      <rect
-        x="1.25"
-        y="1.25"
-        width="13.5"
-        height="13.5"
-        rx="1.3"
-        fill={spec.fill}
-        stroke={spec.stroke}
-        strokeWidth="1"
-      />
-      <text
-        x="8"
-        y="8.45"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize={fontSize}
-        fontWeight="700"
-        letterSpacing="-0.15"
-        fill={spec.text}
-        style={{
-          fontFamily:
-            'Arial, "PingFang SC", "Microsoft YaHei", sans-serif',
-          userSelect: "none",
-        }}
-      >
-        {spec.label}
-      </text>
-    </svg>
+      <Icon size={iconSize} strokeWidth={2.1} aria-hidden="true" />
+    </span>
   );
 }
