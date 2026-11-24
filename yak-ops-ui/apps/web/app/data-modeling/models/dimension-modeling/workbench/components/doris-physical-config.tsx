@@ -52,7 +52,6 @@ export function DorisPhysicalConfig({ projectCode, tableId, tableType, fields }:
 
   const physicalFields = useMemo(() => fields.filter((field) => field.id), [fields]);
   const sources = datasourceQuery.data?.totalList || [];
-  const selectedSource = sources.find((item) => String(item.id) === datasourceId);
   const change = <K extends keyof DorisConfig>(key: K, value: DorisConfig[K]) =>
     setConfig((current) => ({ ...current, [key]: value }));
   const toggleField = (key: "keyFieldIds" | "distributionFieldIds", id: string, checked: boolean) => {
@@ -111,7 +110,7 @@ export function DorisPhysicalConfig({ projectCode, tableId, tableType, fields }:
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="m-0 text-sm font-semibold text-[var(--yak-components-panel-text)]">Doris 物理表配置</h3>
-          <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">配置 Key、分桶与分区规则，保存后可预览并发布建表 DDL</p>
+          <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">配置 Key、分桶与分区规则，保存后可预览并发布建表 DDL{typeQuery.data?.length ? ` · 后端支持 ${typeQuery.data.length} 种字段类型` : ""}</p>
         </div>
         <Button size="sm" variant="secondary" onClick={() => setExpanded((value) => !value)}>
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expanded ? "收起" : "展开"}
