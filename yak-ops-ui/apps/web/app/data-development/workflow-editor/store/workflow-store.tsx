@@ -432,8 +432,6 @@ export function createWorkflowStore(
               position,
               defaultName: getNextDraftNodeName(taskType, state.nodes),
             },
-            selectorRequest: null,
-            edgeSelectorRequest: null,
           });
         },
 

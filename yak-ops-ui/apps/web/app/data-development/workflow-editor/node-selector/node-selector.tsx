@@ -148,6 +148,9 @@ function WorkflowNodePicker({
   const closeSelector = useWorkflowStore((state) =>
     isPopover ? state.closeEdgeSelector : state.closeSelector,
   );
+  const nodeCreationRequest = useWorkflowStore(
+    (state) => state.nodeCreationRequest,
+  );
   const requestNodeCreation = useWorkflowStore(
     (state) => state.requestNodeCreation,
   );
@@ -181,6 +184,8 @@ function WorkflowNodePicker({
     if (!isPopover || !request) return;
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (nodeCreationRequest) return;
+
       const target = event.target;
       if (!(target instanceof Element)) return;
       if (
@@ -192,6 +197,7 @@ function WorkflowNodePicker({
       closeSelector();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (nodeCreationRequest) return;
       if (event.key === "Escape") closeSelector();
     };
 
@@ -201,7 +207,7 @@ function WorkflowNodePicker({
       document.removeEventListener("pointerdown", handlePointerDown, true);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [closeSelector, isPopover, request]);
+  }, [closeSelector, isPopover, nodeCreationRequest, request]);
 
   useEffect(() => {
     setSearch("");

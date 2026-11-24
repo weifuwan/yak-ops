@@ -122,7 +122,10 @@ test("workflow node connector plus opens a local downstream picker without touch
   assert.match(workflowTypes, /kind: "downstream-popover"/);
   assert.match(workflowNode, /kind: "downstream-popover"[\s\S]*?anchor:/);
   assert.match(workflowSelector, /requestNodeCreation\(task\.taskType, insertionRequest\)/);
-  assert.match(workflowStore, /selectorRequest: null,\s*edgeSelectorRequest: null/s);
+  const creationRequestStart = workflowStore.indexOf("requestNodeCreation: (taskType");
+  const creationRequestEnd = workflowStore.indexOf("cancelNodeCreation:", creationRequestStart);
+  const creationRequestAction = workflowStore.slice(creationRequestStart, creationRequestEnd);
+  assert.doesNotMatch(creationRequestAction, /selectorRequest:\s*null|edgeSelectorRequest:\s*null/);
   assert.match(workflowStore, /openSelector: \(selectorRequest\) =>\s*set\(\{ selectorRequest \}\)/);
   assert.match(workflowStore, /openEdgeSelector: \(edgeSelectorRequest\) =>\s*set\(\{ edgeSelectorRequest \}\)/);
   const insertionStart = workflowStore.indexOf("createNodeFromRequest: (taskCode");
@@ -155,6 +158,8 @@ test("all node creation entry points share a confirm-before-create naming dialog
   assert.match(workflowSelector, /requestNodeCreation\(task\.taskType, insertionRequest\)/);
   assert.match(workflowCanvas, /requestNodeCreation\(\s*taskType,\s*\{ kind: "add" \},\s*instance\.screenToFlowPosition/s);
   assert.match(workflowCanvas, /open=\{Boolean\(nodeCreationRequest\)\}/);
+  assert.match(workflowSelector, /if \(nodeCreationRequest\) return;/);
+  assert.match(workflowSelector, /nodeCreationRequest, request/);
   assert.match(workflowCanvas, /defaultName/);
   assert.match(workflowCanvas, /generateWorkflowTaskCode\(\)/);
   assert.match(workflowCanvas, /createNodeFromRequest\(\s*taskCode,\s*Number\(projectCode\),\s*normalizedName/s);
