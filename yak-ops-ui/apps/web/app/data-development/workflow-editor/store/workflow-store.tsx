@@ -153,6 +153,18 @@ function getNextDraftNodeName(
 
 function defaultTaskParams(taskType: string): Record<string, unknown> {
   switch (taskType.toUpperCase()) {
+    case "HTTP":
+      return {
+        url: "",
+        httpMethod: "GET",
+        httpParams: [],
+        httpBody: "",
+        httpCheckCondition: "STATUS_CODE_DEFAULT",
+        condition: "",
+        connectTimeout: 10000,
+        resourceList: [],
+        localParams: [],
+      };
     case "JAVA":
       return {
         runType: "FAT_JAR",
