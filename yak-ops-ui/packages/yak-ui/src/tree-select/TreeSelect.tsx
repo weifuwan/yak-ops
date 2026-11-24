@@ -240,6 +240,7 @@ export function TreeSelect({
 }: TreeSelectProps) {
   const treeId = useId().replace(/:/g, "");
   const treeRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [innerValue, setInnerValue] = useState<string | null>(defaultValue);
@@ -292,6 +293,11 @@ export function TreeSelect({
       selectedVisible ? selectedValue ?? null : visibleRows[0]?.option.value ?? null,
     );
   }, [open, selectedValue, visibleRows]);
+
+  useEffect(() => {
+    if (!open || !showSearch) return;
+    searchInputRef.current?.focus({ preventScroll: true });
+  }, [open, showSearch]);
 
   useEffect(() => {
     if (!open || !activeValue) return;
@@ -472,7 +478,7 @@ export function TreeSelect({
                 <SearchIcon />
               </span>
               <Input
-                autoFocus
+                ref={searchInputRef}
                 size={size}
                 variant="outlined"
                 value={query}
