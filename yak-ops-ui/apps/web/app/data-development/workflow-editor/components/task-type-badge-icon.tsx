@@ -34,7 +34,7 @@ const TASK_TYPE_ICON_MAP: Record<string, TaskTypeIconSpec> = {
   CONDITIONS: { icon: GitBranch, background: "var(--yak-color-primary)" },
   DEPENDENT: { icon: GitBranch, background: "#8b5cf6" },
   SUB_WORKFLOW: { icon: Workflow, background: "#8b5cf6" },
-  SWITCH: { icon: GitBranch, background: "#8b5cf6" },
+  SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" },
 
   DATA_SYNC: { icon: ArrowLeftRight, background: "#f59e0b" },
   DATAX: { icon: ArrowLeftRight, background: "#f59e0b" },
@@ -102,7 +102,21 @@ export function TaskTypeBadgeIcon({
             : "0 1px 2px rgba(16, 24, 40, 0.14)",
       }}
     >
-      {normalized === "PYTHON" ? (
+      {normalized === "SWITCH" ? (
+        <svg
+          aria-hidden="true"
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 1024 1024"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M938.728542 177.940913a128.063937 128.063937 0 0 1 0 241.450882v561.919726a42.666979 42.666979 0 1 1-85.333959 0v-561.919726a128.063937 128.063937 0 0 1 0-241.471882V42.666979a42.666979 42.666979 0 1 1 85.333959 0V177.919913z m-383.999813 213.333896a128.063937 128.063937 0 0 1 0 241.449882v348.58683a42.666979 42.666979 0 1 1-85.333958 0V632.724691a128.063937 128.063937 0 0 1 0-241.449882V42.687979a42.666979 42.666979 0 1 1 85.333958 0v348.58683z m-383.999812 213.332896a128.063937 128.063937 0 0 1 0 241.471882v135.252934a42.666979 42.666979 0 1 1-85.333959 0V846.079587a128.063937 128.063937 0 0 1 0-241.492882V42.687979a42.666979 42.666979 0 1 1 85.333959 0v561.919726z m-42.66698 184.72491a63.999969 63.999969 0 1 0 0-127.999938 63.999969 63.999969 0 0 0 0 127.999938z m383.999813-213.332896a63.999969 63.999969 0 1 0 0-127.999938 63.999969 63.999969 0 0 0 0 127.999938z m383.999812-213.332896a63.999969 63.999969 0 1 0 0-127.999938 63.999969 63.999969 0 0 0 0 127.999938z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : normalized === "PYTHON" ? (
         <svg
           aria-hidden="true"
           width={iconSize}
