@@ -865,9 +865,10 @@ public class DimensionModelingServiceImpl extends BaseServiceImpl implements Dim
             snapshot.dorisKeyFields = safeList(dimensionDorisKeyFieldDao.queryList(
                     new QueryWrapper<DimensionDorisKeyFieldPO>()
                             .eq("table_id", po.getId()).orderByAsc("ordinal")));
-            snapshot.dorisDistributionFields = safeList(dimensionDorisDistributionFieldDao.queryList(
-                    new QueryWrapper<DimensionDorisDistributionFieldPO>()
-                            .eq("table_id", po.getId()).orderByAsc("ordinal"));
+            snapshot.dorisDistributionFields = safeList(
+                    dimensionDorisDistributionFieldDao.queryList(
+                            new QueryWrapper<DimensionDorisDistributionFieldPO>()
+                                    .eq("table_id", po.getId()).orderByAsc("ordinal")));
             VersionManagementPO version = new VersionManagementPO();
             version.setSourceTableId(po.getId());
             version.setVersionType(VERSION_TYPE);
