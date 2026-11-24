@@ -1,9 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Input, Modal, toast } from "@yak-ops/yak-ui";
-import { ChevronDown, ChevronUp, Code2, Copy, Save, Send } from "lucide-react";
+import {
+  Button,
+  Checkbox,
+  Field,
+  FieldLabel,
+  Input,
+  Modal,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+  toast,
+} from "@yak-ops/yak-ui";
+import { Code2, Copy, Save, Send } from "lucide-react";
 
-import { dimensionModelingApi, type DimensionFieldRecord, type DimensionTableRecord, type DorisConfig, type DorisPublishRecord } from "@/service/data-modeling/models/dimension-modeling";
+import {
+  dimensionModelingApi,
+  type DimensionFieldRecord,
+  type DimensionTableRecord,
+  type DorisConfig,
+  type DorisPublishRecord,
+} from "@/service/data-modeling/models/dimension-modeling";
 import { listDataSources } from "@/service/datasource";
 
 type Props = {
@@ -17,6 +39,14 @@ type Props = {
   onModelUpdated: (record: DimensionTableRecord) => void;
 };
 
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+const HORIZONTAL_FIELD_CLASS =
+  "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
+
 const DEFAULT_CONFIG: DorisConfig = {
   dataModel: "DUPLICATE",
   keyFieldIds: [],
@@ -27,8 +57,114 @@ const DEFAULT_CONFIG: DorisConfig = {
   tableProperties: {},
 };
 
+const DATA_MODEL_OPTIONS: SelectOption[] = [
+  { value: "DUPLICATE", label: "DUPLICATE KEY" },
+  { value: "UNIQUE", label: "UNIQUE KEY" },
+];
+
+const DISTRIBUTION_OPTIONS: SelectOption[] = [{ value: "HASH", label: "HASH" }];
+
+const BUCKET_MODE_OPTIONS: SelectOption[] = [
+  { value: "AUTO", label: "自动分桶" },
+  { value: "FIXED", label: "固定分桶" },
+];
+
+const PARTITION_STRATEGY_OPTIONS: SelectOption[] = [
+  { value: "NONE", label: "不分区" },
+  { value: "AUTO_RANGE", label: "自动范围分区" },
+];
+
+const PARTITION_UNIT_OPTIONS: SelectOption[] = [
+  { value: "DAY", label: "日" },
+  { value: "WEEK", label: "周" },
+  { value: "MONTH", label: "月" },
+  { value: "QUARTER", label: "季度" },
+  { value: "YEAR", label: "年" },
+];
+
 const fieldLabel = (field: DimensionFieldRecord) =>
   [field.cnName, field.fieldName].filter(Boolean).join(" / ");
+
+function FormSelect({
+  value,
+  options,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  options: SelectOption[];
+  placeholder?: string;
+  disabled?: boolean;
+  onChange?: (value: string) => void;
+}) {
+  const items = Object.fromEntries(options.map((option) => [option.value, option.label]));
+  return (
+    <Select<string>
+      size="small"
+      items={items}
+      value={value || null}
+      disabled={disabled}
+      onValueChange={(nextValue) => onChange?.(String(nextValue || ""))}
+    >
+      <SelectTrigger variant="outlined" className="w-full">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent emptyContent={options.length ? undefined : "暂无可选项"}>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            <SelectItemText>{option.label}</SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function FieldCheckboxList({
+  fields,
+  checkedIds,
+  disabled,
+  emptyText,
+  onToggle,
+}: {
+  fields: DimensionFieldRecord[];
+  checkedIds: string[];
+  disabled?: boolean;
+  emptyText: string;
+  onToggle: (fieldId: string, checked: boolean) => void;
+}) {
+  if (!fields.length) {
+    return (
+      <div className="rounded-md border border-[var(--yak-components-control-border)] px-3 py-4 text-xs text-[var(--yak-components-muted-text)]">
+        {emptyText}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid max-h-36 grid-cols-2 gap-x-4 gap-y-1 overflow-y-auto rounded-md border border-[var(--yak-components-control-border)] px-3 py-2">
+      {fields.map((field) => {
+        const id = String(field.id);
+        return (
+          <label
+            key={id}
+            className="flex min-w-0 cursor-pointer items-center gap-2 rounded px-1 py-1.5 text-xs hover:bg-[var(--yak-color-hover)]"
+          >
+            <Checkbox
+              checked={checkedIds.includes(id)}
+              disabled={disabled}
+              aria-label={fieldLabel(field)}
+              onCheckedChange={(checked) => onToggle(id, checked === true)}
+            />
+            <span className="truncate">{fieldLabel(field)}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
 
 export function DorisPublishModal({
   projectCode,
@@ -42,16 +178,13 @@ export function DorisPublishModal({
 }: Props) {
   const client = useQueryClient();
   const enabled = open && Boolean(projectCode && tableId && tableType !== "DIM");
+
   const configQuery = useQuery({
     queryKey: ["modeling", "doris-config", projectCode, tableId],
     queryFn: () => dimensionModelingApi.dorisConfig(projectCode, tableId),
     enabled,
   });
-  const typeQuery = useQuery({
-    queryKey: ["modeling", "doris-field-types", projectCode],
-    queryFn: () => dimensionModelingApi.dorisFieldTypes(projectCode),
-    enabled,
-  });
+
   const datasourceQuery = useQuery({
     queryKey: ["datasources", "doris-publish", projectCode],
     queryFn: () => listDataSources({ pageNo: 1, pageSize: 100, dbType: "DORIS" }),
@@ -63,7 +196,6 @@ export function DorisPublishModal({
   const [datasourceId, setDatasourceId] = useState("");
   const [targetDatabase, setTargetDatabase] = useState("");
   const [preview, setPreview] = useState<DorisPublishRecord | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [configDirty, setConfigDirty] = useState(false);
   const [hasSavedConfig, setHasSavedConfig] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -87,12 +219,33 @@ export function DorisPublishModal({
   }, [open, tableId]);
 
   const physicalFields = useMemo(() => fields.filter((field) => field.id), [fields]);
-  const sources = datasourceQuery.data?.totalList || [];
+  const dorisSources = useMemo(
+    () => (datasourceQuery.data?.totalList || []).filter((source) => source.dbType === "DORIS"),
+    [datasourceQuery.data?.totalList],
+  );
+  const datasourceOptions = useMemo<SelectOption[]>(
+    () =>
+      dorisSources.map((source) => ({
+        value: String(source.id),
+        label: String(source.name || source.id),
+      })),
+    [dorisSources],
+  );
+  const partitionFieldOptions = useMemo<SelectOption[]>(
+    () =>
+      physicalFields.map((field) => ({
+        value: String(field.id),
+        label: fieldLabel(field),
+      })),
+    [physicalFields],
+  );
+
   const change = <K extends keyof DorisConfig>(key: K, value: DorisConfig[K]) => {
     setConfig((current) => ({ ...current, [key]: value }));
     setConfigDirty(true);
     setPreview(null);
   };
+
   const toggleField = (
     key: "keyFieldIds" | "distributionFieldIds",
     id: string,
@@ -101,7 +254,7 @@ export function DorisPublishModal({
     change(
       key,
       checked
-        ? [...(config[key] || []), id]
+        ? Array.from(new Set([...(config[key] || []), id]))
         : (config[key] || []).filter((value) => value !== id),
     );
   };
@@ -111,28 +264,47 @@ export function DorisPublishModal({
     setBusy(true);
     try {
       const parsedProperties = JSON.parse(propertiesText || "{}") as unknown;
-      if (!parsedProperties || typeof parsedProperties !== "object" || Array.isArray(parsedProperties)) {
+      if (
+        !parsedProperties ||
+        typeof parsedProperties !== "object" ||
+        Array.isArray(parsedProperties)
+      ) {
         throw new Error("Doris 表属性必须是 JSON 对象");
       }
+
       const payload: DorisConfig = {
         ...config,
         tableProperties: parsedProperties as Record<string, string>,
       };
-      const saved = await dimensionModelingApi.saveDorisConfig(projectCode, tableId, payload);
-      setConfig({ ...DEFAULT_CONFIG, ...saved, tableProperties: saved.tableProperties || {} });
+      const saved = await dimensionModelingApi.saveDorisConfig(
+        projectCode,
+        tableId,
+        payload,
+      );
+      setConfig({
+        ...DEFAULT_CONFIG,
+        ...saved,
+        tableProperties: saved.tableProperties || {},
+      });
       setPropertiesText(JSON.stringify(saved.tableProperties || {}, null, 2));
       setConfigDirty(false);
       setHasSavedConfig(true);
       setPreview(null);
-      await client.invalidateQueries({ queryKey: ["modeling", "doris-config", projectCode, tableId] });
+      await client.invalidateQueries({
+        queryKey: ["modeling", "doris-config", projectCode, tableId],
+      });
       try {
         onModelUpdated(await dimensionModelingApi.getById(projectCode, tableId));
       } catch {
-        // The physical configuration is already saved; a metadata refresh must not undo that result.
+        // The physical configuration is already saved; metadata refresh is secondary.
       }
       toast.success("Doris 物理配置已保存");
     } catch (error) {
-      toast.warning(error instanceof Error ? error.message : "保存 Doris 配置失败，请检查表属性 JSON");
+      toast.warning(
+        error instanceof Error
+          ? error.message
+          : "保存 Doris 配置失败，请检查表属性 JSON",
+      );
     } finally {
       setBusy(false);
     }
@@ -145,10 +317,12 @@ export function DorisPublishModal({
     }
     if (!hasSavedConfig || configDirty) {
       toast.warning("请先保存 Doris 物理配置");
-      setExpanded(true);
       return null;
     }
-    return { datasourceId: Number(datasourceId), targetDatabase: targetDatabase.trim() };
+    return {
+      datasourceId: Number(datasourceId),
+      targetDatabase: targetDatabase.trim(),
+    };
   };
 
   const previewDdl = async () => {
@@ -156,7 +330,9 @@ export function DorisPublishModal({
     if (!payload || busy) return;
     setBusy(true);
     try {
-      setPreview(await dimensionModelingApi.previewDorisDdl(projectCode, tableId, payload));
+      setPreview(
+        await dimensionModelingApi.previewDorisDdl(projectCode, tableId, payload),
+      );
     } catch (error) {
       toast.warning(error instanceof Error ? error.message : "DDL 预览失败");
     } finally {
@@ -167,20 +343,37 @@ export function DorisPublishModal({
   const publish = async () => {
     const payload = request();
     if (!payload || busy) return;
-    if (!window.confirm("发布将创建 Doris 物理表，且不会覆盖已存在的目标表。确认继续？")) return;
+    if (
+      !window.confirm(
+        "发布将创建 Doris 物理表，且不会覆盖已存在的目标表。确认继续？",
+      )
+    ) {
+      return;
+    }
+
     setBusy(true);
     try {
-      const result = await dimensionModelingApi.publishDoris(projectCode, tableId, payload);
+      const result = await dimensionModelingApi.publishDoris(
+        projectCode,
+        tableId,
+        payload,
+      );
       setPreview(result);
       await Promise.all([
-        client.invalidateQueries({ queryKey: ["modeling", "doris-publish-history", projectCode, tableId] }),
-        client.invalidateQueries({ queryKey: ["modeling", "dimension-tree", projectCode] }),
-        client.invalidateQueries({ queryKey: ["modeling", "dimension-versions", projectCode, tableId] }),
+        client.invalidateQueries({
+          queryKey: ["modeling", "doris-publish-history", projectCode, tableId],
+        }),
+        client.invalidateQueries({
+          queryKey: ["modeling", "dimension-tree", projectCode],
+        }),
+        client.invalidateQueries({
+          queryKey: ["modeling", "dimension-versions", projectCode, tableId],
+        }),
       ]);
       try {
         onModelUpdated(await dimensionModelingApi.getById(projectCode, tableId));
       } catch {
-        // Publish succeeded; a failed follow-up read must not report the publish as failed.
+        // Publish already succeeded; metadata refresh is secondary.
       }
       toast.success("Doris 物理表发布成功");
       onOpenChange(false);
@@ -201,258 +394,347 @@ export function DorisPublishModal({
     }
   };
 
-  const canSaveConfig = !busy && !configQuery.isPending && !configQuery.isError && physicalFields.length > 0;
-  const canPreview = !busy && hasSavedConfig && !configDirty && Boolean(datasourceId && targetDatabase.trim());
+  const canSaveConfig =
+    !busy &&
+    !configQuery.isPending &&
+    !configQuery.isError &&
+    physicalFields.length > 0;
+  const canPreview =
+    !busy &&
+    hasSavedConfig &&
+    !configDirty &&
+    Boolean(datasourceId && targetDatabase.trim());
 
   return (
     <Modal
       open={open}
-      onClose={() => {
-        if (!busy) onOpenChange(false);
-      }}
+      centered
+      width={920}
+      maskClosable={false}
       title={
         <div className="flex min-w-0 items-center gap-2">
-          <span>发布到 Doris</span>
+          <span>发布</span>
           <span className="truncate text-xs font-normal text-[var(--yak-components-muted-text)]">
             {modelName || tableId}
           </span>
         </div>
       }
-      width={1080}
-      centered
-      maskClosable={false}
-      className="!max-h-[calc(100dvh-48px)]"
-      bodyClassName="space-y-4 bg-[var(--yak-color-hover)]"
+      bodyClassName="py-4"
+      onClose={() => {
+        if (!busy) onOpenChange(false);
+      }}
       footer={
         <>
-          <Button size="sm" variant="secondary" isDisabled={busy} onClick={() => onOpenChange(false)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            isDisabled={busy}
+            onClick={() => onOpenChange(false)}
+          >
             取消
           </Button>
-          <Button size="sm" variant="primary" isPending={busy} isDisabled={!canPreview} onClick={() => void publish()}>
+          <Button
+            size="sm"
+            variant="primary"
+            isPending={busy}
+            isDisabled={!canPreview}
+            onClick={() => void publish()}
+          >
             <Send size={14} />
             发布建表
           </Button>
         </>
       }
     >
-      <section className="rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="flex size-6 items-center justify-center rounded-md bg-[var(--yak-color-hover)] text-xs font-semibold text-[var(--yak-color-primary)]">01</span>
-          <h3 className="m-0 text-sm font-semibold">发布目标</h3>
-        </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <label className="min-w-0 text-xs text-[var(--yak-components-muted-text)]">
-            Doris 数据源
-            <select
-              className="mt-1 h-9 w-full rounded-md border border-[var(--yak-components-control-border)] bg-white px-3 text-sm text-[var(--yak-components-panel-text)] outline-none focus:border-[var(--yak-color-primary)]"
-              value={datasourceId}
-              disabled={busy || datasourceQuery.isPending}
-              onChange={(event) => {
-                setDatasourceId(event.target.value);
-                setPreview(null);
-              }}
-            >
-              <option value="">请选择 Doris 数据源</option>
-              {sources.filter((source) => source.dbType === "DORIS").map((source) => (
-                <option key={source.id} value={source.id}>{source.name}</option>
-              ))}
-            </select>
-            {datasourceQuery.isError ? (
-              <button type="button" className="mt-1 cursor-pointer text-xs text-[var(--yak-color-primary)] hover:underline" onClick={() => void datasourceQuery.refetch()}>
-                数据源加载失败，重新加载
-              </button>
-            ) : null}
-            {!datasourceQuery.isPending && !datasourceQuery.isError && !sources.some((source) => source.dbType === "DORIS") ? (
-              <span className="mt-1 block text-xs">暂无可用 Doris 数据源</span>
-            ) : null}
-          </label>
-          <label className="min-w-0 text-xs text-[var(--yak-components-muted-text)]">
-            目标数据库
-            <Input
-              size="small"
-              className="mt-1 w-full"
-              value={targetDatabase}
-              placeholder="请输入目标数据库"
-              disabled={busy}
-              onChange={(event) => {
-                setTargetDatabase(event.target.value);
-                setPreview(null);
-              }}
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            className="flex min-w-0 cursor-pointer items-center gap-2 text-left"
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-          >
-            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--yak-color-hover)] text-xs font-semibold text-[var(--yak-color-primary)]">02</span>
-            <span className="text-sm font-semibold">Doris 物理表配置</span>
-            {typeQuery.data?.length ? (
-              <span className="text-xs text-[var(--yak-components-muted-text)]">支持 {typeQuery.data.length} 种字段类型</span>
-            ) : null}
-            {expanded ? <ChevronUp size={15} className="text-[var(--yak-components-muted-text)]" /> : <ChevronDown size={15} className="text-[var(--yak-components-muted-text)]" />}
-          </button>
-          <div className="flex shrink-0 items-center gap-2">
-            {configDirty ? <span className="text-xs text-[var(--yak-color-warning)]">有未保存修改</span> : null}
-            <Button size="sm" variant="primary" isDisabled={!canSaveConfig} isPending={busy} onClick={() => void saveConfig()}>
-              <Save size={13} />
-              保存物理配置
-            </Button>
-          </div>
-        </div>
-
-        {expanded ? (
-          <div className="mt-4 space-y-4 border-t border-[var(--yak-components-panel-border)] pt-4">
-            {configQuery.isPending ? (
-              <p className="text-xs text-[var(--yak-components-muted-text)]">正在加载 Doris 物理配置...</p>
-            ) : configQuery.isError ? (
-              <div className="flex items-center gap-2 text-xs text-[var(--yak-components-danger-text)]">
-                <span>Doris 物理配置加载失败</span>
-                <Button size="sm" variant="secondary" onClick={() => void configQuery.refetch()}>重新加载</Button>
+      <div className="space-y-4">
+        <section>
+          <h3 className="mb-3 text-xs font-medium text-[var(--yak-components-field-label)]">
+            发布目标
+          </h3>
+          <div className="space-y-2.5">
+            <Field className={HORIZONTAL_FIELD_CLASS}>
+              <FieldLabel required className="pt-1.5 text-xs">
+                Doris 数据源
+              </FieldLabel>
+              <div className="min-w-0">
+                <FormSelect
+                  value={datasourceId}
+                  options={datasourceOptions}
+                  placeholder={
+                    datasourceQuery.isPending
+                      ? "正在加载 Doris 数据源..."
+                      : "请选择 Doris 数据源"
+                  }
+                  disabled={busy || datasourceQuery.isPending || datasourceQuery.isError}
+                  onChange={(value) => {
+                    setDatasourceId(value);
+                    setPreview(null);
+                  }}
+                />
+                {datasourceQuery.isError ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-1 !h-5 !px-0 text-xs"
+                    onClick={() => void datasourceQuery.refetch()}
+                  >
+                    数据源加载失败，重新加载
+                  </Button>
+                ) : !datasourceQuery.isPending && !datasourceOptions.length ? (
+                  <p className="mb-0 mt-1 text-xs text-[var(--yak-components-muted-text)]">
+                    暂无可用 Doris 数据源
+                  </p>
+                ) : null}
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <label className="text-xs text-[var(--yak-components-muted-text)]">
-                    数据模型
-                    <select
-                      className="mt-1 h-9 w-full rounded-md border border-[var(--yak-components-control-border)] bg-white px-3 text-sm text-[var(--yak-components-panel-text)]"
-                      value={config.dataModel || "DUPLICATE"}
+            </Field>
+
+            <Field className={HORIZONTAL_FIELD_CLASS}>
+              <FieldLabel required htmlFor="doris-target-database" className="pt-1.5 text-xs">
+                目标数据库
+              </FieldLabel>
+              <Input
+                id="doris-target-database"
+                size="small"
+                variant="outlined"
+                value={targetDatabase}
+                placeholder="请输入目标数据库"
+                disabled={busy}
+                onChange={(event) => {
+                  setTargetDatabase(event.target.value);
+                  setPreview(null);
+                }}
+              />
+            </Field>
+          </div>
+        </section>
+
+        <section className="border-t border-[var(--yak-components-panel-border)] pt-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-xs font-medium text-[var(--yak-components-field-label)]">
+              Doris 物理表配置
+            </h3>
+            {configDirty ? (
+              <span className="text-xs text-[var(--yak-color-warning)]">
+                有未保存修改
+              </span>
+            ) : null}
+          </div>
+
+          {configQuery.isPending ? (
+            <div className="py-6 text-center text-xs text-[var(--yak-components-muted-text)]">
+              正在加载 Doris 物理配置...
+            </div>
+          ) : configQuery.isError ? (
+            <div className="flex items-center justify-center gap-2 py-6">
+              <span className="text-xs text-[var(--yak-components-danger-text)]">
+                Doris 物理配置加载失败
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void configQuery.refetch()}
+              >
+                重新加载
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">数据模型</FieldLabel>
+                <FormSelect
+                  value={config.dataModel || "DUPLICATE"}
+                  options={DATA_MODEL_OPTIONS}
+                  disabled={busy}
+                  onChange={(value) =>
+                    change("dataModel", value as DorisConfig["dataModel"])
+                  }
+                />
+              </Field>
+
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">Key 字段</FieldLabel>
+                <FieldCheckboxList
+                  fields={physicalFields}
+                  checkedIds={config.keyFieldIds || []}
+                  disabled={busy}
+                  emptyText="请先保存字段信息"
+                  onToggle={(id, checked) =>
+                    toggleField("keyFieldIds", id, checked)
+                  }
+                />
+              </Field>
+
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">分布方式</FieldLabel>
+                <div className="grid grid-cols-[180px_minmax(0,1fr)] gap-2">
+                  <FormSelect
+                    value="HASH"
+                    options={DISTRIBUTION_OPTIONS}
+                    disabled
+                  />
+                  <FieldCheckboxList
+                    fields={physicalFields}
+                    checkedIds={config.distributionFieldIds || []}
+                    disabled={busy}
+                    emptyText="暂无可选字段"
+                    onToggle={(id, checked) =>
+                      toggleField("distributionFieldIds", id, checked)
+                    }
+                  />
+                </div>
+              </Field>
+
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">分桶方式</FieldLabel>
+                <div className="grid grid-cols-[180px_minmax(0,1fr)] gap-2">
+                  <FormSelect
+                    value={config.bucketMode || "AUTO"}
+                    options={BUCKET_MODE_OPTIONS}
+                    disabled={busy}
+                    onChange={(value) =>
+                      change("bucketMode", value as DorisConfig["bucketMode"])
+                    }
+                  />
+                  {config.bucketMode === "FIXED" ? (
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      type="number"
+                      min={1}
+                      value={String(config.bucketCount || "")}
+                      placeholder="请输入分桶数"
                       disabled={busy}
-                      onChange={(event) => change("dataModel", event.target.value as DorisConfig["dataModel"])}
-                    >
-                      <option value="DUPLICATE">DUPLICATE KEY</option>
-                      <option value="UNIQUE">UNIQUE KEY</option>
-                    </select>
-                  </label>
-                  <label className="text-xs text-[var(--yak-components-muted-text)]">
-                    分布方式
-                    <select disabled className="mt-1 h-9 w-full rounded-md border border-[var(--yak-components-control-border)] bg-[var(--yak-color-hover)] px-3 text-sm" value="HASH">
-                      <option value="HASH">HASH</option>
-                    </select>
-                  </label>
+                      onChange={(event) =>
+                        change(
+                          "bucketCount",
+                          Number(event.target.value) || undefined,
+                        )
+                      }
+                    />
+                  ) : (
+                    <div />
+                  )}
                 </div>
+              </Field>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div className="rounded-md border border-[var(--yak-components-panel-border)] p-3">
-                    <div className="mb-2 text-xs font-medium">Key 字段（按选择顺序）</div>
-                    <div className="max-h-36 space-y-2 overflow-auto">
-                      {physicalFields.map((field) => (
-                        <label key={field.id} className="flex cursor-pointer items-center gap-2 text-xs">
-                          <input type="checkbox" checked={(config.keyFieldIds || []).includes(String(field.id))} disabled={busy} onChange={(event) => toggleField("keyFieldIds", String(field.id), event.target.checked)} />
-                          {fieldLabel(field)}
-                        </label>
-                      ))}
-                      {!physicalFields.length ? <p className="text-xs text-[var(--yak-components-muted-text)]">请先保存字段信息</p> : null}
-                    </div>
-                  </div>
-                  <div className="rounded-md border border-[var(--yak-components-panel-border)] p-3">
-                    <div className="mb-2 text-xs font-medium">HASH 分桶字段</div>
-                    <div className="max-h-36 space-y-2 overflow-auto">
-                      {physicalFields.map((field) => (
-                        <label key={field.id} className="flex cursor-pointer items-center gap-2 text-xs">
-                          <input type="checkbox" checked={(config.distributionFieldIds || []).includes(String(field.id))} disabled={busy} onChange={(event) => toggleField("distributionFieldIds", String(field.id), event.target.checked)} />
-                          {fieldLabel(field)}
-                        </label>
-                      ))}
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <select className="h-9 rounded-md border border-[var(--yak-components-control-border)] px-2 text-xs" value={config.bucketMode || "AUTO"} disabled={busy} onChange={(event) => change("bucketMode", event.target.value as DorisConfig["bucketMode"])}>
-                        <option value="AUTO">自动分桶</option>
-                        <option value="FIXED">固定分桶</option>
-                      </select>
-                      {config.bucketMode === "FIXED" ? (
-                        <Input size="small" type="number" min={1} value={String(config.bucketCount || "")} placeholder="分桶数" disabled={busy} onChange={(event) => change("bucketCount", Number(event.target.value) || undefined)} />
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <label className="text-xs text-[var(--yak-components-muted-text)]">
-                    分区策略
-                    <select className="mt-1 h-9 w-full rounded-md border border-[var(--yak-components-control-border)] px-2 text-xs" value={config.partitionStrategy || "NONE"} disabled={busy} onChange={(event) => change("partitionStrategy", event.target.value as DorisConfig["partitionStrategy"])}>
-                      <option value="NONE">不分区</option>
-                      <option value="AUTO_RANGE">自动范围分区</option>
-                    </select>
-                  </label>
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">分区策略</FieldLabel>
+                <div className="grid grid-cols-3 gap-2">
+                  <FormSelect
+                    value={config.partitionStrategy || "NONE"}
+                    options={PARTITION_STRATEGY_OPTIONS}
+                    disabled={busy}
+                    onChange={(value) =>
+                      change(
+                        "partitionStrategy",
+                        value as DorisConfig["partitionStrategy"],
+                      )
+                    }
+                  />
                   {config.partitionStrategy === "AUTO_RANGE" ? (
                     <>
-                      <label className="text-xs text-[var(--yak-components-muted-text)]">
-                        分区字段
-                        <select className="mt-1 h-9 w-full rounded-md border border-[var(--yak-components-control-border)] px-2 text-xs" value={config.partitionFieldId || ""} disabled={busy} onChange={(event) => change("partitionFieldId", event.target.value)}>
-                          <option value="">请选择字段</option>
-                          {physicalFields.map((field) => <option key={field.id} value={field.id}>{fieldLabel(field)}</option>)}
-                        </select>
-                      </label>
-                      <label className="text-xs text-[var(--yak-components-muted-text)]">
-                        分区粒度
-                        <select className="mt-1 h-9 w-full rounded-md border border-[var(--yak-components-control-border)] px-2 text-xs" value={config.partitionUnit || "DAY"} disabled={busy} onChange={(event) => change("partitionUnit", event.target.value as DorisConfig["partitionUnit"])}>
-                          {["DAY", "WEEK", "MONTH", "QUARTER", "YEAR"].map((unit) => (
-                            <option key={unit} value={unit}>{({ DAY: "日", WEEK: "周", MONTH: "月", QUARTER: "季度", YEAR: "年" } as Record<string, string>)[unit]}</option>
-                          ))}
-                        </select>
-                      </label>
+                      <FormSelect
+                        value={config.partitionFieldId || ""}
+                        options={partitionFieldOptions}
+                        placeholder="请选择分区字段"
+                        disabled={busy}
+                        onChange={(value) => change("partitionFieldId", value)}
+                      />
+                      <FormSelect
+                        value={config.partitionUnit || "DAY"}
+                        options={PARTITION_UNIT_OPTIONS}
+                        disabled={busy}
+                        onChange={(value) =>
+                          change(
+                            "partitionUnit",
+                            value as DorisConfig["partitionUnit"],
+                          )
+                        }
+                      />
                     </>
                   ) : null}
                 </div>
+              </Field>
 
-                <label className="block text-xs text-[var(--yak-components-muted-text)]">
-                  Doris 表属性（JSON）
-                  <textarea
-                    className="mt-1 min-h-20 w-full rounded-md border border-[var(--yak-components-control-border)] p-3 font-mono text-xs text-[var(--yak-components-panel-text)]"
-                    value={propertiesText}
-                    disabled={busy}
-                    onChange={(event) => {
-                      setPropertiesText(event.target.value);
-                      setConfigDirty(true);
-                      setPreview(null);
-                    }}
-                    spellCheck={false}
-                  />
-                </label>
-              </>
-            )}
-          </div>
-        ) : null}
-      </section>
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">表属性</FieldLabel>
+                <Textarea
+                  size="small"
+                  variant="outlined"
+                  rows={3}
+                  value={propertiesText}
+                  disabled={busy}
+                  className="min-h-[72px] font-mono text-xs"
+                  onValueChange={(value) => {
+                    setPropertiesText(String(value || ""));
+                    setConfigDirty(true);
+                    setPreview(null);
+                  }}
+                />
+              </Field>
 
-      <section className="rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--yak-color-hover)] text-xs font-semibold text-[var(--yak-color-primary)]">03</span>
-            <h3 className="m-0 text-sm font-semibold">DDL 预览</h3>
-          </div>
-          <Button size="sm" variant="secondary" isDisabled={!canPreview} isPending={busy} onClick={() => void previewDdl()}>
-            <Code2 size={13} />
-            预览 DDL
-          </Button>
-        </div>
-        {preview?.ddl ? (
-          <div className="overflow-hidden rounded-md border border-[var(--yak-components-panel-border)]">
-            <div className="flex items-center justify-between border-b border-[var(--yak-components-panel-border)] px-3 py-2">
-              <span className="min-w-0 truncate text-xs font-medium">
-                {preview.targetDatabase}.{preview.targetTable}
-              </span>
-              <Button size="sm" variant="ghost" onClick={() => void copyDdl()}>
-                <Copy size={13} />
-                复制
-              </Button>
+              <div className="flex justify-end pl-[116px]">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  isDisabled={!canSaveConfig}
+                  isPending={busy}
+                  onClick={() => void saveConfig()}
+                >
+                  <Save size={13} />
+                  保存物理配置
+                </Button>
+              </div>
             </div>
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all bg-[var(--yak-color-hover)] p-3 text-xs leading-5">{preview.ddl}</pre>
-          </div>
-        ) : (
-          <div className="flex min-h-24 items-center justify-center rounded-md border border-dashed border-[var(--yak-components-panel-border)] text-xs text-[var(--yak-components-muted-text)]">
-            {configDirty ? "物理配置有修改，请先保存后预览" : "选择发布目标并保存物理配置后，可预览建表 DDL"}
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+
+        <section className="border-t border-[var(--yak-components-panel-border)] pt-4">
+          <h3 className="mb-3 text-xs font-medium text-[var(--yak-components-field-label)]">
+            DDL
+          </h3>
+          <Field className={HORIZONTAL_FIELD_CLASS}>
+            <FieldLabel className="pt-1.5 text-xs">DDL</FieldLabel>
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center justify-end gap-2">
+                {preview?.ddl ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void copyDdl()}
+                  >
+                    <Copy size={13} />
+                    复制
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  isDisabled={!canPreview}
+                  isPending={busy}
+                  onClick={() => void previewDdl()}
+                >
+                  <Code2 size={13} />
+                  预览 DDL
+                </Button>
+              </div>
+              <Textarea
+                size="small"
+                variant="outlined"
+                rows={8}
+                readOnly
+                value={preview?.ddl || ""}
+                className="min-h-[180px] resize-none font-mono text-xs leading-5"
+                placeholder={
+                  configDirty
+                    ? "物理配置有修改，请先保存后预览"
+                    : "选择发布目标并保存物理配置后，可预览建表 DDL"
+                }
+              />
+            </div>
+          </Field>
+        </section>
+      </div>
     </Modal>
   );
 }
