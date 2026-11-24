@@ -15,6 +15,8 @@ const router = read("../apps/web/app/data-development/task-editor/task-editor.ts
 const workflowStore = read("../apps/web/app/data-development/workflow-editor/store/workflow-store.tsx");
 const codeEditor = read("../apps/web/app/data-development/task-editor/sql/sql-code-editor.tsx");
 
+const treeSelect = read("../packages/yak-ui/src/tree-select/TreeSelect.tsx");
+
 test("SQL adapter preserves the backend SqlParameters contract and unknown fields", () => {
   const form = parseSqlTaskForm({
     type: "POSTGRE_SQL",
@@ -122,6 +124,12 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.doesNotMatch(statementsSection, /<CollapseSection/);
   assert.match(statementsSection, /添加\{title\}/);
   assert.match(workflowStore, /sqlSource: "SCRIPT"/);
+});
+
+test("TreeSelect search autofocus does not move the surrounding page", () => {
+  assert.match(treeSelect, /searchInputRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(treeSelect, /ref=\{searchInputRef\}/);
+  assert.doesNotMatch(treeSelect, /autoFocus/);
 });
 
 test("SQL Monaco editor registers SQL syntax highlighting and supports read-only updates", () => {
