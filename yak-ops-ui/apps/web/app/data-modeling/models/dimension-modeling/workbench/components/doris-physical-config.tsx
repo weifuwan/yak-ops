@@ -112,7 +112,7 @@ export function DorisPhysicalConfig({ projectCode, tableId, tableType, fields }:
           <h3 className="m-0 text-sm font-semibold text-[var(--yak-components-panel-text)]">Doris 物理表配置</h3>
           <p className="mt-1 text-xs text-[var(--yak-components-muted-text)]">配置 Key、分桶与分区规则，保存后可预览并发布建表 DDL{typeQuery.data?.length ? ` · 后端支持 ${typeQuery.data.length} 种字段类型` : ""}</p>
         </div>
-        <Button size="sm" variant="secondary" onClick={() => setExpanded((value) => !value)}>
+        <Button size="small" variant="secondary" onClick={() => setExpanded((value) => !value)}>
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expanded ? "收起" : "展开"}
         </Button>
       </div>
@@ -143,7 +143,7 @@ export function DorisPhysicalConfig({ projectCode, tableId, tableType, fields }:
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <select className="h-8 rounded-md border border-[var(--yak-components-panel-border)] px-2 text-xs" value={config.bucketMode || "AUTO"} onChange={(e) => change("bucketMode", e.target.value as DorisConfig["bucketMode"])}><option value="AUTO">自动分桶</option><option value="FIXED">固定分桶</option></select>
-                {config.bucketMode === "FIXED" ? <Input size="sm" type="number" min={1} value={String(config.bucketCount || "")} placeholder="分桶数" onChange={(e) => change("bucketCount", Number(e.target.value) || undefined)} /> : null}
+                {config.bucketMode === "FIXED" ? <Input size="small" type="number" min={1} value={String(config.bucketCount || "")} placeholder="分桶数" onChange={(e) => change("bucketCount", Number(e.target.value) || undefined)} /> : null}
               </div>
             </div>
           </div>
@@ -157,14 +157,14 @@ export function DorisPhysicalConfig({ projectCode, tableId, tableType, fields }:
           <label className="block text-xs text-[var(--yak-components-muted-text)]">Doris 表属性（JSON）
             <textarea className="mt-1 min-h-20 w-full rounded-md border border-[var(--yak-components-panel-border)] p-2 font-mono text-xs" value={propertiesText} onChange={(e) => setPropertiesText(e.target.value)} spellCheck={false} />
           </label>
-          <div className="flex justify-end"><Button size="sm" variant="primary" isDisabled={busy || !physicalFields.length} onClick={() => void saveConfig()}><Save size={14} />保存物理配置</Button></div>
+          <div className="flex justify-end"><Button size="small" variant="primary" isDisabled={busy || !physicalFields.length} onClick={() => void saveConfig()}><Save size={14} />保存物理配置</Button></div>
           <div className="border-t border-[var(--yak-components-panel-border)] pt-3">
             <div className="mb-2 text-xs font-semibold">发布到 Doris</div>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto_auto]">
               <select className="h-8 min-w-0 rounded-md border border-[var(--yak-components-panel-border)] bg-white px-2 text-xs" value={datasourceId} onChange={(e) => setDatasourceId(e.target.value)}><option value="">选择 Doris 数据源</option>{sources.filter((source) => source.dbType === "DORIS").map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select>
-              <Input size="sm" value={targetDatabase} placeholder="目标数据库" onChange={(e) => setTargetDatabase(e.target.value)} />
-              <Button size="sm" variant="secondary" isDisabled={busy} onClick={() => void previewDdl()}><Code2 size={14} />预览 DDL</Button>
-              <Button size="sm" variant="primary" isDisabled={busy} onClick={() => void publish()}><Send size={14} />发布建表</Button>
+              <Input size="small" value={targetDatabase} placeholder="目标数据库" onChange={(e) => setTargetDatabase(e.target.value)} />
+              <Button size="small" variant="secondary" isDisabled={busy} onClick={() => void previewDdl()}><Code2 size={14} />预览 DDL</Button>
+              <Button size="small" variant="primary" isDisabled={busy} onClick={() => void publish()}><Send size={14} />发布建表</Button>
             </div>
             {datasourceQuery.isError ? <p className="mt-2 text-xs text-red-600">Doris 数据源加载失败</p> : null}
             {preview?.ddl ? <div className="mt-3 rounded-md border border-[var(--yak-components-panel-border)]">
