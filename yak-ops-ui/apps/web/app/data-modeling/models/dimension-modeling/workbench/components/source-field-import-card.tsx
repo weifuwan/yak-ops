@@ -340,7 +340,7 @@ export function SourceFieldImportCard({
                   aria-label="导入全部字段"
                   disabled={columnsQuery.isPending || columnsQuery.isError || !columns.length}
                   onClick={() => setDialog("all")}
-                  className="inline-flex size-6 shrink-0 items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ListPlus size={14} />
                 </button>
@@ -350,7 +350,7 @@ export function SourceFieldImportCard({
                   aria-label="导入部分字段"
                   disabled={columnsQuery.isPending || columnsQuery.isError || !columns.length}
                   onClick={openPartialDialog}
-                  className="inline-flex size-6 shrink-0 items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#5664ff] transition-colors hover:bg-[#eceeff] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ListChecks size={14} />
                 </button>
@@ -363,7 +363,7 @@ export function SourceFieldImportCard({
                     setDialog(null);
                     setSelectedColumns(new Set());
                   }}
-                  className="inline-flex size-6 shrink-0 items-center justify-center rounded text-[#b2b7c2] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
+                  className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#b2b7c2] transition-colors hover:bg-[var(--yak-color-hover)] hover:text-[var(--yak-components-panel-text)]"
                 >
                   <X size={13} />
                 </button>
