@@ -782,8 +782,8 @@ export function SqlTaskEditor({
       if (form.sqlSource === "FILE") refreshTasks.push(resourcesQuery.refetch());
       if (form.sendEmail) refreshTasks.push(alertGroupsQuery.refetch());
 
-      const dagPromise = getWorkflowDefinition(workflowCode);
-      const [dag] = await Promise.all([dagPromise, ...refreshTasks]);
+      await Promise.all(refreshTasks);
+      const dag = await getWorkflowDefinition(workflowCode);
       const latestTask = dag.taskDefinitionList.find((item) => item.code === currentTask.code);
       if (!latestTask) throw new Error("节点不存在或已被删除");
       if (!onApplyTask(latestTask)) return;
