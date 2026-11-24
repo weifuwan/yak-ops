@@ -55,8 +55,8 @@ public class PluginDefineTest extends BaseDaoTest {
         PluginDefine pluginDefine = new PluginDefine(
                 "test plugin",
                 "alert",
-                "[{\\"field\\":\\"webhook\\",\\"name\\":\\"WebHook\\","
-                        + "\\"type\\":\\"input\\",\\"title\\":\\"Webhook\\"}]");
+                "[{\"field\":\"webhook\",\"name\":\"WebHook\","
+                        + "\"type\":\"input\",\"title\":\"Webhook\"}]");
         pluginDefineMapper.insert(pluginDefine);
         return pluginDefine;
     }
