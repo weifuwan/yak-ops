@@ -32,6 +32,7 @@ import type {
   WorkflowNodeCreationRequest,
 } from "../types";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
+import { buildScriptTaskCommentTemplate } from "../adapter/script-comment-template";
 
 type WorkflowHistoryState = Pick<
   WorkflowEditorState,
@@ -152,7 +153,7 @@ function getNextDraftNodeName(
   return baseName + " " + sequence;
 }
 
-function defaultTaskParams(taskType: string): Record<string, unknown> {
+function defaultTaskParams(taskType: string, createdBy: string): Record<string, unknown> {
   switch (taskType.toUpperCase()) {
     case "HTTP":
       return {
@@ -216,7 +217,7 @@ function defaultTaskParams(taskType: string): Record<string, unknown> {
       };
     case "SHELL":
       return {
-        rawScript: "",
+        rawScript: buildScriptTaskCommentTemplate(createdBy),
         resourceList: [],
         localParams: [],
         dependence: {},
@@ -225,7 +226,7 @@ function defaultTaskParams(taskType: string): Record<string, unknown> {
         switchResult: {},
       };
     case "PYTHON":
-      return { rawScript: "", resourceList: [], localParams: [] };
+      return { rawScript: buildScriptTaskCommentTemplate(createdBy), resourceList: [], localParams: [] };
     case "SQL":
       return {
         type: "",
@@ -256,6 +257,7 @@ function createDraftNode(
   projectCode: number,
   taskCode: number,
   name: string,
+  createdBy: string,
 ): WorkflowCanvasNode {
   const task: WorkflowTaskRecord = {
     id: 0,
@@ -266,7 +268,7 @@ function createDraftNode(
     projectCode,
     userId: 0,
     taskType,
-    taskParams: defaultTaskParams(taskType),
+    taskParams: defaultTaskParams(taskType, createdBy),
     flag: "YES",
     taskPriority: "MEDIUM",
     workerGroup: "default",
@@ -354,6 +356,7 @@ function historyEquals(
 export function createWorkflowStore(
   initialGraph: WorkflowGraph,
   workflowCode: number,
+  createdBy = "当前用户",
 ): WorkflowStoreApi {
   return createStore<WorkflowEditorState>()(
     temporal<
@@ -586,6 +589,7 @@ export function createWorkflowStore(
             projectCode,
             taskCode,
             normalizedName,
+            createdBy,
           );
 
           if (
@@ -815,15 +819,17 @@ const WorkflowStoreContext =
 export function WorkflowStoreProvider({
   initialGraph,
   workflowCode,
+  createdBy = "当前用户",
   children,
 }: PropsWithChildren<{
   initialGraph: WorkflowGraph;
   workflowCode: number;
+  createdBy?: string;
 }>) {
   const storeRef = useRef<WorkflowStoreApi | null>(null);
 
   if (!storeRef.current) {
-    storeRef.current = createWorkflowStore(initialGraph, workflowCode);
+    storeRef.current = createWorkflowStore(initialGraph, workflowCode, createdBy);
   }
 
   return (
