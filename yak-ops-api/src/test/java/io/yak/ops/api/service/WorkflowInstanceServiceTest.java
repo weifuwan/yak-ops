@@ -4,6 +4,7 @@ import static io.yak.ops.api.AssertionsHelper.assertThrowsServiceException;
 import static io.yak.ops.api.constants.ApiFuncIdentificationConstant.WORKFLOW_INSTANCE;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -269,7 +270,7 @@ public class WorkflowInstanceServiceTest {
                 workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "2020-01-01 00:00:00",
                         "2020-01-02 00:00:00", "", loginUser.getUserName(), WorkflowExecutionStatus.RUNNING_EXECUTION,
                         "192.168.xx.xx",
-                null, "", 1, 10);
+                            null, "", 1, 10);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) successRes.getCode());
 
         // data parameter empty
@@ -279,7 +280,7 @@ public class WorkflowInstanceServiceTest {
         successRes = workflowInstanceService.queryWorkflowInstanceList(loginUser, projectCode, 1, "",
                 "", "", loginUser.getUserName(), WorkflowExecutionStatus.RUNNING_EXECUTION,
                 "192.168.xx.xx",
-                        null, "", 1, 10);
+                null, "", 1, 10);
         Assertions.assertEquals(Status.SUCCESS.getCode(), (int) successRes.getCode());
 
         // executor null
