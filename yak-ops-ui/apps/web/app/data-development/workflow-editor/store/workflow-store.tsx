@@ -153,7 +153,10 @@ function getNextDraftNodeName(
   return baseName + " " + sequence;
 }
 
-function defaultTaskParams(taskType: string, createdBy: string): Record<string, unknown> {
+function defaultTaskParams(
+  taskType: string,
+  createdBy: string,
+): Record<string, unknown> {
   switch (taskType.toUpperCase()) {
     case "HTTP":
       return {
@@ -226,7 +229,11 @@ function defaultTaskParams(taskType: string, createdBy: string): Record<string, 
         switchResult: {},
       };
     case "PYTHON":
-      return { rawScript: buildScriptTaskCommentTemplate(createdBy), resourceList: [], localParams: [] };
+      return {
+        rawScript: buildScriptTaskCommentTemplate(createdBy),
+        resourceList: [],
+        localParams: [],
+      };
     case "SQL":
       return {
         type: "",
