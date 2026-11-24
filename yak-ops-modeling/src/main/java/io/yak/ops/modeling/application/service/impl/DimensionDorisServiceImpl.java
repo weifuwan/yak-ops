@@ -384,6 +384,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
 
         boolean customDistribution = advanced != null
                 && Boolean.TRUE.equals(advanced.getCustomDistribution());
+        config.customDistribution = customDistribution;
         if (customDistribution) {
             config.distributionFieldIds = distinctIds(
                     advanced.getDistributionFieldIds(), "HASH 分布字段");
@@ -411,8 +412,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         snapshot.put("keyFieldIds", config.keyFieldIds);
         snapshot.put("distributionType", config.distributionType.name());
         snapshot.put("distributionFieldIds", config.distributionFieldIds);
-        snapshot.put("distributionMode",
-                config.distributionFieldIds.isEmpty() ? "AUTO" : "RESOLVED");
+        snapshot.put("distributionMode", config.customDistribution ? "CUSTOM" : "AUTO");
         snapshot.put("bucketMode", config.bucketMode.name());
         snapshot.put("bucketCount", config.bucketCount);
         snapshot.put("partitionStrategy", config.partitionStrategy.name());
@@ -449,6 +449,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         private List<String> keyFieldIds = Collections.emptyList();
         private DorisDistributionTypeEnum distributionType;
         private List<String> distributionFieldIds = Collections.emptyList();
+        private boolean customDistribution;
         private DorisBucketModeEnum bucketMode;
         private Integer bucketCount;
         private DorisPartitionStrategyEnum partitionStrategy;
