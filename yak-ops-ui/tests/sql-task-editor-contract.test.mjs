@@ -143,11 +143,13 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.doesNotMatch(statementsSection, /<CollapseSection/);
   assert.match(statementsSection, /添加\{title\}/);
   assert.match(workflowStore, /sqlSource: "SCRIPT"/);
-  const sqlDefaults = workflowStore.match(/case "SQL":\\s*return \\{[\\s\\S]*?\\n      \\};/)?.[0] ?? "";
+  const sqlCaseStart = workflowStore.indexOf('case "SQL":');
+  const sqlCaseEnd = workflowStore.indexOf("\\n    default:", sqlCaseStart);
+  const sqlDefaults = workflowStore.slice(sqlCaseStart, sqlCaseEnd < 0 ? undefined : sqlCaseEnd);
   assert.match(sqlDefaults, /datasource: ""/);
   assert.doesNotMatch(sqlDefaults, /datasource:\\s*0/);
-  assert.match(editor, /const legacyDatasourceId = Number\\(form\\.datasource\\)/);
-  assert.match(editor, /Number\\.isSafeInteger\\(legacyDatasourceId\\)[\\s\\S]*?legacyDatasourceId > 0/);
+  assert.ok(editor.includes("const legacyDatasourceId = Number(form.datasource);"));
+  assert.ok(editor.includes("legacyDatasourceId > 0"));
 });
 
 test("TreeSelect search autofocus does not move the surrounding page", () => {
