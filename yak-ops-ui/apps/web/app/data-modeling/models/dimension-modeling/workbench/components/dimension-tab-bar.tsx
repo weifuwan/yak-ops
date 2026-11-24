@@ -40,7 +40,7 @@ export function DimensionTabBar({ tabs, activeTabKey, onSelect, onClose }: Props
                 {tab.mode === "list" ? (
                   <List size={15} />
                 ) : hasModelTypeIcon ? (
-                  <ModelTypeIcon type={modelType} size={15} />
+                  <ModelTypeIcon type={modelType} size={16} />
                 ) : (
                   <Table2 size={15} />
                 )}
