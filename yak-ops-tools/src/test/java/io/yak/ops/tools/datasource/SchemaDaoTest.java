@@ -29,7 +29,6 @@ class SchemaDaoTest {
         DataSource dataSource = mock(DataSource.class);
         Connection connection = mock(Connection.class);
         DatabaseMetaData metadata = mock(DatabaseMetaData.class);
-        ResultSet tables = mock(ResultSet.class);
 
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.getCatalog()).thenReturn("yak-ops");
