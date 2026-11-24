@@ -102,8 +102,7 @@ test("HTTP editor uses the shared resource and local parameter panel and has a d
   assert.match(editor, /NodeResourceParamsPanel/);
   assert.match(editor, /resourceList=\{form\.resourceList\}/);
   assert.match(editor, /localParams=\{form\.localParams\}/);
-  assert.match(editor, /title="请求头（Headers）"/);
-  assert.match(editor, /title="查询参数（Query Params）"/);
-  assert.match(editor, /title="响应检查"/);
+  assert.match(editor, /title="请求头"/);\n  assert.match(editor, /title="查询参数"/);
+  assert.match(editor, /CollapseSection/);\n  assert.match(editor, /id="http-request"/);\n  assert.match(editor, /id="http-response-check"/);\n  assert.match(editor, /title="响应检查"/);
   assert.match(workflowStore, /case "HTTP":[\s\S]*?connectTimeout: 10000/);
 });
