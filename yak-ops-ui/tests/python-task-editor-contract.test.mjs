@@ -67,5 +67,6 @@ test("Python Monaco editor uses Python grammar and Python indentation", () => {
   assert.match(codeEditor, /language === "python" \? 4 : 2/);
   assert.match(panel, /language === "python" \? "Python" : "Shell"/);
   assert.match(panel, /UTF-8 · LF/);
-  assert.match(panel, /language === "python" \? "Python" : "Shell"/);
+  assert.doesNotMatch(panel, /Python 脚本/);
+  assert.doesNotMatch(panel, /Ctrl \+ F 查找|清空脚本/);
 });
