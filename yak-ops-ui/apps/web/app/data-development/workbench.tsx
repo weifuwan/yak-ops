@@ -133,10 +133,31 @@ export function DataDevelopmentWorkbench({ activeSection }: { activeSection: Dat
     .slice(contextTabIndex + 1)
     .filter((tab) => !contextProtectedTabIds.has(tab.id));
 
-  if (activeSection === "backfill") return <BackfillCenterPage />;
-  if (activeSection === "lineage") return <WorkflowLineagePage />;
-  if (activeSection === "task-instances") return <TaskInstanceRecordsPage />;
-  if (activeSection === "parameters") return <ProjectParametersPage />;
+  const fullPage = (() => {
+    switch (activeSection) {
+      case "backfill":
+        return <BackfillCenterPage />;
+      case "lineage":
+        return <WorkflowLineagePage />;
+      case "task-instances":
+        return <TaskInstanceRecordsPage />;
+      case "parameters":
+        return <ProjectParametersPage />;
+      default:
+        return null;
+    }
+  })();
+
+  if (fullPage) {
+    return (
+      <section
+        aria-label="数据开发工作区"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)]"
+      >
+        {fullPage}
+      </section>
+    );
+  }
 
   return (
     <section

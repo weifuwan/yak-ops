@@ -219,8 +219,8 @@ export function BackfillCenterPage() {
         </Button>
       }
     >
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(260px,320px)_minmax(0,1fr)] gap-4 max-xl:grid-cols-1">
-        <section className="flex min-h-0 flex-col rounded-md border border-[#e9ebef] bg-white">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(280px,320px)_minmax(0,1fr)] gap-4 max-lg:grid-cols-1 max-lg:overflow-y-auto">
+        <section className="flex min-h-0 min-w-0 flex-col rounded-md border border-[#e9ebef] bg-white max-lg:min-h-[240px] max-lg:max-h-[280px]">
           <div className="border-b border-[#eceef2] px-4 py-3">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[#30343a]">
               <Workflow size={15} />
@@ -274,7 +274,7 @@ export function BackfillCenterPage() {
           </div>
         </section>
 
-        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+        <div className="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto pr-1">
           <section className="rounded-md border border-[#e9ebef] bg-white p-4">
             <div className="mb-4 flex items-center gap-2">
               <CalendarClock size={16} className="text-[#667085]" />
@@ -328,7 +328,7 @@ export function BackfillCenterPage() {
               </Field>
             )}
 
-            <div className="mt-4 grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <div className="mt-4 grid grid-cols-2 gap-3 max-sm:grid-cols-1 xl:grid-cols-3 2xl:grid-cols-4">
               <Field>
                 <FieldLabel>运行模式</FieldLabel>
                 <Select
@@ -478,8 +478,9 @@ export function BackfillCenterPage() {
               递归补齐所有层级依赖
             </label>
 
-            <Field>
-              <FieldLabel>启动参数</FieldLabel>
+            <div className="max-w-4xl">
+              <Field>
+                <FieldLabel>启动参数</FieldLabel>
               <Textarea
                 size="small"
                 variant="outlined"
@@ -487,8 +488,9 @@ export function BackfillCenterPage() {
                 value={startParamsText}
                 onValueChange={setStartParamsText}
                 placeholder={"每行一个参数，例如：\nbiz_date=2026-11-20"}
-              />
-            </Field>
+                />
+              </Field>
+            </div>
 
             <div className="mt-4 flex justify-end">
               <Button
