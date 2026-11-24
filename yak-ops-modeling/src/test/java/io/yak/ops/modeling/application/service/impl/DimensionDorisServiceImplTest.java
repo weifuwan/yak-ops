@@ -2,8 +2,15 @@ package io.yak.ops.modeling.application.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +18,7 @@ import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.DimensionDorisConfigPO;
 import io.yak.ops.dao.entity.DimensionDorisDistributionFieldPO;
 import io.yak.ops.dao.entity.DimensionDorisKeyFieldPO;
+import io.yak.ops.dao.entity.DimensionDorisPublishPO;
 import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
@@ -19,6 +27,8 @@ import io.yak.ops.dao.entity.enums.DorisBucketModeEnum;
 import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
 import io.yak.ops.dao.entity.enums.DorisDistributionTypeEnum;
 import io.yak.ops.dao.entity.enums.DorisPartitionStrategyEnum;
+import io.yak.ops.dao.entity.enums.DorisPartitionUnitEnum;
+import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import io.yak.ops.dao.repository.modeling.DimensionDorisConfigDao;
 import io.yak.ops.dao.repository.modeling.DimensionDorisDistributionFieldDao;
 import io.yak.ops.dao.repository.modeling.DimensionDorisKeyFieldDao;
@@ -29,6 +39,10 @@ import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.modeling.api.dto.dimension.DimensionDorisPublishDTO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionDorisPublishVO;
 import io.yak.ops.spi.enums.DbType;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -52,6 +66,7 @@ class DimensionDorisServiceImplTest {
     @Mock private DimensionDorisPublishDao dimensionDorisPublishDao;
     @Mock private VersionManagementDao versionManagementDao;
 
+    @Spy
     @InjectMocks
     private DimensionDorisServiceImpl service;
 
@@ -61,8 +76,11 @@ class DimensionDorisServiceImplTest {
         DimensionTableFieldPO amount = field("field-amount", "amount", DimensionDataTypeEnum.DECIMAL);
         amount.setFieldPrecision(12);
         amount.setFieldScale(2);
-        stubPreview(Arrays.asList(id, amount), null,
-                Collections.emptyList(), Collections.emptyList());
+        stubPreview(
+                Arrays.asList(id, amount),
+                null,
+                Collections.emptyList(),
+                Collections.emptyList());
 
         DimensionDorisPublishVO preview = service.preview("table-id", request(), dorisDatasource());
 
@@ -110,6 +128,129 @@ class DimensionDorisServiceImplTest {
     }
 
     @Test
+    void shouldRejectUniqueKeyFieldChangedToNullableAfterConfigurationWasSaved() {
+        DimensionTableFieldPO id = field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT);
+        DimensionDorisConfigPO config = new DimensionDorisConfigPO();
+        config.setDataModel(DorisDataModelEnum.UNIQUE);
+        config.setPartitionStrategy(DorisPartitionStrategyEnum.NONE);
+        config.setDistributionType(DorisDistributionTypeEnum.HASH);
+        config.setBucketMode(DorisBucketModeEnum.AUTO);
+        DimensionDorisKeyFieldPO key = new DimensionDorisKeyFieldPO();
+        key.setFieldId("field-id");
+
+        stubPreview(
+                Collections.singletonList(id),
+                config,
+                Collections.singletonList(key),
+                Collections.emptyList());
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.preview("table-id", request(), dorisDatasource()));
+
+        assertTrue(error.getMessage().contains("UNIQUE KEY 字段必须设置为非空"));
+    }
+
+    @Test
+    void shouldGenerateAutoRangePartitionDdl() {
+        DimensionTableFieldPO eventDate =
+                field("field-date", "event_date", DimensionDataTypeEnum.DATE);
+        eventDate.setCanNull(Boolean.FALSE);
+        DimensionTableFieldPO eventId =
+                field("field-id", "event_id", DimensionDataTypeEnum.BIGINT);
+
+        DimensionDorisConfigPO config = new DimensionDorisConfigPO();
+        config.setDataModel(DorisDataModelEnum.DUPLICATE);
+        config.setPartitionStrategy(DorisPartitionStrategyEnum.AUTO_RANGE);
+        config.setPartitionFieldId("field-date");
+        config.setPartitionUnit(DorisPartitionUnitEnum.DAY);
+        config.setDistributionType(DorisDistributionTypeEnum.HASH);
+        config.setBucketMode(DorisBucketModeEnum.AUTO);
+
+        stubPreview(
+                Arrays.asList(eventDate, eventId),
+                config,
+                Collections.emptyList(),
+                Collections.emptyList());
+
+        DimensionDorisPublishVO preview = service.preview("table-id", request(), dorisDatasource());
+
+        assertTrue(preview.getDdl().contains(
+                "AUTO PARTITION BY RANGE (date_trunc(`event_date`, 'day'))()"));
+    }
+
+    @Test
+    void shouldRecreateTargetWhenItWasDeletedAfterPreviousSuccessfulPublish() throws Exception {
+        DimensionTableFieldPO id = field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT);
+        stubPreview(
+                Collections.singletonList(id),
+                null,
+                Collections.emptyList(),
+                Collections.emptyList());
+        when(dimensionTableDao.queryOne(any())).thenReturn(table());
+        when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
+
+        DimensionDorisPublishVO preview = service.preview("table-id", request(), dorisDatasource());
+        DimensionDorisPublishPO previous = new DimensionDorisPublishPO();
+        previous.setDdlHash(preview.getDdlHash());
+        previous.setStatus(DorisPublishStatusEnum.SUCCESS);
+        when(dimensionDorisPublishDao.queryOne(any())).thenReturn(previous);
+        when(dimensionDorisPublishDao.insert(any())).thenReturn(1);
+        when(dimensionDorisPublishDao.updateById(any())).thenReturn(true);
+
+        Connection connection = mock(Connection.class);
+        DatabaseMetaData metadata = mock(DatabaseMetaData.class);
+        ResultSet noTables = mock(ResultSet.class);
+        Statement statement = mock(Statement.class);
+        when(connection.getMetaData()).thenReturn(metadata);
+        when(metadata.getSearchStringEscape()).thenReturn("\\");
+        when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
+                .thenReturn(noTables);
+        when(noTables.next()).thenReturn(false, false);
+        when(connection.createStatement()).thenReturn(statement);
+        doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
+
+        DimensionDorisPublishVO published =
+                service.publish("table-id", request(), dorisDatasource(), "tester");
+
+        verify(statement).execute(preview.getDdl());
+        assertEquals(DorisPublishStatusEnum.SUCCESS, published.getStatus());
+    }
+
+    @Test
+    void shouldReturnConflictWithoutExecutingDdlWhenTargetAlreadyExists() throws Exception {
+        DimensionTableFieldPO id = field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT);
+        stubPreview(
+                Collections.singletonList(id),
+                null,
+                Collections.emptyList(),
+                Collections.emptyList());
+        when(dimensionTableDao.queryOne(any())).thenReturn(table());
+        when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.insert(any())).thenReturn(1);
+        when(dimensionDorisPublishDao.updateById(any())).thenReturn(true);
+
+        Connection connection = mock(Connection.class);
+        DatabaseMetaData metadata = mock(DatabaseMetaData.class);
+        ResultSet existingTable = mock(ResultSet.class);
+        Statement statement = mock(Statement.class);
+        when(connection.getMetaData()).thenReturn(metadata);
+        when(metadata.getSearchStringEscape()).thenReturn("\\");
+        when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
+                .thenReturn(existingTable);
+        when(existingTable.next()).thenReturn(true);
+        when(existingTable.getString("TABLE_NAME")).thenReturn("dwd_order_detail");
+        when(connection.createStatement()).thenReturn(statement);
+        doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
+
+        DimensionDorisPublishVO published =
+                service.publish("table-id", request(), dorisDatasource(), "tester");
+
+        verify(statement, never()).execute(anyString());
+        assertEquals(DorisPublishStatusEnum.CONFLICT, published.getStatus());
+    }
+
+    @Test
     void shouldNotExposeAggregateKeyInV1AndShouldReturnBackendTypeOptions() {
         assertEquals(2, DorisDataModelEnum.values().length);
         assertTrue(service.getFieldTypeOptions().stream()
@@ -138,6 +279,7 @@ class DimensionDorisServiceImplTest {
         table.setTableType(DimensionTableTypeEnum.DETAIL);
         table.setTableName("dwd_order_detail");
         table.setCnName("订单明细");
+        table.setSubmit(Boolean.TRUE);
         return table;
     }
 
