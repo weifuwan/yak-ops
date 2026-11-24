@@ -38,9 +38,6 @@ public class SchemaDao {
             "t_yak_ops_subject_domain",
             "t_yak_ops_dimension_table",
             "t_yak_ops_dimension_table_fields",
-            "t_yak_ops_dimension_table_doris_config",
-            "t_yak_ops_dimension_table_doris_key_fields",
-            "t_yak_ops_dimension_table_doris_distribution_fields",
             "t_yak_ops_dimension_table_publish",
             "t_yak_ops_standard_directory",
             "t_yak_ops_field_standard",
@@ -169,6 +166,7 @@ public class SchemaDao {
         try {
             new SqlScriptRunner(dataSource, sqlFilePath).execute();
             ensureDimensionFieldSchema();
+            ensureDorisPublishSchema();
             log.info("Ensured data modeling schema using {}", sqlFilePath);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to initialize data modeling schema using " + sqlFilePath, ex);
@@ -249,6 +247,64 @@ public class SchemaDao {
                         + " ADD COLUMN " + columnName + " " + definition);
             }
             log.info("Added {} to {}", columnName, tableName);
+        }
+    }
+
+    /**
+     * Persist the resolved physical configuration with each publish record and retire the
+     * former mutable Doris-config tables. Existing configured Key fields are migrated to the
+     * logical field primaryFlag before their duplicate configuration tables are dropped.
+     */
+    private void ensureDorisPublishSchema() {
+        final String publishTable = "t_yak_ops_dimension_table_publish";
+        final String fieldTable = "t_yak_ops_dimension_table_fields";
+        final String[] legacyKeyTables = {
+                "t_yak_ops_dimension_table_doris_key_fields",
+                "t_cockpit_dimension_table_doris_key_fields"
+        };
+        final String[] retiredTables = {
+                "t_yak_ops_dimension_table_doris_distribution_fields",
+                "t_yak_ops_dimension_table_doris_key_fields",
+                "t_yak_ops_dimension_table_doris_config",
+                "t_cockpit_dimension_table_doris_distribution_fields",
+                "t_cockpit_dimension_table_doris_key_fields",
+                "t_cockpit_dimension_table_doris_config"
+        };
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            if (!tableExists(metadata, connection, publishTable)) {
+                return;
+            }
+            ensureColumn(metadata, connection, publishTable, "physical_config", "text NULL");
+
+            if (tableExists(metadata, connection, fieldTable)) {
+                for (String keyTable : legacyKeyTables) {
+                    if (!tableExists(metadata, connection, keyTable)) {
+                        continue;
+                    }
+                    String migrateSql = "UPDATE " + quoteIdentifier(fieldTable)
+                            + " SET primary_flag = TRUE, can_null = FALSE"
+                            + " WHERE id IN (SELECT field_id FROM " + quoteIdentifier(keyTable)
+                            + " WHERE table_id = " + quoteIdentifier(fieldTable) + ".table_id)";
+                    try (Statement statement = connection.createStatement()) {
+                        int migrated = statement.executeUpdate(migrateSql);
+                        if (migrated > 0) {
+                            log.info("Migrated {} legacy Doris Key fields from {}", migrated, keyTable);
+                        }
+                    }
+                }
+            }
+
+            for (String retiredTable : retiredTables) {
+                if (tableExists(metadata, connection, retiredTable)) {
+                    try (Statement statement = connection.createStatement()) {
+                        statement.execute("DROP TABLE " + quoteIdentifier(retiredTable));
+                    }
+                    log.info("Retired legacy Doris configuration table {}", retiredTable);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to migrate Doris publish configuration schema", ex);
         }
     }
 
