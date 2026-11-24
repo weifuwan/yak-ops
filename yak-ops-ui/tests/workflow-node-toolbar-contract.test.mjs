@@ -184,6 +184,11 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
   }
 
   assert.ok(taskTypeBadgeIcon.includes('SWITCH: { icon: GitBranch, background: "var(--yak-color-primary)" }'));
+  assert.ok(taskTypeBadgeIcon.includes('SQL: { icon: Database, background: "var(--yak-color-primary)" }'));
+  assert.ok(taskTypeBadgeIcon.includes('normalized === "SQL"'));
+  assert.ok(taskTypeBadgeIcon.includes("M268.8 460.8C262.4 454.4 243.2 454.4 224 448"));
+  assert.ok(taskTypeBadgeIcon.includes("M537.6 313.6C441.6 320 390.4 371.2 384 473.6"));
+  assert.ok(taskTypeBadgeIcon.includes("M780.8 588.8 780.8 320 736 320 736 627.2"));
   assert.ok(taskTypeBadgeIcon.includes('DEPENDENT: { icon: GitBranch, background: "var(--yak-color-primary)" }'));
   assert.ok(taskTypeBadgeIcon.includes('normalized === "DEPENDENT"'));
   assert.ok(taskTypeBadgeIcon.includes("M576 256h448v64H576zM0 704h448v64H0z"));
