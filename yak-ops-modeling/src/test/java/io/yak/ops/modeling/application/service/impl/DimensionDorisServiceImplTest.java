@@ -86,7 +86,7 @@ class DimensionDorisServiceImplTest {
 
         assertNotNull(preview.getDdl());
         assertTrue(preview.getDdl().contains(
-                "CREATE TABLE IF NOT EXISTS `warehouse`.`dwd_order_detail`"));
+                "CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(preview.getDdl().contains("`amount` DECIMALV3(12,2)"));
         assertTrue(preview.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
         assertTrue(preview.getDdl().contains("BUCKETS AUTO"));
