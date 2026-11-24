@@ -103,6 +103,12 @@ test("HTTP editor uses the shared resource and local parameter panel and has a d
   assert.match(editor, /resourceList=\{form\.resourceList\}/);
   assert.match(editor, /localParams=\{form\.localParams\}/);
   assert.match(editor, /title="请求头"/);
+  assert.match(editor, /Autocomplete<string>/);
+  assert.match(editor, /items={HTTP_HEADER_SUGGESTIONS}/);
+  assert.match(editor, /openOnInputClick/);
+  assert.match(editor, /无匹配项，可直接输入自定义请求头名称/);
+  assert.match(editor, /"Authorization"/);
+  assert.match(editor, /"X-Tenant-Id"/);
   assert.match(editor, /title="查询参数"/);
   assert.match(editor, /CollapseSection/);
   assert.match(editor, /id="http-request"/);
