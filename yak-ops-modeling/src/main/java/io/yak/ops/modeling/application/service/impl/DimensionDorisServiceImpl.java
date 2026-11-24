@@ -349,7 +349,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         String ddl = buildDdl(tableId, dto.getTargetDatabase());
         String ddlHash = sha256(ddl);
         VersionManagementPO version = latestVersion(tableId);
-        DimensionDorisPublishPO previous = dimensionDorisPublishDao.queryOne(
+        List<DimensionDorisPublishPO> previousRecords = dimensionDorisPublishDao.queryList(
                 new QueryWrapper<DimensionDorisPublishPO>()
                         .eq("table_id", tableId)
                         .eq("datasource_id", datasource.getId())
@@ -358,6 +358,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                         .eq("ddl_hash", ddlHash)
                         .eq("status", DorisPublishStatusEnum.SUCCESS)
                         .orderByDesc("create_time"));
+        DimensionDorisPublishPO previous = safeList(previousRecords).stream()
+                .findFirst()
+                .orElse(null);
 
         DimensionDorisPublishPO publish = new DimensionDorisPublishPO();
         publish.setTableId(tableId);
@@ -408,7 +411,14 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 try (Statement statement = connection.createStatement()) {
                     statement.execute(ddl);
                 }
-                publish.setStatus(DorisPublishStatusEnum.SUCCESS);
+                if (tableMatchesDdl(
+                        connection, dto.getTargetDatabase(), table.getTableName(), tableId)) {
+                    publish.setStatus(DorisPublishStatusEnum.SUCCESS);
+                } else {
+                    publish.setStatus(DorisPublishStatusEnum.CONFLICT);
+                    publish.setErrorMessage(
+                            "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
+                }
             }
         } catch (Exception ex) {
             publish.setStatus(DorisPublishStatusEnum.FAILED);
