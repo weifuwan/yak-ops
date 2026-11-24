@@ -1,27 +1,20 @@
 import {
   Archive,
-  Bot,
-  Box,
   CircleHelp,
   CalendarClock,
   GitBranch,
   ListChecks,
   SlidersHorizontal,
   Ear,
-  FileText,
   History,
   PanelLeftClose,
   PanelLeftOpen,
-  Puzzle,
-  Server,
   Settings,
   Sparkles,
   SquareCheckBig,
   SquareCode,
-  Stamp,
   Sun,
   Table2,
-  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,17 +25,10 @@ export type DataDevelopmentSection =
   | "lineage"
   | "task-instances"
   | "parameters"
-  | "component"
   | "catalog"
   | "resource"
-  | "ai-processing"
   | "history"
-  | "review"
-  | "operation-check"
-  | "smoke-test"
-  | "code-management"
-  | "governance"
-  | "recycle-bin";
+  | "operation-check";
 
 type RailItem = {
   id: DataDevelopmentSection;
@@ -57,17 +43,10 @@ const RAIL_ITEMS: RailItem[] = [
   { id: "lineage", label: "依赖分析", icon: GitBranch },
   { id: "task-instances", label: "任务运行记录", icon: ListChecks },
   { id: "parameters", label: "项目参数", icon: SlidersHorizontal },
-  { id: "component", label: "组件管理", icon: Puzzle },
   { id: "catalog", label: "数据目录", icon: Table2 },
   { id: "resource", label: "资源管理", icon: Archive },
-  { id: "ai-processing", label: "AI 数据处理", icon: Bot },
   { id: "history", label: "运行历史", icon: History },
-  { id: "review", label: "代码评审列表", icon: Stamp },
   { id: "operation-check", label: "操作历史", icon: SquareCheckBig },
-  { id: "smoke-test", label: "冒烟测试记录", icon: FileText },
-  { id: "code-management", label: "代码管理", icon: Server },
-  { id: "governance", label: "数据资产治理", icon: Box },
-  { id: "recycle-bin", label: "回收站", icon: Trash2 },
 ];
 
 type DevelopmentRailProps = {
