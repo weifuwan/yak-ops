@@ -304,6 +304,16 @@ export function DimensionEditor({
     queryFn: () => dimensionModelingApi.fields(projectCode, recordId),
     enabled: Boolean(projectCode && recordId),
   });
+  const dorisFieldTypesQuery = useQuery<DorisFieldTypeOption[]>({
+    queryKey: ["modeling", "doris-field-types", projectCode],
+    queryFn: () => dimensionModelingApi.dorisFieldTypes(projectCode),
+    enabled: Boolean(projectCode && recordId && values.tableType !== "DIM"),
+  });
+  const dorisFieldTypeOptions = (dorisFieldTypesQuery.data || []).map((option) => ({
+    value: option.code,
+    label: option.label || option.code,
+  }));
+
   const versionQuery = useQuery<DimensionVersionRecord[]>({
     queryKey: ["modeling", "dimension-versions", projectCode, recordId],
     queryFn: () => dimensionModelingApi.versionHistory(projectCode, recordId),
