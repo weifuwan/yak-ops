@@ -49,7 +49,7 @@ export function ScriptCodeEditor({
       fontSize: 13,
       lineHeight: 22,
       fontFamily: "Consolas, 'Cascadia Code', 'Courier New', monospace",
-      tabSize: 4,
+      tabSize: language === "python" ? 4 : 2,
       insertSpaces: true,
       wordWrap: "on",
       scrollBeyondLastLine: false,
