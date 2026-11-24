@@ -15,12 +15,13 @@ function statusLabel(status?: string) {
   if (status === "FAILED") return "发布失败";
   if (status === "RUNNING") return "发布中";
   if (status === "PENDING") return "等待执行";
+  if (status === "CONFLICT") return "目标表已存在";
   return status || "未知状态";
 }
 
 function statusClassName(status?: string) {
   if (status === "SUCCESS") return "text-[var(--yak-color-success)]";
-  if (status === "FAILED") return "text-[var(--yak-components-danger-text)]";
+  if (status === "FAILED" || status === "CONFLICT") return "text-[var(--yak-components-danger-text)]";
   if (status === "RUNNING" || status === "PENDING") return "text-[var(--yak-color-primary)]";
   return "text-[var(--yak-components-muted-text)]";
 }
