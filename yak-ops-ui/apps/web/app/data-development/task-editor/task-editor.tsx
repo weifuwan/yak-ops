@@ -5,6 +5,7 @@ import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
 import { useDataDevelopmentWorkbench } from "../workbench-context";
 import { GenericTaskEditor } from "./generic-task-editor";
+import { HttpTaskEditor } from "./http-task-editor";
 import { JavaTaskEditor } from "./java-task-editor";
 import { ConditionsEditor } from "./logic/conditions";
 import { SwitchEditor } from "./logic/switch";
@@ -34,6 +35,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   );
   const taskName = task.name || "未命名节点";
   const taskType = task.taskType || "UNKNOWN";
+  const isHttpTask = taskType.toUpperCase() === "HTTP";
   const isJavaTask = taskType.toUpperCase() === "JAVA";
   const isShellTask = taskType.toUpperCase() === "SHELL";
   const isConditionsTask = taskType.toUpperCase() === "CONDITIONS";
@@ -81,7 +83,17 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
       aria-label={taskName + " 节点内容"}
       className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
     >
-      {isShellTask ? (
+      {isHttpTask ? (
+        <HttpTaskEditor
+          workflowCode={workflowCode}
+          task={task}
+          taskName={taskName}
+          readOnly={readOnly}
+          onApplyTask={applyTask}
+          onDirtyChange={handleDirtyChange}
+          onBackToWorkflow={() => activateTab("workflow:" + workflowCode)}
+        />
+      ) : isShellTask ? (
         <Suspense
           fallback={
             <div
