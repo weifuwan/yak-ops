@@ -14,13 +14,14 @@ function statusLabel(status?: string) {
   if (status === "SUCCESS") return "发布成功";
   if (status === "FAILED") return "发布失败";
   if (status === "RUNNING") return "发布中";
+  if (status === "PENDING") return "等待执行";
   return status || "未知状态";
 }
 
 function statusClassName(status?: string) {
   if (status === "SUCCESS") return "text-[var(--yak-color-success)]";
   if (status === "FAILED") return "text-[var(--yak-components-danger-text)]";
-  if (status === "RUNNING") return "text-[var(--yak-color-primary)]";
+  if (status === "RUNNING" || status === "PENDING") return "text-[var(--yak-color-primary)]";
   return "text-[var(--yak-components-muted-text)]";
 }
 
@@ -57,12 +58,12 @@ export function DorisPublishHistoryPanel({ projectCode, tableId, onClose }: Prop
             <Button size="sm" variant="secondary" className="mt-2" onClick={() => void historyQuery.refetch()}>重新加载</Button>
           </div>
         ) : records.length ? (
-          records.map((item: DorisPublishRecord) => (
-            <article key={item.id} className="rounded-md border border-[var(--yak-components-panel-border)] p-3">
+          records.map((item: DorisPublishRecord, index: number) => (
+            <article key={item.id || item.ddlHash || index} className="rounded-md border border-[var(--yak-components-panel-border)] p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate text-xs font-medium text-[var(--yak-components-panel-text)]">
-                    {item.targetDatabase || "-"} . {item.targetTable || "-"}
+                    {(item.targetDatabase || "-") + "." + (item.targetTable || "-")}
                   </div>
                   <div className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">
                     {item.datasourceName || "Doris 数据源"} · V{item.versionNumber ?? "-"}
