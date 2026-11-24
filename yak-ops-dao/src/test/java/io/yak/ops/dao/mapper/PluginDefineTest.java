@@ -26,7 +26,14 @@ public class PluginDefineTest extends BaseDaoTest {
         PluginDefine pluginDefine = createPluginDefine();
         List<PluginDefine> pluginDefines = pluginDefineMapper.queryByPluginType(pluginDefine.getPluginType());
         Assertions.assertTrue(pluginDefines.size() > 0);
-        Assertions.assertEquals(pluginDefines.get(0).getPluginType(), pluginDefine.getPluginType());
+
+        PluginDefine queriedPluginDefine = pluginDefines.stream()
+                .filter(item -> pluginDefine.getId().equals(item.getId()))
+                .findFirst()
+                .orElse(null);
+        Assertions.assertNotNull(queriedPluginDefine);
+        Assertions.assertEquals(pluginDefine.getPluginType(), queriedPluginDefine.getPluginType());
+        Assertions.assertEquals(pluginDefine.getPluginParams(), queriedPluginDefine.getPluginParams());
     }
 
     @Test
@@ -45,7 +52,11 @@ public class PluginDefineTest extends BaseDaoTest {
      * @return PluginDefine
      */
     private PluginDefine createPluginDefine() {
-        PluginDefine pluginDefine = new PluginDefine("test plugin", "alert", "");
+        PluginDefine pluginDefine = new PluginDefine(
+                "test plugin",
+                "alert",
+                "[{\\"field\\":\\"webhook\\",\\"name\\":\\"WebHook\\","
+                        + "\\"type\\":\\"input\\",\\"title\\":\\"Webhook\\"}]");
         pluginDefineMapper.insert(pluginDefine);
         return pluginDefine;
     }
