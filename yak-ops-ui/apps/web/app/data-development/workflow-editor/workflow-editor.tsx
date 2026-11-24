@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReactFlowProvider } from "reactflow";
 import { Button, toast } from "@yak-ops/yak-ui";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { LoadingIndicator } from "@/app/components/loading-indicator";
 import {
@@ -332,6 +333,8 @@ function WorkflowEditorShell({
 }
 
 export function WorkflowEditor({ workflowCode, selectedTaskCode }: WorkflowEditorProps) {
+  const { currentUser } = useAuth();
+  const createdBy = currentUser?.name?.trim() || currentUser?.userName?.trim() || "当前用户";
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id ?? "";
   const [graphReloadToken, setGraphReloadToken] = useState(0);
@@ -398,6 +401,7 @@ export function WorkflowEditor({ workflowCode, selectedTaskCode }: WorkflowEdito
       key={workflowCode + ":" + graphReloadToken}
       initialGraph={layoutQuery.data}
       workflowCode={workflowCode}
+      createdBy={createdBy}
     >
       <ReactFlowProvider>
         <WorkflowEditorShell
