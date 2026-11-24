@@ -232,12 +232,51 @@ export function WorkflowCanvas({
     useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] =
     useState<string | null>(null);
+  const effectiveEdges = previewEdges ?? edges;
+  const connectedHandleIds = useMemo(() => {
+    const connections = new Map<
+      string,
+      { source: Set<string>; target: Set<string> }
+    >();
+    const getConnections = (nodeId: string) => {
+      let handles = connections.get(nodeId);
+      if (!handles) {
+        handles = {
+          source: new Set<string>(),
+          target: new Set<string>(),
+        };
+        connections.set(nodeId, handles);
+      }
+      return handles;
+    };
+
+    effectiveEdges.forEach((edge) => {
+      getConnections(edge.source).source.add(edge.sourceHandle ?? "source");
+      getConnections(edge.target).target.add(edge.targetHandle ?? "target");
+    });
+
+    const result = new Map<
+      string,
+      { source: string[]; target: string[] }
+    >();
+    connections.forEach((handles, nodeId) => {
+      result.set(nodeId, {
+        source: Array.from(handles.source),
+        target: Array.from(handles.target),
+      });
+    });
+    return result;
+  }, [effectiveEdges]);
   const renderNodes = useMemo(
     () =>
       nodes.map((node) => ({
         ...node,
         data: {
           ...node.data,
+          connectedSourceHandleIds:
+            connectedHandleIds.get(node.id)?.source ?? [],
+          connectedTargetHandleIds:
+            connectedHandleIds.get(node.id)?.target ?? [],
           focused: node.id === focusedNodeId,
           readOnly: isWorkflowOnline,
           menuOpen: contextMenu?.node.id === node.id,
@@ -256,7 +295,7 @@ export function WorkflowCanvas({
   );
   const renderEdges = useMemo(
     () =>
-      (previewEdges ?? edges).map((edge) => ({
+      effectiveEdges.map((edge) => ({
         ...edge,
         data: {
           backend: edge.data?.backend ?? false,
@@ -264,7 +303,7 @@ export function WorkflowCanvas({
           relation: edge.data?.relation,
         },
       })),
-    [edges, previewEdges, hoveredEdgeId],
+    [effectiveEdges, hoveredEdgeId],
   );
 
   useEffect(() => {
