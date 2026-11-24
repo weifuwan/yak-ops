@@ -255,7 +255,7 @@ function HttpRequestWorkspace({
                 />
               </div>
               <p className="text-[11px] leading-4 text-[var(--yak-components-muted-text)]">
-                URL、请求头、参数和 Body 均支持 {"${变量名}"} 及 $[yyyyMMdd] 时间占位符。
+                URL 当前按原值发送；请求头、查询参数和 Body 支持 {"${变量名}"} 及 $[yyyyMMdd] 时间占位符。Content-Type 不进行变量替换。
               </p>
             </div>
 
@@ -286,7 +286,7 @@ function HttpRequestWorkspace({
               </div>
               <div className="flex items-center rounded-md bg-[#f8f9fb] px-3 py-2.5">
                 <p className="text-[11px] leading-5 text-[#687385]">
-                  认证信息通过请求头配置，例如 <code className="rounded bg-white px-1 py-0.5">Authorization</code>。默认 Content-Type 为 <code className="rounded bg-white px-1 py-0.5">application/json</code>。
+                  认证信息通过请求头配置，例如 <code className="rounded bg-white px-1 py-0.5">Authorization</code>。默认 Content-Type 为 <code className="rounded bg-white px-1 py-0.5">application/json</code>；请求体始终按 JSON 对象序列化。
                 </p>
               </div>
             </div>
@@ -295,7 +295,7 @@ function HttpRequestWorkspace({
 
         <HttpKeyValueSection
           title="请求头（Headers）"
-          description="设置 Authorization、Content-Type 等 HTTP 请求头。"
+          description="设置 Authorization、Content-Type 等 HTTP 请求头。Content-Type 仅设置媒体类型，不会切换请求体编码方式。"
           parameterType="HEADERS"
           rows={headers}
           onChange={(rows) => updateParamGroup("HEADERS", rows)}
@@ -304,7 +304,7 @@ function HttpRequestWorkspace({
 
         <HttpKeyValueSection
           title="查询参数（Query Params）"
-          description="这些参数会追加到 GET 请求 URL 的查询字符串中。"
+          description="后端当前仅 GET 请求会将这些参数追加到 URL 查询字符串中；POST、PUT、DELETE 暂不传递此列表。"
           parameterType="PARAMETER"
           rows={queryParams}
           onChange={(rows) => updateParamGroup("PARAMETER", rows)}
