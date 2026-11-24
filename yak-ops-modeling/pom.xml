@@ -40,74 +40,11 @@
             <artifactId>yak-ops-datasource-api</artifactId>
         </dependency>
 
-        <!-- Reuse the schema/type classes from the same Doris SDK as Yak-OPS Flink CDC.
-             Exclude connector runtime integrations that are not used by DDL generation. -->
+        <!-- Same published Doris SDK artifact and version used by Yak-OPS Flink CDC. -->
         <dependency>
             <groupId>org.apache.doris</groupId>
-            <artifactId>flink-doris-connector-base</artifactId>
+            <artifactId>flink-doris-connector-1.20</artifactId>
             <version>25.1.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.doris</groupId>
-                    <artifactId>thrift-service</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.thrift</groupId>
-                    <artifactId>libthrift</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-codec</groupId>
-                    <artifactId>commons-codec</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.arrow.adbc</groupId>
-                    <artifactId>adbc-driver-flight-sql</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.arrow</groupId>
-                    <artifactId>arrow-vector</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.arrow</groupId>
-                    <artifactId>arrow-memory-netty</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-annotations</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.github.jsqlparser</groupId>
-                    <artifactId>jsqlparser</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>s3</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>sts</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>url-connection-client</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
