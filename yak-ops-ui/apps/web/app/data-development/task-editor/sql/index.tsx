@@ -29,7 +29,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { listAlertGroups, type AlertGroupRecord } from "@/service/alert";
 import { listDataSources, type DataSourceRecord } from "@/service/datasource";
 import { listWorkflowResources } from "@/service/resources";
-import { getWorkflowDefinition, type WorkflowTaskRecord } from "@/service/workflow/definition";
+import { getWorkflowDefinition } from "@/service/workflow/definition";
 import {
   startWorkflowInstance,
   stopWorkflowInstance,
@@ -208,7 +208,6 @@ function SqlTaskWorkspace({
   onRefreshAlertGroups: () => void;
   updateField: SqlTaskUpdateField;
 }) {
-  const selectedDataSource = dataSources.find((item) => item.id === form.datasource);
   const dataSourceOptions = useMemo(() => {
     const options = dataSources.flatMap((item) => item.id ? [{
       value: item.id,
