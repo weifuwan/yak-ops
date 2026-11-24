@@ -1,20 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Braces,
-  CalendarClock,
-  GitBranch,
-  Play,
-  Settings2,
-} from "lucide-react";
+import { CalendarClock, Play } from "lucide-react";
 import {
   Alert,
-  Badge,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   Checkbox,
+  CollapseSection,
   DateField,
   DateI18nProvider,
   DateRangePicker,
@@ -66,7 +57,7 @@ const PRIORITY_ITEMS = {
   HIGH: "高",
   MEDIUM: "中",
   LOW: "低",
-  LOWEST: "最低",
+  LOWEST: "低",
 };
 const DATE_MODE_OPTIONS = [
   { value: "range", label: "时间范围" },
@@ -92,6 +83,34 @@ function parseStartParams(value: string): Record<string, string> {
 function normalizeDateTime(value: string): string {
   return value.length === 10 ? value + " 00:00:00" : value;
 }
+
+function BackfillField({
+  label,
+  children,
+  align = "center",
+}: {
+  label: string;
+  children: ReactNode;
+  align?: "center" | "start";
+}) {
+  return (
+    <Field
+      className={[
+        "grid grid-cols-[148px_minmax(0,1fr)] !gap-3 max-md:grid-cols-1",
+        align === "center" ? "items-center" : "items-start",
+      ].join(" ")}
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <FieldLabel className={align === "start" ? "pt-1.5" : ""}>
+          {label}
+        </FieldLabel>
+      </div>
+      <div className="min-w-0 max-w-[760px]">{children}</div>
+    </Field>
+  );
+}
+
+const inputClassName = "w-full max-w-[760px]";
 
 export function BackfillEditor({
   workflow,
@@ -207,415 +226,362 @@ export function BackfillEditor({
   };
 
   return (
-    <div className="h-full min-h-0 w-full min-w-0 overflow-y-auto bg-[var(--yak-color-surface)] p-4 md:p-6">
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4">
-        <Card className="shadow-[var(--yak-shadow-sm)]">
-          <CardHeader
-            className="items-center px-5 py-4"
-            title={
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]">
-                  <CalendarClock size={17} />
-                </span>
-                <span className="text-[15px] font-semibold">补数配置</span>
-                <Badge tone={online ? "success" : "neutral"}>
-                  {online ? "已上线" : "未上线"}
-                </Badge>
-              </div>
-            }
-            description={`${workflow.name} · 工作流 #${workflow.code}`}
-          />
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)]">
+      <header className="flex h-9 shrink-0 items-center gap-2 border-b border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-3">
+        <CalendarClock size={14} className="shrink-0 text-[var(--yak-components-muted-text)]" />
+        <span className="text-sm font-semibold">补数配置</span>
+        <span className="min-w-0 truncate text-xs text-[var(--yak-components-muted-text)]">
+          {workflow.name} · #{workflow.code} · {online ? "已上线" : "未上线"}
+        </span>
+        <div className="ml-auto shrink-0">
+          <Button
+            size="sm"
+            variant="primary"
+            isPending={submitting}
+            isDisabled={submitting || !online}
+            onClick={() => void submit()}
+          >
+            <Play size={13} fill="currentColor" />
+            {submitting ? "提交中..." : "提交补数"}
+          </Button>
+        </div>
+      </header>
 
-          <CardContent className="space-y-6 p-5 md:p-6">
-            {!online ? (
-              <Alert>
-                当前工作流尚未上线，补数仅支持已上线的工作流。请先发布工作流后再提交补数。
-              </Alert>
-            ) : null}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--yak-components-panel-bg)] p-4">
+        <div className="mx-auto max-w-[1120px] space-y-3">
+          {!online ? (
+            <Alert>
+              当前工作流尚未上线，补数仅支持已上线的工作流。请先发布工作流后再提交补数。
+            </Alert>
+          ) : null}
 
-            <section className="rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-color-surface)] p-4 md:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-muted-text)] shadow-sm">
-                    <CalendarClock size={15} />
-                  </span>
-                  <div>
-                    <h3 className="m-0 text-sm font-semibold text-[var(--yak-components-panel-text)]">
-                      补数日期
-                    </h3>
-                    <p className="mb-0 mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                      选择需要重新执行的业务日期
-                    </p>
-                  </div>
-                </div>
-                <Segmented
-                  aria-label="补数日期方式"
-                  value={dateMode}
-                  options={DATE_MODE_OPTIONS}
-                  onValueChange={(value) => setDateMode(value)}
+          <CollapseSection
+            id="backfill-dates"
+            title="补数日期"
+            triggerClassName="!h-8 rounded-sm px-3"
+            contentClassName="space-y-3 pt-3"
+          >
+            <BackfillField label="补数方式">
+              <Segmented
+                aria-label="补数日期方式"
+                value={dateMode}
+                options={DATE_MODE_OPTIONS}
+                onValueChange={(value) => setDateMode(value)}
+              />
+            </BackfillField>
+
+            {dateMode === "range" ? (
+              <BackfillField label="日期范围">
+                <DateI18nProvider locale="zh-CN">
+                  <DateRangePicker
+                    aria-label="补数日期范围"
+                    value={dateRange}
+                    onChange={setDateRange}
+                    className={inputClassName}
+                  >
+                    <DateField.Group fullWidth variant="outlined">
+                      <DateField.Input slot="start" className="min-w-0 px-2">
+                        {(segment) => <DateField.Segment segment={segment} />}
+                      </DateField.Input>
+                      <DateRangePicker.RangeSeparator />
+                      <DateField.Input slot="end" className="min-w-0 px-2">
+                        {(segment) => <DateField.Segment segment={segment} />}
+                      </DateField.Input>
+                      <DateField.Suffix>
+                        <DateRangePicker.Trigger aria-label="打开补数日期范围选择器">
+                          <DateRangePicker.TriggerIndicator />
+                        </DateRangePicker.Trigger>
+                      </DateField.Suffix>
+                    </DateField.Group>
+                    <DateRangePicker.Popover className="w-auto">
+                      <RangeCalendar
+                        aria-label="补数日期范围"
+                        firstDayOfWeek="mon"
+                      >
+                        <RangeCalendar.Header>
+                          <RangeCalendar.NavButton slot="previous" aria-label="上个月" />
+                          <RangeCalendar.Heading />
+                          <RangeCalendar.NavButton slot="next" aria-label="下个月" />
+                        </RangeCalendar.Header>
+                        <RangeCalendar.Grid>
+                          <RangeCalendar.GridHeader>
+                            {(day) => <RangeCalendar.HeaderCell>{day}</RangeCalendar.HeaderCell>}
+                          </RangeCalendar.GridHeader>
+                          <RangeCalendar.GridBody>
+                            {(date) => <RangeCalendar.Cell date={date} />}
+                          </RangeCalendar.GridBody>
+                        </RangeCalendar.Grid>
+                      </RangeCalendar>
+                    </DateRangePicker.Popover>
+                  </DateRangePicker>
+                </DateI18nProvider>
+                <FieldDescription>
+                  按工作流已发布的 Cron 调度规则计算需要补数的实例
+                </FieldDescription>
+              </BackfillField>
+            ) : (
+              <BackfillField label="指定日期" align="start">
+                <Textarea
+                  size="small"
+                  variant="outlined"
+                  rows={4}
+                  value={manualDates}
+                  onValueChange={setManualDates}
+                  placeholder={"每行一个日期，也支持逗号分隔\nYYYY-MM-DD\nYYYY-MM-DD HH:mm:ss"}
+                  className={inputClassName}
                 />
-              </div>
+              </BackfillField>
+            )}
+          </CollapseSection>
 
-              {dateMode === "range" ? (
-                <Field className="mt-4 max-w-[560px]">
-                  <FieldLabel>补数日期范围</FieldLabel>
-                  <DateI18nProvider locale="zh-CN">
-                    <DateRangePicker
-                      aria-label="补数日期范围"
-                      value={dateRange}
-                      onChange={setDateRange}
-                      className="w-full"
+          <CollapseSection
+            id="backfill-execution"
+            title="执行策略"
+            triggerClassName="!h-8 rounded-sm px-3"
+            contentClassName="space-y-3 pt-3"
+          >
+            <BackfillField label="运行模式">
+              <Select
+                size="small"
+                items={RUN_MODE_ITEMS}
+                value={runMode}
+                onValueChange={(value) =>
+                  setRunMode(String(value) as WorkflowBackfillRunMode)
+                }
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(RUN_MODE_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      <SelectItemText>{label}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+
+            <BackfillField label="预期并行度">
+              <Input
+                size="small"
+                variant="outlined"
+                type="number"
+                min={runMode === "RUN_MODE_SERIAL" ? 0 : 1}
+                value={parallelism}
+                onChange={(event) => setParallelism(event.target.value)}
+                disabled={runMode === "RUN_MODE_SERIAL"}
+                className={inputClassName}
+              />
+              <FieldDescription>
+                {runMode === "RUN_MODE_SERIAL" ? "串行模式固定为 0" : "并行度至少为 1"}
+              </FieldDescription>
+            </BackfillField>
+
+            <BackfillField label="依赖补数">
+              <Select
+                size="small"
+                items={DEPENDENCY_ITEMS}
+                value={dependentMode}
+                onValueChange={(value) =>
+                  setDependentMode(String(value) as "OFF_MODE" | "ALL_DEPENDENT")
+                }
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DEPENDENCY_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      <SelectItemText>{label}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+
+            <BackfillField label="执行顺序">
+              <Select
+                size="small"
+                items={ORDER_ITEMS}
+                value={executionOrder}
+                onValueChange={(value) =>
+                  setExecutionOrder(String(value) as "ASC_ORDER" | "DESC_ORDER")
+                }
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ORDER_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      <SelectItemText>{label}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+
+            <BackfillField label="失败策略">
+              <Select
+                size="small"
+                items={FAILURE_ITEMS}
+                value={failureStrategy}
+                onValueChange={(value) =>
+                  setFailureStrategy(String(value) as "END" | "CONTINUE")
+                }
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(FAILURE_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      <SelectItemText>{label}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+
+            <BackfillField label="优先级">
+              <Select
+                size="small"
+                items={PRIORITY_ITEMS}
+                value={priority}
+                onValueChange={(value) =>
+                  setPriority(String(value) as keyof typeof PRIORITY_ITEMS)
+                }
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRIORITY_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      <SelectItemText>{label}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+          </CollapseSection>
+
+          <CollapseSection
+            id="backfill-resources"
+            title="调度资源"
+            triggerClassName="!h-8 rounded-sm px-3"
+            contentClassName="space-y-3 pt-3"
+          >
+            <BackfillField label="Worker Group">
+              <Select
+                size="small"
+                items={Object.fromEntries(workerGroups.map((group) => [group, group]))}
+                value={workerGroup}
+                onValueChange={(value) => setWorkerGroup(String(value ?? "default"))}
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {workerGroups.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      <SelectItemText>{group}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+
+            <BackfillField label="Environment">
+              <Select
+                size="small"
+                items={Object.fromEntries([
+                  ["-1", "不使用环境"],
+                  ...environments.map((environment) => [
+                    String(environment.code),
+                    environment.name,
+                  ]),
+                ])}
+                value={environmentCode}
+                onValueChange={(value) => setEnvironmentCode(String(value ?? "-1"))}
+              >
+                <SelectTrigger variant="outlined" className={inputClassName}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="-1">
+                    <SelectItemText>不使用环境</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                  {environments.map((environment) => (
+                    <SelectItem
+                      key={String(environment.code)}
+                      value={String(environment.code)}
                     >
-                      <DateField.Group fullWidth variant="outlined">
-                        <DateField.Input slot="start" className="min-w-0 px-2">
-                          {(segment) => <DateField.Segment segment={segment} />}
-                        </DateField.Input>
-                        <DateRangePicker.RangeSeparator />
-                        <DateField.Input slot="end" className="min-w-0 px-2">
-                          {(segment) => <DateField.Segment segment={segment} />}
-                        </DateField.Input>
-                        <DateField.Suffix>
-                          <DateRangePicker.Trigger aria-label="打开补数日期范围选择器">
-                            <DateRangePicker.TriggerIndicator />
-                          </DateRangePicker.Trigger>
-                        </DateField.Suffix>
-                      </DateField.Group>
-                      <DateRangePicker.Popover className="w-auto">
-                        <RangeCalendar
-                          aria-label="补数日期范围"
-                          firstDayOfWeek="mon"
-                        >
-                          <RangeCalendar.Header>
-                            <RangeCalendar.NavButton slot="previous" aria-label="上个月" />
-                            <RangeCalendar.Heading />
-                            <RangeCalendar.NavButton slot="next" aria-label="下个月" />
-                          </RangeCalendar.Header>
-                          <RangeCalendar.Grid>
-                            <RangeCalendar.GridHeader>
-                              {(day) => <RangeCalendar.HeaderCell>{day}</RangeCalendar.HeaderCell>}
-                            </RangeCalendar.GridHeader>
-                            <RangeCalendar.GridBody>
-                              {(date) => <RangeCalendar.Cell date={date} />}
-                            </RangeCalendar.GridBody>
-                          </RangeCalendar.Grid>
-                        </RangeCalendar>
-                      </DateRangePicker.Popover>
-                    </DateRangePicker>
-                  </DateI18nProvider>
-                  <FieldDescription>
-                    将按工作流已发布的 Cron 调度规则计算需要补数的实例
-                  </FieldDescription>
-                </Field>
-              ) : (
-                <Field className="mt-4 max-w-[720px]">
-                  <FieldLabel>指定补数日期</FieldLabel>
-                  <Textarea
-                    size="small"
-                    variant="outlined"
-                    rows={4}
-                    value={manualDates}
-                    onValueChange={setManualDates}
-                    placeholder={"每行一个日期，也支持逗号分隔\nYYYY-MM-DD\nYYYY-MM-DD HH:mm:ss"}
-                  />
-                  <FieldDescription>
-                    支持多日期输入，日期之间可使用换行或逗号分隔
-                  </FieldDescription>
-                </Field>
-              )}
-            </section>
+                      <SelectItemText>{environment.name}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BackfillField>
+          </CollapseSection>
 
-            <section>
-              <div className="mb-4 flex items-start gap-2.5">
-                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]">
-                  <Settings2 size={15} />
-                </span>
-                <div>
-                  <h3 className="m-0 text-sm font-semibold text-[var(--yak-components-panel-text)]">
-                    执行配置
-                  </h3>
-                  <p className="mb-0 mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                    设置补数实例的运行方式、依赖策略与调度资源
-                  </p>
-                </div>
-              </div>
+          <CollapseSection
+            id="backfill-dependencies"
+            title="依赖控制"
+            triggerClassName="!h-8 rounded-sm px-3"
+            contentClassName="space-y-3 pt-3"
+          >
+            <BackfillField label="递归补齐依赖" align="start">
+              <label className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-field-label)]">
+                <Checkbox
+                  checked={allLevelDependent}
+                  onCheckedChange={(checked) => setAllLevelDependent(checked === true)}
+                />
+                <span>补齐所有层级的上游依赖工作流</span>
+              </label>
+            </BackfillField>
+          </CollapseSection>
 
-              <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Field>
-                  <FieldLabel>运行模式</FieldLabel>
-                  <Select
-                    size="small"
-                    items={RUN_MODE_ITEMS}
-                    value={runMode}
-                    onValueChange={(value) =>
-                      setRunMode(String(value) as WorkflowBackfillRunMode)
-                    }
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(RUN_MODE_ITEMS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <SelectItemText>{label}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
+          <CollapseSection
+            id="backfill-start-params"
+            title="启动参数"
+            triggerClassName="!h-8 rounded-sm px-3"
+            contentClassName="space-y-3 pt-3"
+          >
+            <BackfillField label="参数列表" align="start">
+              <Textarea
+                size="small"
+                variant="outlined"
+                rows={4}
+                value={startParamsText}
+                onValueChange={setStartParamsText}
+                placeholder={"每行填写一个参数，格式为 key=value\nbiz_date=2026-11-24\nregion=cn-east"}
+                className={inputClassName}
+              />
+            </BackfillField>
+          </CollapseSection>
 
-                <Field>
-                  <FieldLabel>预期并行度</FieldLabel>
-                  <Input
-                    size="small"
-                    variant="outlined"
-                    type="number"
-                    min={runMode === "RUN_MODE_SERIAL" ? 0 : 1}
-                    value={parallelism}
-                    onChange={(event) => setParallelism(event.target.value)}
-                    disabled={runMode === "RUN_MODE_SERIAL"}
-                  />
-                  <FieldDescription>
-                    {runMode === "RUN_MODE_SERIAL" ? "串行模式固定为 0" : "并行度至少为 1"}
-                  </FieldDescription>
-                </Field>
-
-                <Field>
-                  <FieldLabel>依赖补数</FieldLabel>
-                  <Select
-                    size="small"
-                    items={DEPENDENCY_ITEMS}
-                    value={dependentMode}
-                    onValueChange={(value) =>
-                      setDependentMode(String(value) as "OFF_MODE" | "ALL_DEPENDENT")
-                    }
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(DEPENDENCY_ITEMS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <SelectItemText>{label}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <FieldLabel>执行顺序</FieldLabel>
-                  <Select
-                    size="small"
-                    items={ORDER_ITEMS}
-                    value={executionOrder}
-                    onValueChange={(value) =>
-                      setExecutionOrder(String(value) as "ASC_ORDER" | "DESC_ORDER")
-                    }
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ORDER_ITEMS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <SelectItemText>{label}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <FieldLabel>失败策略</FieldLabel>
-                  <Select
-                    size="small"
-                    items={FAILURE_ITEMS}
-                    value={failureStrategy}
-                    onValueChange={(value) =>
-                      setFailureStrategy(String(value) as "END" | "CONTINUE")
-                    }
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(FAILURE_ITEMS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <SelectItemText>{label}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <FieldLabel>优先级</FieldLabel>
-                  <Select
-                    size="small"
-                    items={PRIORITY_ITEMS}
-                    value={priority}
-                    onValueChange={(value) =>
-                      setPriority(String(value) as keyof typeof PRIORITY_ITEMS)
-                    }
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PRIORITY_ITEMS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <SelectItemText>{label}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <FieldLabel>Worker Group</FieldLabel>
-                  <Select
-                    size="small"
-                    items={Object.fromEntries(workerGroups.map((group) => [group, group]))}
-                    value={workerGroup}
-                    onValueChange={(value) => setWorkerGroup(String(value ?? "default"))}
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workerGroups.map((group) => (
-                        <SelectItem key={group} value={group}>
-                          <SelectItemText>{group}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <FieldLabel>Environment</FieldLabel>
-                  <Select
-                    size="small"
-                    items={Object.fromEntries([
-                      ["-1", "不使用环境"],
-                      ...environments.map((environment) => [
-                        String(environment.code),
-                        environment.name,
-                      ]),
-                    ])}
-                    value={environmentCode}
-                    onValueChange={(value) => setEnvironmentCode(String(value ?? "-1"))}
-                  >
-                    <SelectTrigger variant="outlined" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="-1">
-                        <SelectItemText>不使用环境</SelectItemText>
-                        <SelectItemIndicator />
-                      </SelectItem>
-                      {environments.map((environment) => (
-                        <SelectItem
-                          key={String(environment.code)}
-                          value={String(environment.code)}
-                        >
-                          <SelectItemText>{environment.name}</SelectItemText>
-                          <SelectItemIndicator />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-            </section>
-
-            <section className="grid grid-cols-1 gap-4 border-t border-[var(--yak-components-panel-border)] pt-5 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)]">
-              <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-color-surface)] p-4">
-                <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-muted-text)] shadow-sm">
-                    <GitBranch size={15} />
-                  </span>
-                  <div>
-                    <h3 className="m-0 text-sm font-semibold text-[var(--yak-components-panel-text)]">
-                      依赖控制
-                    </h3>
-                    <p className="mb-0 mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]">
-                      控制是否递归补齐上游工作流依赖
-                    </p>
-                  </div>
-                </div>
-                <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-md border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-3 py-3 transition-colors hover:bg-[var(--yak-color-hover)]">
-                  <Checkbox
-                    checked={allLevelDependent}
-                    onCheckedChange={(checked) => setAllLevelDependent(checked === true)}
-                    className="mt-0.5"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-xs font-medium text-[var(--yak-components-panel-text)]">
-                      递归补齐所有层级依赖
-                    </span>
-                    <span className="mt-1 block text-[11px] leading-4 text-[var(--yak-components-muted-text)]">
-                      开启后将继续补齐依赖工作流的上游层级
-                    </span>
-                  </span>
-                </label>
-              </div>
-
-              <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]">
-                    <Braces size={15} />
-                  </span>
-                  <div>
-                    <h3 className="m-0 text-sm font-semibold text-[var(--yak-components-panel-text)]">
-                      启动参数
-                    </h3>
-                    <p className="mb-0 mt-0.5 text-[11px] text-[var(--yak-components-muted-text)]">
-                      每行填写一个参数，格式为 key=value
-                    </p>
-                  </div>
-                </div>
-                <Field>
-                  <Textarea
-                    size="small"
-                    variant="outlined"
-                    rows={4}
-                    value={startParamsText}
-                    onValueChange={setStartParamsText}
-                    placeholder={"biz_date=2026-11-24\nregion=cn-east"}
-                  />
-                </Field>
-              </div>
-            </section>
-          </CardContent>
-
-          <div className="flex items-center justify-end border-t border-[var(--yak-components-panel-border)] bg-[var(--yak-color-surface)] px-5 py-3.5">
-            <Button
-              size="sm"
-              variant="primary"
-              isPending={submitting}
-              isDisabled={submitting || !online}
-              onClick={() => void submit()}
-            >
-              <Play size={13} fill="currentColor" />
-              {submitting ? "提交中..." : "提交补数"}
-            </Button>
-          </div>
-        </Card>
-
-        {instanceIds.length > 0 ? (
-          <Card className="shadow-[var(--yak-shadow-sm)]">
-            <CardHeader
+          {instanceIds.length > 0 ? (
+            <CollapseSection
+              id="backfill-submitted-instances"
               title="本次提交实例"
-              description={`已生成 ${instanceIds.length} 个工作流实例`}
-            />
-            <CardContent className="flex flex-wrap gap-2">
+              extra={
+                <span className="text-xs font-normal text-[var(--yak-components-muted-text)]">
+                  {instanceIds.length} 个实例
+                </span>
+              }
+              triggerClassName="!h-8 rounded-sm px-3"
+              contentClassName="flex flex-wrap gap-2 pt-3"
+            >
               {instanceIds.map((id) => (
                 <Button
                   key={id}
@@ -628,9 +594,9 @@ export function BackfillEditor({
                   实例 #{id}
                 </Button>
               ))}
-            </CardContent>
-          </Card>
-        ) : null}
+            </CollapseSection>
+          ) : null}
+        </div>
       </div>
     </div>
   );
