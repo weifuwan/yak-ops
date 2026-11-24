@@ -34,6 +34,10 @@ const workflowToolbar = readFileSync(
   new URL("../apps/web/app/data-development/workflow-editor/toolbar/workflow-toolbar.tsx", import.meta.url),
   "utf8",
 );
+const taskTypeBadgeIcon = readFileSync(
+  new URL("../apps/web/app/data-development/workflow-editor/components/task-type-badge-icon.tsx", import.meta.url),
+  "utf8",
+);
 
 test("workflow node toolbar uses a bordered Dify-style play and more control", () => {
   assert.match(workflowNode, /border-\[#D0D5DD\] bg-white/);
@@ -153,4 +157,28 @@ test("floating workflow node picker uses larger Dify-style icons and a wider res
   assert.ok(workflowSelector.includes("const panelWidth = Math.min(340, window.innerWidth - 24)"));
   assert.ok(workflowSelector.includes("w-[340px] max-w-[calc(100vw-24px)]"));
   assert.ok(workflowSelector.includes("width: panelWidth"));
+});
+
+
+test("workflow task icons use Dify-style solid color containers and white glyphs", () => {
+  assert.match(taskTypeBadgeIcon, /const TASK_TYPE_ICON_MAP/);
+  assert.match(taskTypeBadgeIcon, /border-\\[0\\.5px\\] border-white\\/10 text-white/);
+  assert.match(taskTypeBadgeIcon, /backgroundColor: spec\\.background/);
+  assert.match(taskTypeBadgeIcon, /<Icon size=\\{iconSize\\} strokeWidth=\\{2\\.1\\}/);
+  assert.doesNotMatch(taskTypeBadgeIcon, /<text/);
+
+  for (const taskType of [
+    "CONDITIONS",
+    "DATA_SYNC",
+    "SQL",
+    "PYTHON",
+    "JAVA",
+    "HTTP",
+    "SHELL",
+    "K8S",
+  ]) {
+    assert.ok(taskTypeBadgeIcon.includes(taskType), `missing task icon mapping: ${taskType}`);
+  }
+
+  assert.match(workflowNode, /size=\\{24\\}/);
 });
