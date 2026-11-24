@@ -180,5 +180,9 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
     assert.ok(taskTypeBadgeIcon.includes(taskType), `missing task icon mapping: ${taskType}`);
   }
 
+  assert.ok(taskTypeBadgeIcon.includes('CONDITIONS: { icon: GitBranch, background: "var(--yak-color-primary)" }'));
+  assert.ok(taskTypeBadgeIcon.includes('normalized === "CONDITIONS"'));
+  assert.ok(taskTypeBadgeIcon.includes('viewBox="0 0 1024 1024"'));
+  assert.ok(taskTypeBadgeIcon.includes("M597.358 218.697a47.982 47.982 0 0 1 0-96.036"));
   assert.ok(workflowNode.includes("size={24}"));
 });
