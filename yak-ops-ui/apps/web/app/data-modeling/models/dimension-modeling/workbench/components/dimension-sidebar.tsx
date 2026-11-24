@@ -381,7 +381,7 @@ export function DimensionSidebar({
             >
               <Plus size={14} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="bottom" className="w-44">
+            <DropdownMenuContent align="start" side="bottom" className="w-44">
               <DropdownMenuGroup>
                 <DropdownMenuLabel>维度模型</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onCreate("DIM")}>
