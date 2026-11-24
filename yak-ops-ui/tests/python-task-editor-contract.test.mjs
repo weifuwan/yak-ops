@@ -7,6 +7,10 @@ import {
   parsePythonTaskForm,
 } from "../apps/web/app/data-development/task-editor/python/adapter.ts";
 
+import {
+  buildScriptTaskCommentTemplate,
+} from "../apps/web/app/data-development/workflow-editor/adapter/script-comment-template.ts";
+
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const pythonEditor = read("../apps/web/app/data-development/task-editor/python/index.tsx");
 const pythonTypes = read("../apps/web/app/data-development/task-editor/python/types.ts");
@@ -15,6 +19,8 @@ const scriptEditor = read("../apps/web/app/data-development/task-editor/script/i
 const scriptHook = read("../apps/web/app/data-development/task-editor/script/use-script-task-editor.ts");
 const codeEditor = read("../apps/web/app/data-development/task-editor/script/script-code-editor.tsx");
 const panel = read("../apps/web/app/data-development/task-editor/script/script-editor-panel.tsx");
+const workflowStore = read("../apps/web/app/data-development/workflow-editor/store/workflow-store.tsx");
+const workflowEditor = read("../apps/web/app/data-development/workflow-editor/workflow-editor.tsx");
 
 test("Python task adapter preserves the backend taskParams contract", () => {
   const form = parsePythonTaskForm({
@@ -37,6 +43,19 @@ test("Python task adapter preserves the backend taskParams contract", () => {
   assert.deepEqual(params.resourceList, [{ resourceName: "/resources/python/common.py" }]);
   assert.deepEqual(params.localParams.map((item) => item.prop), ["bizDate", "rowCount"]);
   assert.equal(params.customExistingField, "keep-me");
+});
+
+test("New Python and Shell nodes receive a timestamped author comment template", () => {
+  const createdAt = new Date(2026, 10, 24, 11, 30, 0);
+  const template = buildScriptTaskCommentTemplate("admin", createdAt);
+
+  assert.match(template, /^# =+\n# 创建时间：2026-11-24 11:30:00\n# 创建人：admin\n# 描述：请填写脚本用途\n# =+\n\n$/);
+  assert.match(buildScriptTaskCommentTemplate("", createdAt), /# 创建人：当前用户/);
+  assert.match(workflowStore, /case "SHELL":[\s\S]*?rawScript: buildScriptTaskCommentTemplate\(createdBy\)/);
+  assert.match(workflowStore, /case "PYTHON":[\s\S]*?rawScript: buildScriptTaskCommentTemplate\(createdBy\)/);
+  assert.match(workflowStore, /createWorkflowStore\(initialGraph, workflowCode, createdBy\)/);
+  assert.match(workflowEditor, /currentUser\?\.name\?\.trim\(\) \|\| currentUser\?\.userName\?\.trim\(\) \|\| "当前用户"/);
+  assert.match(workflowEditor, /createdBy=\{createdBy\}/);
 });
 
 test("Python is registered as a dedicated lazy-loaded task editor", () => {
