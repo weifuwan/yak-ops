@@ -285,7 +285,7 @@ export function WorkflowRunDialog({ workflow, open, onOpenChange }: Props) {
           {error ? (
             <div
               role="alert"
-              className="rounded-[var(--yak-radius-control-small)] border border-[var(--yak-components-alert-danger-border)] bg-[var(--yak-components-alert-danger-bg)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-alert-danger-text)]"
+              className="rounded-[4px] bg-[#fff2f0] px-3 py-2 text-[12px] leading-5 text-[#d4380d]"
             >
               {error}
             </div>
