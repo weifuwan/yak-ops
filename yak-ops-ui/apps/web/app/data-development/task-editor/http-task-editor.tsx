@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
   Button,
   CollapseSection,
   Field,
@@ -51,6 +55,23 @@ const methodLabels: Record<HttpRequestMethod, string> = {
   PUT: "PUT",
   DELETE: "DELETE",
 };
+
+const HTTP_HEADER_SUGGESTIONS = [
+  "Authorization",
+  "Content-Type",
+  "Accept",
+  "User-Agent",
+  "Cache-Control",
+  "X-Api-Key",
+  "X-Tenant-Id",
+  "X-Request-ID",
+  "Cookie",
+  "Accept-Language",
+  "Origin",
+  "Referer",
+  "If-None-Match",
+  "If-Match",
+] as const;
 
 const checkConditionOptions: Array<{ value: HttpCheckCondition; label: string }> = [
   { value: "STATUS_CODE_DEFAULT", label: "默认状态码（200）" },
@@ -126,15 +147,40 @@ function HttpKeyValueSection({
                   key={parameterType + "-" + index}
                   className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_36px] items-center gap-2"
                 >
-                  <Input
-                    size="small"
-                    variant="outlined"
-                    value={row.prop}
-                    disabled={disabled}
-                    onChange={(event) => updateRow(index, { prop: event.target.value })}
-                    placeholder={parameterType === "HEADERS" ? "请求头名称" : "参数名称"}
-                    aria-label={title + "名称 " + (index + 1)}
-                  />
+                  {parameterType === "HEADERS" ? (
+                    <Autocomplete<string>
+                      items={HTTP_HEADER_SUGGESTIONS}
+                      value={row.prop}
+                      onValueChange={(value) => updateRow(index, { prop: value })}
+                      openOnInputClick
+                      disabled={disabled}
+                    >
+                      <AutocompleteInput
+                        size="small"
+                        variant="outlined"
+                        placeholder="选择或输入请求头名称"
+                        aria-label={title + "名称 " + (index + 1)}
+                        className="w-full"
+                      />
+                      <AutocompleteContent emptyContent="无匹配项，可直接输入自定义请求头名称">
+                        {(header: string) => (
+                          <AutocompleteItem key={header} value={header}>
+                            <span className="min-w-0 truncate">{header}</span>
+                          </AutocompleteItem>
+                        )}
+                      </AutocompleteContent>
+                    </Autocomplete>
+                  ) : (
+                    <Input
+                      size="small"
+                      variant="outlined"
+                      value={row.prop}
+                      disabled={disabled}
+                      onChange={(event) => updateRow(index, { prop: event.target.value })}
+                      placeholder="参数名称"
+                      aria-label={title + "名称 " + (index + 1)}
+                    />
+                  )}
                   <Input
                     size="small"
                     variant="outlined"
