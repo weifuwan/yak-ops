@@ -343,14 +343,6 @@ export function DorisPublishModal({
   const publish = async () => {
     const payload = request();
     if (!payload || busy) return;
-    if (
-      !window.confirm(
-        "发布将创建 Doris 物理表，且不会覆盖已存在的目标表。确认继续？",
-      )
-    ) {
-      return;
-    }
-
     setBusy(true);
     try {
       const result = await dimensionModelingApi.publishDoris(
