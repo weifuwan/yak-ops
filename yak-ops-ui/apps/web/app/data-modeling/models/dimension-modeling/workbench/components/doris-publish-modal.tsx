@@ -10,6 +10,7 @@ type Props = {
   projectCode: string;
   tableId: string;
   tableType: string;
+  modelName?: string;
   fields: DimensionFieldRecord[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +34,7 @@ export function DorisPublishModal({
   projectCode,
   tableId,
   tableType,
+  modelName,
   fields,
   open,
   onOpenChange,
@@ -212,7 +214,7 @@ export function DorisPublishModal({
         <div className="flex min-w-0 items-center gap-2">
           <span>发布到 Doris</span>
           <span className="truncate text-xs font-normal text-[var(--yak-components-muted-text)]">
-            {tableId}
+            {modelName || tableId}
           </span>
         </div>
       }
