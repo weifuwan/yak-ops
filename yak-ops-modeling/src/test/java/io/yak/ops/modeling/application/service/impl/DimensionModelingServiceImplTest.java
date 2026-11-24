@@ -14,9 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.DataDomainPO;
-import io.yak.ops.dao.entity.DimensionDorisConfigPO;
-import io.yak.ops.dao.entity.DimensionDorisDistributionFieldPO;
-import io.yak.ops.dao.entity.DimensionDorisKeyFieldPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.VersionManagementPO;
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
@@ -31,9 +28,6 @@ import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
-import io.yak.ops.dao.repository.modeling.DimensionDorisConfigDao;
-import io.yak.ops.dao.repository.modeling.DimensionDorisDistributionFieldDao;
-import io.yak.ops.dao.repository.modeling.DimensionDorisKeyFieldDao;
 import io.yak.ops.dao.repository.modeling.DimensionDorisPublishDao;
 import io.yak.ops.dao.repository.modeling.FieldStandardDao;
 import io.yak.ops.dao.repository.modeling.ModifierDao;
@@ -99,15 +93,6 @@ class DimensionModelingServiceImplTest {
 
     @Mock
     private DimensionTableFieldDao dimensionTableFieldDao;
-
-    @Mock
-    private DimensionDorisConfigDao dimensionDorisConfigDao;
-
-    @Mock
-    private DimensionDorisKeyFieldDao dimensionDorisKeyFieldDao;
-
-    @Mock
-    private DimensionDorisDistributionFieldDao dimensionDorisDistributionFieldDao;
 
     @Mock
     private DimensionDorisPublishDao dimensionDorisPublishDao;
@@ -399,7 +384,7 @@ class DimensionModelingServiceImplTest {
     }
 
     @Test
-    void shouldRestoreDorisPhysicalConfigurationWhenRollingBackVersion() throws Exception {
+    void shouldRollbackLogicalSnapshotWithoutRestoringDorisPublishConfiguration() throws Exception {
         DimensionTablePO current = new DimensionTablePO();
         current.setId("table-id");
         current.setTableType(DimensionTableTypeEnum.DETAIL);
@@ -432,39 +417,36 @@ class DimensionModelingServiceImplTest {
         snapshotTable.setCnName("订单明细");
         setSnapshotValue(snapshotType, snapshot, "table", snapshotTable);
         setSnapshotValue(snapshotType, snapshot, "fields", Collections.emptyList());
-
-        DimensionDorisConfigPO config = new DimensionDorisConfigPO();
-        config.setId("old-config-id");
-        DimensionDorisKeyFieldPO key = new DimensionDorisKeyFieldPO();
-        key.setId("old-key-id");
-        key.setFieldId("field-id");
-        key.setOrdinal(0);
-        DimensionDorisDistributionFieldPO distribution = new DimensionDorisDistributionFieldPO();
-        distribution.setId("old-distribution-id");
-        distribution.setFieldId("field-id");
-        distribution.setOrdinal(0);
-        setSnapshotValue(snapshotType, snapshot, "dorisConfig", config);
-        setSnapshotValue(snapshotType, snapshot, "dorisKeyFields", Collections.singletonList(key));
-        setSnapshotValue(
-                snapshotType, snapshot, "dorisDistributionFields", Collections.singletonList(distribution));
         doReturn(snapshot).when(objectMapper).treeToValue(any(JsonNode.class), any(Class.class));
 
         service.rollbackToVersion("table-id", 2);
 
-        ArgumentCaptor<DimensionDorisConfigPO> configCaptor =
-                ArgumentCaptor.forClass(DimensionDorisConfigPO.class);
-        ArgumentCaptor<DimensionDorisKeyFieldPO> keyCaptor =
-                ArgumentCaptor.forClass(DimensionDorisKeyFieldPO.class);
-        ArgumentCaptor<DimensionDorisDistributionFieldPO> distributionCaptor =
-                ArgumentCaptor.forClass(DimensionDorisDistributionFieldPO.class);
-        verify(dimensionDorisConfigDao).insert(configCaptor.capture());
-        verify(dimensionDorisKeyFieldDao).insert(keyCaptor.capture());
-        verify(dimensionDorisDistributionFieldDao).insert(distributionCaptor.capture());
-        assertEquals("table-id", configCaptor.getValue().getTableId());
-        assertEquals("table-id", keyCaptor.getValue().getTableId());
-        assertEquals("table-id", distributionCaptor.getValue().getTableId());
-        assertEquals("field-id", keyCaptor.getValue().getFieldId());
-        assertEquals("field-id", distributionCaptor.getValue().getFieldId());
+        verify(dimensionTableDao).update(any(), any());
+        verify(dimensionDorisPublishDao, never()).deleteByWrapper(any());
+    }
+
+    @Test
+    void shouldForcePrimaryFieldsToNotNullWhenSavingField() {
+        DimensionTablePO table = new DimensionTablePO();
+        table.setId("table-id");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table);
+        when(dimensionTableDao.updateById(any())).thenReturn(true);
+        when(dimensionTableFieldDao.insert(any())).thenReturn(1);
+
+        DimensionTableFieldDTO dto = new DimensionTableFieldDTO();
+        dto.setFieldName("customer_id");
+        dto.setDataType(DimensionDataTypeEnum.BIGINT);
+        dto.setOrdinal(0);
+        dto.setPrimaryFlag(Boolean.TRUE);
+        dto.setNotNull(Boolean.FALSE);
+
+        service.createField("table-id", dto);
+
+        ArgumentCaptor<DimensionTableFieldPO> fieldCaptor =
+                ArgumentCaptor.forClass(DimensionTableFieldPO.class);
+        verify(dimensionTableFieldDao).insert(fieldCaptor.capture());
+        assertEquals(Boolean.TRUE, fieldCaptor.getValue().getPrimaryFlag());
+        assertEquals(Boolean.FALSE, fieldCaptor.getValue().getCanNull());
     }
 
     private void setSnapshotValue(Class<?> snapshotType, Object snapshot, String name, Object value)
