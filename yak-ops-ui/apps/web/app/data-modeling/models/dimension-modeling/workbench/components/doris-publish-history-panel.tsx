@@ -26,42 +26,6 @@ function statusClassName(status?: string) {
   return "text-[var(--yak-components-muted-text)]";
 }
 
-function physicalConfigSummary(value?: string) {
-  if (!value) return "";
-  try {
-    const config = JSON.parse(value) as {
-      dataModel?: string;
-      distributionMode?: string;
-      distributionFieldNames?: string[];
-      bucketMode?: string;
-      bucketCount?: number;
-      partitionStrategy?: string;
-      partitionFieldName?: string;
-      partitionUnit?: string;
-    };
-    const model = config.dataModel === "UNIQUE" ? "主键更新表" : "普通明细表";
-    const distribution = config.distributionFieldNames?.length
-      ? `HASH ${config.distributionMode === "CUSTOM" ? "自定义" : "自动"}（${config.distributionFieldNames.join("、")}）`
-      : "HASH 自动";
-    const buckets = config.bucketMode === "FIXED"
-      ? `固定 ${config.bucketCount} 桶`
-      : "自动分桶";
-    const units: Record<string, string> = {
-      DAY: "按天",
-      WEEK: "按周",
-      MONTH: "按月",
-      QUARTER: "按季度",
-      YEAR: "按年",
-    };
-    const partition = config.partitionStrategy === "AUTO_RANGE"
-      ? `${config.partitionFieldName || "时间字段"} · ${units[config.partitionUnit || ""] || "时间分区"}`
-      : "不分区";
-    return [model, distribution, buckets, partition].join(" · ");
-  } catch {
-    return "";
-  }
-}
-
 export function DorisPublishHistoryPanel({ projectCode, tableId, onClose }: Props) {
   const historyQuery = useQuery({
     queryKey: ["modeling", "doris-publish-history", projectCode, tableId],
@@ -105,10 +69,15 @@ export function DorisPublishHistoryPanel({ projectCode, tableId, onClose }: Prop
                   <div className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">
                     {item.datasourceName || "Doris 数据源"} · V{item.versionNumber ?? "-"}
                   </div>
-                  {physicalConfigSummary(item.physicalConfig) ? (
-                    <div className="mt-1 line-clamp-2 text-[11px] text-[var(--yak-components-muted-text)]">
-                      {physicalConfigSummary(item.physicalConfig)}
-                    </div>
+                  <div className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">
+                    {item.tableModel === "UNIQUE" ? "主键表（UNIQUE KEY）" : item.tableModel === "DUPLICATE" ? "明细表（DUPLICATE KEY）" : "历史发布"}
+                    {" · "}
+                    {item.publishMode === "DROP_RECREATE" ? "删除重建" : item.publishMode === "INCREMENTAL" ? "增量发布" : "旧版记录"}
+                  </div>
+                  {item.publishRemark ? (
+                    <p className="mb-0 mt-1 line-clamp-2 break-words text-[11px] text-[var(--yak-components-muted-text)]">
+                      {item.publishRemark}
+                    </p>
                   ) : null}
                 </div>
                 <span className={"shrink-0 text-xs font-medium " + statusClassName(item.status)}>
