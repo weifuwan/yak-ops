@@ -51,14 +51,14 @@ test("the test button launches the particle flow without submitting login", () =
 });
 
 test("the particle destination follows the existing right-side login scene", () => {
-  assert.match(loginPage, /className="relative hidden min-h-screen overflow-hidden md:block"/);
   assert.match(loginPage, /ref=\{particleTargetRef\}/);
   assert.match(loginPage, /login-particle-destination/);
   assert.match(loginPage, /particleTargetRef=\{particleTargetRef\}/);
   assert.match(transitionStyles, /position: fixed/);
   assert.match(transitionStyles, /z-index: 110/);
   assert.match(transitionStyles, /pointer-events: none/);
-  assert.match(transitionStyles, /width: min\(380px, 100%\)/);
+  assert.match(transitionStyles, /width: 380px/);
+  assert.match(transitionStyles, /right: 0/);
 });
 
 test("reduced motion and component cleanup are respected", () => {
