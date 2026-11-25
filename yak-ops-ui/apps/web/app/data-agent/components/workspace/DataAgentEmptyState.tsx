@@ -17,7 +17,7 @@ type DataAgentEmptyStateProps = {
   onStop: () => void;
   onQuickAction: (prompt: string) => void;
   trailingActions: ReactNode;
-  transitionSourceRef: RefObject<HTMLDivElement>;
+  transitionSourceRef?: RefObject<HTMLDivElement>;
 };
 
 export function DataAgentEmptyState({
