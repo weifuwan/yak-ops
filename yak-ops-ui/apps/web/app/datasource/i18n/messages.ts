@@ -27,10 +27,6 @@ export default {
   "pages.datasource.batch.deleteSuccess": "已删除 {count} 个数据源",
   "pages.datasource.batch.testResult": "连接测试完成：成功 {success}，失败 {failed}",
 
-  "pages.datasource.status.connected": "已连接",
-  "pages.datasource.status.disconnected": "连接失败",
-  "pages.datasource.status.unknown": "待检测",
-
   "pages.datasource.empty.filtered": "没有找到符合条件的数据源",
   "pages.datasource.empty.default": "还没有创建数据源",
 
