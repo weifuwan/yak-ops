@@ -6,14 +6,11 @@ import {
   Input,
   PasswordInput,
 } from "@yak-ops/yak-ui";
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { notifyOnce } from "@/utils/notification";
 import { login } from "../../service/auth";
 import LoginPasswordEye from "./LoginPasswordEye";
-import MagicPatternsParticleTransition, {
-  type MagicPatternsParticleTransitionHandle,
-} from "./MagicPatternsParticleTransition";
 import {
   LOGIN_FAILURE_MOTION_MS,
   LOGIN_SUCCESS_MOTION_MS,
@@ -26,7 +23,6 @@ interface LoginPanelProps {
   onFocusStateChange: (state: LoginFocusState) => void;
   onLoginResultChange: (state: LoginResultState) => void;
   onPasswordVisibilityChange: (visible: boolean) => void;
-  particleTargetRef: RefObject<HTMLElement>;
 }
 
 interface LoginValues {
@@ -55,15 +51,12 @@ export default function LoginPanel({
   onFocusStateChange,
   onLoginResultChange,
   onPasswordVisibilityChange,
-  particleTargetRef,
 }: LoginPanelProps) {
   const [errors, setErrors] = useState<Partial<Record<keyof LoginValues, string>>>({});
   const [loading, setLoading] = useState(false);
   const submissionRef = useRef<AbortController | null>(null);
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
-  const particleTransitionRef = useRef<MagicPatternsParticleTransitionHandle | null>(null);
-  const previewSourceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -72,14 +65,6 @@ export default function LoginPanel({
       submissionRef.current = null;
     };
   }, []);
-
-  const handleParticlePreview = () => {
-    try {
-      void particleTransitionRef.current?.play().catch(() => undefined);
-    } catch {
-      // The preview effect must never interfere with the login form.
-    }
-  };
 
   const handleAccountLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -146,11 +131,6 @@ export default function LoginPanel({
 
   return (
     <>
-      <MagicPatternsParticleTransition
-        ref={particleTransitionRef}
-        fromRef={previewSourceRef}
-        toRef={particleTargetRef}
-      />
       <form
         className="login-form"
         noValidate
@@ -247,20 +227,6 @@ export default function LoginPanel({
           </Button>
         </div>
 
-        <div
-          ref={previewSourceRef}
-          className="login-form-particle-preview-source mt-2"
-        >
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            fullWidth
-            onClick={handleParticlePreview}
-          >
-            测试动画
-          </Button>
-        </div>
       </form>
       {/* Outside the busy form so the status can be announced while it is submitting. */}
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
