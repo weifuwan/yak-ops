@@ -59,7 +59,12 @@ function MobileDetailsHeader({
 }) {
   return (
     <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#ecefed] bg-white px-3 lg:hidden">
-      <span title={detailsTitle} className="max-w-[45%] truncate text-xs font-semibold text-[#303936]">{detailsTitle}</span>
+      <span
+        title={detailsTitle}
+        className="max-w-[45%] truncate text-xs font-semibold text-[#303936]"
+      >
+        {detailsTitle}
+      </span>
       <div className="flex items-center gap-1">
         <span className="flex h-7 items-center rounded-md border border-[#dfe4e2] bg-[#f3f5f4] px-2 text-[11px] font-medium text-[#3f4945]">
           Timeline
