@@ -12,6 +12,8 @@ public class DimensionDorisPublishDTO {
     private Integer datasourceId;
     private DorisDataModelEnum tableModel;
     private DorisPublishModeEnum publishMode;
+    /** Null means automatically adapt to the available Doris backends. */
+    private Integer replicationNum;
     private String publishRemark;
 
     /** Required by the backend for destructive DROP_RECREATE execution. */
