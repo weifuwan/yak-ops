@@ -41,7 +41,8 @@ class DorisDdlEngineTest {
         DorisDdlValidator validator = new DorisDdlValidator(connectorAdapter);
         DorisDdlGenerator generator = new DorisDdlGenerator(connectorAdapter, new DorisDdlFormatter());
         DorisSchemaInspector inspector = new DorisSchemaInspector();
-        DorisSchemaPlanner planner = new DorisSchemaPlanner(inspector, generator);
+        DorisSchemaPlanner planner = new DorisSchemaPlanner(
+                inspector, generator, new DorisBackendInspector());
         engine = new DorisDdlEngine(
                 validator, planner, new DorisDdlExecutor(), inspector, generator);
     }
@@ -60,6 +61,7 @@ class DorisDdlEngineTest {
 
         assertTrue(plan.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(plan.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
+        assertTrue(plan.getDdl().contains("\"replication_num\" = \"1\""));
         assertTrue(plan.getDdl().contains("(\n    `customer_id`"));
         assertTrue(!plan.isNoChanges());
     }
@@ -249,7 +251,7 @@ class DorisDdlEngineTest {
             java.util.List<DdlColumnDefinition> columns) {
         return new DorisDdlRequest(
                 new DdlTableDefinition("warehouse", "dwd_order_detail", "订单明细", columns),
-                model, mode, previousModel, previousKeys);
+                model, mode, previousModel, previousKeys, 1);
     }
 
     private DdlColumnDefinition column(
