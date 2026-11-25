@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
@@ -176,4 +177,39 @@ test("Doris multi-host endpoints survive the read-edit round-trip", () => {
   const saved = JSON.parse(record.originalJson);
   assert.equal(saved.host, "fe1.example,fe2.example");
   assert.equal(saved.port, 9030);
+});
+
+
+const datasourceServiceSource = readFileSync(
+  new URL("../apps/web/service/datasource/index.ts", import.meta.url),
+  "utf8",
+);
+const datasourceFormSource = readFileSync(
+  new URL("../apps/web/app/datasource/form/use-data-source-form.ts", import.meta.url),
+  "utf8",
+);
+
+test("connection-test requests forward an AbortSignal to both API paths", () => {
+  assert.match(
+    datasourceServiceSource,
+    /payload: DataSourceConnectTestPayload,\s*signal\?: AbortSignal/,
+  );
+  assert.match(
+    datasourceServiceSource,
+    /toBackendConnectionTest\(payload\.dbType, payload\.connectionParams\),\s*\{ signal \}/,
+  );
+  assert.match(
+    datasourceServiceSource,
+    /id: DataSourceId,\s*signal\?: AbortSignal/,
+  );
+  assert.match(
+    datasourceServiceSource,
+    /encodeURIComponent\(id\) \+ "\/connect-test",\s*\{ signal \}/,
+  );
+});
+
+test("connection-test loading is bounded and always cleared", () => {
+  assert.match(datasourceFormSource, /AbortSignal\.timeout\(CONNECTION_TEST_TIMEOUT_MS\)/);
+  assert.match(datasourceFormSource, /if \(signal\.aborted\)/);
+  assert.match(datasourceFormSource, /finally\s*\{\s*setTesting\(false\);\s*\}/);
 });
