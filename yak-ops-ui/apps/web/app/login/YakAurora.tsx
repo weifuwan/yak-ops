@@ -143,7 +143,14 @@ const AURORA_LAYERS: AuroraLayer[] = [
   { amplitude: 0.021, offset: 0.038, phase: 4.1, speed: 1.04, width: 5, blur: 12, alpha: 0.48 },
 ];
 
-function drawAurora(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
+function drawAurora(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number,
+  viewportHeight = height,
+  offsetY = 0,
+) {
   ctx.clearRect(0, 0, width, height);
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -159,15 +166,15 @@ function drawAurora(ctx: CanvasRenderingContext2D, width: number, height: number
       const progress = index / 96;
       const envelope = Math.pow(Math.sin(Math.PI * progress), 0.72);
       const x = startX + (endX - startX) * progress;
-      const baseY = height * (0.54 + layer.offset + progress * 0.055);
+      const baseY = viewportHeight * (0.54 + layer.offset + progress * 0.055) - offsetY;
       const broadWave =
         Math.sin(progress * 7.4 + time * layer.speed + layer.phase) *
-        height *
+        viewportHeight *
         layer.amplitude *
         envelope;
       const fineWave =
         Math.sin(progress * 17.5 - time * layer.speed * 0.58 + layer.phase) *
-        height *
+        viewportHeight *
         0.009 *
         envelope;
       points.push({ x, y: baseY + broadWave + fineWave });
@@ -334,8 +341,16 @@ const YakAurora = forwardRef<YakAuroraHandle, YakAuroraProps>(function YakAurora
       source.style.opacity = "";
       source.style.transform = "";
       source.style.filter = "";
+      source.style.top = "";
+      source.style.height = "";
+      source.style.bottom = "";
     }
-    if (pull) pull.style.opacity = "";
+    if (pull) {
+      pull.style.opacity = "";
+      pull.style.top = "";
+      pull.style.height = "";
+      pull.style.bottom = "";
+    }
   }, []);
 
   const cancel = useCallback(() => {
@@ -363,18 +378,38 @@ const YakAurora = forwardRef<YakAuroraHandle, YakAuroraProps>(function YakAurora
 
     const centerX = Math.max(0, Math.min(width, targetBounds.left + targetBounds.width / 2));
     const centerY = Math.max(0, Math.min(height, targetBounds.top + targetBounds.height / 2));
+    const ribbonY = height * 0.57;
+    const verticalPadding = Math.max(72, height * 0.14);
+    const cropTop = Math.max(0, Math.min(ribbonY, centerY) - verticalPadding);
+    const cropBottom = Math.min(height, Math.max(ribbonY, centerY) + verticalPadding);
+    const cropHeight = Math.max(1, cropBottom - cropTop);
+    const localCenterY = centerY - cropTop;
 
     source.width = Math.round(width * dpr);
-    source.height = Math.round(height * dpr);
+    source.height = Math.round(cropHeight * dpr);
     pull.width = Math.round(width * dpr);
-    pull.height = Math.round(height * dpr);
+    pull.height = Math.round(cropHeight * dpr);
+    source.style.top = cropTop + "px";
+    source.style.height = cropHeight + "px";
+    source.style.bottom = "auto";
+    pull.style.top = cropTop + "px";
+    pull.style.height = cropHeight + "px";
+    pull.style.bottom = "auto";
 
     const sourceContext = source.getContext("2d");
     if (!sourceContext) return Promise.resolve();
     sourceContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawAurora(sourceContext, width, height, performance.now() / 1000);
+    drawAurora(sourceContext, width, cropHeight, performance.now() / 1000, height, cropTop);
 
-    const renderer = createPullRenderer(pull, source, width, height, dpr, centerX, centerY);
+    const renderer = createPullRenderer(
+      pull,
+      source,
+      width,
+      cropHeight,
+      dpr,
+      centerX,
+      localCenterY,
+    );
     host.dataset.active = "true";
     if (renderer) {
       host.dataset.renderer = "webgl2";
@@ -438,7 +473,7 @@ const YakAurora = forwardRef<YakAuroraHandle, YakAuroraProps>(function YakAurora
               "translate3d(" +
               (centerX - width / 2) +
               "px, " +
-              (centerY - height / 2) +
+              (localCenterY - cropHeight / 2) +
               "px, 0) scale(" +
               scale +
               ") rotate(" +
