@@ -302,7 +302,7 @@ public class SchemaDao {
     }
 
     /**
-     * Persist the resolved physical configuration with each publish record and retire the
+     * Additive upgrade for Doris publish history and physical schema baselines, then retire the
      * former mutable Doris-config tables. Existing configured Key fields are migrated to the
      * logical field primaryFlag before their duplicate configuration tables are dropped.
      */
