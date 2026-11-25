@@ -74,7 +74,7 @@ function DetailsEmptyState() {
       <Activity size={20} strokeWidth={1.5} className="text-[#a1aaa6]" />
       <span className="text-xs font-medium text-[#59635e]">执行详情</span>
       <p className="m-0 max-w-[240px] text-[11px] leading-5 text-[#929b97]">
-        选择对话中的执行步骤，查看输入参数和执行结果
+        选择左侧的工具调用，查看对应的输入参数和执行结果
       </p>
     </div>
   );
