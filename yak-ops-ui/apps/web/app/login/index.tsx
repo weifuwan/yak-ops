@@ -1,5 +1,5 @@
 import { SplitSparkIcon } from "@yak-ops/yak-ui";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import LoginPanel from "./LoginPanel";
 import LoginWelcomeScene from "./LoginWelcomeScene";
@@ -16,7 +16,6 @@ export default function LoginPage({ onAuthenticated }: LoginPageProps) {
   const [focusState, setFocusState] = useState<LoginFocusState>("idle");
   const [resultState, setResultState] = useState<LoginResultState>("idle");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const particleTargetRef = useRef<HTMLDivElement>(null);
 
   return (
     <main className="h-full min-h-screen overflow-y-auto bg-white md:grid md:grid-cols-[7fr_5fr]">
@@ -56,7 +55,6 @@ export default function LoginPage({ onAuthenticated }: LoginPageProps) {
                 onFocusStateChange={setFocusState}
                 onLoginResultChange={setResultState}
                 onPasswordVisibilityChange={setPasswordVisible}
-                particleTargetRef={particleTargetRef}
               />
             </div>
           </div>
@@ -65,13 +63,6 @@ export default function LoginPage({ onAuthenticated }: LoginPageProps) {
           </div>
         </div>
       </section>
-      <div
-        ref={particleTargetRef}
-        className="login-particle-destination"
-        aria-hidden="true"
-      >
-        <div className="login-particle-destination__rail" />
-      </div>
     </main>
   );
 }
