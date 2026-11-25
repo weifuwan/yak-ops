@@ -82,15 +82,19 @@ from yak_agent.service.history import serialize_history
 from yak_agent.service.retention import retention_loop
 from yak_agent.service.session import (
     SESSIONS,
+    Identity,
     QueuedMessage,
     Session,
     Turn,
     cancel_queued_message,
     enqueue_message,
     load_session,
+    mark_deleting,
     queue_position,
     refresh_session_auth,
     remove_session,
+    session_eviction_loop,
+    unmark_deleting,
 )
 from yak_agent.service.session import (
     create_session as create_agent_session,
@@ -105,14 +109,16 @@ _QUEUE_ATTACH_TIMEOUT_SECONDS = 5.0
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     settings = _get_settings()
-    retention_task: asyncio.Task | None = None
+    tasks: list[asyncio.Task] = []
     if settings.session_retention_days > 0 or settings.session_max_mb > 0:
-        retention_task = asyncio.create_task(retention_loop(settings))
+        tasks.append(asyncio.create_task(retention_loop(settings)))
+    if settings.session_idle_seconds > 0:
+        tasks.append(asyncio.create_task(session_eviction_loop(settings)))
     yield
-    if retention_task is not None:
-        retention_task.cancel()
+    for task in tasks:
+        task.cancel()
         try:
-            await retention_task
+            await task
         except asyncio.CancelledError:
             pass
     await MEMORY.close_all()
@@ -146,6 +152,19 @@ def _get_settings() -> Settings:
     return _settings
 
 
+async def _identify(request: Request, settings: Settings | None = None) -> Identity:
+    """Resolve the caller off the event loop.
+
+    Identity resolution performs two upstream HTTP calls; running them inline
+    would freeze every session in this single-worker process.
+    """
+    return await asyncio.to_thread(
+        request_identity,
+        request,
+        settings if settings is not None else _get_settings(),
+    )
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -154,7 +173,7 @@ async def health() -> dict[str, str]:
 @app.post("/agent/sessions")
 async def create_session(request: Request) -> dict[str, str]:
     settings = _get_settings()
-    identity = request_identity(request, settings)
+    identity = await _identify(request, settings)
     sid = uuid.uuid4().hex
     session = create_agent_session(sid, identity, settings)
     persistence.persist(session)
@@ -163,7 +182,7 @@ async def create_session(request: Request) -> dict[str, str]:
 
 @app.get("/agent/sessions")
 async def list_sessions(request: Request) -> list[dict[str, Any]]:
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     if not identity.persistent:
         return []  # legacy identities have no on-disk sessions
     items = []
@@ -204,7 +223,7 @@ def _conversation_title(text: str) -> tuple[str, str]:
 async def get_memory(request: Request) -> dict[str, Any]:
     """Summarize this user's memory in the current workspace (no content)."""
     settings = _get_settings()
-    identity = request_identity(request, settings)
+    identity = await _identify(request, settings)
     if not settings.memory_enabled:
         raise MemoryDisabled()
     return {
@@ -221,7 +240,7 @@ async def clear_memory(
 ) -> dict[str, Any]:
     """Clear this user's memory for one workspace, or all workspaces."""
     settings = _get_settings()
-    identity = request_identity(request, settings)
+    identity = await _identify(request, settings)
 
     def in_use(owner: str, workspace_id: str) -> bool:
         return any(
@@ -269,6 +288,11 @@ async def _begin_turn(
     loop never observes an idle window between the claim and the reset. Returns
     `(turn, cursor)`; the cursor is the replay start for the caller's SSE.
     """
+    if session.deleting:
+        # A delete cleared the queue and is about to remove the files; never
+        # start a turn that would persist them back.
+        raise SessionNotFound()
+    session.last_active_at = time.time()
     turn = Turn(
         turn_id=uuid.uuid4().hex,
         started_at=time.time(),
@@ -464,7 +488,7 @@ async def send_message(
     queue: bool = False,
 ) -> EventSourceResponse:
     settings = _get_settings()
-    identity = request_identity(request, settings)
+    identity = await _identify(request, settings)
     session = load_session(sid, identity, settings)
     refresh_session_auth(session, identity.auth)
     if session.busy or session.queue:
@@ -506,7 +530,7 @@ async def send_message(
 @app.get("/agent/sessions/{sid}/stream")
 async def resume_stream(sid: str, request: Request, after: int = 0) -> EventSourceResponse:
     """Resume an SSE stream: replay retained events, then follow live ones."""
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = load_session(sid, identity, _get_settings())
     refresh_session_auth(session, identity.auth)
     cursor = after
@@ -535,7 +559,7 @@ def _sse_frame(item: dict[str, Any]) -> dict[str, str]:
 @app.get("/agent/sessions/{sid}/queue")
 async def get_session_queue(sid: str, request: Request) -> dict[str, Any]:
     """Queued messages of one session; disk-only sessions have none in-process."""
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = SESSIONS.get(sid)
     if session is None:
         # The queue lives in memory only: after a restart every session is
@@ -561,7 +585,7 @@ async def get_session_queue(sid: str, request: Request) -> dict[str, Any]:
 
 @app.delete("/agent/sessions/{sid}/queue/{queue_id}")
 async def cancel_queue_item(sid: str, queue_id: str, request: Request) -> dict[str, bool]:
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = SESSIONS.get(sid)
     if session is not None:
         if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
@@ -588,7 +612,7 @@ async def cancel_queue_item(sid: str, queue_id: str, request: Request) -> dict[s
 
 @app.post("/agent/sessions/{sid}/confirm")
 async def confirm(sid: str, body: ConfirmBody, request: Request) -> dict[str, bool]:
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = load_session(sid, identity, _get_settings())
     refresh_session_auth(session, identity.auth)
     pending = session.pending_event
@@ -650,7 +674,7 @@ def _authorize_meta(sid: str, identity: Any) -> dict[str, Any]:
 @app.get("/agent/sessions/{sid}")
 async def session_status(sid: str, request: Request) -> dict[str, Any]:
     """Current turn status, restored from memory or the persisted meta."""
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = SESSIONS.get(sid)
     if session is not None:
         if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
@@ -712,7 +736,7 @@ async def rename_session(
     request: Request,
 ) -> dict[str, str]:
     """Rename a session without constructing an Agent for disk-only sessions."""
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     title = " ".join(body.title.split()).strip()
     if not title:
         raise HTTPException(status_code=400, detail="会话名称不能为空")
@@ -744,7 +768,7 @@ async def rename_session(
 @app.get("/agent/sessions/{sid}/messages")
 async def session_messages(sid: str, request: Request, limit: int = 0) -> dict[str, Any]:
     """Return the persisted conversation history for one session."""
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = SESSIONS.get(sid)
     if session is not None:
         if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
@@ -771,7 +795,7 @@ async def session_messages(sid: str, request: Request, limit: int = 0) -> dict[s
 @app.post("/agent/sessions/{sid}/interrupt", status_code=202)
 async def interrupt(sid: str, body: InterruptBody, request: Request) -> dict[str, Any]:
     """Stop the current turn; a stale turnId never stops a newer turn."""
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = load_session(sid, identity, _get_settings())
     refresh_session_auth(session, identity.auth)
     turn = session.turn
@@ -816,13 +840,20 @@ async def interrupt(sid: str, body: InterruptBody, request: Request) -> dict[str
 
 @app.delete("/agent/sessions/{sid}")
 async def delete_session(sid: str, request: Request) -> dict[str, bool]:
-    identity = request_identity(request, _get_settings())
+    identity = await _identify(request, _get_settings())
     session = load_session(sid, identity, _get_settings())  # ownership check before removal
     refresh_session_auth(session, identity.auth)
+    if session.deleting:
+        return {"deleted": True}
     if session.busy:
         # The worker would keep running and call persist() after the state and
         # workspace files are gone. Make the caller stop/wait for it first.
         raise SessionBusy()
+    # Mark the session synchronously, before the first await: any request that
+    # loaded it earlier must not start a turn while the delete is in flight,
+    # and load_session refuses to rebuild it from disk meanwhile.
+    session.deleting = True
+    mark_deleting(sid)
     # Cancel queued items first so their streams close with queue_cancelled
     # instead of waiting on a session that is about to disappear.
     for item in list(session.queue):
@@ -831,16 +862,23 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
     session.queue.clear()
     if session.queue_worker is not None:
         session.queue_worker.cancel()
-    if session.memory is not None:
-        await session.memory.flush()
-        state = getattr(session.agent, "state", None)
-        session.memory.delete_session_transcript(
-            str(getattr(state, "session_id", "") or sid),
-        )
-    await close_events(session, "会话已删除")
-    remove_session(sid)
-    persistence.delete_files(sid)
-    del session
+        session.queue_worker = None
+    try:
+        if session.memory is not None:
+            await session.memory.flush()
+            state = getattr(session.agent, "state", None)
+            session.memory.delete_session_transcript(
+                str(getattr(state, "session_id", "") or sid),
+            )
+        await close_events(session, "会话已删除")
+    finally:
+        # Always remove the registry entry and files, even if a flush fails;
+        # the marker must not outlive the delete either.
+        try:
+            remove_session(sid)
+            persistence.delete_files(sid)
+        finally:
+            unmark_deleting(sid)
     return {"deleted": True}
 
 

@@ -20,7 +20,7 @@ from yak_agent.agent.budget import (
     enforce_context_budget,
     estimate_value_tokens,
 )
-from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, SYSTEM_PROMPT
+from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, PTC_INSTRUCTIONS, SYSTEM_PROMPT
 from yak_agent.config import PLATFORM_TIMEZONE, Settings
 from yak_agent.memory.middleware import MEMORY_PROMPT_TOKENS, build_memory_search_tool
 from yak_agent.tools import build_tools
@@ -77,8 +77,10 @@ def build_agent(
     internal_count = (1 if _COMPRESSION_ENABLED else 0) + (1 if _skill_tool_available() else 0)
     check_tool_inventory(tools, internal_count=internal_count, settings=settings)
     system_prompt = SYSTEM_PROMPT
+    if any(tool.name == "run_analysis_script" for tool in tools):
+        system_prompt += f"\n\n{PTC_INSTRUCTIONS}"
     if workspace is not None:
-        system_prompt = f"{SYSTEM_PROMPT}\n\n{OFFLOAD_INSTRUCTIONS}"
+        system_prompt += f"\n\n{OFFLOAD_INSTRUCTIONS}"
 
     report = check_context_budget(
         context_size=settings.llm_context_size,

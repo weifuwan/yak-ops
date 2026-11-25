@@ -203,7 +203,10 @@ class InterruptTests(unittest.TestCase):
         first, second = asyncio.run(scenario())
 
         self.assertTrue(first["accepted"])
-        self.assertTrue(second["accepted"])
+        # The second request may arrive after the cancelled turn already
+        # finished; it must be idempotent, never error or double-cancel.
+        self.assertTrue(second["accepted"] or second["state"] == "idle")
+        self.assertIn(second["state"], {"interrupting", "idle"})
 
     def test_interrupt_audit_records_turn_scope(self) -> None:
         session = _session()

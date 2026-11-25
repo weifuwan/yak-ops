@@ -265,5 +265,6 @@ async def run_turn(
             await emit(session, {"type": "done"})
         session.busy = False
         session.turn = None
+        session.last_active_at = time.time()
         persistence.persist(session)
         session.idle_event.set()

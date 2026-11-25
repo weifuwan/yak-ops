@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 from pathlib import Path
 from typing import Any
+
+_LOGGER = logging.getLogger(__name__)
 
 SESSION_DIR = Path(
     os.environ.get(
@@ -43,9 +46,14 @@ def write_atomic(path: Path, text: str) -> None:
         raise
 
 
-def persist(session: Any) -> None:
+def persist(session: Any) -> bool:
+    """Persist one session; returns False only when a write actually failed.
+
+    Non-persistent (legacy identity) sessions return True: there is nothing to
+    write, but keeping them in memory is equally correct.
+    """
     if not session.persistent:
-        return
+        return True
     try:
         state = getattr(session.agent, "state", None)
         if state is not None:
@@ -68,8 +76,11 @@ def persist(session: Any) -> None:
                 "message": getattr(turn, "message", ""),
             }
         write_atomic(meta_path(session.sid), json.dumps(meta, ensure_ascii=False))
-    except Exception:  # noqa: BLE001 - persistence must never break a turn
-        pass
+        return True
+    except Exception as ex:  # noqa: BLE001 - persistence must never break a turn
+        # Never silent: losing state must be visible to operators.
+        _LOGGER.warning("session persist failed for %s: %s", session.sid, ex)
+        return False
 
 
 def read_meta(sid: str) -> dict[str, Any]:
@@ -78,7 +89,8 @@ def read_meta(sid: str) -> dict[str, Any]:
         return {}
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001
+    except Exception as ex:  # noqa: BLE001
+        _LOGGER.warning("session meta unreadable: %s (%s)", path, ex)
         return {}
 
 

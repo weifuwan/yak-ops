@@ -18,7 +18,7 @@
 | **审计留痕** | 每次工具调用落 JSONL（`logs/audit/YYYY-MM-DD.jsonl`，`YAK_AGENT_AUDIT_DIR` 可改）：时间、工具、脱敏参数、成功与否、耗时——`parameters_json` 类参数只记占位符，不落盘数据源凭据 |
 | **短期记忆** | Agent 内部 context：同一会话内后续问题复用已取数据（省 token） |
 | **Middleware** | `CacheAwareReplyBudgetControlMiddleware`：单回复加权 token 预算（只计非缓存输入 + 输出 ×2，`YAK_AGENT_REPLY_TOKEN_BUDGET` 默认 25000），避免长会话把缓存命中的上下文重复计费；超限后收敛不再调工具——长回合的成本/时延护栏；`TracingMiddleware`：OpenTelemetry 全链路追踪，未配置 TracerProvider 时零开销，配置 collector（OTLP）后输出完整 span 树（reply/model_call/tool 层级含 token 计数与 HITL 状态） |
-| **PTC（程序化工具调用）** | `run_analysis_script`：模型写 Python 脚本在受限执行器里跑，脚本经生成的只读 `yak_agent_sdk` 调 yak-ops API（含 `download_task_log` 全量日志），**只有结论进上下文**；写操作在 SDK import 时硬禁，静态预检拒绝写符号，超时/输出截断/全量审计 |
+| **PTC（程序化工具调用）** | `run_analysis_script`：**默认关闭**（`YAK_AGENT_PTC_ENABLED=true` 才注册），开启后每次运行仍需人工确认。模型写 Python 脚本在受限执行器里跑，脚本经生成的只读 `yak_agent_sdk` 调 yak-ops API（含 `download_task_log` 全量日志），**只有结论进上下文**；SDK 不含任何凭据（宿主代理按每次运行的临时 token 注入身份），写操作在 SDK import 时硬禁，静态预检拒绝写符号，超时/输出截断/全量审计 |
 | **会话工作区** | 每会话持久目录（`sessions/{sid}/workspace/`）：脚本产物跨轮存活；stdout 超长时自动 offload 落盘；`read_workspace_file` / `list_workspace_files` 只读工具回读（路径逃逸防护）。执行后端可插拔：本地=cocoon 沙箱（默认）或受限子进程，生产=DockerWorkspace |
 
 ## 工具（数据同步 8 读 + 8 写，数据源目录 4 读）

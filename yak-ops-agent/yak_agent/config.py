@@ -76,9 +76,12 @@ class Settings:
     memory_max_scopes: int = 20
     memory_idle_seconds: float = 1800.0
     memory_write_queue: int = 32
-    # PTC safety: when True, analysis scripts may run on the no-isolation
+    # PTC is opt-in: the code-execution tool is not registered at all unless
+    # enabled, and every run still requires HITL confirmation.
+    ptc_enabled: bool = False
+    # PTC safety: with PTC enabled, allow analysis scripts on the no-isolation
     # subprocess backend (compute-only, credentials stripped). Default False —
-    # without a real sandbox (cocoon/Docker) the tool is simply not registered.
+    # without a real sandbox (cocoon/Docker) the tool is not registered.
     ptc_allow_unsafe: bool = False
     # Weighted token budget per reply (output tokens weigh 2x). When exceeded,
     # the agent is nudged to wrap up without further tool calls — the guardrail
@@ -102,6 +105,11 @@ class Settings:
     session_cleanup_interval_seconds: int = 3600
     session_cleanup_batch: int = 50
     session_cleanup_dry_run: bool = False
+    # Idle sessions are unloaded from memory (state is already persisted) so a
+    # long-running process does not accumulate every session it ever served.
+    # 0 disables unloading.
+    session_idle_seconds: int = 1800
+    session_evict_interval_seconds: int = 60
 
     @classmethod
     def load(cls) -> Settings:
@@ -141,9 +149,11 @@ class Settings:
             memory_max_scopes=int(get("YAK_AGENT_MEMORY_MAX_SCOPES", "20")),
             memory_idle_seconds=float(get("YAK_AGENT_MEMORY_IDLE_SECONDS", "1800")),
             memory_write_queue=int(get("YAK_AGENT_MEMORY_WRITE_QUEUE", "32")),
-            ptc_allow_unsafe=os.environ.get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
+            ptc_enabled=get("YAK_AGENT_PTC_ENABLED", "false").strip().lower()
             in ("1", "true", "yes"),
-            reply_token_budget=int(os.environ.get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
+            ptc_allow_unsafe=get("YAK_AGENT_PTC_ALLOW_UNSAFE", "").strip().lower()
+            in ("1", "true", "yes"),
+            reply_token_budget=int(get("YAK_AGENT_REPLY_TOKEN_BUDGET", "25000")),
             tool_audit_enabled=get("YAK_AGENT_TOOL_AUDIT_ENABLED", "true").strip().lower()
             in ("1", "true", "yes"),
             tool_count_warn=int(get("YAK_AGENT_TOOL_COUNT_WARN", "20")),
@@ -160,4 +170,8 @@ class Settings:
             .strip()
             .lower()
             in ("1", "true", "yes"),
+            session_idle_seconds=int(get("YAK_AGENT_SESSION_IDLE_SECONDS", "1800")),
+            session_evict_interval_seconds=int(
+                get("YAK_AGENT_SESSION_EVICT_INTERVAL_SECONDS", "60")
+            ),
         )

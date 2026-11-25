@@ -10,12 +10,14 @@ Location: $YAK_AGENT_AUDIT_DIR (default <module>/logs/audit/YYYY-MM-DD.jsonl).
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import time
 from pathlib import Path
 from typing import Any
 
+_LOGGER = logging.getLogger(__name__)
 _LOCK = threading.Lock()
 _DEFAULT_DIR = Path(__file__).resolve().parent.parent / "logs" / "audit"
 _MAX_PARAM_CHARS = 500
@@ -50,5 +52,6 @@ def record_tool_call(
             path = _audit_dir() / f"{time.strftime('%Y-%m-%d')}.jsonl"
             with path.open("a", encoding="utf-8") as handle:
                 handle.write(line)
-    except Exception:  # noqa: BLE001 - audit failures must stay silent
-        pass
+    except Exception as ex:  # noqa: BLE001 - audit failures must not break the turn
+        # Keep the turn alive, but never hide that the audit trail is missing.
+        _LOGGER.warning("audit write failed: %s", ex)
