@@ -621,7 +621,7 @@ CREATE TABLE t_yak_ops_workflow_instance
     dry_run                    int NULL DEFAULT 0,
     restart_time               datetime     DEFAULT NULL,
     PRIMARY KEY (id),
-    INDEX idx_project_start_time (project_code ASC, start_time DESC)
+    INDEX idx_project_start_time_state (project_code, start_time, is_sub_workflow, state)
 );
 
 -- ----------------------------
@@ -923,7 +923,7 @@ CREATE TABLE t_yak_ops_task_instance
     cpu_quota               int(11) DEFAULT '-1' NOT NULL,
     memory_max              int(11) DEFAULT '-1' NOT NULL,
     PRIMARY KEY (id),
-    INDEX idx_project_submit_time (project_code ASC, submit_time DESC)
+    INDEX idx_project_submit_time_state (project_code, submit_time, state)
 );
 
 -- ----------------------------

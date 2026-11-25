@@ -42,6 +42,7 @@ class YakOpsManagerTest {
         manager.initializeOrValidate();
         verify(schemaDao).initSchema();
         verify(schemaDao).ensureUserPreferenceSchema();
+        verify(schemaDao).ensureInstanceStateCountIndexes();
     }
 
     @Test
@@ -52,6 +53,7 @@ class YakOpsManagerTest {
         manager.initializeOrValidate();
         verify(schemaDao, never()).initSchema();
         verify(schemaDao).ensureUserPreferenceSchema();
+        verify(schemaDao).ensureInstanceStateCountIndexes();
     }
 
     @Test

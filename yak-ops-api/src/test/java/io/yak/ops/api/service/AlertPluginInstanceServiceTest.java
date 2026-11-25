@@ -180,12 +180,12 @@ public class AlertPluginInstanceServiceTest {
                 null, 0, baseServiceLogger)).thenReturn(true);
         assertThrowsServiceException(Status.PLUGIN_INSTANCE_ALREADY_EXISTS,
                 () -> alertPluginInstanceService.create(user, 1, "test", uiParams));
-        when(alertPluginInstanceMapper.insert(Mockito.any())).thenReturn(1);
+        when(alertPluginInstanceMapper.insert(Mockito.any(AlertPluginInstance.class))).thenReturn(1);
         AlertPluginInstance alertPluginInstance =
                 alertPluginInstanceService.create(user, 1, "test1", uiParams);
         assertNotNull(alertPluginInstance);
 
-        when(alertPluginInstanceMapper.insert(Mockito.any())).thenReturn(-1);
+        when(alertPluginInstanceMapper.insert(Mockito.any(AlertPluginInstance.class))).thenReturn(-1);
         assertThrowsServiceException(Status.SAVE_ERROR,
                 () -> alertPluginInstanceService.create(user, 1, "test_insert_error",
                         uiParams));
@@ -249,7 +249,7 @@ public class AlertPluginInstanceServiceTest {
         assertThrowsServiceException(Status.USER_NO_OPERATION_PERM,
                 () -> alertPluginInstanceService.updateById(noPermUser, 1, "test", uiParams));
 
-        when(alertPluginInstanceMapper.updateById(Mockito.any())).thenReturn(0);
+        when(alertPluginInstanceMapper.updateById(Mockito.any(AlertPluginInstance.class))).thenReturn(0);
         when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.ALERT_PLUGIN_INSTANCE, 1,
                 ALERT_PLUGIN_UPDATE, baseServiceLogger)).thenReturn(true);
         when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.ALERT_PLUGIN_INSTANCE,
@@ -257,7 +257,7 @@ public class AlertPluginInstanceServiceTest {
         assertThrowsServiceException(Status.SAVE_ERROR,
                 () -> alertPluginInstanceService.updateById(user, 1, "testUpdate", uiParams));
 
-        when(alertPluginInstanceMapper.updateById(Mockito.any())).thenReturn(1);
+        when(alertPluginInstanceMapper.updateById(Mockito.any(AlertPluginInstance.class))).thenReturn(1);
         AlertPluginInstance alertPluginInstance =
                 alertPluginInstanceService.updateById(user, 1, "testUpdate", uiParams);
         Assertions.assertNotNull(alertPluginInstance);

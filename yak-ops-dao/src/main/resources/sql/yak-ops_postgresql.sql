@@ -573,7 +573,7 @@ CREATE TABLE t_yak_ops_workflow_instance (
 
 create index workflow_instance_index on t_yak_ops_workflow_instance (workflow_definition_code,id);
 create index start_time_index on t_yak_ops_workflow_instance (start_time,end_time);
-create index idx_project_start_time on t_yak_ops_workflow_instance (project_code ASC, start_time DESC);
+create index idx_project_start_time_state on t_yak_ops_workflow_instance (project_code, start_time, is_sub_workflow, state);
 
 --
 -- Table structure for table t_yak_ops_project
@@ -845,7 +845,7 @@ CREATE TABLE t_yak_ops_task_instance (
 ) ;
 
 create index idx_task_instance_code_version on t_yak_ops_task_instance (task_code, task_definition_version);
-create index idx_project_submit_time on t_yak_ops_task_instance (project_code ASC, submit_time DESC);
+create index idx_project_submit_time_state on t_yak_ops_task_instance (project_code, submit_time, state);
 
 --
 -- Table structure for t_yak_ops_task_instance_context
