@@ -26,6 +26,11 @@ public class DimensionDorisPublishVO {
     private Integer availableBackendCount;
     private Boolean replicationAuto;
     private String replicationWarning;
+    private Boolean targetTableExists;
+    private List<String> addedColumns;
+    private List<String> droppedColumns;
+    private Boolean requiresConfirmation;
+    private Boolean schemaDrift;
     private DorisPublishStatusEnum status;
     private String errorMessage;
     private Long executionDurationMs;
