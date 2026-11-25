@@ -413,8 +413,13 @@ export function DorisPublishModal({
 
           <section className="border-t border-[var(--yak-components-panel-border)] pt-4">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <h3 className="m-0 text-xs font-medium text-[var(--yak-components-field-label)]">DDL 预览</h3>
+                {tableModel ? (
+                  <span className="text-[11px] text-[var(--yak-components-muted-text)]">
+                    {tableModel === "UNIQUE" ? "UNIQUE KEY · 主键表" : "DUPLICATE KEY · 明细表"}
+                  </span>
+                ) : null}
                 <span className="text-[11px] text-[var(--yak-components-muted-text)]">只读 · 自动生成</span>
               </div>
               <Button
