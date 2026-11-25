@@ -98,7 +98,10 @@ export function AgentActivityGroup({
               : Math.max(latest, activity.completedAt),
         undefined,
       );
-  const duration = formatDuration(startedAt, completedAt ?? undefined);
+  const duration =
+    startedAt !== undefined && (hasRunning || completedAt !== undefined)
+      ? formatDuration(startedAt, completedAt)
+      : "";
   const countLabel =
     group.activities.length + (group.activities.length === 1 ? " step" : " steps");
   const statusLabel = isAwaitingConfirmation
