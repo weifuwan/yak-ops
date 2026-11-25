@@ -18,6 +18,8 @@ import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
@@ -142,8 +144,9 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldTreatNullabilityChangesAsIncompatibleSchemaChanges() {
+    void shouldTreatNullabilityChangesAsIncompatibleSchemaChanges() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
         when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, false, null),
@@ -179,8 +182,12 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldRejectExistingTableWithoutSuccessfulYakOpsPublishHistory() {
+    void shouldUseLivePhysicalSchemaAsBaselineForManuallyCreatedTable() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
 
         DorisDdlRequest request = request(
                 DorisDataModelEnum.DUPLICATE,
@@ -190,14 +197,17 @@ class DorisDdlEngineTest {
                 Collections.singletonList(column(
                         "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
 
-        IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
-        assertTrue(error.getMessage().contains("没有 Yak-OPS 成功发布记录"));
+        DdlPlan plan = engine.plan(connection, catalog, request);
+
+        assertTrue(plan.isNoChanges());
+        assertTrue(plan.isTargetTableExists());
+        assertTrue(plan.getPhysicalSchema().contains("DUPLICATE KEY"));
     }
 
     @Test
-    void shouldPlanOnlyNullableColumnAdditions() {
+    void shouldPlanOnlyNullableColumnAdditions() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
         when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
@@ -220,8 +230,9 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldReturnNoOpPlanWhenSchemaAlreadyMatches() {
+    void shouldReturnNoOpPlanWhenSchemaAlreadyMatches() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
         when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null),
@@ -241,6 +252,21 @@ class DorisDdlEngineTest {
 
         assertTrue(plan.isNoChanges());
         assertTrue(plan.getStatements().isEmpty());
+    }
+
+    private void mockShowCreateTable(String model) throws Exception {
+        Statement statement = org.mockito.Mockito.mock(Statement.class);
+        ResultSet result = org.mockito.Mockito.mock(ResultSet.class);
+        when(connection.createStatement()).thenReturn(statement);
+        when(statement.executeQuery("SHOW CREATE TABLE `warehouse`.`dwd_order_detail`"))
+                .thenReturn(result);
+        when(result.next()).thenReturn(true);
+        when(result.getString(2)).thenReturn(
+                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
+                        + "`customer_id` BIGINT NOT NULL"
+                        + ") " + model + " KEY(`customer_id`) "
+                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
+                        + "PROPERTIES (\"replication_num\" = \"1\")");
     }
 
     private DorisDdlRequest request(
