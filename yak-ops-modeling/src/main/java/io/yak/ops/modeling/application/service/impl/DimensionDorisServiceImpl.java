@@ -34,7 +34,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -857,6 +856,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
         DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
         BeanUtils.copyProperties(po, vo);
+        vo.setNoChanges(StringUtils.startsWith(po.getDdl(), "-- 当前目标表结构与模型一致"));
         return vo;
     }
 
