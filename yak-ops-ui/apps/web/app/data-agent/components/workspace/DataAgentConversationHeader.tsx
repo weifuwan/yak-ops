@@ -21,6 +21,7 @@ type DataAgentConversationHeaderProps = {
   sidebarOpen: boolean;
   detailsOpen: boolean;
   detailsWidth: number;
+  detailsTitle: string;
   expandAll: boolean;
   metricsMessage: AgentMessage | null;
   onToggleSidebar: () => void;
@@ -99,6 +100,7 @@ export function DataAgentConversationHeader({
   sidebarOpen,
   detailsOpen,
   detailsWidth,
+  detailsTitle,
   expandAll,
   metricsMessage,
   onToggleSidebar,
@@ -187,8 +189,13 @@ export function DataAgentConversationHeader({
               ) : null}
             </div>
 
-            <span className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center text-sm font-semibold text-[#202629]">
-              Details
+            <span className="pointer-events-none absolute inset-0 z-0 flex min-w-0 items-center justify-center px-2">
+              <span
+                title={detailsTitle}
+                className="max-w-[36%] truncate text-sm font-semibold text-[#202629]"
+              >
+                {detailsTitle}
+              </span>
             </span>
 
             <div className="relative z-10 flex shrink-0 items-center gap-1">
