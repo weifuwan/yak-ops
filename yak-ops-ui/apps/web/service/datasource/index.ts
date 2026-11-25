@@ -150,12 +150,22 @@ export async function batchTestDataSourceConnections(
 
 export const testDataSourceConnectionWithParams = (
   payload: DataSourceConnectTestPayload,
+  signal?: AbortSignal,
 ): Promise<boolean> =>
-  HttpUtils.postData<boolean>(GLOBAL_API + "/connect",
-    toBackendConnectionTest(payload.dbType, payload.connectionParams));
+  HttpUtils.postData<boolean>(
+    GLOBAL_API + "/connect",
+    toBackendConnectionTest(payload.dbType, payload.connectionParams),
+    { signal },
+  );
 
-export const testSavedDataSourceConnection = (id: DataSourceId): Promise<boolean> =>
-  HttpUtils.getData<boolean>(API() + "/" + encodeURIComponent(id) + "/connect-test");
+export const testSavedDataSourceConnection = (
+  id: DataSourceId,
+  signal?: AbortSignal,
+): Promise<boolean> =>
+  HttpUtils.getData<boolean>(
+    API() + "/" + encodeURIComponent(id) + "/connect-test",
+    { signal },
+  );
 
 const toOptions = (options: BackendOption[]) =>
   options.filter((option) => !option.disabled).map((option) => String(option.value ?? option.label ?? "")).filter(Boolean);
