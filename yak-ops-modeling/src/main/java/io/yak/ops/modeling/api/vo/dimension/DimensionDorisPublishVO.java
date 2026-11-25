@@ -4,6 +4,7 @@ import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import java.util.Date;
+import java.util.List;
 import lombok.Data;
 
 /** DDL preview or persisted physical publish result. */
