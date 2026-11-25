@@ -1,7 +1,5 @@
 export type DataSourceId = string;
 
-export type DataSourceConnectionStatus = "UNKNOWN" | "CONNECTED" | "DISCONNECTED" | string;
-
 export interface DataSourceRecord {
   projectCode?: string;
   id?: DataSourceId;
@@ -13,7 +11,6 @@ export interface DataSourceRecord {
   displayJdbcUrl?: string;
   environment?: string;
   environmentName?: string;
-  connStatus?: DataSourceConnectionStatus;
   remark?: string;
   /** Detail only. Sensitive values are returned as ******. */
   originalJson?: string;
@@ -26,7 +23,6 @@ export interface DataSourcePageParams {
   pageSize: number;
   keyword?: string;
   dbType?: string;
-  connStatus?: string;
 }
 
 export interface DataSourceConnectionParams {
