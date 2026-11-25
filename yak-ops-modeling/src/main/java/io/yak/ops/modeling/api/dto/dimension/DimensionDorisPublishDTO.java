@@ -10,7 +10,6 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DimensionDorisPublishDTO {
     private Integer datasourceId;
-    private String targetDatabase;
     private Advanced advanced;
 
     @Data
