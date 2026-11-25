@@ -5,12 +5,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Locale;
+import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /** Waits for Doris asynchronous column schema-change jobs to reach a terminal state. */
 @Component
 public class DorisSchemaChangeWaiter {
 
+    private static final Logger log = LoggerFactory.getLogger(DorisSchemaChangeWaiter.class);
     private static final long TIMEOUT_MILLIS = 10L * 60L * 1000L;
     private static final long NO_JOB_GRACE_MILLIS = 3000L;
     private static final long POLL_INTERVAL_MILLIS = 1000L;
@@ -33,6 +37,7 @@ public class DorisSchemaChangeWaiter {
             throws SQLException, InterruptedException {
         long startedAt = System.currentTimeMillis();
         long deadline = startedAt + TIMEOUT_MILLIS;
+        Long observedJobId = null;
         long noJobDeadline = startedAt + NO_JOB_GRACE_MILLIS;
 
         while (System.currentTimeMillis() < deadline) {
@@ -46,11 +51,24 @@ public class DorisSchemaChangeWaiter {
                 continue;
             }
 
+            if (!Objects.equals(job.jobId, previousJobId)
+                    && !Objects.equals(job.jobId, observedJobId)) {
+                observedJobId = job.jobId;
+                log.info(
+                        "Doris Schema Change submitted: database={}, table={}, jobId={}, state={}",
+                        database, tableName, job.jobId, job.state);
+            }
             String state = job.state == null ? "" : job.state.toUpperCase(Locale.ROOT);
             if ("FINISHED".equals(state)) {
+                log.info(
+                        "Doris Schema Change finished: database={}, table={}, jobId={}",
+                        database, tableName, job.jobId);
                 return;
             }
             if ("CANCELLED".equals(state)) {
+                log.warn(
+                        "Doris Schema Change cancelled: database={}, table={}, jobId={}, message={}",
+                        database, tableName, job.jobId, job.message);
                 throw new IllegalStateException(
                         "Doris Schema Change 执行失败: " + job.message);
             }
