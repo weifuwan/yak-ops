@@ -13,24 +13,6 @@ type AgentDetailsTimelineProps = {
   expandAll: boolean;
 };
 
-function formatDuration(
-  startedAt?: number,
-  completedAt?: number,
-  isRunning = false,
-) {
-  if (!startedAt) return "";
-  const endAt = completedAt ?? (isRunning ? Date.now() : undefined);
-  if (endAt === undefined) return "";
-  const duration = Math.max(0, endAt - startedAt);
-  if (duration < 1000) return "<1s";
-  if (duration < 60_000) return Math.round(duration / 1000) + "s";
-
-  const minutes = Math.floor(duration / 60_000);
-  const seconds = Math.floor((duration % 60_000) / 1000);
-  return minutes + "m " + String(seconds).padStart(2, "0") + "s";
-}
-
-
 function CodePanel({
   label,
   value,
