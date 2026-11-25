@@ -95,7 +95,7 @@ export default function LoginPasswordEye({ visible }: LoginPasswordEyeProps) {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="login-password-eye size-3.5 shrink-0"
+      className="login-password-eye size-5 shrink-0"
       data-visible={visible}
     >
       <g className="login-password-eye__open">
