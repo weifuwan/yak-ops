@@ -43,19 +43,49 @@ const ATTENTION_STATUSES = new Set([
   "awaiting-confirmation",
 ]);
 
-const EXPLORING_PHASE = /^(analysis|plan|planning|search|research|inspect|read|query|discover|context)(?:[:_-]|$)/;
-const CHANGED_PHASE = /^(create|update|edit|write|publish|delete|save|change|modify)(?:[:_-]|$)/;
-const RAN_PHASE = /^(run|execute|test|validate|build|sync|dispatch|trigger|process)(?:[:_-]|$)/;
+const EXPLORING_PHASES = new Set([
+  "analysis",
+  "plan",
+  "planning",
+  "search",
+  "research",
+  "inspect",
+  "read",
+  "query",
+  "discover",
+  "context",
+]);
+const CHANGED_PHASES = new Set([
+  "create",
+  "update",
+  "edit",
+  "write",
+  "publish",
+  "delete",
+  "save",
+  "change",
+  "modify",
+]);
+const RAN_PHASES = new Set([
+  "run",
+  "execute",
+  "test",
+  "validate",
+  "build",
+  "sync",
+  "dispatch",
+  "trigger",
+  "process",
+]);
 
 function progressCategory(phase?: string): ActivityGroupCategory {
-  const value = (phase ?? "").trim().toLowerCase();
+  const phaseName = (phase ?? "").trim().toLowerCase().split(/[:_-]/, 1)[0];
 
-  if (EXPLORING_PHASE.test(value)) return "exploring";
-  if (CHANGED_PHASE.test(value)) return "changed";
-  if (RAN_PHASE.test(value)) return "ran";
+  if (EXPLORING_PHASES.has(phaseName)) return "exploring";
+  if (CHANGED_PHASES.has(phaseName)) return "changed";
+  if (RAN_PHASES.has(phaseName)) return "ran";
   return "other";
 }
-
 export function getActivityGroupCategory(
   activity: AgentActivity,
 ): ActivityGroupCategory {
