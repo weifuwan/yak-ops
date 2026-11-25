@@ -291,11 +291,12 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
     }
 
     private boolean sameDatabase(String left, String right) {
-        if (left.equalsIgnoreCase(right)) {
-            return true;
-        }
-        int separator = left.lastIndexOf(':');
-        return separator >= 0 && left.substring(separator + 1).equalsIgnoreCase(right);
+        return normalizeDatabaseName(left).equalsIgnoreCase(normalizeDatabaseName(right));
+    }
+
+    private String normalizeDatabaseName(String value) {
+        int separator = value.lastIndexOf(':');
+        return separator >= 0 ? value.substring(separator + 1) : value;
     }
 
     private String quoteIdentifier(String value) {
