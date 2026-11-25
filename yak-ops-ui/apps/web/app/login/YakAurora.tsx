@@ -292,6 +292,7 @@ function createPullRenderer(
     Math.max(1, Math.hypot(Math.max(centerX, width - centerX), Math.max(centerY, height - centerY)) * dpr),
   );
   gl.uniform1f(gl.getUniformLocation(program, "uDot"), 3.5 * dpr);
+  const timeLocation = gl.getUniformLocation(program, "uTime");
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   gl.clearColor(0, 0, 0, 0);
@@ -300,7 +301,7 @@ function createPullRenderer(
     draw(progress) {
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.uniform1f(gl.getUniformLocation(program, "uTime"), progress);
+      gl.uniform1f(timeLocation, progress);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
     dispose() {
@@ -427,23 +428,29 @@ const YakAurora = forwardRef<YakAuroraHandle, YakAuroraProps>(function YakAurora
         if (activeMotionRef.current !== motion) return;
         const progress = Math.min(1, Math.max(0, (now - startedAt) / PULL_DURATION_MS));
 
-        if (renderer) {
-          renderer.draw(progress);
-        } else {
-          const eased = 1 - Math.pow(1 - progress, 3);
-          const scale = Math.max(0.015, 1 - eased);
-          source.style.transform =
-            "translate3d(" +
-            (centerX - width / 2) +
-            "px, " +
-            (centerY - height / 2) +
-            "px, 0) scale(" +
-            scale +
-            ") rotate(" +
-            eased * 0.5 +
-            "rad)";
-          source.style.opacity = String(1 - eased * 0.72);
-          source.style.filter = "blur(" + eased * 4 + "px)";
+        try {
+          if (renderer) {
+            renderer.draw(progress);
+          } else {
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const scale = Math.max(0.015, 1 - eased);
+            source.style.transform =
+              "translate3d(" +
+              (centerX - width / 2) +
+              "px, " +
+              (centerY - height / 2) +
+              "px, 0) scale(" +
+              scale +
+              ") rotate(" +
+              eased * 0.5 +
+              "rad)";
+            source.style.opacity = String(1 - eased * 0.72);
+            source.style.filter = "blur(" + eased * 4 + "px)";
+          }
+        } catch {
+          // A lost WebGL context or a canvas rendering error must not block authentication.
+          finish();
+          return;
         }
 
         if (progress >= 1) {
