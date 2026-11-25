@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Brain } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 
 import type { AgentActivity } from "../../../../model/types";
 import "./agent-activity.css";
@@ -57,11 +57,6 @@ export function AgentThought({ activity, compact = false }: AgentThoughtProps) {
     (isRunning || activity.completedAt !== undefined)
       ? formatDuration(activity.startedAt, activity.completedAt, now)
       : "";
-  const label = isRunning
-    ? "Thinking"
-    : activity.status === "completed"
-      ? "Thought" + (duration ? " for " + duration : "")
-      : "Thought · " + statusLabel(activity.status);
 
   return (
     <div
@@ -76,16 +71,25 @@ export function AgentThought({ activity, compact = false }: AgentThoughtProps) {
         data-active={isRunning ? "true" : "false"}
         aria-hidden="true"
       >
-        <Brain size={compact ? 13 : 14} strokeWidth={1.8} />
+        <Lightbulb size={14} strokeWidth={1.6} />
       </span>
-      <span className="agent-thought__label min-w-0 truncate text-sm font-medium">
-        {label}
-      </span>
-      {isRunning && duration ? (
-        <span className="agent-thought__duration shrink-0 text-xs tabular-nums">
-          {duration}
+
+      {isRunning ? (
+        <span className="agent-activity-shimmer agent-thought__label min-w-0 truncate">
+          Thinking
         </span>
-      ) : null}
+      ) : activity.status === "completed" ? (
+        <>
+          <span className="agent-thought__label">Thought</span>
+          {duration ? (
+            <span className="agent-thought__duration">for {duration}</span>
+          ) : null}
+        </>
+      ) : (
+        <span className="agent-thought__label min-w-0 truncate">
+          Thought · {statusLabel(activity.status)}
+        </span>
+      )}
     </div>
   );
 }
