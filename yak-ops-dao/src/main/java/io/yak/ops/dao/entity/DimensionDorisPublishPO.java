@@ -25,6 +25,8 @@ public class DimensionDorisPublishPO extends ModelingBasePO {
     private String targetTable;
     private String ddl;
     private String ddlHash;
+    /** Legacy snapshot retained for reading historical rows; V1 no longer writes it. */
+    @Deprecated
     private String physicalConfig;
     private DorisPublishStatusEnum status;
     private String errorMessage;
