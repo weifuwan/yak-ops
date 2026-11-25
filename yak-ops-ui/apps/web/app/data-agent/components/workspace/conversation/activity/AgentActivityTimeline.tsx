@@ -43,11 +43,11 @@ export function AgentActivityTimeline({
           (activity) => activity.id === selectedActivityId,
         );
         const defaultExpanded =
-          isStreaming || group.hasRunning || group.requiresAttention;
-        const expanded =
-          containsSelectedActivity || group.requiresAttention
-            ? true
-            : expandedOverrides[group.id] ?? defaultExpanded;
+          isStreaming ||
+          group.hasRunning ||
+          group.requiresAttention ||
+          containsSelectedActivity;
+        const expanded = expandedOverrides[group.id] ?? defaultExpanded;
 
         return (
           <AgentActivityGroupView
