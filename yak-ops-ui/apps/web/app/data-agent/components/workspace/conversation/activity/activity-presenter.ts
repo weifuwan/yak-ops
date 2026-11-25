@@ -30,8 +30,8 @@ const TOOL_CATEGORIES: Record<string, ActivityGroupCategory> = {
   publish_sync_task: "changed",
   unpublish_sync_task: "changed",
   delete_sync_task: "changed",
-  stop_task_instance: "ran",
-  force_success_task_instance: "ran",
+  stop_task_instance: "changed",
+  force_success_task_instance: "changed",
   run_analysis_script: "ran",
 };
 
