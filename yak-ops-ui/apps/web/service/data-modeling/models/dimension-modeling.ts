@@ -81,17 +81,8 @@ export type DimensionFieldRecord = {
 };
 
 
-export type DorisPartitionUnit = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR";
-export type DorisPublishAdvanced = {
-  customDistribution?: boolean;
-  distributionFieldIds?: string[];
-  /** Null means automatic bucket sizing; a positive value requests a fixed bucket count. */
-  bucketCount?: number;
-  partition?: {
-    fieldId: string;
-    unit: DorisPartitionUnit;
-  };
-};
+export type DorisTableModel = "UNIQUE" | "DUPLICATE";
+export type DorisPublishMode = "INCREMENTAL" | "DROP_RECREATE";
 export type DorisFieldTypeOption = {
   code: string;
   label: string;
@@ -100,7 +91,13 @@ export type DorisFieldTypeOption = {
   maxPrecision?: number;
   maxScale?: number;
 };
-export type DorisPublishRequest = { datasourceId: number; advanced?: DorisPublishAdvanced };
+export type DorisPublishRequest = {
+  datasourceId: number;
+  tableModel: DorisTableModel;
+  publishMode: DorisPublishMode;
+  publishRemark: string;
+  confirmDrop?: boolean;
+};
 export type DorisPublishRecord = {
   id?: string;
   tableId?: string;
@@ -109,9 +106,12 @@ export type DorisPublishRecord = {
   datasourceName?: string;
   targetDatabase?: string;
   targetTable?: string;
+  tableModel?: DorisTableModel;
+  publishMode?: DorisPublishMode;
+  publishRemark?: string;
   ddl?: string;
   ddlHash?: string;
-  physicalConfig?: string;
+  noChanges?: boolean;
   status?: string;
   errorMessage?: string;
   executionDurationMs?: number;
