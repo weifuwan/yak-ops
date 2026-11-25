@@ -283,6 +283,7 @@ public class SchemaDao {
             ensureColumn(metadata, connection, publishTable, "table_model", "varchar(32) NULL");
             ensureColumn(metadata, connection, publishTable, "publish_mode", "varchar(32) NULL");
             ensureColumn(metadata, connection, publishTable, "publish_remark", "text NULL");
+            ensureColumn(metadata, connection, publishTable, "key_fields", "text NULL");
 
             if (tableExists(metadata, connection, fieldTable)) {
                 try (Statement statement = connection.createStatement()) {
