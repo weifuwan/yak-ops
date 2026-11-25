@@ -88,6 +88,7 @@ public class DorisBackendInspector {
 
             boolean hasClusterDecommissioned = columns.contains("clusterdecommissioned");
             boolean hasNodeRole = columns.contains("noderole");
+            boolean hasLoadAvailable = columns.contains("isloadavailable");
 
             while (resultSet.next()) {
                 if (!isTrue(resultSet.getString("Alive"))
@@ -100,6 +101,9 @@ public class DorisBackendInspector {
                 }
                 if (hasNodeRole
                         && "COMPUTATION".equalsIgnoreCase(resultSet.getString("NodeRole"))) {
+                    continue;
+                }
+                if (hasLoadAvailable && !isTrue(resultSet.getString("IsLoadAvailable"))) {
                     continue;
                 }
                 if (isDefaultLocationTag(resultSet.getString("Tag"))) {
