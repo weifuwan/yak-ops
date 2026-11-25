@@ -41,15 +41,24 @@ public class DorisDdlEngine {
         return planner.plan(connection, catalog, request);
     }
 
-    public void execute(
+    /** Executes the plan, verifies the live schema and returns its SHOW CREATE TABLE baseline. */
+    public String execute(
             Connection connection, DataSourceCatalog catalog, DorisDdlRequest request,
             DdlPlan plan, String publishId)
             throws Exception {
         executor.execute(
                 connection, plan, request.getTable().getDatabase(), request.getTable().getTableName(), publishId);
-        if (!inspector.matches(connection, catalog, request.getTable(), generator)) {
+        if (!inspector.matches(
+                connection,
+                catalog,
+                request.getTable(),
+                request.getTableModel(),
+                plan.getKeyFields(),
+                generator)) {
             throw new IllegalStateException(
                     "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
         }
+        return inspector.readCreateTableDdl(
+                connection, request.getTable().getDatabase(), request.getTable().getTableName());
     }
 }
