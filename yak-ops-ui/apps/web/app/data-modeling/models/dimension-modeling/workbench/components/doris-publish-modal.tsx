@@ -585,7 +585,7 @@ export function DorisPublishModal({
           <DialogDescription className="mt-3 text-sm leading-6 text-[var(--yak-components-muted-text)]">
             以下字段存在于 Doris 物理表，但已从当前模型移除。继续发布会执行 DROP COLUMN，原字段数据将无法恢复。
           </DialogDescription>
-          <div className="mt-3 rounded-md bg-[var(--yak-components-panel-subtle)] p-3 text-sm">
+          <div className="mt-3 rounded-md border border-[var(--yak-components-panel-border)] p-3 text-sm">
             {preview?.droppedColumns?.join("、")}
           </div>
           <div className="mt-6 flex justify-end gap-2">
