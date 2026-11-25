@@ -321,8 +321,8 @@ class DimensionDorisServiceImplTest {
     private void stubPublishInfrastructure() {
         when(dimensionTableDao.queryOne(any())).thenReturn(table());
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dimensionDorisPublishDao.insert(any())).thenReturn(1);
-        when(dimensionDorisPublishDao.updateById(any())).thenReturn(true);
+        lenient().when(dimensionDorisPublishDao.insert(any())).thenReturn(1);
+        lenient().when(dimensionDorisPublishDao.updateById(any())).thenReturn(true);
     }
 
     private Connection connectionWithoutTable() throws Exception {
@@ -341,12 +341,12 @@ class DimensionDorisServiceImplTest {
         Connection connection = mock(Connection.class);
         DatabaseMetaData metadata = mock(DatabaseMetaData.class);
         ResultSet existingTable = mock(ResultSet.class);
-        when(connection.getMetaData()).thenReturn(metadata);
-        when(metadata.getSearchStringEscape()).thenReturn("\\");
-        when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
+        lenient().when(connection.getMetaData()).thenReturn(metadata);
+        lenient().when(metadata.getSearchStringEscape()).thenReturn("\\");
+        lenient().when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
                 .thenReturn(existingTable);
-        when(existingTable.next()).thenReturn(true);
-        when(existingTable.getString("TABLE_NAME")).thenReturn("dwd_order_detail");
+        lenient().when(existingTable.next()).thenReturn(true);
+        lenient().when(existingTable.getString("TABLE_NAME")).thenReturn("dwd_order_detail");
         return connection;
     }
 
