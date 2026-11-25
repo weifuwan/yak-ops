@@ -6,6 +6,7 @@ import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DorisColumnMetadata;
 import io.yak.ops.modeling.ddl.model.DorisDdlRequest;
+import io.yak.ops.modeling.ddl.model.DorisReplicationPlan;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -21,30 +22,42 @@ public class DorisSchemaPlanner {
 
     private final DorisSchemaInspector inspector;
     private final DorisDdlGenerator generator;
+    private final DorisBackendInspector backendInspector;
 
-    public DorisSchemaPlanner(DorisSchemaInspector inspector, DorisDdlGenerator generator) {
+    public DorisSchemaPlanner(
+            DorisSchemaInspector inspector,
+            DorisDdlGenerator generator,
+            DorisBackendInspector backendInspector) {
         this.inspector = inspector;
         this.generator = generator;
+        this.backendInspector = backendInspector;
     }
 
     public DdlPlan plan(
             Connection connection, DataSourceCatalog catalog, DorisDdlRequest request) {
         List<String> keyFields = generator.resolveKeyFields(request.getTable());
-        String createDdl = generator.generateCreateTableDdl(request.getTable(), request.getTableModel());
         String qualifiedTable = "`" + request.getTable().getDatabase() + "`.`"
                 + request.getTable().getTableName() + "`";
         List<String> statements = new ArrayList<>();
 
         if (request.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE) {
+            DorisReplicationPlan replication = backendInspector.resolve(
+                    connection, request.getReplicationNum());
+            String createDdl = generator.generateCreateTableDdl(
+                    request.getTable(), request.getTableModel(), replication.getReplicationNum());
             statements.add("DROP TABLE IF EXISTS " + qualifiedTable);
             statements.add(createDdl);
-            return new DdlPlan(joinStatements(statements), statements, false, keyFields);
+            return createPlan(statements, keyFields, replication);
         }
 
         if (!inspector.tableExists(
                 connection, catalog, request.getTable().getDatabase(), request.getTable().getTableName())) {
+            DorisReplicationPlan replication = backendInspector.resolve(
+                    connection, request.getReplicationNum());
+            String createDdl = generator.generateCreateTableDdl(
+                    request.getTable(), request.getTableModel(), replication.getReplicationNum());
             statements.add(createDdl);
-            return new DdlPlan(joinStatements(statements), statements, false, keyFields);
+            return createPlan(statements, keyFields, replication);
         }
 
         validatePreviousPublish(request, keyFields);
@@ -94,6 +107,19 @@ public class DorisSchemaPlanner {
                     keyFields);
         }
         return new DdlPlan(joinStatements(statements), statements, false, keyFields);
+    }
+
+    private DdlPlan createPlan(
+            List<String> statements, List<String> keyFields, DorisReplicationPlan replication) {
+        return new DdlPlan(
+                joinStatements(statements),
+                statements,
+                false,
+                keyFields,
+                replication.getReplicationNum(),
+                replication.getAvailableBackendCount(),
+                replication.isAutomatic(),
+                replication.getWarning());
     }
 
     private void validatePreviousPublish(DorisDdlRequest request, List<String> keyFields) {
