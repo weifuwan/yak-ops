@@ -56,6 +56,20 @@ public class DimensionDorisPublishRecordService {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public void updatePhysicalSchema(String publishId, String physicalSchema, String operator) {
+        DimensionDorisPublishPO publish = dimensionDorisPublishDao.queryById(publishId);
+        if (publish == null) {
+            throw new IllegalArgumentException("Doris 发布记录不存在: " + publishId);
+        }
+        publish.setPhysicalSchema(physicalSchema);
+        publish.initUpdate();
+        publish.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
+        if (!dimensionDorisPublishDao.updateById(publish)) {
+            throw new IllegalStateException("保存 Doris 物理结构基线失败: " + publishId);
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public void updateStatus(
             String publishId,
             DorisPublishStatusEnum status,
