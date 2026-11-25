@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, SquareTerminal } from "lucide-react";
 
 import { DataAgentMarkdown } from "../../markdown/DataAgentMarkdown";
+import { AgentThought } from "./activity/AgentThought";
 import type { AgentActivity } from "../../../model/types";
 import { TOOL_LABELS } from "../../../model/constants";
 import { formatToolInput } from "../../../utils/message-formatters";
@@ -29,21 +30,6 @@ function formatDuration(
   return minutes + "m " + String(seconds).padStart(2, "0") + "s";
 }
 
-function ThoughtEvent({ activity }: { activity: AgentActivity }) {
-  const duration = formatDuration(
-    activity.startedAt,
-    activity.completedAt,
-    activity.status === "running",
-  );
-
-  return (
-    <div className="relative min-w-0 py-2 px-3">
-      <p className="mb-0 text-[15px] leading-5 text-[#737875]" style={{fontWeight: 500}}>
-        Thought{duration ? " for " + duration : ""}
-      </p>
-    </div>
-  );
-}
 
 function CodePanel({
   label,
@@ -211,7 +197,7 @@ export function AgentDetailsTimeline({
       <div className="flex min-w-0 flex-col gap-1">
         {activities.map((activity) => {
           if (activity.kind === "thinking") {
-            return <ThoughtEvent key={activity.id} activity={activity} />;
+            return <AgentThought key={activity.id} activity={activity} compact />;
           }
 
           if (activity.kind === "text") {
