@@ -37,7 +37,7 @@ test("only the welcome composer provides a source for the particle transition", 
   assert.match(emptyState, /transitionSourceRef=\{transitionSourceRef\}/);
   assert.doesNotMatch(conversationPanel, /transitionSourceRef/);
   assert.doesNotMatch(sessionWorkspace, /transitionSourceRef/);
-  assert.equal((workspace.match(/transitionSourceRef=\{particleSourceRef\}/g) ?? []).length, 1);
+  assert.equal((workspace.match(/transitionSourceRef=\{\s*showInitialParticleTransition \? particleSourceRef : undefined\s*\}/g) ?? []).length, 1);
 });
 test("the particle animation runs once after the first welcome prompt is accepted", () => {
   const submitStart = workspace.indexOf("function handlePromptSubmit");
