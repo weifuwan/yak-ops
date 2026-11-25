@@ -254,8 +254,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 previousModel,
                 previousKeys,
                 dto.getReplicationNum(),
-                previous == null ? null : previous.getPhysicalSchema(),
-                Boolean.TRUE.equals(dto.getConfirmDropColumns()));
+                previous == null ? null : previous.getPhysicalSchema());
     }
 
     private DdlTableDefinition toTableDefinition(
