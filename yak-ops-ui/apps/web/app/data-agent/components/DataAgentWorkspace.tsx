@@ -10,6 +10,9 @@ import { DataAgentSessionLoading } from "./workspace/DataAgentSessionLoading";
 import { DataAgentEmptyState } from "./workspace/DataAgentEmptyState";
 import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
+import MagicPatternsParticleTransition, {
+  type MagicPatternsParticleTransitionHandle,
+} from "./MagicPatternsParticleTransition";
 
 type DataAgentWorkspaceProps = {
   sessionId: string | null;
@@ -57,6 +60,9 @@ export function DataAgentWorkspace({
   const [composerKey, setComposerKey] = useState(0);
   const [initialDraft, setInitialDraft] = useState(initialPrompt);
   const messageScrollRef = useRef<HTMLDivElement>(null);
+  const particleTransitionRef = useRef<MagicPatternsParticleTransitionHandle | null>(null);
+  const particleSourceRef = useRef<HTMLDivElement>(null);
+  const particleTargetRef = useRef<HTMLDivElement>(null);
 
   const hasMessages = messages.length > 0;
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -116,7 +122,13 @@ export function DataAgentWorkspace({
 
   function handlePromptSubmit(content: string) {
     setInitialDraft("");
-    void sendMessage(content).then((result) => {
+    void sendMessage(content, () => {
+      try {
+        void particleTransitionRef.current?.play().catch(() => undefined);
+      } catch {
+        // A visual transition must never block sending a prompt.
+      }
+    }).then((result) => {
       if (!result.restoreDraft) return;
       setInitialDraft(content);
       setComposerKey((current) => current + 1);
@@ -143,6 +155,11 @@ export function DataAgentWorkspace({
 
   return (
     <>
+      <MagicPatternsParticleTransition
+        ref={particleTransitionRef}
+        fromRef={particleSourceRef}
+        toRef={particleTargetRef}
+      />
       {isLoadingOverlayVisible ? (
         <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting} />
       ) : null}
@@ -205,6 +222,10 @@ export function DataAgentWorkspace({
           />
         ) : null}
 
+        <div
+          ref={particleTargetRef}
+          className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
+        >
         {isRestoringSession ? (
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white ml-2 max-md:ml-0">
             <DataAgentSessionLoading />
@@ -236,6 +257,7 @@ export function DataAgentWorkspace({
                 onStop={stopCurrentTurn}
                 onQuickAction={handleQuickAction}
                 trailingActions={modelSelector}
+                transitionSourceRef={particleSourceRef}
               />
             </section>
           </main>
@@ -260,9 +282,11 @@ export function DataAgentWorkspace({
               initialDraft={initialDraft}
               onSubmit={handlePromptSubmit}
               trailingActions={modelSelector}
+              transitionSourceRef={particleSourceRef}
             />
           </main>
         )}
+        </div>
       </div>
     </>
   );
