@@ -10,6 +10,6 @@ import org.springframework.context.annotation.Configuration;
  * module only registers application services and their orchestration helpers.
  */
 @Configuration
-@ComponentScan(basePackages = "io.yak.ops.modeling.application")
+@ComponentScan(basePackages = {"io.yak.ops.modeling.application", "io.yak.ops.modeling.ddl"})
 public class ModelingConfiguration {
 }
