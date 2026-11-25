@@ -79,7 +79,8 @@ const RAN_PHASES = new Set([
 ]);
 
 function progressCategory(phase?: string): ActivityGroupCategory {
-  const phaseName = (phase ?? "").trim().toLowerCase().split(/[:_-]/, 1)[0];
+  const phaseName =
+    (phase ?? "").trim().toLowerCase().split(/[:_-]/, 1)[0] ?? "";
 
   if (EXPLORING_PHASES.has(phaseName)) return "exploring";
   if (CHANGED_PHASES.has(phaseName)) return "changed";
