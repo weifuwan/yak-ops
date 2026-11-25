@@ -205,6 +205,37 @@ class DorisDdlEngineTest {
     }
 
     @Test
+    void shouldProtectPartitionColumnsFromIncrementalDrop() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTableDdl(
+                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
+                        + "`customer_id` BIGINT NOT NULL, `event_date` DATE NOT NULL"
+                        + ") DUPLICATE KEY(`customer_id`) "
+                        + "PARTITION BY RANGE(`event_date`) "
+                        + "(PARTITION p202601 VALUES LESS THAN (\"2026-02-01\")) "
+                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
+                        + "PROPERTIES (\"replication_num\" = \"1\")");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, true, null),
+                new DataSourceCatalogColumn(
+                        "event_date", "DATE", Types.DATE, null, null, false, 2, false, null)));
+
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+
+        assertTrue(error.getMessage().contains("分区或分桶字段"));
+    }
+
+    @Test
     void shouldMarkDriftWhenLivePhysicalSchemaDiffersFromLastSuccessfulSnapshot() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
         mockShowCreateTable("DUPLICATE");
@@ -330,18 +361,22 @@ class DorisDdlEngineTest {
     }
 
     private void mockShowCreateTable(String model) throws Exception {
+        mockShowCreateTableDdl(
+                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
+                        + "`customer_id` BIGINT NOT NULL"
+                        + ") " + model + " KEY(`customer_id`) "
+                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
+                        + "PROPERTIES (\"replication_num\" = \"1\")");
+    }
+
+    private void mockShowCreateTableDdl(String ddl) throws Exception {
         Statement statement = org.mockito.Mockito.mock(Statement.class);
         ResultSet result = org.mockito.Mockito.mock(ResultSet.class);
         when(connection.createStatement()).thenReturn(statement);
         when(statement.executeQuery("SHOW CREATE TABLE `warehouse`.`dwd_order_detail`"))
                 .thenReturn(result);
         when(result.next()).thenReturn(true);
-        when(result.getString(2)).thenReturn(
-                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
-                        + "`customer_id` BIGINT NOT NULL"
-                        + ") " + model + " KEY(`customer_id`) "
-                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
-                        + "PROPERTIES (\"replication_num\" = \"1\")");
+        when(result.getString(2)).thenReturn(ddl);
     }
 
     private DorisDdlRequest request(
