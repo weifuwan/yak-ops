@@ -431,7 +431,6 @@ class DimensionModelingServiceImplTest {
         DimensionTablePO table = new DimensionTablePO();
         table.setId("table-id");
         when(dimensionTableDao.queryById("table-id")).thenReturn(table);
-        when(dimensionTableDao.updateById(any())).thenReturn(true);
         when(dimensionTableFieldDao.insert(any())).thenReturn(1);
 
         DimensionTableFieldDTO dto = new DimensionTableFieldDTO();
