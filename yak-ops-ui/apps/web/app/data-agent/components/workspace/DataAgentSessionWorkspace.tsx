@@ -47,7 +47,6 @@ type DataAgentSessionWorkspaceProps = {
   initialDraft: string;
   onSubmit: (content: string) => boolean | void;
   trailingActions: ReactNode;
-  transitionSourceRef: RefObject<HTMLDivElement>;
 };
 
 function MobileDetailsHeader({
@@ -122,7 +121,6 @@ export function DataAgentSessionWorkspace({
   initialDraft,
   onSubmit,
   trailingActions,
-  transitionSourceRef,
 }: DataAgentSessionWorkspaceProps) {
   const [selection, setSelection] = useState<ActivitySelection | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -256,7 +254,6 @@ export function DataAgentSessionWorkspace({
             onSubmit={onSubmit}
             onStop={onStop}
             trailingActions={trailingActions}
-            transitionSourceRef={transitionSourceRef}
           />
         </div>
 
