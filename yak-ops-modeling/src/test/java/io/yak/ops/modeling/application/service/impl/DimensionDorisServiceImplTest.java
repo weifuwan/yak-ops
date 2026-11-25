@@ -201,7 +201,7 @@ class DimensionDorisServiceImplTest {
 
         DimensionDorisPublishPO previous = new DimensionDorisPublishPO();
         previous.setTableModel(DorisDataModelEnum.DUPLICATE);
-        previous.setKeyFields("[\\"customer_id\\"]");
+        previous.setKeyFields("[\"customer_id\"]");
         when(dimensionDorisPublishDao.queryList(any()))
                 .thenReturn(Collections.singletonList(previous));
 
@@ -255,7 +255,7 @@ class DimensionDorisServiceImplTest {
         assertEquals(DorisDataModelEnum.DUPLICATE, captor.getValue().getTableModel());
         assertEquals(DorisPublishModeEnum.INCREMENTAL, captor.getValue().getPublishMode());
         assertEquals("测试发布", captor.getValue().getPublishRemark());
-        assertEquals("[\\"customer_id\\"]", captor.getValue().getKeyFields());
+        assertEquals("[\"customer_id\"]", captor.getValue().getKeyFields());
     }
 
     @Test
