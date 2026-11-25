@@ -780,7 +780,10 @@ export function useDataAgentConversation({
   );
 
   const sendMessage = useCallback(
-    async (content: string): Promise<SendMessageResult> => {
+    async (
+      content: string,
+      onAccepted?: () => void,
+    ): Promise<SendMessageResult> => {
       if (!requestIdentity) {
         setConnectionError("请先登录并选择工作空间，再使用 Data Agent。");
         return { restoreDraft: true };
@@ -790,6 +793,12 @@ export function useDataAgentConversation({
       if (sendingRef.current && !resolvedSessionId) {
         setSessionNotice("会话正在创建，请稍后再次发送。");
         return { restoreDraft: true };
+      }
+
+      try {
+        onAccepted?.();
+      } catch {
+        // Visual effects are optional and must never block message delivery.
       }
 
       activeSendCountRef.current += 1;
