@@ -1,7 +1,7 @@
 import { AlertCircle } from "lucide-react";
 
 import "./data-agent-empty-state.css";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { DataAgentPromptComposer } from "../DataAgentPromptComposer";
 import { QUICK_ACTIONS } from "./quick-actions";
@@ -17,6 +17,7 @@ type DataAgentEmptyStateProps = {
   onStop: () => void;
   onQuickAction: (prompt: string) => void;
   trailingActions: ReactNode;
+  transitionSourceRef: RefObject<HTMLDivElement>;
 };
 
 export function DataAgentEmptyState({
@@ -30,6 +31,7 @@ export function DataAgentEmptyState({
   onStop,
   onQuickAction,
   trailingActions,
+  transitionSourceRef,
 }: DataAgentEmptyStateProps) {
   return (
     <div className="data-agent-empty-state relative isolate flex min-h-0 flex-1 overflow-hidden bg-white">
@@ -64,6 +66,7 @@ export function DataAgentEmptyState({
             isSubmitting={isSending}
             onStop={onStop}
             trailingActions={trailingActions}
+            transitionSourceRef={transitionSourceRef}
             placeholder="你想让 Data Agent 帮你完成什么？"
           />
 
