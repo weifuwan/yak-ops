@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class DorisSchemaChangeWaiter {
 
     private static final long TIMEOUT_MILLIS = 10L * 60L * 1000L;
-    private static final long NO_JOB_GRACE_MILLIS = 10000L;
+    private static final long NO_JOB_GRACE_MILLIS = 3000L;
     private static final long POLL_INTERVAL_MILLIS = 1000L;
 
     public Long latestJobId(Connection connection, String database, String tableName) throws SQLException {
