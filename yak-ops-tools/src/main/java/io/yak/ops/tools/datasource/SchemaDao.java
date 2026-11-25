@@ -130,6 +130,55 @@ public class SchemaDao {
         }
     }
 
+    /**
+     * Cover the project and time columns of the operations overview state counts so the
+     * aggregations can be served from the index instead of looking up every matching row.
+     */
+    public void ensureInstanceStateCountIndexes() {
+        ensureInstanceStateCountIndex("t_yak_ops_task_instance",
+                "idx_project_submit_time",
+                "idx_project_submit_time_state",
+                "(project_code, submit_time, state)");
+        ensureInstanceStateCountIndex("t_yak_ops_workflow_instance",
+                "idx_project_start_time",
+                "idx_project_start_time_state",
+                "(project_code, start_time, is_sub_workflow, state)");
+    }
+
+    private void ensureInstanceStateCountIndex(String tableName,
+                                               String legacyIndexName,
+                                               String indexName,
+                                               String columns) {
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            if (!tableExists(metadata, connection, tableName)) {
+                return;
+            }
+
+            boolean indexPresent = indexExists(metadata, connection, tableName, indexName);
+            boolean legacyIndexPresent = indexExists(metadata, connection, tableName, legacyIndexName);
+            try (Statement statement = connection.createStatement()) {
+                if (!indexPresent) {
+                    statement.execute(
+                            "CREATE INDEX " + indexName + " ON " + quoteIdentifier(tableName) + " " + columns);
+                    log.info("Created index {} on {}", indexName, tableName);
+                }
+                if (legacyIndexPresent) {
+                    statement.execute(dropIndexSql(tableName, legacyIndexName));
+                    log.info("Dropped redundant index {} on {}", legacyIndexName, tableName);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to ensure instance state count index on " + tableName, ex);
+        }
+    }
+
+    private String dropIndexSql(String tableName, String indexName) {
+        if ("mysql".equalsIgnoreCase(dbType.getDb())) {
+            return "ALTER TABLE " + quoteIdentifier(tableName) + " DROP INDEX " + indexName;
+        }
+        return "DROP INDEX " + indexName;
+    }
 
     /**
      * Ensure the additive data modeling schema after validating that no legacy
