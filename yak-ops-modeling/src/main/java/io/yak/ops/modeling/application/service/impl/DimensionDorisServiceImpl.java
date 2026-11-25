@@ -280,6 +280,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
         Map<String, ColumnMetadata> actualColumns =
                 readActualColumns(connection, targetDatabase, table.getTableName());
+        if (actualColumns.isEmpty()) {
+            throw new IllegalArgumentException("无法读取目标 Doris 表结构，增量发布已停止，请检查数据源权限或使用删除重建。");
+        }
 
         for (String actualName : actualColumns.keySet()) {
             if (!expectedFields.containsKey(actualName)) {
@@ -487,11 +490,6 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     }
 
     private String formatDefaultValue(String value, DimensionDataTypeEnum type) {
-        if (value.matches("(?i)CURRENT_TIMESTAMP(?:\\(\\))?")
-                || value.matches("(?i)TRUE|FALSE")
-                || value.matches("[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?")) {
-            return value;
-        }
         switch (type) {
             case TINYINT:
             case SMALLINT:
@@ -500,7 +498,23 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             case DECIMAL:
             case FLOAT:
             case DOUBLE:
-                throw new IllegalArgumentException("数值字段默认值格式不合法: " + value);
+                if (!value.matches("[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?")) {
+                    throw new IllegalArgumentException("数值字段默认值格式不合法: " + value);
+                }
+                return value;
+            case BOOLEAN:
+                if (!value.matches("(?i)TRUE|FALSE")) {
+                    throw new IllegalArgumentException("BOOLEAN 字段默认值格式不合法: " + value);
+                }
+                return value.toUpperCase(Locale.ROOT);
+            case DATE:
+            case TIME:
+            case DATETIME:
+            case TIMESTAMP:
+                if (value.matches("(?i)CURRENT_TIMESTAMP(?:\\(\\))?")) {
+                    return value;
+                }
+                return "'" + escapeSqlLiteral(value) + "'";
             default:
                 return "'" + escapeSqlLiteral(value) + "'";
         }
@@ -518,7 +532,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     }
 
     private String joinStatements(List<String> statements) {
-        return statements.stream().collect(Collectors.joining(";\\n\\n")) + ";";
+        return statements.stream().collect(Collectors.joining(";\n\n")) + ";";
     }
 
     private String resolveTargetDatabase(DataSource datasource) {
