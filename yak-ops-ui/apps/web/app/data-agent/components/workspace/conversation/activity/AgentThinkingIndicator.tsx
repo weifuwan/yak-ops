@@ -1,6 +1,5 @@
-
 import {
-  Brain,
+  Activity,
   CheckCircle2,
   CircleAlert,
   Clock3,
@@ -10,12 +9,13 @@ import {
 } from "lucide-react";
 
 import type { AgentActivity } from "../../../../model/types";
+import { AgentThought } from "./AgentThought";
 
 type AgentThinkingIndicatorProps = {
   activity: AgentActivity;
 };
 
-function activityStatusLabel(status: AgentActivity["status"]) {
+export function activityStatusLabel(status: AgentActivity["status"]) {
   switch (status) {
     case "running":
       return "进行中";
@@ -52,10 +52,14 @@ function formatDuration(startedAt?: number, completedAt?: number) {
 export function AgentThinkingIndicator({
   activity,
 }: AgentThinkingIndicatorProps) {
+  if (activity.kind === "thinking") {
+    return <AgentThought activity={activity} />;
+  }
+
   const LeadingIcon =
     activity.kind === "progress" && activity.phase?.startsWith("queue:")
       ? Clock3
-      : Brain;
+      : Activity;
   const Icon =
     activity.status === "running"
       ? LoaderCircle
@@ -75,11 +79,8 @@ export function AgentThinkingIndicator({
 
   return (
     <div className="flex min-w-0 items-center gap-2.5 py-1.5">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#000000]">
-        <LeadingIcon
-          size={13}
-          className={activity.status === "running" ? "animate-pulse" : ""}
-        />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#65717c]">
+        <LeadingIcon size={14} />
       </span>
 
       <div className="min-w-0 flex-1">
@@ -88,7 +89,6 @@ export function AgentThinkingIndicator({
             {activity.title}
           </span>
 
-          {/* 状态：完成只显示图标，其余状态保留文字 */}
           <span
             aria-label={activityStatusLabel(activity.status)}
             className="flex items-center gap-1 text-xs text-[#89948f]"
@@ -97,13 +97,11 @@ export function AgentThinkingIndicator({
               size={12}
               className={activity.status === "running" ? "animate-spin" : ""}
             />
-
-            {activity.status !== "completed" && (
+            {activity.status !== "completed" ? (
               <span>{activityStatusLabel(activity.status)}</span>
-            )}
+            ) : null}
           </span>
 
-          {/* 执行耗时 */}
           {duration ? (
             <span className="text-xs tabular-nums text-[#a0a9a5]">
               {duration}
