@@ -121,10 +121,12 @@ export function DorisPublishModal({
   const [replicationNum, setReplicationNum] = useState("1");
   const [busy, setBusy] = useState(false);
   const [confirmDropOpen, setConfirmDropOpen] = useState(false);
+  const [confirmDropColumnsOpen, setConfirmDropColumnsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setConfirmDropOpen(false);
+      setConfirmDropColumnsOpen(false);
       return;
     }
     setDatasourceId("");
@@ -134,6 +136,7 @@ export function DorisPublishModal({
     setReplicationMode("AUTO");
     setReplicationNum("1");
     setConfirmDropOpen(false);
+    setConfirmDropColumnsOpen(false);
   }, [open, tableId]);
 
   const physicalFields = useMemo(
@@ -208,7 +211,7 @@ export function DorisPublishModal({
     }
   };
 
-  const publish = async (confirmedDrop = false) => {
+  const publish = async (confirmedDrop = false, confirmedDropColumns = false) => {
     if (busy) return;
     if (!datasourceId) {
       toast.warning("请选择 Doris 数据源");
@@ -234,6 +237,10 @@ export function DorisPublishModal({
       setConfirmDropOpen(true);
       return;
     }
+    if (preview?.requiresConfirmation && !confirmedDropColumns) {
+      setConfirmDropColumnsOpen(true);
+      return;
+    }
     if (previewQuery.isFetching || previewQuery.isError || !preview?.ddl) {
       toast.warning(previewError || "请等待 DDL 预览生成完成");
       return;
@@ -246,6 +253,7 @@ export function DorisPublishModal({
       publishRemark: publishRemark.trim(),
       replicationNum: replicationMode === "MANUAL" ? Number(replicationNum) : null,
       confirmDrop: publishMode === "DROP_RECREATE" && confirmedDrop,
+      confirmDropColumns: confirmedDropColumns,
     };
 
     setBusy(true);
@@ -470,6 +478,33 @@ export function DorisPublishModal({
                 复制
               </Button>
             </div>
+            {preview?.targetTableExists ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--yak-components-muted-text)]">
+                <span>已识别 Doris 物理表</span>
+                {preview.addedColumns?.length ? (
+                  <span className="text-[var(--yak-components-success-text)]">
+                    新增 {preview.addedColumns.length} 个字段
+                  </span>
+                ) : null}
+                {preview.droppedColumns?.length ? (
+                  <span className="text-[var(--yak-components-danger-text)]">
+                    删除 {preview.droppedColumns.length} 个字段
+                  </span>
+                ) : null}
+                {!preview.addedColumns?.length && !preview.droppedColumns?.length ? (
+                  <span>物理结构与模型一致</span>
+                ) : null}
+              </div>
+            ) : preview ? (
+              <p className="mb-0 text-xs text-[var(--yak-components-muted-text)]">
+                目标表不存在，将创建新表。
+              </p>
+            ) : null}
+            {preview?.schemaDrift ? (
+              <p className="mb-0 text-xs text-[var(--yak-components-alert-warning-text)]">
+                检测到目标表自上次发布后发生结构变化，本次按当前物理结构计算差异。
+              </p>
+            ) : null}
             <div className="relative overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-white">
               <SqlCodeEditor
                 value={preview?.ddl || ""}
@@ -534,6 +569,44 @@ export function DorisPublishModal({
               onClick={() => void publish(true)}
             >
               确认删除并重建
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDropColumnsOpen}
+        onOpenChange={(nextOpen) => {
+          if (!busy) setConfirmDropColumnsOpen(nextOpen);
+        }}
+      >
+        <DialogContent className="w-[440px]">
+          <DialogTitle className="text-base font-semibold">确认删除物理字段？</DialogTitle>
+          <DialogDescription className="mt-3 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+            以下字段存在于 Doris 物理表，但已从当前模型移除。继续发布会执行 DROP COLUMN，原字段数据将无法恢复。
+          </DialogDescription>
+          <div className="mt-3 rounded-md bg-[var(--yak-components-panel-subtle)] p-3 text-sm">
+            {preview?.droppedColumns?.join("、")}
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              isDisabled={busy}
+              onClick={() => setConfirmDropColumnsOpen(false)}
+            >
+              返回修改
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              isPending={busy}
+              onClick={() => {
+                setConfirmDropColumnsOpen(false);
+                void publish(false, true);
+              }}
+            >
+              确认删除字段
             </Button>
           </div>
         </DialogContent>
