@@ -79,7 +79,8 @@ class DorisDdlEngineTest {
                         "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, true))));
 
         assertTrue(plan.getDdl().contains("UNIQUE KEY(`customer_id`)"));
-        assertTrue(plan.getDdl().contains("VARCHAR(384)"));
+        assertTrue(plan.getDdl().contains("`customer_id` BIGINT NOT NULL COMMENT"));
+        assertTrue(plan.getDdl().contains("`customer_name` VARCHAR(384) NULL COMMENT"));
     }
 
     @Test
@@ -98,20 +99,25 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldRejectNotNullValueField() {
+    void shouldGenerateNotNullForDuplicateValueFields() {
+        DdlColumnDefinition keyField = new DdlColumnDefinition(
+                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, null,
+                Boolean.FALSE, false, null, "customer id");
         DdlColumnDefinition valueField = new DdlColumnDefinition(
                 "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, null,
-                Boolean.FALSE, false, null, null);
-        DorisDdlRequest request = request(
+                Boolean.FALSE, false, null, "customer name, (display)");
+
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
+        DdlPlan plan = engine.plan(connection, catalog, request(
                 DorisDataModelEnum.DUPLICATE,
                 DorisPublishModeEnum.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
-                Collections.singletonList(valueField));
+                Arrays.asList(keyField, valueField)));
 
-        IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
-        assertTrue(error.getMessage().contains("普通 Value 字段 NOT NULL"));
+        assertTrue(plan.getDdl().contains("`customer_id` BIGINT NOT NULL COMMENT"));
+        assertTrue(plan.getDdl().contains(
+                "`customer_name` VARCHAR(384) NOT NULL COMMENT 'customer name, (display)'"));
     }
 
     @Test
@@ -129,6 +135,41 @@ class DorisDdlEngineTest {
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
         assertTrue(error.getMessage().contains("小数位数"));
+    }
+
+    @Test
+    void shouldTreatNullabilityChangesAsIncompatibleSchemaChanges() {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, false, null),
+                new DataSourceCatalogColumn(
+                        "customer_name", "VARCHAR", Types.VARCHAR, 384, 0, true, 2, false, null)));
+
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                Arrays.asList(
+                        column("customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, false),
+                        column("customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, false)));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+        assertTrue(error.getMessage().contains("字段结构发生不兼容变化"));
+    }
+
+    @Test
+    void shouldPreserveNotNullWhenGeneratingAddColumnDdl() {
+        DorisDdlGenerator generator = new DorisDdlGenerator(new DorisConnectorAdapter());
+        DdlColumnDefinition column = new DdlColumnDefinition(
+                "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, null,
+                Boolean.FALSE, false, null, "customer name");
+
+        String ddl = generator.generateAddColumnDdl("warehouse", "dwd_order_detail", column);
+
+        assertTrue(ddl.contains("VARCHAR(384) NOT NULL"));
     }
 
     @Test

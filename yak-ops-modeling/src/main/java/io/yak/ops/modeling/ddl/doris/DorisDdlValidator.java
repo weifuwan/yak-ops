@@ -63,10 +63,6 @@ public class DorisDdlValidator {
             validateDefaultValue(column.getDefaultValue(), column.getName());
             if (column.isPrimaryKey()) {
                 primaryKeyCount++;
-            } else if (Boolean.FALSE.equals(column.getNullable())) {
-                throw new IllegalArgumentException(
-                        "当前 Doris SDK DDL Builder 无法表达普通 Value 字段 NOT NULL，请将字段设为可空: "
-                                + column.getName());
             }
         }
 

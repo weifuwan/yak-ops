@@ -75,7 +75,7 @@ public class DorisSchemaPlanner {
             if (actual == null) {
                 if (Boolean.FALSE.equals(column.getNullable())) {
                     throw new IllegalArgumentException(
-                            "增量发布暂不支持新增非空字段，请将字段设为可空后重试: " + column.getName());
+                            "增量发布暂不支持新增 NOT NULL 字段，请使用“删除重建”以保证存量数据满足非空约束: " + column.getName());
                 }
                 statements.add(generator.generateAddColumnDdl(
                         request.getTable().getDatabase(), request.getTable().getTableName(), column));

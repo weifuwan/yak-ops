@@ -75,7 +75,8 @@ public class DorisDdlGenerator {
         StringBuilder ddl = new StringBuilder("ALTER TABLE ")
                 .append(quoteIdentifier(database)).append(".").append(quoteIdentifier(tableName))
                 .append(" ADD COLUMN ").append(quoteIdentifier(column.getName()))
-                .append(" ").append(connectorAdapter.toDorisType(column)).append(" NULL");
+                .append(" ").append(connectorAdapter.toDorisType(column))
+                .append(Boolean.FALSE.equals(column.getNullable()) ? " NOT NULL" : " NULL");
 
         String defaultValue = StringUtils.trimToNull(column.getDefaultValue());
         if (defaultValue != null) {
@@ -91,6 +92,10 @@ public class DorisDdlGenerator {
         String expectedType = connectorAdapter.toDorisType(expected);
         String expectedBase = normalizeTypeName(expectedType);
         if (!expectedBase.equals(normalizeTypeName(actual.getTypeName()))) {
+            return false;
+        }
+        if (expected.getNullable() != null && actual.getNullable() != null
+                && !expected.getNullable().equals(actual.getNullable())) {
             return false;
         }
 
