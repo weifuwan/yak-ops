@@ -163,7 +163,6 @@ export function DorisPublishModal({
   });
 
   const [datasourceId, setDatasourceId] = useState("");
-  const [targetDatabase, setTargetDatabase] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [customDistribution, setCustomDistribution] = useState(false);
   const [distributionFieldIds, setDistributionFieldIds] = useState<string[]>([]);
@@ -177,7 +176,6 @@ export function DorisPublishModal({
   useEffect(() => {
     if (!open) return;
     setDatasourceId("");
-    setTargetDatabase("");
     setAdvancedOpen(false);
     setCustomDistribution(false);
     setDistributionFieldIds([]);
@@ -251,10 +249,6 @@ export function DorisPublishModal({
       toast.warning("请选择 Doris 数据源");
       return null;
     }
-    if (!targetDatabase.trim()) {
-      toast.warning("请输入目标数据库");
-      return null;
-    }
     if (!physicalFields.length) {
       toast.warning("请先配置模型字段");
       return null;
@@ -290,7 +284,6 @@ export function DorisPublishModal({
 
     return {
       datasourceId: Number(datasourceId),
-      targetDatabase: targetDatabase.trim(),
       advanced: Object.keys(advanced).length ? advanced : undefined,
     };
   };
@@ -356,7 +349,7 @@ export function DorisPublishModal({
     !busy &&
     !datasourceQuery.isPending &&
     !datasourceQuery.isError &&
-    Boolean(datasourceId && targetDatabase.trim()) &&
+    Boolean(datasourceId) &&
     physicalFields.length > 0 &&
     tableType !== "DIM";
 
@@ -453,23 +446,6 @@ export function DorisPublishModal({
               </div>
             </Field>
 
-            <Field className={HORIZONTAL_FIELD_CLASS}>
-              <FieldLabel required htmlFor="doris-target-database" className="pt-1.5 text-xs">
-                目标数据库
-              </FieldLabel>
-              <Input
-                id="doris-target-database"
-                size="small"
-                variant="outlined"
-                value={targetDatabase}
-                placeholder="请输入目标数据库"
-                disabled={busy}
-                onChange={(event) => {
-                  setTargetDatabase(event.target.value);
-                  setPreview(null);
-                }}
-              />
-            </Field>
           </div>
         </section>
 
