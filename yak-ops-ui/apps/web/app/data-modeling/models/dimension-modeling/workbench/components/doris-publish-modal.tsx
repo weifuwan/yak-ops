@@ -480,7 +480,7 @@ export function DorisPublishModal({
                 复制
               </Button>
             </div>
-            {preview?.targetTableExists ? (
+            {preview?.targetTableExists && publishMode === "INCREMENTAL" ? (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--yak-components-muted-text)]">
                 <span>已识别 Doris 物理表</span>
                 {preview.addedColumns?.length ? (
@@ -497,6 +497,10 @@ export function DorisPublishModal({
                   <span>物理结构与模型一致</span>
                 ) : null}
               </div>
+            ) : preview?.targetTableExists ? (
+              <p className="mb-0 text-xs text-[var(--yak-components-muted-text)]">
+                现有物理表将删除并重建。
+              </p>
             ) : preview ? (
               <p className="mb-0 text-xs text-[var(--yak-components-muted-text)]">
                 目标表不存在，将创建新表。
