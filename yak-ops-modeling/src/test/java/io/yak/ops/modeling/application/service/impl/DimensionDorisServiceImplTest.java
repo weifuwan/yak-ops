@@ -191,6 +191,44 @@ class DimensionDorisServiceImplTest {
     }
 
     @Test
+    void shouldAddNullableFieldsDuringIncrementalPublish() throws Exception {
+        DimensionTableFieldPO id = field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT);
+        DimensionTableFieldPO name = field("field-name", "customer_name", DimensionDataTypeEnum.VARCHAR);
+        name.setLength(128);
+        java.util.List<DimensionTableFieldPO> fields = Arrays.asList(id, name);
+        stubPublishInfrastructure();
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(fields);
+
+        DimensionDorisPublishPO previous = new DimensionDorisPublishPO();
+        previous.setTableModel(DorisDataModelEnum.DUPLICATE);
+        previous.setKeyFields("[\\"customer_id\\"]");
+        when(dimensionDorisPublishDao.queryList(any()))
+                .thenReturn(Collections.singletonList(previous));
+
+        Connection connection = connectionWithExistingTable();
+        DatabaseMetaData metadata = connection.getMetaData();
+        ResultSet existingColumns = columnsFor("customer_id", "BIGINT");
+        ResultSet updatedColumns = columnsForMany(
+                new String[][] {
+                    {"customer_id", "BIGINT", "0"},
+                    {"customer_name", "VARCHAR", "384"}
+                });
+        when(metadata.getColumns(anyString(), isNull(), anyString(), isNull()))
+                .thenReturn(existingColumns, updatedColumns);
+        Statement statement = mock(Statement.class);
+        when(connection.createStatement()).thenReturn(statement);
+        doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
+
+        DimensionDorisPublishVO published =
+                service.publish("table-id", request(), dorisDatasource(), "tester");
+
+        verify(statement).execute(startsWith(
+                "ALTER TABLE `warehouse`.`dwd_order_detail` ADD COLUMN `customer_name` VARCHAR(384) NULL"));
+        assertEquals(DorisPublishStatusEnum.SUCCESS, published.getStatus());
+        assertEquals(DorisPublishModeEnum.INCREMENTAL, published.getPublishMode());
+    }
+
+    @Test
     void shouldCreateMissingTableAndPersistPublishMetadata() throws Exception {
         DimensionTableFieldPO id = field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT);
         stubPublishInfrastructure();
@@ -314,6 +352,33 @@ class DimensionDorisServiceImplTest {
         when(columns.getString("COLUMN_NAME")).thenReturn(columnName);
         when(columns.getString("TYPE_NAME")).thenReturn(typeName);
         when(columns.getInt("COLUMN_SIZE")).thenReturn(0);
+        when(columns.getInt("DECIMAL_DIGITS")).thenReturn(0);
+        when(columns.wasNull()).thenReturn(false);
+        return columns;
+    }
+
+    private ResultSet columnsForMany(String[][] definitions) throws Exception {
+        ResultSet columns = mock(ResultSet.class);
+        org.mockito.stubbing.OngoingStubbing<Boolean> next = when(columns.next());
+        for (int i = 0; i < definitions.length; i++) {
+            next = next.thenReturn(true);
+        }
+        next.thenReturn(false);
+
+        String[] tableNames = new String[definitions.length];
+        String[] columnNames = new String[definitions.length];
+        String[] typeNames = new String[definitions.length];
+        Integer[] sizes = new Integer[definitions.length];
+        for (int i = 0; i < definitions.length; i++) {
+            tableNames[i] = "dwd_order_detail";
+            columnNames[i] = definitions[i][0];
+            typeNames[i] = definitions[i][1];
+            sizes[i] = Integer.valueOf(definitions[i][2]);
+        }
+        when(columns.getString("TABLE_NAME")).thenReturn(tableNames[0], java.util.Arrays.copyOfRange(tableNames, 1, tableNames.length));
+        when(columns.getString("COLUMN_NAME")).thenReturn(columnNames[0], java.util.Arrays.copyOfRange(columnNames, 1, columnNames.length));
+        when(columns.getString("TYPE_NAME")).thenReturn(typeNames[0], java.util.Arrays.copyOfRange(typeNames, 1, typeNames.length));
+        when(columns.getInt("COLUMN_SIZE")).thenReturn(sizes[0], java.util.Arrays.copyOfRange(sizes, 1, sizes.length));
         when(columns.getInt("DECIMAL_DIGITS")).thenReturn(0);
         when(columns.wasNull()).thenReturn(false);
         return columns;
