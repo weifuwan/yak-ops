@@ -6,12 +6,14 @@ import {
   Input,
   PasswordInput,
 } from "@yak-ops/yak-ui";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 
 import { notifyOnce } from "@/utils/notification";
 import { login } from "../../service/auth";
 import LoginPasswordEye from "./LoginPasswordEye";
-import YakAurora, { type YakAuroraHandle } from "./YakAurora";
+import MagicPatternsParticleTransition, {
+  type MagicPatternsParticleTransitionHandle,
+} from "./MagicPatternsParticleTransition";
 import {
   LOGIN_FAILURE_MOTION_MS,
   LOGIN_SUCCESS_MOTION_MS,
@@ -24,6 +26,7 @@ interface LoginPanelProps {
   onFocusStateChange: (state: LoginFocusState) => void;
   onLoginResultChange: (state: LoginResultState) => void;
   onPasswordVisibilityChange: (visible: boolean) => void;
+  particleTargetRef: RefObject<HTMLElement>;
 }
 
 interface LoginValues {
@@ -52,27 +55,27 @@ export default function LoginPanel({
   onFocusStateChange,
   onLoginResultChange,
   onPasswordVisibilityChange,
+  particleTargetRef,
 }: LoginPanelProps) {
   const [errors, setErrors] = useState<Partial<Record<keyof LoginValues, string>>>({});
   const [loading, setLoading] = useState(false);
   const submissionRef = useRef<AbortController | null>(null);
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
-  const auroraRef = useRef<YakAuroraHandle | null>(null);
-  const previewTargetRef = useRef<HTMLDivElement | null>(null);
+  const particleTransitionRef = useRef<MagicPatternsParticleTransitionHandle | null>(null);
+  const previewSourceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
       // Invalidate UI continuations; this does not cancel the authentication request.
       submissionRef.current?.abort();
       submissionRef.current = null;
-      auroraRef.current?.cancel();
     };
   }, []);
 
-  const handleAuroraPreview = () => {
+  const handleParticlePreview = () => {
     try {
-      void auroraRef.current?.play().catch(() => undefined);
+      void particleTransitionRef.current?.play().catch(() => undefined);
     } catch {
       // The preview effect must never interfere with the login form.
     }
@@ -143,7 +146,11 @@ export default function LoginPanel({
 
   return (
     <>
-      <YakAurora ref={auroraRef} targetRef={previewTargetRef} />
+      <MagicPatternsParticleTransition
+        ref={particleTransitionRef}
+        fromRef={previewSourceRef}
+        toRef={particleTargetRef}
+      />
       <form
         className="login-form"
         noValidate
@@ -241,15 +248,15 @@ export default function LoginPanel({
         </div>
 
         <div
-          ref={previewTargetRef}
-          className="login-form-aurora-test-target mt-2"
+          ref={previewSourceRef}
+          className="login-form-particle-preview-source mt-2"
         >
           <Button
             variant="secondary"
             size="sm"
             type="button"
             fullWidth
-            onClick={handleAuroraPreview}
+            onClick={handleParticlePreview}
           >
             测试动画
           </Button>
