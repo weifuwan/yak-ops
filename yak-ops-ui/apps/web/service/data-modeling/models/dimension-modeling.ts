@@ -96,6 +96,7 @@ export type DorisPublishRequest = {
   tableModel: DorisTableModel;
   publishMode: DorisPublishMode;
   publishRemark: string;
+  replicationNum?: number | null;
   confirmDrop?: boolean;
 };
 export type DorisPublishRecord = {
@@ -112,6 +113,10 @@ export type DorisPublishRecord = {
   ddl?: string;
   ddlHash?: string;
   noChanges?: boolean;
+  replicationNum?: number;
+  availableBackendCount?: number;
+  replicationAuto?: boolean;
+  replicationWarning?: string;
   status?: string;
   errorMessage?: string;
   executionDurationMs?: number;
