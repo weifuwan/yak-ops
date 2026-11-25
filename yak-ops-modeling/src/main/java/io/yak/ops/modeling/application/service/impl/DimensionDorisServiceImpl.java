@@ -520,6 +520,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             Integer expectedScale = Integer.valueOf(parameters.group(2));
             return actual.scale != null && expectedScale.equals(actual.scale);
         }
+        if ("DATETIME".equals(expectedBase)) {
+            Integer expectedPrecision = Integer.valueOf(parameters.group(1));
+            return actual.scale != null && expectedPrecision.equals(actual.scale);
+        }
         return true;
     }
 
