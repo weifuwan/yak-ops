@@ -90,7 +90,11 @@ class SchemaDaoTest {
                 .anyMatch(sql -> sql.contains("primary_flag = TRUE")
                         && sql.contains("can_null = FALSE")
                         && sql.contains("doris_key_fields")));
-        verify(statement, times(11)).execute(anyString());
+        org.mockito.ArgumentCaptor<String> ddl =
+                org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(statement, times(12)).execute(ddl.capture());
+        Assertions.assertTrue(ddl.getAllValues().stream()
+                .anyMatch(sql -> sql.contains("ADD COLUMN physical_schema longtext NULL")));
     }
 
     @Test
