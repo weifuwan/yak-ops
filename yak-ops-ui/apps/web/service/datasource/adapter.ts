@@ -227,7 +227,6 @@ export function fromBackendDataSource(raw: BackendDataSourceRecord): DataSourceR
     jdbcUrl: displayUrl,
     displayJdbcUrl: displayUrl,
     remark: raw.note || "",
-    connStatus: "UNKNOWN",
     originalJson: JSON.stringify(safeEdit),
     createTime: raw.createTime,
     updateTime: raw.updateTime,
