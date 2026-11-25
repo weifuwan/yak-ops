@@ -70,14 +70,14 @@ export function AgentToolActivity({
         "group flex min-h-6 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0033ff]/25 " +
         (selected
           ? "bg-[#e7eeee] text-[#2f7378]"
-          : "bg-transparent text-[#2f7378] hover:bg-[#edf1f1]")
+          : "bg-transparent text-[#2f7378] hover:bg-[#e5e5e5]")
       }
       onClick={() => onSelect?.(activity.id)}
     >
       <Wrench size={14} strokeWidth={1.6} className="shrink-0 text-[#2f7378]" />
       <span
         className={
-          "min-w-0 flex-1 truncate text-[13px] font-medium text-[#2f7378] " +
+          "min-w-0 flex-1 truncate text-sm font-medium text-[#2f7378] " +
           (status === "running" ? "agent-activity-shimmer" : "")
         }
       >
