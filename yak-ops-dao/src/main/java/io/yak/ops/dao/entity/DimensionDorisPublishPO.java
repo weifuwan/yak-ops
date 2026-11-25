@@ -20,6 +20,8 @@ public class DimensionDorisPublishPO extends ModelingBasePO {
     private DorisDataModelEnum tableModel;
     private DorisPublishModeEnum publishMode;
     private String publishRemark;
+    /** Logical Key columns captured for safe incremental-publish comparison. */
+    private String keyFields;
     private String datasourceName;
     private String targetDatabase;
     private String targetTable;
