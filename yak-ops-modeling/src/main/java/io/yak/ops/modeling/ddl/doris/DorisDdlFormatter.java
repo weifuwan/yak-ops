@@ -33,11 +33,14 @@ public class DorisDdlFormatter {
             "PROPERTIES");
 
     public String format(String ddl) {
-        if (ddl == null || ddl.trim().isEmpty()) {
-            return ddl;
+        if (ddl == null) {
+            return null;
         }
 
         String sql = ddl.trim();
+        if (sql.isEmpty()) {
+            return sql;
+        }
         if (startsWithKeyword(sql, "CREATE TABLE")) {
             return formatCreateTable(sql);
         }
@@ -64,7 +67,7 @@ public class DorisDdlFormatter {
         }
 
         StringBuilder formatted = new StringBuilder(sql.length() + columns.size() * 8);
-        formatted.append(sql, 0, openParenthesis).append(" (\n");
+        formatted.append(sql.substring(0, openParenthesis).trim()).append(" (\n");
         for (int index = 0; index < columns.size(); index++) {
             formatted.append("    ").append(columns.get(index));
             if (index < columns.size() - 1) {
