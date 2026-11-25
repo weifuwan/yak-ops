@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class DorisDdlEngine {
 
+    private static final long PHYSICAL_SCHEMA_VERIFY_TIMEOUT_MILLIS = 30_000L;
+    private static final long PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS = 1_000L;
+
     private final DorisDdlValidator validator;
     private final DorisSchemaPlanner planner;
     private final DorisDdlExecutor executor;
@@ -48,15 +51,31 @@ public class DorisDdlEngine {
             throws Exception {
         executor.execute(
                 connection, plan, request.getTable().getDatabase(), request.getTable().getTableName(), publishId);
-        if (!inspector.matches(
-                connection,
-                catalog,
-                request.getTable(),
-                request.getTableModel(),
-                plan.getKeyFields(),
-                generator)) {
+        long deadline = System.currentTimeMillis() + PHYSICAL_SCHEMA_VERIFY_TIMEOUT_MILLIS;
+        RuntimeException lastInspectionError = null;
+        boolean matched = false;
+        while (System.currentTimeMillis() <= deadline) {
+            try {
+                matched = inspector.matches(
+                        connection,
+                        catalog,
+                        request.getTable(),
+                        request.getTableModel(),
+                        plan.getKeyFields(),
+                        generator);
+                if (matched) {
+                    break;
+                }
+                lastInspectionError = null;
+            } catch (RuntimeException inspectionError) {
+                lastInspectionError = inspectionError;
+            }
+            Thread.sleep(PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS);
+        }
+        if (!matched) {
             throw new IllegalStateException(
-                    "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
+                    "DDL 执行后目标 Doris 物理结构在 30 秒内未与当前模型一致，请检查 Schema Change 状态。",
+                    lastInspectionError);
         }
         return inspector.readCreateTableDdl(
                 connection, request.getTable().getDatabase(), request.getTable().getTableName());
