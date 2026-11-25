@@ -205,6 +205,55 @@ class DorisDdlEngineTest {
     }
 
     @Test
+    void shouldMarkDriftWhenLivePhysicalSchemaDiffersFromLastSuccessfulSnapshot() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
+
+        DorisDdlRequest request = new DorisDdlRequest(
+                new DdlTableDefinition("warehouse", "dwd_order_detail", "订单明细",
+                        Collections.singletonList(column(
+                                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true))),
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                1,
+                "CREATE TABLE old_schema (...) PROPERTIES (\"replication_num\" = \"3\")");
+
+        DdlPlan plan = engine.plan(connection, catalog, request);
+
+        assertTrue(plan.isNoChanges());
+        assertTrue(plan.isSchemaDrift());
+    }
+
+    @Test
+    void shouldRejectPhysicalTableModelMismatch() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, true, null)));
+
+        DdlColumnDefinition primaryId = new DdlColumnDefinition(
+                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, null,
+                Boolean.FALSE, true, null, null);
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.UNIQUE,
+                DorisPublishModeEnum.INCREMENTAL,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(primaryId));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+
+        assertTrue(error.getMessage().contains("与当前选择的 UNIQUE 不一致"));
+    }
+
+    @Test
     void shouldPlanOnlyNullableColumnAdditions() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
         mockShowCreateTable("DUPLICATE");
