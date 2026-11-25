@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Creates a safe publish plan from the model definition and actual Doris schema. */
@@ -24,6 +25,11 @@ public class DorisSchemaPlanner {
     private final DorisDdlGenerator generator;
     private final DorisBackendInspector backendInspector;
 
+    public DorisSchemaPlanner(DorisSchemaInspector inspector, DorisDdlGenerator generator) {
+        this(inspector, generator, new DorisBackendInspector());
+    }
+
+    @Autowired
     public DorisSchemaPlanner(
             DorisSchemaInspector inspector,
             DorisDdlGenerator generator,
