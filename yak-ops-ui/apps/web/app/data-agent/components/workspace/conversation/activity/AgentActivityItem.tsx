@@ -5,6 +5,7 @@ import { AgentToolActivity } from "./AgentToolActivity";
 
 type AgentActivityItemProps = {
   activity: AgentActivity;
+  disabled?: boolean;
   isStreaming: boolean;
   selectedActivityId?: string | null;
   onSelectActivity?: (activityId: string) => void;
@@ -12,6 +13,7 @@ type AgentActivityItemProps = {
 
 export function AgentActivityItem({
   activity,
+  disabled = false,
   isStreaming,
   selectedActivityId,
   onSelectActivity,
@@ -31,6 +33,7 @@ export function AgentActivityItem({
     return (
       <AgentToolActivity
         activity={activity}
+        disabled={disabled}
         selected={selectedActivityId === activity.id}
         onSelect={onSelectActivity}
       />
