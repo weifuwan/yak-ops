@@ -17,6 +17,7 @@ import MagicPatternsParticleTransition, {
 type DataAgentWorkspaceProps = {
   sessionId: string | null;
   initialPrompt?: string;
+  enableInitialParticleTransition?: boolean;
   onSessionCreated: (sessionId: string) => void;
   onNewConversation: () => void;
   onSelectConversation: (sessionId: string) => void;
@@ -25,6 +26,7 @@ type DataAgentWorkspaceProps = {
 export function DataAgentWorkspace({
   sessionId,
   initialPrompt = "",
+  enableInitialParticleTransition = false,
   onSessionCreated,
   onNewConversation,
   onSelectConversation,
@@ -63,6 +65,9 @@ export function DataAgentWorkspace({
   const particleTransitionRef = useRef<MagicPatternsParticleTransitionHandle | null>(null);
   const particleSourceRef = useRef<HTMLDivElement>(null);
   const particleTargetRef = useRef<HTMLDivElement>(null);
+  const [showInitialParticleTransition, setShowInitialParticleTransition] =
+    useState(enableInitialParticleTransition);
+  const initialParticleTransitionPendingRef = useRef(enableInitialParticleTransition);
 
   const hasMessages = messages.length > 0;
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -104,6 +109,9 @@ export function DataAgentWorkspace({
 
   function handleNewConversation() {
     if (isSending) return;
+    particleTransitionRef.current?.cancel();
+    initialParticleTransitionPendingRef.current = false;
+    setShowInitialParticleTransition(false);
     createConversation();
     onNewConversation();
     setModelMenuOpen(false);
@@ -113,6 +121,9 @@ export function DataAgentWorkspace({
 
   function handleSelectConversation(id: string) {
     if (isSending) return;
+    particleTransitionRef.current?.cancel();
+    initialParticleTransitionPendingRef.current = false;
+    setShowInitialParticleTransition(false);
     selectConversation(id);
     onSelectConversation(id);
     setModelMenuOpen(false);
@@ -121,11 +132,21 @@ export function DataAgentWorkspace({
   }
 
   function handlePromptSubmit(content: string) {
+    const shouldPlayInitialParticleTransition = initialParticleTransitionPendingRef.current;
     setInitialDraft("");
     void sendMessage(content, () => {
+      if (!shouldPlayInitialParticleTransition) return;
+
+      initialParticleTransitionPendingRef.current = false;
       try {
-        void particleTransitionRef.current?.play().catch(() => undefined);
+        const transition = particleTransitionRef.current?.play();
+        if (transition) {
+          void transition.finally(() => setShowInitialParticleTransition(false));
+        } else {
+          setShowInitialParticleTransition(false);
+        }
       } catch {
+        setShowInitialParticleTransition(false);
         // A visual transition must never block sending a prompt.
       }
     }).then((result) => {
@@ -155,11 +176,13 @@ export function DataAgentWorkspace({
 
   return (
     <>
-      <MagicPatternsParticleTransition
-        ref={particleTransitionRef}
-        fromRef={particleSourceRef}
-        toRef={particleTargetRef}
-      />
+      {showInitialParticleTransition ? (
+        <MagicPatternsParticleTransition
+          ref={particleTransitionRef}
+          fromRef={particleSourceRef}
+          toRef={particleTargetRef}
+        />
+      ) : null}
       {isLoadingOverlayVisible ? (
         <DataAgentLoading sidebarWidth={sidebarWidth} exiting={loadingOverlayExiting} />
       ) : null}
@@ -223,13 +246,15 @@ export function DataAgentWorkspace({
         ) : null}
 
         <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div
-            ref={particleTargetRef}
-            className="data-agent-particle-destination"
-            aria-hidden="true"
-          >
-            <div className="data-agent-particle-destination__rail" />
-          </div>
+          {showInitialParticleTransition ? (
+            <div
+              ref={particleTargetRef}
+              className="data-agent-particle-destination"
+              aria-hidden="true"
+            >
+              <div className="data-agent-particle-destination__rail" />
+            </div>
+          ) : null}
           {isRestoringSession ? (
             <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white ml-2 max-md:ml-0">
               <DataAgentSessionLoading />
@@ -261,7 +286,9 @@ export function DataAgentWorkspace({
                   onStop={stopCurrentTurn}
                   onQuickAction={handleQuickAction}
                   trailingActions={modelSelector}
-                  transitionSourceRef={particleSourceRef}
+                  transitionSourceRef={
+                    showInitialParticleTransition ? particleSourceRef : undefined
+                  }
                 />
               </section>
             </main>
@@ -286,7 +313,6 @@ export function DataAgentWorkspace({
                 initialDraft={initialDraft}
                 onSubmit={handlePromptSubmit}
                 trailingActions={modelSelector}
-                transitionSourceRef={particleSourceRef}
               />
             </main>
           )}
