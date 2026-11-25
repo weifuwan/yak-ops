@@ -34,8 +34,8 @@ test("a valid login submission pulls the aurora into the login button", () => {
   const animationIndex = loginPanel.indexOf("auroraRef.current?.play()");
   assert.ok(validationIndex >= 0);
   assert.ok(animationIndex > validationIndex);
-  assert.match(loginPanel, /<YakAurora ref={auroraRef} targetRef={submitTargetRef} \/>/);
-  assert.match(loginPanel, /ref={submitTargetRef} className="login-form-submit-target"/);
+  assert.match(loginPanel, /<YakAurora ref=\{auroraRef\} targetRef=\{submitTargetRef\} \/>/);
+  assert.match(loginPanel, /ref=\{submitTargetRef\} className="login-form-submit-target(?: mt-6)?"/);
 });
 
 test("login failures cancel the visual transition without replacing auth handling", () => {
