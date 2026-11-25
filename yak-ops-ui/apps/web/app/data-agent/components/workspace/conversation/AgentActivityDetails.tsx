@@ -41,7 +41,12 @@ function DetailSection({
         type="button"
         aria-expanded={expanded}
         aria-controls={"agent-activity-detail-" + id.replace(/:/g, "")}
-        className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[#f7f8f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0033ff]/20"
+        className={[
+          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3",
+          "px-3 py-2.5 text-left transition-colors hover:bg-[#f7f8f8]",
+          "focus-visible:outline-none focus-visible:ring-2",
+          "focus-visible:ring-inset focus-visible:ring-[#0033ff]/20",
+        ].join(" ")}
         onClick={onToggle}
       >
         <span className="text-xs font-semibold text-[#46514c]">{label}</span>
@@ -80,7 +85,13 @@ function CodeSection({
 
   return (
     <DetailSection label={label} expanded={expanded} onToggle={onToggle}>
-      <pre className="m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[#f7f8f8] p-3 font-mono text-[12px] leading-6 text-[#303936]">
+      <pre
+        className={[
+          "m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words",
+          "rounded-lg bg-[#f7f8f8] p-3 font-mono text-[12px] leading-6",
+          "text-[#303936]",
+        ].join(" ")}
+      >
         {formatToolInput(value)}
       </pre>
     </DetailSection>
@@ -96,7 +107,12 @@ function statusIcon(status: AgentActivity["status"]) {
 }
 
 function statusClassName(status: AgentActivity["status"]) {
-  if (status === "error" || status === "denied" || status === "rejected" || status === "interrupted") {
+  if (
+    status === "error" ||
+    status === "denied" ||
+    status === "rejected" ||
+    status === "interrupted"
+  ) {
     return "border-[#f0d8d8] bg-[#fff7f7] text-[#b45c5c]";
   }
   if (status === "running" || status === "awaiting-confirmation") {
@@ -144,7 +160,12 @@ export function AgentActivityDetails({
   return (
     <div className="flex min-w-0 flex-col gap-4 px-4 pb-5 pt-4">
       <div className="flex min-w-0 items-center gap-3 border-b border-[#edf0ee] pb-4">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#f0f3f2] text-[#52635c]">
+        <span
+          className={[
+            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+            "bg-[#f0f3f2] text-[#52635c]",
+          ].join(" ")}
+        >
           <Wrench size={16} strokeWidth={1.6} />
         </span>
         <div className="min-w-0 flex-1">
@@ -152,12 +173,13 @@ export function AgentActivityDetails({
             {title}
           </h2>
           <p className="m-0 mt-0.5 truncate text-[11px] text-[#929b96]">
-            {activity.kind === "tool" ? activity.toolName : "执行步骤"}
+            {activity.kind === "tool" ? "工具调用" : "执行步骤"}
           </p>
         </div>
         <span
           className={
-            "flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium " +
+            "flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1",
+            "text-[11px] font-medium " +
             statusClassName(activity.status)
           }
         >
@@ -199,7 +221,13 @@ export function AgentActivityDetails({
       />
 
       {!hasDetails ? (
-        <div className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-[#e5e9e7] px-6 text-center text-xs leading-5 text-[#929b96]">
+        <div
+          className={[
+            "flex min-h-32 items-center justify-center rounded-xl",
+            "border border-dashed border-[#e5e9e7] px-6 text-center",
+            "text-xs leading-5 text-[#929b96]",
+          ].join(" ")}
+        >
           {activity.status === "running"
             ? "工具正在执行，结果返回后会显示在这里"
             : "该工具暂无可展示的输入参数或执行结果"}
@@ -209,7 +237,10 @@ export function AgentActivityDetails({
       {messageError ? (
         <div
           role="alert"
-          className="rounded-lg border border-[#f0d6d6] bg-[#fff7f7] px-3 py-2 text-xs leading-5 text-[#a14d4d]"
+          className={[
+            "rounded-lg border border-[#f0d6d6] bg-[#fff7f7]",
+            "px-3 py-2 text-xs leading-5 text-[#a14d4d]",
+          ].join(" ")}
         >
           {messageError}
         </div>
