@@ -159,6 +159,7 @@ class PtcToolResultTests(unittest.TestCase):
             llm_model="test-model",
             yak_ops_base_url="http://yak.example",
             yak_ops_token="",
+            ptc_enabled=True,
             ptc_allow_unsafe=True,
         )
 

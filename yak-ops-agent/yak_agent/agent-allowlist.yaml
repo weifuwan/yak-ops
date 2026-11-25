@@ -99,8 +99,8 @@ entries:
     tool: run_analysis_script
     domain: ptc
     kind: script
-    risk: readonly
-    note: PTC 分析脚本执行（cocoon 沙箱优先；只读 SDK，写操作在脚本内禁用）
+    risk: write
+    note: PTC 分析脚本执行（默认关闭；开启后每次运行需人工确认；SDK 不含凭据，写操作在脚本内禁用）
 
   # ---------------- write (human confirmation) ----------------
   - operationId: createTask

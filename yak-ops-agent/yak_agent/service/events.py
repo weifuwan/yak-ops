@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 TERMINAL_TYPES = frozenset({"done", "error"})
+# A stalled SSE client must never make the in-process fan-out queue grow
+# without bound; when it overflows, that stream is finished with an error.
+_SUBSCRIBER_QUEUE_MAX = 1000
 
 
 def _now() -> str:
@@ -55,7 +58,24 @@ async def emit(session: Any, payload: dict[str, Any]) -> None:
             log.terminal = record
         subscribers = list(log._subscribers)
     for queue in subscribers:
-        queue.put_nowait(record)
+        try:
+            queue.put_nowait(record)
+        except asyncio.QueueFull:
+            # Drop the backlog and terminate this stream; the client can
+            # reconnect with its cursor instead of growing process memory.
+            while True:
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+            queue.put_nowait(
+                {
+                    "seq": record["seq"],
+                    "at": record["at"],
+                    "type": "error",
+                    "message": "事件流积压，已断开，请刷新后重连",
+                }
+            )
 
 
 async def close(session: Any, message: str) -> None:
@@ -67,13 +87,21 @@ async def close(session: Any, message: str) -> None:
         subscribers = list(log._subscribers)
         log._subscribers.clear()
     for queue in subscribers:
-        queue.put_nowait(None)
+        try:
+            queue.put_nowait(None)
+        except asyncio.QueueFull:
+            while True:
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+            queue.put_nowait(None)
 
 
 async def subscribe(session: Any, after: int = 0) -> AsyncIterator[dict[str, Any]]:
     """Replay retained events after `after`, then follow live events."""
     log: EventLog = session.event_log
-    queue: asyncio.Queue = asyncio.Queue()
+    queue: asyncio.Queue = asyncio.Queue(maxsize=_SUBSCRIBER_QUEUE_MAX)
     reset = False
     idle = False
     async with log._lock:

@@ -3,18 +3,18 @@
 1. **cocoon** (`cocoon-sandbox`, a default dependency): cross-platform
    Rust-kernel sandbox — virtual/read-only filesystems (host mounts are
    read-only by default), Job Object process limits, network denied unless
-   `allow_network=True`, wall-clock timeout. This is the sandboxed tier; the
-   read-only SDK runs inside it, so credentials are visible to the script but
-   bounded by the sandbox (no host writes, no free egress) and by the audit
-   trail.
+   `allow_network=True`, wall-clock timeout. This is the sandboxed tier: the
+   SDK carries only a per-run proxy token, and the host-side proxy injects the
+   caller's identity, so script-visible material contains no platform
+   credentials.
 2. **subprocess, unsafe tier — disabled by default**: no OS-level isolation.
    Enabled only when `YAK_AGENT_PTC_ALLOW_UNSAFE=true`, and then the script
    runs with a **minimal environment** (credential-bearing variables stripped,
    so the SDK is unusable — compute-only).
 
-Production deployments replace both with AgentScope's DockerWorkspace.
-Either way: the generated SDK is the only I/O surface and writes are
-disabled inside scripts. Agent-initiated calls are audited by the Agent
+PTC itself is opt-in (`YAK_AGENT_PTC_ENABLED`), and every run requires HITL
+confirmation. Production deployments should replace both tiers with
+AgentScope's DockerWorkspace. Agent-initiated calls are audited by the Agent
 `on_acting` middleware; direct `run_analysis()` calls are not.
 """
 
@@ -23,6 +23,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -38,8 +40,6 @@ from yak_agent.ptc.sdk_gen import script_rejected, write_sdk
 _MAX_OUTPUT_CHARS = 16_000
 _DEFAULT_TIMEOUT = 60
 _HARD_TIMEOUT_CAP = 300
-
-_AGENT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Routes an analysis script may reach through the host-side proxy. They mirror
 # the readonly subset of operations.yaml plus the side-effect-free preview
@@ -71,7 +71,9 @@ def _strip_base_path(path: str, base_path: str) -> str:
 def _path_allowed(method: str, path: str) -> bool:
     """Whether an analysis script may send this method/path through the proxy."""
     decoded = unquote(path)
-    if ".." in decoded.split("/"):
+    # A residual "%" means the request was encoded more than once; upstream may
+    # decode it again, so refuse instead of guessing.
+    if "%" in decoded or ".." in decoded.split("/"):
         return False
     normalized = decoded.rstrip("/") or "/"
     if method in ("GET", "HEAD"):
@@ -174,29 +176,29 @@ def _run_subprocess(script: Path, workdir: Path, timeout: int) -> tuple[str, str
         return ("", f"TIMEOUT after {timeout}s", -1)
 
 
-_PROXY_STATE: dict[str, Any] = {}
+_PROXY_LOCK = threading.Lock()
+_PROXIES: dict[tuple[str, str], ThreadingHTTPServer] = {}
+# Per-run tokens: the script only ever sees an opaque token, while the proxy
+# resolves it to the calling user's YakAuth and injects the real headers.
+_RUN_AUTHS: dict[str, Any] = {}
 
 
-def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
-    """Start (once) a localhost forward proxy that only relays the configured
-    yak-ops API host, and return its URL.
+def register_run_auth(token: str, auth: Any) -> None:
+    with _PROXY_LOCK:
+        _RUN_AUTHS[token] = auth
 
-    The sandboxed script routes its HTTP through this proxy via
-    HTTP_PROXY/HTTPS_PROXY set inside the script process — so SDK calls reach
-    yak-ops while any other destination gets a 403 from the proxy itself.
-    `base_path` (e.g. `/yak-ops`) is stripped before allowlist matching because
-    SDK URLs include the API context path while the registry stores paths
-    relative to that context.
-    """
-    state = _PROXY_STATE
-    server = state.get("server")
-    if (
-        server is not None
-        and state.get("allowed") == allowed_netloc
-        and state.get("base_path") == base_path
-    ):
-        return f"http://127.0.0.1:{server.server_address[1]}"
 
+def unregister_run_auth(token: str) -> None:
+    with _PROXY_LOCK:
+        _RUN_AUTHS.pop(token, None)
+
+
+def _auth_for_token(token: str) -> Any:
+    with _PROXY_LOCK:
+        return _RUN_AUTHS.get(token)
+
+
+def _make_handler(allowed_netloc: str, base_path: str) -> type[BaseHTTPRequestHandler]:
     import httpx
 
     class Handler(BaseHTTPRequestHandler):
@@ -205,9 +207,11 @@ def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
         def log_message(self, *args: Any) -> None:
             pass
 
-        def _blocked(self) -> None:
+        def _blocked(self, reason: str = "") -> None:
             self.send_error(
-                403, "blocked: analysis scripts can only reach the configured yak-ops API host"
+                403,
+                "blocked: analysis scripts can only reach the configured yak-ops API host"
+                + (f" ({reason})" if reason else ""),
             )
 
         def _forward(self) -> None:
@@ -223,9 +227,19 @@ def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
             ):
                 self._blocked()
                 return
+            auth = _auth_for_token(self.headers.get("X-Yak-Ptc-Token", ""))
+            if auth is None:
+                self._blocked("invalid or expired run token")
+                return
+            try:
+                identity_headers = auth.headers()
+            except Exception:  # noqa: BLE001 - never fall back to script headers
+                self._blocked("no caller identity")
+                return
             length = int(self.headers.get("Content-Length") or 0)
             body = self.rfile.read(length) if length else None
-            # drop accept-encoding (httpx decompresses) and hop-by-hop headers
+            # drop client auth/encoding marks and hop-by-hop headers; the proxy
+            # owns the upstream identity.
             headers = {
                 k: v
                 for k, v in self.headers.items()
@@ -237,8 +251,13 @@ def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
                     "accept-encoding",
                     "connection",
                     "keep-alive",
+                    "cookie",
+                    "token",
+                    "authorization",
+                    "x-yak-ptc-token",
                 )
             }
+            headers.update(identity_headers)
             try:
                 resp = httpx.request(
                     self.command, target, headers=headers, content=body, timeout=60.0
@@ -255,6 +274,7 @@ def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
                     "connection",
                     "keep-alive",
                     "content-encoding",
+                    "set-cookie",
                 ):
                     continue
                 self.send_header(k, v)
@@ -271,12 +291,29 @@ def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
         do_OPTIONS = _blocked
         do_CONNECT = _blocked
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    _PROXY_STATE["server"] = server
-    _PROXY_STATE["allowed"] = allowed_netloc
-    _PROXY_STATE["base_path"] = base_path
+    return Handler
+
+
+def _get_proxy(allowed_netloc: str, base_path: str = "") -> str:
+    """Start (once per host/context path) a localhost forward proxy.
+
+    The sandboxed script routes its HTTP through this proxy via
+    HTTP_PROXY/HTTPS_PROXY set inside the script process — so SDK calls reach
+    yak-ops while any other destination gets a 403 from the proxy itself.
+    `base_path` (e.g. `/yak-ops`) is stripped before allowlist matching because
+    SDK URLs include the API context path while the registry stores paths
+    relative to that context.
+    """
+    key = (allowed_netloc, base_path)
+    with _PROXY_LOCK:
+        server = _PROXIES.get(key)
+        if server is None:
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0),
+                _make_handler(allowed_netloc, base_path),
+            )
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            _PROXIES[key] = server
     return f"http://127.0.0.1:{server.server_address[1]}"
 
 
@@ -294,10 +331,10 @@ def run_analysis(
     Backend policy: cocoon (sandboxed, SDK available) by default; the
     no-isolation subprocess tier only when `allow_unsafe` is set, running with
     a minimal environment (compute-only — the SDK cannot authenticate there).
-    In the sandboxed tier the script's HTTP goes through a whitelist proxy that
-    only relays the configured yak-ops API host, and credentials are injected
-    as literals into the generated SDK (the script process has no
-    credential-bearing environment).
+    In the sandboxed tier the script routes HTTP through the host-side proxy
+    (HTTP_PROXY); the proxy only relays the configured yak-ops API host and
+    resolves the per-run token to the caller's identity, so the SDK carries no
+    credentials.
     """
     started = time.monotonic()
     timeout = max(5, min(_HARD_TIMEOUT_CAP, int(timeout_seconds)))
@@ -327,29 +364,37 @@ def run_analysis(
     keep = workdir is not None
     workdir = Path(workdir or Path(tempfile.mkdtemp(prefix="yak-ptc-"))).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
+    sdk_dir: Path | None = None
+    run_token = ""
     try:
         if backend == "cocoon":
-            # Sandboxed tier: SDK injected with the per-user session identity
-            # (tools run inside the calling user's permission boundary), script
-            # HTTP pinned to the whitelist proxy, and the script process
-            # environment carries no credentials.
+            # Sandboxed tier: the script only receives an opaque per-run token.
+            # The host-side proxy resolves it to the caller's identity and
+            # injects the real headers, so no credential is readable from the
+            # script, its files, or the workspace.
             if auth is None:
                 raise ValueError("auth is required for the sandboxed PTC tier")
             base = urlparse(auth.base_url)
             proxy_url = _get_proxy(base.netloc, base.path)
-            write_sdk(workdir, _AGENT_ROOT, auth, project_code)
+            # Keep the SDK next to the script so the sandbox always sees it,
+            # but in a per-run directory that is deleted afterwards; it never
+            # becomes part of the persistent workspace.
+            sdk_dir = workdir / f".yak-ptc-sdk-{secrets.token_hex(8)}"
+            sdk_dir.mkdir()
+            run_token = secrets.token_urlsafe(24)
+            register_run_auth(run_token, auth)
+            write_sdk(sdk_dir, project_code, auth.base_url)
             preamble = (
-                f'import sys; sys.path.insert(0, r"{workdir}"); sys.path.insert(0, r"{_AGENT_ROOT}")\n'
+                f'import sys; sys.path.insert(0, r"{sdk_dir}")\n'
                 f"import os as _os\n"
                 f'_os.environ["HTTP_PROXY"] = {proxy_url!r}\n'
                 f'_os.environ["HTTPS_PROXY"] = {proxy_url!r}\n'
                 f'_os.environ["NO_PROXY"] = ""\n'
+                f'_os.environ["YAK_PTC_TOKEN"] = {run_token!r}\n'
             )
         else:
             # Unsafe tier is compute-only: no SDK, no path into the agent
-            # package — otherwise Settings.load() would read the host .env and
-            # hand credentials to the script. No proxy either: no network use
-            # is expected from a compute-only script.
+            # package, and no proxy — nothing credential-bearing is reachable.
             preamble = f'import sys; sys.path.insert(0, r"{workdir}")\n'
         script = workdir / "analysis.py"
         script.write_text(preamble + code, encoding="utf-8")
@@ -376,10 +421,11 @@ def run_analysis(
         }
         return result
     finally:
+        unregister_run_auth(run_token)
+        if sdk_dir is not None:
+            shutil.rmtree(sdk_dir, ignore_errors=True)
         if not keep:
             try:
-                import shutil
-
                 shutil.rmtree(workdir, ignore_errors=True)
             except Exception:  # noqa: BLE001
                 pass

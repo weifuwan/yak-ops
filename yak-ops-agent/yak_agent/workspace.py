@@ -78,6 +78,10 @@ class SessionWorkspace:
     def read_file(self, rel_path: str, start_line: int = 1, end_line: int | None = None) -> str:
         """Read a workspace file (optionally a line window), line numbers prefixed."""
         target = self.resolve(rel_path)
+        # Older PTC runs left a generated SDK (with embedded credentials) in the
+        # workspace; never surface it to the model even if it still exists.
+        if target.name == "yak_agent_sdk.py":
+            raise ValueError("generated SDK files are not readable from the workspace")
         if not target.is_file():
             raise FileNotFoundError(f"workspace file not found: {rel_path}")
         text = target.read_text(encoding="utf-8", errors="replace")

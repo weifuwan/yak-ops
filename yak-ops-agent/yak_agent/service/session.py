@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from collections import deque
@@ -31,6 +32,8 @@ from yak_agent.service.events import EventLog
 from yak_agent.tools.validation import ToolConfigurationError
 from yak_agent.workspace import SessionWorkspace
 from yak_agent.yak_client import YakAuth
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -86,6 +89,7 @@ class Session:
     pending_event: RequireUserConfirmEvent | None = None
     busy: bool = False
     persistent: bool = True
+    deleting: bool = False  # set before delete awaits; blocks new turns
     turn: Turn | None = None
     event_log: EventLog = field(default_factory=EventLog)
     queue: deque[QueuedMessage] = field(default_factory=deque)
@@ -94,6 +98,7 @@ class Session:
     title: str = ""
     preview: str = ""
     usage: dict[str, int] = field(default_factory=dict)
+    last_active_at: float = field(default_factory=time.time)
 
 
 @dataclass(frozen=True)
@@ -107,6 +112,18 @@ class Identity:
 
 
 SESSIONS: dict[str, Session] = {}
+# Sids whose delete is in flight. The in-memory object is popped late (after
+# memory flush/SSE close), so this marker is what stops a concurrent request
+# from loading the on-disk state and starting a turn that would resurrect it.
+_DELETING: set[str] = set()
+
+
+def mark_deleting(sid: str) -> None:
+    _DELETING.add(sid)
+
+
+def unmark_deleting(sid: str) -> None:
+    _DELETING.discard(sid)
 
 
 def _memory_scope_in_use(owner: str, workspace_id: str) -> bool:
@@ -153,6 +170,8 @@ def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
 
 
 def load_session(sid: str, identity: Identity, settings: Settings | None) -> Session:
+    if sid in _DELETING:
+        raise SessionNotFound()
     if sid in SESSIONS:
         session = SESSIONS[sid]
         if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
@@ -240,6 +259,7 @@ def enqueue_message(session: Session, message: str, max_len: int) -> QueuedMessa
         created_at=time.time(),
     )
     session.queue.append(item)
+    session.last_active_at = time.time()
     return item
 
 
@@ -269,3 +289,53 @@ def refresh_session_auth(session: Session, auth: YakAuth | None) -> None:
         session.auth.base_url = auth.base_url
     elif auth is not None and session.auth is None:
         session.auth = auth
+
+
+def evict_idle_sessions(
+    settings: Settings,
+    now: float | None = None,
+    max_batch: int = 20,
+) -> int:
+    """Unload sessions idle past the TTL; state is already on disk.
+
+    Only sessions with no running turn, no queued messages and no delete in
+    flight are eligible, so a later message lazily reloads them. The batch cap
+    bounds how long one pass can block the event loop (state writes are
+    synchronous); the next pass continues with the rest.
+    """
+    ttl = settings.session_idle_seconds
+    if ttl <= 0 or max_batch <= 0:
+        return 0
+    current = time.time() if now is None else now
+    evicted = 0
+    for sid, session in list(SESSIONS.items()):
+        if evicted >= max_batch:
+            break
+        if session.busy or session.deleting or session.queue:
+            continue
+        if current - session.last_active_at < ttl:
+            continue
+        if session.queue_worker is not None:
+            session.queue_worker.cancel()
+            session.queue_worker = None
+        if not persistence.persist(session):
+            # Never drop a session from memory when its state could not be
+            # written; keep it and retry on the next pass.
+            _LOGGER.warning("idle session %s kept: persist failed", sid)
+            continue
+        remove_session(sid)
+        evicted += 1
+    if evicted:
+        _LOGGER.info("unloaded %d idle session(s)", evicted)
+    return evicted
+
+
+async def session_eviction_loop(settings: Settings) -> None:
+    """Periodically unload idle sessions so memory does not grow forever."""
+    interval = max(5, int(settings.session_evict_interval_seconds))
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            evict_idle_sessions(settings)
+        except Exception as ex:  # noqa: BLE001 - one bad pass must not kill the loop
+            _LOGGER.warning("idle session eviction failed: %s", ex)

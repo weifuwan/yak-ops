@@ -1,10 +1,10 @@
 """Generate the read-only analysis SDK from the operation registry.
 
-The generated `yak_agent_sdk.py` is placed in the script's working directory by
+The generated `yak_agent_sdk.py` is placed in a per-run temporary directory by
 the executor. It exposes one function per `readonly` operation, all pinned to
-the configured project and authenticated through `yak_client` (credentials come
-from the process environment, never from the script). Write operations are
-hard-disabled inside analysis scripts at import time.
+the configured project. The SDK carries **no credentials**: every request goes
+through the host-side proxy with a per-run token, and the proxy injects the
+caller's identity. Write operations are hard-disabled inside analysis scripts.
 """
 
 from __future__ import annotations
@@ -16,40 +16,93 @@ from yak_agent.tools.registry import is_read_only, load_operations
 
 _TEMPLATE_HEADER = '''"""Auto-generated read-only SDK for analysis scripts. Do not edit."""
 
-import sys
+import json
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
 
-sys.path.insert(0, r"{agent_root}")
-
-from yak_agent.yak_client import YakAuth, yak_download, yak_get
-
-# Credentials are injected as literals by the server at generation time — the
-# per-user session identity comes from the frontend request, so every SDK call
-# runs inside the calling user's permission boundary. The script process has
-# no credential-bearing environment variables and cannot read the host .env;
-# visibility of these constants to the script is inherent to PTC and bounded
-# by the sandbox + audit trail.
-_BASE_URL = {base_url!r}
-_SESSION_ID = {session_id!r}
-_TOKEN = {token!r}
-_AUTH = YakAuth(
-    base_url=_BASE_URL,
-    session_id=_SESSION_ID,
-    token=_TOKEN,
-)
-
-# Writes are disabled inside analysis scripts: HITL-confirmed mutations must go
-# through the form-1 tools, never through a script.
-from yak_agent import yak_client as _yak_client
-from yak_agent.yak_client import yak_write as _raw_yak_write
+_BASE_URL = __BASE_URL__
+PROJECT = __PROJECT__
 
 
-def _writes_disabled(*_args, **_kwargs):
-    raise RuntimeError("write operations are disabled in analysis scripts")
+class YakApiError(RuntimeError):
+    pass
 
 
-_yak_client.yak_write = _writes_disabled
+class _ProxyAuth:
+    """Sends only the per-run proxy token; real credentials stay on the host."""
 
-PROJECT = {project_code!r}
+    base_url = _BASE_URL
+    timeout = 30
+
+    def headers(self):
+        return {
+            "Accept": "application/json",
+            "X-Yak-Ptc-Token": os.environ.get("YAK_PTC_TOKEN", ""),
+        }
+
+
+_AUTH = _ProxyAuth()
+
+
+def _to_query(params):
+    clean = {k: str(v) for k, v in (params or {}).items() if v is not None}
+    return urllib.parse.urlencode(clean)
+
+
+def _request(method, url, body=None):
+    headers = _AUTH.headers()
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=_AUTH.timeout) as response:
+            return response.read().decode("utf-8")
+    except urllib.error.HTTPError as ex:
+        detail = ex.read().decode("utf-8", errors="replace")[:500]
+        raise YakApiError(f"HTTP {ex.code}: {detail}") from ex
+    except urllib.error.URLError as ex:
+        raise YakApiError(f"cannot reach yak-ops: {ex.reason}") from ex
+
+
+def _envelope(method, path, body=None, params=None):
+    url = f"{_BASE_URL}{path}"
+    query = _to_query(params)
+    if query:
+        url = f"{url}?{query}"
+    payload = None if body is None else json.dumps(body, ensure_ascii=False).encode("utf-8")
+    raw = _request(method, url, payload)
+    if not raw:
+        return None
+    envelope = json.loads(raw)
+    if not isinstance(envelope, dict) or "code" not in envelope:
+        raise YakApiError(f"unexpected response shape from {path}")
+    if envelope.get("code") != 0:
+        raise YakApiError(
+            f"yak-ops business error on {path}: code={envelope.get('code')} "
+            f"msg={envelope.get('msg')}"
+        )
+    return envelope.get("data")
+
+
+def yak_get(_auth, path, params=None):
+    return _envelope("GET", path, params=params)
+
+
+def yak_download(_auth, path, params=None):
+    url = f"{_BASE_URL}{path}"
+    query = _to_query(params)
+    if query:
+        url = f"{url}?{query}"
+    return _request("GET", url)
+
+
+def yak_write(_auth, method, path, body=None, params=None):
+    return _envelope(method.upper(), path, body=body, params=params)
+
+
+_raw_yak_write = yak_write
 '''
 
 
@@ -118,54 +171,40 @@ def {op["id"]}({", ".join(signature) or ""}):
     return src
 
 
-def generate_sdk(agent_root: Path, auth: Any = None, project_code: Any = None) -> str:
+def generate_sdk(project_code: Any = None, base_url: str = "") -> str:
     """Return the SDK source for the readonly registry subset.
 
-    `auth` supplies the credentials injected as literals (the script process
-    has no credential-bearing environment and cannot read the host .env).
-    `project_code` pins every generated call to one workspace/project; without
-    it the SDK cannot build a project-scoped path. Without settings the SDK
-    header still renders, but authenticating fails — used by the compute-only
-    tier, which does not write the SDK at all.
+    The SDK contains no credential material: the host-side proxy resolves the
+    per-run token to the caller's identity. `project_code` pins every generated
+    call to one workspace/project; without it the SDK cannot build a
+    project-scoped path.
     """
-    operations = [op for op in load_operations() if is_read_only(op)]
-    if auth is not None:
-        creds = {
-            "base_url": auth.base_url,
-            "session_id": auth.session_id,
-            "token": auth.token,
-            "project_code": project_code,
-        }
-    else:
-        creds = {
-            "base_url": "",
-            "session_id": "",
-            "token": "",
-            "project_code": project_code,
-        }
-    body = _TEMPLATE_HEADER.format(agent_root=str(agent_root), **creds)
+    body = _TEMPLATE_HEADER.replace("__BASE_URL__", repr(base_url)).replace(
+        "__PROJECT__", repr(project_code)
+    )
     body += (
         "\n\ndef _post(method, path, body):\n"
         "    # The only POST reachable from analysis scripts is the side-effect-free\n"
         "    # preview validation; every other mutation is rejected at import scope.\n"
-        '    if method == "POST" and path.endswith("/tasks/preview"):\n'
+        '    if method == "POST" and urllib.parse.urlsplit(path).path.endswith(\n'
+        '        "/tasks/preview"\n'
+        "    ):\n"
         "        return _raw_yak_write(_AUTH, method, path, body)\n"
         '    raise RuntimeError("write operations are disabled in analysis scripts")\n'
     )
-    for op in operations:
+    for op in [op for op in load_operations() if is_read_only(op)]:
         body += _function_source(op)
     return body
 
 
 def write_sdk(
     workdir: Path,
-    agent_root: Path,
-    auth: Any = None,
     project_code: Any = None,
+    base_url: str = "",
 ) -> Path:
-    """Materialise the SDK into a script working directory."""
+    """Materialise the SDK into a per-run directory that the caller removes."""
     sdk_path = workdir / "yak_agent_sdk.py"
-    sdk_path.write_text(generate_sdk(agent_root, auth, project_code), encoding="utf-8")
+    sdk_path.write_text(generate_sdk(project_code, base_url), encoding="utf-8")
     return sdk_path
 
 

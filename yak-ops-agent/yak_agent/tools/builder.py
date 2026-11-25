@@ -13,6 +13,8 @@ Risk levels map to the permission system:
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Any
 
 from agentscope.message import TextBlock, ToolResultState
@@ -26,6 +28,8 @@ from yak_agent.tools.time_tools import build_time_tools
 from yak_agent.tools.validation import validate_registry
 from yak_agent.tools.workspace_tools import build_workspace_tools
 from yak_agent.yak_client import YakApiError, YakAuth
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def build_auth(settings: Settings, session_id: str = "") -> YakAuth:
@@ -61,12 +65,15 @@ def build_tools(
             continue  # allowlist enforcement: not reviewed, not exposed
         readonly = is_read_only(op)
 
-        def runner(_op: dict[str, Any] = op, **kwargs: Any) -> str:
-            return execute(_op, auth, kwargs, project_code)
+        async def async_runner(_op: dict[str, Any] = op, **kwargs: Any) -> str:
+            # yak_client is synchronous (it is also used inside analysis
+            # scripts); run it off the API event loop so one slow API call
+            # cannot freeze every session.
+            return await asyncio.to_thread(execute, _op, auth, kwargs, project_code)
 
         tools.append(
             FunctionTool(
-                runner,
+                async_runner,
                 name=op["id"],
                 description=f"[{op.get('domain', '')}] {op['summary']}\n\n{op.get('description', '').strip()}",
                 input_schema=build_schema(op),
@@ -75,24 +82,27 @@ def build_tools(
             )
         )
     tools.extend(build_time_tools())
+    if workspace is not None:
+        tools.extend(build_workspace_tools(workspace))
 
-    # PTC tool: only registered when a sandboxed backend is available (cocoon,
-    # a default dependency) or the operator explicitly allowed the unsafe
-    # no-isolation tier. Read-only SDK ⇒ the tool itself is read-only.
+    # PTC tool: opt-in only (`YAK_AGENT_PTC_ENABLED`). Code execution is never
+    # auto-approved: if enabled, the tool is registered as a non-read-only
+    # action, so every run pauses for HITL confirmation.
     try:
         from yak_agent.ptc import runner as _ptc
 
-        ptc_ready = _ptc.cocoon_available() or settings.ptc_allow_unsafe
+        ptc_ready = settings.ptc_enabled and (_ptc.cocoon_available() or settings.ptc_allow_unsafe)
 
-        def run_analysis_script(code: str, timeout_seconds: int = 60) -> ToolChunk:
-            """Write and run a Python analysis script in the sandboxed executor (cocoon: host mounts read-only, process limits, network only for the read-only yak-ops SDK). Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
+        async def run_analysis_script(code: str, timeout_seconds: int = 60) -> ToolChunk:
+            """Write and run a Python analysis script in the sandboxed executor (cocoon: host mounts read-only, process limits, per-run proxy token). The user is asked to confirm each run. Use for log root-cause analysis (download the FULL log via download_task_log, grep the Caused by chain), cross-instance aggregation, or anything too large to fit in context. The SDK functions (list_sync_tasks, get_sync_task, list_sync_instances, get_sync_instance_detail, query_task_log, download_task_log, preview_sync_task, get_sync_overview) return parsed dicts; writes are disabled inside scripts. Print conclusions — only stdout returns to you, stdout is truncated at 16 KB (the full output is offloaded to the workspace when that happens). Files you write in the current directory persist across turns.
 
             Args:
                 code: Python 3 script body. `import yak_agent_sdk as sdk` then call its functions; print the conclusion.
                 timeout_seconds: Wall-clock limit, 5-300.
             """
             workdir = workspace.root if workspace is not None else None
-            result = _ptc.run_analysis(
+            result = await asyncio.to_thread(
+                _ptc.run_analysis,
                 code,
                 timeout_seconds,
                 workdir=workdir,
@@ -117,12 +127,13 @@ def build_tools(
 
         if ptc_ready:
             tools.append(
-                FunctionTool(run_analysis_script, is_read_only=True, is_concurrency_safe=False)
+                FunctionTool(
+                    run_analysis_script,
+                    is_read_only=False,
+                    is_concurrency_safe=False,
+                )
             )
-
-        if workspace is not None:
-            tools.extend(build_workspace_tools(workspace))
-    except Exception:  # noqa: BLE001 - PTC is an enhancement; absence keeps form 1
-        pass
+    except Exception as ex:  # noqa: BLE001 - PTC is an enhancement; absence keeps form 1
+        _LOGGER.warning("PTC tool registration skipped: %s", ex)
 
     return tools
