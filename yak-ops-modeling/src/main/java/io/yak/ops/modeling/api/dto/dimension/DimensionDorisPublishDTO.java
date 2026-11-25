@@ -1,33 +1,19 @@
 package io.yak.ops.modeling.api.dto.dimension;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.yak.ops.dao.entity.enums.DorisPartitionUnitEnum;
-import java.util.List;
+import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
+import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import lombok.Data;
 
-/** Target datasource and optional advanced physical settings for a Doris publish. */
+/** Explicit Doris table model and publish strategy selected for one publish attempt. */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DimensionDorisPublishDTO {
     private Integer datasourceId;
-    private Advanced advanced;
+    private DorisDataModelEnum tableModel;
+    private DorisPublishModeEnum publishMode;
+    private String publishRemark;
 
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Advanced {
-        /** Empty/false means the backend chooses the HASH distribution field automatically. */
-        private Boolean customDistribution;
-        private List<String> distributionFieldIds;
-        /** Null means automatic bucket sizing; a positive value means a fixed bucket count. */
-        private Integer bucketCount;
-        /** Null means no partitioning. */
-        private Partition partition;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Partition {
-        private String fieldId;
-        private DorisPartitionUnitEnum unit;
-    }
+    /** Required by the backend for destructive DROP_RECREATE execution. */
+    private Boolean confirmDrop;
 }
