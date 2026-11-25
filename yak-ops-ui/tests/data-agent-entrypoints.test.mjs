@@ -46,7 +46,7 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.ok(page.includes('productPath="/data-agent"'));
   assert.match(page, /location\.pathname === "\/data-agent"/);
   assert.match(page, /<DataAgentWelcome/);
-  assert.match(page, /navigate\("\/data-agent\/new", \{ state: \{ initialPrompt: prompt \} \}\)/);
+  assert.match(page, /state: \{ initialPrompt: prompt, playInitialParticleTransition: true \}/);
   assert.match(page, /sessionId=\{sessionId \?\? null\}/);
   assert.match(page, /onSessionCreated=\{handleSessionCreated\}/);
   assert.match(page, /onNewConversation=\{handleNewConversation\}/);
