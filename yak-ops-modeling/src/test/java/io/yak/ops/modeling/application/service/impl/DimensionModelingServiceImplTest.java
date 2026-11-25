@@ -15,6 +15,7 @@ import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.DataDomainPO;
 import io.yak.ops.dao.entity.DimensionTablePO;
+import io.yak.ops.dao.entity.DimensionTableFieldPO;
 import io.yak.ops.dao.entity.VersionManagementPO;
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
