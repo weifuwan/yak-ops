@@ -159,10 +159,6 @@ public class DorisSchemaInspector {
         return true;
     }
 
-    private String readCreateTableDdlUnchecked(Connection connection, String database, String tableName) {
-        return readCreateTableDdl(connection, database, tableName);
-    }
-
     private String extractClause(String ddl, String keyword, String lookAhead) {
         Matcher matcher = Pattern.compile(
                 "(?is)\\b" + keyword + "\\s+(.+?)" + lookAhead).matcher(ddl);
