@@ -42,7 +42,7 @@ public class DorisSchemaPlanner {
 
     public DdlPlan plan(
             Connection connection, DataSourceCatalog catalog, DorisDdlRequest request) {
-        List<String> keyFields = generator.resolveKeyFields(request.getTable());
+        List<String> keyFields = generator.resolveKeyFields(request.getTable(), request.getTableModel());
         String qualifiedTable = "`" + request.getTable().getDatabase() + "`.`"
                 + request.getTable().getTableName() + "`";
         List<String> statements = new ArrayList<>();
