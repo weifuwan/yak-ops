@@ -99,6 +99,7 @@ export type DorisPublishRequest = {
   replicationNum?: number | null;
   confirmDrop?: boolean;
   confirmDropColumns?: boolean;
+  confirmedDdlHash?: string;
 };
 export type DorisPublishRecord = {
   id?: string;
