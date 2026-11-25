@@ -1,18 +1,9 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
-import {
-  CheckCircle2,
-  ChevronDown,
-  CircleAlert,
-  LoaderCircle,
-  ShieldCheck,
-  Wrench,
-  XCircle,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { DataAgentMarkdown } from "../../markdown/DataAgentMarkdown";
 import type { AgentActivity } from "../../../model/types";
-import { TOOL_LABELS } from "../../../model/constants";
-import { formatToolInput, toolStatusLabel } from "../../../utils/message-formatters";
+import { formatToolInput } from "../../../utils/message-formatters";
 
 type AgentActivityDetailsProps = {
   activity: AgentActivity;
@@ -98,29 +89,6 @@ function CodeSection({
   );
 }
 
-function statusIcon(status: AgentActivity["status"]) {
-  if (status === "running") return LoaderCircle;
-  if (status === "error" || status === "interrupted") return CircleAlert;
-  if (status === "denied" || status === "rejected") return XCircle;
-  if (status === "awaiting-confirmation") return ShieldCheck;
-  return CheckCircle2;
-}
-
-function statusClassName(status: AgentActivity["status"]) {
-  if (
-    status === "error" ||
-    status === "denied" ||
-    status === "rejected" ||
-    status === "interrupted"
-  ) {
-    return "border-[#f0d8d8] bg-[#fff7f7] text-[#b45c5c]";
-  }
-  if (status === "running" || status === "awaiting-confirmation") {
-    return "border-[#e9dfc8] bg-[#fffbf2] text-[#9a7b42]";
-  }
-  return "border-[#dce8e1] bg-[#f5faf7] text-[#668574]";
-}
-
 export function AgentActivityDetails({
   activity,
   expandAll,
@@ -140,17 +108,10 @@ export function AgentActivityDetails({
     });
   }, [activity.id, expandAll]);
 
-  const title =
-    activity.kind === "tool"
-      ? TOOL_LABELS[activity.toolName ?? ""] ??
-        activity.toolName ??
-        activity.title
-      : activity.title;
-  const StatusIcon = statusIcon(activity.status);
   const content = activity.content?.trim() ?? "";
-  const hasInput = Boolean(activity.input?.trim());
-  const hasOutput = Boolean(activity.output?.trim());
-  const hasDetails = Boolean(content || hasInput || hasOutput);
+  const hasDetails = Boolean(
+    content || activity.input?.trim() || activity.output?.trim(),
+  );
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((current) => ({
@@ -161,38 +122,6 @@ export function AgentActivityDetails({
 
   return (
     <div className="flex min-w-0 flex-col gap-4 px-4 pb-5 pt-4">
-      <div className="flex min-w-0 items-center gap-3 border-b border-[#edf0ee] pb-4">
-        <span
-          className={[
-            "flex size-9 shrink-0 items-center justify-center rounded-lg",
-            "bg-[#f0f3f2] text-[#52635c]",
-          ].join(" ")}
-        >
-          <Wrench size={16} strokeWidth={1.6} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="m-0 truncate text-sm font-semibold text-[#29332e]">
-            {title}
-          </h2>
-          <p className="m-0 mt-0.5 truncate text-[11px] text-[#929b96]">
-            {activity.kind === "tool" ? "工具调用" : "执行步骤"}
-          </p>
-        </div>
-        <span
-          className={[
-            "flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1",
-            "text-[11px] font-medium",
-            statusClassName(activity.status),
-          ].join(" ")}
-        >
-          <StatusIcon
-            size={12}
-            className={activity.status === "running" ? "animate-spin" : ""}
-          />
-          {toolStatusLabel(activity.status)}
-        </span>
-      </div>
-
       {content ? (
         <DetailSection
           label="执行说明"
