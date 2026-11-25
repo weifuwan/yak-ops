@@ -22,9 +22,11 @@ public class DorisDdlGenerator {
     private static final Pattern TYPE_PARAMETERS = Pattern.compile("\\((\\d+)(?:,(\\d+))?\\)");
 
     private final DorisConnectorAdapter connectorAdapter;
+    private final DorisDdlFormatter formatter;
 
-    public DorisDdlGenerator(DorisConnectorAdapter connectorAdapter) {
+    public DorisDdlGenerator(DorisConnectorAdapter connectorAdapter, DorisDdlFormatter formatter) {
         this.connectorAdapter = connectorAdapter;
+        this.formatter = formatter;
     }
 
     public List<DorisFieldTypeOption> getFieldTypeOptions() {
@@ -67,8 +69,8 @@ public class DorisDdlGenerator {
     }
 
     public String generateCreateTableDdl(DdlTableDefinition table, DorisDataModelEnum tableModel) {
-        return connectorAdapter.generateCreateTableDdl(
-                table, tableModel, resolveKeyFields(table));
+        return formatter.format(connectorAdapter.generateCreateTableDdl(
+                table, tableModel, resolveKeyFields(table)));
     }
 
     public String generateAddColumnDdl(String database, String tableName, DdlColumnDefinition column) {
@@ -85,7 +87,7 @@ public class DorisDdlGenerator {
         if (StringUtils.isNotBlank(column.getComment())) {
             ddl.append(" COMMENT '").append(escapeSqlLiteral(column.getComment())).append("'");
         }
-        return ddl.toString();
+        return formatter.format(ddl.toString());
     }
 
     public boolean matches(DorisColumnMetadata actual, DdlColumnDefinition expected) {

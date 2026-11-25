@@ -39,7 +39,7 @@ class DorisDdlEngineTest {
     void setUp() {
         DorisConnectorAdapter connectorAdapter = new DorisConnectorAdapter();
         DorisDdlValidator validator = new DorisDdlValidator(connectorAdapter);
-        DorisDdlGenerator generator = new DorisDdlGenerator(connectorAdapter);
+        DorisDdlGenerator generator = new DorisDdlGenerator(connectorAdapter, new DorisDdlFormatter());
         DorisSchemaInspector inspector = new DorisSchemaInspector();
         DorisSchemaPlanner planner = new DorisSchemaPlanner(inspector, generator);
         engine = new DorisDdlEngine(
@@ -60,6 +60,7 @@ class DorisDdlEngineTest {
 
         assertTrue(plan.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(plan.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
+        assertTrue(plan.getDdl().contains("(\n    `customer_id`"));
         assertTrue(!plan.isNoChanges());
     }
 
@@ -81,6 +82,7 @@ class DorisDdlEngineTest {
         assertTrue(plan.getDdl().contains("UNIQUE KEY(`customer_id`)"));
         assertTrue(plan.getDdl().contains("`customer_id` BIGINT NOT NULL COMMENT"));
         assertTrue(plan.getDdl().contains("`customer_name` VARCHAR(384) NULL COMMENT"));
+        assertTrue(plan.getDdl().contains(",\n    `customer_name`"));
     }
 
     @Test
@@ -162,7 +164,8 @@ class DorisDdlEngineTest {
 
     @Test
     void shouldPreserveNotNullWhenGeneratingAddColumnDdl() {
-        DorisDdlGenerator generator = new DorisDdlGenerator(new DorisConnectorAdapter());
+        DorisDdlGenerator generator = new DorisDdlGenerator(
+                new DorisConnectorAdapter(), new DorisDdlFormatter());
         DdlColumnDefinition column = new DdlColumnDefinition(
                 "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, null,
                 Boolean.FALSE, false, null, "customer name");
@@ -170,6 +173,7 @@ class DorisDdlEngineTest {
         String ddl = generator.generateAddColumnDdl("warehouse", "dwd_order_detail", column);
 
         assertTrue(ddl.contains("VARCHAR(384) NOT NULL"));
+        assertTrue(ddl.startsWith("ALTER TABLE `warehouse`.`dwd_order_detail`\n    ADD COLUMN"));
     }
 
     @Test
@@ -209,7 +213,7 @@ class DorisDdlEngineTest {
 
         assertEquals(1, plan.getStatements().size());
         assertTrue(plan.getStatements().get(0).startsWith(
-                "ALTER TABLE `warehouse`.`dwd_order_detail` ADD COLUMN `customer_name` VARCHAR(384) NULL"));
+                "ALTER TABLE `warehouse`.`dwd_order_detail`\n    ADD COLUMN `customer_name` VARCHAR(384) NULL"));
         assertTrue(!plan.isNoChanges());
     }
 
