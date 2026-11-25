@@ -32,13 +32,18 @@
 
 .agent-thought__icon::before {
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   inset: -5px;
   border-radius: inherit;
   background: radial-gradient(circle, rgba(0, 51, 255, 0.2), transparent 72%);
   content: "";
   opacity: 0;
   transform: scale(0.82);
+}
+
+.agent-thought__icon svg {
+  position: relative;
+  z-index: 1;
 }
 
 .agent-thought__icon[data-active="true"]::before {
