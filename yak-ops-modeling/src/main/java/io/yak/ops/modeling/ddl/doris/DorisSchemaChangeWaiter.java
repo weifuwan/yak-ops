@@ -15,8 +15,8 @@ public class DorisSchemaChangeWaiter {
     private static final long NO_JOB_GRACE_MILLIS = 10000L;
     private static final long POLL_INTERVAL_MILLIS = 1000L;
 
-    public Long latestJobId(Connection connection, String tableName) throws SQLException {
-        JobStatus status = queryLatestJob(connection, tableName);
+    public Long latestJobId(Connection connection, String database, String tableName) throws SQLException {
+        JobStatus status = queryLatestJob(connection, database, tableName);
         if (status == null) {
             return null;
         }
@@ -29,14 +29,14 @@ public class DorisSchemaChangeWaiter {
     }
 
     public void awaitCompletion(
-            Connection connection, String tableName, Long previousJobId)
+            Connection connection, String database, String tableName, Long previousJobId)
             throws SQLException, InterruptedException {
         long startedAt = System.currentTimeMillis();
         long deadline = startedAt + TIMEOUT_MILLIS;
         long noJobDeadline = startedAt + NO_JOB_GRACE_MILLIS;
 
         while (System.currentTimeMillis() < deadline) {
-            JobStatus job = queryLatestJob(connection, tableName);
+            JobStatus job = queryLatestJob(connection, database, tableName);
             if (job == null || (previousJobId != null && previousJobId.equals(job.jobId))) {
                 if (System.currentTimeMillis() >= noJobDeadline) {
                     // Doris light schema change may finish synchronously without creating a new job.
@@ -67,10 +67,13 @@ public class DorisSchemaChangeWaiter {
                 "等待 Doris Schema Change 超时（10 分钟），请在 Doris 执行 SHOW ALTER TABLE COLUMN 检查任务状态。");
     }
 
-    private JobStatus queryLatestJob(Connection connection, String tableName) throws SQLException {
+    private JobStatus queryLatestJob(
+            Connection connection, String database, String tableName) throws SQLException {
         String safeTableName = tableName.replace("'", "''");
-        String sql = "SHOW ALTER TABLE COLUMN WHERE TableName = '"
-                + safeTableName + "' ORDER BY CreateTime DESC LIMIT 1";
+        String safeDatabase = "`" + database.replace("`", "``") + "`";
+        String sql = "SHOW ALTER TABLE COLUMN FROM " + safeDatabase
+                + " WHERE TableName = '" + safeTableName
+                + "' ORDER BY CreateTime DESC LIMIT 1";
         try (Statement statement = connection.createStatement();
                 ResultSet result = statement.executeQuery(sql)) {
             if (!result.next()) {
