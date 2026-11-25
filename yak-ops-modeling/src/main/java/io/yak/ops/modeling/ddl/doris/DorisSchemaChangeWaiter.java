@@ -17,7 +17,15 @@ public class DorisSchemaChangeWaiter {
 
     public Long latestJobId(Connection connection, String tableName) throws SQLException {
         JobStatus status = queryLatestJob(connection, tableName);
-        return status == null ? null : status.jobId;
+        if (status == null) {
+            return null;
+        }
+        String state = status.state == null ? "" : status.state.toUpperCase(Locale.ROOT);
+        if ("PENDING".equals(state) || "WAITING_TXN".equals(state) || "RUNNING".equals(state)) {
+            throw new IllegalStateException(
+                    "Doris 表已有 Schema Change 任务正在执行，请等待完成后再发布: " + tableName);
+        }
+        return status.jobId;
     }
 
     public void awaitCompletion(
