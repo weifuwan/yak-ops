@@ -35,6 +35,11 @@ test("the renderer enables streaming repair, Shiki highlighting and Chinese punc
   assert.match(markdown, /plugins=\{plugins\}/);
   assert.match(markdown, /shikiTheme=\{\["github-light", "github-dark"\]\}/);
   assert.match(markdown, /mode="streaming"/);
+  assert.match(markdown, /animated=\{\{/);
+  assert.match(markdown, /animation: "sweepText"/);
+  assert.match(markdown, /duration: 300/);
+  assert.match(markdown, /sep: "word"/);
+  assert.match(markdown, /import "streamdown\/styles\.css"/);
   assert.match(markdown, /isAnimating=\{isStreaming\}/);
   assert.match(markdown, /lineNumbers=\{false\}/);
   assert.match(markdown, /controls=\{\{ table: false \}\}/);
@@ -43,7 +48,9 @@ test("the renderer enables streaming repair, Shiki highlighting and Chinese punc
 });
 
 test("Markdown styles restore list markers and follow Yak-OPS visual tokens", () => {
-  assert.match(markdownStyles, /--primary:\s*#fe2c55/);
+  assert.match(markdownStyles, /--primary:\s*#0033ff/);
+  assert.match(markdownStyles, /@keyframes sd-sweepText/);
+  assert.match(markdownStyles, /prefers-reduced-motion:\s*reduce/);
   assert.match(markdownStyles, /data-streamdown="unordered-list"/);
   assert.match(markdownStyles, /list-style-type:\s*disc !important/);
   assert.match(markdownStyles, /data-streamdown="ordered-list"/);
