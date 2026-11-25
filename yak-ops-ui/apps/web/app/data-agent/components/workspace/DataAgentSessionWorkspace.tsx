@@ -178,7 +178,7 @@ export function DataAgentSessionWorkspace({
 
   function handleSelectActivity(messageId: string, activityId: string) {
     setSelection({ messageId, activityId });
-    setDetailsExpandAll(false);
+    setDetailsExpandAll(true);
     setDetailsOpen(true);
   }
 
@@ -266,9 +266,9 @@ export function DataAgentSessionWorkspace({
             <MobileDetailsHeader onClose={() => setDetailsOpen(false)} />
             {selectedMessage && selectedActivity ? (
               <AgentDetailsPanel
-                message={selectedMessage}
-                selectedActivityId={selectedActivity.id}
+                activity={selectedActivity}
                 expandAll={detailsExpandAll}
+                messageError={selectedMessage.error}
               />
             ) : (
               <DetailsEmptyState />
