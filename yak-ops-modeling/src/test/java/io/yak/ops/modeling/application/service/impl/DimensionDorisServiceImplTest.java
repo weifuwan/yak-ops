@@ -145,6 +145,9 @@ class DimensionDorisServiceImplTest {
                     return record;
                 });
         when(dimensionDorisPublishDao.queryById(anyString())).thenReturn(null);
+        when(ddlEngine.execute(
+                any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
+                .thenReturn("CREATE TABLE `warehouse`.`dwd_order_detail` (...)");
 
         DimensionDorisPublishVO published =
                 service.publish("table-id", request(), dorisDatasource(), "tester");
@@ -154,6 +157,8 @@ class DimensionDorisServiceImplTest {
         assertEquals(DorisPublishModeEnum.INCREMENTAL, published.getPublishMode());
         verify(publishRecordService).createRunning(
                 eq("table-id"), any(DimensionDorisPublishPO.class), any());
+        verify(publishRecordService).updatePhysicalSchema(
+                anyString(), eq("CREATE TABLE `warehouse`.`dwd_order_detail` (...)"), eq("tester"));
         verify(publishRecordService).updateStatus(
                 anyString(), eq(DorisPublishStatusEnum.SUCCESS), eq(null), any(), any(), any(), eq("tester"));
         verify(ddlEngine).execute(
