@@ -46,9 +46,15 @@ const ATTENTION_STATUSES = new Set([
 function progressCategory(phase?: string): ActivityGroupCategory {
   const value = (phase ?? "").trim().toLowerCase();
 
-  const exploringPhase = /^(analysis|plan|planning|search|research|inspect|read|query|discover|context)(?:[:_-]|$)/;
-  const changedPhase = /^(create|update|edit|write|publish|delete|save|change|modify)(?:[:_-]|$)/;
-  const ranPhase = /^(run|execute|test|validate|build|sync|dispatch|trigger|process)(?:[:_-]|$)/;
+  const exploringPhase = new RegExp(
+    "^(analysis|plan|planning|search|research|inspect|read|query|discover|context)(?:[:_-]|$)",
+  );
+  const changedPhase = new RegExp(
+    "^(create|update|edit|write|publish|delete|save|change|modify)(?:[:_-]|$)",
+  );
+  const ranPhase = new RegExp(
+    "^(run|execute|test|validate|build|sync|dispatch|trigger|process)(?:[:_-]|$)",
+  );
 
   if (exploringPhase.test(value)) {
     return "exploring";
