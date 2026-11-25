@@ -402,7 +402,7 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(toolActivity, /ChevronRight/);
   assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
-  assert.match(toolActivity, /hover:bg-\[#e5e5e5\]/);
+  assert.match(toolActivity, /hover:bg-\[#f2f4ff\]/);
   assert.match(activityDetails, /hover:bg-\[#f7f8f8\]/);
   assert.match(activityDetails, /输入参数/);
   assert.match(activityDetails, /执行结果/);
