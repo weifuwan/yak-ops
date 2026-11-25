@@ -232,5 +232,5 @@ test("datasource list does not display a fabricated connection status", () => {
     }),
   });
   assert.equal("connStatus" in record, false);
-  assert.doesNotMatch(datasourceTableSource, /DataSourceStatus|pages\\.datasource\\.status/);
+  assert.doesNotMatch(datasourceTableSource, /DataSourceStatus|pages[.]datasource[.]status/);
 });
