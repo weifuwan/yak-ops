@@ -1,14 +1,10 @@
 import { useEffect, useId, useState } from "react";
 import {
   Activity,
-  CheckCircle2,
   ChevronDown,
-  CircleAlert,
-  LoaderCircle,
-  Pencil,
+  Hammer,
   Play,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 
 import type { AgentActivity } from "../../../../model/types";
@@ -28,15 +24,15 @@ type AgentActivityGroupProps = {
 };
 
 const GROUP_LABELS: Record<ActivityGroupCategory, string> = {
-  exploring: "Exploring",
-  changed: "Changed",
+  exploring: "Explored",
+  changed: "Made changes",
   ran: "Ran",
   other: "Activity",
 };
 
 const GROUP_ICONS = {
   exploring: Search,
-  changed: Pencil,
+  changed: Hammer,
   ran: Play,
   other: Activity,
 };
@@ -108,18 +104,7 @@ export function AgentActivityGroup({
     ? "Awaiting confirmation"
     : hasFailure
       ? "Needs attention"
-      : hasRunning
-        ? "Working"
-        : duration
-          ? "Worked for " + duration
-          : "Completed";
-  const StatusIcon = isAwaitingConfirmation
-    ? ShieldCheck
-    : hasFailure
-      ? CircleAlert
-      : hasRunning
-        ? LoaderCircle
-        : CheckCircle2;
+      : "";
   const GroupIcon = GROUP_ICONS[group.category];
   const contentId = "agent-activity-group-" + instanceId.replace(/:/g, "");
 
@@ -127,6 +112,8 @@ export function AgentActivityGroup({
     <section
       className="agent-work-group"
       data-expanded={expanded ? "true" : "false"}
+      data-active={hasRunning ? "true" : "false"}
+      data-category={group.category}
     >
       <button
         type="button"
@@ -138,40 +125,41 @@ export function AgentActivityGroup({
           ", " +
           countLabel
         }
-        className={[
-          "flex min-h-9 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg",
-          "px-2.5 py-2 text-left",
-          "transition-colors duration-200 hover:bg-[#f5f6f8]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0033ff]/20",
-        ].join(" ")}
+        className="agent-work-group__trigger group"
         onClick={onToggle}
       >
-        <GroupIcon size={14} className="shrink-0 text-[#697789]" />
-        <span className="min-w-0 truncate text-[13px] font-semibold text-[#344054]">
-          {GROUP_LABELS[group.category]}
+        <span
+          className="agent-work-group__icon"
+          data-category={group.category}
+          data-active={hasRunning ? "true" : "false"}
+          aria-hidden="true"
+        >
+          <GroupIcon size={14} strokeWidth={1.6} />
         </span>
-        <span className="shrink-0 text-xs text-[#98a2b3]">{countLabel}</span>
-        <span className="min-w-0 flex-1 truncate text-right text-xs text-[#98a2b3]">
-          {statusLabel}
-        </span>
-        <StatusIcon
+
+        {hasRunning ? (
+          <span className="agent-activity-shimmer agent-work-group__label">
+            {GROUP_LABELS[group.category]}
+          </span>
+        ) : (
+          <span className="agent-work-group__label">
+            {GROUP_LABELS[group.category]}
+          </span>
+        )}
+
+        <span className="agent-work-group__meta">{countLabel}</span>
+
+        {statusLabel ? (
+          <span className="agent-work-group__status">{statusLabel}</span>
+        ) : duration && hasRunning ? (
+          <span className="agent-work-group__status">{duration}</span>
+        ) : null}
+
+        <ChevronDown
           size={13}
           className={
-            "shrink-0 " +
-            (isAwaitingConfirmation
-              ? "text-[#b7791f]"
-              : hasFailure
-                ? "text-[#c45d5d]"
-                : hasRunning
-                  ? "animate-spin text-[#0033ff]"
-                  : "text-[#7b9184]")
-          }
-        />
-        <ChevronDown
-          size={14}
-          className={
-            "shrink-0 text-[#8994a3] transition-transform duration-200 " +
-            (expanded ? "rotate-180" : "")
+            "agent-work-group__chevron " +
+            (expanded ? "agent-work-group__chevron--expanded" : "")
           }
         />
       </button>
