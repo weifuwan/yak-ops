@@ -35,7 +35,9 @@ test("a valid login submission pulls the aurora into the login button", () => {
   assert.ok(validationIndex >= 0);
   assert.ok(animationIndex > validationIndex);
   assert.match(loginPanel, /<YakAurora ref=\{auroraRef\} targetRef=\{submitTargetRef\} \/>/);
-  const submitTargetPattern = /ref=\{submitTargetRef\} className="login-form-submit-target(?: mt-6)?"/;
+  const submitTargetPattern = new RegExp(
+    'ref=\\{submitTargetRef\\} className="login-form-submit-target(?: mt-6)?"',
+  );
   assert.match(loginPanel, submitTargetPattern);
 });
 
