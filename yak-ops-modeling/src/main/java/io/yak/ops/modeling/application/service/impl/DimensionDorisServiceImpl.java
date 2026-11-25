@@ -173,6 +173,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             publish.setTableModel(dto.getTableModel());
             publish.setPublishMode(dto.getPublishMode());
             publish.setPublishRemark(dto.getPublishRemark().trim());
+            publish.setKeyFields(serializeKeyFields(plan.keyFields));
             publish.setDdl(plan.ddl);
             publish.setDdlHash(sha256(plan.ddl));
             publish.setStatus(DorisPublishStatusEnum.PENDING);
@@ -242,19 +243,20 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             String targetDatabase,
             DimensionTablePO table,
             DimensionDorisPublishDTO dto) throws Exception {
-        String createDdl = buildCreateDdl(tableId, targetDatabase, table, dto.getTableModel());
+        BuildResult build = buildCreateDdl(tableId, targetDatabase, table, dto.getTableModel());
+        String createDdl = build.ddl;
         String qualifiedTable = quoteIdentifier(targetDatabase) + "." + quoteIdentifier(table.getTableName());
         List<String> statements = new ArrayList<>();
 
         if (dto.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE) {
             statements.add("DROP TABLE IF EXISTS " + qualifiedTable);
             statements.add(createDdl);
-            return new PublishPlan(joinStatements(statements), statements, false);
+            return new PublishPlan(joinStatements(statements), statements, false, build.keyFields);
         }
 
         if (!tableExists(connection, targetDatabase, table.getTableName())) {
             statements.add(createDdl);
-            return new PublishPlan(joinStatements(statements), statements, false);
+            return new PublishPlan(joinStatements(statements), statements, false, build.keyFields);
         }
 
         DimensionDorisPublishPO previous = latestSuccessfulPublish(
@@ -263,13 +265,13 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             throw new IllegalArgumentException(
                     "目标 Doris 表已存在，但没有 Yak-OPS 成功发布记录。为保证增量发布安全，请选择“删除重建”。");
         }
-        if (previous.getTableModel() != null && previous.getTableModel() != dto.getTableModel()) {
+        DorisDataModelEnum previousModel = inferPreviousTableModel(previous);
+        if (previousModel != dto.getTableModel()) {
             throw new IllegalArgumentException("目标表模型与本次选择不一致，请使用“删除重建”切换表模型。");
         }
-        String previousKey = extractKeyDefinition(previous.getDdl());
-        String currentKey = extractKeyDefinition(createDdl);
-        if (previousKey == null || currentKey == null || !previousKey.equals(currentKey)) {
-            throw new IllegalArgumentException("目标表 Key 定义已变化，增量发布不支持修改 Key 字段，请使用“删除重建”。");
+        List<String> previousKeyFields = readPreviousKeyFields(previous, previousModel);
+        if (!previousKeyFields.equals(build.keyFields)) {
+            throw new IllegalArgumentException("目标表 Key 字段定义已变化，增量发布不支持修改 Key 字段，请使用“删除重建”。");
         }
 
         List<DimensionTableFieldPO> fields = listFields(tableId);
@@ -308,12 +310,12 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
 
         if (statements.isEmpty()) {
-            return new PublishPlan("-- 当前目标表结构与模型一致，无需执行变更。", statements, true);
+            return new PublishPlan("-- 当前目标表结构与模型一致，无需执行变更。", statements, true, build.keyFields);
         }
-        return new PublishPlan(joinStatements(statements), statements, false);
+        return new PublishPlan(joinStatements(statements), statements, false, build.keyFields);
     }
 
-    private String buildCreateDdl(
+    private BuildResult buildCreateDdl(
             String tableId, String targetDatabase, DimensionTablePO table, DorisDataModelEnum tableModel) {
         if (!isIdentifier(targetDatabase)) {
             throw new IllegalArgumentException("目标 Doris Database 名称不合法");
@@ -389,8 +391,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         schema.setTableBuckets(null);
 
         String generatedDdl = DorisSchemaFactory.generateCreateTableDDL(schema);
-        return generatedDdl.replaceFirst(
+        String ddl = generatedDdl.replaceFirst(
                 "(?i)^CREATE TABLE IF NOT EXISTS\\s+", "CREATE TABLE ");
+        return new BuildResult(ddl, keyNames);
     }
 
     private DimensionDorisPublishPO latestSuccessfulPublish(
@@ -406,18 +409,69 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         return safeList(records).stream().findFirst().orElse(null);
     }
 
-    private String extractKeyDefinition(String ddl) {
-        if (StringUtils.isBlank(ddl)) {
-            return null;
+    private DorisDataModelEnum inferPreviousTableModel(DimensionDorisPublishPO previous) {
+        if (previous.getTableModel() != null) {
+            return previous.getTableModel();
         }
-        Matcher matcher = Pattern.compile("(?is)\\b(UNIQUE|DUPLICATE)\\s+KEY\\s*\\(([^)]*)\\)")
-                .matcher(ddl);
-        if (!matcher.find()) {
-            return null;
-        }
-        return matcher.group(1).toUpperCase(Locale.ROOT) + ":"
-                + matcher.group(2).replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+        String ddl = previous.getDdl();
+        return StringUtils.containsIgnoreCase(ddl, "UNIQUE KEY")
+                ? DorisDataModelEnum.UNIQUE
+                : DorisDataModelEnum.DUPLICATE;
     }
+
+    private List<String> readPreviousKeyFields(
+            DimensionDorisPublishPO previous, DorisDataModelEnum previousModel) {
+        if (StringUtils.isNotBlank(previous.getKeyFields())) {
+            try {
+                JsonNode fields = objectMapper.readTree(previous.getKeyFields());
+                if (fields != null && fields.isArray()) {
+                    List<String> names = new ArrayList<>();
+                    fields.forEach(field -> {
+                        if (field.isTextual()) {
+                            names.add(field.asText());
+                        }
+                    });
+                    return names;
+                }
+            } catch (JsonProcessingException ex) {
+                throw new IllegalArgumentException("无法解析历史发布记录中的 Key 字段快照", ex);
+            }
+        }
+
+        String ddl = previous.getDdl();
+        if (previousModel == DorisDataModelEnum.UNIQUE) {
+            Matcher matcher = Pattern.compile("(?is)\\bUNIQUE\\s+KEY\\s*\\(([^)]*)\\)")
+                    .matcher(StringUtils.defaultString(ddl));
+            if (!matcher.find()) {
+                throw new IllegalArgumentException("无法识别历史 UNIQUE KEY 定义，请使用“删除重建”。");
+            }
+            List<String> names = new ArrayList<>();
+            for (String part : matcher.group(1).split(",")) {
+                String name = part.replace("`", "").trim();
+                if (!name.isEmpty()) {
+                    names.add(name);
+                }
+            }
+            return names;
+        }
+
+        Matcher firstColumn = Pattern.compile("(?is)CREATE TABLE.*?\\(\\s*`([^`]+)`\\s+")
+                .matcher(StringUtils.defaultString(ddl));
+        if (!firstColumn.find()) {
+            throw new IllegalArgumentException("无法识别历史 DUPLICATE 表的首列定义，请使用“删除重建”。");
+        }
+        return Collections.singletonList(firstColumn.group(1));
+    }
+
+    private String serializeKeyFields(List<String> keyFields) {
+        try {
+            return objectMapper.writeValueAsString(keyFields);
+        } catch (Exception ex) {
+            throw new IllegalStateException("序列化 Doris Key 字段快照失败", ex);
+        }
+    }
+
+
 
     private Map<String, ColumnMetadata> readActualColumns(
             Connection connection, String database, String table) throws Exception {
@@ -584,11 +638,23 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         private final String ddl;
         private final List<String> statements;
         private final boolean noChanges;
+        private final List<String> keyFields;
 
-        private PublishPlan(String ddl, List<String> statements, boolean noChanges) {
+        private PublishPlan(String ddl, List<String> statements, boolean noChanges, List<String> keyFields) {
             this.ddl = ddl;
             this.statements = statements;
             this.noChanges = noChanges;
+            this.keyFields = keyFields;
+        }
+    }
+
+    private static class BuildResult {
+        private final String ddl;
+        private final List<String> keyFields;
+
+        private BuildResult(String ddl, List<String> keyFields) {
+            this.ddl = ddl;
+            this.keyFields = keyFields;
         }
     }
 
@@ -603,8 +669,6 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             this.scale = scale;
         }
     }
-
-
 
     private DataType toFlinkType(DimensionTableFieldPO field) {
         DimensionDataTypeEnum type = field.getDataType();
