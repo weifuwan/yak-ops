@@ -280,6 +280,9 @@ public class SchemaDao {
             String physicalConfigType = "mysql".equalsIgnoreCase(dbType.getDb())
                     ? "longtext NULL" : "text NULL";
             ensureColumn(metadata, connection, publishTable, "physical_config", physicalConfigType);
+            ensureColumn(metadata, connection, publishTable, "table_model", "varchar(32) NULL");
+            ensureColumn(metadata, connection, publishTable, "publish_mode", "varchar(32) NULL");
+            ensureColumn(metadata, connection, publishTable, "publish_remark", "text NULL");
 
             if (tableExists(metadata, connection, fieldTable)) {
                 try (Statement statement = connection.createStatement()) {
