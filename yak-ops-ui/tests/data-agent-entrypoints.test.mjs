@@ -577,6 +577,10 @@ test("Data Agent details panel renders only the selected activity and keeps its 
   assert.match(activityDetails, /expandedSections/);
   assert.match(activityDetails, /activity\.id/);
   assert.doesNotMatch(activityDetails, /activities\.map|AgentThought|TimelineNode|SquareTerminal|pl-8/);
+  assert.match(activityDetails, /flex min-w-0 flex-col gap-5 px-4 pb-5 pt-4/);
+  assert.match(activityDetails, /rounded-lg bg-\\[#f7f8f8\\]/);
+  assert.match(activityDetails, /rounded-lg bg-\\[#fff7f7\\]/);
+  assert.doesNotMatch(activityDetails, /rounded-xl border|border-t border|border-dashed border/);
   assert.doesNotMatch(activityDetails, /Wrench|toolStatusLabel|statusIcon|statusClassName|工具调用/);
   assert.match(sessionWorkspace, /setDetailsExpandAll\(true\)/);
 });
