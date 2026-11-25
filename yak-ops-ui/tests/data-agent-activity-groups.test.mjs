@@ -164,7 +164,7 @@ test("activity rail aligns to the group icon and expanded content uses a soft re
   assert.match(styles, /border-left:\s*1px solid #e3ebeb/);
   assert.match(styles, /@keyframes yak-agent-activity-reveal/);
   assert.match(styles, /filter:\s*blur\(2px\)/);
-  assert.match(styles, /background-color: rgba\(47, 115, 120, 0\.045\)/);
+  assert.match(styles, /background-color: rgba\(0, 51, 255, 0\.045\)/);
   assert.doesNotMatch(
     styles,
     /\.agent-work-group__trigger:hover\s*\{\s*opacity:\s*0\.82;/,
@@ -184,4 +184,19 @@ test("long scrollable activity details fade only when their content overflows", 
   assert.match(styles, /mask-image:\s*linear-gradient/);
   assert.match(styles, /-webkit-mask-image:\s*linear-gradient/);
   assert.match(styles, /prefers-reduced-motion: reduce/);
+});
+
+
+test("Data Agent activity accents use the Yak OPS brand blue at 80 percent strength", () => {
+  const styles = read(activityComponentsPath + "agent-activity.css");
+  const toolActivity = read(activityComponentsPath + "AgentToolActivity.tsx");
+
+  assert.match(styles, /color:\s*#335cff/);
+  assert.match(styles, /--block-ink, #335cff/);
+  assert.match(styles, /rgba\(0, 51, 255, 0\.045\)/);
+  assert.match(styles, /rgba\(0, 51, 255, 0\.14\)/);
+  assert.match(toolActivity, /bg-\[#ebefff\] text-\[#335cff\]/);
+  assert.match(toolActivity, /text-\[#335cff\] hover:bg-\[#f2f4ff\]/);
+  assert.doesNotMatch(styles, /#2f7378|47, 115, 120/);
+  assert.doesNotMatch(toolActivity, /#2f7378/);
 });

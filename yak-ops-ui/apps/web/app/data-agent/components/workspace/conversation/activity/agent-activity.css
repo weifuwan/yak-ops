@@ -20,7 +20,7 @@
   flex: 0 0 14px;
   align-items: center;
   justify-content: center;
-  color: #2f7378;
+  color: #335cff;
 }
 
 .agent-thought__icon[data-active="true"] svg {
@@ -28,7 +28,7 @@
 }
 
 .agent-thought__label {
-  color: #2f7378;
+  color: #335cff;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
@@ -67,7 +67,7 @@
 }
 
 .agent-work-group__trigger:hover {
-  background-color: rgba(47, 115, 120, 0.045);
+  background-color: rgba(0, 51, 255, 0.045);
 }
 
 .agent-work-group__trigger:focus-visible {
@@ -82,7 +82,7 @@
   flex: 0 0 14px;
   align-items: center;
   justify-content: center;
-  color: #2f7378;
+  color: #335cff;
 }
 
 .agent-work-group__icon[data-active="true"][data-category="exploring"] svg {
@@ -101,7 +101,7 @@
 .agent-work-group__label {
   min-width: 0;
   overflow: hidden;
-  color: #2f7378;
+  color: #335cff;
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
@@ -161,7 +161,7 @@
   min-height: 0;
   overflow: hidden;
   margin-left: 7px;
-  border-left: 1px solid #e3ebeb;
+  border-left: 1px solid rgba(0, 51, 255, 0.14);
   padding: 2px 0 4px 12px;
 }
 
@@ -188,7 +188,7 @@
 }
 
 .agent-activity-shimmer {
-  --agent-activity-ink: var(--block-ink, #2f7378);
+  --agent-activity-ink: var(--block-ink, #335cff);
   --agent-activity-soft: color-mix(
     in oklch,
     var(--agent-activity-ink) 30%,
@@ -198,9 +198,9 @@
     100deg,
     var(--agent-activity-ink) 0%,
     var(--agent-activity-ink) 40%,
-    color-mix(in oklch, #51b6f8 30%, var(--agent-activity-soft)) 47%,
-    color-mix(in oklch, #a390cb 55%, var(--agent-activity-soft)) 50%,
-    color-mix(in oklch, #7cd27f 30%, var(--agent-activity-soft)) 53%,
+    color-mix(in oklch, #7f9aff 38%, var(--agent-activity-soft)) 47%,
+    color-mix(in oklch, #b5aaff 55%, var(--agent-activity-soft)) 50%,
+    color-mix(in oklch, #a9bdff 38%, var(--agent-activity-soft)) 53%,
     var(--agent-activity-ink) 60%,
     var(--agent-activity-ink) 100%
   );
@@ -299,7 +299,7 @@
   .agent-activity-shimmer {
     background: none;
     animation: none;
-    color: var(--agent-activity-ink, #2f7378);
+    color: var(--agent-activity-ink, #335cff);
     -webkit-text-fill-color: currentColor;
   }
 
