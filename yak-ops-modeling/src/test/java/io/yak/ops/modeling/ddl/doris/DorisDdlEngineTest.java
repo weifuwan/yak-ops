@@ -230,6 +230,32 @@ class DorisDdlEngineTest {
     }
 
     @Test
+    void shouldPlanDropForOrdinaryPhysicalColumnAndRequireConfirmation() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null),
+                new DataSourceCatalogColumn(
+                        "legacy_note", "VARCHAR", Types.VARCHAR, 128, 0, true, 2, false, null)));
+
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+
+        DdlPlan plan = engine.plan(connection, catalog, request);
+
+        assertEquals(1, plan.getStatements().size());
+        assertTrue(plan.getStatements().get(0).contains("DROP COLUMN `legacy_note`"));
+        assertTrue(plan.isRequiresConfirmation());
+        assertEquals(Collections.singletonList("legacy_note"), plan.getDroppedColumns());
+    }
+
+    @Test
     void shouldReturnNoOpPlanWhenSchemaAlreadyMatches() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
         mockShowCreateTable("DUPLICATE");
