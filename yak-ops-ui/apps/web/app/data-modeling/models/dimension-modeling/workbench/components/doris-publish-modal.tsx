@@ -254,6 +254,7 @@ export function DorisPublishModal({
       replicationNum: replicationMode === "MANUAL" ? Number(replicationNum) : null,
       confirmDrop: publishMode === "DROP_RECREATE" && confirmedDrop,
       confirmDropColumns: confirmedDropColumns,
+      confirmedDdlHash: confirmedDrop || confirmedDropColumns ? preview.ddlHash : undefined,
     };
 
     setBusy(true);
@@ -279,6 +280,7 @@ export function DorisPublishModal({
       await client.invalidateQueries({
         queryKey: ["modeling", "doris-publish-history", projectCode, tableId],
       });
+      void previewQuery.refetch();
     } finally {
       setBusy(false);
     }
