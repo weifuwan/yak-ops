@@ -1,18 +1,9 @@
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Table,
-  type BadgeProps,
-  type TableColumns,
-} from "@yak-ops/yak-ui";
-import { CircleCheck, CircleMinus, CircleX } from "lucide-react";
-import type { ReactNode } from "react";
+import { Button, Checkbox, Table, type TableColumns } from "@yak-ops/yak-ui";
 
 import { DATA_SOURCE_PAGE_SIZE_OPTIONS, getDataSourceTypeLabel } from "../constants";
 import DatabaseIcons from "../icons/DatabaseIcons";
 import { useIntl } from "../i18n";
-import type { DataSourceConnectionStatus, DataSourceRecord } from "@/service/datasource";
+import type { DataSourceRecord } from "@/service/datasource";
 
 interface DataSourceTableProps {
   records: DataSourceRecord[];
@@ -32,41 +23,6 @@ interface DataSourceTableProps {
   onBatchDelete: () => void;
   onBatchTestConnection: () => void;
 }
-
-interface StatusConfig {
-  tone: NonNullable<BadgeProps["tone"]>;
-  icon: ReactNode;
-  messageId: string;
-}
-
-const DataSourceStatus = ({ status }: { status?: DataSourceConnectionStatus }) => {
-  const intl = useIntl();
-  const configMap: Record<string, StatusConfig> = {
-    CONNECTED: {
-      tone: "success",
-      icon: <CircleCheck size={13} />,
-      messageId: "pages.datasource.status.connected",
-    },
-    DISCONNECTED: {
-      tone: "danger",
-      icon: <CircleX size={13} />,
-      messageId: "pages.datasource.status.disconnected",
-    },
-    UNKNOWN: {
-      tone: "neutral",
-      icon: <CircleMinus size={13} />,
-      messageId: "pages.datasource.status.unknown",
-    },
-  };
-  const config = configMap[String(status || "UNKNOWN").toUpperCase()] || configMap.UNKNOWN;
-
-  return (
-    <Badge tone={config.tone} className="gap-1.5 whitespace-nowrap">
-      {config.icon}
-      {intl.formatMessage({ id: config.messageId })}
-    </Badge>
-  );
-};
 
 const DataSourceTable = ({
   records,
@@ -139,16 +95,11 @@ const DataSourceTable = ({
       render: (_value, record) => {
         const jdbcUrl = record.displayJdbcUrl || record.jdbcUrl;
         return (
-          <div className="min-w-0">
-            <div
-              className="truncate text-[13px] text-[var(--yak-components-muted-text)]"
-              title={jdbcUrl}
-            >
-              {jdbcUrl || "-"}
-            </div>
-            <div className="mt-1.5">
-              <DataSourceStatus status={record.connStatus} />
-            </div>
+          <div
+            className="truncate text-[13px] text-[var(--yak-components-muted-text)]"
+            title={jdbcUrl}
+          >
+            {jdbcUrl || "-"}
           </div>
         );
       },
