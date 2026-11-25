@@ -161,7 +161,7 @@ test("activity rail aligns to the group icon and expanded content uses a soft re
 
   assert.match(styles, /margin-left:\s*7px/);
   assert.match(styles, /padding:\s*2px 0 4px 12px/);
-  assert.match(styles, /border-left:\s*1px solid #e3ebeb/);
+  assert.match(styles, /border-left:\s*1px solid rgba\(0, 51, 255, 0\.14\)/);
   assert.match(styles, /@keyframes yak-agent-activity-reveal/);
   assert.match(styles, /filter:\s*blur\(2px\)/);
   assert.match(styles, /background-color: rgba\(0, 51, 255, 0\.045\)/);
