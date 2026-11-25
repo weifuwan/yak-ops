@@ -222,11 +222,15 @@ export function DataAgentWorkspace({
           />
         ) : null}
 
-        <div
-          ref={particleTargetRef}
-          className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
-        >
-        {isRestoringSession ? (
+        <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div
+            ref={particleTargetRef}
+            className="data-agent-particle-destination"
+            aria-hidden="true"
+          >
+            <div className="data-agent-particle-destination__rail" />
+          </div>
+          {isRestoringSession ? (
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white ml-2 max-md:ml-0">
             <DataAgentSessionLoading />
           </main>
