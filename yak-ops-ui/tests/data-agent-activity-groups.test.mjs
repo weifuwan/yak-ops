@@ -121,8 +121,8 @@ test("timeline uses expandable groups and keeps activity details selection wired
   const group = read(activityComponentsPath + "AgentActivityGroup.tsx");
   const toolActivity = read(activityComponentsPath + "AgentToolActivity.tsx");
   const thought = read(activityComponentsPath + "AgentThought.tsx");
-  const detailsTimeline = read(
-    "../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx",
+  const activityDetails = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/AgentActivityDetails.tsx",
   );
   const styles = read(activityComponentsPath + "agent-activity.css");
 
@@ -146,10 +146,8 @@ test("timeline uses expandable groups and keeps activity details selection wired
   assert.match(thought, /Thinking/);
   assert.match(thought, /Thought/);
   assert.match(thought, /window\.setInterval/);
-  assert.match(
-    detailsTimeline,
-    /AgentThought key=\{activity\.id\} activity=\{activity\} compact/,
-  );
+  assert.match(activityDetails, /activity: AgentActivity/);
+  assert.doesNotMatch(activityDetails, /AgentThought|activities\.map|AgentDetailsTimeline/);
   assert.match(styles, /@keyframes yak-agent-activity-shimmer/);
   assert.match(styles, /background-position: 140% 0/);
   assert.match(styles, /background-position: -140% 0/);
