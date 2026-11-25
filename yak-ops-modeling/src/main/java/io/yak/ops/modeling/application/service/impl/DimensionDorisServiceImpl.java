@@ -11,11 +11,8 @@ import io.yak.ops.dao.entity.DimensionTablePO;
 import io.yak.ops.dao.entity.VersionManagementPO;
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
 import io.yak.ops.dao.entity.enums.DimensionTableTypeEnum;
-import io.yak.ops.dao.entity.enums.DorisBucketModeEnum;
 import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
-import io.yak.ops.dao.entity.enums.DorisDistributionTypeEnum;
-import io.yak.ops.dao.entity.enums.DorisPartitionStrategyEnum;
-import io.yak.ops.dao.entity.enums.DorisPartitionUnitEnum;
+import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import io.yak.ops.dao.repository.modeling.DimensionDorisPublishDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableDao;
@@ -33,7 +30,6 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +41,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
@@ -53,7 +51,6 @@ import org.apache.doris.flink.catalog.doris.DataModel;
 import org.apache.doris.flink.catalog.doris.DorisSchemaFactory;
 import org.apache.doris.flink.catalog.doris.FieldSchema;
 import org.apache.doris.flink.catalog.doris.TableSchema;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 import org.springframework.beans.BeanUtils;
@@ -113,129 +110,120 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     @Override
     public DimensionDorisPublishVO preview(
             String tableId, DimensionDorisPublishDTO dto, DataSource datasource) {
-        validatePublishRequest(dto);
+        validatePublishRequest(dto, false);
         validateDatasource(datasource);
         String targetDatabase = resolveTargetDatabase(datasource);
         DimensionTablePO table = requirePhysicalTable(tableId);
         requireSubmitted(table);
-        BuildResult build = buildDdl(tableId, targetDatabase, dto);
-        DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
-        vo.setTableId(tableId);
-        vo.setDatasourceId(datasource.getId());
-        vo.setDatasourceName(datasource.getName());
-        vo.setTargetDatabase(targetDatabase);
-        vo.setTargetTable(table.getTableName());
-        vo.setDdl(build.ddl);
-        vo.setDdlHash(sha256(build.ddl));
-        vo.setPhysicalConfig(build.physicalConfig);
-        return vo;
+        try (Connection connection = openDorisConnection(datasource)) {
+            PublishPlan plan = buildPublishPlan(connection, tableId, targetDatabase, table, dto);
+            DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
+            vo.setTableId(tableId);
+            vo.setDatasourceId(datasource.getId());
+            vo.setDatasourceName(datasource.getName());
+            vo.setTargetDatabase(targetDatabase);
+            vo.setTargetTable(table.getTableName());
+            vo.setTableModel(dto.getTableModel());
+            vo.setPublishMode(dto.getPublishMode());
+            vo.setPublishRemark(StringUtils.trimToNull(dto.getPublishRemark()));
+            vo.setDdl(plan.ddl);
+            vo.setDdlHash(sha256(plan.ddl));
+            vo.setNoChanges(plan.noChanges);
+            return vo;
+        } catch (IllegalArgumentException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException(
+                    "连接 Doris 生成 DDL 预览失败: " + StringUtils.defaultIfBlank(ex.getMessage(), ex.getClass().getSimpleName()),
+                    ex);
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DimensionDorisPublishVO publish(
             String tableId, DimensionDorisPublishDTO dto, DataSource datasource, String operator) {
-        validatePublishRequest(dto);
+        validatePublishRequest(dto, true);
         validateDatasource(datasource);
-        String targetDatabase = resolveTargetDatabase(datasource);
 
-        // Serialize publishes for one model across application instances. The model-row lock is
-        // held until the external DDL and the publish-history update have both completed.
-        DimensionTablePO table = lockPhysicalTable(tableId);
-        requireSubmitted(table);
-
-        BuildResult build = buildDdl(tableId, targetDatabase, dto);
-        String ddl = build.ddl;
-        String ddlHash = sha256(ddl);
-        VersionManagementPO version = latestVersion(tableId);
-        List<DimensionDorisPublishPO> previousRecords = dimensionDorisPublishDao.queryList(
-                new QueryWrapper<DimensionDorisPublishPO>()
-                        .eq("table_id", tableId)
-                        .eq("datasource_id", datasource.getId())
-                        .eq("target_database", targetDatabase)
-                        .eq("target_table", table.getTableName())
-                        .eq("ddl_hash", ddlHash)
-                        .eq("status", DorisPublishStatusEnum.SUCCESS)
-                        .orderByDesc("create_time"));
-        DimensionDorisPublishPO previous = safeList(previousRecords).stream()
-                .findFirst()
-                .orElse(null);
-
-        DimensionDorisPublishPO publish = new DimensionDorisPublishPO();
-        publish.setTableId(tableId);
-        publish.setVersionId(version == null ? null : version.getId());
-        publish.setVersionNumber(version == null ? null : version.getVersionNumber());
-        publish.setDatasourceId(datasource.getId());
-        publish.setDatasourceName(datasource.getName());
-        publish.setTargetDatabase(targetDatabase);
-        publish.setTargetTable(table.getTableName());
-        publish.setPhysicalConfig(build.physicalConfig);
-        publish.setDdl(ddl);
-        publish.setDdlHash(ddlHash);
-        publish.setStatus(DorisPublishStatusEnum.PENDING);
-        publish.setProjectCode(null);
-        publish.initInsert();
-        publish.setCreateBy(StringUtils.defaultIfBlank(operator, "sys"));
-        publish.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
-        if (dimensionDorisPublishDao.insert(publish) <= 0) {
-            throw new IllegalArgumentException("创建 Doris 发布记录失败");
+        if (dto.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE
+                && !Boolean.TRUE.equals(dto.getConfirmDrop())) {
+            throw new IllegalArgumentException("删除重建需要二次确认");
         }
 
-        long started = System.currentTimeMillis();
-        publish.setStatus(DorisPublishStatusEnum.RUNNING);
-        publish.setStartedAt(new Date(started));
-        publish.initUpdate();
-        publish.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
-        dimensionDorisPublishDao.updateById(publish);
+        String targetDatabase = resolveTargetDatabase(datasource);
+        DimensionTablePO table = lockPhysicalTable(tableId);
+        requireSubmitted(table);
+        VersionManagementPO version = latestVersion(tableId);
 
+        DimensionDorisPublishPO publish = null;
+        boolean recordCreated = false;
+        long started = System.currentTimeMillis();
+        String currentOperator = StringUtils.defaultIfBlank(operator, "sys");
         try (Connection connection = openDorisConnection(datasource)) {
-            boolean targetExists =
-                    tableExists(connection, targetDatabase, table.getTableName());
-            if (targetExists) {
-                if (previous != null
-                        && tableMatchesDdl(
-                                connection, targetDatabase, table.getTableName(), tableId)) {
-                    publish.setStatus(DorisPublishStatusEnum.SUCCESS);
-                } else {
-                    publish.setStatus(DorisPublishStatusEnum.CONFLICT);
-                    publish.setErrorMessage(
-                            previous == null
-                                    ? "目标 Doris 表已存在。为避免覆盖现有数据，本次发布未执行 DDL。"
-                                    : "目标 Doris 表结构与当前模型不一致。为避免覆盖现有数据，本次发布未执行 DDL。");
-                }
-            } else {
+            PublishPlan plan = buildPublishPlan(connection, tableId, targetDatabase, table, dto);
+
+            publish = new DimensionDorisPublishPO();
+            publish.setTableId(tableId);
+            publish.setVersionId(version == null ? null : version.getId());
+            publish.setVersionNumber(version == null ? null : version.getVersionNumber());
+            publish.setDatasourceId(datasource.getId());
+            publish.setDatasourceName(datasource.getName());
+            publish.setTargetDatabase(targetDatabase);
+            publish.setTargetTable(table.getTableName());
+            publish.setTableModel(dto.getTableModel());
+            publish.setPublishMode(dto.getPublishMode());
+            publish.setPublishRemark(dto.getPublishRemark().trim());
+            publish.setDdl(plan.ddl);
+            publish.setDdlHash(sha256(plan.ddl));
+            publish.setStatus(DorisPublishStatusEnum.PENDING);
+            publish.setProjectCode(null);
+            publish.initInsert();
+            publish.setCreateBy(currentOperator);
+            publish.setUpdateBy(currentOperator);
+            if (dimensionDorisPublishDao.insert(publish) <= 0) {
+                publish = null;
+                throw new IllegalArgumentException("创建 Doris 发布记录失败");
+            }
+            recordCreated = true;
+
+            publish.setStatus(DorisPublishStatusEnum.RUNNING);
+            publish.setStartedAt(new Date(started));
+            publish.initUpdate();
+            publish.setUpdateBy(currentOperator);
+            dimensionDorisPublishDao.updateById(publish);
+
+            for (String statementSql : plan.statements) {
                 try (Statement statement = connection.createStatement()) {
-                    statement.execute(ddl);
-                } catch (SQLException ex) {
-                    if (tableExists(connection, targetDatabase, table.getTableName())) {
-                        publish.setStatus(DorisPublishStatusEnum.CONFLICT);
-                        publish.setErrorMessage(
-                                "目标 Doris 表在发布过程中已被创建，本次发布未覆盖现有表。");
-                    } else {
-                        throw ex;
-                    }
-                }
-                if (publish.getStatus() != DorisPublishStatusEnum.CONFLICT) {
-                    if (tableMatchesDdl(
-                            connection, targetDatabase, table.getTableName(), tableId)) {
-                        publish.setStatus(DorisPublishStatusEnum.SUCCESS);
-                    } else {
-                        publish.setStatus(DorisPublishStatusEnum.CONFLICT);
-                        publish.setErrorMessage(
-                                "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
-                    }
+                    statement.execute(statementSql);
                 }
             }
+
+            if (!tableMatchesModel(connection, targetDatabase, table.getTableName(), tableId)) {
+                throw new IllegalStateException("DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
+            }
+            publish.setStatus(DorisPublishStatusEnum.SUCCESS);
         } catch (Exception ex) {
+            if (!recordCreated) {
+                if (ex instanceof RuntimeException) {
+                    throw (RuntimeException) ex;
+                }
+                throw new IllegalArgumentException(
+                        "Doris 发布失败: " + StringUtils.defaultIfBlank(ex.getMessage(), ex.getClass().getSimpleName()),
+                        ex);
+            }
             publish.setStatus(DorisPublishStatusEnum.FAILED);
             publish.setErrorMessage(StringUtils.left(ex.getMessage(), 4000));
         } finally {
-            publish.setFinishedAt(new Date());
-            publish.setExecutionDurationMs(System.currentTimeMillis() - started);
-            publish.initUpdate();
-            publish.setUpdateBy(StringUtils.defaultIfBlank(operator, "sys"));
-            dimensionDorisPublishDao.updateById(publish);
+            if (recordCreated) {
+                publish.setFinishedAt(new Date());
+                publish.setExecutionDurationMs(System.currentTimeMillis() - started);
+                publish.initUpdate();
+                publish.setUpdateBy(currentOperator);
+                dimensionDorisPublishDao.updateById(publish);
+            }
         }
+
         DimensionDorisPublishPO saved = dimensionDorisPublishDao.queryById(publish.getId());
         return toPublishVO(saved == null ? publish : saved);
     }
@@ -249,8 +237,82 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         return safeList(records).stream().map(this::toPublishVO).collect(Collectors.toList());
     }
 
-    private BuildResult buildDdl(String tableId, String targetDatabase, DimensionDorisPublishDTO dto) {
-        DimensionTablePO table = requirePhysicalTable(tableId);
+    private PublishPlan buildPublishPlan(
+            Connection connection,
+            String tableId,
+            String targetDatabase,
+            DimensionTablePO table,
+            DimensionDorisPublishDTO dto) throws Exception {
+        String createDdl = buildCreateDdl(tableId, targetDatabase, table, dto.getTableModel());
+        String qualifiedTable = quoteIdentifier(targetDatabase) + "." + quoteIdentifier(table.getTableName());
+        List<String> statements = new ArrayList<>();
+
+        if (dto.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE) {
+            statements.add("DROP TABLE IF EXISTS " + qualifiedTable);
+            statements.add(createDdl);
+            return new PublishPlan(joinStatements(statements), statements, false);
+        }
+
+        if (!tableExists(connection, targetDatabase, table.getTableName())) {
+            statements.add(createDdl);
+            return new PublishPlan(joinStatements(statements), statements, false);
+        }
+
+        DimensionDorisPublishPO previous = latestSuccessfulPublish(
+                tableId, dto.getDatasourceId(), targetDatabase, table.getTableName());
+        if (previous == null) {
+            throw new IllegalArgumentException(
+                    "目标 Doris 表已存在，但没有 Yak-OPS 成功发布记录。为保证增量发布安全，请选择“删除重建”。");
+        }
+        if (previous.getTableModel() != null && previous.getTableModel() != dto.getTableModel()) {
+            throw new IllegalArgumentException("目标表模型与本次选择不一致，请使用“删除重建”切换表模型。");
+        }
+        String previousKey = extractKeyDefinition(previous.getDdl());
+        String currentKey = extractKeyDefinition(createDdl);
+        if (previousKey == null || currentKey == null || !previousKey.equals(currentKey)) {
+            throw new IllegalArgumentException("目标表 Key 定义已变化，增量发布不支持修改 Key 字段，请使用“删除重建”。");
+        }
+
+        List<DimensionTableFieldPO> fields = listFields(tableId);
+        Map<String, DimensionTableFieldPO> expectedFields = new LinkedHashMap<>();
+        for (DimensionTableFieldPO field : fields) {
+            expectedFields.put(field.getFieldName().toLowerCase(Locale.ROOT), field);
+        }
+        Map<String, ColumnMetadata> actualColumns =
+                readActualColumns(connection, targetDatabase, table.getTableName());
+
+        for (String actualName : actualColumns.keySet()) {
+            if (!expectedFields.containsKey(actualName)) {
+                throw new IllegalArgumentException(
+                        "目标表存在模型中已删除或未定义的字段: " + actualName
+                                + "。增量发布不删除字段，请使用“删除重建”。");
+            }
+        }
+
+        for (Map.Entry<String, DimensionTableFieldPO> expected : expectedFields.entrySet()) {
+            ColumnMetadata actual = actualColumns.get(expected.getKey());
+            DimensionTableFieldPO field = expected.getValue();
+            if (actual == null) {
+                if (Boolean.FALSE.equals(field.getCanNull())) {
+                    throw new IllegalArgumentException(
+                            "增量发布暂不支持新增非空字段，请将字段设为可空后重试: " + field.getFieldName());
+                }
+                statements.add(buildAddColumnDdl(targetDatabase, table.getTableName(), field));
+            } else if (!columnMatchesField(actual, field)) {
+                throw new IllegalArgumentException(
+                        "字段结构发生不兼容变化: " + field.getFieldName()
+                                + "。增量发布不修改字段类型、长度或精度，请使用“删除重建”。");
+            }
+        }
+
+        if (statements.isEmpty()) {
+            return new PublishPlan("-- 当前目标表结构与模型一致，无需执行变更。", statements, true);
+        }
+        return new PublishPlan(joinStatements(statements), statements, false);
+    }
+
+    private String buildCreateDdl(
+            String tableId, String targetDatabase, DimensionTablePO table, DorisDataModelEnum tableModel) {
         if (!isIdentifier(targetDatabase)) {
             throw new IllegalArgumentException("目标 Doris Database 名称不合法");
         }
@@ -262,8 +324,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         if (fields.isEmpty()) {
             throw new IllegalArgumentException("物理建表至少需要一个字段");
         }
-        Map<String, DimensionTableFieldPO> fieldsById = new HashMap<>();
+
         Set<String> fieldNames = new HashSet<>();
+        List<DimensionTableFieldPO> primaryFields = new ArrayList<>();
         for (DimensionTableFieldPO field : fields) {
             if (!isIdentifier(field.getFieldName())) {
                 throw new IllegalArgumentException("字段英文名称不合法: " + field.getFieldName());
@@ -271,44 +334,36 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             if (!fieldNames.add(field.getFieldName().toLowerCase(Locale.ROOT))) {
                 throw new IllegalArgumentException("字段英文名称重复: " + field.getFieldName());
             }
-            fieldsById.put(field.getId(), field);
+            if (Boolean.TRUE.equals(field.getPrimaryFlag())) {
+                primaryFields.add(field);
+            }
         }
 
-        ResolvedDorisConfig config = resolvePhysicalConfig(fields, fieldsById, dto.getAdvanced());
-        List<String> schemaKeyIds = new ArrayList<>(config.keyFieldIds);
-        if (config.partitionFieldId != null) {
-            // Doris AUTO RANGE partition columns are included in the physical UNIQUE KEY by
-            // the connector's schema factory. Do not pass the same column twice.
-            schemaKeyIds.remove(config.partitionFieldId);
+        if (tableModel == DorisDataModelEnum.UNIQUE && primaryFields.isEmpty()) {
+            throw new IllegalArgumentException("UNIQUE KEY 主键表至少需要一个主键字段，请先在字段管理中设置主键。");
         }
-        if (config.dataModel == DorisDataModelEnum.UNIQUE && schemaKeyIds.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "主键更新表至少需要一个非分区主键字段，分区字段由 Doris 自动加入 UNIQUE KEY");
-        }
-        List<String> keyNames = resolveFieldNames(schemaKeyIds, fieldsById, "主键");
-        List<String> distributionNames =
-                resolveFieldNames(config.distributionFieldIds, fieldsById, "HASH 分布");
-
-        String partitionFieldName = null;
-        if (config.partitionFieldId != null) {
-            DimensionTableFieldPO partitionField = fieldsById.get(config.partitionFieldId);
-            partitionFieldName = partitionField.getFieldName();
+        if (tableModel == DorisDataModelEnum.UNIQUE) {
+            for (DimensionTableFieldPO field : primaryFields) {
+                if (!Boolean.FALSE.equals(field.getCanNull())) {
+                    throw new IllegalArgumentException(
+                            "UNIQUE KEY 主键字段必须设置为非空，请检查字段: " + field.getFieldName());
+                }
+            }
         }
 
-        if (config.dataModel == DorisDataModelEnum.DUPLICATE
-                && (partitionFieldName == null
-                        || !partitionFieldName.equals(fields.get(0).getFieldName()))) {
-            // Match Doris CDC's schema factory: DUPLICATE uses the first column as the implicit
-            // schema key for column ordering and STRING-to-VARCHAR handling, without a UNIQUE clause.
-            keyNames = Collections.singletonList(fields.get(0).getFieldName());
-        }
+        List<DimensionTableFieldPO> keyFields = primaryFields.isEmpty()
+                ? Collections.singletonList(fields.get(0))
+                : primaryFields;
+        List<String> keyNames = keyFields.stream()
+                .map(DimensionTableFieldPO::getFieldName)
+                .collect(Collectors.toList());
+        String distributionField = keyNames.get(0);
 
         Map<String, FieldSchema> fieldSchemas = new LinkedHashMap<>();
         for (DimensionTableFieldPO field : fields) {
             String dorisType = DorisTypeMapper.toDorisType(toFlinkType(field));
             boolean keyField = keyNames.contains(field.getFieldName());
-            boolean partitionField = field.getId().equals(config.partitionFieldId);
-            if (Boolean.FALSE.equals(field.getCanNull()) && !keyField && !partitionField) {
+            if (Boolean.FALSE.equals(field.getCanNull()) && !keyField) {
                 throw new IllegalArgumentException(
                         "当前 Doris SDK DDL Builder 无法表达普通 Value 字段 NOT NULL，请将字段设为可空: "
                                 + field.getFieldName());
@@ -325,121 +380,145 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         schema.setTable(table.getTableName());
         schema.setTableComment(StringUtils.defaultIfBlank(table.getCnName(), table.getRemark()));
         schema.setFields(fieldSchemas);
-        schema.setModel(DataModel.valueOf(config.dataModel.name()));
+        schema.setModel(DataModel.valueOf(tableModel.name()));
         schema.setKeys(keyNames);
-        schema.setDistributeKeys(distributionNames);
+        schema.setDistributeKeys(Collections.singletonList(distributionField));
         schema.setProperties(Collections.emptyMap());
-        schema.setTableBuckets(config.bucketCount);
-        if (partitionFieldName != null) {
-            schema.setPartitionInfo(Tuple2.of(
-                    partitionFieldName, config.partitionUnit.name().toLowerCase(Locale.ROOT)));
-        }
+        schema.setTableBuckets(null);
+
         String generatedDdl = DorisSchemaFactory.generateCreateTableDDL(schema);
-        String ddl = generatedDdl.replaceFirst(
+        return generatedDdl.replaceFirst(
                 "(?i)^CREATE TABLE IF NOT EXISTS\\s+", "CREATE TABLE ");
-        return new BuildResult(ddl, serializePhysicalConfig(config));
     }
 
-    private ResolvedDorisConfig resolvePhysicalConfig(
-            List<DimensionTableFieldPO> fields,
-            Map<String, DimensionTableFieldPO> fieldsById,
-            DimensionDorisPublishDTO.Advanced advanced) {
-        ResolvedDorisConfig config = new ResolvedDorisConfig();
-        config.keyFieldIds = fields.stream()
-                .filter(field -> Boolean.TRUE.equals(field.getPrimaryFlag()))
-                .map(DimensionTableFieldPO::getId)
-                .collect(Collectors.toList());
-        for (String keyFieldId : config.keyFieldIds) {
-            DimensionTableFieldPO keyField = fieldsById.get(keyFieldId);
-            if (!Boolean.FALSE.equals(keyField.getCanNull())) {
-                throw new IllegalArgumentException(
-                        "主键字段必须设置为非空，请检查字段: " + keyField.getFieldName());
-            }
-        }
-        config.dataModel = config.keyFieldIds.isEmpty()
-                ? DorisDataModelEnum.DUPLICATE : DorisDataModelEnum.UNIQUE;
-        config.keyFieldNames = config.keyFieldIds.stream()
-                .map(id -> fieldsById.get(id).getFieldName())
-                .collect(Collectors.toList());
-        config.distributionType = DorisDistributionTypeEnum.HASH;
-        config.bucketMode = advanced != null && advanced.getBucketCount() != null
-                ? DorisBucketModeEnum.FIXED : DorisBucketModeEnum.AUTO;
-        config.bucketCount = advanced == null ? null : advanced.getBucketCount();
-        if (config.bucketCount != null && config.bucketCount <= 0) {
-            throw new IllegalArgumentException("固定分桶数量必须大于 0");
-        }
-
-        config.partitionStrategy = DorisPartitionStrategyEnum.NONE;
-        if (advanced != null && advanced.getPartition() != null) {
-            String partitionFieldId = StringUtils.trimToNull(advanced.getPartition().getFieldId());
-            DorisPartitionUnitEnum partitionUnit = advanced.getPartition().getUnit();
-            if (partitionFieldId == null || partitionUnit == null) {
-                throw new IllegalArgumentException("启用时间分区后，必须选择分区字段和分区周期");
-            }
-            DimensionTableFieldPO partitionField = fieldsById.get(partitionFieldId);
-            if (partitionField == null) {
-                throw new IllegalArgumentException("分区字段不属于当前模型");
-            }
-            if (!isDateTimeType(partitionField.getDataType())) {
-                throw new IllegalArgumentException("Doris 时间分区字段必须是 DATE 或时间类型");
-            }
-            if (!Boolean.FALSE.equals(partitionField.getCanNull())) {
-                throw new IllegalArgumentException("Doris 时间分区字段必须设置为非空");
-            }
-            config.partitionStrategy = DorisPartitionStrategyEnum.AUTO_RANGE;
-            config.partitionFieldId = partitionFieldId;
-            config.partitionFieldName = partitionField.getFieldName();
-            config.partitionUnit = partitionUnit;
-        }
-
-        boolean customDistribution = advanced != null
-                && Boolean.TRUE.equals(advanced.getCustomDistribution());
-        config.customDistribution = customDistribution;
-        if (customDistribution) {
-            config.distributionFieldIds = distinctIds(
-                    advanced.getDistributionFieldIds(), "HASH 分布字段");
-            if (config.distributionFieldIds.isEmpty()) {
-                throw new IllegalArgumentException("自定义 HASH 分布至少选择一个字段");
-            }
-        } else {
-            String preferredFieldId = config.keyFieldIds.stream()
-                    .filter(id -> !id.equals(config.partitionFieldId))
-                    .findFirst()
-                    .orElse(fields.get(0).getId());
-            config.distributionFieldIds = Collections.singletonList(preferredFieldId);
-        }
-        for (String distributionFieldId : config.distributionFieldIds) {
-            if (!fieldsById.containsKey(distributionFieldId)) {
-                throw new IllegalArgumentException("HASH 分布字段不属于当前模型: " + distributionFieldId);
-            }
-        }
-        config.distributionFieldNames = config.distributionFieldIds.stream()
-                .map(id -> fieldsById.get(id).getFieldName())
-                .collect(Collectors.toList());
-        return config;
+    private DimensionDorisPublishPO latestSuccessfulPublish(
+            String tableId, Integer datasourceId, String database, String table) {
+        List<DimensionDorisPublishPO> records = dimensionDorisPublishDao.queryList(
+                new QueryWrapper<DimensionDorisPublishPO>()
+                        .eq("table_id", tableId)
+                        .eq("datasource_id", datasourceId)
+                        .eq("target_database", database)
+                        .eq("target_table", table)
+                        .eq("status", DorisPublishStatusEnum.SUCCESS)
+                        .orderByDesc("create_time"));
+        return safeList(records).stream().findFirst().orElse(null);
     }
 
-    private String serializePhysicalConfig(ResolvedDorisConfig config) {
-        Map<String, Object> snapshot = new LinkedHashMap<>();
-        snapshot.put("dataModel", config.dataModel.name());
-        snapshot.put("keyFieldIds", config.keyFieldIds);
-        snapshot.put("keyFieldNames", config.keyFieldNames);
-        snapshot.put("distributionType", config.distributionType.name());
-        snapshot.put("distributionFieldIds", config.distributionFieldIds);
-        snapshot.put("distributionFieldNames", config.distributionFieldNames);
-        snapshot.put("distributionMode", config.customDistribution ? "CUSTOM" : "AUTO");
-        snapshot.put("bucketMode", config.bucketMode.name());
-        snapshot.put("bucketCount", config.bucketCount);
-        snapshot.put("partitionStrategy", config.partitionStrategy.name());
-        snapshot.put("partitionFieldId", config.partitionFieldId);
-        snapshot.put("partitionFieldName", config.partitionFieldName);
-        snapshot.put("partitionUnit", config.partitionUnit == null ? null : config.partitionUnit.name());
-        snapshot.put("tableProperties", Collections.emptyMap());
-        try {
-            return objectMapper.writeValueAsString(snapshot);
-        } catch (Exception ex) {
-            throw new IllegalStateException("序列化 Doris 发布配置失败", ex);
+    private String extractKeyDefinition(String ddl) {
+        if (StringUtils.isBlank(ddl)) {
+            return null;
         }
+        Matcher matcher = Pattern.compile("(?is)\\b(UNIQUE|DUPLICATE)\\s+KEY\\s*\\(([^)]*)\\)")
+                .matcher(ddl);
+        if (!matcher.find()) {
+            return null;
+        }
+        return matcher.group(1).toUpperCase(Locale.ROOT) + ":"
+                + matcher.group(2).replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+    }
+
+    private Map<String, ColumnMetadata> readActualColumns(
+            Connection connection, String database, String table) throws Exception {
+        DatabaseMetaData metadata = connection.getMetaData();
+        Map<String, ColumnMetadata> columnsByName = new LinkedHashMap<>();
+        try (ResultSet columns = metadata.getColumns(
+                database, null, metadataPattern(metadata, table), null)) {
+            while (columns.next()) {
+                if (!table.equalsIgnoreCase(columns.getString("TABLE_NAME"))) {
+                    continue;
+                }
+                String name = columns.getString("COLUMN_NAME");
+                String type = columns.getString("TYPE_NAME");
+                if (StringUtils.isBlank(name) || StringUtils.isBlank(type)) {
+                    continue;
+                }
+                int sizeValue = columns.getInt("COLUMN_SIZE");
+                Integer size = columns.wasNull() ? null : sizeValue;
+                int scaleValue = columns.getInt("DECIMAL_DIGITS");
+                Integer scale = columns.wasNull() ? null : scaleValue;
+                columnsByName.put(
+                        name.toLowerCase(Locale.ROOT),
+                        new ColumnMetadata(type, size, scale));
+            }
+        }
+        return columnsByName;
+    }
+
+    private boolean columnMatchesField(ColumnMetadata actual, DimensionTableFieldPO field) {
+        String expectedType = DorisTypeMapper.toDorisType(toFlinkType(field));
+        String expectedBase = normalizeDorisTypeName(expectedType);
+        if (!expectedBase.equals(normalizeDorisTypeName(actual.typeName))) {
+            return false;
+        }
+        Matcher parameters = Pattern.compile("\\((\\d+)(?:,(\\d+))?\\)").matcher(expectedType);
+        if (!parameters.find()) {
+            return true;
+        }
+        if ("CHAR".equals(expectedBase) || "VARCHAR".equals(expectedBase) || "DECIMAL".equals(expectedBase)) {
+            Integer expectedSize = Integer.valueOf(parameters.group(1));
+            if (actual.size == null || !expectedSize.equals(actual.size)) {
+                return false;
+            }
+        }
+        if ("DECIMAL".equals(expectedBase) && parameters.group(2) != null) {
+            Integer expectedScale = Integer.valueOf(parameters.group(2));
+            return actual.scale != null && expectedScale.equals(actual.scale);
+        }
+        return true;
+    }
+
+    private String buildAddColumnDdl(String database, String table, DimensionTableFieldPO field) {
+        String type = DorisTypeMapper.toDorisType(toFlinkType(field));
+        StringBuilder ddl = new StringBuilder("ALTER TABLE ")
+                .append(quoteIdentifier(database)).append(".").append(quoteIdentifier(table))
+                .append(" ADD COLUMN ").append(quoteIdentifier(field.getFieldName()))
+                .append(" ").append(type).append(" NULL");
+
+        String defaultValue = StringUtils.trimToNull(field.getDefaultValue());
+        if (defaultValue != null) {
+            validateDefaultValue(defaultValue, field.getFieldName());
+            ddl.append(" DEFAULT ").append(formatDefaultValue(defaultValue, field.getDataType()));
+        }
+        String comment = StringUtils.defaultIfBlank(field.getRemark(), field.getCnName());
+        if (StringUtils.isNotBlank(comment)) {
+            ddl.append(" COMMENT '").append(escapeSqlLiteral(comment)).append("'");
+        }
+        return ddl.toString();
+    }
+
+    private String formatDefaultValue(String value, DimensionDataTypeEnum type) {
+        if (value.matches("(?i)CURRENT_TIMESTAMP(?:\\(\\))?")
+                || value.matches("(?i)TRUE|FALSE")
+                || value.matches("[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?")) {
+            return value;
+        }
+        switch (type) {
+            case TINYINT:
+            case SMALLINT:
+            case INT:
+            case BIGINT:
+            case DECIMAL:
+            case FLOAT:
+            case DOUBLE:
+                throw new IllegalArgumentException("数值字段默认值格式不合法: " + value);
+            default:
+                return "'" + escapeSqlLiteral(value) + "'";
+        }
+    }
+
+    private String escapeSqlLiteral(String value) {
+        return value == null ? "" : value.replace("'", "''");
+    }
+
+    private String quoteIdentifier(String value) {
+        if (!isIdentifier(value)) {
+            throw new IllegalArgumentException("Doris 标识符不合法: " + value);
+        }
+        return "`" + value + "`";
+    }
+
+    private String joinStatements(List<String> statements) {
+        return statements.stream().collect(Collectors.joining(";\\n\\n")) + ";";
     }
 
     private String resolveTargetDatabase(DataSource datasource) {
@@ -461,12 +540,24 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
     }
 
-    private void validatePublishRequest(DimensionDorisPublishDTO dto) {
+    private void validatePublishRequest(DimensionDorisPublishDTO dto, boolean publishing) {
         if (dto == null) {
             throw new IllegalArgumentException("Doris 发布参数不能为空");
         }
         if (dto.getDatasourceId() == null) {
             throw new IllegalArgumentException("请选择 Doris 数据源");
+        }
+        if (dto.getTableModel() == null) {
+            throw new IllegalArgumentException("请选择 Doris 表类型");
+        }
+        if (dto.getPublishMode() == null) {
+            throw new IllegalArgumentException("请选择发布模式");
+        }
+        if (publishing && StringUtils.isBlank(dto.getPublishRemark())) {
+            throw new IllegalArgumentException("请输入发布备注");
+        }
+        if (StringUtils.length(dto.getPublishRemark()) > 2048) {
+            throw new IllegalArgumentException("发布备注不能超过 2048 个字符");
         }
     }
 
@@ -476,31 +567,31 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
     }
 
-    private static class ResolvedDorisConfig {
-        private DorisDataModelEnum dataModel;
-        private List<String> keyFieldIds = Collections.emptyList();
-        private List<String> keyFieldNames = Collections.emptyList();
-        private DorisDistributionTypeEnum distributionType;
-        private List<String> distributionFieldIds = Collections.emptyList();
-        private List<String> distributionFieldNames = Collections.emptyList();
-        private boolean customDistribution;
-        private DorisBucketModeEnum bucketMode;
-        private Integer bucketCount;
-        private DorisPartitionStrategyEnum partitionStrategy;
-        private String partitionFieldId;
-        private String partitionFieldName;
-        private DorisPartitionUnitEnum partitionUnit;
-    }
-
-    private static class BuildResult {
+    private static class PublishPlan {
         private final String ddl;
-        private final String physicalConfig;
+        private final List<String> statements;
+        private final boolean noChanges;
 
-        private BuildResult(String ddl, String physicalConfig) {
+        private PublishPlan(String ddl, List<String> statements, boolean noChanges) {
             this.ddl = ddl;
-            this.physicalConfig = physicalConfig;
+            this.statements = statements;
+            this.noChanges = noChanges;
         }
     }
+
+    private static class ColumnMetadata {
+        private final String typeName;
+        private final Integer size;
+        private final Integer scale;
+
+        private ColumnMetadata(String typeName, Integer size, Integer scale) {
+            this.typeName = typeName;
+            this.size = size;
+            this.scale = scale;
+        }
+    }
+
+
 
     private DataType toFlinkType(DimensionTableFieldPO field) {
         DimensionDataTypeEnum type = field.getDataType();
@@ -590,35 +681,6 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             throw new IllegalArgumentException(
                     "默认值包含当前 Doris DDL Builder 不支持的字符: " + fieldName);
         }
-    }
-
-    private List<String> distinctIds(List<String> ids, String label) {
-        if (ids == null || ids.isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<String> result = new ArrayList<>();
-        Set<String> seen = new HashSet<>();
-        for (String id : ids) {
-            String value = StringUtils.trimToNull(id);
-            if (value == null || !seen.add(value)) {
-                throw new IllegalArgumentException(label + "不能为空且不能重复");
-            }
-            result.add(value);
-        }
-        return result;
-    }
-
-    private List<String> resolveFieldNames(
-            List<String> ids, Map<String, DimensionTableFieldPO> fieldsById, String label) {
-        List<String> names = new ArrayList<>();
-        for (String id : ids) {
-            DimensionTableFieldPO field = fieldsById.get(id);
-            if (field == null) {
-                throw new IllegalArgumentException(label + "字段不属于当前模型: " + id);
-            }
-            names.add(field.getFieldName());
-        }
-        return names;
     }
 
     private List<DimensionTableFieldPO> listFields(String tableId) {
@@ -729,44 +791,23 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 .replace("_", escape + "_");
     }
 
-    private boolean tableMatchesDdl(
+    private boolean tableMatchesModel(
             Connection connection, String database, String table, String tableId) throws Exception {
-        DatabaseMetaData metadata = connection.getMetaData();
-        Map<String, String> expectedColumns = new HashMap<>();
-        for (DimensionTableFieldPO field : listFields(tableId)) {
-            expectedColumns.put(
-                    field.getFieldName().toLowerCase(Locale.ROOT),
-                    normalizeDorisTypeName(DorisTypeMapper.toDorisType(toFlinkType(field))));
-        }
-
-        Map<String, String> actualColumns = new HashMap<>();
-        try (ResultSet columns = metadata.getColumns(
-                database, null, metadataPattern(metadata, table), null)) {
-            while (columns.next()) {
-                String actualTable = columns.getString("TABLE_NAME");
-                if (!table.equalsIgnoreCase(actualTable)) {
-                    continue;
-                }
-                String columnName = columns.getString("COLUMN_NAME");
-                String typeName = columns.getString("TYPE_NAME");
-                if (columnName != null && typeName != null) {
-                    actualColumns.put(
-                            columnName.toLowerCase(Locale.ROOT),
-                            normalizeDorisTypeName(typeName));
-                }
-            }
-        }
-
-        if (expectedColumns.isEmpty() || expectedColumns.size() != actualColumns.size()) {
+        List<DimensionTableFieldPO> fields = listFields(tableId);
+        Map<String, ColumnMetadata> actualColumns = readActualColumns(connection, database, table);
+        if (fields.isEmpty() || fields.size() != actualColumns.size()) {
             return false;
         }
-        for (Map.Entry<String, String> expected : expectedColumns.entrySet()) {
-            if (!expected.getValue().equals(actualColumns.get(expected.getKey()))) {
+        for (DimensionTableFieldPO field : fields) {
+            ColumnMetadata actual = actualColumns.get(field.getFieldName().toLowerCase(Locale.ROOT));
+            if (actual == null || !columnMatchesField(actual, field)) {
                 return false;
             }
         }
         return true;
     }
+
+
 
     private String normalizeDorisTypeName(String typeName) {
         int parameterStart = typeName.indexOf('(');
@@ -803,12 +844,6 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
         BeanUtils.copyProperties(po, vo);
         return vo;
-    }
-
-    private boolean isDateTimeType(DimensionDataTypeEnum type) {
-        return type == DimensionDataTypeEnum.DATE
-                || type == DimensionDataTypeEnum.DATETIME
-                || type == DimensionDataTypeEnum.TIMESTAMP;
     }
 
     private boolean isIdentifier(String value) {
