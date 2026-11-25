@@ -33,6 +33,7 @@ import {
   type DorisTableModel,
 } from "@/service/data-modeling/models/dimension-modeling";
 import { listDataSources } from "@/service/datasource";
+import { SqlCodeEditor } from "@/app/data-development/task-editor/sql/sql-code-editor";
 
 type Props = {
   projectCode: string;
@@ -113,8 +114,8 @@ export function DorisPublishModal({
   });
 
   const [datasourceId, setDatasourceId] = useState("");
-  const [tableModel, setTableModel] = useState<DorisTableModel | "">("");
-  const [publishMode, setPublishMode] = useState<DorisPublishMode | "">("");
+  const [tableModel, setTableModel] = useState<DorisTableModel | "">("UNIQUE");
+  const [publishMode, setPublishMode] = useState<DorisPublishMode | "">("INCREMENTAL");
   const [publishRemark, setPublishRemark] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDropOpen, setConfirmDropOpen] = useState(false);
@@ -125,8 +126,8 @@ export function DorisPublishModal({
       return;
     }
     setDatasourceId("");
-    setTableModel("");
-    setPublishMode("");
+    setTableModel("UNIQUE");
+    setPublishMode("INCREMENTAL");
     setPublishRemark("");
     setConfirmDropOpen(false);
   }, [open, tableId]);
@@ -413,15 +414,7 @@ export function DorisPublishModal({
 
           <section className="border-t border-[var(--yak-components-panel-border)] pt-4">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <h3 className="m-0 text-xs font-medium text-[var(--yak-components-field-label)]">DDL 预览</h3>
-                {tableModel ? (
-                  <span className="text-[11px] text-[var(--yak-components-muted-text)]">
-                    {tableModel === "UNIQUE" ? "UNIQUE KEY · 主键表" : "DUPLICATE KEY · 明细表"}
-                  </span>
-                ) : null}
-                <span className="text-[11px] text-[var(--yak-components-muted-text)]">只读 · 自动生成</span>
-              </div>
+              <h3 className="m-0 text-xs font-medium text-[var(--yak-components-field-label)]">DDL 预览</h3>
               <Button
                 size="sm"
                 variant="ghost"
@@ -432,15 +425,18 @@ export function DorisPublishModal({
                 复制
               </Button>
             </div>
-            <Textarea
-              size="small"
-              variant="outlined"
-              rows={12}
-              readOnly
-              value={preview?.ddl || ""}
-              placeholder={previewPlaceholder}
-              className="min-h-[260px] resize-y font-mono text-xs leading-5"
-            />
+            <div className="relative h-[300px] overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-white">
+              <SqlCodeEditor
+                value={preview?.ddl || ""}
+                readOnly
+                onChange={() => undefined}
+              />
+              {!preview?.ddl ? (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-xs text-[var(--yak-components-muted-text)]">
+                  {previewPlaceholder}
+                </div>
+              ) : null}
+            </div>
             {previewError ? (
               <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">{previewError}</p>
             ) : preview?.noChanges ? (
