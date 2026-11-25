@@ -43,28 +43,16 @@ const ATTENTION_STATUSES = new Set([
   "awaiting-confirmation",
 ]);
 
+const EXPLORING_PHASE = /^(analysis|plan|planning|search|research|inspect|read|query|discover|context)(?:[:_-]|$)/;
+const CHANGED_PHASE = /^(create|update|edit|write|publish|delete|save|change|modify)(?:[:_-]|$)/;
+const RAN_PHASE = /^(run|execute|test|validate|build|sync|dispatch|trigger|process)(?:[:_-]|$)/;
+
 function progressCategory(phase?: string): ActivityGroupCategory {
   const value = (phase ?? "").trim().toLowerCase();
 
-  const exploringPhase = new RegExp(
-    "^(analysis|plan|planning|search|research|inspect|read|query|discover|context)(?:[:_-]|$)",
-  );
-  const changedPhase = new RegExp(
-    "^(create|update|edit|write|publish|delete|save|change|modify)(?:[:_-]|$)",
-  );
-  const ranPhase = new RegExp(
-    "^(run|execute|test|validate|build|sync|dispatch|trigger|process)(?:[:_-]|$)",
-  );
-
-  if (exploringPhase.test(value)) {
-    return "exploring";
-  }
-  if (changedPhase.test(value)) {
-    return "changed";
-  }
-  if (ranPhase.test(value)) {
-    return "ran";
-  }
+  if (EXPLORING_PHASE.test(value)) return "exploring";
+  if (CHANGED_PHASE.test(value)) return "changed";
+  if (RAN_PHASE.test(value)) return "ran";
   return "other";
 }
 
