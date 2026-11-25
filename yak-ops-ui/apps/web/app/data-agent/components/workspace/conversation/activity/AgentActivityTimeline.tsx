@@ -43,7 +43,6 @@ export function AgentActivityTimeline({
           (activity) => activity.id === selectedActivityId,
         );
         const defaultExpanded =
-          isStreaming ||
           group.hasRunning ||
           group.requiresAttention ||
           containsSelectedActivity;
