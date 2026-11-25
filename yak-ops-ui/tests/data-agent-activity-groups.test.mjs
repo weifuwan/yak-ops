@@ -134,6 +134,7 @@ test("timeline uses expandable groups and keeps activity details selection wired
   assert.match(timeline, /containsSelectedActivity/);
   assert.match(timeline, /group\.requiresAttention/);
   assert.match(group, /aria-expanded=\{expanded\}/);
+  assert.match(group, /Explored/);
   assert.match(group, /Made changes/);
   assert.match(group, /Hammer/);
   assert.match(group, /Search/);
