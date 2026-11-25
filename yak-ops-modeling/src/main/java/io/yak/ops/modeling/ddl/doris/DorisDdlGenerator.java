@@ -180,6 +180,7 @@ public class DorisDdlGenerator {
                 .trim().toUpperCase(Locale.ROOT);
         if ("DECIMALV3".equals(baseType)) return "DECIMAL";
         if ("DATETIMEV2".equals(baseType)) return "DATETIME";
+        if ("TEXT".equals(baseType)) return "STRING";
         if ("DATEV2".equals(baseType)) return "DATE";
         return baseType;
     }
