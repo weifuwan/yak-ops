@@ -81,7 +81,7 @@ class DimensionDorisServiceImplTest {
     @Test
     void shouldRejectDatasourceWithoutConfiguredDatabase() {
         DataSource datasource = dorisDatasource();
-        datasource.setConnectionParams("{\"database\":\" \"}");
+        datasource.setConnectionParams("{\"database\":null}");
 
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class,
