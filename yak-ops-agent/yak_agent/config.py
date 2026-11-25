@@ -18,6 +18,7 @@ from pathlib import Path
 
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 _AGENT_ROOT = Path(__file__).resolve().parent.parent
+_PACKAGE_DIR = Path(__file__).resolve().parent
 
 # Model-visible time zone: injected runtime state and the get_current_time tool
 # speak in this zone. yak-ops REST timestamps are UTC wall-clock strings.
@@ -55,6 +56,9 @@ class Settings:
     # Context window of the configured model, in tokens. Compression triggers
     # at 70% of this value, so it must match the model's real limit.
     llm_context_size: int = 128000
+    # System prompt bundle: AGENT.md + domains/*.md + sections/*.md. A
+    # deployment can point this at its own identity/rules without code changes.
+    prompt_dir: Path = _PACKAGE_DIR / "prompts"
     # How long a HITL confirmation may stay pending. On timeout every pending
     # call is denied, audited and the turn continues instead of hanging.
     confirm_timeout_seconds: int = 600
@@ -132,6 +136,9 @@ class Settings:
             yak_ops_base_url=get("YAK_OPS_BASE_URL", "http://127.0.0.1:12345/yak-ops").rstrip("/"),
             yak_ops_token=get("YAK_OPS_TOKEN").strip(),
             llm_context_size=int(get("LLM_CONTEXT_SIZE", "128000")),
+            prompt_dir=Path(
+                get("YAK_AGENT_PROMPT_DIR", str(_PACKAGE_DIR / "prompts"))
+            ).expanduser(),
             confirm_timeout_seconds=int(get("YAK_AGENT_CONFIRM_TIMEOUT_SECONDS", "600")),
             history_max_messages=int(get("YAK_AGENT_HISTORY_MAX_MESSAGES", "200")),
             history_tool_chars=int(get("YAK_AGENT_HISTORY_TOOL_CHARS", "2000")),

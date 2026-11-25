@@ -20,11 +20,12 @@ from yak_agent.agent.budget import (
     enforce_context_budget,
     estimate_value_tokens,
 )
-from yak_agent.agent.prompt import OFFLOAD_INSTRUCTIONS, PTC_INSTRUCTIONS, SYSTEM_PROMPT
+from yak_agent.agent.prompt import compose_system_prompt
 from yak_agent.config import PLATFORM_TIMEZONE, Settings
 from yak_agent.memory.middleware import MEMORY_PROMPT_TOKENS, build_memory_search_tool
 from yak_agent.tools import build_tools
 from yak_agent.tools.audit_middleware import ToolAuditMiddleware
+from yak_agent.tools.registry import load_operations
 from yak_agent.tools.validation import check_tool_inventory, validate_tool_names
 from yak_agent.workspace import SessionWorkspace
 
@@ -48,6 +49,17 @@ def _skill_prompt_tokens() -> int:
 def _skill_tool_available() -> bool:
     """The Toolkit registers a Skill viewer only when at least one skill loads."""
     return _SKILLS_DIR.exists() and any(_SKILLS_DIR.rglob("SKILL.md"))
+
+
+def _active_domains(tools: list[Any]) -> list[str]:
+    """Tool domains actually registered for this session, in registry order."""
+    names = {tool.name for tool in tools}
+    domains: list[str] = []
+    for op in load_operations():
+        domain = op.get("domain")
+        if op.get("id") in names and domain and domain not in domains:
+            domains.append(domain)
+    return domains
 
 
 def build_agent(
@@ -76,11 +88,12 @@ def build_agent(
     validate_tool_names(tools)
     internal_count = (1 if _COMPRESSION_ENABLED else 0) + (1 if _skill_tool_available() else 0)
     check_tool_inventory(tools, internal_count=internal_count, settings=settings)
-    system_prompt = SYSTEM_PROMPT
-    if any(tool.name == "run_analysis_script" for tool in tools):
-        system_prompt += f"\n\n{PTC_INSTRUCTIONS}"
-    if workspace is not None:
-        system_prompt += f"\n\n{OFFLOAD_INSTRUCTIONS}"
+    system_prompt = compose_system_prompt(
+        _active_domains(tools),
+        prompt_dir=settings.prompt_dir,
+        include_ptc=any(tool.name == "run_analysis_script" for tool in tools),
+        include_workspace=workspace is not None,
+    )
 
     report = check_context_budget(
         context_size=settings.llm_context_size,

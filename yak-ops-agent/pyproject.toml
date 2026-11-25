@@ -54,3 +54,14 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["yak_agent*"]
+
+[tool.setuptools.package-data]
+"yak_agent" = [
+    "prompts/*.md",
+    "prompts/domains/*.md",
+    "prompts/sections/*.md",
+    "skills/*/*/SKILL.md",
+    "skills/*/*/*.md",
+    "skills/*/*/references/*",
+    "skills/*/*/scripts/*",
+]

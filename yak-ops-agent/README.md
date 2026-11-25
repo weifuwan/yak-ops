@@ -1,20 +1,40 @@
 # yak-ops-agent（AgentScope Python harness）
 
-数据同步页面的完整功能 agent（查询 + 创建/修改/发布/下线/删除 + 实例停止/强制成功），基于 AgentScope 构建。
+yak-ops 平台级智能助手（当前已接入数据同步任务/实例/日志与数据源目录；能力随工具领域扩展），基于 AgentScope 构建。
 平台侧契约与安全边界见 `yak-ops-openapi/`（契约基线与 agent 白名单）。
 
 ## 定位
 
+- 身份：`yak_agent/prompts/AGENT.md` 定义平台级助手身份与全局规则；具体能力由本次会话已接入的工具领域决定，未接入的模块不承诺操作；
 - 消费方形态：外部 agent 进程（Python），通过 yak-ops REST API 接入；
 - 编排：AgentScope `Agent`（ReAct 循环）开箱即用；本仓库零自定义框架代码；
 - 安全模型：读工具自动执行（只读快路径）；写工具一律走 **HITL 人工确认**（`RequireUserConfirmEvent`），非交互模式默认拒绝写操作；
 - PTC 对齐：`ContextConfig.tool_result_limit` 与客户端 16KB 截断保证中间结果不撑爆上下文。
 
+## 系统提示词（文件化，不写死在代码里）
+
+`yak_agent/prompts/` 按角色拆分，`build_agent` 按当前注册的工具领域自动组合：
+
+```
+prompts/
+├── AGENT.md               # 平台身份 + 全局工作规范 + 能力边界
+├── domains/
+│   ├── data-sync.md       # 数据同步领域规则（创建/发布/实例/日志）
+│   └── datasource.md      # 数据源目录规则
+└── sections/
+    ├── ptc.md             # 分析脚本（启用 PTC 时注入）
+    └── workspace.md       # 工作区回读（有会话工作区时注入）
+```
+
+- 新增工具领域 = 在 `operations.yaml` 加 `domain` + 新增 `prompts/domains/<domain>.md`，无需改 Python 代码；
+- 缺文件启动即失败（`main()` 会校验），部署可用 `YAK_AGENT_PROMPT_DIR` 指向自定义身份/规则目录；
+- AgentScope 2.0 本身只接收 `system_prompt` 字符串（另有 `on_system_prompt` middleware），没有内置 agent.md 约定，因此这里用「文件 + 组合」的方式实现。
+
 ## 内置能力
 
 | 能力 | 说明 |
 | --- | --- |
-| **Skill（技能）** | `yak_agent/skills/`：`data-sync-troubleshooting` 数据同步排障知识（状态语义、排查步骤、常见根因、耗时口径、高危红线）；`current-time` 服务器时间口径（平台时区 / UTC / 相对窗口换算），配合 `get_current_time` 工具使用，模型按需加载 |
+| **Skill（技能）** | `yak_agent/skills/` 按领域分层：`data-sync/create` 创建/修改任务的参数骨架与校验规则（`data-sync-create`）；`data-sync/troubleshooting` 数据同步排障知识（`data-sync-troubleshooting`）；`platform/current-time` 服务器时间口径（`current-time`，配合 `get_current_time` 工具）。模型按需加载 |
 | **审计留痕** | 每次工具调用落 JSONL（`logs/audit/YYYY-MM-DD.jsonl`，`YAK_AGENT_AUDIT_DIR` 可改）：时间、工具、脱敏参数、成功与否、耗时——`parameters_json` 类参数只记占位符，不落盘数据源凭据 |
 | **短期记忆** | Agent 内部 context：同一会话内后续问题复用已取数据（省 token） |
 | **Middleware** | `CacheAwareReplyBudgetControlMiddleware`：单回复加权 token 预算（只计非缓存输入 + 输出 ×2，`YAK_AGENT_REPLY_TOKEN_BUDGET` 默认 25000），避免长会话把缓存命中的上下文重复计费；超限后收敛不再调工具——长回合的成本/时延护栏；`TracingMiddleware`：OpenTelemetry 全链路追踪，未配置 TracerProvider 时零开销，配置 collector（OTLP）后输出完整 span 树（reply/model_call/tool 层级含 token 计数与 HITL 状态） |

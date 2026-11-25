@@ -57,6 +57,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from yak_agent import audit
+from yak_agent.agent.prompt import validate_prompt_bundle
 from yak_agent.api import messages
 from yak_agent.api.deps import request_identity
 from yak_agent.api.errors import session_error_handler
@@ -99,6 +100,7 @@ from yak_agent.service.session import (
 from yak_agent.service.session import (
     create_session as create_agent_session,
 )
+from yak_agent.tools.registry import load_operations
 from yak_agent.tools.validation import validate_registry
 
 _QUEUE_PREVIEW_CHARS = 120
@@ -883,9 +885,15 @@ async def delete_session(sid: str, request: Request) -> dict[str, bool]:
 
 
 def main() -> None:
-    # Fail before binding the port when operations/allowlist or reserved tool
-    # names are invalid. Per-session assembly performs the same check.
+    # Fail before binding the port when operations/allowlist, reserved tool
+    # names or the prompt bundle are invalid. Per-session assembly performs
+    # the same checks.
+    settings = _get_settings()
     validate_registry()
+    validate_prompt_bundle(
+        settings.prompt_dir,
+        sorted({op.get("domain") for op in load_operations() if op.get("domain")}),
+    )
     host = os.environ.get("YAK_AGENT_HOST", "127.0.0.1")
     port = int(os.environ.get("YAK_AGENT_PORT", "8090"))
     uvicorn.run(app, host=host, port=port, log_level="info")

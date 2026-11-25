@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from agentscope.skill import LocalSkillLoader
 
-from yak_agent.agent.prompt import SYSTEM_PROMPT
+from yak_agent.agent.prompt import compose_system_prompt
 from yak_agent.config import PLATFORM_TIMEZONE, Settings
 from yak_agent.tools.builder import build_tools
 from yak_agent.tools.time_tools import build_time_tools
@@ -88,8 +88,9 @@ class CurrentTimeSkillTests(unittest.TestCase):
         self.assertIn("UTC", skill.markdown)
 
     def test_system_prompt_requires_the_tool_for_time_questions(self) -> None:
-        self.assertIn("get_current_time", SYSTEM_PROMPT)
-        self.assertIn("current-time", SYSTEM_PROMPT)
+        prompt = compose_system_prompt(["data-sync"])
+        self.assertIn("get_current_time", prompt)
+        self.assertIn("current-time", prompt)
 
 
 if __name__ == "__main__":
