@@ -1,0 +1,122 @@
+.agent-thought {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.agent-thought--compact {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+.agent-thought__icon {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(0, 51, 255, 0.045);
+  color: #0033ff;
+}
+
+.agent-thought--compact .agent-thought__icon {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+
+.agent-thought__icon::before {
+  position: absolute;
+  z-index: -1;
+  inset: -5px;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(0, 51, 255, 0.2), transparent 72%);
+  content: "";
+  opacity: 0;
+  transform: scale(0.82);
+}
+
+.agent-thought__icon[data-active="true"]::before {
+  animation: yak-agent-thought-glow 2.2s ease-in-out infinite;
+}
+
+.agent-thought__label {
+  color: #46515d;
+  letter-spacing: -0.01em;
+}
+
+.agent-thought[data-status="running"] .agent-thought__label {
+  color: #0033ff;
+}
+
+.agent-thought__duration {
+  color: #9aa3ad;
+}
+
+.agent-work-group {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.agent-work-group[data-expanded="true"] {
+  border-color: #e8ebf2;
+  background: #ffffff;
+}
+
+.agent-work-group__content {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.agent-work-group[data-expanded="false"] .agent-work-group__content {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.agent-work-group__content-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 6px 6px;
+}
+
+@keyframes yak-agent-thought-glow {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-thought__icon[data-active="true"]::before {
+    animation: none;
+    opacity: 0.55;
+    transform: none;
+  }
+
+  .agent-work-group,
+  .agent-work-group__content {
+    transition: none;
+  }
+}
