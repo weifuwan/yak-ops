@@ -5,6 +5,7 @@ import test from "node:test";
 const read = (path) =>
   readFileSync(new URL(path, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
+const page = read("../apps/web/app/data-agent/page.tsx");
 const workspace = read("../apps/web/app/data-agent/components/DataAgentWorkspace.tsx");
 const promptComposer = read("../apps/web/app/data-agent/components/DataAgentPromptComposer.tsx");
 const emptyState = read("../apps/web/app/data-agent/components/workspace/DataAgentEmptyState.tsx");
