@@ -14,6 +14,7 @@ import { toolStatusLabel } from "../../../../utils/message-formatters";
 
 type AgentToolActivityProps = {
   activity: AgentActivity;
+  disabled?: boolean;
   selected?: boolean;
   onSelect?: (activityId: string) => void;
 };
@@ -30,6 +31,7 @@ function formatDuration(startedAt?: number, completedAt?: number) {
 
 export function AgentToolActivity({
   activity,
+  disabled = false,
   selected = false,
   onSelect,
 }: AgentToolActivityProps) {
@@ -60,11 +62,12 @@ export function AgentToolActivity({
   return (
     <button
       type="button"
+      disabled={disabled}
       aria-label={"查看 " + toolLabel + " 执行详情，" + toolStatusLabel(status)}
       aria-expanded={selected}
       aria-controls="agent-details-panel"
       className={
-        "group flex min-h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe2c55]/25 " +
+        "group flex min-h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0033ff]/25 " +
         (selected
           ? "bg-[#DEDEDE] text-[#20201e]"
           : "bg-transparent text-[#20201e] hover:bg-[#e5e5e5]")
