@@ -154,3 +154,34 @@ test("timeline uses expandable groups and keeps activity details selection wired
   assert.match(styles, /2\.6s linear infinite/);
   assert.match(styles, /prefers-reduced-motion: reduce/);
 });
+
+
+test("activity rail aligns to the group icon and expanded content uses a soft reveal", () => {
+  const styles = read(activityComponentsPath + "agent-activity.css");
+
+  assert.match(styles, /margin-left:\s*7px/);
+  assert.match(styles, /padding:\s*2px 0 4px 12px/);
+  assert.match(styles, /border-left:\s*1px solid #e3ebeb/);
+  assert.match(styles, /@keyframes yak-agent-activity-reveal/);
+  assert.match(styles, /filter:\s*blur\(2px\)/);
+  assert.match(styles, /background-color: rgba\(47, 115, 120, 0\.045\)/);
+  assert.doesNotMatch(
+    styles,
+    /\.agent-work-group__trigger:hover\s*\{\s*opacity:\s*0\.82;/,
+  );
+});
+
+test("long scrollable activity details fade only when their content overflows", () => {
+  const activityDetails = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/AgentActivityDetails.tsx",
+  );
+  const styles = read(activityComponentsPath + "agent-activity.css");
+
+  assert.match(activityDetails, /scrollHeight > element\.clientHeight \+ 1/);
+  assert.match(activityDetails, /data-overflow=\{hasOverflow \? "true" : "false"\}/);
+  assert.match(activityDetails, /agent-activity-fade-scroll/);
+  assert.match(styles, /\.agent-activity-fade-scroll\[data-overflow="true"\]/);
+  assert.match(styles, /mask-image:\s*linear-gradient/);
+  assert.match(styles, /-webkit-mask-image:\s*linear-gradient/);
+  assert.match(styles, /prefers-reduced-motion: reduce/);
+});

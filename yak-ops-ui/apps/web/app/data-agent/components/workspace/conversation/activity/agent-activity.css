@@ -5,7 +5,7 @@
   align-items: center;
   gap: 6px;
   padding: 2px 0;
-  animation: yak-agent-activity-enter 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: yak-agent-activity-enter 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 .agent-thought--compact {
@@ -47,7 +47,7 @@
 .agent-work-group {
   min-width: 0;
   overflow: hidden;
-  animation: yak-agent-activity-enter 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: yak-agent-activity-enter 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 .agent-work-group__trigger {
@@ -63,11 +63,11 @@
   background: transparent;
   padding: 2px 0;
   text-align: left;
-  transition: opacity 150ms ease;
+  transition: background-color 160ms ease;
 }
 
 .agent-work-group__trigger:hover {
-  opacity: 0.82;
+  background-color: rgba(47, 115, 120, 0.045);
 }
 
 .agent-work-group__trigger:focus-visible {
@@ -160,9 +160,31 @@
 .agent-work-group__content-inner {
   min-height: 0;
   overflow: hidden;
-  margin-left: 20px;
-  border-left: 1px solid #dce6e6;
-  padding: 2px 0 4px 8px;
+  margin-left: 7px;
+  border-left: 1px solid #e3ebeb;
+  padding: 2px 0 4px 12px;
+}
+
+.agent-work-group[data-expanded="true"] .agent-work-group__content-inner > * {
+  animation: yak-agent-activity-reveal 220ms
+    cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.agent-activity-fade-scroll[data-overflow="true"] {
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - 28px),
+    transparent 100%
+  );
+  mask-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - 28px),
+    transparent 100%
+  );
+  -webkit-mask-repeat: no-repeat;
 }
 
 .agent-activity-shimmer {
@@ -204,11 +226,27 @@
 @keyframes yak-agent-activity-enter {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    filter: blur(2px);
+    transform: translateY(3px);
   }
 
   to {
     opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes yak-agent-activity-reveal {
+  from {
+    opacity: 0.55;
+    filter: blur(2px);
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
     transform: translateY(0);
   }
 }
@@ -266,7 +304,8 @@
   }
 
   .agent-thought,
-  .agent-work-group {
+  .agent-work-group,
+  .agent-work-group[data-expanded="true"] .agent-work-group__content-inner > * {
     animation: none;
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { DataAgentMarkdown } from "../../markdown/DataAgentMarkdown";
@@ -70,13 +70,34 @@ function CodeSection({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const preRef = useRef<HTMLPreElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  useEffect(() => {
+    const element = preRef.current;
+    if (!element) return;
+
+    const updateOverflow = () => {
+      setHasOverflow(element.scrollHeight > element.clientHeight + 1);
+    };
+
+    updateOverflow();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [value, expanded]);
+
   if (!value.trim()) return null;
 
   return (
     <DetailSection label={label} expanded={expanded} onToggle={onToggle}>
       <pre
+        ref={preRef}
+        data-overflow={hasOverflow ? "true" : "false"}
         className={[
-          "m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words",
+          "agent-activity-fade-scroll m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words",
           "rounded-lg bg-[#f7f8f8] px-3 py-2.5 font-mono text-[12px] leading-[1.75]",
           "text-[#303936]",
         ].join(" ")}
