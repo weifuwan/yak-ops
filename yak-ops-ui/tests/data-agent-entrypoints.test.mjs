@@ -433,7 +433,7 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(activityDetails, /activity\.input/);
   assert.match(activityDetails, /activity\.output/);
   assert.match(activityDetails, /formatToolInput/);
-  assert.match(activityDetails, /TOOL_LABELS/);
+  assert.match(sessionWorkspace, /TOOL_LABELS/);
   assert.match(activityDetails, /expandAll/);
   assert.doesNotMatch(activityDetails, /AgentThought|AgentDetailsTimeline|activities\.map/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
@@ -543,7 +543,14 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
   assert.match(conversationHeader, /Back to latest/);
   assert.doesNotMatch(conversationHeader, /PREVIEW_DURATION|PREVIEW_SCORE|Cloud/);
   assert.match(conversationHeader, /metricsMessage: AgentMessage \\| null/);
-  assert.match(conversationHeader, /pointer-events-none absolute inset-0[\s\S]*?Details/);
+  assert.match(conversationHeader, /pointer-events-none absolute inset-0[\s\S]*?detailsTitle/);
+  assert.match(conversationHeader, /detailsTitle: string/);
+  assert.match(conversationHeader, /title=\{detailsTitle\}/);
+  assert.match(conversationHeader, /\{detailsTitle\}/);
+  assert.match(sessionWorkspace, /detailsTitle=\{selectedActivityTitle\}/);
+  assert.match(sessionWorkspace, /function getActivityDisplayName/);
+  assert.match(sessionWorkspace, /TOOL_LABELS\[activity\.toolName \?\? ""\]/);
+  assert.match(sessionWorkspace, /MobileDetailsHeader[\s\S]*?detailsTitle=\{selectedActivityTitle\}/);
   assert.match(conversationHeader, /aria-label=\{expandAll \? "Collapse all" : "Expand all"\}/);
   assert.match(conversationHeader, /role="tablist"/);
   assert.match(conversationHeader, /role="tab"/);
@@ -562,7 +569,7 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
 test("Data Agent details panel renders only the selected activity and keeps its sections independently collapsible", () => {
   assert.match(detailsPanel, /activity: AgentActivity/);
   assert.match(detailsPanel, /<AgentActivityDetails/);
-  assert.match(activityDetails, /TOOL_LABELS/);
+  assert.match(sessionWorkspace, /TOOL_LABELS/);
   assert.match(activityDetails, /输入参数/);
   assert.match(activityDetails, /执行结果/);
   assert.match(activityDetails, /aria-expanded=\{expanded\}/);
@@ -570,6 +577,7 @@ test("Data Agent details panel renders only the selected activity and keeps its 
   assert.match(activityDetails, /expandedSections/);
   assert.match(activityDetails, /activity\.id/);
   assert.doesNotMatch(activityDetails, /activities\.map|AgentThought|TimelineNode|SquareTerminal|pl-8/);
+  assert.doesNotMatch(activityDetails, /Wrench|toolStatusLabel|statusIcon|statusClassName|工具调用/);
   assert.match(sessionWorkspace, /setDetailsExpandAll\(true\)/);
 });
 
