@@ -323,8 +323,8 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
         if (normalized.startsWith("DECIMAL")) return Types.DECIMAL;
         if (normalized.startsWith("FLOAT")) return Types.FLOAT;
         if (normalized.startsWith("DOUBLE")) return Types.DOUBLE;
-        if (normalized.startsWith("DATE")) return Types.DATE;
         if (normalized.startsWith("DATETIME") || normalized.startsWith("TIMESTAMP")) return Types.TIMESTAMP;
+        if (normalized.startsWith("DATE")) return Types.DATE;
         if (normalized.startsWith("BOOL")) return Types.BOOLEAN;
         if (normalized.startsWith("CHAR")) return Types.CHAR;
         if (normalized.startsWith("VARCHAR") || normalized.startsWith("STRING")) return Types.VARCHAR;
