@@ -68,6 +68,7 @@ class DimensionDorisServiceImplTest {
         DimensionDorisPublishVO preview = service.preview("table-id", request(), dorisDatasource());
 
         assertNotNull(preview.getDdl());
+        assertEquals("warehouse", preview.getTargetDatabase());
         assertTrue(preview.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(preview.getDdl().contains("`amount` DECIMALV3(12,2)"));
         assertTrue(preview.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
@@ -75,6 +76,18 @@ class DimensionDorisServiceImplTest {
         assertTrue(preview.getPhysicalConfig().contains("\"dataModel\":\"DUPLICATE\""));
         assertEquals(64, preview.getDdlHash().length());
         verify(dimensionDorisPublishDao, never()).insert(any());
+    }
+
+    @Test
+    void shouldRejectDatasourceWithoutConfiguredDatabase() {
+        DataSource datasource = dorisDatasource();
+        datasource.setConnectionParams("{\"database\":\" \"}");
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.preview("table-id", request(), datasource));
+
+        assertTrue(error.getMessage().contains("Doris 数据源未配置数据库"));
     }
 
     @Test
@@ -274,7 +287,6 @@ class DimensionDorisServiceImplTest {
     private DimensionDorisPublishDTO request() {
         DimensionDorisPublishDTO dto = new DimensionDorisPublishDTO();
         dto.setDatasourceId(100);
-        dto.setTargetDatabase("warehouse");
         return dto;
     }
 
@@ -283,6 +295,7 @@ class DimensionDorisServiceImplTest {
         datasource.setId(100);
         datasource.setName("test-doris");
         datasource.setType(DbType.DORIS);
+        datasource.setConnectionParams("{\"database\":\"warehouse\"}");
         return datasource;
     }
 }
