@@ -29,21 +29,32 @@ test("YakAurora respects reduced motion and releases active animation work", () 
   assert.match(auroraComponent, /useEffect\(\(\) => \(\) => cancel\(\)/);
 });
 
-test("a valid login submission pulls the aurora into the login button", () => {
-  const validationIndex = loginPanel.indexOf("if (Object.keys(nextErrors).length > 0)");
-  const animationIndex = loginPanel.indexOf("auroraRef.current?.play()");
-  assert.ok(validationIndex >= 0);
-  assert.ok(animationIndex > validationIndex);
-  assert.match(loginPanel, /<YakAurora ref=\{auroraRef\} targetRef=\{submitTargetRef\} \/>/);
-  const submitTargetPattern = new RegExp(
-    'ref=\\{submitTargetRef\\} className="login-form-submit-target(?: mt-6)?"',
+test("the test button previews the aurora without submitting the login form", () => {
+  const loginHandlerStart = loginPanel.indexOf("const handleAccountLogin");
+  const loginHandlerEnd = loginPanel.indexOf("\n  return (", loginHandlerStart);
+  const loginHandler = loginPanel.slice(loginHandlerStart, loginHandlerEnd);
+
+  assert.match(loginPanel, /const handleAuroraPreview = \(\) =>/);
+  assert.match(loginPanel, /onClick=\{handleAuroraPreview\}/);
+  assert.match(loginPanel, /type="button"/);
+  assert.match(loginPanel, /测试动画/);
+  assert.match(
+    loginPanel,
+    /<YakAurora ref=\{auroraRef\} targetRef=\{previewTargetRef\} \/>/,
   );
-  assert.match(loginPanel, submitTargetPattern);
+  assert.match(loginPanel, /login-form-aurora-test-target mt-2/);
+  assert.ok(loginPanel.indexOf('className="login-form-submit"') < loginPanel.indexOf("测试动画"));
+  assert.doesNotMatch(loginHandler, /auroraRef\.current\?\.play\(\)/);
 });
 
-test("login failures cancel the visual transition without replacing auth handling", () => {
-  assert.match(loginPanel, /auroraRef.current\?\.cancel\(\)/);
-  assert.match(loginPanel, /await login\(\{/);
+test("login failures do not cancel or otherwise control the preview animation", () => {
+  const loginHandlerStart = loginPanel.indexOf("const handleAccountLogin");
+  const loginHandlerEnd = loginPanel.indexOf("\n  return (", loginHandlerStart);
+  const loginHandler = loginPanel.slice(loginHandlerStart, loginHandlerEnd);
+
+  assert.match(loginHandler, /await login\(\{/);
+  assert.doesNotMatch(loginHandler, /auroraRef\.current\?\.cancel\(\)/);
   assert.match(auroraStyles, /pointer-events: none/);
+  assert.match(auroraStyles, /login-form-aurora-test-target/);
   assert.match(auroraStyles, /prefers-reduced-motion/);
 });
