@@ -41,7 +41,7 @@ public class DorisDdlExecutor {
                 String sql = plan.getStatements().get(index);
                 boolean alter = isAlter(sql);
                 Long previousJobId = alter
-                        ? schemaChangeWaiter.latestJobId(connection, tableName)
+                        ? schemaChangeWaiter.latestJobId(connection, database, tableName)
                         : null;
                 log.info(
                         "Executing Doris DDL step {}/{}: publishId={}, database={}, table={}, operation={}",
@@ -53,7 +53,7 @@ public class DorisDdlExecutor {
                         operationOf(sql));
                 statement.execute(sql);
                 if (alter) {
-                    schemaChangeWaiter.awaitCompletion(connection, tableName, previousJobId);
+                    schemaChangeWaiter.awaitCompletion(connection, database, tableName, previousJobId);
                     log.info(
                             "Doris Schema Change completed: publishId={}, database={}, table={}",
                             publishId, database, tableName);
