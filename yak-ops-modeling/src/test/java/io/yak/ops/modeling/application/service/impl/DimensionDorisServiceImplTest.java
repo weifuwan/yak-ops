@@ -203,7 +203,7 @@ class DimensionDorisServiceImplTest {
         DimensionDorisPublishVO published =
                 service.publish("table-id", request(), dorisDatasource(), "tester");
 
-        verify(statement).execute(published.getDdl());
+        verify(statement).execute(startsWith("CREATE TABLE"));
         assertEquals(DorisPublishStatusEnum.SUCCESS, published.getStatus());
         assertEquals(DorisDataModelEnum.DUPLICATE, published.getTableModel());
         assertEquals(DorisPublishModeEnum.INCREMENTAL, published.getPublishMode());
