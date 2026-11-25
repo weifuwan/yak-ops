@@ -5,9 +5,12 @@ import { readFileSync } from "node:fs";
 import {
   buildActivityTimeline,
   getActivityGroupCategory,
-} from "../apps/web/app/data-agent/components/workspace/conversation/activity/activity-presenter.ts";
+} from
+  "../apps/web/app/data-agent/components/workspace/conversation/activity/activity-presenter.ts";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
+const activityComponentsPath =
+  "../apps/web/app/data-agent/components/workspace/conversation/activity/";
 
 function activity({
   id,
@@ -114,18 +117,10 @@ test("unknown tools stay in a neutral Activity group and attention states are pr
 });
 
 test("timeline uses expandable groups and keeps activity details selection wired", () => {
-  const timeline = read(
-    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityTimeline.tsx",
-  );
-  const group = read(
-    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityGroup.tsx",
-  );
-  const toolActivity = read(
-    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx",
-  );
-  const thought = read(
-    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentThought.tsx",
-  );
+  const timeline = read(activityComponentsPath + "AgentActivityTimeline.tsx");
+  const group = read(activityComponentsPath + "AgentActivityGroup.tsx");
+  const toolActivity = read(activityComponentsPath + "AgentToolActivity.tsx");
+  const thought = read(activityComponentsPath + "AgentThought.tsx");
   const detailsTimeline = read(
     "../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx",
   );
