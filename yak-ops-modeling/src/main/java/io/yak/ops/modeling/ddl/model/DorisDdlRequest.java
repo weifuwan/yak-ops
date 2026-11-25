@@ -23,7 +23,7 @@ public class DorisDdlRequest {
             DorisPublishModeEnum publishMode,
             DorisDataModelEnum previousTableModel,
             List<String> previousKeyFields) {
-        this(table, tableModel, publishMode, previousTableModel, previousKeyFields, null, null, false);
+        this(table, tableModel, publishMode, previousTableModel, previousKeyFields, null, null);
     }
 
     public DorisDdlRequest(
