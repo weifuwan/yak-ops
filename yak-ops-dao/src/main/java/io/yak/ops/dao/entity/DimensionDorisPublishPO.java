@@ -1,6 +1,8 @@
 package io.yak.ops.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
+import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import java.util.Date;
 import lombok.Data;
@@ -15,6 +17,9 @@ public class DimensionDorisPublishPO extends ModelingBasePO {
     private String versionId;
     private Integer versionNumber;
     private Integer datasourceId;
+    private DorisDataModelEnum tableModel;
+    private DorisPublishModeEnum publishMode;
+    private String publishRemark;
     private String datasourceName;
     private String targetDatabase;
     private String targetTable;
