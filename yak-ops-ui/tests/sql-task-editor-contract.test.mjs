@@ -166,6 +166,11 @@ test("SQL Monaco editor registers SQL syntax highlighting and supports read-only
   assert.match(codeEditor, /language: "sql"/);
   assert.match(codeEditor, /automaticLayout: true/);
   assert.match(codeEditor, /updateOptions\(\{ readOnly \}\)/);
+  assert.match(codeEditor, /resizable\?: SqlCodeEditorResizeOptions/);
+  assert.match(codeEditor, /setPointerCapture/);
+  assert.ok(codeEditor.includes('role="separator"'));
+  assert.ok(codeEditor.includes("aria-valuemin={resizable.minHeight}"));
+  assert.ok(codeEditor.includes("onKeyDown={handleResizeKeyDown}"));
 });
 
 
@@ -185,7 +190,7 @@ test("Doris DDL preview reuses the SQL node Monaco editor without redundant help
   assert.match(dorisPublishModal, /import \{ SqlCodeEditor \} from "@\/app\/data-development\/task-editor\/sql\/sql-code-editor";/);
   assert.match(
     dorisPublishModal,
-    /<SqlCodeEditor\s+value=\{preview\?\.ddl \|\| ""\}\s+readOnly\s+onChange=\{\(\) => undefined\}\s+\/>/,
+    /<SqlCodeEditor\s+value=\{preview\?\.ddl \|\| ""\}\s+readOnly\s+onChange=\{\(\) => undefined\}\s+resizable=\{\{ initialHeight: 300, minHeight: 220, maxHeight: 560 \}\}\s+\/>/,
   );
   assert.doesNotMatch(dorisPublishModal, /UNIQUE KEY · 主键表|DUPLICATE KEY · 明细表|只读 · 自动生成/);
 
@@ -193,4 +198,5 @@ test("Doris DDL preview reuses the SQL node Monaco editor without redundant help
   const previewEnd = dorisPublishModal.indexOf("{previewError ? (", previewStart);
   const ddlPreview = dorisPublishModal.slice(previewStart, previewEnd);
   assert.doesNotMatch(ddlPreview, /<Textarea/);
+  assert.doesNotMatch(ddlPreview, /h-\[300px\]/);
 });

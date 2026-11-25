@@ -425,11 +425,12 @@ export function DorisPublishModal({
                 复制
               </Button>
             </div>
-            <div className="relative h-[300px] overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-white">
+            <div className="relative overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-white">
               <SqlCodeEditor
                 value={preview?.ddl || ""}
                 readOnly
                 onChange={() => undefined}
+                resizable={{ initialHeight: 300, minHeight: 220, maxHeight: 560 }}
               />
               {!preview?.ddl ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-xs text-[var(--yak-components-muted-text)]">
