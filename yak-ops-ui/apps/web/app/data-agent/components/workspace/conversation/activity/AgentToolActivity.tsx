@@ -67,17 +67,17 @@ export function AgentToolActivity({
       aria-expanded={selected}
       aria-controls="agent-details-panel"
       className={
-        "group flex min-h-6 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0033ff]/25 " +
+        "group flex min-h-6 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-[background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f1f1f]/20 " +
         (selected
-          ? "bg-[#ebefff] text-[#335cff]"
-          : "bg-transparent text-[#335cff] hover:bg-[#f2f4ff]")
+          ? "bg-[#eeeeee] text-[#1f1f1f]"
+          : "bg-transparent text-[#1f1f1f] hover:bg-[#f7f7f7]")
       }
       onClick={() => onSelect?.(activity.id)}
     >
-      <Wrench size={14} strokeWidth={1.6} className="shrink-0 text-[#335cff]" />
+      <Wrench size={14} strokeWidth={1.6} className="shrink-0 text-[#1f1f1f]" />
       <span
         className={
-          "min-w-0 flex-1 truncate text-sm font-medium text-[#335cff] " +
+          "min-w-0 flex-1 truncate text-sm font-medium text-[#1f1f1f] " +
           (status === "running" ? "agent-activity-shimmer" : "")
         }
       >

@@ -161,10 +161,10 @@ test("activity rail aligns to the group icon and expanded content uses a soft re
 
   assert.match(styles, /margin-left:\s*7px/);
   assert.match(styles, /padding:\s*2px 0 4px 12px/);
-  assert.match(styles, /border-left:\s*1px solid rgba\(0, 51, 255, 0\.14\)/);
+  assert.match(styles, /border-left:\s*1px solid rgba\(0, 0, 0, 0\.14\)/);
   assert.match(styles, /@keyframes yak-agent-activity-reveal/);
   assert.match(styles, /filter:\s*blur\(2px\)/);
-  assert.match(styles, /background-color: rgba\(0, 51, 255, 0\.045\)/);
+  assert.match(styles, /background-color: rgba\(0, 0, 0, 0\.035\)/);
   assert.doesNotMatch(
     styles,
     /\.agent-work-group__trigger:hover\s*\{\s*opacity:\s*0\.82;/,
@@ -187,16 +187,16 @@ test("long scrollable activity details fade only when their content overflows", 
 });
 
 
-test("Data Agent activity accents use the Yak OPS brand blue at 80 percent strength", () => {
+test("Data Agent activity accents use neutral black with subtle gray surfaces", () => {
   const styles = read(activityComponentsPath + "agent-activity.css");
   const toolActivity = read(activityComponentsPath + "AgentToolActivity.tsx");
 
-  assert.match(styles, /color:\s*#335cff/);
-  assert.match(styles, /--block-ink, #335cff/);
-  assert.match(styles, /rgba\(0, 51, 255, 0\.045\)/);
-  assert.match(styles, /rgba\(0, 51, 255, 0\.14\)/);
-  assert.match(toolActivity, /bg-\[#ebefff\] text-\[#335cff\]/);
-  assert.match(toolActivity, /text-\[#335cff\] hover:bg-\[#f2f4ff\]/);
-  assert.doesNotMatch(styles, /#2f7378|47, 115, 120/);
-  assert.doesNotMatch(toolActivity, /#2f7378/);
+  assert.match(styles, /color:\s*#1f1f1f/);
+  assert.match(styles, /--agent-activity-ink:\s*#1f1f1f/);
+  assert.match(styles, /rgba\(0, 0, 0, 0\.035\)/);
+  assert.match(styles, /rgba\(0, 0, 0, 0\.14\)/);
+  assert.match(toolActivity, /bg-\[#eeeeee\] text-\[#1f1f1f\]/);
+  assert.match(toolActivity, /text-\[#1f1f1f\] hover:bg-\[#f7f7f7\]/);
+  assert.doesNotMatch(styles, /#335cff|#2f7378|47, 115, 120/);
+  assert.doesNotMatch(toolActivity, /#335cff|#2f7378/);
 });
