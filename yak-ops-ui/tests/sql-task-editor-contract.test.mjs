@@ -170,23 +170,27 @@ test("SQL Monaco editor registers SQL syntax highlighting and supports read-only
 
 
 test("Doris publish modal defaults to UNIQUE and incremental publish whenever it opens", () => {
-  assert.match(dorisPublishModal, /useState<DorisTableModel \\| "">\\("UNIQUE"\\)/);
-  assert.match(dorisPublishModal, /useState<DorisPublishMode \\| "">\\("INCREMENTAL"\\)/);
+  assert.match(dorisPublishModal, /useState<DorisTableModel \| "">\("UNIQUE"\)/);
+  assert.match(dorisPublishModal, /useState<DorisPublishMode \| "">\("INCREMENTAL"\)/);
 
   const openReset = dorisPublishModal.slice(
     dorisPublishModal.indexOf("useEffect(() => {"),
     dorisPublishModal.indexOf("}, [open, tableId]);"),
   );
-  assert.match(openReset, /setTableModel\\("UNIQUE"\\)/);
-  assert.match(openReset, /setPublishMode\\("INCREMENTAL"\\)/);
+  assert.match(openReset, /setTableModel\("UNIQUE"\)/);
+  assert.match(openReset, /setPublishMode\("INCREMENTAL"\)/);
 });
 
 test("Doris DDL preview reuses the SQL node Monaco editor without redundant helper labels", () => {
-  assert.match(dorisPublishModal, /import \\{ SqlCodeEditor \\} from "@\\/app\\/data-development\\/task-editor\\/sql\\/sql-code-editor";/);
+  assert.match(dorisPublishModal, /import \{ SqlCodeEditor \} from "@\/app\/data-development\/task-editor\/sql\/sql-code-editor";/);
   assert.match(
     dorisPublishModal,
-    /<SqlCodeEditor\\s+value=\\{preview\\?\\.ddl \\|\\| ""\\}\\s+readOnly\\s+onChange=\\{\\(\\) => undefined\\}\\s+\\/>/,
+    /<SqlCodeEditor\s+value=\{preview\?\.ddl \|\| ""\}\s+readOnly\s+onChange=\{\(\) => undefined\}\s+\/>/,
   );
   assert.doesNotMatch(dorisPublishModal, /UNIQUE KEY · 主键表|DUPLICATE KEY · 明细表|只读 · 自动生成/);
-  assert.doesNotMatch(dorisPublishModal, /<Textarea[\\s\\S]*?value=\\{preview\\?\\.ddl/);
+
+  const previewStart = dorisPublishModal.indexOf('<section className="border-t border-[var(--yak-components-panel-border)] pt-4">');
+  const previewEnd = dorisPublishModal.indexOf("{previewError ? (", previewStart);
+  const ddlPreview = dorisPublishModal.slice(previewStart, previewEnd);
+  assert.doesNotMatch(ddlPreview, /<Textarea/);
 });
