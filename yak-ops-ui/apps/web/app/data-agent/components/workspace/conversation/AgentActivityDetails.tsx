@@ -142,7 +142,9 @@ export function AgentActivityDetails({
 
   const title =
     activity.kind === "tool"
-      ? TOOL_LABELS[activity.toolName ?? ""] ?? activity.toolName ?? activity.title
+      ? TOOL_LABELS[activity.toolName ?? ""] ??
+        activity.toolName ??
+        activity.title
       : activity.title;
   const StatusIcon = statusIcon(activity.status);
   const content = activity.content?.trim() ?? "";
@@ -177,11 +179,11 @@ export function AgentActivityDetails({
           </p>
         </div>
         <span
-          className={
+          className={[
             "flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1",
-            "text-[11px] font-medium " +
-            statusClassName(activity.status)
-          }
+            "text-[11px] font-medium",
+            statusClassName(activity.status),
+          ].join(" ")}
         >
           <StatusIcon
             size={12}
