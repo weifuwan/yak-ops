@@ -24,9 +24,8 @@ test("particle choreography preserves Magic Patterns source parameters", () => {
   assert.match(transition, /PARTICLE_BURST_DURATION_MS = 1300/);
   assert.match(transition, /PARTICLE_FLIGHT_MIN_MS = 600/);
   assert.match(transition, /PARTICLE_FLIGHT_MAX_MS = 950/);
-  assert.match(
-    transition,
-    /"#7cd27f", "#51b6f8", "#a390cb", "#f3a6d8", "#ffd27a"/,
+  assert.ok(
+    transition.includes('["#7cd27f", "#51b6f8", "#a390cb", "#f3a6d8", "#ffd27a"]'),
   );
   assert.match(transition, /"linear-gradient\(90deg, transparent 0%, transparent 42%, #000 52%, #000 100%\)"/);
   assert.match(transition, /rgba\(0, 0, 0, 0\.24\)/);
