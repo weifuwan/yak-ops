@@ -138,7 +138,10 @@ public class DorisDdlGenerator {
             Integer actualPrecision = actual.getScale() == null
                     ? actual.getSize()
                     : actual.getScale();
-            return actualPrecision != null && expectedPrecision.equals(actualPrecision);
+            if (actualPrecision == null) {
+                actualPrecision = 0;
+            }
+            return expectedPrecision.equals(actualPrecision);
         }
         return true;
     }
