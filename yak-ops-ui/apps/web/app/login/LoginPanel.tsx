@@ -59,7 +59,7 @@ export default function LoginPanel({
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
   const auroraRef = useRef<YakAuroraHandle | null>(null);
-  const submitTargetRef = useRef<HTMLDivElement | null>(null);
+  const previewTargetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -69,6 +69,14 @@ export default function LoginPanel({
       auroraRef.current?.cancel();
     };
   }, []);
+
+  const handleAuroraPreview = () => {
+    try {
+      void auroraRef.current?.play().catch(() => undefined);
+    } catch {
+      // The preview effect must never interfere with the login form.
+    }
+  };
 
   const handleAccountLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -95,15 +103,6 @@ export default function LoginPanel({
       setLoading(true);
       onLoginResultChange("submitting");
 
-      // The visual transition starts with the valid submit action and runs alongside auth.
-      // Rendering failures must never prevent the real login request.
-      let auroraMotion = Promise.resolve();
-      try {
-        auroraMotion = auroraRef.current?.play().catch(() => undefined) ?? Promise.resolve();
-      } catch {
-        auroraMotion = Promise.resolve();
-      }
-
       await login({
         userName,
         userPassword,
@@ -112,10 +111,7 @@ export default function LoginPanel({
       if (submission.signal.aborted) return;
       loginSucceeded = true;
       onLoginResultChange("success");
-      await Promise.all([
-        auroraMotion,
-        waitForMotion(LOGIN_SUCCESS_MOTION_MS, submission.signal),
-      ]);
+      await waitForMotion(LOGIN_SUCCESS_MOTION_MS, submission.signal);
       if (submission.signal.aborted) return;
       await onAuthenticated();
 
@@ -128,7 +124,6 @@ export default function LoginPanel({
       });
     } catch {
       if (submission.signal.aborted) return;
-      auroraRef.current?.cancel();
       if (!loginSucceeded) {
         onLoginResultChange("failure");
         await waitForMotion(LOGIN_FAILURE_MOTION_MS, submission.signal);
@@ -148,7 +143,7 @@ export default function LoginPanel({
 
   return (
     <>
-      <YakAurora ref={auroraRef} targetRef={submitTargetRef} />
+      <YakAurora ref={auroraRef} targetRef={previewTargetRef} />
       <form
         className="login-form"
         noValidate
@@ -231,7 +226,7 @@ export default function LoginPanel({
           </div>
         </Field>
 
-        <div ref={submitTargetRef} className="login-form-submit-target mt-6">
+        <div className="mt-6">
           <Button
             variant="primary"
             size="lg"
@@ -242,6 +237,21 @@ export default function LoginPanel({
             style={{ borderRadius: "var(--yak-radius-full)" }}
           >
             登录
+          </Button>
+        </div>
+
+        <div
+          ref={previewTargetRef}
+          className="login-form-aurora-test-target mt-2"
+        >
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            fullWidth
+            onClick={handleAuroraPreview}
+          >
+            测试动画
           </Button>
         </div>
       </form>
