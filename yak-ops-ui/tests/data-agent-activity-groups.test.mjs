@@ -124,6 +124,7 @@ test("timeline uses expandable groups and keeps activity details selection wired
   const detailsTimeline = read(
     "../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx",
   );
+  const styles = read(activityComponentsPath + "agent-activity.css");
 
   assert.match(timeline, /buildActivityTimeline\(activities\)/);
   assert.match(
@@ -133,11 +134,14 @@ test("timeline uses expandable groups and keeps activity details selection wired
   assert.match(timeline, /containsSelectedActivity/);
   assert.match(timeline, /group\.requiresAttention/);
   assert.match(group, /aria-expanded=\{expanded\}/);
-  assert.match(group, /Worked for /);
+  assert.match(group, /Made changes/);
+  assert.match(group, /Hammer/);
+  assert.match(group, /Search/);
   assert.match(group, /onSelectActivity/);
   assert.match(group, /disabled=\{!expanded\}/);
   assert.match(toolActivity, /disabled=\{disabled\}/);
   assert.match(toolActivity, /onSelect\?\.\(activity\.id\)/);
+  assert.match(thought, /Lightbulb/);
   assert.match(thought, /Thinking/);
   assert.match(thought, /Thought/);
   assert.match(thought, /window\.setInterval/);
