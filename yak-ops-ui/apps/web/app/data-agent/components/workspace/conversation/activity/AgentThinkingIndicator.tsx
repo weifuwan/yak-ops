@@ -79,7 +79,12 @@ export function AgentThinkingIndicator({
 
   return (
     <div className="flex min-w-0 items-center gap-2.5 py-1.5">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#65717c]">
+      <span
+        className={[
+          "flex size-8 shrink-0 items-center justify-center rounded-full",
+          "text-[#65717c]",
+        ].join(" ")}
+      >
         <LeadingIcon size={14} />
       </span>
 
