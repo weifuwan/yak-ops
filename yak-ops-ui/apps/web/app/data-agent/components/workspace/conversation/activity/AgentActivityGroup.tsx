@@ -136,7 +136,8 @@ export function AgentActivityGroup({
           countLabel
         }
         className={[
-          "flex min-h-9 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left",
+          "flex min-h-9 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg",
+          "px-2.5 py-2 text-left",
           "transition-colors duration-200 hover:bg-[#f5f6f8]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0033ff]/20",
         ].join(" ")}
