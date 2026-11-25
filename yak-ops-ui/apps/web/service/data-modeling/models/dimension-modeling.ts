@@ -98,6 +98,7 @@ export type DorisPublishRequest = {
   publishRemark: string;
   replicationNum?: number | null;
   confirmDrop?: boolean;
+  confirmDropColumns?: boolean;
 };
 export type DorisPublishRecord = {
   id?: string;
@@ -117,6 +118,11 @@ export type DorisPublishRecord = {
   availableBackendCount?: number;
   replicationAuto?: boolean;
   replicationWarning?: string;
+  targetTableExists?: boolean;
+  addedColumns?: string[];
+  droppedColumns?: string[];
+  requiresConfirmation?: boolean;
+  schemaDrift?: boolean;
   status?: string;
   errorMessage?: string;
   executionDurationMs?: number;
