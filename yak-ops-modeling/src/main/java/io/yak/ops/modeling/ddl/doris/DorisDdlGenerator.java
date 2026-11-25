@@ -95,6 +95,12 @@ public class DorisDdlGenerator {
         return formatter.format(ddl.toString());
     }
 
+    public String generateDropColumnDdl(String database, String tableName, String columnName) {
+        String ddl = "ALTER TABLE " + quoteIdentifier(database) + "." + quoteIdentifier(tableName)
+                + " DROP COLUMN " + quoteIdentifier(columnName);
+        return formatter.format(ddl);
+    }
+
     public boolean matches(DorisColumnMetadata actual, DdlColumnDefinition expected) {
         String expectedType = connectorAdapter.toDorisType(expected);
         String expectedBase = normalizeTypeName(expectedType);
