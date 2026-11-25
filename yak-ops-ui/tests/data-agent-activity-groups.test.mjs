@@ -129,7 +129,7 @@ test("timeline uses expandable groups and keeps activity details selection wired
   assert.match(timeline, /buildActivityTimeline\(activities\)/);
   assert.match(
     timeline,
-    /isStreaming \|\|\s*group\.hasRunning \|\|\s*group\.requiresAttention/,
+    /group\.hasRunning \|\|\s*group\.requiresAttention/,
   );
   assert.match(timeline, /containsSelectedActivity/);
   assert.match(timeline, /group\.requiresAttention/);
@@ -150,4 +150,9 @@ test("timeline uses expandable groups and keeps activity details selection wired
     detailsTimeline,
     /AgentThought key=\{activity\.id\} activity=\{activity\} compact/,
   );
+  assert.match(styles, /@keyframes yak-agent-activity-shimmer/);
+  assert.match(styles, /background-position: 140% 0/);
+  assert.match(styles, /background-position: -140% 0/);
+  assert.match(styles, /2\.6s linear infinite/);
+  assert.match(styles, /prefers-reduced-motion: reduce/);
 });
