@@ -16,29 +16,29 @@ const particleStyles = read("../apps/web/app/data-agent/components/magic-pattern
 const loginPanel = read("../apps/web/app/login/LoginPanel.tsx");
 const loginPage = read("../apps/web/app/login/index.tsx");
 
-test("Magic Patterns particle transition is mounted once at the Data Agent workspace level", () => {
+test("particle transition is opt-in for the first welcome entry, not existing sessions", () => {
+  assert.match(page, /playInitialParticleTransition: true/);
+  assert.match(page, /enableInitialParticleTransition=\{Boolean\([\s\S]*playInitialParticleTransition && !sessionId/);
+  assert.match(workspace, /enableInitialParticleTransition\?: boolean/);
+  assert.match(workspace, /useState\(enableInitialParticleTransition\)/);
+  assert.match(workspace, /\{showInitialParticleTransition \? \(/);
   assert.match(workspace, /<MagicPatternsParticleTransition/);
   assert.match(workspace, /fromRef=\{particleSourceRef\}/);
   assert.match(workspace, /toRef=\{particleTargetRef\}/);
   assert.match(workspace, /ref=\{particleTargetRef\}/);
-  assert.match(workspace, /relative flex min-h-0 min-w-0 flex-1 overflow-hidden/);
   assert.match(particleStyles, /position: fixed/);
   assert.match(particleStyles, /pointer-events: none/);
 });
-
-test("both the welcome composer and ongoing conversation composer provide the animation source", () => {
+test("only the welcome composer provides a source for the particle transition", () => {
   assert.match(promptComposer, /transitionSourceRef\?: RefObject<HTMLDivElement>/);
   assert.match(promptComposer, /<div ref=\{transitionSourceRef\} className="group\/composer/);
-  assert.match(emptyState, /transitionSourceRef: RefObject<HTMLDivElement>/);
+  assert.match(emptyState, /transitionSourceRef\?: RefObject<HTMLDivElement>/);
   assert.match(emptyState, /transitionSourceRef=\{transitionSourceRef\}/);
-  assert.match(conversationPanel, /transitionSourceRef: RefObject<HTMLDivElement>/);
-  assert.match(conversationPanel, /transitionSourceRef=\{transitionSourceRef\}/);
-  assert.match(sessionWorkspace, /transitionSourceRef: RefObject<HTMLDivElement>/);
-  assert.match(sessionWorkspace, /transitionSourceRef=\{transitionSourceRef\}/);
-  assert.equal((workspace.match(/transitionSourceRef=\{particleSourceRef\}/g) ?? []).length, 2);
+  assert.doesNotMatch(conversationPanel, /transitionSourceRef/);
+  assert.doesNotMatch(sessionWorkspace, /transitionSourceRef/);
+  assert.equal((workspace.match(/transitionSourceRef=\{particleSourceRef\}/g) ?? []).length, 1);
 });
-
-test("the particle animation starts only after the conversation hook accepts the prompt", () => {
+test("the particle animation runs once after the first welcome prompt is accepted", () => {
   const submitStart = workspace.indexOf("function handlePromptSubmit");
   const submitEnd = workspace.indexOf("function handleQuickAction", submitStart);
   const submitHandler = workspace.slice(submitStart, submitEnd);
@@ -48,7 +48,10 @@ test("the particle animation starts only after the conversation hook accepts the
   const sendStateIndex = conversationHook.indexOf("activeSendCountRef.current += 1", acceptedIndex);
 
   assert.match(submitHandler, /sendMessage\(content, \(\) =>/);
+  assert.match(submitHandler, /initialParticleTransitionPendingRef\.current/);
+  assert.match(submitHandler, /if \(!shouldPlayInitialParticleTransition\) return/);
   assert.match(submitHandler, /particleTransitionRef\.current\?\.play\(\)/);
+  assert.match(submitHandler, /setShowInitialParticleTransition\(false\)/);
   assert.ok(identityCheckIndex >= 0 && identityCheckIndex < acceptedIndex);
   assert.ok(sessionCheckIndex > identityCheckIndex && sessionCheckIndex < acceptedIndex);
   assert.ok(acceptedIndex < sendStateIndex);
@@ -56,6 +59,19 @@ test("the particle animation starts only after the conversation hook accepts the
   assert.match(conversationHook, /Visual effects are optional and must never block message delivery/);
 });
 
+test("creating or selecting another conversation permanently disables the welcome particle transition", () => {
+  const newStart = workspace.indexOf("function handleNewConversation");
+  const selectStart = workspace.indexOf("function handleSelectConversation", newStart);
+  const submitStart = workspace.indexOf("function handlePromptSubmit", selectStart);
+  const newHandler = workspace.slice(newStart, selectStart);
+  const selectHandler = workspace.slice(selectStart, submitStart);
+
+  for (const handler of [newHandler, selectHandler]) {
+    assert.match(handler, /particleTransitionRef\.current\?\.cancel\(\)/);
+    assert.match(handler, /initialParticleTransitionPendingRef\.current = false/);
+    assert.match(handler, /setShowInitialParticleTransition\(false\)/);
+  }
+});
 test("the original Magic Patterns Canvas choreography and mask sweep are retained", () => {
   assert.match(particle, /PARTICLE_COUNT = 220/);
   assert.match(particle, /PARTICLE_BURST_DURATION_MS = 1300/);
