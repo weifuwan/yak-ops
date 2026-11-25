@@ -11,6 +11,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { notifyOnce } from "@/utils/notification";
 import { login } from "../../service/auth";
 import LoginPasswordEye from "./LoginPasswordEye";
+import YakAurora, { type YakAuroraHandle } from "./YakAurora";
 import {
   LOGIN_FAILURE_MOTION_MS,
   LOGIN_SUCCESS_MOTION_MS,
@@ -57,12 +58,15 @@ export default function LoginPanel({
   const submissionRef = useRef<AbortController | null>(null);
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
+  const auroraRef = useRef<YakAuroraHandle | null>(null);
+  const submitTargetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
       // Invalidate UI continuations; this does not cancel the authentication request.
       submissionRef.current?.abort();
       submissionRef.current = null;
+      auroraRef.current?.cancel();
     };
   }, []);
 
@@ -91,6 +95,15 @@ export default function LoginPanel({
       setLoading(true);
       onLoginResultChange("submitting");
 
+      // The visual transition starts with the valid submit action and runs alongside auth.
+      // Rendering failures must never prevent the real login request.
+      let auroraMotion = Promise.resolve();
+      try {
+        auroraMotion = auroraRef.current?.play().catch(() => undefined) ?? Promise.resolve();
+      } catch {
+        auroraMotion = Promise.resolve();
+      }
+
       await login({
         userName,
         userPassword,
@@ -99,7 +112,10 @@ export default function LoginPanel({
       if (submission.signal.aborted) return;
       loginSucceeded = true;
       onLoginResultChange("success");
-      await waitForMotion(LOGIN_SUCCESS_MOTION_MS, submission.signal);
+      await Promise.all([
+        auroraMotion,
+        waitForMotion(LOGIN_SUCCESS_MOTION_MS, submission.signal),
+      ]);
       if (submission.signal.aborted) return;
       await onAuthenticated();
 
@@ -112,6 +128,7 @@ export default function LoginPanel({
       });
     } catch {
       if (submission.signal.aborted) return;
+      auroraRef.current?.cancel();
       if (!loginSucceeded) {
         onLoginResultChange("failure");
         await waitForMotion(LOGIN_FAILURE_MOTION_MS, submission.signal);
@@ -131,6 +148,7 @@ export default function LoginPanel({
 
   return (
     <>
+      <YakAurora ref={auroraRef} targetRef={submitTargetRef} />
       <form
         className="login-form"
         noValidate
@@ -213,17 +231,19 @@ export default function LoginPanel({
           </div>
         </Field>
 
-        <Button
-          variant="primary"
-          size="lg"
-          type="submit"
-          isPending={loading}
-          fullWidth
-          className="login-form-submit mt-6"
-          style={{ borderRadius: "var(--yak-radius-full)" }}
-        >
-          登录
-        </Button>
+        <div ref={submitTargetRef} className="login-form-submit-target mt-6">
+          <Button
+            variant="primary"
+            size="lg"
+            type="submit"
+            isPending={loading}
+            fullWidth
+            className="login-form-submit"
+            style={{ borderRadius: "var(--yak-radius-full)" }}
+          >
+            登录
+          </Button>
+        </div>
       </form>
       {/* Outside the busy form so the status can be announced while it is submitting. */}
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
