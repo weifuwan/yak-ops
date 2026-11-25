@@ -29,6 +29,8 @@ class PromptBundleTests(unittest.TestCase):
         core = (DEFAULT_PROMPT_DIR / "AGENT.md").read_text(encoding="utf-8")
 
         self.assertIn("平台智能助手", core)
+        self.assertIn("平台能力地图", core)
+        self.assertIn("自我介绍", core)
         self.assertIn("能力边界", core)
         self.assertNotIn("数据同步助手", core)
 
