@@ -99,6 +99,16 @@ class Session:
     preview: str = ""
     usage: dict[str, int] = field(default_factory=dict)
     last_active_at: float = field(default_factory=time.time)
+    # Context capacity snapshot: the last real prompt size, the configured
+    # window, the per-component breakdown, and the raw (cache-inclusive) usage
+    # used to derive the average cache hit rate.
+    context_tokens: int = 0
+    context_limit_tokens: int = 0
+    context_snapshot: dict[str, Any] | None = None
+    # Derived, per-process cache of the fixed context components (tool schemas,
+    # skills, system prompt) so the breakdown does not rebuild them every call.
+    context_fixed: dict[str, int] = field(default_factory=dict)
+    raw_usage: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -164,6 +174,7 @@ def create_session(sid: str, identity: Identity, settings: Settings) -> Session:
         auth=identity.auth,
         memory=memory,
         persistent=identity.persistent,
+        context_limit_tokens=int(getattr(settings, "llm_context_size", 0) or 0),
     )
     SESSIONS[sid] = session
     return session
@@ -217,6 +228,8 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
     except ToolConfigurationError as ex:
         raise ToolConfigurationExceeded(str(ex)) from ex
     stored_usage = meta.get("usage") or {}
+    stored_context = meta.get("context")
+    stored_raw_usage = meta.get("rawUsage") or {}
     session = Session(
         sid=sid,
         agent=agent,
@@ -230,6 +243,16 @@ def load_session(sid: str, identity: Identity, settings: Settings | None) -> Ses
         usage={
             key: max(0, int(value))
             for key, value in stored_usage.items()
+            if isinstance(value, (int, float))
+        },
+        context_tokens=max(0, int(meta.get("contextTokens") or 0)),
+        context_limit_tokens=(
+            int(getattr(settings, "llm_context_size", 0) or 0) if settings is not None else 0
+        ),
+        context_snapshot=stored_context if isinstance(stored_context, dict) else None,
+        raw_usage={
+            key: max(0, int(value))
+            for key, value in stored_raw_usage.items()
             if isinstance(value, (int, float))
         },
     )

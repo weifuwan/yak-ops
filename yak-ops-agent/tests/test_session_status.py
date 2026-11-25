@@ -130,6 +130,48 @@ class SessionStatusTests(unittest.TestCase):
         self.assertEqual(result["state"], "idle")
         self.assertFalse(result["stale"])
 
+    def test_disk_session_reports_persisted_context(self) -> None:
+        persistence.meta_path("sid").write_text(
+            json.dumps(
+                {
+                    "owner": "u-1",
+                    "workspace": "1",
+                    "contextTokens": 9000,
+                    "rawUsage": {"inputTokens": 10000, "cacheInputTokens": 9000},
+                    "context": {
+                        "usedTokens": 9000,
+                        "limitTokens": 128000,
+                        "triggerTokens": 89600,
+                        "ratio": 0.0703,
+                        "averageCacheHitRate": 0.9,
+                        "compressed": True,
+                        "breakdown": [
+                            {"key": "messages", "label": "消息", "tokens": 9000, "ratio": 1.0}
+                        ],
+                    },
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+        result = self._status("sid")
+
+        self.assertEqual(result["context"]["usedTokens"], 9000)
+        self.assertTrue(result["context"]["compressed"])
+        self.assertEqual(result["context"]["breakdown"][0]["key"], "messages")
+
+    def test_disk_session_without_context_reports_zero_payload(self) -> None:
+        persistence.meta_path("sid").write_text(
+            json.dumps({"owner": "u-1", "workspace": "1", "contextTokens": 0}),
+            encoding="utf-8",
+        )
+
+        result = self._status("sid")
+
+        self.assertEqual(result["context"]["usedTokens"], 0)
+        self.assertEqual(result["context"]["breakdown"], [])
+
     def test_new_in_memory_session_without_meta_is_reported(self) -> None:
         SESSIONS["sid"] = Session(
             sid="sid",
