@@ -35,29 +35,29 @@ public class DorisDdlExecutor {
                     publishId, database, tableName);
             return;
         }
-        try (Statement statement = connection.createStatement()) {
-            int total = plan.getStatements().size();
-            for (int index = 0; index < total; index++) {
-                String sql = plan.getStatements().get(index);
-                boolean alter = isAlter(sql);
-                Long previousJobId = alter
-                        ? schemaChangeWaiter.latestJobId(connection, database, tableName)
-                        : null;
-                log.info(
-                        "Executing Doris DDL step {}/{}: publishId={}, database={}, table={}, operation={}",
-                        index + 1,
-                        total,
-                        publishId,
-                        database,
-                        tableName,
-                        operationOf(sql));
+        int total = plan.getStatements().size();
+        for (int index = 0; index < total; index++) {
+            String sql = plan.getStatements().get(index);
+            boolean alter = isAlter(sql);
+            Long previousJobId = alter
+                    ? schemaChangeWaiter.latestJobId(connection, database, tableName)
+                    : null;
+            log.info(
+                    "Executing Doris DDL step {}/{}: publishId={}, database={}, table={}, operation={}",
+                    index + 1,
+                    total,
+                    publishId,
+                    database,
+                    tableName,
+                    operationOf(sql));
+            try (Statement statement = connection.createStatement()) {
                 statement.execute(sql);
-                if (alter) {
-                    schemaChangeWaiter.awaitCompletion(connection, database, tableName, previousJobId);
-                    log.info(
-                            "Doris Schema Change completed: publishId={}, database={}, table={}",
-                            publishId, database, tableName);
-                }
+            }
+            if (alter) {
+                schemaChangeWaiter.awaitCompletion(connection, database, tableName, previousJobId);
+                log.info(
+                        "Doris Schema Change completed: publishId={}, database={}, table={}",
+                        publishId, database, tableName);
             }
         }
     }
