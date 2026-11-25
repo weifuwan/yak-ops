@@ -100,7 +100,7 @@ export type DorisFieldTypeOption = {
   maxPrecision?: number;
   maxScale?: number;
 };
-export type DorisPublishRequest = { datasourceId: number; targetDatabase: string; advanced?: DorisPublishAdvanced };
+export type DorisPublishRequest = { datasourceId: number; advanced?: DorisPublishAdvanced };
 export type DorisPublishRecord = {
   id?: string;
   tableId?: string;
