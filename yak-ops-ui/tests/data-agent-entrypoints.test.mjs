@@ -416,9 +416,12 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(sessionWorkspace, /AgentDetailsPanel/);
   assert.match(sessionWorkspace, /id="agent-details-panel"/);
   assert.match(sessionWorkspace, /handleSelectActivity/);
+  assert.match(sessionWorkspace, /activity=\{selectedActivity\}/);
+  assert.match(sessionWorkspace, /messageError=\{selectedMessage\.error\}/);
   assert.match(sessionWorkspace, /duration-300/);
   assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0/);
   assert.match(detailsPanel, /AgentActivityDetails/);
+  assert.doesNotMatch(detailsPanel, /message\.activities|selectedActivityId|AgentDetailsTimeline/);
   assert.doesNotMatch(detailsPanel, /AgentDetailsSummary|执行概览|Token 用量|inputTokens|outputTokens|cacheTokens/);
   assert.ok(sessionWorkspace.includes("metricsMessage={selectedMessage}"));
   assert.ok(conversationHeader.includes("getMessageMetrics"));
