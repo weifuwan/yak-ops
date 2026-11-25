@@ -70,7 +70,8 @@ const FRAGMENT_SHADER = [
   "  }",
   "",
   "  float sourceDistance = 0.5 * (low + high);",
-  "  float stretch = max(0.02, radiusAt(sourceDistance + 0.5) - radiusAt(max(0.0, sourceDistance - 0.5)));",
+  "  float stretch = max(0.02, radiusAt(sourceDistance + 0.5) -",
+  "    radiusAt(max(0.0, sourceDistance - 0.5)));",
   "  float squeeze = sourceDistance / max(distanceFromCenter, 0.0001);",
   "  float fall = fallen(sourceDistance);",
   "  vec2 direction = distanceFromCenter > 0.0001 ? offset / distanceFromCenter : vec2(0.0, -1.0);",
@@ -103,7 +104,8 @@ const FRAGMENT_SHADER = [
   "",
   "  pulled *= smoothstep(1.0, 3.0, distanceFromCenter);",
   "  float spread = uDot * (1.0 + (1.0 - uTime));",
-  "  float core = 0.85 * uTime * exp(-distanceFromCenter * distanceFromCenter / (spread * spread));",
+  "  float core = 0.85 * uTime * exp(-distanceFromCenter * distanceFromCenter",
+  "    / (spread * spread));",
   "  color = vec4(SEED * core, core) + pulled * (1.0 - core);",
   "}",
 ].join("\n");
@@ -296,7 +298,13 @@ function createPullRenderer(
   gl.uniform2f(gl.getUniformLocation(program, "uCenter"), centerX * dpr, centerY * dpr);
   gl.uniform1f(
     gl.getUniformLocation(program, "uReach"),
-    Math.max(1, Math.hypot(Math.max(centerX, width - centerX), Math.max(centerY, height - centerY)) * dpr),
+    Math.max(
+      1,
+      Math.hypot(
+        Math.max(centerX, width - centerX),
+        Math.max(centerY, height - centerY),
+      ) * dpr,
+    ),
   );
   gl.uniform1f(gl.getUniformLocation(program, "uDot"), 3.5 * dpr);
   const timeLocation = gl.getUniformLocation(program, "uTime");
