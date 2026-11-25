@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 
 type DataAgentPromptComposerProps = {
@@ -16,6 +17,7 @@ type DataAgentPromptComposerProps = {
   trailingActions?: ReactNode;
   isSubmitting?: boolean;
   onStop?: () => void;
+  transitionSourceRef?: RefObject<HTMLDivElement>;
 };
 
 const MIN_TEXTAREA_HEIGHT = 40;
@@ -30,6 +32,7 @@ export function DataAgentPromptComposer({
   trailingActions,
   isSubmitting = false,
   onStop,
+  transitionSourceRef,
 }: DataAgentPromptComposerProps) {
   const [value, setValue] = useState(initialValue);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -85,7 +88,7 @@ export function DataAgentPromptComposer({
   }
 
   return (
-    <div className="group/composer relative isolate w-full">
+    <div ref={transitionSourceRef} className="group/composer relative isolate w-full">
       <div className="relative z-[1] overflow-hidden rounded-[14px] border border-[#e0e4e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#cbd3d1] focus-within:shadow-[0_2px_8px_rgba(0,0,0,0.055)]">
         <div className="relative p-2.5">
           <div className="relative">
