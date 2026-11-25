@@ -22,7 +22,6 @@ type ConversationPanelProps = {
   onSubmit: (content: string) => boolean | void;
   onStop: () => void;
   trailingActions: ReactNode;
-  transitionSourceRef: RefObject<HTMLDivElement>;
 };
 
 export function ConversationPanel({
@@ -41,7 +40,6 @@ export function ConversationPanel({
   onSubmit,
   onStop,
   trailingActions,
-  transitionSourceRef,
 }: ConversationPanelProps) {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
@@ -156,7 +154,6 @@ export function ConversationPanel({
             isSubmitting={isSending}
             onStop={onStop}
             trailingActions={trailingActions}
-            transitionSourceRef={transitionSourceRef}
             placeholder="继续向 Data Agent 提问..."
           />
           <p className="mb-0 mt-2 text-center text-[11px] text-[#aaaaaa]">
