@@ -213,3 +213,24 @@ test("connection-test loading is bounded and always cleared", () => {
   assert.match(datasourceFormSource, /if \(signal\.aborted\)/);
   assert.match(datasourceFormSource, /finally\s*\{\s*setTesting\(false\);\s*\}/);
 });
+
+
+const datasourceTableSource = readFileSync(
+  new URL("../apps/web/app/datasource/list/data-source-table.tsx", import.meta.url),
+  "utf8",
+);
+
+test("datasource list does not display a fabricated connection status", () => {
+  const record = fromBackendDataSource({
+    id: 82,
+    type: 23,
+    name: "doris",
+    connectionParams: JSON.stringify({
+      address: "jdbc:mysql:loadbalance://fe.example:9030",
+      database: "analytics",
+      user: "reader",
+    }),
+  });
+  assert.equal("connStatus" in record, false);
+  assert.doesNotMatch(datasourceTableSource, /DataSourceStatus|pages\\.datasource\\.status/);
+});
