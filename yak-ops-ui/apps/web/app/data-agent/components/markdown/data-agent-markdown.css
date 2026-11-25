@@ -5,7 +5,7 @@
   --card-foreground: #27302f;
   --popover: #ffffff;
   --popover-foreground: #27302f;
-  --primary: #fe2c55;
+  --primary: #0033ff;
   --primary-foreground: #ffffff;
   --secondary: #f5f6f5;
   --secondary-foreground: #27302f;
@@ -17,7 +17,7 @@
   --destructive-foreground: #ffffff;
   --border: #e7eae9;
   --input: #e7eae9;
-  --ring: rgba(254, 44, 85, 0.24);
+  --ring: rgba(0, 51, 255, 0.2);
   --sidebar: #f7f8f7;
   --radius: 10px;
 
@@ -175,7 +175,7 @@
 }
 
 .data-agent-markdown [data-streamdown="link"] {
-  color: #fe2c55;
+  color: #0033ff;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
@@ -193,6 +193,27 @@
 }
 
 .data-agent-markdown :focus-visible {
-  outline: 2px solid rgba(254, 44, 85, 0.35);
+  outline: 2px solid rgba(0, 51, 255, 0.35);
   outline-offset: 2px;
+}
+
+
+@keyframes sd-sweepText {
+  from {
+    opacity: 0.15;
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-agent-markdown [data-sd-animate] {
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
 }
