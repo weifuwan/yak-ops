@@ -14,6 +14,7 @@ public class DorisDdlRequest {
     private final DorisPublishModeEnum publishMode;
     private final DorisDataModelEnum previousTableModel;
     private final List<String> previousKeyFields;
+    private final Integer replicationNum;
 
     public DorisDdlRequest(
             DdlTableDefinition table,
@@ -21,6 +22,16 @@ public class DorisDdlRequest {
             DorisPublishModeEnum publishMode,
             DorisDataModelEnum previousTableModel,
             List<String> previousKeyFields) {
+        this(table, tableModel, publishMode, previousTableModel, previousKeyFields, null);
+    }
+
+    public DorisDdlRequest(
+            DdlTableDefinition table,
+            DorisDataModelEnum tableModel,
+            DorisPublishModeEnum publishMode,
+            DorisDataModelEnum previousTableModel,
+            List<String> previousKeyFields,
+            Integer replicationNum) {
         this.table = table;
         this.tableModel = tableModel;
         this.publishMode = publishMode;
@@ -28,6 +39,7 @@ public class DorisDdlRequest {
         this.previousKeyFields = previousKeyFields == null
                 ? Collections.<String>emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(previousKeyFields));
+        this.replicationNum = replicationNum;
     }
 
     public DdlTableDefinition getTable() { return table; }
@@ -35,4 +47,5 @@ public class DorisDdlRequest {
     public DorisPublishModeEnum getPublishMode() { return publishMode; }
     public DorisDataModelEnum getPreviousTableModel() { return previousTableModel; }
     public List<String> getPreviousKeyFields() { return previousKeyFields; }
+    public Integer getReplicationNum() { return replicationNum; }
 }
