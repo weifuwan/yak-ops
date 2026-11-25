@@ -2,29 +2,36 @@ package io.yak.ops.plugin.doris.param;
 
 import io.yak.ops.common.constants.Constants;
 import io.yak.ops.common.utils.JSONUtils;
+import io.yak.ops.plugin.datasource.api.catalog.CatalogPath;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.constants.DataSourceConstants;
 import io.yak.ops.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import io.yak.ops.plugin.datasource.api.datasource.DataSourceProcessor;
 import io.yak.ops.plugin.datasource.api.datasource.JdbcDriverConnectionProvider;
 import io.yak.ops.plugin.datasource.api.utils.PasswordUtils;
+import io.yak.ops.plugin.doris.catalog.DorisDataSourceCatalog;
 import io.yak.ops.spi.datasource.ConnectionParam;
 import io.yak.ops.spi.enums.DbType;
-
-import org.apache.commons.collections4.MapUtils;
-
+import com.alibaba.druid.sql.parser.SQLParserUtils;
+import com.google.auto.service.AutoService;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.collections4.MapUtils;
 
-import com.alibaba.druid.sql.parser.SQLParserUtils;
-import com.google.auto.service.AutoService;
-
+/** Doris datasource plugin. Connection and catalog behavior stay within this plugin. */
 @AutoService(DataSourceProcessor.class)
 public class DorisDataSourceProcessor extends AbstractDataSourceProcessor {
+
+    private final DorisDataSourceCatalog catalog = new DorisDataSourceCatalog();
+
+    @Override
+    public DataSourceCatalog getCatalog() {
+        return catalog;
+    }
 
     @Override
     public BaseDataSourceParamDTO castDatasourceParamDTO(String paramJson) {
@@ -32,51 +39,61 @@ public class DorisDataSourceProcessor extends AbstractDataSourceProcessor {
     }
 
     @Override
-    public BaseDataSourceParamDTO createDatasourceParamDTO(String connectionJson) throws NumberFormatException {
-        DorisConnectionParam connectionParams = (DorisConnectionParam) createConnectionParams(connectionJson);
-        DorisDataSourceParamDTO dorisDataSourceParamDTO = new DorisDataSourceParamDTO();
-
-        dorisDataSourceParamDTO.setUserName(connectionParams.getUser());
-        dorisDataSourceParamDTO.setDatabase(connectionParams.getDatabase());
-        dorisDataSourceParamDTO.setOther(connectionParams.getOther());
+    public BaseDataSourceParamDTO createDatasourceParamDTO(String connectionJson) {
+        DorisConnectionParam connectionParams =
+                (DorisConnectionParam) createConnectionParams(connectionJson);
+        DorisDataSourceParamDTO datasourceParam = new DorisDataSourceParamDTO();
+        datasourceParam.setUserName(connectionParams.getUser());
+        datasourceParam.setDatabase(connectionParams.getDatabase());
+        datasourceParam.setOther(connectionParams.getOther());
 
         String address = connectionParams.getAddress();
-        String[] hostSeperator = address.split(Constants.DOUBLE_SLASH);
-        String[] hostPortArrays = hostSeperator[hostSeperator.length - 1].split(Constants.COMMA);
-
-        dorisDataSourceParamDTO.setPort(Integer.parseInt(hostPortArrays[0].split(Constants.COLON)[1]));
-
-        for (int i = 0; i < hostPortArrays.length; i++) {
-            hostPortArrays[i] = hostPortArrays[i].split(Constants.COLON)[0];
+        if (address == null || address.trim().isEmpty()) {
+            throw new IllegalArgumentException("Doris datasource address is required");
         }
-        dorisDataSourceParamDTO.setHost(String.join(",", hostPortArrays));
-
-        return dorisDataSourceParamDTO;
+        String[] hosts = address.split(Constants.DOUBLE_SLASH);
+        String[] hostPorts = hosts[hosts.length - 1].split(Constants.COMMA);
+        List<String> hostNames = new ArrayList<>();
+        Integer port = null;
+        for (String hostPort : hostPorts) {
+            String[] parts = hostPort.split(Constants.COLON);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Doris datasource address is invalid");
+            }
+            hostNames.add(parts[0]);
+            if (port == null) {
+                port = Integer.valueOf(parts[1]);
+            } else if (!port.equals(Integer.valueOf(parts[1]))) {
+                throw new IllegalArgumentException("All Doris frontend addresses must use the same port");
+            }
+        }
+        datasourceParam.setHost(String.join(Constants.COMMA, hostNames));
+        datasourceParam.setPort(port);
+        return datasourceParam;
     }
 
     @Override
     public ConnectionParam createConnectionParams(BaseDataSourceParamDTO datasourceParam) {
-        DorisDataSourceParamDTO mysqlDatasourceParam = (DorisDataSourceParamDTO) datasourceParam;
-        String[] hosts = datasourceParam.getHost().split(Constants.COMMA);
-
+        DorisDataSourceParamDTO dorisParam = (DorisDataSourceParamDTO) datasourceParam;
+        String[] hosts = dorisParam.getHost().split(Constants.COMMA);
         for (int i = 0; i < hosts.length; i++) {
-            hosts[i] = String.format(Constants.FORMAT_S_S_COLON, hosts[i], mysqlDatasourceParam.getPort());
+            hosts[i] = String.format(Constants.FORMAT_S_S_COLON, hosts[i], dorisParam.getPort());
         }
 
-        String address = String.format("%s%s", DataSourceConstants.JDBC_MYSQL_LOADBALANCE, String.join(",", hosts));
-        String jdbcUrl = String.format(Constants.FORMAT_S_S, address, mysqlDatasourceParam.getDatabase());
+        String address = String.format(
+                "%s%s", DataSourceConstants.JDBC_MYSQL_LOADBALANCE, String.join(",", hosts));
+        String jdbcUrl = String.format(Constants.FORMAT_S_S, address, dorisParam.getDatabase());
 
-        DorisConnectionParam mysqlConnectionParam = new DorisConnectionParam();
-        mysqlConnectionParam.setJdbcUrl(jdbcUrl);
-        mysqlConnectionParam.setDatabase(mysqlDatasourceParam.getDatabase());
-        mysqlConnectionParam.setAddress(address);
-        mysqlConnectionParam.setUser(mysqlDatasourceParam.getUserName());
-        mysqlConnectionParam.setPassword(PasswordUtils.encodePassword(mysqlDatasourceParam.getPassword()));
-        mysqlConnectionParam.setDriverClassName(getDatasourceDriver());
-        mysqlConnectionParam.setValidationQuery(getValidationQuery());
-        mysqlConnectionParam.setOther(mysqlDatasourceParam.getOther());
-
-        return mysqlConnectionParam;
+        DorisConnectionParam connectionParam = new DorisConnectionParam();
+        connectionParam.setJdbcUrl(jdbcUrl);
+        connectionParam.setDatabase(dorisParam.getDatabase());
+        connectionParam.setAddress(address);
+        connectionParam.setUser(dorisParam.getUserName());
+        connectionParam.setPassword(PasswordUtils.encodePassword(dorisParam.getPassword()));
+        connectionParam.setDriverClassName(getDatasourceDriver());
+        connectionParam.setValidationQuery(getValidationQuery());
+        connectionParam.setOther(dorisParam.getOther());
+        return connectionParam;
     }
 
     @Override
@@ -96,24 +113,40 @@ public class DorisDataSourceProcessor extends AbstractDataSourceProcessor {
 
     @Override
     public String getJdbcUrl(ConnectionParam connectionParam) {
-        DorisConnectionParam mysqlConnectionParam = (DorisConnectionParam) connectionParam;
-        String jdbcUrl = mysqlConnectionParam.getJdbcUrl();
-        if (MapUtils.isNotEmpty(mysqlConnectionParam.getOther())) {
-            return String.format("%s?%s", jdbcUrl, transformOther(mysqlConnectionParam.getOther()));
+        DorisConnectionParam dorisParam = (DorisConnectionParam) connectionParam;
+        String jdbcUrl = dorisParam.getJdbcUrl();
+        if (MapUtils.isEmpty(dorisParam.getOther())) {
+            return jdbcUrl;
         }
-        return String.format("%s", jdbcUrl);
+        return jdbcUrl + "?" + transformOther(dorisParam.getOther());
     }
 
     @Override
     public Connection getConnection(ConnectionParam connectionParam) throws SQLException {
-        DorisConnectionParam dorisConnectionParam = (DorisConnectionParam) connectionParam;
+        DorisConnectionParam dorisParam = (DorisConnectionParam) connectionParam;
         return JdbcDriverConnectionProvider.builder()
                 .jdbcDriverClassName(getDatasourceDriver())
-                .jdbcUrl(getJdbcUrl(dorisConnectionParam))
-                .username(dorisConnectionParam.getUser())
-                .password(PasswordUtils.decodePassword(dorisConnectionParam.getPassword()))
+                .jdbcUrl(getJdbcUrl(dorisParam))
+                .username(dorisParam.getUser())
+                .password(PasswordUtils.decodePassword(dorisParam.getPassword()))
                 .build()
                 .getConnection();
+    }
+
+    @Override
+    public Connection getConnection(ConnectionParam connectionParam, CatalogPath path) throws SQLException {
+        if (path == null || path.getDatabase() == null
+                || !(connectionParam instanceof DorisConnectionParam)) {
+            return getConnection(connectionParam);
+        }
+        DorisConnectionParam source = (DorisConnectionParam) connectionParam;
+        if (source.getDatabase() == null || !path.getDatabase().equals(source.getDatabase())) {
+            throw new IllegalArgumentException(
+                    "Catalog database '" + path.getDatabase()
+                            + "' is outside the configured Doris datasource database '"
+                            + source.getDatabase() + "'");
+        }
+        return getConnection(connectionParam);
     }
 
     @Override
@@ -128,24 +161,13 @@ public class DorisDataSourceProcessor extends AbstractDataSourceProcessor {
 
     @Override
     public List<String> splitAndRemoveComment(String sql) {
-        // Because doris is highly compatible with mysql syntax,
-        // a mysql-type implementation can be used for comments and statement split.
-        String cleanSQL = SQLParserUtils.removeComment(sql, com.alibaba.druid.DbType.mysql);
-        return SQLParserUtils.split(cleanSQL, com.alibaba.druid.DbType.mysql);
+        String cleanSql = SQLParserUtils.removeComment(sql, com.alibaba.druid.DbType.mysql);
+        return SQLParserUtils.split(cleanSql, com.alibaba.druid.DbType.mysql);
     }
 
-    private String transformOther(Map<String, String> paramMap) {
-        if (MapUtils.isEmpty(paramMap)) {
-            return null;
-        }
-        Map<String, String> otherMap = new HashMap<>();
-        paramMap.forEach((k, v) -> otherMap.put(k, v));
-        if (MapUtils.isEmpty(otherMap)) {
-            return null;
-        }
-        List<String> otherList = new ArrayList<>();
-        otherMap.forEach((key, value) -> otherList.add(String.format("%s=%s", key, value)));
-        return String.join("&", otherList);
+    private String transformOther(Map<String, String> parameters) {
+        List<String> values = new ArrayList<>(parameters.size());
+        parameters.forEach((key, value) -> values.add(key + "=" + value));
+        return String.join("&", values);
     }
-
 }
