@@ -260,9 +260,9 @@ test("application model TreeSelect preserves the save contract and disallows bus
 });
 
 test("dimension creation groups each Base UI menu label with its items", () => {
-  assert.match(sidebar, /<DropdownMenuTrigger\\s+aria-label="新建维度模型"/);
+  assert.match(sidebar, /<DropdownMenuTrigger\s+aria-label="新建维度模型"/);
   const menu = sidebar.match(
-    /<DropdownMenuContent\\b[^>]*>([\\s\\S]*?)<\\/DropdownMenuContent>/,
+    /<DropdownMenuContent\b[^>]*>([\s\S]*?)<\/DropdownMenuContent>/,
   )?.[1];
   assert.ok(menu, "dimension creation dropdown should exist");
 
