@@ -103,16 +103,27 @@ test("unknown tools stay in a neutral Activity group and attention states are pr
 });
 
 test("timeline uses expandable groups and keeps activity details selection wired", () => {
-  const timeline = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityTimeline.tsx");
-  const group = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityGroup.tsx");
-  const toolActivity = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx");
-  const thought = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentThought.tsx");
-  const detailsTimeline = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx");
+  const timeline = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityTimeline.tsx",
+  );
+  const group = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentActivityGroup.tsx",
+  );
+  const toolActivity = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx",
+  );
+  const thought = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/activity/AgentThought.tsx",
+  );
+  const detailsTimeline = read(
+    "../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx",
+  );
 
   assert.match(timeline, /buildActivityTimeline\(activities\)/);
   assert.match(timeline, /isStreaming \|\| group\.hasRunning \|\| group\.requiresAttention/);
   assert.match(timeline, /containsSelectedActivity/);
-  assert.match(timeline, /containsSelectedActivity \|\| group\.requiresAttention/);
+  assert.match(timeline, /group\.requiresAttention/);
+  assert.match(timeline, /containsSelectedActivity/);
   assert.match(group, /aria-expanded=\{expanded\}/);
   assert.match(group, /Worked for /);
   assert.match(group, /onSelectActivity/);
