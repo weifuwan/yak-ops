@@ -6,7 +6,6 @@
   pointer-events: none;
   visibility: hidden;
   opacity: 0;
-  mix-blend-mode: screen;
   transition:
     opacity 120ms ease,
     visibility 0s linear 120ms;
