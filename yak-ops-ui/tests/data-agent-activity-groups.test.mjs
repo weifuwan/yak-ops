@@ -32,6 +32,7 @@ test("adjacent tool calls are grouped by Exploring, Changed and Ran without reor
     activity({ id: "detail", toolName: "get_sync_task" }),
     activity({ id: "create", toolName: "create_sync_task" }),
     activity({ id: "publish", toolName: "publish_sync_task" }),
+    activity({ id: "stop", toolName: "stop_task_instance" }),
     activity({ id: "run", toolName: "run_analysis_script" }),
   ]);
 
@@ -47,7 +48,7 @@ test("adjacent tool calls are grouped by Exploring, Changed and Ran without reor
         ? entry.group.activities.map((item) => item.id)
         : [entry.activity.id],
     ),
-    [["list", "detail"], ["create", "publish"], ["run"]],
+    [["list", "detail"], ["create", "publish", "stop"], ["run"]],
   );
 });
 
@@ -73,15 +74,21 @@ test("text and thought blocks remain standalone and prevent unrelated groups fro
 
 test("progress phases share the same categories as matching tool actions", () => {
   assert.equal(
-    getActivityGroupCategory(activity({ id: "analysis", kind: "progress", phase: "analysis" })),
+    getActivityGroupCategory(
+      activity({ id: "analysis", kind: "progress", phase: "analysis" }),
+    ),
     "exploring",
   );
   assert.equal(
-    getActivityGroupCategory(activity({ id: "publish", kind: "progress", phase: "publish_schema" })),
+    getActivityGroupCategory(
+      activity({ id: "publish", kind: "progress", phase: "publish_schema" }),
+    ),
     "changed",
   );
   assert.equal(
-    getActivityGroupCategory(activity({ id: "execute", kind: "progress", phase: "execute_sql" })),
+    getActivityGroupCategory(
+      activity({ id: "execute", kind: "progress", phase: "execute_sql" }),
+    ),
     "ran",
   );
   assert.equal(
@@ -93,7 +100,11 @@ test("progress phases share the same categories as matching tool actions", () =>
 test("unknown tools stay in a neutral Activity group and attention states are preserved", () => {
   const entries = buildActivityTimeline([
     activity({ id: "unknown-1", toolName: "custom_future_tool" }),
-    activity({ id: "unknown-2", toolName: "another_future_tool", status: "awaiting-confirmation" }),
+    activity({
+      id: "unknown-2",
+      toolName: "another_future_tool",
+      status: "awaiting-confirmation",
+    }),
   ]);
 
   assert.equal(entries.length, 1);
@@ -120,10 +131,12 @@ test("timeline uses expandable groups and keeps activity details selection wired
   );
 
   assert.match(timeline, /buildActivityTimeline\(activities\)/);
-  assert.match(timeline, /isStreaming \|\| group\.hasRunning \|\| group\.requiresAttention/);
+  assert.match(
+    timeline,
+    /isStreaming \|\|\s*group\.hasRunning \|\|\s*group\.requiresAttention/,
+  );
   assert.match(timeline, /containsSelectedActivity/);
   assert.match(timeline, /group\.requiresAttention/);
-  assert.match(timeline, /containsSelectedActivity/);
   assert.match(group, /aria-expanded=\{expanded\}/);
   assert.match(group, /Worked for /);
   assert.match(group, /onSelectActivity/);
@@ -133,5 +146,8 @@ test("timeline uses expandable groups and keeps activity details selection wired
   assert.match(thought, /Thinking/);
   assert.match(thought, /Thought/);
   assert.match(thought, /window\.setInterval/);
-  assert.match(detailsTimeline, /AgentThought key=\{activity\.id\} activity=\{activity\} compact/);
+  assert.match(
+    detailsTimeline,
+    /AgentThought key=\{activity\.id\} activity=\{activity\} compact/,
+  );
 });
