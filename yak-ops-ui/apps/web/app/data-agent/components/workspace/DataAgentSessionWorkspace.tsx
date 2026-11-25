@@ -3,6 +3,7 @@ import { Activity, PanelRightClose } from "lucide-react";
 
 import type { AgentActivity, AgentMessage, PendingConfirmation } from "../../model/types";
 import type { AgentSessionUsage } from "@/service/data-agent";
+import { TOOL_LABELS } from "../../model/constants";
 import { AgentDetailsResizer } from "./conversation/AgentDetailsResizer";
 import { AgentDetailsPanel } from "./conversation/AgentDetailsPanel";
 import { ConversationPanel } from "./ConversationPanel";
@@ -10,6 +11,17 @@ import { DataAgentConversationHeader } from "./DataAgentConversationHeader";
 
 const DETAILS_MIN_WIDTH = 320;
 const DETAILS_MAX_WIDTH = 640;
+
+function getActivityDisplayName(activity: AgentActivity | null): string {
+  if (!activity) return "Details";
+  if (activity.kind !== "tool") return activity.title;
+
+  return (
+    TOOL_LABELS[activity.toolName ?? ""] ??
+    activity.toolName ??
+    activity.title
+  );
+}
 
 type ActivitySelection = {
   messageId: string;
@@ -38,10 +50,16 @@ type DataAgentSessionWorkspaceProps = {
   transitionSourceRef: RefObject<HTMLDivElement>;
 };
 
-function MobileDetailsHeader({ onClose }: { onClose: () => void }) {
+function MobileDetailsHeader({
+  detailsTitle,
+  onClose,
+}: {
+  detailsTitle: string;
+  onClose: () => void;
+}) {
   return (
     <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#ecefed] bg-white px-3 lg:hidden">
-      <span className="text-xs font-semibold text-[#303936]">Details</span>
+      <span title={detailsTitle} className="max-w-[45%] truncate text-xs font-semibold text-[#303936]">{detailsTitle}</span>
       <div className="flex items-center gap-1">
         <span className="flex h-7 items-center rounded-md border border-[#dfe4e2] bg-[#f3f5f4] px-2 text-[11px] font-medium text-[#3f4945]">
           Timeline
@@ -118,6 +136,7 @@ export function DataAgentSessionWorkspace({
     selectedMessage?.activities?.find(
       (activity) => activity.id === selection?.activityId,
     ) ?? null;
+  const selectedActivityTitle = getActivityDisplayName(selectedActivity);
 
   useEffect(() => {
     const element = layoutRef.current;
@@ -203,6 +222,7 @@ export function DataAgentSessionWorkspace({
         detailsOpen={detailsOpen}
         metricsMessage={selectedMessage}
         detailsWidth={detailsWidth}
+        detailsTitle={selectedActivityTitle}
         expandAll={detailsExpandAll}
         onToggleSidebar={onToggleSidebar}
         onToggleDetails={toggleDetails}
@@ -263,7 +283,10 @@ export function DataAgentSessionWorkspace({
           }
         >
           <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-white shadow-surface-xl">
-            <MobileDetailsHeader onClose={() => setDetailsOpen(false)} />
+            <MobileDetailsHeader
+              detailsTitle={selectedActivityTitle}
+              onClose={() => setDetailsOpen(false)}
+            />
             {selectedMessage && selectedActivity ? (
               <AgentDetailsPanel
                 activity={selectedActivity}
