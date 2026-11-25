@@ -259,6 +259,6 @@ public class ExecutorServiceTest {
                 () -> executorService.forceStartTaskInstance(loginUser, queueId));
 
         assertEquals(Status.USER_NO_WRITE_PROJECT_PERM.getCode(), ex.getCode());
-        verify(taskGroupQueueMapper, never()).updateById(Mockito.any());
+        verify(taskGroupQueueMapper, never()).updateById(Mockito.any(TaskGroupQueue.class));
     }
 }

@@ -58,13 +58,13 @@ public class ProjectPreferenceServiceTest {
         Mockito.doNothing().when(projectService).checkHasProjectWritePermissionThrowException(Mockito.any(),
                 Mockito.any());
 
-        Mockito.when(projectPreferenceMapper.insert(Mockito.any())).thenReturn(1);
+        Mockito.when(projectPreferenceMapper.insert(Mockito.any(ProjectPreference.class))).thenReturn(1);
 
         Result result = projectPreferenceService.updateProjectPreference(loginUser, projectCode, "value");
         Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode());
 
         // database operatation fail
-        Mockito.when(projectPreferenceMapper.insert(Mockito.any())).thenReturn(-1);
+        Mockito.when(projectPreferenceMapper.insert(Mockito.any(ProjectPreference.class))).thenReturn(-1);
         result = projectPreferenceService.updateProjectPreference(loginUser, projectCode, "value");
         Assertions.assertEquals(Status.CREATE_PROJECT_PREFERENCE_ERROR.getCode(), result.getCode());
 
@@ -72,12 +72,12 @@ public class ProjectPreferenceServiceTest {
         Mockito.when(projectPreferenceMapper.selectOne(Mockito.any())).thenReturn(getProjectPreference());
 
         // success
-        Mockito.when(projectPreferenceMapper.updateById(Mockito.any())).thenReturn(1);
+        Mockito.when(projectPreferenceMapper.updateById(Mockito.any(ProjectPreference.class))).thenReturn(1);
         result = projectPreferenceService.updateProjectPreference(loginUser, projectCode, "value");
         Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode());
 
         // database operation fail
-        Mockito.when(projectPreferenceMapper.updateById(Mockito.any())).thenReturn(-1);
+        Mockito.when(projectPreferenceMapper.updateById(Mockito.any(ProjectPreference.class))).thenReturn(-1);
         result = projectPreferenceService.updateProjectPreference(loginUser, projectCode, "value");
         Assertions.assertEquals(Status.UPDATE_PROJECT_PREFERENCE_ERROR.getCode(), result.getCode());
     }
@@ -124,13 +124,13 @@ public class ProjectPreferenceServiceTest {
 
         // success
         Mockito.when(projectPreferenceMapper.selectOne(Mockito.any())).thenReturn(getProjectPreference());
-        Mockito.when(projectPreferenceMapper.updateById(Mockito.any())).thenReturn(1);
+        Mockito.when(projectPreferenceMapper.updateById(Mockito.any(ProjectPreference.class))).thenReturn(1);
         Result result = projectPreferenceService.enableProjectPreference(loginUser, projectCode, 2);
         Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode());
 
         // db operation fail
         Mockito.when(projectPreferenceMapper.selectOne(Mockito.any())).thenReturn(getProjectPreference());
-        Mockito.when(projectPreferenceMapper.updateById(Mockito.any())).thenReturn(-1);
+        Mockito.when(projectPreferenceMapper.updateById(Mockito.any(ProjectPreference.class))).thenReturn(-1);
         result = projectPreferenceService.enableProjectPreference(loginUser, projectCode, 2);
         Assertions.assertEquals(Status.UPDATE_PROJECT_PREFERENCE_STATE_ERROR.getCode(), result.getCode());
     }

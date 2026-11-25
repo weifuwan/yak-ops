@@ -87,13 +87,13 @@ public class ProjectParameterServiceTest {
 
         // INSERT DATA ERROR
         when(projectParameterMapper.selectOne(Mockito.any())).thenReturn(null);
-        when(projectParameterMapper.insert(Mockito.any())).thenReturn(-1);
+        when(projectParameterMapper.insert(Mockito.any(ProjectParameter.class))).thenReturn(-1);
         result = projectParameterService.createProjectParameter(loginUser, projectCode, "key1", "value",
                 DataType.VARCHAR.name());
         assertEquals(Status.CREATE_PROJECT_PARAMETER_ERROR.getCode(), result.getCode());
 
         // SUCCESS
-        when(projectParameterMapper.insert(Mockito.any())).thenReturn(1);
+        when(projectParameterMapper.insert(Mockito.any(ProjectParameter.class))).thenReturn(1);
         result = projectParameterService.createProjectParameter(loginUser, projectCode, "key1", "value",
                 DataType.VARCHAR.name());
         assertEquals(Status.SUCCESS.getCode(), result.getCode());
@@ -130,13 +130,13 @@ public class ProjectParameterServiceTest {
 
         // PROJECT_UPDATE_ERROR
         when(projectParameterMapper.selectOne(Mockito.any())).thenReturn(null);
-        when(projectParameterMapper.updateById(Mockito.any())).thenReturn(-1);
+        when(projectParameterMapper.updateById(Mockito.any(ProjectParameter.class))).thenReturn(-1);
         result = projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key1", "value",
                 DataType.VARCHAR.name());
         assertEquals(Status.UPDATE_PROJECT_PARAMETER_ERROR.getCode(), result.getCode());
 
         // SUCCESS
-        when(projectParameterMapper.updateById(Mockito.any())).thenReturn(1);
+        when(projectParameterMapper.updateById(Mockito.any(ProjectParameter.class))).thenReturn(1);
         result = projectParameterService.updateProjectParameter(loginUser, projectCode, 1, "key1", "value",
                 DataType.LONG.name());
         assertEquals(Status.SUCCESS.getCode(), result.getCode());
