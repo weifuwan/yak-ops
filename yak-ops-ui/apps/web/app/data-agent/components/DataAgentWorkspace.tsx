@@ -141,7 +141,10 @@ export function DataAgentWorkspace({
       try {
         const transition = particleTransitionRef.current?.play();
         if (transition) {
-          void transition.finally(() => setShowInitialParticleTransition(false));
+          void transition.then(
+            () => setShowInitialParticleTransition(false),
+            () => setShowInitialParticleTransition(false),
+          );
         } else {
           setShowInitialParticleTransition(false);
         }
