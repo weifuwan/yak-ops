@@ -25,8 +25,8 @@ class DorisSchemaChangeWaiterTest {
         when(connection.createStatement()).thenReturn(statement);
         when(statement.executeQuery(anyString())).thenReturn(previous, current);
 
-        Long previousJobId = waiter.latestJobId(connection, "test1");
-        waiter.awaitCompletion(connection, "test1", previousJobId);
+        Long previousJobId = waiter.latestJobId(connection, "warehouse", "test1");
+        waiter.awaitCompletion(connection, "warehouse", "test1", previousJobId);
 
         assertEquals(10L, previousJobId);
     }
@@ -40,10 +40,10 @@ class DorisSchemaChangeWaiterTest {
         when(connection.createStatement()).thenReturn(statement);
         when(statement.executeQuery(anyString())).thenReturn(previous, current);
 
-        Long previousJobId = waiter.latestJobId(connection, "test1");
+        Long previousJobId = waiter.latestJobId(connection, "warehouse", "test1");
         IllegalStateException error = assertThrows(
                 IllegalStateException.class,
-                () -> waiter.awaitCompletion(connection, "test1", previousJobId));
+                () -> waiter.awaitCompletion(connection, "warehouse", "test1", previousJobId));
 
         assertTrue(error.getMessage().contains("invalid column definition"));
     }
@@ -57,7 +57,7 @@ class DorisSchemaChangeWaiterTest {
         when(statement.executeQuery(anyString())).thenReturn(running);
 
         IllegalStateException error = assertThrows(
-                IllegalStateException.class, () -> waiter.latestJobId(connection, "test1"));
+                IllegalStateException.class, () -> waiter.latestJobId(connection, "warehouse", "test1"));
 
         assertTrue(error.getMessage().contains("已有 Schema Change 任务"));
     }
