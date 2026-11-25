@@ -166,6 +166,41 @@ class DimensionDorisServiceImplTest {
     }
 
     @Test
+    void shouldRequireExplicitConfirmationBeforeDroppingPhysicalColumns() throws Exception {
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table());
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
+                field("customer_id", DimensionDataTypeEnum.BIGINT)));
+        when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dataSourceAdapter.open(any(DataSource.class)))
+                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+                .thenReturn(new DdlPlan(
+                        "ALTER TABLE ... DROP COLUMN `legacy_note`",
+                        Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
+                        false,
+                        Collections.singletonList("customer_id"),
+                        null,
+                        null,
+                        false,
+                        null,
+                        true,
+                        Collections.<String>emptyList(),
+                        Collections.singletonList("legacy_note"),
+                        true,
+                        false,
+                        "SHOW CREATE TABLE ..."));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.publish("table-id", request(), dorisDatasource(), "tester"));
+
+        assertTrue(error.getMessage().contains("需要二次确认"));
+        verify(publishRecordService, never()).createRunning(
+                eq("table-id"), any(DimensionDorisPublishPO.class), any());
+    }
+
+    @Test
     void shouldExposeDorisFieldTypeOptions() {
         when(ddlEngine.getFieldTypeOptions()).thenReturn(Arrays.asList(
                 new io.yak.ops.modeling.ddl.model.DorisFieldTypeOption(
