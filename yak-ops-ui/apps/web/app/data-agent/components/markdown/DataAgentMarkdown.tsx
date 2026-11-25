@@ -2,6 +2,7 @@ import { memo } from "react";
 import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { Streamdown } from "streamdown";
+import "streamdown/styles.css";
 
 import "./data-agent-markdown.css";
 
@@ -36,6 +37,12 @@ function DataAgentMarkdownComponent({
       plugins={plugins}
       shikiTheme={["github-light", "github-dark"]}
       mode="streaming"
+      animated={{
+        animation: "sweepText",
+        duration: 300,
+        easing: "ease-out",
+        sep: "word",
+      }}
       isAnimating={isStreaming}
       skipHtml
       disallowedElements={DISALLOWED_ELEMENTS}
