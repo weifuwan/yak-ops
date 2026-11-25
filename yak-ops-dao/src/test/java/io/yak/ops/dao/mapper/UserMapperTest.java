@@ -11,8 +11,9 @@ import io.yak.ops.dao.entity.User;
 import io.yak.ops.dao.entity.UserWithWorkflowDefinitionCode;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowDefinitionLog;
+import io.yak.ops.dao.repository.UserDao;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -27,6 +28,9 @@ public class UserMapperTest extends BaseDaoTest {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private UserDao userDao;
 
     @Autowired
     private AlertGroupMapper alertGroupMapper;
@@ -296,13 +300,18 @@ public class UserMapperTest extends BaseDaoTest {
     }
 
     @Test
-    public void selectByIds() {
-        // insertOne
+    public void testQueryByIdsUsesMybatisPlusBatchSelect() {
         User user = insertOne();
-        List<Integer> userIds = new ArrayList<>();
-        userIds.add(user.getId());
-        List<User> users = userMapper.selectByIds(userIds);
-        Assertions.assertFalse(users.isEmpty());
+
+        List<User> users = userDao.queryByIds(Collections.singletonList(user.getId()));
+
+        Assertions.assertEquals(1, users.size());
+        Assertions.assertEquals(user.getId(), users.get(0).getId());
+    }
+
+    @Test
+    public void testQueryByIdsReturnsEmptyForEmptyIds() {
+        Assertions.assertTrue(userDao.queryByIds(Collections.emptyList()).isEmpty());
     }
 
     @Test
