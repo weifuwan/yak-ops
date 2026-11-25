@@ -39,6 +39,12 @@ public class DorisConnectorAdapter {
 
     public String generateCreateTableDdl(
             DdlTableDefinition table, DorisDataModelEnum tableModel, List<String> keyFields) {
+        return generateCreateTableDdl(table, tableModel, keyFields, 3);
+    }
+
+    public String generateCreateTableDdl(
+            DdlTableDefinition table, DorisDataModelEnum tableModel,
+            List<String> keyFields, int replicationNum) {
         Map<String, FieldSchema> fieldSchemas = new LinkedHashMap<>();
         for (DdlColumnDefinition column : table.getColumns()) {
             fieldSchemas.put(
@@ -58,7 +64,8 @@ public class DorisConnectorAdapter {
         schema.setModel(DataModel.valueOf(tableModel.name()));
         schema.setKeys(keyFields);
         schema.setDistributeKeys(Collections.singletonList(keyFields.get(0)));
-        schema.setProperties(Collections.emptyMap());
+        schema.setProperties(Collections.singletonMap(
+                "replication_num", String.valueOf(replicationNum)));
         schema.setTableBuckets(null);
 
         String generatedDdl = DorisSchemaFactory.generateCreateTableDDL(schema);
