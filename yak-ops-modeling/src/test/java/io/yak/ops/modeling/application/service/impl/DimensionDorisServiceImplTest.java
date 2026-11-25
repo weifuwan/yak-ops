@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.application.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,7 +75,9 @@ class DimensionDorisServiceImplTest {
         assertEquals("warehouse", preview.getTargetDatabase());
         assertEquals(DorisDataModelEnum.DUPLICATE, preview.getTableModel());
         assertTrue(preview.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
-        assertTrue(preview.getDdl().contains("DUPLICATE KEY(`customer_id`)"));
+        assertFalse(preview.getDdl().contains("UNIQUE KEY"));
+        assertTrue(preview.getDdl().indexOf("`customer_id` BIGINT")
+                < preview.getDdl().indexOf("`amount` DECIMALV3(12,2)"));
         assertTrue(preview.getDdl().contains("`amount` DECIMALV3(12,2)"));
         assertTrue(preview.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
         assertTrue(preview.getDdl().contains("BUCKETS AUTO"));
@@ -214,6 +217,7 @@ class DimensionDorisServiceImplTest {
         assertEquals(DorisDataModelEnum.DUPLICATE, captor.getValue().getTableModel());
         assertEquals(DorisPublishModeEnum.INCREMENTAL, captor.getValue().getPublishMode());
         assertEquals("测试发布", captor.getValue().getPublishRemark());
+        assertEquals("[\\"customer_id\\"]", captor.getValue().getKeyFields());
     }
 
     @Test
