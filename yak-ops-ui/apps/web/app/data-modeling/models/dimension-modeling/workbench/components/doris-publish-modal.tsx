@@ -513,7 +513,7 @@ export function DorisPublishModal({
               </div>
             ) : null}
             {preview?.replicationWarning ? (
-              <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">
+              <p className="mb-0 mt-2 text-xs text-[var(--yak-components-alert-warning-text)]">
                 {preview.replicationWarning}
               </p>
             ) : null}
