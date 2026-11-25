@@ -69,8 +69,13 @@ public class DorisDdlGenerator {
     }
 
     public String generateCreateTableDdl(DdlTableDefinition table, DorisDataModelEnum tableModel) {
+        return generateCreateTableDdl(table, tableModel, 3);
+    }
+
+    public String generateCreateTableDdl(
+            DdlTableDefinition table, DorisDataModelEnum tableModel, int replicationNum) {
         return formatter.format(connectorAdapter.generateCreateTableDdl(
-                table, tableModel, resolveKeyFields(table)));
+                table, tableModel, resolveKeyFields(table), replicationNum));
     }
 
     public String generateAddColumnDdl(String database, String tableName, DdlColumnDefinition column) {
