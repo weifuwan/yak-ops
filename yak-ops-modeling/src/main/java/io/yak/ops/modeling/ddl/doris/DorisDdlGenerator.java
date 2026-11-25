@@ -57,6 +57,13 @@ public class DorisDdlGenerator {
     }
 
     public List<String> resolveKeyFields(DdlTableDefinition table) {
+        return resolveKeyFields(table, DorisDataModelEnum.UNIQUE);
+    }
+
+    public List<String> resolveKeyFields(DdlTableDefinition table, DorisDataModelEnum tableModel) {
+        if (tableModel == DorisDataModelEnum.DUPLICATE) {
+            return Collections.singletonList(table.getColumns().get(0).getName());
+        }
         List<String> primaryFields = new ArrayList<>();
         for (DdlColumnDefinition column : table.getColumns()) {
             if (column.isPrimaryKey()) {
@@ -75,7 +82,7 @@ public class DorisDdlGenerator {
     public String generateCreateTableDdl(
             DdlTableDefinition table, DorisDataModelEnum tableModel, int replicationNum) {
         return formatter.format(connectorAdapter.generateCreateTableDdl(
-                table, tableModel, resolveKeyFields(table), replicationNum));
+                table, tableModel, resolveKeyFields(table, tableModel), replicationNum));
     }
 
     public String generateAddColumnDdl(String database, String tableName, DdlColumnDefinition column) {
