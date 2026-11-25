@@ -94,16 +94,6 @@
         set queue = #{newQueue}
         where queue = #{oldQueue}
     </update>
-    <select id="selectByIds" resultType="io.yak.ops.dao.entity.User">
-        select *
-        from t_yak_ops_user
-        <if test="ids != null and ids.size() != 0">
-            where id in
-            <foreach item="id" index="index" collection="ids" open="(" separator="," close=")">
-                #{id}
-            </foreach>
-        </if>
-    </select>
     <select id="queryAuthedUserListByProjectId" resultType="io.yak.ops.dao.entity.User">
         select
         <include refid="baseSqlV2">
