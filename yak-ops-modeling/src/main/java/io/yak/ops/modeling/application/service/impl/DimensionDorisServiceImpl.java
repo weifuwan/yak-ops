@@ -1,6 +1,8 @@
 package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.dao.entity.DataSource;
 import io.yak.ops.dao.entity.DimensionDorisPublishPO;
@@ -113,14 +115,15 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             String tableId, DimensionDorisPublishDTO dto, DataSource datasource) {
         validatePublishRequest(dto);
         validateDatasource(datasource);
+        String targetDatabase = resolveTargetDatabase(datasource);
         DimensionTablePO table = requirePhysicalTable(tableId);
         requireSubmitted(table);
-        BuildResult build = buildDdl(tableId, dto);
+        BuildResult build = buildDdl(tableId, targetDatabase, dto);
         DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
         vo.setTableId(tableId);
         vo.setDatasourceId(datasource.getId());
         vo.setDatasourceName(datasource.getName());
-        vo.setTargetDatabase(dto.getTargetDatabase().trim());
+        vo.setTargetDatabase(targetDatabase);
         vo.setTargetTable(table.getTableName());
         vo.setDdl(build.ddl);
         vo.setDdlHash(sha256(build.ddl));
@@ -134,13 +137,14 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             String tableId, DimensionDorisPublishDTO dto, DataSource datasource, String operator) {
         validatePublishRequest(dto);
         validateDatasource(datasource);
+        String targetDatabase = resolveTargetDatabase(datasource);
 
         // Serialize publishes for one model across application instances. The model-row lock is
         // held until the external DDL and the publish-history update have both completed.
         DimensionTablePO table = lockPhysicalTable(tableId);
         requireSubmitted(table);
 
-        BuildResult build = buildDdl(tableId, dto);
+        BuildResult build = buildDdl(tableId, targetDatabase, dto);
         String ddl = build.ddl;
         String ddlHash = sha256(ddl);
         VersionManagementPO version = latestVersion(tableId);
@@ -148,7 +152,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 new QueryWrapper<DimensionDorisPublishPO>()
                         .eq("table_id", tableId)
                         .eq("datasource_id", datasource.getId())
-                        .eq("target_database", dto.getTargetDatabase().trim())
+                        .eq("target_database", targetDatabase)
                         .eq("target_table", table.getTableName())
                         .eq("ddl_hash", ddlHash)
                         .eq("status", DorisPublishStatusEnum.SUCCESS)
@@ -163,7 +167,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         publish.setVersionNumber(version == null ? null : version.getVersionNumber());
         publish.setDatasourceId(datasource.getId());
         publish.setDatasourceName(datasource.getName());
-        publish.setTargetDatabase(dto.getTargetDatabase().trim());
+        publish.setTargetDatabase(targetDatabase);
         publish.setTargetTable(table.getTableName());
         publish.setPhysicalConfig(build.physicalConfig);
         publish.setDdl(ddl);
@@ -186,11 +190,11 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
 
         try (Connection connection = openDorisConnection(datasource)) {
             boolean targetExists =
-                    tableExists(connection, dto.getTargetDatabase().trim(), table.getTableName());
+                    tableExists(connection, targetDatabase, table.getTableName());
             if (targetExists) {
                 if (previous != null
                         && tableMatchesDdl(
-                                connection, dto.getTargetDatabase().trim(), table.getTableName(), tableId)) {
+                                connection, targetDatabase, table.getTableName(), tableId)) {
                     publish.setStatus(DorisPublishStatusEnum.SUCCESS);
                 } else {
                     publish.setStatus(DorisPublishStatusEnum.CONFLICT);
@@ -203,7 +207,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 try (Statement statement = connection.createStatement()) {
                     statement.execute(ddl);
                 } catch (SQLException ex) {
-                    if (tableExists(connection, dto.getTargetDatabase().trim(), table.getTableName())) {
+                    if (tableExists(connection, targetDatabase, table.getTableName())) {
                         publish.setStatus(DorisPublishStatusEnum.CONFLICT);
                         publish.setErrorMessage(
                                 "目标 Doris 表在发布过程中已被创建，本次发布未覆盖现有表。");
@@ -213,7 +217,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 }
                 if (publish.getStatus() != DorisPublishStatusEnum.CONFLICT) {
                     if (tableMatchesDdl(
-                            connection, dto.getTargetDatabase().trim(), table.getTableName(), tableId)) {
+                            connection, targetDatabase, table.getTableName(), tableId)) {
                         publish.setStatus(DorisPublishStatusEnum.SUCCESS);
                     } else {
                         publish.setStatus(DorisPublishStatusEnum.CONFLICT);
@@ -245,9 +249,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         return safeList(records).stream().map(this::toPublishVO).collect(Collectors.toList());
     }
 
-    private BuildResult buildDdl(String tableId, DimensionDorisPublishDTO dto) {
+    private BuildResult buildDdl(String tableId, String targetDatabase, DimensionDorisPublishDTO dto) {
         DimensionTablePO table = requirePhysicalTable(tableId);
-        String targetDatabase = dto.getTargetDatabase().trim();
         if (!isIdentifier(targetDatabase)) {
             throw new IllegalArgumentException("目标 Doris Database 名称不合法");
         }
@@ -439,15 +442,30 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
     }
 
+    private String resolveTargetDatabase(DataSource datasource) {
+        if (StringUtils.isBlank(datasource.getConnectionParams())) {
+            throw new IllegalArgumentException("Doris 数据源未配置数据库，请先在数据源管理中配置数据库");
+        }
+        try {
+            JsonNode connectionParams = objectMapper.readTree(datasource.getConnectionParams());
+            String targetDatabase = connectionParams == null
+                    ? ""
+                    : connectionParams.path("database").asText();
+            if (StringUtils.isBlank(targetDatabase)) {
+                throw new IllegalArgumentException("Doris 数据源未配置数据库，请先在数据源管理中配置数据库");
+            }
+            return targetDatabase.trim();
+        } catch (JsonProcessingException ex) {
+            throw new IllegalArgumentException("无法解析 Doris 数据源的数据库配置", ex);
+        }
+    }
+
     private void validatePublishRequest(DimensionDorisPublishDTO dto) {
         if (dto == null) {
             throw new IllegalArgumentException("Doris 发布参数不能为空");
         }
         if (dto.getDatasourceId() == null) {
             throw new IllegalArgumentException("请选择 Doris 数据源");
-        }
-        if (StringUtils.isBlank(dto.getTargetDatabase())) {
-            throw new IllegalArgumentException("请输入目标数据库");
         }
     }
 
