@@ -135,7 +135,10 @@ public class DorisDdlGenerator {
         }
         if ("DATETIME".equals(expectedBase)) {
             Integer expectedPrecision = Integer.valueOf(parameters.group(1));
-            return actual.getScale() != null && expectedPrecision.equals(actual.getScale());
+            Integer actualPrecision = actual.getScale() == null
+                    ? actual.getSize()
+                    : actual.getScale();
+            return actualPrecision != null && expectedPrecision.equals(actualPrecision);
         }
         return true;
     }
