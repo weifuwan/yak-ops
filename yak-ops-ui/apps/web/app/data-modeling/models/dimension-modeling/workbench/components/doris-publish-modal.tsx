@@ -21,7 +21,7 @@ import {
   Textarea,
   toast,
 } from "@yak-ops/yak-ui";
-import { Copy, Send } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Send } from "lucide-react";
 
 import {
   dimensionModelingApi,
@@ -117,6 +117,9 @@ export function DorisPublishModal({
   const [tableModel, setTableModel] = useState<DorisTableModel | "">("UNIQUE");
   const [publishMode, setPublishMode] = useState<DorisPublishMode | "">("INCREMENTAL");
   const [publishRemark, setPublishRemark] = useState("");
+  const [replicationMode, setReplicationMode] = useState<"AUTO" | "MANUAL">("AUTO");
+  const [replicationNum, setReplicationNum] = useState("1");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDropOpen, setConfirmDropOpen] = useState(false);
 
@@ -129,6 +132,9 @@ export function DorisPublishModal({
     setTableModel("UNIQUE");
     setPublishMode("INCREMENTAL");
     setPublishRemark("");
+    setReplicationMode("AUTO");
+    setReplicationNum("1");
+    setAdvancedOpen(false);
     setConfirmDropOpen(false);
   }, [open, tableId]);
 
@@ -174,6 +180,8 @@ export function DorisPublishModal({
       datasourceId,
       tableModel,
       publishMode,
+      replicationMode,
+      replicationNum,
       fieldSignature,
     ],
     queryFn: () => dimensionModelingApi.previewDorisDdl(projectCode, tableId, {
@@ -181,6 +189,7 @@ export function DorisPublishModal({
       tableModel: tableModel as DorisTableModel,
       publishMode: publishMode as DorisPublishMode,
       publishRemark: "",
+      replicationNum: replicationMode === "MANUAL" ? Number(replicationNum) : null,
     }),
     enabled: enabled
       && Boolean(datasourceId && tableModel && publishMode)
@@ -237,6 +246,7 @@ export function DorisPublishModal({
       tableModel,
       publishMode,
       publishRemark: publishRemark.trim(),
+      replicationNum: replicationMode === "MANUAL" ? Number(replicationNum) : null,
       confirmDrop: publishMode === "DROP_RECREATE" && confirmedDrop,
     };
 
@@ -412,6 +422,60 @@ export function DorisPublishModal({
             </Field>
           </section>
 
+          <section className="border-t border-[var(--yak-components-panel-border)] pt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="!h-7 !px-1 text-xs"
+              onClick={() => setAdvancedOpen((current) => !current)}
+            >
+              <span>高级配置</span>
+              {advancedOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </Button>
+            {advancedOpen ? (
+              <div className="mt-3 space-y-3">
+                <Field className={HORIZONTAL_FIELD_CLASS}>
+                  <FieldLabel className="pt-1 text-xs">副本策略</FieldLabel>
+                  <RadioGroup
+                    aria-label="Doris 副本策略"
+                    value={replicationMode}
+                    onValueChange={(value) => setReplicationMode(String(value) as "AUTO" | "MANUAL")}
+                    className="flex flex-wrap items-center gap-5 pt-1"
+                  >
+                    <label htmlFor="doris-replication-auto" className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                      <Radio id="doris-replication-auto" value="AUTO" />
+                      <span>自动适配</span>
+                    </label>
+                    <label htmlFor="doris-replication-manual" className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                      <Radio id="doris-replication-manual" value="MANUAL" />
+                      <span>手动指定</span>
+                    </label>
+                  </RadioGroup>
+                </Field>
+                {replicationMode === "MANUAL" ? (
+                  <Field className={HORIZONTAL_FIELD_CLASS}>
+                    <FieldLabel className="pt-1.5 text-xs">副本数</FieldLabel>
+                    <FormSelect
+                      value={replicationNum}
+                      options={[
+                        { value: "1", label: "1 个副本" },
+                        { value: "2", label: "2 个副本" },
+                        { value: "3", label: "3 个副本" },
+                      ]}
+                      placeholder="请选择副本数"
+                      disabled={busy}
+                      onChange={setReplicationNum}
+                    />
+                  </Field>
+                ) : (
+                  <p className="mb-0 pl-[116px] text-xs text-[var(--yak-components-muted-text)]">
+                    系统根据 Doris 默认 Tag 下可用 BE 数量自动设置，最多使用 3 个副本。
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </section>
+
           <section className="border-t border-[var(--yak-components-panel-border)] pt-4">
             <div className="mb-2 flex items-center justify-between gap-2">
               <h3 className="m-0 text-xs font-medium text-[var(--yak-components-field-label)]">DDL 预览</h3>
@@ -438,6 +502,21 @@ export function DorisPublishModal({
                 </div>
               ) : null}
             </div>
+            {preview?.replicationNum != null && !preview.noChanges ? (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--yak-components-muted-text)]">
+                <span>
+                  副本数：{preview.replicationNum} · {preview.replicationAuto ? "自动适配" : "手动指定"}
+                </span>
+                {preview.availableBackendCount != null ? (
+                  <span>默认 Tag 可用 BE：{preview.availableBackendCount}</span>
+                ) : null}
+              </div>
+            ) : null}
+            {preview?.replicationWarning ? (
+              <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">
+                {preview.replicationWarning}
+              </p>
+            ) : null}
             {previewError ? (
               <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">{previewError}</p>
             ) : preview?.noChanges ? (
