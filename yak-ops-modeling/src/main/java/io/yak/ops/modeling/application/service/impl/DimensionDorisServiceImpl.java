@@ -154,6 +154,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             if (plan.isRequiresConfirmation() && !Boolean.TRUE.equals(dto.getConfirmDropColumns())) {
                 throw new IllegalArgumentException("增量发布包含删除字段操作，需要二次确认");
             }
+            if ((dto.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE || plan.isRequiresConfirmation())
+                    && !StringUtils.equalsIgnoreCase(dto.getConfirmedDdlHash(), sha256(plan.getDdl()))) {
+                throw new IllegalArgumentException("目标物理表结构已变化，请刷新 DDL 预览并重新确认后再发布");
+            }
             DimensionDorisPublishPO pending = createPublishRecord(
                     table, version, datasource, dto, plan, database, currentOperator);
             startedAt = new Date();
