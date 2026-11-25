@@ -1,5 +1,7 @@
 package io.yak.ops.modeling.api.vo.dimension;
 
+import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
+import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import java.util.Date;
 import lombok.Data;
@@ -11,13 +13,15 @@ public class DimensionDorisPublishVO {
     private String tableId;
     private Integer versionNumber;
     private Integer datasourceId;
+    private DorisDataModelEnum tableModel;
+    private DorisPublishModeEnum publishMode;
+    private String publishRemark;
     private String datasourceName;
     private String targetDatabase;
     private String targetTable;
     private String ddl;
     private String ddlHash;
-    /** Immutable resolved Doris physical configuration used to generate this DDL. */
-    private String physicalConfig;
+    private Boolean noChanges;
     private DorisPublishStatusEnum status;
     private String errorMessage;
     private Long executionDurationMs;
