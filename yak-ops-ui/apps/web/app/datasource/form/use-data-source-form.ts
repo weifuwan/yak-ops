@@ -38,6 +38,8 @@ import {
   type JdbcProperty,
 } from "./model";
 
+const CONNECTION_TEST_TIMEOUT_MS = 30_000;
+
 export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataSourceFormProps) {
   const intl = useIntl();
   const [values, setValues] = useState<FormValues>(EMPTY_FORM);
@@ -342,18 +344,30 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
   const handleTest = async () => {
     if (busy || !validate()) return;
     setTesting(true);
+    const signal = AbortSignal.timeout(CONNECTION_TEST_TIMEOUT_MS);
     try {
       const connected =
         record?.id && !values.password.trim()
-          ? await testSavedDataSourceConnection(record.id)
-          : await testDataSourceConnectionWithParams({
-              dataSourceId: record?.id,
-              dbType: values.dbType,
-              connectionParams: connectionParams(),
-            });
-      if (connected) toast.success(intl.formatMessage({ id: "pages.datasource.test.success" }));
+          ? await testSavedDataSourceConnection(record.id, signal)
+          : await testDataSourceConnectionWithParams(
+              {
+                dataSourceId: record?.id,
+                dbType: values.dbType,
+                connectionParams: connectionParams(),
+              },
+              signal,
+            );
+      if (connected) {
+        toast.success(intl.formatMessage({ id: "pages.datasource.test.success" }));
+      } else {
+        toast.warning("数据源连接测试失败，请检查连接配置后重试");
+      }
     } catch (error) {
-      applyValidationErrors(error);
+      if (signal.aborted) {
+        toast.warning("数据源连接测试超时（30 秒），请检查数据库地址、端口及网络后重试");
+      } else {
+        applyValidationErrors(error);
+      }
       // Preserve the dialog and the user's input after a rejected connection test.
     } finally {
       setTesting(false);
