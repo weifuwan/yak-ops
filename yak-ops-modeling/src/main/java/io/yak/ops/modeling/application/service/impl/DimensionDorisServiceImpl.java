@@ -504,24 +504,35 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     }
 
     private String errorMessage(Throwable exception) {
-        String message = StringUtils.defaultIfBlank(
-                exception.getMessage(), exception.getClass().getSimpleName());
-        String normalized = message.toLowerCase(java.util.Locale.ROOT);
-        Matcher replicationError = Pattern.compile(
+        String fallback = exception == null
+                ? "Doris 发布失败"
+                : exception.getClass().getSimpleName();
+        Pattern replicationPattern = Pattern.compile(
                 "replication\\s+num\\s+is\\s+(\\d+).*?available\\s+backend\\s+num\\s+is\\s+(\\d+)",
-                Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(message);
-        if (replicationError.find()) {
-            return "Doris 集群副本配置不匹配：本次请求 "
-                    + replicationError.group(1) + " 个副本，但当前可用 BE 只有 "
-                    + replicationError.group(2)
-                    + " 个。请在发布弹窗「高级配置」中将副本数调整为不超过可用 BE 数量，或检查 Doris BE 状态。";
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        for (Throwable current = exception; current != null; current = current.getCause()) {
+            String message = StringUtils.trimToNull(current.getMessage());
+            if (message == null) {
+                continue;
+            }
+            Matcher replicationError = replicationPattern.matcher(message);
+            if (replicationError.find()) {
+                return "Doris 集群副本配置不匹配：本次请求 "
+                        + replicationError.group(1) + " 个副本，但当前可用 BE 只有 "
+                        + replicationError.group(2)
+                        + " 个。请在发布弹窗「高级配置」中将副本数调整为不超过可用 BE 数量，或检查 Doris BE 状态。";
+            }
+            String normalized = message.toLowerCase(java.util.Locale.ROOT);
+            if (normalized.contains("failed to find enough host with tag")
+                    || (normalized.contains("replication") && normalized.contains("available backend"))) {
+                return "Doris 集群指定 Tag 下的可用 BE 数量不足。请检查 BE 节点的 Alive、"
+                        + "SystemDecommissioned 和 Tag 状态，并在「高级配置」中调整副本数。";
+            }
+            if (fallback.equals(exception == null ? "" : exception.getClass().getSimpleName())) {
+                fallback = message;
+            }
         }
-        if (normalized.contains("failed to find enough host with tag")
-                || (normalized.contains("replication") && normalized.contains("available backend"))) {
-            return "Doris 集群指定 Tag 下的可用 BE 数量不足。请检查 BE 节点的 Alive、"
-                    + "SystemDecommissioned 和 Tag 状态，并在「高级配置」中调整副本数。";
-        }
-        return message;
+        return fallback;
     }
 
     private <T> List<T> safeList(List<T> values) {
