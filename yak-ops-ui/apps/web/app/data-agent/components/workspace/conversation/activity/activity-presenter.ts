@@ -87,6 +87,7 @@ function progressCategory(phase?: string): ActivityGroupCategory {
   if (RAN_PHASES.has(phaseName)) return "ran";
   return "other";
 }
+
 export function getActivityGroupCategory(
   activity: AgentActivity,
 ): ActivityGroupCategory {
