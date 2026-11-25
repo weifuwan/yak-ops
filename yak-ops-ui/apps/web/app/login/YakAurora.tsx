@@ -338,7 +338,7 @@ const YakAurora = forwardRef<YakAuroraHandle, YakAuroraProps>(function YakAurora
       delete host.dataset.renderer;
     }
     if (source) {
-      source.style.opacity = "";
+      source.style.opacity = "0";
       source.style.transform = "";
       source.style.filter = "";
       source.style.top = "";
@@ -346,7 +346,7 @@ const YakAurora = forwardRef<YakAuroraHandle, YakAuroraProps>(function YakAurora
       source.style.bottom = "";
     }
     if (pull) {
-      pull.style.opacity = "";
+      pull.style.opacity = "0";
       pull.style.top = "";
       pull.style.height = "";
       pull.style.bottom = "";
