@@ -9,6 +9,7 @@ import {
 
 import "./magic-patterns-particle-transition.css";
 
+// Port of Magic Patterns' original Canvas particle transition captured in HAR module 83473.
 const PARTICLE_BURST_DURATION_MS = 1300;
 const PARTICLE_FLIGHT_MIN_MS = 600;
 const PARTICLE_FLIGHT_MAX_MS = 950;
