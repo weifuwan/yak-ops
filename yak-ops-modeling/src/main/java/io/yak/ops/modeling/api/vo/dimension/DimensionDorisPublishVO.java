@@ -22,6 +22,10 @@ public class DimensionDorisPublishVO {
     private String ddl;
     private String ddlHash;
     private Boolean noChanges;
+    private Integer replicationNum;
+    private Integer availableBackendCount;
+    private Boolean replicationAuto;
+    private String replicationWarning;
     private DorisPublishStatusEnum status;
     private String errorMessage;
     private Long executionDurationMs;
