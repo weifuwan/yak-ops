@@ -20,19 +20,12 @@ export default function LoginPage({ onAuthenticated }: LoginPageProps) {
 
   return (
     <main className="h-full min-h-screen overflow-y-auto bg-white md:grid md:grid-cols-[7fr_5fr]">
-      <section className="relative hidden min-h-screen overflow-hidden md:block">
+      <section className="hidden min-h-screen overflow-hidden md:block">
         <LoginWelcomeScene
           focusState={focusState}
           resultState={resultState}
           passwordVisible={passwordVisible}
         />
-        <div
-          ref={particleTargetRef}
-          className="login-particle-destination"
-          aria-hidden="true"
-        >
-          <div className="login-particle-destination__rail" />
-        </div>
       </section>
 
       <section
@@ -72,6 +65,13 @@ export default function LoginPage({ onAuthenticated }: LoginPageProps) {
           </div>
         </div>
       </section>
+      <div
+        ref={particleTargetRef}
+        className="login-particle-destination"
+        aria-hidden="true"
+      >
+        <div className="login-particle-destination__rail" />
+      </div>
     </main>
   );
 }
