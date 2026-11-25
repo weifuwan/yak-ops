@@ -448,9 +448,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
         try {
             JsonNode connectionParams = objectMapper.readTree(datasource.getConnectionParams());
-            String targetDatabase = connectionParams == null
-                    ? ""
-                    : connectionParams.path("database").asText();
+            JsonNode databaseNode = connectionParams == null ? null : connectionParams.get("database");
+            String targetDatabase = databaseNode != null && databaseNode.isTextual()
+                    ? databaseNode.asText()
+                    : "";
             if (StringUtils.isBlank(targetDatabase)) {
                 throw new IllegalArgumentException("Doris 数据源未配置数据库，请先在数据源管理中配置数据库");
             }
