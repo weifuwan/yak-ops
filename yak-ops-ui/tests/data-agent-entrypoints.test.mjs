@@ -46,7 +46,9 @@ test("Data Agent opens on a welcome screen and enters the existing workspace", (
   assert.ok(page.includes('productPath="/data-agent"'));
   assert.match(page, /location\.pathname === "\/data-agent"/);
   assert.match(page, /<DataAgentWelcome/);
-  assert.match(page, /state: \{ initialPrompt: prompt, playInitialParticleTransition: true \}/);
+  assert.match(page, /state: \{ initialPrompt: prompt \}/);
+  assert.match(page, /enableInitialParticleTransition=\{!sessionId\}/);
+  assert.doesNotMatch(page, /playInitialParticleTransition/);
   assert.match(page, /sessionId=\{sessionId \?\? null\}/);
   assert.match(page, /onSessionCreated=\{handleSessionCreated\}/);
   assert.match(page, /onNewConversation=\{handleNewConversation\}/);
