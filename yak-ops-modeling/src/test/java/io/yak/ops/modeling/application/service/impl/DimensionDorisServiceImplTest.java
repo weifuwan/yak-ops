@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -173,6 +174,7 @@ class DimensionDorisServiceImplTest {
     @Test
     void shouldRejectIncrementalPublishForExistingTableWithoutYakOpsHistory() throws Exception {
         stubPublishInfrastructure();
+        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
         Connection connection = connectionWithExistingTable();
         doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
 
@@ -235,8 +237,7 @@ class DimensionDorisServiceImplTest {
                 service.publish("table-id", dto, dorisDatasource(), "tester");
 
         verify(statement).execute("DROP TABLE IF EXISTS `warehouse`.`dwd_order_detail`");
-        verify(statement).execute(published.getDdl().substring(
-                published.getDdl().indexOf("CREATE TABLE")));
+        verify(statement).execute(startsWith("CREATE TABLE"));
         assertEquals(DorisPublishStatusEnum.SUCCESS, published.getStatus());
         assertEquals(DorisPublishModeEnum.DROP_RECREATE, published.getPublishMode());
     }
@@ -273,7 +274,6 @@ class DimensionDorisServiceImplTest {
     private void stubPublishInfrastructure() {
         when(dimensionTableDao.queryOne(any())).thenReturn(table());
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.insert(any())).thenReturn(1);
         when(dimensionDorisPublishDao.updateById(any())).thenReturn(true);
     }
