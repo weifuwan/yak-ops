@@ -74,21 +74,23 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
 
         List<CatalogObject> objects = new ArrayList<>();
         String keyword = query.getKeyword() == null ? "" : query.getKeyword().trim();
-        try (Statement statement = connection.createStatement();
-                ResultSet tables = statement.executeQuery("SHOW TABLES FROM " + quoteIdentifier(database))) {
-            while (tables.next()) {
-                String name = tables.getString(1);
-                if (name == null || (!keyword.isEmpty()
-                        && !name.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT)))) {
-                    continue;
+        try {
+            DatabaseMetaData metadata = connection.getMetaData();
+            try (ResultSet tables = metadata.getTables(database, null, "%", new String[] {"TABLE"})) {
+                while (tables.next()) {
+                    String name = tables.getString("TABLE_NAME");
+                    if (name == null || (!keyword.isEmpty()
+                            && !name.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT)))) {
+                        continue;
+                    }
+                    objects.add(new CatalogObject(
+                            name,
+                            CatalogObjectType.TABLE,
+                            tables.getString("REMARKS"),
+                            new CatalogPath(null, database, null, name, CatalogObjectType.TABLE),
+                            true,
+                            Collections.<String>emptyList()));
                 }
-                objects.add(new CatalogObject(
-                        name,
-                        CatalogObjectType.TABLE,
-                        null,
-                        new CatalogPath(null, database, null, name, CatalogObjectType.TABLE),
-                        true,
-                        Collections.<String>emptyList()));
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to list Doris catalog tables", ex);
