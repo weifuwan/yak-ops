@@ -109,6 +109,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             vo.setDdl(plan.getDdl());
             vo.setDdlHash(sha256(plan.getDdl()));
             vo.setNoChanges(plan.isNoChanges());
+            vo.setReplicationNum(plan.getReplicationNum());
+            vo.setAvailableBackendCount(plan.getAvailableBackendCount());
+            vo.setReplicationAuto(plan.isReplicationAuto());
+            vo.setReplicationWarning(plan.getReplicationWarning());
             return vo;
         } catch (IllegalArgumentException ex) {
             throw ex;
@@ -236,7 +240,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 dto.getTableModel(),
                 dto.getPublishMode(),
                 previousModel,
-                previousKeys);
+                previousKeys,
+                dto.getReplicationNum());
     }
 
     private DdlTableDefinition toTableDefinition(
@@ -451,6 +456,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         if (StringUtils.length(dto.getPublishRemark()) > 2048) {
             throw new IllegalArgumentException("发布备注不能超过 2048 个字符");
         }
+        if (dto.getReplicationNum() != null
+                && (dto.getReplicationNum() < 1 || dto.getReplicationNum() > 3)) {
+            throw new IllegalArgumentException("Doris 副本数只能设置为 1、2 或 3");
+        }
     }
 
     private void validateDatasource(DataSource datasource) {
@@ -495,8 +504,24 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     }
 
     private String errorMessage(Throwable exception) {
-        return StringUtils.defaultIfBlank(
+        String message = StringUtils.defaultIfBlank(
                 exception.getMessage(), exception.getClass().getSimpleName());
+        String normalized = message.toLowerCase(java.util.Locale.ROOT);
+        Matcher replicationError = Pattern.compile(
+                "replication\\s+num\\s+is\\s+(\\d+).*?available\\s+backend\\s+num\\s+is\\s+(\\d+)",
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(message);
+        if (replicationError.find()) {
+            return "Doris 集群副本配置不匹配：本次请求 "
+                    + replicationError.group(1) + " 个副本，但当前可用 BE 只有 "
+                    + replicationError.group(2)
+                    + " 个。请在发布弹窗「高级配置」中将副本数调整为不超过可用 BE 数量，或检查 Doris BE 状态。";
+        }
+        if (normalized.contains("failed to find enough host with tag")
+                || (normalized.contains("replication") && normalized.contains("available backend"))) {
+            return "Doris 集群指定 Tag 下的可用 BE 数量不足。请检查 BE 节点的 Alive、"
+                    + "SystemDecommissioned 和 Tag 状态，并在「高级配置」中调整副本数。";
+        }
+        return message;
     }
 
     private <T> List<T> safeList(List<T> values) {
