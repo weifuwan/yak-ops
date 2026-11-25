@@ -125,9 +125,7 @@ public class DorisSchemaPlanner {
         boolean noChanges = statements.isEmpty();
         String ddl = noChanges
                 ? "-- 当前 Doris 物理表结构与模型一致，无需执行变更。"
-                : String.join(";
-
-", statements) + ";";
+                : String.join(";\\n\\n", statements) + ";";
         return new DdlPlan(
                 ddl,
                 statements,
@@ -204,9 +202,7 @@ public class DorisSchemaPlanner {
             DorisReplicationPlan replication,
             boolean targetTableExists) {
         return new DdlPlan(
-                String.join(";
-
-", statements) + ";",
+                String.join(";\\n\\n", statements) + ";",
                 statements,
                 false,
                 keyFields,
