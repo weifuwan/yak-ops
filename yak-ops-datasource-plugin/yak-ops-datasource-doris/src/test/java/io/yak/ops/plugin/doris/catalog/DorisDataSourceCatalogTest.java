@@ -2,9 +2,6 @@ package io.yak.ops.plugin.doris.catalog;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,11 +11,8 @@ import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
 import io.yak.ops.plugin.doris.param.DorisDataSourceProcessor;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
