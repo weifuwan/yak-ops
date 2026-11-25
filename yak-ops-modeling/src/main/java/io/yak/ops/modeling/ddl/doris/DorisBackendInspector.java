@@ -20,7 +20,7 @@ public class DorisBackendInspector {
     private static final int DEFAULT_REPLICATION_NUM = 3;
     private static final int MAX_MANUAL_REPLICATION_NUM = 3;
     private static final Pattern LOCATION_TAG =
-            Pattern.compile(""location"\\s*:\\s*"([^"]+)"", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("\"location\"\\s*:\\s*\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
 
     public DorisReplicationPlan resolve(Connection connection, Integer requestedReplicationNum) {
         validateRequestedReplicationNum(requestedReplicationNum);
