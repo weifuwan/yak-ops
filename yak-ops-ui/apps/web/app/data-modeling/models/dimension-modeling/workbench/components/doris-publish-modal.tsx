@@ -279,7 +279,7 @@ export function DorisPublishModal({
     && Boolean(preview?.ddl);
 
   const previewPlaceholder = !datasourceId || !tableModel || !publishMode
-    ? "请选择 Doris 表类型、数据源和发布模式，系统将自动生成 DDL"
+    ? "请选择 Doris 数据源，系统将自动生成 DDL"
     : previewQuery.isFetching
       ? "正在根据当前配置生成 DDL..."
       : previewError || "暂无 DDL";
