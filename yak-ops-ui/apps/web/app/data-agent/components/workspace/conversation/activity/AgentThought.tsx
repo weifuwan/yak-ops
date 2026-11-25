@@ -52,11 +52,11 @@ export function AgentThought({ activity, compact = false }: AgentThoughtProps) {
     return () => window.clearInterval(timer);
   }, [activity.startedAt, isRunning]);
 
-  const duration = formatDuration(
-    activity.startedAt,
-    activity.completedAt,
-    now,
-  );
+  const duration =
+    activity.startedAt !== undefined &&
+    (isRunning || activity.completedAt !== undefined)
+      ? formatDuration(activity.startedAt, activity.completedAt, now)
+      : "";
   const label = isRunning
     ? "Thinking"
     : activity.status === "completed"
