@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   Activity,
   CheckCircle2,
@@ -70,6 +70,7 @@ export function AgentActivityGroup({
     ["error", "denied", "rejected", "interrupted"].includes(activity.status),
   );
   const [now, setNow] = useState(() => Date.now());
+  const instanceId = useId();
 
   useEffect(() => {
     if (!hasRunning) return;
@@ -117,8 +118,7 @@ export function AgentActivityGroup({
         ? LoaderCircle
         : CheckCircle2;
   const GroupIcon = GROUP_ICONS[group.category];
-  const contentId =
-    "agent-activity-group-" + group.id.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const contentId = "agent-activity-group-" + instanceId.replace(/:/g, "");
 
   return (
     <section
