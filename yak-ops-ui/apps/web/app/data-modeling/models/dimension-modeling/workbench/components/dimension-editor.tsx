@@ -37,6 +37,7 @@ import type {
   DimensionFieldRecord,
   DimensionTableRecord,
   DimensionVersionRecord,
+  DorisFieldTypeOption,
 } from "@/service/data-modeling/models/dimension-modeling";
 import type { DimensionTab } from "../types";
 import { dwLayerApi } from "@/service/data-modeling/planning/dw-layer";
@@ -1403,7 +1404,9 @@ export function DimensionList({ projectCode, dwType, onEdit }: DimensionListProp
     [dwType, layersQuery.data],
   );
   const businessTreeOptions = useMemo(
-    () => (businessTreeQuery.data || []).map(mapBusinessTypeTreeOption),
+    () => (businessTreeQuery.data || [])
+      .map(mapBusinessTypeTreeOption)
+      .filter((option): option is TreeSelectOption => option !== null),
     [businessTreeQuery.data],
   );
   const domainOptions = useMemo(
