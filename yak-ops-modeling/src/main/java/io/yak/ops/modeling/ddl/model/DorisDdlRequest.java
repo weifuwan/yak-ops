@@ -16,7 +16,6 @@ public class DorisDdlRequest {
     private final List<String> previousKeyFields;
     private final Integer replicationNum;
     private final String previousPhysicalSchema;
-    private final boolean confirmDropColumns;
 
     public DorisDdlRequest(
             DdlTableDefinition table,
@@ -35,7 +34,7 @@ public class DorisDdlRequest {
             List<String> previousKeyFields,
             Integer replicationNum) {
         this(table, tableModel, publishMode, previousTableModel, previousKeyFields,
-                replicationNum, null, false);
+                replicationNum, null);
     }
 
     public DorisDdlRequest(
@@ -45,8 +44,7 @@ public class DorisDdlRequest {
             DorisDataModelEnum previousTableModel,
             List<String> previousKeyFields,
             Integer replicationNum,
-            String previousPhysicalSchema,
-            boolean confirmDropColumns) {
+            String previousPhysicalSchema) {
         this.table = table;
         this.tableModel = tableModel;
         this.publishMode = publishMode;
@@ -56,7 +54,6 @@ public class DorisDdlRequest {
                 : Collections.unmodifiableList(new ArrayList<>(previousKeyFields));
         this.replicationNum = replicationNum;
         this.previousPhysicalSchema = previousPhysicalSchema;
-        this.confirmDropColumns = confirmDropColumns;
     }
 
     public DdlTableDefinition getTable() { return table; }
@@ -66,5 +63,4 @@ public class DorisDdlRequest {
     public List<String> getPreviousKeyFields() { return previousKeyFields; }
     public Integer getReplicationNum() { return replicationNum; }
     public String getPreviousPhysicalSchema() { return previousPhysicalSchema; }
-    public boolean isConfirmDropColumns() { return confirmDropColumns; }
 }
