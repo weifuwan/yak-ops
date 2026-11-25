@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -177,6 +178,8 @@ class DimensionDorisServiceImplTest {
     @Test
     void shouldRejectIncrementalPublishForExistingTableWithoutYakOpsHistory() throws Exception {
         stubPublishInfrastructure();
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
+                field("field-id", "customer_id", DimensionDataTypeEnum.BIGINT)));
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
         Connection connection = connectionWithExistingTable();
         doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
@@ -237,8 +240,9 @@ class DimensionDorisServiceImplTest {
         Connection connection = connectionWithoutTable();
         Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
+        ResultSet createdColumns = columnsFor("customer_id", "BIGINT");
         when(connection.getMetaData().getColumns(anyString(), isNull(), anyString(), isNull()))
-                .thenReturn(columnsFor("customer_id", "BIGINT"));
+                .thenReturn(createdColumns);
         doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
 
         DimensionDorisPublishVO published =
@@ -267,8 +271,9 @@ class DimensionDorisServiceImplTest {
         Connection connection = connectionWithExistingTable();
         Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
+        ResultSet createdColumns = columnsFor("customer_id", "BIGINT");
         when(connection.getMetaData().getColumns(anyString(), isNull(), anyString(), isNull()))
-                .thenReturn(columnsFor("customer_id", "BIGINT"));
+                .thenReturn(createdColumns);
         doReturn(connection).when(service).openDorisConnection(any(DataSource.class));
 
         DimensionDorisPublishDTO dto = request();
@@ -324,11 +329,11 @@ class DimensionDorisServiceImplTest {
         Connection connection = mock(Connection.class);
         DatabaseMetaData metadata = mock(DatabaseMetaData.class);
         ResultSet noTables = mock(ResultSet.class);
-        when(connection.getMetaData()).thenReturn(metadata);
-        when(metadata.getSearchStringEscape()).thenReturn("\\");
-        when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
+        lenient().when(connection.getMetaData()).thenReturn(metadata);
+        lenient().when(metadata.getSearchStringEscape()).thenReturn("\\");
+        lenient().when(metadata.getTables(anyString(), isNull(), anyString(), any(String[].class)))
                 .thenReturn(noTables);
-        when(noTables.next()).thenReturn(false);
+        lenient().when(noTables.next()).thenReturn(false);
         return connection;
     }
 
