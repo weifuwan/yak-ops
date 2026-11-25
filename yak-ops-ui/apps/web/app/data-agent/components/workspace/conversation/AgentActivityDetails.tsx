@@ -27,14 +27,14 @@ function DetailSection({
   const id = useId();
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-xl border border-[#e7e9e8] bg-white">
+    <section className="min-w-0">
       <button
         type="button"
         aria-expanded={expanded}
         aria-controls={"agent-activity-detail-" + id.replace(/:/g, "")}
         className={[
-          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3",
-          "px-3 py-2.5 text-left transition-colors hover:bg-[#f7f8f8]",
+          "flex min-h-9 w-full cursor-pointer items-center justify-between gap-3",
+          "rounded-md px-1.5 py-2 text-left transition-colors hover:bg-[#f7f8f8]",
           "focus-visible:outline-none focus-visible:ring-2",
           "focus-visible:ring-inset focus-visible:ring-[#0033ff]/20",
         ].join(" ")}
@@ -53,9 +53,7 @@ function DetailSection({
         id={"agent-activity-detail-" + id.replace(/:/g, "")}
         hidden={!expanded}
       >
-        {expanded ? (
-          <div className="min-w-0 border-t border-[#edf0ee] p-3">{children}</div>
-        ) : null}
+        {expanded ? <div className="min-w-0 px-1 pt-2">{children}</div> : null}
       </div>
     </section>
   );
@@ -79,7 +77,7 @@ function CodeSection({
       <pre
         className={[
           "m-0 max-h-[420px] min-w-0 overflow-auto whitespace-pre-wrap break-words",
-          "rounded-lg bg-[#f7f8f8] p-3 font-mono text-[12px] leading-6",
+          "rounded-lg bg-[#f7f8f8] px-3 py-2.5 font-mono text-[12px] leading-[1.75]",
           "text-[#303936]",
         ].join(" ")}
       >
@@ -121,7 +119,7 @@ export function AgentActivityDetails({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 px-4 pb-5 pt-4">
+    <div className="flex min-w-0 flex-col gap-5 px-4 pb-5 pt-4">
       {content ? (
         <DetailSection
           label="执行说明"
@@ -154,9 +152,8 @@ export function AgentActivityDetails({
       {!hasDetails ? (
         <div
           className={[
-            "flex min-h-32 items-center justify-center rounded-xl",
-            "border border-dashed border-[#e5e9e7] px-6 text-center",
-            "text-xs leading-5 text-[#929b96]",
+            "flex min-h-32 items-center justify-center rounded-lg",
+            "bg-[#f7f8f8] px-6 text-center text-xs leading-5 text-[#929b96]",
           ].join(" ")}
         >
           {activity.status === "running"
@@ -169,7 +166,7 @@ export function AgentActivityDetails({
         <div
           role="alert"
           className={[
-            "rounded-lg border border-[#f0d6d6] bg-[#fff7f7]",
+            "rounded-lg bg-[#fff7f7]",
             "px-3 py-2 text-xs leading-5 text-[#a14d4d]",
           ].join(" ")}
         >
