@@ -110,8 +110,8 @@ export function DataAgentWorkspace({
   function handleNewConversation() {
     if (isSending) return;
     particleTransitionRef.current?.cancel();
-    initialParticleTransitionPendingRef.current = false;
-    setShowInitialParticleTransition(false);
+    initialParticleTransitionPendingRef.current = true;
+    setShowInitialParticleTransition(true);
     createConversation();
     onNewConversation();
     setModelMenuOpen(false);

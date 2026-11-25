@@ -17,9 +17,9 @@ const particleStyles = read("../apps/web/app/data-agent/components/magic-pattern
 const loginPanel = read("../apps/web/app/login/LoginPanel.tsx");
 const loginPage = read("../apps/web/app/login/index.tsx");
 
-test("particle transition is opt-in for the first welcome entry, not existing sessions", () => {
-  assert.match(page, /playInitialParticleTransition: true/);
-  assert.match(page, /enableInitialParticleTransition=\{Boolean\([\s\S]*playInitialParticleTransition && !sessionId/);
+test("particle transition is enabled for a fresh new conversation, not existing sessions", () => {
+  assert.match(page, /enableInitialParticleTransition=\{!sessionId\}/);
+  assert.doesNotMatch(page, /playInitialParticleTransition/);
   assert.match(workspace, /enableInitialParticleTransition\?: boolean/);
   assert.match(workspace, /useState\(enableInitialParticleTransition\)/);
   assert.match(workspace, /\{showInitialParticleTransition \? \(/);
@@ -60,18 +60,20 @@ test("the particle animation runs once after the first welcome prompt is accepte
   assert.match(conversationHook, /Visual effects are optional and must never block message delivery/);
 });
 
-test("creating or selecting another conversation permanently disables the welcome particle transition", () => {
+test("creating a new conversation rearms the transition while selecting an existing session disables it", () => {
   const newStart = workspace.indexOf("function handleNewConversation");
   const selectStart = workspace.indexOf("function handleSelectConversation", newStart);
   const submitStart = workspace.indexOf("function handlePromptSubmit", selectStart);
   const newHandler = workspace.slice(newStart, selectStart);
   const selectHandler = workspace.slice(selectStart, submitStart);
 
-  for (const handler of [newHandler, selectHandler]) {
-    assert.match(handler, /particleTransitionRef\.current\?\.cancel\(\)/);
-    assert.match(handler, /initialParticleTransitionPendingRef\.current = false/);
-    assert.match(handler, /setShowInitialParticleTransition\(false\)/);
-  }
+  assert.match(newHandler, /particleTransitionRef\.current\?\.cancel\(\)/);
+  assert.match(newHandler, /initialParticleTransitionPendingRef\.current = true/);
+  assert.match(newHandler, /setShowInitialParticleTransition\(true\)/);
+
+  assert.match(selectHandler, /particleTransitionRef\.current\?\.cancel\(\)/);
+  assert.match(selectHandler, /initialParticleTransitionPendingRef\.current = false/);
+  assert.match(selectHandler, /setShowInitialParticleTransition\(false\)/);
 });
 test("the original Magic Patterns Canvas choreography and mask sweep are retained", () => {
   assert.match(particle, /PARTICLE_COUNT = 220/);

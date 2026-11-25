@@ -10,7 +10,6 @@ const DATA_AGENT_PRODUCT_LABEL = "Data Agent";
 
 type DataAgentLocationState = {
   initialPrompt?: string;
-  playInitialParticleTransition?: boolean;
 };
 
 export function DataAgentPage() {
@@ -45,7 +44,7 @@ export function DataAgentPage() {
       <DataAgentWelcome
         onEnter={(prompt = "") =>
           navigate("/data-agent/new", {
-            state: { initialPrompt: prompt, playInitialParticleTransition: true },
+            state: { initialPrompt: prompt },
           })
         }
       />
@@ -60,9 +59,7 @@ export function DataAgentPage() {
       <DataAgentWorkspace
         sessionId={sessionId ?? null}
         initialPrompt={initialPrompt}
-        enableInitialParticleTransition={Boolean(
-          locationState?.playInitialParticleTransition && !sessionId,
-        )}
+        enableInitialParticleTransition={!sessionId}
         onSessionCreated={handleSessionCreated}
         onNewConversation={handleNewConversation}
         onSelectConversation={handleSelectConversation}
