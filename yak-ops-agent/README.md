@@ -1,6 +1,6 @@
 # yak-ops-agent（AgentScope Python harness）
 
-yak-ops 平台级智能助手（当前已接入数据同步任务/实例/日志与数据源目录；能力随工具领域扩展），基于 AgentScope 构建。
+Data Ops 平台级智能助手（当前已接入数据同步任务/实例/日志与数据源目录；能力随工具领域扩展），基于 AgentScope 构建。
 平台侧契约与安全边界见 `yak-ops-openapi/`（契约基线与 agent 白名单）。
 
 ## 定位
