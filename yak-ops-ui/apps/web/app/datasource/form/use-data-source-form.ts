@@ -364,7 +364,7 @@ export function useDataSourceForm({ open, record, onOpenChange, onSaved }: DataS
       }
     } catch (error) {
       if (signal.aborted) {
-        toast.warning("数据源连接测试超时（30 秒），请检查数据库地址、端口及网络后重试");
+        toast.warning("数据源连接测试超时（10 秒），请检查数据库地址、端口及网络后重试");
       } else {
         applyValidationErrors(error);
       }
