@@ -30,7 +30,7 @@ const activityItem = read("../apps/web/app/data-agent/components/workspace/conve
 const toolActivity = read("../apps/web/app/data-agent/components/workspace/conversation/activity/AgentToolActivity.tsx");
 const conversationPanel = read("../apps/web/app/data-agent/components/workspace/ConversationPanel.tsx");
 const detailsPanel = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsPanel.tsx");
-const detailsTimeline = read("../apps/web/app/data-agent/components/workspace/conversation/AgentDetailsTimeline.tsx");
+const activityDetails = read("../apps/web/app/data-agent/components/workspace/conversation/AgentActivityDetails.tsx");
 
 
 const messageItem = read("../apps/web/app/data-agent/components/workspace/conversation/MessageItem.tsx");
@@ -403,11 +403,11 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(toolActivity, /aria-controls="agent-details-panel"/);
   assert.match(toolActivity, /aria-expanded=\{selected\}/);
   assert.match(toolActivity, /hover:bg-\[#e5e5e5\]/);
-  assert.match(detailsTimeline, /hover:bg-\[#f4f5f5\]/);
-  assert.match(detailsTimeline, /active:bg-\[#eceeee\]/);
-  assert.doesNotMatch(detailsTimeline, /hover:bg-\[#e5e5e5\]/);
+  assert.match(activityDetails, /hover:bg-\[#f7f8f8\]/);
+  assert.match(activityDetails, /输入参数/);
+  assert.match(activityDetails, /执行结果/);
   assert.doesNotMatch(toolActivity, /hover:bg-\[#f4f6f5\]/);
-  assert.doesNotMatch(detailsTimeline, /hover:bg-\[#f8f9f8\]/);
+  assert.doesNotMatch(activityDetails, /activities\.map/);
   assert.match(conversationPanel, /<MessageList/);
   assert.match(conversationPanel, /selectedMessageId/);
   assert.match(conversationPanel, /selectedActivityId/);
@@ -418,7 +418,7 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.match(sessionWorkspace, /handleSelectActivity/);
   assert.match(sessionWorkspace, /duration-300/);
   assert.match(sessionWorkspace, /max-lg:absolute max-lg:inset-0/);
-  assert.match(detailsPanel, /AgentDetailsTimeline/);
+  assert.match(detailsPanel, /AgentActivityDetails/);
   assert.doesNotMatch(detailsPanel, /AgentDetailsSummary|执行概览|Token 用量|inputTokens|outputTokens|cacheTokens/);
   assert.ok(sessionWorkspace.includes("metricsMessage={selectedMessage}"));
   assert.ok(conversationHeader.includes("getMessageMetrics"));
@@ -427,27 +427,12 @@ test("Data Agent renders assistant activity inline and keeps execution details i
   assert.ok(conversationHeader.includes("<Coins size={12}"));
   assert.ok(conversationHeader.includes("Token {totalTokens.toLocaleString()}"));
   assert.doesNotMatch(detailsPanel, /aria-label="关闭执行详情"|AgentActivityDetails|Agent 执行过程/);
-  assert.match(detailsTimeline, /Thought/);
-  assert.match(detailsTimeline, /SquareTerminal/);
-  assert.match(detailsTimeline, /pl-8/);
-  assert.match(detailsTimeline, /left-\[15px\]/);
-  assert.match(detailsTimeline, /w-\[2px\]/);
-  assert.match(detailsTimeline, /bottom-0 left-\[15px\] top-0/);
-  assert.match(detailsTimeline, /bg-\[#e7e9e8\]/);
-  assert.match(detailsTimeline, /function TimelineNode/);
-  assert.match(detailsTimeline, /size=\{12\}/);
-  assert.match(detailsTimeline, /text-\[#9fa6a3\]/);
-  assert.doesNotMatch(detailsTimeline, /rounded-full bg-\[#c9cfcc\]/);
-  assert.match(detailsTimeline, /aria-expanded=\{expanded\}/);
-  assert.match(detailsTimeline, /DataAgentMarkdown/);
-  assert.match(detailsTimeline, /输入参数/);
-  assert.match(detailsTimeline, /执行结果/);
-  assert.match(detailsTimeline, /selectedActivityId/);
-  assert.match(detailsTimeline, /expandedActivityIds/);
-  assert.match(detailsTimeline, /new Set\(selectedActivityId \? \[selectedActivityId\] : \[\]\)/);
-  assert.match(detailsTimeline, /activities[\s\S]*?\.filter/);
-  assert.match(detailsTimeline, /expandAll/);
-  assert.match(detailsTimeline, /TOOL_LABELS/);
+  assert.match(activityDetails, /activity\.input/);
+  assert.match(activityDetails, /activity\.output/);
+  assert.match(activityDetails, /formatToolInput/);
+  assert.match(activityDetails, /TOOL_LABELS/);
+  assert.match(activityDetails, /expandAll/);
+  assert.doesNotMatch(activityDetails, /AgentThought|AgentDetailsTimeline|activities\.map/);
   assert.match(conversationHook, /case "thinking_delta":[\s\S]*Raw model reasoning is intentionally not persisted or rendered/);
   assert.match(conversationHook, /case "tool_call_delta"/);
   assert.match(conversationHook, /case "tool_call_end"/);
@@ -472,9 +457,9 @@ test("tool activity is a single-line action that opens the message execution det
   assert.match(conversationPanel, /selectedMessage/);
   assert.match(conversationPanel, /selectedActivity/);
   assert.match(sessionWorkspace, /event\.key === "Escape"/);
-  assert.match(detailsPanel, /message\.activities/);
-  assert.match(detailsPanel, /AgentDetailsTimeline/);
-  assert.match(detailsTimeline, /activity\.kind === "text"/);
+  assert.match(detailsPanel, /activity=\{activity\}/);
+  assert.match(detailsPanel, /AgentActivityDetails/);
+  assert.match(activityDetails, /activity\.content/);
 });
 
 
@@ -511,7 +496,7 @@ test("Data Agent execution details panel has an accessible, bounded drag splitte
 
 
 test("Data Agent clickable controls use pointer cursors and drag splitters keep resize cursors", () => {
-  assert.match(detailsTimeline, /cursor-pointer items-start/);
+  assert.match(activityDetails, /cursor-pointer items-center/);
   assert.match(toolActivity, /cursor-pointer items-center/);
   assert.match(modelSelector, /min-h-\[56px\] cursor-pointer/);
   assert.match(sidebarNavigation, /group flex h-8 w-full cursor-pointer/);
@@ -571,12 +556,18 @@ test("Data Agent session workspace uses a shared header and a 60/40 split with a
   assert.doesNotMatch(conversationPanel, /AgentDetailsPanel|AgentDetailsResizer/);
 });
 
-test("Data Agent details timeline uses a centered continuous 2px rail without dot markers", () => {
-  assert.match(detailsTimeline, /relative min-w-0 pl-8/);
-  assert.match(detailsTimeline, /left-\[15px\] top-0 w-\[2px\] bg-\[#e7e9e8\]/);
-  assert.match(detailsTimeline, /absolute -left-8 top-\[10px\] flex h-5 w-8 items-center justify-center/);
-  assert.match(detailsTimeline, /SquareTerminal[\s\S]*?size=\{12\}/);
-  assert.doesNotMatch(detailsTimeline, /size-1\.5 rounded-full|size-1\.5 rounded-full bg-/);
+test("Data Agent details panel renders only the selected activity and keeps its sections independently collapsible", () => {
+  assert.match(detailsPanel, /activity: AgentActivity/);
+  assert.match(detailsPanel, /<AgentActivityDetails/);
+  assert.match(activityDetails, /TOOL_LABELS/);
+  assert.match(activityDetails, /输入参数/);
+  assert.match(activityDetails, /执行结果/);
+  assert.match(activityDetails, /aria-expanded=\{expanded\}/);
+  assert.match(activityDetails, /formatToolInput/);
+  assert.match(activityDetails, /expandedSections/);
+  assert.match(activityDetails, /activity\.id/);
+  assert.doesNotMatch(activityDetails, /activities\.map|AgentThought|TimelineNode|SquareTerminal|pl-8/);
+  assert.match(sessionWorkspace, /setDetailsExpandAll\(true\)/);
 });
 
 
