@@ -428,6 +428,7 @@ export function DorisPublishModal({
             </Field>
           </section>
 
+          {(!preview?.targetTableExists || publishMode === "DROP_RECREATE") ? (
           <section className="space-y-3">
             <Field className={HORIZONTAL_FIELD_CLASS}>
               <FieldLabel className="pt-1 text-xs">副本策略</FieldLabel>
@@ -464,6 +465,7 @@ export function DorisPublishModal({
               </Field>
             ) : null}
           </section>
+          ) : null}
 
           <section className="space-y-2">
             <div className="mb-2 flex items-center justify-between gap-2">
