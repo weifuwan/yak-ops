@@ -111,7 +111,7 @@ class DimensionDorisServiceImplTest {
     }
 
     @Test
-    void shouldRequireConfirmationForDropRecreate() {
+    void shouldRequireConfirmationForDropRecreate() throws Exception {
         DimensionDorisPublishDTO dto = request();
         dto.setPublishMode(DorisPublishModeEnum.DROP_RECREATE);
 
