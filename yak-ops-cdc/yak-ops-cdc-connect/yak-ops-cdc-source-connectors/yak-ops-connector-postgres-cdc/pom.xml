@@ -226,6 +226,7 @@ limitations under the License.
                 <executions>
                     <execution>
                         <id>test-jar</id>
+                        <phase>process-test-classes</phase>
                         <goals>
                             <goal>test-jar</goal>
                         </goals>
