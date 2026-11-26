@@ -16,6 +16,8 @@ public class DataSyncTableMetrics {
 
     private String sinkTable;
 
+    private String metricsState;
+
     private Long readRecords;
 
     private Long snapshotRecords;
