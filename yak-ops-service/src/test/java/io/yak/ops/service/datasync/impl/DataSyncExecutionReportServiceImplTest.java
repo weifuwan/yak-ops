@@ -195,6 +195,69 @@ class DataSyncExecutionReportServiceImplTest {
     }
 
     @Test
+    void persistsNewCompletedCheckpointAndSupersedesPreviousCheckpoints() {
+        TaskInstance taskInstance = TaskInstance.builder()
+                .id(42)
+                .projectCode(1001L)
+                .taskCode(99L)
+                .taskDefinitionVersion(3)
+                .taskType("DATA_SYNC")
+                .workflowInstanceId(200)
+                .build();
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(taskInstance);
+        when(executionReportDao.queryByExecutionId("execution-1")).thenReturn(null);
+        when(recoveryPointDao.insertIfAbsent(any())).thenReturn(true);
+
+        DataSyncReportRequest request = request(1L, "SNAPSHOT").toBuilder()
+                .recoveryPoint(DataSyncRecoveryPointReport.builder()
+                        .recoveryPointId("execution-1:checkpoint:7")
+                        .checkpointId("7")
+                        .recoveryType("CHECKPOINT")
+                        .restorePath("file:///checkpoints/chk-7")
+                        .completedAt(300L)
+                        .build())
+                .build();
+
+        service.acceptReport(request);
+
+        verify(recoveryPointDao).insertIfAbsent(org.mockito.ArgumentMatchers.argThat(point ->
+                point.getTaskInstanceId() == 42
+                        && point.getTaskCode() == 99L
+                        && "CHECKPOINT".equals(point.getRecoveryType())
+                        && "execution-1:checkpoint:7".equals(point.getRecoveryPointId())
+                        && "file:///checkpoints/chk-7".equals(point.getRestorePath())
+                        && point.getCompletedAt().getTime() == 300L));
+        verify(recoveryPointDao).supersedePreviousCheckpoints(
+                42, "execution-1", "execution-1:checkpoint:7");
+    }
+
+    @Test
+    void linksRestoredExecutionToTheConsumedRecoveryPoint() {
+        TaskInstance taskInstance = TaskInstance.builder()
+                .id(52)
+                .projectCode(1001L)
+                .taskCode(99L)
+                .taskDefinitionVersion(3)
+                .taskType("DATA_SYNC")
+                .workflowInstanceId(201)
+                .build();
+        when(taskInstanceDao.queryByIdForUpdate(52)).thenReturn(taskInstance);
+        when(executionReportDao.queryByExecutionId("execution-2")).thenReturn(null);
+        when(recoveryPointDao.markUsedByInstance("execution-1:checkpoint:7", 52, 201)).thenReturn(true);
+
+        DataSyncReportRequest request = request(1L, "SNAPSHOT").toBuilder()
+                .executionId("execution-2")
+                .taskInstanceId(52)
+                .jobId("job-2")
+                .recoveredFromRecoveryPointId("execution-1:checkpoint:7")
+                .build();
+
+        service.acceptReport(request);
+
+        verify(recoveryPointDao).markUsedByInstance("execution-1:checkpoint:7", 52, 201);
+    }
+
+    @Test
     void finalizedReportDoesNotFallBackToLatestTableMetrics() {
         when(executionReportDao.queryLatestByTaskInstanceId(42))
                 .thenReturn(DataSyncExecutionReport.builder()

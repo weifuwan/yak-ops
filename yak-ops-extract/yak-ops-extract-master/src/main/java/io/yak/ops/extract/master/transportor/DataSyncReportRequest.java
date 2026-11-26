@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 /** Versioned, idempotent CDC execution report. */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class DataSyncReportRequest {

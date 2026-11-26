@@ -81,6 +81,59 @@ class DataSyncExecutionCoordinatorTest {
     }
 
     @Test
+    void publishesCheckpointAndRecoveryLineageWithTheFinalReport() throws Exception {
+        TaskExecutionContext context = new TaskExecutionContext();
+        context.setTaskInstanceId(42);
+
+        DataSyncExecutionService executionService = mock(DataSyncExecutionService.class);
+        DataSyncMetricsService metricsService = mock(DataSyncMetricsService.class);
+        DataSyncReportPublisher reportPublisher = mock(DataSyncReportPublisher.class);
+        FlinkPipelineExecution pipeline = mock(FlinkPipelineExecution.class);
+
+        DataSyncExecutionHandle handle = DataSyncExecutionHandle.builder()
+                .executionId("execution-restored")
+                .taskInstanceId(42)
+                .jobId("job-restored")
+                .deploymentMode("LOCAL_MINICLUSTER")
+                .submittedAt(100L)
+                .build();
+        DataSyncExecutionSnapshot snapshot = DataSyncExecutionSnapshot.builder()
+                .metricsState("AVAILABLE")
+                .collectedAt(200L)
+                .build();
+        DataSyncRecoveryPointSnapshot checkpoint = DataSyncRecoveryPointSnapshot.builder()
+                .recoveryPointId("source-execution:checkpoint:12")
+                .checkpointId("12")
+                .recoveryType("CHECKPOINT")
+                .restorePath("file:///checkpoints/chk-12")
+                .completedAt(300L)
+                .build();
+
+        when(executionService.submit(any(), any(), org.mockito.ArgumentMatchers.eq(42),
+                org.mockito.ArgumentMatchers.eq("file:///checkpoints/chk-12"))).thenReturn(handle);
+        when(executionService.queryState(handle)).thenReturn(DataSyncExecutionState.FINISHED);
+        when(executionService.getLatestCompletedCheckpoint(handle)).thenReturn(checkpoint);
+        when(metricsService.collect(handle)).thenReturn(snapshot);
+        when(reportPublisher.publish(any()))
+                .thenReturn(DataSyncReportAck.accepted("ACCEPTED", 1L));
+
+        DataSyncExecutionCoordinator coordinator = new DataSyncExecutionCoordinator(
+                context, () -> executionService, metricsService, reportPublisher);
+        coordinator.execute(pipeline, "file:///checkpoints/chk-12", "source-execution:checkpoint:12");
+
+        ArgumentCaptor<DataSyncReportRequest> reports =
+                ArgumentCaptor.forClass(DataSyncReportRequest.class);
+        verify(reportPublisher, times(2)).publish(reports.capture());
+        DataSyncReportRequest finalReport = reports.getAllValues().get(1);
+        assertEquals("source-execution:checkpoint:12", finalReport.getRecoveredFromRecoveryPointId());
+        assertEquals("source-execution:checkpoint:12", finalReport.getRecoveryPoint().getRecoveryPointId());
+        assertEquals("file:///checkpoints/chk-12", finalReport.getRecoveryPoint().getRestorePath());
+        verify(executionService).submit(any(), any(),
+                org.mockito.ArgumentMatchers.eq(42),
+                org.mockito.ArgumentMatchers.eq("file:///checkpoints/chk-12"));
+    }
+
+    @Test
     void marksReusedTableMetricsStaleAndPreservesTheirCollectionTime() throws Exception {
         TaskExecutionContext context = new TaskExecutionContext();
         context.setTaskInstanceId(42);

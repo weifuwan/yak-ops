@@ -42,8 +42,32 @@ class DataSyncPipelineBuilderTest {
         assertEquals("src_db.orders", pipeline.path("source").path("tables").asText());
         assertEquals("dst_db.orders", pipeline.path("route").get(0).path("sink-table").asText());
         assertEquals("evolve", pipeline.path("pipeline").path("schema.change.behavior").asText());
+        assertEquals("30s", pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.interval").asText());
+        assertEquals(1, pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.num-retained").asInt());
+        assertEquals("RETAIN_ON_CANCELLATION", pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.externalized-checkpoint-retention").asText());
+        assertTrue(pipeline.path("pipeline").path("flink-conf")
+                .path("state.checkpoints.dir").asText().startsWith("file:"));
         assertEquals("drop.column", pipeline.path("sink").path("exclude.schema.changes").get(0).asText());
         assertFalse(yaml.contains("datasource-id"));
+    }
+
+    @Test
+    void preservesUserCheckpointSettings() throws Exception {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .putObject("flink-conf")
+                .put("execution.checkpointing.interval", "2min")
+                .put("state.checkpoints.dir", "hdfs://namenode/yak/checkpoints");
+
+        JsonNode pipeline = YAML.readTree(new DataSyncPipelineBuilder().build(context(), parameters));
+
+        assertEquals("2min", pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.interval").asText());
+        assertEquals("hdfs://namenode/yak/checkpoints", pipeline.path("pipeline").path("flink-conf")
+                .path("state.checkpoints.dir").asText());
     }
 
     @Test
