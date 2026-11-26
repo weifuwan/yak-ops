@@ -53,7 +53,7 @@ Worker 在 FINAL 报告连续 RPC 失败后，会将报告和目标 Master 地�
 
 ## 部署与验证
 
-当前 Execution 实现为 `LOCAL_MINICLUSTER`。YARN / Kubernetes / Standalone 后续只需新增 `DataSyncExecutionService` 的 Abstract 子类，不需要改 Metrics REST 采集、RPC 协议、报告表或 Workflow 核心。
+当前 Execution 实现为 `LOCAL_MINICLUSTER`，由 `MiniClusterDataSyncExecutionServiceFactory` 创建。后续新增 YARN / Kubernetes / Standalone 时，需要增加对应的 `DataSyncExecutionService` 实现和 Factory 选择，并将 `DataSyncJobRunner` 的 Pipeline Composer 切换为匹配的运行环境；Metrics REST 采集、RPC 协议、报告表和 Workflow 核心无需随之重构。
 
 建议验证：
 
