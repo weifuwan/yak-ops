@@ -78,3 +78,14 @@ test("Context usage hover surface and progress ring share the same center", () =
   assert.ok(contextUsage.includes("block size-[21px] shrink-0 rounded-full"));
   assert.ok(contextUsage.includes("border-0 p-0 leading-none"));
 });
+
+test("Context usage tooltip emphasizes key values, sizes to content and transitions softly", () => {
+  assert.ok(contextUsage.includes('className="yak-context-tooltip pointer-events-none fixed z-[150] w-max whitespace-nowrap'));
+  assert.ok(contextUsage.includes("font-semibold text-[#202124]"));
+  assert.ok(contextUsage.includes("font-semibold tabular-nums text-[#30343b]"));
+  assert.ok(contextUsage.includes("maxWidth: \"calc(100vw - 16px)\""));
+  assert.ok(contextUsage.includes("@keyframes yakContextTooltipIn"));
+  assert.ok(contextUsage.includes("@keyframes yakContextPopoverIn"));
+  assert.ok(contextUsage.includes("duration-200 ease-out hover:scale-[1.04]"));
+  assert.ok(contextUsage.includes("prefers-reduced-motion: reduce"));
+});
