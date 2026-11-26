@@ -347,12 +347,30 @@ export function JavaRunConfigPanel({
       >
         <div className={fieldGridClass}>
           <SettingField label="CPU 配额">
-            <Input size="small" variant="outlined" type="number" min={-1} step={1} value={settings.cpuQuota}
-              disabled={disabled} onChange={event => update("cpuQuota", event.target.value)} className="w-full min-w-0" />
+            <SliderInput
+              label="CPU 配额"
+              value={Number.isFinite(Number(settings.cpuQuota)) ? Number(settings.cpuQuota) : -1}
+              min={-1}
+              max={2147483647}
+              sliderMax={1000}
+              step={1}
+              unit="%"
+              disabled={disabled}
+              onValueChange={value => update("cpuQuota", String(value))}
+            />
           </SettingField>
           <SettingField label="最大内存">
-            <Input size="small" variant="outlined" type="number" min={-1} step={1} value={settings.memoryMax}
-              disabled={disabled} onChange={event => update("memoryMax", event.target.value)} className="w-full min-w-0" />
+            <SliderInput
+              label="最大内存"
+              value={Number.isFinite(Number(settings.memoryMax)) ? Number(settings.memoryMax) : -1}
+              min={-1}
+              max={2147483647}
+              sliderMax={65536}
+              step={1}
+              unit="MB"
+              disabled={disabled}
+              onValueChange={value => update("memoryMax", String(value))}
+            />
           </SettingField>
         </div>
         {!compact ? (
