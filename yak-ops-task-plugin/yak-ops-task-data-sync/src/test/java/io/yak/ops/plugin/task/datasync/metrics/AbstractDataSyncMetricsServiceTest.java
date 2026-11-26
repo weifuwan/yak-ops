@@ -45,4 +45,27 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals(100L, table.getReadRecords());
         assertEquals(80L, table.getCommittedRecords());
     }
+
+    @Test
+    void derivesExecutionTotalsFromTableCountersWhenRootCountersAreUnavailable() throws Exception {
+        Map<String, Long> rawMetrics = new LinkedHashMap<>();
+        rawMetrics.put("source.namespace.db.schema..table.orders.numSnapshotRecords", 12L);
+        rawMetrics.put("source.namespace.db.schema..table.customers.numSnapshotRecords", 8L);
+        rawMetrics.put("sink.namespace..schema.db.table.orders.numCommittedRecords", 10L);
+        rawMetrics.put("sink.namespace..schema.db.table.customers.numCommittedRecords", 8L);
+
+        AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
+            @Override
+            protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) {
+                return rawMetrics;
+            }
+        };
+
+        DataSyncExecutionSnapshot snapshot = service.collect(
+                DataSyncExecutionHandle.builder().executionId("execution-2").build());
+
+        assertEquals(20L, snapshot.getReadRecords());
+        assertEquals(18L, snapshot.getCommittedRecords());
+        assertEquals("AVAILABLE", snapshot.getMetricsState());
+    }
 }
