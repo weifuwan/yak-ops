@@ -13,5 +13,5 @@ public class DataSyncInstanceActionResultVO {
 
     private Integer sourceInstanceId;
 
-    private Integer newInstanceId;
+    private Integer newWorkflowInstanceId;
 }
