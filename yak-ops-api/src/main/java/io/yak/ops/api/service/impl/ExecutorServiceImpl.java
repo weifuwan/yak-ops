@@ -124,6 +124,17 @@ public class ExecutorServiceImpl extends BaseServiceImpl implements ExecutorServ
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_EXIST,
                     String.valueOf(triggerRequest.getWorkflowDefinitionCode()));
         }
+        // Serialize ordinary manual runs with instance actions for DataSync tasks.
+        WorkflowDefinition workflowDefinition = triggerWorkflowDTO.getWorkflowDefinition();
+        TaskDefinition taskDefinition = taskDefinitionDao.queryByCode(workflowDefinition.getCode());
+        if (taskDefinition != null && "DATA_SYNC".equals(taskDefinition.getTaskType())) {
+            TaskDefinition lockedTaskDefinition = taskDefinitionDao.queryByCodeForUpdate(workflowDefinition.getCode());
+            if (lockedTaskDefinition == null
+                    || !"DATA_SYNC".equals(lockedTaskDefinition.getTaskType())
+                    || lockedTaskDefinition.getProjectCode() != triggerRequest.getProjectCode()) {
+                throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+            }
+        }
         // todo: use validator chain
         triggerWorkflowDTOValidator.validate(triggerWorkflowDTO);
         return executorClient.triggerWorkflowDefinition().execute(triggerWorkflowDTO);
