@@ -17,6 +17,7 @@ import org.apache.flink.connector.jdbc.datasource.connections.JdbcConnectionProv
 import org.apache.flink.connector.jdbc.datasource.connections.SimpleJdbcConnectionProvider;
 import org.apache.flink.connector.jdbc.internal.JdbcOutputSerializer;
 import org.apache.flink.connector.jdbc.core.datastream.sink.writer.JdbcWriterState;
+import org.apache.flink.metrics.MetricGroup;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -38,6 +39,7 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
     private final RecordSerializationSchema<IN> serializationSchema;
     private final JdbcDialect dialect;
     private final JdbcRowConverter rowConverter;
+    private final MetricGroup metricGroup;
 
     private final JdbcTableWriterRegistry<JdbcTableWriter> tableWriters;
 
@@ -61,6 +63,7 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         this.serializationSchema = checkNotNull(serializationSchema);
         this.dialect = checkNotNull(dialect);
         checkNotNull(sinkConfig, "sinkConfig must be defined");
+        this.metricGroup = initContext.metricGroup();
         this.rowConverter = checkNotNull(dialect.createRowConverter(), "JDBC row converter is required");
         int maxOpenTables =
                 connectionOptions == null ? 1 : sinkConfig.getWriteMaxOpenTables();
@@ -97,7 +100,7 @@ public class JdbcWriter<IN> implements StatefulSink.StatefulSinkWriter<IN, JdbcW
         JdbcOutputFormatBuilder builder =
                 new JdbcOutputFormatBuilder(
                         executionOptions, provider, outputSerializer, dialect, rowConverter);
-        return new JdbcTableWriter(tableId, schema, builder);
+        return new JdbcTableWriter(tableId, schema, builder, metricGroup);
     }
 
     @Override
