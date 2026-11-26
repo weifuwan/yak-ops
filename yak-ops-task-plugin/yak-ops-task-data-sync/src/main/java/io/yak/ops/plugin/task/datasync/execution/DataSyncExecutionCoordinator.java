@@ -35,6 +35,7 @@ public class DataSyncExecutionCoordinator {
     private volatile DataSyncExecutionHandle handle;
     private volatile DataSyncExecutionService activeExecutionService;
     private volatile boolean cancellationConfirmed;
+    private final AtomicBoolean stopWithSavepointRequested = new AtomicBoolean();
 
     public DataSyncExecutionCoordinator(TaskExecutionContext context) {
         this(context,
@@ -163,15 +164,28 @@ public class DataSyncExecutionCoordinator {
     }
 
     public String stopWithSavepoint() throws Exception {
+        if (!stopWithSavepointRequested.compareAndSet(false, true)) {
+            throw new IllegalStateException("CDC stop with savepoint is already in progress");
+        }
         DataSyncExecutionHandle current = handle;
         DataSyncExecutionService executionService = activeExecutionService;
         if (current == null || executionService == null) {
+            stopWithSavepointRequested.set(false);
             throw new IllegalStateException("CDC execution is not active");
         }
-        String restorePath = executionService.stopWithSavepoint(current);
-        cancellationConfirmed = true;
-        cancelRequested.set(true);
-        return restorePath;
+        try {
+            String restorePath = executionService.stopWithSavepoint(current);
+            if (restorePath == null || restorePath.trim().isEmpty()) {
+                throw new IllegalStateException("Flink did not return a savepoint path");
+            }
+            cancellationConfirmed = true;
+            cancelDispatched.set(true);
+            cancelRequested.set(true);
+            return restorePath;
+        } catch (Exception exception) {
+            stopWithSavepointRequested.set(false);
+            throw exception;
+        }
     }
 
     public boolean isCancelRequested() {
