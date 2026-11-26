@@ -7,12 +7,12 @@ public class SchemaVerificationException extends IllegalStateException {
 
     private final String physicalSchema;
 
-    public DorisSchemaVerificationException(String message, String physicalSchema) {
+    public SchemaVerificationException(String message, String physicalSchema) {
         super(message);
         this.physicalSchema = physicalSchema;
     }
 
-    public DorisSchemaVerificationException(
+    public SchemaVerificationException(
             String message, String physicalSchema, Throwable cause) {
         super(message, cause);
         this.physicalSchema = physicalSchema;
