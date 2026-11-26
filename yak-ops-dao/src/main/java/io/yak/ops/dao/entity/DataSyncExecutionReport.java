@@ -28,6 +28,8 @@ public class DataSyncExecutionReport implements Serializable {
 
     private Integer taskInstanceId;
 
+    private Long submittedAt;
+
     private String jobId;
 
     private String deploymentMode;
