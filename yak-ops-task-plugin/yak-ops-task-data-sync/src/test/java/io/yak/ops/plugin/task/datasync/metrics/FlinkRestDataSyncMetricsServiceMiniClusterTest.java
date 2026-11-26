@@ -67,8 +67,8 @@ class FlinkRestDataSyncMetricsServiceMiniClusterTest {
     }
 
     private static DataSyncExecutionSnapshot awaitAvailableSnapshot(
-            FlinkRestDataSyncMetricsService metricsService,
-            DataSyncExecutionHandle handle) throws Exception {
+                                                                    FlinkRestDataSyncMetricsService metricsService,
+                                                                    DataSyncExecutionHandle handle) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         Exception lastException = null;
         DataSyncExecutionSnapshot lastSnapshot = null;
@@ -97,9 +97,9 @@ class FlinkRestDataSyncMetricsServiceMiniClusterTest {
     }
 
     private static void awaitState(
-            MiniClusterDataSyncExecutionService executionService,
-            DataSyncExecutionHandle handle,
-            DataSyncExecutionState expected) throws Exception {
+                                   MiniClusterDataSyncExecutionService executionService,
+                                   DataSyncExecutionHandle handle,
+                                   DataSyncExecutionState expected) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         DataSyncExecutionState actual = executionService.queryState(handle);
         while (actual != expected && System.nanoTime() < deadline) {
