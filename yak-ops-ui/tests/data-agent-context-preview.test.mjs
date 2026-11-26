@@ -86,6 +86,7 @@ test("Context usage tooltip emphasizes key values, sizes to content and transiti
   assert.ok(contextUsage.includes("maxWidth: \"calc(100vw - 16px)\""));
   assert.ok(contextUsage.includes("@keyframes yakContextTooltipIn"));
   assert.ok(contextUsage.includes("@keyframes yakContextPopoverIn"));
-  assert.ok(contextUsage.includes("duration-200 ease-out hover:scale-[1.04]"));
+  assert.ok(contextUsage.includes("duration-200 ease-out hover:bg-[#f3f4f6] active:scale-[0.97]"));
+  assert.ok(!contextUsage.includes("hover:scale-[1.04]"));
   assert.ok(contextUsage.includes("prefers-reduced-motion: reduce"));
 });
