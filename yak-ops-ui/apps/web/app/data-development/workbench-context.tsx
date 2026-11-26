@@ -355,24 +355,24 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
 
   const registerWorkflowStore = useCallback(
     (workflowCode: number, store: WorkflowStoreApi) => {
-    workflowStoresRef.current.set(workflowCode, store);
-    setWorkflowStoreCodes((current) => {
-      if (current.has(workflowCode)) return current;
-      const next = new Set(current);
-      next.add(workflowCode);
-      return next;
-    });
-
-    return () => {
-      if (workflowStoresRef.current.get(workflowCode) !== store) return;
-      workflowStoresRef.current.delete(workflowCode);
+      workflowStoresRef.current.set(workflowCode, store);
       setWorkflowStoreCodes((current) => {
-        if (!current.has(workflowCode)) return current;
+        if (current.has(workflowCode)) return current;
         const next = new Set(current);
-        next.delete(workflowCode);
+        next.add(workflowCode);
         return next;
       });
-    };
+
+      return () => {
+        if (workflowStoresRef.current.get(workflowCode) !== store) return;
+        workflowStoresRef.current.delete(workflowCode);
+        setWorkflowStoreCodes((current) => {
+          if (!current.has(workflowCode)) return current;
+          const next = new Set(current);
+          next.delete(workflowCode);
+          return next;
+        });
+      };
     },
     [],
   );
