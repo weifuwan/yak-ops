@@ -225,12 +225,14 @@ export function DataAgentWorkspace({
 
   const composerActions = (
     <div className="flex items-center gap-1.5">
-      <DataAgentContextUsage
-        context={sessionContext}
-        loading={sessionContextLoading}
-        error={sessionContextError}
-        hasSession={Boolean(activeConversationId)}
-      />
+      {activeConversationId ? (
+        <DataAgentContextUsage
+          context={sessionContext}
+          loading={sessionContextLoading}
+          error={sessionContextError}
+          hasSession
+        />
+      ) : null}
       {modelSelector}
     </div>
   );
