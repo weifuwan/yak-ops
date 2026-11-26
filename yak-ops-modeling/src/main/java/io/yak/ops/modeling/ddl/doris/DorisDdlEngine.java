@@ -12,8 +12,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class DorisDdlEngine {
 
-    private static final long PHYSICAL_SCHEMA_VERIFY_TIMEOUT_MILLIS = 30_000L;
-    private static final long PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS = 1_000L;
+    private static final long INCREMENTAL_SCHEMA_VERIFY_TIMEOUT_MILLIS = 30_000L;
+    private static final long RECREATE_SCHEMA_VERIFY_TIMEOUT_MILLIS = 10_000L;
+    private static final long PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS = 500L;
 
     private final DorisDdlValidator validator;
     private final DorisSchemaPlanner planner;
@@ -44,40 +45,51 @@ public class DorisDdlEngine {
         return planner.plan(connection, catalog, request);
     }
 
-    /** Executes the plan, verifies the live schema and returns its SHOW CREATE TABLE baseline. */
+    /**
+     * Executes DDL and applies a verification policy matching the publish mode.
+     * DROP_RECREATE does not wait for Schema Change and does not reject metadata-only
+     * nullability differences; it verifies the newly created table model, Key and fields.
+     */
     public String execute(
             Connection connection, DataSourceCatalog catalog, DorisDdlRequest request,
             DdlPlan plan, String publishId)
             throws Exception {
         executor.execute(
                 connection, plan, request.getTable().getDatabase(), request.getTable().getTableName(), publishId);
-        long deadline = System.currentTimeMillis() + PHYSICAL_SCHEMA_VERIFY_TIMEOUT_MILLIS;
-        RuntimeException lastInspectionError = null;
-        boolean matched = false;
-        while (System.currentTimeMillis() <= deadline) {
-            try {
-                matched = inspector.matches(
-                        connection,
-                        catalog,
-                        request.getTable(),
-                        request.getTableModel(),
-                        plan.getKeyFields(),
-                        generator);
-                if (matched) {
-                    break;
-                }
-                lastInspectionError = null;
-            } catch (RuntimeException inspectionError) {
-                lastInspectionError = inspectionError;
+
+        boolean recreate = request.getPublishMode() == io.yak.ops.dao.entity.enums.DorisPublishModeEnum.DROP_RECREATE;
+        boolean strictNullability = !recreate;
+        long timeout = recreate
+                ? RECREATE_SCHEMA_VERIFY_TIMEOUT_MILLIS
+                : INCREMENTAL_SCHEMA_VERIFY_TIMEOUT_MILLIS;
+        long deadline = System.currentTimeMillis() + timeout;
+        DorisSchemaInspector.VerificationResult lastResult = null;
+
+        while (true) {
+            lastResult = inspector.verify(
+                    connection,
+                    catalog,
+                    request.getTable(),
+                    request.getTableModel(),
+                    plan.getKeyFields(),
+                    generator,
+                    strictNullability);
+            if (lastResult.isMatched()) {
+                return lastResult.getPhysicalSchema();
             }
-            Thread.sleep(PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS);
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                break;
+            }
+            Thread.sleep(Math.min(PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS, remaining));
         }
-        if (!matched) {
-            throw new IllegalStateException(
-                    "DDL 执行后目标 Doris 物理结构在 30 秒内未与当前模型一致，请检查 Schema Change 状态。",
-                    lastInspectionError);
-        }
-        return inspector.readCreateTableDdl(
-                connection, request.getTable().getDatabase(), request.getTable().getTableName());
+
+        String details = lastResult == null ? "未能读取目标表元数据" : lastResult.getSummary();
+        String message = recreate
+                ? "Doris 已执行 DROP/CREATE，但新表物理结构校验未通过（等待 10 秒）。具体差异：" + details
+                        + "。请先检查目标表，不要直接重复删除重建。"
+                : "Doris DDL 已执行，但物理结构校验未通过（等待 30 秒）。具体差异：" + details;
+        throw new DorisSchemaVerificationException(
+                message, lastResult == null ? null : lastResult.getPhysicalSchema());
     }
 }
