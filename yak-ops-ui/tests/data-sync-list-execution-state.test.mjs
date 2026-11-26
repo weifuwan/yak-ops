@@ -15,6 +15,12 @@ const executionActions = readFileSync(
   join(root, "../detail/use-execution-actions.ts"),
   "utf8",
 );
+const detailPage = readFileSync(join(root, "../detail/index.tsx"), "utf8");
+const executionTabs = readFileSync(join(root, "../detail/execution-tabs.tsx"), "utf8");
+const executionLifecycle = readFileSync(
+  join(root, "../../../service/data-sync/execution.ts"),
+  "utf8",
+);
 const page = readFileSync(join(root, "page.tsx"), "utf8");
 const lifecycle = readFileSync(join(root, "task-lifecycle.tsx"), "utf8");
 const actions = readFileSync(join(root, "use-task-actions.ts"), "utf8");
@@ -98,4 +104,36 @@ test("detail and run actions evaluate active state after fetching the latest ins
   assert.match(executionActions, /latestInstances\.some\(\(instance\) => isTaskInstanceActive\(instance\.status\)\)/);
   assert.doesNotMatch(detailActiveInstance, /listLatestDataSyncTaskInstances\(\[taskId!\], true/);
   assert.doesNotMatch(executionActions, /listLatestDataSyncTaskInstances\(\[taskId\], true/);
+});
+
+
+test("data-sync detail exposes one task-level stop action and never cancels selected history", () => {
+  assert.match(
+    executionLifecycle,
+    /export const getCancelableDataSyncWorkflowInstanceId/,
+  );
+  assert.match(
+    executionLifecycle,
+    /if \(workflow\) return canStopWorkflow\(workflow\.state\) \? workflow\.id : undefined;/,
+  );
+  assert.match(
+    executionLifecycle,
+    /canCancelTaskInstance\(activeInstance\.status\)/,
+  );
+  assert.match(
+    detailPage,
+    /getCancelableDataSyncWorkflowInstanceId\(workflow, activeInstance\)/,
+  );
+  assert.match(detailPage, /cancelWorkflowInstanceId \? \(/);
+  assert.match(
+    detailPage,
+    /dataSyncInstanceStatusMeta\(activeInstance\.status, realtime\)\.label/,
+  );
+  assert.doesNotMatch(executionTabs, /canCancelTaskInstance|onCancel|canceling|停止/);
+  assert.doesNotMatch(detailPage, /canceling=\{canceling\}|onCancel=/);
+  assert.match(
+    executionActions,
+    /getCancelableDataSyncWorkflowInstanceId\(workflow, activeInstance\)/,
+  );
+  assert.doesNotMatch(executionActions, /selectedInstance/);
 });
