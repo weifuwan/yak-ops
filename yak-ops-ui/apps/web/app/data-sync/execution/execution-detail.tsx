@@ -1,17 +1,8 @@
 import { Button, Skeleton, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
-import {
-  CheckCircle2,
-  CircleHelp,
-  CirclePause,
-  CirclePlay,
-  CircleStop,
-  Clock3,
-  LoaderCircle,
-  XCircle,
-} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { formatScheduleTime } from "@/app/schedule/schedule-presentation";
+import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
 
@@ -51,20 +42,6 @@ export const dataSyncInstanceStatusMeta = (
   }
 };
 
-const STATUS_ICONS = {
-  SUBMITTED_SUCCESS: Clock3,
-  DISPATCH: LoaderCircle,
-  RUNNING_EXECUTION: CirclePlay,
-  DELAY_EXECUTION: Clock3,
-  NEED_FAULT_TOLERANCE: CircleHelp,
-  SUCCESS: CheckCircle2,
-  FORCED_SUCCESS: CheckCircle2,
-  FAILURE: XCircle,
-  PAUSE: CirclePause,
-  KILL: CircleStop,
-
-};
-
 export function ExecutionStatusIcon({
   status,
   realtime,
@@ -72,18 +49,14 @@ export function ExecutionStatusIcon({
   status: DataSyncInstanceStatus;
   realtime: boolean;
 }) {
-  const Icon = STATUS_ICONS[status];
   const { label } = dataSyncInstanceStatusMeta(status, realtime);
   return (
-    <span
-      className="sync-execution-status"
-      data-status={status}
-      role="img"
-      aria-label={label}
-      title={label}
-    >
-      <Icon size={14} aria-hidden="true" />
-    </span>
+    <ExecutionStatusIndicator
+      status={status}
+      label={label}
+      size={14}
+      showLabel={false}
+    />
   );
 }
 
