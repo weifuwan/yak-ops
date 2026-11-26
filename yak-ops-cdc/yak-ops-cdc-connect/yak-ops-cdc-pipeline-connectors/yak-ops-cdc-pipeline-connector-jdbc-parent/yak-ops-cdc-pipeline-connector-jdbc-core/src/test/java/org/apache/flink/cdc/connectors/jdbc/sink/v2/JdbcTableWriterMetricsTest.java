@@ -25,24 +25,31 @@ class JdbcTableWriterMetricsTest {
         JdbcOutputFormatBuilder builder = mock(JdbcOutputFormatBuilder.class);
         RichJdbcOutputFormat outputFormat = mock(RichJdbcOutputFormat.class);
         MetricGroup metricGroup = mock(MetricGroup.class);
-        Counter counter = mock(Counter.class);
+        MetricGroup tableMetricGroup = mock(MetricGroup.class);
+        Counter tableCounter = mock(Counter.class);
+        Counter executionCounter = mock(Counter.class);
         when(builder.build(tableId, schema)).thenReturn(outputFormat);
         when(metricGroup.addGroup(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString())).thenReturn(metricGroup);
-        when(metricGroup.counter("numCommittedRecords")).thenReturn(counter);
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(tableMetricGroup);
+        when(tableMetricGroup.addGroup(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(tableMetricGroup);
+        when(tableMetricGroup.counter("numCommittedRecords")).thenReturn(tableCounter);
 
-        JdbcTableWriter writer = new JdbcTableWriter(tableId, schema, builder, metricGroup, counter);
+        JdbcTableWriter writer =
+                new JdbcTableWriter(tableId, schema, builder, metricGroup, executionCounter);
         JdbcRowData row = mock(JdbcRowData.class);
         when(row.getTableId()).thenReturn(tableId);
         when(row.hasPrimaryKey()).thenReturn(true);
 
         writer.write(row);
-        verify(counter, never()).inc(anyLong());
+        verify(executionCounter, never()).inc(anyLong());
+        verify(tableCounter, never()).inc(anyLong());
 
         writer.flush();
 
         verify(outputFormat).flush();
-        verify(counter).inc(1L);
+        verify(executionCounter).inc(1L);
+        verify(tableCounter).inc(1L);
     }
 
     @Test
