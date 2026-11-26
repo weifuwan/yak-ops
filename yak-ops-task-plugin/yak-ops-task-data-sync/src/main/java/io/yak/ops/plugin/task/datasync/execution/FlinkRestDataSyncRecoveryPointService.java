@@ -35,7 +35,7 @@ public class FlinkRestDataSyncRecoveryPointService {
                 : handle.getRestEndpoint();
         String url = baseUrl + "/jobs/" + handle.getJobId() + "/checkpoints";
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(5))
                 .GET()
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -58,6 +58,12 @@ public class FlinkRestDataSyncRecoveryPointService {
                 ? "" : restorePathNode.asText();
         long completedAt = completed.path("latest_ack_timestamp")
                 .asLong(completed.path("trigger_timestamp").asLong(0L));
+        if (completed.path("is_savepoint").asBoolean(false)) {
+            return null;
+        }
+        if (completedAt <= 0L) {
+            completedAt = completed.path("trigger_timestamp").asLong(0L);
+        }
         if (!"COMPLETED".equalsIgnoreCase(status)
                 || checkpointId.trim().isEmpty()
                 || restorePath.trim().isEmpty()

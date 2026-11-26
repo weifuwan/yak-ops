@@ -65,6 +65,28 @@ class FlinkRestDataSyncRecoveryPointServiceTest {
     }
 
     @Test
+    void ignoresSavepointsReturnedByTheCheckpointEndpoint() throws Exception {
+        HttpClient client = mock(HttpClient.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> response = (HttpResponse<String>) mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        when(response.body()).thenReturn("{\"latest\":{\"completed\":{"
+                + "\"id\":13,\"status\":\"COMPLETED\",\"is_savepoint\":true,"
+                + "\"latest_ack_timestamp\":1730000000000,"
+                + "\"external_path\":\"file:///savepoints/savepoint-13\"}}}");
+        when(client.send(any(HttpRequest.class),
+                org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<String>>any())).thenReturn(response);
+
+        DataSyncExecutionHandle handle = DataSyncExecutionHandle.builder()
+                .executionId("execution-1")
+                .jobId("job-1")
+                .restEndpoint("http://127.0.0.1:8081")
+                .build();
+
+        assertNull(new FlinkRestDataSyncRecoveryPointService(client).latestCompletedCheckpoint(handle));
+    }
+
+    @Test
     void rejectsNonSuccessfulFlinkRestResponses() throws Exception {
         HttpClient client = mock(HttpClient.class);
         @SuppressWarnings("unchecked")
