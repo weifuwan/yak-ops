@@ -26,6 +26,11 @@ const workflowStatusEnum = readFileSync(
   join(repoRoot, "yak-ops-common/src/main/java/io/yak/ops/common/enums/WorkflowExecutionStatus.java"),
   "utf8",
 );
+const yakUiStyles = readFileSync(
+  join(repoRoot, "yak-ops-ui/packages/yak-ui/src/styles.css"),
+  "utf8",
+);
+
 
 const enumValues = (source) =>
   source
@@ -48,11 +53,6 @@ test("shared execution status indicator covers every backend task and workflow e
   }
 });
 
-const yakUiStyles = readFileSync(
-  join(repoRoot, "yak-ops-ui/packages/yak-ui/src/styles.css"),
-  "utf8",
-);
-
 test("failure status icon uses the defined red danger token", () => {
   const failureMapping = indicator.slice(
     indicator.indexOf("FAILURE: {"),
@@ -65,6 +65,7 @@ test("failure status icon uses the defined red danger token", () => {
   );
   assert.ok(yakUiStyles.includes("--yak-components-danger-text: #d92d20;"));
 });
+
 test("execution status visuals use simple inline geometric SVG shapes", () => {
   assert.match(indicator, /<svg[\s\S]*viewBox="0 0 16 16"/);
   assert.match(indicator, /<circle/);
