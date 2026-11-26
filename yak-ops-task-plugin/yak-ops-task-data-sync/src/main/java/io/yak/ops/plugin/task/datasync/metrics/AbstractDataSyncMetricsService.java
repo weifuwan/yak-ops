@@ -144,6 +144,7 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
     }
 
     private static final class CounterSet {
+
         private final Map<String, Long> values = new HashMap<>();
 
         private void add(String name, Long value) {
