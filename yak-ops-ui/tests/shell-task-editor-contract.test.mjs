@@ -21,6 +21,7 @@ const commonSettings = read("../apps/web/app/data-development/task-editor/task-c
 const javaSettings = read("../apps/web/app/data-development/task-editor/java-run-config-panel.tsx");
 const executionResourceFields = read("../apps/web/app/data-development/task-editor/execution-resource-fields.tsx");
 const environmentService = read("../apps/web/service/environment/index.ts");
+const sliderInput = read("../packages/yak-ui/src/slider/SliderInput.tsx");
 const panelResizer = read("../apps/web/app/data-development/layout/panel-resizer.tsx");
 
 test("Shell serialization keeps DolphinScheduler resourceList and localParams contract", () => {
@@ -72,6 +73,20 @@ test("Node execution resources use selectable worker groups and compatible envir
   assert.match(executionResourceFields, /workerGroups\.length\s*>\s*0\s*&&\s*workerGroups\.includes\(workerGroup\)/);
   assert.match(executionResourceFields, /onChange\(nextWorkerGroup, nextEnvironmentCode\)/);
   assert.match(environmentService, /query-environment-list/);
+});
+
+test("Resource limits use the shared slider layout without narrowing numeric values", () => {
+  for (const settings of [commonSettings, javaSettings]) {
+    assert.match(settings, /label="CPU 配额"[\s\S]*?sliderMax={1000}[\s\S]*?unit="%"/);
+    assert.match(settings, /label="最大内存"[\s\S]*?sliderMax={65536}[\s\S]*?unit="MB"/);
+    assert.match(settings, /max={2147483647}/);
+    assert.doesNotMatch(settings, /<Input[^>]*settings\.cpuQuota|<Input[^>]*settings\.memoryMax/);
+  }
+
+  assert.match(sliderInput, /sliderMax\?: number/);
+  assert.match(sliderInput, /max={sliderUpperBound}/);
+  assert.match(sliderInput, /max={max}/);
+  assert.match(sliderInput, /onBlur=\{\(\) => setInputValue\(displayValue\)\}/);
 });
 
 test("Shared script editor registers both languages with their own indentation defaults", () => {
