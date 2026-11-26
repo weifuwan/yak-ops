@@ -4,13 +4,13 @@ Upstream: https://github.com/apache/flink-cdc/tree/release-3.7.0
 
 Production source is copied from Apache Flink CDC 3.7.0 and keeps its original Java packages. Maven module names, local dependency coordinates and reactor module lists are adapted for Yak Ops.
 
-The MySQL and PostgreSQL CDC source connectors, MySQL and PostgreSQL Pipeline sources, and Doris Pipeline sink connector are included with their required shared CDC modules. Other database connectors, Flink 2 compatibility, distribution, optional AI model client implementations, Python bindings and the E2E harness are not copied. The example-only Dummy Model and UDF modules and the Flink SQL MySQL CDC connector packaging module were removed; the MySQL Pipeline source and JDBC sink remain.
+The MySQL and PostgreSQL CDC source connectors, MySQL and PostgreSQL Pipeline sources, and Doris Pipeline sink connector are included with their required shared CDC modules. Other database connectors, Flink 2 compatibility, distribution, optional AI model client implementations, Python bindings and the E2E harness are not copied. The example-only Dummy Model and UDF modules and the Flink SQL MySQL CDC connector packaging module were removed; the MySQL and PostgreSQL Pipeline sources and JDBC sink remain.
 
 Baseline: Flink 1.20.3, Debezium 1.9.8.Final. Yak Ops application/task integration intentionally deferred.
 
 The CLI runs with a local Flink MiniCluster only. Remote, YARN, and Kubernetes deployment code is removed. Flink home is optional; `--flink-home` or `FLINK_HOME` can supply a Flink configuration directory. Any non-local `--target` or `execution.target` is rejected.
 
-Build the CLI, MySQL source, Doris sink and JDBC sink from the repository root:
+Build the CLI, MySQL/PostgreSQL sources, MySQL/PostgreSQL Pipeline sources, Doris sink and JDBC sink from the repository root:
 
 ```sh
 bash mvnw -pl :yak-ops-cdc-cli,:yak-ops-connector-mysql-cdc,:yak-ops-connector-postgres-cdc,:yak-ops-cdc-pipeline-connector-mysql,:yak-ops-cdc-pipeline-connector-postgres,:yak-ops-cdc-pipeline-connector-doris,:yak-ops-cdc-pipeline-connector-jdbc -am clean package
