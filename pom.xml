@@ -20,6 +20,8 @@
         <module>yak-ops-common</module>
         <module>yak-ops-api</module>
         <module>yak-ops-dao</module>
+        <module>yak-ops-modeling-ddl-core</module>
+        <module>yak-ops-modeling-ddl-doris</module>
         <module>yak-ops-modeling</module>
         <module>yak-ops-service</module>
         <module>yak-ops-standalone-server</module>
@@ -115,6 +117,16 @@
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-modeling</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-modeling-ddl-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-modeling-ddl-doris</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
