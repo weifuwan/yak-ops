@@ -3,8 +3,9 @@ import { useState } from "react";
 import { toast } from "@yak-ops/yak-ui";
 
 import {
-  cancelDataSyncInstance,
   deleteDataSyncTask,
+  listLatestDataSyncTaskInstances,
+  operateDataSyncInstance,
   publishDataSyncTask,
   runDataSyncTask,
   unpublishDataSyncTask,
@@ -26,9 +27,15 @@ export function useTaskListActions(scope: string) {
       switch (command.kind) {
         case "run":
           return runDataSyncTask(command.task.workflowCode, command.options);
-        case "stop":
-          await cancelDataSyncInstance(command.workflowInstanceId);
+        case "stop": {
+          const instances = await listLatestDataSyncTaskInstances([command.task.id], false);
+          const instance = instances.find(
+            (item) => item.workflowInstanceId === command.workflowInstanceId,
+          );
+          if (!instance) throw new Error("未找到可操作的数据同步实例");
+          await operateDataSyncInstance(instance.id, "STOP");
           break;
+        }
         case "publish":
           await publishDataSyncTask(command.task.id, {
             version: command.task.definitionVersion,
