@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "@yak-ops/yak-ui";
 import {
-  canCancelTaskInstance,
+  getCancelableDataSyncWorkflowInstanceId,
   isTaskInstanceActive,
 } from "@/service/data-sync/execution";
 import {
   cancelDataSyncInstance,
-  canStopWorkflow,
   getLatestDataSyncWorkflow,
   isWorkflowActive,
   runDataSyncTask,
-  type DataSyncInstanceRecord,
   type DataSyncTaskRecord,
   type DataSyncWorkflowInstance,
 } from "@/service/data-sync";
@@ -21,7 +19,6 @@ interface ActionsInput {
   taskId?: string;
   task?: DataSyncTaskRecord;
   canStart: boolean;
-  selectedInstance?: DataSyncInstanceRecord;
   activeInstance?: TaskInstanceRecord;
   workflow?: DataSyncWorkflowInstance;
   refreshActiveInstances: () => Promise<void>;
@@ -33,7 +30,6 @@ export function useExecutionActions({
   taskId,
   task,
   canStart,
-  selectedInstance,
   activeInstance,
   workflow,
   refreshActiveInstances,
@@ -86,13 +82,8 @@ export function useExecutionActions({
     }
   };
   const cancel = async () => {
-    const activeWorkflow = workflow && isWorkflowActive(workflow.state) ? workflow : undefined;
-    const workflowId = activeWorkflow?.id ?? activeInstance?.workflowInstanceId ??
-      selectedInstance?.workflowInstanceId;
+    const workflowId = getCancelableDataSyncWorkflowInstanceId(workflow, activeInstance);
     if (!workflowId || canceling) return;
-    if (activeWorkflow && !canStopWorkflow(activeWorkflow.state)) return;
-    if (!activeWorkflow && !activeInstance &&
-        (!selectedInstance || !canCancelTaskInstance(selectedInstance.status))) return;
     setCanceling(true);
     try {
       await cancelDataSyncInstance(workflowId);
