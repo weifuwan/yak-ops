@@ -24,7 +24,7 @@
 ## 报告规则
 
 - 每次 Flink Job 生成独立 `executionId`，不复用 TaskInstance ID。
-- Worker 每 5 秒发送 `SNAPSHOT`，任务终态时发送 `FINAL`。
+- Worker 每 5 秒发送 `SNAPSHOT`，任务终态时发送 `FINAL`；报告携带 Worker 提交时间，查询时优先按提交时间选取 TaskInstance 的最新执行。
 - Master 根据 `executionId + sequence` 幂等接收；旧序号不能覆盖新快照。
 - FINAL 被接受后不可再被普通 SNAPSHOT 覆盖。
 - 指标采集或报告发送失败不会改变 CDC 作业本身的成功/失败结果；Worker 会保留最后一次成功快照并记录指标状态。
