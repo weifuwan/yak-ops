@@ -594,12 +594,15 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                         throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
                                 "无法创建恢复点记录，请刷新实例状态后重试");
                     }
+                    String restorePath = null;
+                    Date completedAt = null;
                     try {
-                        String restorePath = taskInstanceService.stopTaskWithSavepoint(user, projectCode, instanceId);
+                        restorePath = taskInstanceService.stopTaskWithSavepoint(user, projectCode, instanceId);
                         if (restorePath == null || restorePath.trim().isEmpty()) {
                             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
                                     "Flink 未返回可用的恢复点");
                         }
+                        completedAt = new Date();
                         DataSyncExecutionReportDetail report = null;
                         try {
                             report = dataSyncExecutionReportService.getLatestReport(instanceId);
@@ -613,12 +616,38 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                             point.setRuntimeMode(report.getDeploymentMode());
                         }
                         if (!dataSyncRecoveryPointDao.markAvailable(
-                                point.getId(), restorePath, new Date(),
+                                point.getId(), restorePath, completedAt,
                                 point.getExecutionId(), point.getJobId(), point.getRuntimeMode())) {
                             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
                                     "恢复点保存失败，请检查任务状态后重试");
                         }
                     } catch (RuntimeException exception) {
+                        if (restorePath != null && !restorePath.trim().isEmpty()) {
+                            try {
+                                boolean persisted = dataSyncRecoveryPointDao.markAvailable(
+                                        point.getId(), restorePath,
+                                        completedAt == null ? new Date() : completedAt,
+                                        point.getExecutionId(), point.getJobId(), point.getRuntimeMode());
+                                if (persisted) {
+                                    log.warn("Recovered Savepoint metadata after a transient persistence failure, "
+                                            + "taskInstanceId={}, recoveryPointId={}",
+                                            instanceId, point.getRecoveryPointId());
+                                    break;
+                                }
+                                DataSyncRecoveryPoint persistedPoint =
+                                        dataSyncRecoveryPointDao.queryByTaskInstanceId(instanceId);
+                                if (persistedPoint != null
+                                        && point.getId().equals(persistedPoint.getId())
+                                        && hasUsableRecoveryPoint(persistedPoint)) {
+                                    break;
+                                }
+                            } catch (RuntimeException retryException) {
+                                exception.addSuppressed(retryException);
+                                log.error("Savepoint was created but recovery metadata could not be persisted, "
+                                                + "taskInstanceId={}, recoveryPointId={}, restorePath={}",
+                                        instanceId, point.getRecoveryPointId(), restorePath, retryException);
+                            }
+                        }
                         try {
                             if (point.getId() != null && !dataSyncRecoveryPointDao.markFailed(point.getId())) {
                                 log.warn("Could not mark failed Savepoint attempt, taskInstanceId={}, recoveryPointId={}",

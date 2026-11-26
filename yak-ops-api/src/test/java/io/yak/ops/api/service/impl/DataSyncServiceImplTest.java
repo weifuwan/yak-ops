@@ -783,6 +783,33 @@ class DataSyncServiceImplTest {
     }
 
     @Test
+    void retriesSavepointMetadataPersistenceAfterATransientFailure() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.RUNNING_EXECUTION);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
+        when(dataSyncRecoveryPointDao.insertPending(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
+            DataSyncRecoveryPoint point = invocation.getArgument(0);
+            point.setId(55L);
+            return true;
+        });
+        when(taskInstanceService.stopTaskWithSavepoint(user, PROJECT_CODE, 42))
+                .thenReturn("file:///yak-ops/savepoints/savepoint-42");
+        when(dataSyncRecoveryPointDao.markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"))).thenReturn(false, true);
+
+        service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP);
+
+        verify(dataSyncRecoveryPointDao, times(2)).markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"));
+        verify(dataSyncRecoveryPointDao, never()).markFailed(55L);
+    }
+
+    @Test
     void failedStopKeepsAFailedRecoveryPointForAuditAndRetry() {
         User user = testUser();
         TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
