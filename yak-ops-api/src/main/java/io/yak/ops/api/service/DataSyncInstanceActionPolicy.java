@@ -21,31 +21,25 @@ public final class DataSyncInstanceActionPolicy {
 
     public static List<DataSyncInstanceAction> availableActions(
             TaskInstance instance, WorkflowInstance workflow) {
-        if (instance == null || instance.getState() == null) {
-            return Collections.emptyList();
-        }
-        if (workflow != null && workflow.getState() == WorkflowExecutionStatus.FAILOVER) {
+        if (instance == null || instance.getState() == null
+                || workflow == null || workflow.getState() == null
+                || workflow.getState() == WorkflowExecutionStatus.FAILOVER) {
             return Collections.emptyList();
         }
 
         List<DataSyncInstanceAction> actions = new ArrayList<>();
-        if (instance.getTaskExecuteType() == TaskExecuteType.STREAM) {
-            appendStreamActions(instance, actions);
-            return actions;
-        }
-
-        if (workflow == null || workflow.getState() == null) {
-            return actions;
-        }
-
         WorkflowExecutionStatus workflowState = workflow.getState();
-        if (workflowState.canStop()) {
+        if (instance.getTaskExecuteType() == TaskExecuteType.STREAM) {
+            appendStreamActions(instance, workflowState, actions);
+            return actions;
+        }
+
+        if (workflowState.isCanStop()) {
             actions.add(DataSyncInstanceAction.STOP);
-        } else if (workflowState == WorkflowExecutionStatus.PAUSE
-                || workflowState == WorkflowExecutionStatus.STOP) {
+        } else if (workflowState.isPaused() || workflowState.isStopped()) {
             actions.add(DataSyncInstanceAction.RESUME);
             actions.add(DataSyncInstanceAction.RERUN);
-        } else if (workflowState == WorkflowExecutionStatus.FAILURE) {
+        } else if (workflowState.isFailure()) {
             actions.add(DataSyncInstanceAction.RECOVER_FAILURE);
             actions.add(DataSyncInstanceAction.RERUN);
         } else if (workflowState.isFinalState()) {
@@ -62,24 +56,27 @@ public final class DataSyncInstanceActionPolicy {
     }
 
     private static void appendStreamActions(
-            TaskInstance instance, List<DataSyncInstanceAction> actions) {
+            TaskInstance instance,
+            WorkflowExecutionStatus workflowState,
+            List<DataSyncInstanceAction> actions) {
         TaskExecutionStatus status = instance.getState();
         if (isActive(status)) {
-            if (StringUtils.isNotBlank(instance.getHost())) {
+            if (workflowState.isCanStop() && StringUtils.isNotBlank(instance.getHost())) {
                 actions.add(DataSyncInstanceAction.STOP);
             }
             return;
         }
 
-        if (status == TaskExecutionStatus.KILL || status == TaskExecutionStatus.PAUSE) {
+        if (status.isKill() && workflowState.isStopped()) {
             actions.add(DataSyncInstanceAction.RESUME);
             actions.add(DataSyncInstanceAction.RERUN);
-        } else if (status == TaskExecutionStatus.FAILURE
-                || status == TaskExecutionStatus.NEED_FAULT_TOLERANCE) {
+        } else if (status.isPause() && workflowState.isPaused()) {
+            actions.add(DataSyncInstanceAction.RESUME);
+            actions.add(DataSyncInstanceAction.RERUN);
+        } else if (status.isFailure() && workflowState.isFailure()) {
             actions.add(DataSyncInstanceAction.RECOVER_FAILURE);
             actions.add(DataSyncInstanceAction.RERUN);
-        } else if (status == TaskExecutionStatus.SUCCESS
-                || status == TaskExecutionStatus.FORCED_SUCCESS) {
+        } else if ((status.isSuccess() || status.isForceSuccess()) && workflowState.isSuccess()) {
             actions.add(DataSyncInstanceAction.RERUN);
         }
     }
