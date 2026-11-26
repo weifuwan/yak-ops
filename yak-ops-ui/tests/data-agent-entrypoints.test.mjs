@@ -109,7 +109,9 @@ test("Data Agent restores the original empty workspace and uses a shared split h
   assert.match(workspace.slice(emptyBranchIndex, sessionWorkspaceIndex), /rounded-2xl border border-\[#e7e7e4\] bg-white/);
   assert.match(conversationBranch, /title=\{activeConversation\?\.title \?\? "新对话"\}/);
   assert.match(conversationBranch, /messages=\{messages\}/);
-  assert.match(conversationBranch, /trailingActions=\{modelSelector\}/);
+  assert.match(workspace.slice(emptyBranchIndex, sessionWorkspaceIndex), /trailingActions=\{composerActions\}/);
+  assert.match(conversationBranch, /trailingActions=\{composerActions\}/);
+  assert.match(workspace, /const composerActions = \([\s\S]*?<DataAgentContextUsage[\s\S]*?\{modelSelector\}/);
   assert.doesNotMatch(conversationBranch, /p-2 max-md:p-0|rounded-2xl border border-\[#e7e7e4\]/);
 
   assert.match(sessionWorkspace, /<DataAgentConversationHeader/);
