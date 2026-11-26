@@ -5,8 +5,8 @@ import {
   isTaskInstanceActive,
 } from "@/service/data-sync/execution";
 import {
-  cancelDataSyncInstance,
   getLatestDataSyncWorkflow,
+  operateDataSyncInstance,
   isWorkflowActive,
   runDataSyncTask,
   type DataSyncTaskRecord,
@@ -86,7 +86,11 @@ export function useExecutionActions({
     if (!workflowId || canceling) return;
     setCanceling(true);
     try {
-      await cancelDataSyncInstance(workflowId);
+      if (!activeInstance?.id) {
+        toast.error("当前实例信息尚未加载，请稍后重试");
+        return;
+      }
+      await operateDataSyncInstance(activeInstance.id, "STOP");
       setPendingWorkflowInstanceId(undefined);
       toast.success("已发送停止请求");
       await Promise.all([refreshAfterCancel(), refreshActiveInstances()]);
