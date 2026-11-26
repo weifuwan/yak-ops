@@ -43,7 +43,7 @@ public class TableSchemaBuilder {
     }
 
     public String generateCreateTableDdl(
-            DdlTableDefinition table, DorisDataModelEnum tableModel,
+            DdlTableDefinition table, DorisTableModel tableModel,
             List<String> keyFields, int replicationNum) {
         Map<String, FieldSchema> fieldSchemas = new LinkedHashMap<>();
         for (DdlColumnDefinition column : table.getColumns()) {
