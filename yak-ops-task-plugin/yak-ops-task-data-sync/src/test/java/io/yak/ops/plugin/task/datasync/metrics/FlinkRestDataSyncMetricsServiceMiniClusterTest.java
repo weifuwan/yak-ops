@@ -8,6 +8,7 @@ import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionState;
 import io.yak.ops.plugin.task.datasync.execution.MiniClusterDataSyncExecutionService;
 
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -52,7 +53,7 @@ class FlinkRestDataSyncMetricsServiceMiniClusterTest {
 
     private static FlinkPipelineExecution createPipeline() {
         StreamExecutionEnvironment environment =
-                StreamExecutionEnvironment.createLocalEnvironment(1, new org.apache.flink.configuration.Configuration());
+                StreamExecutionEnvironment.createLocalEnvironment(1, new Configuration());
         environment.setParallelism(1);
         environment.disableOperatorChaining();
         environment.addSource(new TableMetricsSource(SOURCE_HOLD_MILLIS))
