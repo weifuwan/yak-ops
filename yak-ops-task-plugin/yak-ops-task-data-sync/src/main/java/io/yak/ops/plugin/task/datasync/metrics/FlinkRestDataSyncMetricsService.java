@@ -80,7 +80,9 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
                         String metricId = metric.path("id").asText();
                         String value = metric.path("value").asText();
                         try {
-                            result.put(metricId, Long.parseLong(value));
+                            result.put(
+                                    vertexId + ".subtask." + subtask + "." + metricId,
+                                    Long.parseLong(value));
                         } catch (NumberFormatException ignored) {
                             // Non-numeric metric values are not record counters.
                         }
