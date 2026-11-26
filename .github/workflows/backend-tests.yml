@@ -208,6 +208,7 @@ jobs:
           else
             echo "run_tests=false" >> "$GITHUB_OUTPUT"
           fi
+      # Includes durable FINAL report outbox retry and interruption coverage.
       - name: Run Data Sync plugin unit tests
         if: steps.changed.outputs.run_tests == 'true'
         shell: bash
