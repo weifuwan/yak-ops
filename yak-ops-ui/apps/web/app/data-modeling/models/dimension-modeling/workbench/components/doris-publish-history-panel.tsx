@@ -96,7 +96,7 @@ export function DorisPublishHistoryPanel({ projectCode, tableId, onClose }: Prop
                 </p>
               ) : null}
               {item.errorMessage ? (
-                <p className="mb-0 mt-2 break-words text-xs text-[var(--yak-components-danger-text)]">{item.errorMessage}</p>
+                <p className={"mb-0 mt-2 break-words text-xs " + (item.status === "VERIFY_FAILED" ? "text-amber-700" : "text-[var(--yak-components-danger-text)]")}>{item.errorMessage}</p>
               ) : null}
               {item.physicalSchema ? (
                 <details className="mt-2 rounded-md bg-[var(--yak-components-muted-bg)] px-2 py-1.5">
