@@ -44,6 +44,11 @@ public class TaskInstanceDaoImpl extends BaseDao<TaskInstance, TaskInstanceMappe
     }
 
     @Override
+    public TaskInstance queryByIdForUpdate(int taskInstanceId) {
+        return mybatisMapper.queryByIdForUpdate(taskInstanceId);
+    }
+
+    @Override
     public List<DataSyncExecutionDailyRow> queryDataSyncDailyExecution(long projectCode, Date startTime, Date endTime) {
         return mybatisMapper.queryDataSyncDailyExecution(projectCode, startTime, endTime);
     }
