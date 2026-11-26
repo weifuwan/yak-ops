@@ -248,6 +248,11 @@ jobs:
             '-Dtest=DataSyncExecutionReportServiceImplTest' \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Compile Master RPC report listener
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-master -am \
+            -DskipTests -DskipUT=true -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true compile
       - name: Require Data Sync report service tests
         if: always()
         shell: bash
