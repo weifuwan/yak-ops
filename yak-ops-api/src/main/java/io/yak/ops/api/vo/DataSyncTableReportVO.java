@@ -9,6 +9,7 @@ public class DataSyncTableReportVO {
 
     private String sourceTable;
     private String sinkTable;
+    private String metricsState;
     private Long readRecords;
     private Long snapshotRecords;
     private Long incrementalRecords;
