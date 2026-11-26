@@ -25,7 +25,7 @@ const findNavigationLabel = (
 };
 
 const normalizePathname = (pathname: string) =>
-  pathname.length > 1 ? pathname.replace(/\\/+$/, "") : pathname;
+  pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
 export function resolveDocumentTitle(pathname: string): string {
   const path = normalizePathname(pathname);
@@ -43,16 +43,16 @@ export function resolveDocumentTitle(pathname: string): string {
   if (path === "/data-sync/new/database") return "新建数据库同步任务";
   if (path === "/data-sync/new/multi-table") return "新建多表同步任务";
   if (path === "/data-sync/new/single-table") return "新建单表同步任务";
-  if (/^\\/data-sync\\/[^/]+\\/edit$/.test(path)) return "编辑数据同步任务";
-  if (/^\\/data-sync\\/[^/]+\\/detail$/.test(path)) return "数据同步任务详情";
+  if (/^\/data-sync\/[^/]+\/edit$/.test(path)) return "编辑数据同步任务";
+  if (/^\/data-sync\/[^/]+\/detail$/.test(path)) return "数据同步任务详情";
 
   if (path === "/operations") return "运维概览";
   if (path === "/operations/offline-tasks") return "离线任务";
   if (path === "/operations/realtime-tasks") return "实时任务";
-  if (/^\\/operations\\/offline-tasks\\/instances\\//.test(path)) {
+  if (/^\/operations\/offline-tasks\/instances\//.test(path)) {
     return "离线实例详情";
   }
-  if (/^\\/operations\\/realtime-tasks\\/instances\\//.test(path)) {
+  if (/^\/operations\/realtime-tasks\/instances\//.test(path)) {
     return "实时实例详情";
   }
   if (path === "/management") return "用户管理";
