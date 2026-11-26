@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.ddl.doris;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,6 +142,39 @@ class DorisDdlEngineTest {
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
         assertTrue(error.getMessage().contains("小数位数"));
+    }
+
+    @Test
+    void shouldUseRelaxedVerificationForDropRecreateAndStrictVerificationForIncremental() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, false, null)));
+
+        DdlTableDefinition table = new DdlTableDefinition(
+                "warehouse",
+                "dwd_order_detail",
+                "订单明细",
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+        DorisSchemaInspector inspector = new DorisSchemaInspector();
+
+        DorisSchemaInspector.VerificationResult recreateResult = inspector.verify(
+                connection, catalog, table, DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                false);
+        DorisSchemaInspector.VerificationResult incrementalResult = inspector.verify(
+                connection, catalog, table, DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                true);
+
+        assertTrue(recreateResult.isMatched());
+        assertFalse(incrementalResult.isMatched());
+        assertTrue(incrementalResult.getSummary().contains("NULL 属性不一致"));
+        assertTrue(recreateResult.getPhysicalSchema().contains("DUPLICATE KEY"));
     }
 
     @Test
