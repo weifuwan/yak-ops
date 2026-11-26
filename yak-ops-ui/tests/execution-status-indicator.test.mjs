@@ -48,6 +48,19 @@ test("shared execution status indicator covers every backend task and workflow e
   }
 });
 
+const yakUiStyles = readFileSync(
+  join(repoRoot, "yak-ops-ui/packages/yak-ui/src/styles.css"),
+  "utf8",
+);
+
+test("failure status icon uses the defined red danger token", () => {
+  assert.match(
+    indicator,
+    /FAILURE:\\s*\\{\\s*shape:\\s*"triangle-alert",\\s*colorClassName:\\s*"text-\\[var\\(--yak-components-danger-text\\)\\]"/,
+  );
+  assert.match(yakUiStyles, /--yak-components-danger-text:\\s*#d92d20;/);
+});
+
 test("execution status visuals use simple inline geometric SVG shapes", () => {
   assert.match(indicator, /<svg[\s\S]*viewBox="0 0 16 16"/);
   assert.match(indicator, /<circle/);
