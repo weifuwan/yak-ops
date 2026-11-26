@@ -79,7 +79,7 @@ class DorisDialectTest {
     void shouldGenerateCreateDdlForDuplicateTable() {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
 
-        DdlPlan plan = engine.plan(connection, catalog, request(
+        DdlPlan plan = engine.plan(session, request(
                 DorisTableModel.DUPLICATE,
                 DdlPublishMode.INCREMENTAL,
                 null,
@@ -101,7 +101,7 @@ class DorisDialectTest {
                 Boolean.FALSE, true, null, null);
 
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
-        DdlPlan plan = engine.plan(connection, catalog, request(
+        DdlPlan plan = engine.plan(session, request(
                 DorisTableModel.UNIQUE,
                 DdlPublishMode.INCREMENTAL,
                 null,
@@ -140,7 +140,7 @@ class DorisDialectTest {
                 Boolean.FALSE, false, null, "customer name, (display)");
 
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
-        DdlPlan plan = engine.plan(connection, catalog, request(
+        DdlPlan plan = engine.plan(session, request(
                 DorisTableModel.DUPLICATE,
                 DdlPublishMode.INCREMENTAL,
                 null,
@@ -165,7 +165,7 @@ class DorisDialectTest {
                 Collections.singletonList(decimal));
 
         IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+                IllegalArgumentException.class, () -> engine.plan(session, request));
         assertTrue(error.getMessage().contains("小数位数"));
     }
 
@@ -308,7 +308,7 @@ class DorisDialectTest {
                         column("customer_name", DdlDataType.VARCHAR, 128, null, null, false)));
 
         IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+                IllegalArgumentException.class, () -> engine.plan(session, request));
         assertTrue(error.getMessage().contains("字段结构发生不兼容变化"));
     }
 
@@ -342,7 +342,7 @@ class DorisDialectTest {
                 Collections.singletonList(column(
                         "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
-        DdlPlan plan = engine.plan(connection, catalog, request);
+        DdlPlan plan = engine.plan(session, request);
 
         assertTrue(plan.isNoChanges());
         assertTrue(plan.isTargetTableExists());
@@ -375,7 +375,7 @@ class DorisDialectTest {
                         "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
         IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+                IllegalArgumentException.class, () -> engine.plan(session, request));
 
         assertTrue(error.getMessage().contains("分区或分桶字段"));
     }
@@ -399,7 +399,7 @@ class DorisDialectTest {
                 1,
                 "CREATE TABLE old_schema (...) PROPERTIES (\"replication_num\" = \"3\")");
 
-        DdlPlan plan = engine.plan(connection, catalog, request);
+        DdlPlan plan = engine.plan(session, request);
 
         assertTrue(plan.isNoChanges());
         assertTrue(plan.isSchemaDrift());
@@ -424,7 +424,7 @@ class DorisDialectTest {
                 Collections.singletonList(primaryId));
 
         IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+                IllegalArgumentException.class, () -> engine.plan(session, request));
 
         assertTrue(error.getMessage().contains("与当前选择的 UNIQUE 不一致"));
     }
@@ -446,7 +446,7 @@ class DorisDialectTest {
                         column("customer_id", DdlDataType.BIGINT, null, null, null, true),
                         column("customer_name", DdlDataType.VARCHAR, 128, null, null, true)));
 
-        DdlPlan plan = engine.plan(connection, catalog, request);
+        DdlPlan plan = engine.plan(session, request);
 
         assertEquals(1, plan.getStatements().size());
         assertTrue(plan.getStatements().get(0).startsWith(
@@ -472,7 +472,7 @@ class DorisDialectTest {
                 Collections.singletonList(column(
                         "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
-        DdlPlan plan = engine.plan(connection, catalog, request);
+        DdlPlan plan = engine.plan(session, request);
 
         assertEquals(1, plan.getStatements().size());
         assertTrue(plan.getStatements().get(0).contains("DROP COLUMN `legacy_note`"));
@@ -499,7 +499,7 @@ class DorisDialectTest {
                         column("customer_id", DdlDataType.BIGINT, null, null, null, true),
                         column("customer_name", DdlDataType.VARCHAR, 128, null, null, true)));
 
-        DdlPlan plan = engine.plan(connection, catalog, request);
+        DdlPlan plan = engine.plan(session, request);
 
         assertTrue(plan.isNoChanges());
         assertTrue(plan.getStatements().isEmpty());
