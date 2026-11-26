@@ -168,15 +168,8 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
         // A report is a complete table-level snapshot. Clear previous values first so
         // tables missing from this collection are not presented as current or final data.
         for (DataSyncTableReport existing : tableReportDao.queryByExecutionId(request.getExecutionId())) {
-            existing.setLatestMetricsJson(null);
-            existing.setLatestSequence(request.getSequence());
-            existing.setLatestCollectedAt(collectedAt);
-            existing.setUpdateTime(now);
-            if (finalReport) {
-                existing.setFinalMetricsJson(null);
-                existing.setFinalCollectedAt(collectedAt);
-            }
-            tableReportDao.updateById(existing);
+            tableReportDao.clearSnapshotFields(
+                    existing.getId(), request.getSequence(), collectedAt, now, finalReport);
         }
         if (request.getTables() == null) {
             return;
