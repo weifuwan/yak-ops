@@ -12,6 +12,7 @@ import io.yak.ops.api.service.UsersService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.common.enums.TaskExecuteType;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.common.utils.DateUtils;
 import io.yak.ops.dao.entity.Project;
 import io.yak.ops.dao.entity.TaskInstance;
@@ -229,6 +230,7 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     public Result taskSavePoint(User loginUser, long projectCode, Integer taskInstanceId) {
         Result result = new Result();
         TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
+        ensureWorkflowNotFailingOver(taskInstance);
         String host = taskInstance.getHost();
         if (StringUtils.isBlank(host)) {
             throw new ServiceException("Task instance has not been dispatched to a worker");
@@ -277,6 +279,7 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     @Override
     public String stopTaskWithSavepoint(User loginUser, long projectCode, Integer taskInstanceId) {
         TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
+        ensureWorkflowNotFailingOver(taskInstance);
         if (taskInstance.getTaskExecuteType() != TaskExecuteType.STREAM
                 || !"DATA_SYNC".equals(taskInstance.getTaskType())) {
             throw new ServiceException("Graceful savepoint stop is only supported for DATA_SYNC streaming tasks");
@@ -301,6 +304,16 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
             throw new ServiceException("Worker stopped the task without returning a savepoint path");
         }
         return response.getSavepointPath();
+    }
+
+    private void ensureWorkflowNotFailingOver(TaskInstance taskInstance) {
+        if (taskInstance.getWorkflowInstanceId() <= 0) {
+            return;
+        }
+        WorkflowInstance workflow = workflowInstanceDao.queryById(taskInstance.getWorkflowInstanceId());
+        if (workflow != null && workflow.getState() == WorkflowExecutionStatus.FAILOVER) {
+            throw new ServiceException("Workflow is in failover recovery; manual task operations are not allowed");
+        }
     }
 
     private TaskInstance requireWritableTaskInstance(
