@@ -31,7 +31,6 @@ const yakUiStyles = readFileSync(
   "utf8",
 );
 
-
 const enumValues = (source) =>
   source
     .split("\n")
