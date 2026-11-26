@@ -118,7 +118,6 @@ export function SqlCodeEditor({
       wordWrap: "on",
       scrollBeyondLastLine: false,
       renderLineHighlight: "line",
-      renderWhitespace: "all",
       cursorBlinking: "smooth",
       smoothScrolling: true,
       contextmenu: true,
@@ -154,7 +153,7 @@ export function SqlCodeEditor({
   }, [readOnly]);
 
   if (!resizable) {
-    return <div ref={containerRef} className="h-full min-h-[280px] min-w-0 w-full" />;
+    return <div ref={containerRef} className="nokey h-full min-h-[280px] min-w-0 w-full" />;
   }
 
   const clampHeight = (height: number) =>
@@ -188,7 +187,7 @@ export function SqlCodeEditor({
 
   return (
     <div
-      className="flex w-full min-w-0 flex-col"
+      className="nokey flex w-full min-w-0 flex-col"
       style={{
         height: editorHeight,
         minHeight: resizable.minHeight,

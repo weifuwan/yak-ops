@@ -153,8 +153,10 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.ok(editor.includes("legacyDatasourceId > 0"));
 });
 
-test("SQL editor displays whitespace and keeps database type as an internal backend parameter", () => {
-  assert.match(codeEditor, /renderWhitespace: "all"/);
+test("SQL editor keeps space input native to Monaco and preserves database type for the backend", () => {
+  assert.match(codeEditor, /className="nokey h-full/);
+  assert.match(codeEditor, /className="nokey flex/);
+  assert.doesNotMatch(codeEditor, /renderWhitespace:\s*"all"/);
   assert.match(codeEditor, /onChangeRef\.current\(editor\.getValue\(\)\)/);
   assert.doesNotMatch(editor, /<SqlField label="数据库类型"/);
   assert.doesNotMatch(editor, /getDataSourceTypeLabel/);
