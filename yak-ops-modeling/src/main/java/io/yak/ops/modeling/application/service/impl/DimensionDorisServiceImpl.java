@@ -515,7 +515,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
     }
 
-    /** Opens a JDBC session through the configured datasource plugin. */
+    /** Opens a JDBC session and catalog through the configured datasource plugin. */
     private DdlSession openSession(DataSource datasource) throws Exception {
         return sessionFactory.open(new DdlConnectionInfo(
                 datasource.getType().name(),
