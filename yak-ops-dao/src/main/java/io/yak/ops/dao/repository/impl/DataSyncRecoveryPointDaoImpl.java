@@ -69,11 +69,55 @@ public class DataSyncRecoveryPointDaoImpl
     }
 
     @Override
-    public boolean insertIfAbsent(DataSyncRecoveryPoint point) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public boolean saveCheckpointIfAbsent(DataSyncRecoveryPoint point) {
+        DataSyncRecoveryPoint latest = mybatisMapper.selectOne(
+                new QueryWrapper<DataSyncRecoveryPoint>()
+                        .eq("task_instance_id", point.getTaskInstanceId())
+                        .eq("execution_id", point.getExecutionId())
+                        .eq("recovery_type", "CHECKPOINT")
+                        .eq("state", "AVAILABLE")
+                        .orderByDesc("completed_at")
+                        .last("LIMIT 1"));
+        boolean isLatest = latest == null || isNewerCheckpoint(point, latest);
+        point.setState(isLatest ? "AVAILABLE" : "SUPERSEDED");
         try {
-            return mybatisMapper.insert(point) > 0;
+            if (mybatisMapper.insert(point) <= 0) {
+                return false;
+            }
         } catch (DuplicateKeyException duplicate) {
             return false;
+        }
+        if (isLatest) {
+            DataSyncRecoveryPoint update = new DataSyncRecoveryPoint();
+            update.setState("SUPERSEDED");
+            mybatisMapper.update(
+                    update,
+                    new UpdateWrapper<DataSyncRecoveryPoint>()
+                            .eq("task_instance_id", point.getTaskInstanceId())
+                            .eq("execution_id", point.getExecutionId())
+                            .eq("recovery_type", "CHECKPOINT")
+                            .eq("state", "AVAILABLE")
+                            .ne("recovery_point_id", point.getRecoveryPointId()));
+        }
+        return true;
+    }
+
+    private static boolean isNewerCheckpoint(DataSyncRecoveryPoint candidate, DataSyncRecoveryPoint latest) {
+        if (candidate.getCompletedAt() == null) {
+            return false;
+        }
+        if (latest.getCompletedAt() == null) {
+            return true;
+        }
+        int timeComparison = candidate.getCompletedAt().compareTo(latest.getCompletedAt());
+        if (timeComparison != 0) {
+            return timeComparison > 0;
+        }
+        try {
+            return Long.parseLong(candidate.getCheckpointId()) > Long.parseLong(latest.getCheckpointId());
+        } catch (NumberFormatException exception) {
+            return candidate.getRecoveryPointId().compareTo(latest.getRecoveryPointId()) > 0;
         }
     }
 
@@ -154,20 +198,5 @@ public class DataSyncRecoveryPointDaoImpl
                 new UpdateWrapper<DataSyncRecoveryPoint>()
                         .eq("task_instance_id", taskInstanceId)
                         .eq("state", "AVAILABLE")) > 0;
-    }
-
-    @Override
-    public boolean supersedePreviousCheckpoints(
-            int taskInstanceId, String executionId, String recoveryPointId) {
-        DataSyncRecoveryPoint update = new DataSyncRecoveryPoint();
-        update.setState("SUPERSEDED");
-        return mybatisMapper.update(
-                update,
-                new UpdateWrapper<DataSyncRecoveryPoint>()
-                        .eq("task_instance_id", taskInstanceId)
-                        .eq("execution_id", executionId)
-                        .eq("recovery_type", "CHECKPOINT")
-                        .eq("state", "AVAILABLE")
-                        .ne("recovery_point_id", recoveryPointId)) > 0;
     }
 }

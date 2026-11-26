@@ -14,7 +14,8 @@ public interface DataSyncRecoveryPointDao extends IDao<DataSyncRecoveryPoint> {
 
     List<DataSyncRecoveryPoint> queryByTaskInstanceIds(List<Integer> taskInstanceIds);
 
-    boolean insertIfAbsent(DataSyncRecoveryPoint point);
+    /** Inserts a checkpoint once and atomically supersedes older checkpoints for the same execution. */
+    boolean saveCheckpointIfAbsent(DataSyncRecoveryPoint point);
 
     /** Persists a STOP Savepoint intent before the Worker RPC is invoked. */
     boolean insertPending(DataSyncRecoveryPoint point);
@@ -32,5 +33,4 @@ public interface DataSyncRecoveryPointDao extends IDao<DataSyncRecoveryPoint> {
 
     boolean markAllAvailableSuperseded(int taskInstanceId);
 
-    boolean supersedePreviousCheckpoints(int taskInstanceId, String executionId, String recoveryPointId);
 }

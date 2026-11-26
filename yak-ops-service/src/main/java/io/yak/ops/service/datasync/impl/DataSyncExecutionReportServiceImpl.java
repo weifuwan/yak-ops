@@ -200,10 +200,7 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
                 .createdAt(completedAt == null ? now : completedAt)
                 .completedAt(completedAt)
                 .build();
-        if (recoveryPointDao.insertIfAbsent(point)) {
-            recoveryPointDao.supersedePreviousCheckpoints(
-                    taskInstance.getId(), request.getExecutionId(), report.getRecoveryPointId());
-        }
+        recoveryPointDao.saveCheckpointIfAbsent(point);
     }
 
     private void linkRecoveredExecution(DataSyncReportRequest request, TaskInstance taskInstance) {

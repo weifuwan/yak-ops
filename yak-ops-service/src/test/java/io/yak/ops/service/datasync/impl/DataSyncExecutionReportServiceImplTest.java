@@ -143,7 +143,7 @@ class DataSyncExecutionReportServiceImplTest {
                 .build();
         when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(taskInstance);
         when(executionReportDao.queryByExecutionId("execution-1")).thenReturn(null);
-        when(recoveryPointDao.insertIfAbsent(any())).thenReturn(true);
+        when(recoveryPointDao.saveCheckpointIfAbsent(any())).thenReturn(true);
 
         DataSyncReportRequest request = request(1L, "SNAPSHOT").toBuilder()
                 .recoveryPoint(DataSyncRecoveryPointReport.builder()
@@ -157,15 +157,13 @@ class DataSyncExecutionReportServiceImplTest {
 
         service.acceptReport(request);
 
-        verify(recoveryPointDao).insertIfAbsent(org.mockito.ArgumentMatchers.argThat(point ->
+        verify(recoveryPointDao).saveCheckpointIfAbsent(org.mockito.ArgumentMatchers.argThat(point ->
                 point.getTaskInstanceId() == 42
                         && point.getTaskCode() == 99L
                         && "CHECKPOINT".equals(point.getRecoveryType())
                         && "execution-1:checkpoint:7".equals(point.getRecoveryPointId())
                         && "file:///checkpoints/chk-7".equals(point.getRestorePath())
                         && point.getCompletedAt().getTime() == 300L));
-        verify(recoveryPointDao).supersedePreviousCheckpoints(
-                42, "execution-1", "execution-1:checkpoint:7");
     }
 
     @Test
