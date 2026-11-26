@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -17,11 +16,11 @@ import io.yak.ops.plugin.task.datasync.metrics.DataSyncMetricsService;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncTableMetrics;
 import io.yak.ops.plugin.task.datasync.report.DataSyncReportPublisher;
 
+import java.util.Collections;
+
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
@@ -79,6 +78,7 @@ class DataSyncExecutionCoordinatorTest {
         order.verify(executionService).release(handle);
         verify(metricsService, times(2)).collect(handle);
     }
+
     @Test
     void marksReusedTableMetricsStaleAndPreservesTheirCollectionTime() throws Exception {
         TaskExecutionContext context = new TaskExecutionContext();
