@@ -1,6 +1,5 @@
 import { Button, Spinner, Switch, Tabs, TabsList, TabsPanel, TabsTab } from "@yak-ops/yak-ui";
 import { RefreshCw } from "lucide-react";
-import { canCancelTaskInstance } from "@/service/data-sync/execution";
 import { workflowStatusText, type DataSyncInstanceRecord,
   type DataSyncWorkflowInstance, type WorkflowExecutionStatus } from "@/service/data-sync";
 import {
@@ -21,8 +20,6 @@ interface Props {
   onAutoRefreshChange: (value: boolean) => void;
   refreshing: boolean;
   onRefresh: () => void;
-  canceling: boolean;
-  onCancel: () => void;
   onViewScheduleHistory: (id?: string) => void;
 }
 export function ExecutionTabs({
@@ -37,14 +34,11 @@ export function ExecutionTabs({
   onAutoRefreshChange,
   refreshing,
   onRefresh,
-  canceling,
-  onCancel,
   onViewScheduleHistory,
 }: Props) {
   const changeTab = onChangeTab;
   const setAutoRefresh = onAutoRefreshChange;
   const refreshExecution = onRefresh;
-  const cancel = onCancel;
   const instances = { length: instanceCount };
   const workflowHistory = (() => {
     if (!workflow?.stateHistory) return [];
@@ -87,16 +81,6 @@ export function ExecutionTabs({
                 >
                   <RefreshCw size={14} />
                 </Button>
-                {canCancelTaskInstance(selectedInstance.status) ? (
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    isPending={canceling}
-                    onClick={() => void cancel()}
-                  >
-                    停止
-                  </Button>
-                ) : null}
               </>
             }
           />
