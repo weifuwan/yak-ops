@@ -27,6 +27,15 @@ function isUnreadable(record: DataSyncTaskListRecord): record is DataSyncUnreada
   return "configurationError" in record;
 }
 
+function taskVersionText(
+  record: Pick<DataSyncTaskRecord, "definitionVersion" | "publishedVersion">,
+): string {
+  const { definitionVersion, publishedVersion } = record;
+  if (!publishedVersion) return `V${definitionVersion} · 未发布`;
+  if (publishedVersion === definitionVersion) return `V${definitionVersion}`;
+  return `最新 V${definitionVersion} · 已发布 V${publishedVersion}`;
+}
+
 function syncPlanText(record: DataSyncTaskRecord): string {
   const scope =
     record.scope === "DATABASE"
@@ -128,8 +137,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             {record.name}
           </div>
           <div className="mt-0.5 text-xs text-[var(--yak-components-muted-text)]">
-            最新 V{record.definitionVersion} ·{" "}
-            {record.publishedVersion ? `已发布 V${record.publishedVersion}` : "未发布"}
+            {taskVersionText(record)}
           </div>
         </div>
       ),

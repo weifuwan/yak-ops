@@ -25,6 +25,7 @@ const executionLifecycle = readFileSync(
 );
 const page = readFileSync(join(root, "page.tsx"), "utf8");
 const lifecycle = readFileSync(join(root, "task-lifecycle.tsx"), "utf8");
+const taskTable = readFileSync(join(root, "task-table.tsx"), "utf8");
 const actions = readFileSync(join(root, "use-task-actions.ts"), "utf8");
 const app = readFileSync(join(root, "../../App.tsx"), "utf8");
 const workflow = readFileSync(
@@ -170,4 +171,24 @@ test("task detail sync plan removes datasource prefix and highlights scope witho
   assert.ok(taskSummary.includes("{scopeLabel}"));
   assert.ok(taskSummary.includes("<span>{modeLabel}</span>"));
   assert.ok(!taskSummary.includes("{scopeLabel} ·"));
+});
+
+
+test("task list avoids repeating an identical published version", () => {
+  assert.match(taskTable, /function taskVersionText\(/);
+  assert.match(
+    taskTable,
+    /if \(!publishedVersion\) return `V\$\{definitionVersion\} · 未发布`;/,
+  );
+  assert.match(
+    taskTable,
+    /if \(publishedVersion === definitionVersion\) return `V\$\{definitionVersion\}`;/,
+  );
+  assert.match(taskTable, /最新 V\$\{definitionVersion\} · 已发布 V\$\{publishedVersion\}/);
+  assert.match(taskTable, /\{taskVersionText\(record\)\}/);
+});
+
+test("online status uses the requested green and a 10px status dot", () => {
+  assert.match(lifecycle, /dotClassName: "bg-\[#26A24A\]"/);
+  assert.match(lifecycle, /h-2\.5 w-2\.5 shrink-0 rounded-full/);
 });

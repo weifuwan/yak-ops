@@ -31,7 +31,7 @@ export const taskStatusMeta = (
   status === "ONLINE"
     ? {
         label: "已上线",
-        dotClassName: "bg-[var(--yak-components-badge-success-text)]",
+        dotClassName: "bg-[#26A24A]",
       }
     : {
         label: "已下线",
@@ -49,7 +49,7 @@ export function DataSyncTaskStatusIndicator({
     <span className="inline-flex w-fit self-center items-center justify-center gap-1.5 text-xs leading-5">
       <span
         aria-hidden="true"
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dotClassName}`}
+        className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dotClassName}`}
       />
       <span className="font-medium text-[var(--yak-components-tab-text-hover)]">
         {meta.label}
