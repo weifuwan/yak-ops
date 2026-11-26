@@ -11,4 +11,7 @@ public interface IStreamingTaskInstanceOperator {
     @RpcMethod
     TaskInstanceTriggerSavepointResponse triggerSavepoint(TaskInstanceTriggerSavepointRequest taskInstanceTriggerSavepointRequest);
 
+    @RpcMethod
+    TaskInstanceTriggerSavepointResponse stopWithSavepoint(TaskInstanceTriggerSavepointRequest taskInstanceTriggerSavepointRequest);
+
 }
