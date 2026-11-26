@@ -55,6 +55,7 @@ class AbstractDataSyncMetricsServiceTest {
         rawMetrics.put("sink.namespace..schema.db.table.customers.numCommittedRecords", 8L);
 
         AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
+
             @Override
             protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) {
                 return rawMetrics;
