@@ -47,15 +47,15 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
             target.add(metricName, entry.getValue());
         }
 
-        Long snapshotRecords = summary.value(SNAPSHOT);
-        Long insertRecords = summary.value(INSERT);
-        Long updateRecords = summary.value(UPDATE);
-        Long deleteRecords = summary.value(DELETE);
+        Long snapshotRecords = firstNonNull(summary.value(SNAPSHOT), sumTableValues(tableCounters, SNAPSHOT));
+        Long insertRecords = firstNonNull(summary.value(INSERT), sumTableValues(tableCounters, INSERT));
+        Long updateRecords = firstNonNull(summary.value(UPDATE), sumTableValues(tableCounters, UPDATE));
+        Long deleteRecords = firstNonNull(summary.value(DELETE), sumTableValues(tableCounters, DELETE));
         Long incrementalRecords = sumIfPresent(insertRecords, updateRecords, deleteRecords);
         Long readRecords = sumIfPresent(snapshotRecords, incrementalRecords);
-        Long committedRecords = summary.value(COMMITTED);
-        Long ddlEvents = summary.value(DDL);
-        Long errorRecords = summary.value(ERRORS);
+        Long committedRecords = firstNonNull(summary.value(COMMITTED), sumTableValues(tableCounters, COMMITTED));
+        Long ddlEvents = firstNonNull(summary.value(DDL), sumTableValues(tableCounters, DDL));
+        Long errorRecords = firstNonNull(summary.value(ERRORS), sumTableValues(tableCounters, ERRORS));
 
         List<DataSyncTableMetrics> tables = new ArrayList<>();
         for (Map.Entry<String, CounterSet> entry : tableCounters.entrySet()) {
@@ -98,6 +98,23 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
                 .metricsState(state)
                 .tables(tables)
                 .build();
+    }
+
+    private static Long firstNonNull(Long value, Long fallback) {
+        return value == null ? fallback : value;
+    }
+
+    private static Long sumTableValues(Map<String, CounterSet> tableCounters, String metricName) {
+        boolean found = false;
+        long total = 0L;
+        for (CounterSet counters : tableCounters.values()) {
+            Long value = counters.value(metricName);
+            if (value != null) {
+                found = true;
+                total += value;
+            }
+        }
+        return found ? total : null;
     }
 
     private static Long sumIfPresent(Long... values) {
