@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `t_yak_ops_data_sync_execution_report` (
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_execution_id` (`execution_id`),
-  KEY `idx_task_instance_update` (`task_instance_id`, `update_time`),
+  KEY `idx_task_instance_submitted` (`task_instance_id`, `submitted_at`, `create_time`),
   KEY `idx_job_id` (`job_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
