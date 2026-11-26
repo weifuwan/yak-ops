@@ -71,3 +71,10 @@ test("Context usage details stay anchored to the trigger and use a compact card"
   assert.ok(contextUsage.includes("px-4 pb-4 pt-1"));
   assert.ok(contextUsage.includes("mt-4 flex flex-col gap-2.5"));
 });
+
+test("Context usage hover surface and progress ring share the same center", () => {
+  assert.ok(contextUsage.includes("grid size-8 shrink-0 cursor-pointer appearance-none place-items-center"));
+  assert.ok(contextUsage.includes("absolute inset-0 grid place-items-center rounded-full"));
+  assert.ok(contextUsage.includes("block size-[21px] shrink-0 rounded-full"));
+  assert.ok(contextUsage.includes("border-0 p-0 leading-none"));
+});
