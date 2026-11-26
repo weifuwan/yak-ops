@@ -29,10 +29,6 @@ public class SchemaPlanner {
     private final DdlGenerator generator;
     private final ReplicationPolicy replicationPolicy;
 
-    public SchemaPlanner(SchemaInspector inspector, DdlGenerator generator) {
-        this(inspector, generator, new ReplicationPolicy());
-    }
-
     public SchemaPlanner(
             SchemaInspector inspector, DdlGenerator generator, ReplicationPolicy replicationPolicy) {
         this.inspector = inspector;
