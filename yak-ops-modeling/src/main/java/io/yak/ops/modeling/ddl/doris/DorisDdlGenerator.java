@@ -109,13 +109,18 @@ public class DorisDdlGenerator {
     }
 
     public boolean matches(DorisColumnMetadata actual, DdlColumnDefinition expected) {
+        if (!matchesType(actual, expected)) {
+            return false;
+        }
+        return expected.getNullable() == null || actual.getNullable() == null
+                || expected.getNullable().equals(actual.getNullable());
+    }
+
+    /** Compares the Doris physical type and its parameters without enforcing nullability. */
+    public boolean matchesType(DorisColumnMetadata actual, DdlColumnDefinition expected) {
         String expectedType = connectorAdapter.toDorisType(expected);
         String expectedBase = normalizeTypeName(expectedType);
         if (!expectedBase.equals(normalizeTypeName(actual.getTypeName()))) {
-            return false;
-        }
-        if (expected.getNullable() != null && actual.getNullable() != null
-                && !expected.getNullable().equals(actual.getNullable())) {
             return false;
         }
 
