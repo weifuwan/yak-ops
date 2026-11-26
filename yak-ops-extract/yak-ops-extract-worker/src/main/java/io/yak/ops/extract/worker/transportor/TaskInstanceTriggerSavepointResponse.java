@@ -14,12 +14,18 @@ public class TaskInstanceTriggerSavepointResponse {
 
     public String message;
 
+    public String savepointPath;
+
     public static TaskInstanceTriggerSavepointResponse success() {
-        return new TaskInstanceTriggerSavepointResponse(true, null);
+        return new TaskInstanceTriggerSavepointResponse(true, null, null);
+    }
+
+    public static TaskInstanceTriggerSavepointResponse success(String savepointPath) {
+        return new TaskInstanceTriggerSavepointResponse(true, null, savepointPath);
     }
 
     public static TaskInstanceTriggerSavepointResponse fail(String message) {
-        return new TaskInstanceTriggerSavepointResponse(false, message);
+        return new TaskInstanceTriggerSavepointResponse(false, message, null);
     }
 
 }
