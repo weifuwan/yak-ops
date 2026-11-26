@@ -35,7 +35,10 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
     @Override
     public void handle(TaskCallBack callback) throws TaskException {
         try {
-            jobRunner.execute(parameters);
+            String restorePath = taskRequest.getRuntimeOptions() == null
+                    ? null
+                    : taskRequest.getRuntimeOptions().get("__yak_data_sync_restore_path");
+            jobRunner.execute(parameters, restorePath);
             setExitStatusCode(jobRunner.isCancellationConfirmed()
                     ? TaskConstants.EXIT_CODE_KILL
                     : TaskConstants.EXIT_CODE_SUCCESS);
@@ -63,8 +66,13 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
     }
 
     @Override
-    public void savePoint() {
-        throw new UnsupportedOperationException("DATA_SYNC savepoints are not yet supported");
+    public String savePoint() throws Exception {
+        return jobRunner.triggerSavepoint();
+    }
+
+    @Override
+    public String stopWithSavepoint() throws Exception {
+        return jobRunner.stopWithSavepoint();
     }
 
     @Override
