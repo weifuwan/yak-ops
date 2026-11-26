@@ -1,7 +1,7 @@
 package io.yak.ops.plugin.task.datasync.report;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
@@ -71,12 +71,9 @@ class RpcDataSyncReportPublisherTest {
                 },
                 false);
 
-        try {
-            publisher.publish(report("SNAPSHOT"));
-        } catch (IOException expected) {
-            assertEquals("Master is unavailable", expected.getMessage());
-        }
+        IOException failure = assertThrows(IOException.class, () -> publisher.publish(report("SNAPSHOT")));
 
+        assertEquals("Master is unavailable", failure.getMessage());
         assertEquals(3, attempts.get());
         assertEquals(0, countOutboxFiles());
     }
