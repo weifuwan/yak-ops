@@ -213,7 +213,7 @@ jobs:
         shell: bash
         run: |
           mvn -B -ntp -T 2 -pl :yak-ops-task-data-sync -am \
-            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest' \
+            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest,MiniClusterDataSyncExecutionServiceTest,AbstractDataSyncMetricsServiceTest' \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
       - name: Require executed Data Sync plugin tests
@@ -228,6 +228,46 @@ jobs:
           print(f'Data Sync test reports: {len(reports)}, tests: {total}')
           if total == 0:
               raise SystemExit('No Data Sync plugin unit tests executed')
+          PY
+
+  data-sync-report-service:
+    name: Data Sync Report Service Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run Data Sync report service tests
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-service -am \
+            '-Dtest=DataSyncExecutionReportServiceImplTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require Data Sync report service tests
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          reports = list(Path('yak-ops-service/target/surefire-reports').glob(
+              'TEST-io.yak.ops.service.datasync.impl.DataSyncExecutionReportServiceImplTest.xml'
+          ))
+          if not reports:
+              raise SystemExit('Missing DataSyncExecutionReportServiceImplTest report')
+          result = ET.parse(reports[0]).getroot()
+          tests = int(result.attrib.get('tests', 0))
+          failures = int(result.attrib.get('failures', 0))
+          errors = int(result.attrib.get('errors', 0))
+          print(f'DataSyncExecutionReportServiceImplTest: tests={tests}, failures={failures}, errors={errors}')
+          if tests == 0 or failures or errors:
+              raise SystemExit('Data Sync report service tests did not pass')
           PY
 
   datasource-catalog-plugin:
