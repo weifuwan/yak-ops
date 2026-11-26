@@ -48,8 +48,10 @@ class DataSyncPipelineBuilderTest {
                 .path("execution.checkpointing.num-retained").asInt());
         assertEquals("RETAIN_ON_CANCELLATION", pipeline.path("pipeline").path("flink-conf")
                 .path("execution.checkpointing.externalized-checkpoint-retention").asText());
+        assertEquals("filesystem", pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.storage").asText());
         assertTrue(pipeline.path("pipeline").path("flink-conf")
-                .path("state.checkpoints.dir").asText().startsWith("file:"));
+                .path("execution.checkpointing.dir").asText().startsWith("file:"));
         assertEquals("drop.column", pipeline.path("sink").path("exclude.schema.changes").get(0).asText());
         assertFalse(yaml.contains("datasource-id"));
     }
@@ -60,14 +62,14 @@ class DataSyncPipelineBuilderTest {
         ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
                 .putObject("flink-conf")
                 .put("execution.checkpointing.interval", "2min")
-                .put("state.checkpoints.dir", "hdfs://namenode/yak/checkpoints");
+                .put("execution.checkpointing.dir", "hdfs://namenode/yak/checkpoints");
 
         JsonNode pipeline = YAML.readTree(new DataSyncPipelineBuilder().build(context(), parameters));
 
         assertEquals("2min", pipeline.path("pipeline").path("flink-conf")
                 .path("execution.checkpointing.interval").asText());
         assertEquals("hdfs://namenode/yak/checkpoints", pipeline.path("pipeline").path("flink-conf")
-                .path("state.checkpoints.dir").asText());
+                .path("execution.checkpointing.dir").asText());
     }
 
     @Test

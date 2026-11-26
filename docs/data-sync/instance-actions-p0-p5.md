@@ -22,13 +22,14 @@ The DataSync pipeline builder supplies these defaults under `pipeline.flink-conf
 - `execution.checkpointing.interval: 30s`
 - `execution.checkpointing.num-retained: 3`
 - `execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION`
-- `state.checkpoints.dir`: local default described below
+- `execution.checkpointing.storage: filesystem`
+- `execution.checkpointing.dir`: local default described below
 
 The Worker polls the Flink REST endpoint `/jobs/{jobId}/checkpoints` and reports the latest completed checkpoint with a usable `external_path`. The Master persists checkpoint metadata idempotently and retains at most the latest three completed Checkpoints for each execution. A STOP action separately creates a Savepoint and persists its intent before invoking the Worker RPC.
 
 ## Storage configuration
 
-The local integrated/MiniCluster default is:
+The local integrated/MiniCluster default for `execution.checkpointing.dir` is:
 
 `<user.dir>/data/yak-ops/data-sync/checkpoints`
 

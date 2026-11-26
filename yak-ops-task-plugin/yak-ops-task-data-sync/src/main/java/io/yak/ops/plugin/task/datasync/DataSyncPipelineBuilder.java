@@ -104,8 +104,11 @@ public final class DataSyncPipelineBuilder {
         if (!flinkConf.has("execution.checkpointing.externalized-checkpoint-retention")) {
             flinkConf.put("execution.checkpointing.externalized-checkpoint-retention", "RETAIN_ON_CANCELLATION");
         }
-        if (!flinkConf.has("state.checkpoints.dir")) {
-            flinkConf.put("state.checkpoints.dir", checkpointDirectory());
+        if (!flinkConf.has("execution.checkpointing.storage")) {
+            flinkConf.put("execution.checkpointing.storage", "filesystem");
+        }
+        if (!flinkConf.has("execution.checkpointing.dir") && !flinkConf.has("state.checkpoints.dir")) {
+            flinkConf.put("execution.checkpointing.dir", checkpointDirectory());
         }
     }
 
