@@ -194,7 +194,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                         ? DorisPublishStatusEnum.VERIFY_FAILED
                         : DorisPublishStatusEnum.FAILED;
                 if (verificationFailed) {
-                    String physicalSchema = ((DorisSchemaVerificationException) ex).getPhysicalSchema();
+                    String physicalSchema =
+                            ((DorisSchemaVerificationException) ex).getPhysicalSchema();
                     if (StringUtils.isNotBlank(physicalSchema)) {
                         try {
                             publishRecordService.updatePhysicalSchema(
