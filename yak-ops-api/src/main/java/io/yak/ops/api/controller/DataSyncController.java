@@ -10,6 +10,7 @@ import io.yak.ops.api.service.DataSyncService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
@@ -168,6 +169,14 @@ public class DataSyncController extends BaseController {
     public Result<DataSyncInstanceVO> getInstance(@RequestAttribute(Constants.SESSION_USER) User user,
                                                   @PathVariable long projectCode, @PathVariable int id) {
         return Result.success(dataSyncService.getInstance(user, projectCode, id));
+    }
+
+    @GetMapping("/instances/{id}/report")
+    public Result<DataSyncExecutionReportVO> getInstanceReport(
+                                                               @RequestAttribute(Constants.SESSION_USER) User user,
+                                                               @PathVariable long projectCode,
+                                                               @PathVariable int id) {
+        return Result.success(dataSyncService.getInstanceReport(user, projectCode, id));
     }
 
     @GetMapping("/instances/{id}/definition")

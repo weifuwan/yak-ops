@@ -9,6 +9,7 @@ import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.Collection;
 import java.util.Date;
@@ -19,6 +20,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface TaskInstanceMapper extends BaseMapper<TaskInstance> {
+
+    @Select("SELECT * FROM t_yak_ops_task_instance WHERE id = #{taskInstanceId} FOR UPDATE")
+    TaskInstance queryByIdForUpdate(@Param("taskInstanceId") int taskInstanceId);
 
     List<DataSyncExecutionDailyRow> queryDataSyncDailyExecution(@Param("projectCode") long projectCode,
                                                                 @Param("startTime") Date startTime,

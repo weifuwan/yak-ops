@@ -2,6 +2,7 @@ package org.apache.flink.cdc.composer.flink;
 
 import org.apache.flink.cdc.composer.PipelineExecution;
 import org.apache.flink.core.execution.JobClient;
+import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.util.function.Consumer;
@@ -39,5 +40,18 @@ public class FlinkPipelineExecution implements PipelineExecution {
             jobClient.getJobExecutionResult().get();
         }
         return new ExecutionInfo(jobClient.getJobID().toString(), jobName);
+    }
+
+    /** Builds the translated pipeline without submitting it to Flink's implicit executor. */
+    public JobGraph getJobGraph() {
+        return env.getStreamGraph().getJobGraph();
+    }
+
+    public int getParallelism() {
+        return env.getParallelism();
+    }
+
+    public String getJobName() {
+        return jobName;
     }
 }

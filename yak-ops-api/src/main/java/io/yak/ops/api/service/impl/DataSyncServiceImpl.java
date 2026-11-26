@@ -11,9 +11,12 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
+import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncMetricsSnapshotVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
+import io.yak.ops.api.vo.DataSyncTableReportVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
@@ -44,11 +47,15 @@ import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
+import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
+import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
 import io.yak.ops.plugin.task.datasync.DataSyncParameters;
 import io.yak.ops.plugin.task.datasync.DataSyncPipelineBuilder;
+import io.yak.ops.service.datasync.DataSyncExecutionReportService;
+import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
 import io.yak.ops.spi.enums.DbType;
 
 import java.time.LocalDate;
@@ -92,6 +99,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     private final WorkflowInstanceDao workflowInstanceDao;
     private final WorkflowTaskRelationDao workflowTaskRelationDao;
     private final WorkflowDefinitionService workflowDefinitionService;
+    private final DataSyncExecutionReportService dataSyncExecutionReportService;
     private final DataSyncPipelineBuilder dataSyncPipelineBuilder = new DataSyncPipelineBuilder();
 
     @Override
@@ -505,6 +513,73 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     public DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId) {
         TaskInstance instance = requireInstance(user, projectCode, instanceId);
         return toInstanceVO(instance, workflowInstanceDao.queryById(instance.getWorkflowInstanceId()));
+    }
+
+    @Override
+    public DataSyncExecutionReportVO getInstanceReport(User user, long projectCode, int instanceId) {
+        requireInstance(user, projectCode, instanceId);
+        DataSyncExecutionReportDetail report = dataSyncExecutionReportService.getLatestReport(instanceId);
+        return toExecutionReportVO(report);
+    }
+
+    private static DataSyncExecutionReportVO toExecutionReportVO(DataSyncExecutionReportDetail report) {
+        if (report == null) {
+            return null;
+        }
+        List<DataSyncTableReportVO> tables = report.getTables() == null
+                ? Collections.emptyList()
+                : report.getTables().stream().map(DataSyncServiceImpl::toTableReportVO)
+                        .collect(Collectors.toList());
+        return DataSyncExecutionReportVO.builder()
+                .executionId(report.getExecutionId())
+                .jobId(report.getJobId())
+                .deploymentMode(report.getDeploymentMode())
+                .clusterId(report.getClusterId())
+                .executionState(report.getExecutionState())
+                .metricsState(report.getMetricsState())
+                .latestSequence(report.getLatestSequence())
+                .finalSequence(report.getFinalSequence())
+                .latestCollectedAt(report.getLatestCollectedAt())
+                .finalCollectedAt(report.getFinalCollectedAt())
+                .finalized(report.isFinalized())
+                .metricsError(report.getMetricsError())
+                .latestSnapshot(toMetricsSnapshotVO(report.getLatestSnapshot()))
+                .finalSnapshot(toMetricsSnapshotVO(report.getFinalSnapshot()))
+                .tables(tables)
+                .build();
+    }
+
+    private static DataSyncMetricsSnapshotVO toMetricsSnapshotVO(DataSyncExecutionMetrics metrics) {
+        if (metrics == null) {
+            return null;
+        }
+        return DataSyncMetricsSnapshotVO.builder()
+                .readRecords(metrics.getReadRecords())
+                .snapshotRecords(metrics.getSnapshotRecords())
+                .incrementalRecords(metrics.getIncrementalRecords())
+                .insertRecords(metrics.getInsertRecords())
+                .updateRecords(metrics.getUpdateRecords())
+                .deleteRecords(metrics.getDeleteRecords())
+                .committedRecords(metrics.getCommittedRecords())
+                .ddlEvents(metrics.getDdlEvents())
+                .errorRecords(metrics.getErrorRecords())
+                .build();
+    }
+
+    private static DataSyncTableReportVO toTableReportVO(DataSyncTableMetrics metrics) {
+        return DataSyncTableReportVO.builder()
+                .sourceTable(metrics.getSourceTable())
+                .sinkTable(metrics.getSinkTable())
+                .metricsState(metrics.getMetricsState())
+                .readRecords(metrics.getReadRecords())
+                .snapshotRecords(metrics.getSnapshotRecords())
+                .incrementalRecords(metrics.getIncrementalRecords())
+                .insertRecords(metrics.getInsertRecords())
+                .updateRecords(metrics.getUpdateRecords())
+                .deleteRecords(metrics.getDeleteRecords())
+                .committedRecords(metrics.getCommittedRecords())
+                .ddlEvents(metrics.getDdlEvents())
+                .build();
     }
 
     @Override
