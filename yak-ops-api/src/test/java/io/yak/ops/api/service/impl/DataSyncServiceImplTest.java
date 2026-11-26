@@ -757,12 +757,13 @@ class DataSyncServiceImplTest {
         when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
         when(taskInstanceService.stopTaskWithSavepoint(user, PROJECT_CODE, 42))
                 .thenReturn("file:///yak-ops/savepoints/savepoint-42");
-        when(dataSyncRecoveryPointDao.insert(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
+        when(dataSyncRecoveryPointDao.insertPending(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
             DataSyncRecoveryPoint point = invocation.getArgument(0);
             point.setId(55L);
-            return 1;
+            return true;
         });
-        when(dataSyncRecoveryPointDao.updateById(any(DataSyncRecoveryPoint.class))).thenReturn(true);
+        when(dataSyncRecoveryPointDao.markAvailable(eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any()))
+                .thenReturn(true);
 
         DataSyncInstanceActionResultVO result =
                 service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP);
@@ -770,10 +771,13 @@ class DataSyncServiceImplTest {
         assertEquals(DataSyncInstanceAction.STOP, result.getAction());
         assertEquals(42, result.getSourceInstanceId());
         verify(taskInstanceService).stopTaskWithSavepoint(user, PROJECT_CODE, 42);
-        verify(dataSyncRecoveryPointDao).updateById(argThat(point ->
-                "AVAILABLE".equals(point.getState())
-                        && "file:///yak-ops/savepoints/savepoint-42".equals(point.getRestorePath())
+        verify(dataSyncRecoveryPointDao).insertPending(argThat(point ->
+                "CREATING".equals(point.getState())
+                        && "SAVEPOINT".equals(point.getRecoveryType())
+                        && point.getRecoveryPointId() != null
                         && point.getTaskInstanceId() == 42));
+        verify(dataSyncRecoveryPointDao).markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any());
     }
 
     @Test
@@ -791,7 +795,7 @@ class DataSyncServiceImplTest {
 
         assertEquals(DataSyncInstanceAction.STOP, result.getAction());
         verifyNoInteractions(taskInstanceService);
-        verify(dataSyncRecoveryPointDao, never()).insert(any(DataSyncRecoveryPoint.class));
+        verify(dataSyncRecoveryPointDao, never()).insertPending(any(DataSyncRecoveryPoint.class));
     }
 
     @Test
@@ -823,7 +827,8 @@ class DataSyncServiceImplTest {
                 eq(workflow),
                 eq(definition),
                 argThat(params -> "file:///yak-ops/savepoints/savepoint-42"
-                        .equals(params.get(DataSyncRuntimeOptions.RESTORE_PATH))));
+                        .equals(params.get(DataSyncRuntimeOptions.RESTORE_PATH))
+                        && point.getRecoveryPointId().equals(params.get(DataSyncRuntimeOptions.RECOVERY_POINT_ID))));
         verify(dataSyncRecoveryPointDao).markUsed(55L, 99);
     }
 
@@ -844,7 +849,7 @@ class DataSyncServiceImplTest {
         when(executorService.triggerDataSyncWorkflowInstance(
                 eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition), any()))
                 .thenReturn(100);
-        when(dataSyncRecoveryPointDao.markSuperseded(55L)).thenReturn(true);
+        when(dataSyncRecoveryPointDao.markAllAvailableSuperseded(42)).thenReturn(true);
 
         DataSyncInstanceActionResultVO result =
                 service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RERUN);
@@ -853,7 +858,7 @@ class DataSyncServiceImplTest {
         verify(executorService).triggerDataSyncWorkflowInstance(
                 eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition),
                 argThat(Map::isEmpty));
-        verify(dataSyncRecoveryPointDao).markSuperseded(55L);
+        verify(dataSyncRecoveryPointDao).markAllAvailableSuperseded(42);
         verify(dataSyncRecoveryPointDao, never()).markUsed(anyLong(), anyInt());
     }
 
@@ -924,8 +929,10 @@ class DataSyncServiceImplTest {
         point.setTaskCode(99L);
         point.setTaskDefinitionVersion(4);
         point.setRuntimeMode("LOCAL_MINICLUSTER");
+        point.setRecoveryPointId("execution-1:savepoint:55");
         point.setRecoveryType("SAVEPOINT");
         point.setRestorePath("file:///yak-ops/savepoints/savepoint-42");
+        point.setCompletedAt(new java.util.Date());
         point.setState("AVAILABLE");
         return point;
     }

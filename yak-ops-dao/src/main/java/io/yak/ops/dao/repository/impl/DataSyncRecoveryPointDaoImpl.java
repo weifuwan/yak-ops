@@ -31,6 +31,10 @@ public class DataSyncRecoveryPointDaoImpl
 
     @Override
     public DataSyncRecoveryPoint queryByTaskInstanceId(int taskInstanceId) {
+        DataSyncRecoveryPoint available = queryLatestAvailableByTaskInstanceId(taskInstanceId);
+        if (available != null) {
+            return available;
+        }
         return mybatisMapper.selectOne(
                 new QueryWrapper<DataSyncRecoveryPoint>()
                         .eq("task_instance_id", taskInstanceId)
