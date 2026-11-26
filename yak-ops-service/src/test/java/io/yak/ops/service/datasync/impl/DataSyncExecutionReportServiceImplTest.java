@@ -179,6 +179,38 @@ class DataSyncExecutionReportServiceImplTest {
                 org.mockito.ArgumentMatchers.eq(false));
     }
 
+    @Test
+    void clearsFinalTableValuesForTablesMissingFromFinalSnapshot() {
+        when(taskInstanceDao.queryByIdForUpdate(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .id(1L)
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
+                        .latestSequence(1L)
+                        .finalized(false)
+                        .build());
+        DataSyncTableReport existing = DataSyncTableReport.builder()
+                .id(9L)
+                .executionId("execution-1")
+                .tableKey("orders")
+                .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                .build();
+        when(tableReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(java.util.Collections.singletonList(existing));
+
+        service.acceptReport(request(2L, "FINAL"));
+
+        verify(tableReportDao).clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(true));
+    }
+
     private static DataSyncReportRequest request(long sequence, String reportType) {
         return DataSyncReportRequest.builder()
                 .protocolVersion(1)
