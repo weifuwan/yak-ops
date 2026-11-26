@@ -273,7 +273,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
 
       <div className="min-h-0 flex-1">
         <Table<DataSyncInstanceSummary>
-          className="min-h-full [&_th]:!bg-[#fafafa] [&_th]:!text-[var(--yak-components-muted-text)]"
+          className="min-h-full [&_th]:!text-[var(--yak-components-muted-text)]"
           columns={columns}
           dataSource={query.data?.totalList ?? []}
           rowKey="id"
