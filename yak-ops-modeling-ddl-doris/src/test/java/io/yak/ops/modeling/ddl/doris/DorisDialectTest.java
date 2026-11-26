@@ -94,9 +94,9 @@ class DorisDialectTest {
 
         assertTrue(plan.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(plan.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
-        assertTrue(Pattern.compile("(?is).*replication_num\\s*=\\s*['\"]?1['\"]?.*")
+        assertTrue(Pattern.compile("(?is).*['\"\\x60]?replication_num['\"\\x60]?\\s*=\\s*['\"\\x60]?1['\"\\x60]?.*")
                 .matcher(plan.getDdl())
-                .matches());
+                .matches(), plan.getDdl());
         assertTrue(plan.getDdl().contains("(\n    `customer_id`"));
         assertTrue(!plan.isNoChanges());
     }
