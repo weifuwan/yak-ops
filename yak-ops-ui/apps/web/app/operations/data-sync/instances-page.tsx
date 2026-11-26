@@ -16,6 +16,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import {
   cancelDataSyncInstance,
   listDataSyncInstances,
@@ -33,67 +34,6 @@ import {
 } from "../presentation";
 
 const PAGE_SIZE = 20;
-
-const INSTANCE_STATUS_STYLES: Record<
-  DataSyncInstanceStatus,
-  { dot: string; text: string; pulse?: boolean }
-> = {
-  SUBMITTED_SUCCESS: {
-    dot: "bg-[var(--yak-color-primary)]",
-    text: "text-[var(--yak-color-primary)]",
-  },
-  DISPATCH: {
-    dot: "bg-[var(--yak-color-primary)]",
-    text: "text-[var(--yak-color-primary)]",
-  },
-  RUNNING_EXECUTION: {
-    dot: "bg-[var(--yak-color-primary)]",
-    text: "text-[var(--yak-color-primary)]",
-    pulse: true,
-  },
-  DELAY_EXECUTION: {
-    dot: "bg-amber-500",
-    text: "text-amber-600",
-  },
-  NEED_FAULT_TOLERANCE: {
-    dot: "bg-amber-500",
-    text: "text-amber-600",
-  },
-  SUCCESS: {
-    dot: "bg-[var(--yak-color-success)]",
-    text: "text-[var(--yak-color-success)]",
-  },
-  FORCED_SUCCESS: {
-    dot: "bg-[var(--yak-color-success)]",
-    text: "text-[var(--yak-color-success)]",
-  },
-  FAILURE: {
-    dot: "bg-[var(--yak-color-danger)]",
-    text: "text-[var(--yak-color-danger)]",
-  },
-  PAUSE: {
-    dot: "bg-[var(--yak-components-muted-text)]",
-    text: "text-[var(--yak-components-muted-text)]",
-  },
-  KILL: {
-    dot: "bg-[var(--yak-components-muted-text)]",
-    text: "text-[var(--yak-components-muted-text)]",
-  },
-};
-
-function InstanceStatus({ status }: { status: DataSyncInstanceStatus }) {
-  const style = INSTANCE_STATUS_STYLES[status];
-
-  return (
-    <span className="inline-flex items-center gap-2 whitespace-nowrap">
-      <span
-        aria-hidden="true"
-        className={`size-2 shrink-0 rounded-full ${style.dot} ${style.pulse ? "animate-pulse" : ""}`}
-      />
-      <span className={`text-xs ${style.text}`}>{instanceStatusText(status)}</span>
-    </span>
-  );
-}
 
 function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType }) {
   const navigate = useNavigate();
@@ -156,7 +96,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
       key: "status",
       title: "执行状态",
       width: "11%",
-      render: (_v, r) => <InstanceStatus status={r.status} />,
+      render: (_v, r) => <ExecutionStatusIndicator status={r.status} label={instanceStatusText(r.status)} />,
     },
     {
       key: "startTime",
