@@ -5,6 +5,7 @@ import io.yak.ops.dao.mapper.DataSyncTableReportMapper;
 import io.yak.ops.dao.repository.BaseDao;
 import io.yak.ops.dao.repository.DataSyncTableReportDao;
 
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
@@ -27,7 +28,7 @@ public class DataSyncTableReportDaoImpl
 
     @Override
     public void clearSnapshotFields(
-            Long id, long sequence, long collectedAt, java.util.Date updateTime, boolean finalReport) {
+            Long id, long sequence, long collectedAt, Date updateTime, boolean finalReport) {
         mybatisMapper.clearSnapshotFields(id, sequence, collectedAt, updateTime, finalReport);
     }
 
