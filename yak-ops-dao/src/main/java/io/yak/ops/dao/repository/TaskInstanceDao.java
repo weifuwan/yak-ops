@@ -16,6 +16,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface TaskInstanceDao extends IDao<TaskInstance> {
 
+    /** Locks the task instance row for the current transaction. */
+    TaskInstance queryByIdForUpdate(int taskInstanceId);
+
     List<DataSyncExecutionDailyRow> queryDataSyncDailyExecution(long projectCode, Date startTime, Date endTime);
 
     List<TaskInstance> queryLatestByTaskCodes(long projectCode, String taskType,
