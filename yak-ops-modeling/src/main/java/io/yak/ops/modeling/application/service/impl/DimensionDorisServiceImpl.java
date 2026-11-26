@@ -528,6 +528,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
         DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
         BeanUtils.copyProperties(publish, vo);
+        if (publish.getStatus() != DorisPublishStatusEnum.VERIFY_FAILED) {
+            vo.setPhysicalSchema(null);
+        }
         vo.setNoChanges(
                 StringUtils.startsWith(publish.getDdl(), "-- 当前 Doris 物理表结构与模型一致")
                         || StringUtils.startsWith(publish.getDdl(), "-- 当前目标表结构与模型一致"));
