@@ -19,6 +19,8 @@ export interface SliderInputProps {
   onValueChange: (value: number) => void;
   min: number;
   max: number;
+  /** Optional upper bound for the slider while the numeric field keeps the full max range. */
+  sliderMax?: number;
   step?: number;
   /** Optional unit displayed inside the value field. */
   unit?: string;
@@ -36,19 +38,22 @@ export function SliderInput({
   onValueChange,
   min,
   max,
+  sliderMax,
   step = 1,
   unit,
   disabled = false,
   className,
 }: SliderInputProps) {
-  const safeValue = Number.isFinite(value)
+  const sliderUpperBound = Math.max(min, Math.min(max, sliderMax ?? max));
+  const displayValue = Number.isFinite(value)
     ? Math.min(max, Math.max(min, value))
     : min;
-  const [inputValue, setInputValue] = useState<number | null>(safeValue);
+  const safeValue = Math.min(sliderUpperBound, Math.max(min, displayValue));
+  const [inputValue, setInputValue] = useState<number | null>(displayValue);
 
   useEffect(() => {
-    setInputValue(safeValue);
-  }, [safeValue]);
+    setInputValue(displayValue);
+  }, [displayValue]);
 
   const handleInputValueChange = (nextValue: number | null) => {
     setInputValue(nextValue);
@@ -67,7 +72,7 @@ export function SliderInput({
       <Slider
         value={safeValue}
         min={min}
-        max={max}
+        max={sliderUpperBound}
         step={step}
         disabled={disabled}
         onValueChange={(nextValue) => {
@@ -99,7 +104,7 @@ export function SliderInput({
             <NumberFieldInput
               aria-label={label + "数值"}
               className="!px-2 text-left tabular-nums"
-              onBlur={() => setInputValue(safeValue)}
+              onBlur={() => setInputValue(displayValue)}
             />
             {unit ? (
               <span className="flex shrink-0 items-center pr-2 text-xs text-[var(--yak-components-muted-text)]">
