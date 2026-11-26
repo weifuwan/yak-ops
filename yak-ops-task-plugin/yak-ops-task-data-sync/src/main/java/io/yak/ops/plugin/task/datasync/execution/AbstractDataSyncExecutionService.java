@@ -17,8 +17,8 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
 
     @Override
     public final DataSyncExecutionHandle submit(
-                                                FlinkPipelineExecution execution, String executionId,
-                                                int taskInstanceId) throws Exception {
+            FlinkPipelineExecution execution, String executionId,
+            int taskInstanceId, String restorePath) throws Exception {
         if (execution == null || executionId == null || executionId.trim().isEmpty()) {
             throw new IllegalArgumentException("Execution and executionId are required");
         }
@@ -26,7 +26,7 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
             throw new IllegalArgumentException("taskInstanceId must be positive");
         }
         releasedExecutions.remove(executionId);
-        return doSubmit(execution, executionId, taskInstanceId);
+        return doSubmit(execution, executionId, taskInstanceId, restorePath);
     }
 
     @Override
@@ -44,6 +44,18 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     }
 
     @Override
+    public final String triggerSavepoint(DataSyncExecutionHandle handle) throws Exception {
+        requireActive(handle);
+        return doTriggerSavepoint(handle);
+    }
+
+    @Override
+    public final String stopWithSavepoint(DataSyncExecutionHandle handle) throws Exception {
+        requireActive(handle);
+        return doStopWithSavepoint(handle);
+    }
+
+    @Override
     public final void release(DataSyncExecutionHandle handle) throws Exception {
         if (handle == null || !releasedExecutions.add(handle.getExecutionId())) {
             return;
@@ -57,8 +69,12 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     }
 
     protected abstract DataSyncExecutionHandle doSubmit(
-                                                        FlinkPipelineExecution execution, String executionId,
-                                                        int taskInstanceId) throws Exception;
+            FlinkPipelineExecution execution, String executionId,
+            int taskInstanceId, String restorePath) throws Exception;
+
+    protected abstract String doTriggerSavepoint(DataSyncExecutionHandle handle) throws Exception;
+
+    protected abstract String doStopWithSavepoint(DataSyncExecutionHandle handle) throws Exception;
 
     protected abstract DataSyncExecutionState doQueryState(DataSyncExecutionHandle handle) throws Exception;
 
