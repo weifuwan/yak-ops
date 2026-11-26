@@ -114,6 +114,7 @@ export type DorisPublishRecord = {
   publishRemark?: string;
   ddl?: string;
   ddlHash?: string;
+  physicalSchema?: string;
   noChanges?: boolean;
   replicationNum?: number;
   availableBackendCount?: number;
