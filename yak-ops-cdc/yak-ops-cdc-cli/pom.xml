@@ -55,6 +55,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- PostgreSQL CDC Pipeline Source -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-pipeline-connector-postgres</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- MySQL JDBC Pipeline Sink -->
         <dependency>
             <groupId>io.yak.ops</groupId>

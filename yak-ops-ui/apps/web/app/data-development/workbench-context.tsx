@@ -91,7 +91,14 @@ type DataDevelopmentWorkbenchContextValue = {
   activeTabId: string | null;
   activeTab: WorkflowWorkbenchTab | null;
   openWorkflow: (workflow: WorkflowDefinitionRecord) => void;
-  openTask: (workflowCode: number, task: WorkflowTaskRecord, nodeId?: string, releaseState?: string) => void;
+  openTask: (
+    workflowCode: number,
+    task: WorkflowTaskRecord,
+    nodeId?: string,
+    releaseState?: string,
+    workflow?: WorkflowDefinitionRecord,
+  ) => void;
+  workflowStoreCodes: ReadonlySet<number>;
   openWorkflowInstance: (instanceId: number, title?: string) => void;
   openCatalogTable: (
     dataSourceId: string | number,
@@ -150,6 +157,9 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
   const [tabs, setTabs] = useState<WorkflowWorkbenchTab[]>([]);
   const [dirtyTabIds, setDirtyTabIds] = useState<Set<string>>(() => new Set());
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [workflowStoreCodes, setWorkflowStoreCodes] = useState<Set<number>>(
+    () => new Set(),
+  );
   const workflowStoresRef = useRef(new Map<number, WorkflowStoreApi>());
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
 
@@ -179,17 +189,46 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     task: WorkflowTaskRecord,
     nodeId = String(task.code),
     releaseState?: string,
+    workflow?: WorkflowDefinitionRecord,
   ) => {
-    const workflowTab = tabs.find(
-      (tab): tab is Extract<WorkflowWorkbenchTab, { kind: "workflow" }> =>
-        tab.kind === "workflow" && tab.workflowCode === workflowCode,
-    );
-    openTab(toTaskTab(
-      workflowCode,
-      task,
-      nodeId,
-      releaseState ?? workflowTab?.releaseState ?? "OFFLINE",
-    ));
+    const taskTabId = "task:" + workflowCode + ":" + task.code;
+
+    setTabs((current) => {
+      const workflowTab = current.find(
+        (tab): tab is Extract<WorkflowWorkbenchTab, { kind: "workflow" }> =>
+          tab.kind === "workflow" && tab.workflowCode === workflowCode,
+      );
+      const nextTabs = [...current];
+
+      // A task editor applies changes to its parent workflow store. Keep the
+      // workflow tab mounted even when the task tab is the active view.
+      if (!workflowTab && workflow) {
+        const existingTaskIndex = nextTabs.findIndex((tab) => tab.id === taskTabId);
+        nextTabs.splice(
+          existingTaskIndex >= 0 ? existingTaskIndex : nextTabs.length,
+          0,
+          toWorkflowTab(workflow),
+        );
+      }
+
+      const nextTask = toTaskTab(
+        workflowCode,
+        task,
+        nodeId,
+        releaseState ??
+          workflowTab?.releaseState ??
+          workflow?.releaseState ??
+          "OFFLINE",
+      );
+      const taskIndex = nextTabs.findIndex((tab) => tab.id === taskTabId);
+      if (taskIndex < 0) return [...nextTabs, nextTask];
+
+      return nextTabs.map((tab, index) =>
+        index === taskIndex ? nextTask : tab,
+      );
+    });
+
+    setActiveTabId(taskTabId);
   };
 
   const openWorkflowInstance = (instanceId: number, title = "运行 #" + instanceId) =>
@@ -314,14 +353,29 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     }));
   };
 
-  const registerWorkflowStore = useCallback((workflowCode: number, store: WorkflowStoreApi) => {
-    workflowStoresRef.current.set(workflowCode, store);
-    return () => {
-      if (workflowStoresRef.current.get(workflowCode) === store) {
+  const registerWorkflowStore = useCallback(
+    (workflowCode: number, store: WorkflowStoreApi) => {
+      workflowStoresRef.current.set(workflowCode, store);
+      setWorkflowStoreCodes((current) => {
+        if (current.has(workflowCode)) return current;
+        const next = new Set(current);
+        next.add(workflowCode);
+        return next;
+      });
+
+      return () => {
+        if (workflowStoresRef.current.get(workflowCode) !== store) return;
         workflowStoresRef.current.delete(workflowCode);
-      }
-    };
-  }, []);
+        setWorkflowStoreCodes((current) => {
+          if (!current.has(workflowCode)) return current;
+          const next = new Set(current);
+          next.delete(workflowCode);
+          return next;
+        });
+      };
+    },
+    [],
+  );
 
   const getWorkflowStore = useCallback(
     (workflowCode: number) => workflowStoresRef.current.get(workflowCode),
@@ -371,6 +425,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
   const value = useMemo(() => ({
     tabs,
     dirtyTabIds,
+    workflowStoreCodes,
     setTabDirty,
     activeTabId,
     activeTab,
@@ -393,7 +448,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     updateTabTitle,
     closeTab,
     closeTabs,
-  }), [tabs, dirtyTabIds, setTabDirty, activeTabId, activeTab, registerWorkflowStore, getWorkflowStore]);
+  }), [tabs, dirtyTabIds, workflowStoreCodes, setTabDirty, activeTabId, activeTab, registerWorkflowStore, getWorkflowStore]);
 
   return (
     <DataDevelopmentWorkbenchContext.Provider value={value}>

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback } from "react";
-import { toast } from "@yak-ops/yak-ui";
+import { Button, toast } from "@yak-ops/yak-ui";
 import { LoadingIndicator } from "@/app/components/loading-indicator";
 import type { WorkflowTaskRecord } from "@/service/workflow/definition";
 
@@ -36,7 +36,40 @@ type TaskEditorProps = {
   readOnly: boolean;
 };
 
-export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorProps) {
+export function TaskEditor(props: TaskEditorProps) {
+  const { workflowStoreCodes, activateTab } = useDataDevelopmentWorkbench();
+
+  if (!workflowStoreCodes.has(props.workflowCode)) {
+    return (
+      <section
+        aria-label={(props.task.name || "节点") + " 节点内容"}
+        className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--yak-components-panel-bg)]"
+      >
+        <div
+          role="status"
+          aria-label="正在初始化工作流画布"
+          className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3"
+        >
+          <LoadingIndicator />
+          <span className="text-sm text-[var(--yak-components-muted-text)]">
+            正在初始化工作流画布，请稍候…
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => activateTab("workflow:" + props.workflowCode)}
+          >
+            查看工作流
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return <TaskEditorContent {...props} />;
+}
+
+function TaskEditorContent({ workflowCode, task, nodeId, readOnly }: TaskEditorProps) {
   const { activateTab, getWorkflowStore, setTabDirty, updateTaskTab } = useDataDevelopmentWorkbench();
   const tabId = "task:" + workflowCode + ":" + task.code;
   const handleDirtyChange = useCallback(
@@ -60,7 +93,7 @@ export function TaskEditor({ workflowCode, task, nodeId, readOnly }: TaskEditorP
   const applyTask = (nextTask: WorkflowTaskRecord) => {
     const store = getWorkflowStore(workflowCode);
     if (!store) {
-      toast.error("工作流画布尚未就绪，请稍后再保存节点配置");
+      toast.error("工作流画布暂不可用，请返回工作流后重试");
       return false;
     }
     const currentState = store.getState();

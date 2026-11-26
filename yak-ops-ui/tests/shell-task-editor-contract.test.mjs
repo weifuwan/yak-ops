@@ -96,6 +96,7 @@ test("Shared script editor registers both languages with their own indentation d
   assert.match(scriptCodeEditor, /monaco-editor\/languages\/definitions\/python\/register/);
   assert.match(scriptCodeEditor, /language === "python" \? 4 : 2/);
   assert.match(scriptCodeEditor, /automaticLayout: true/);
+  assert.ok(scriptCodeEditor.includes('className="nokey h-full min-h-[240px]'));
   assert.doesNotMatch(scriptPanel, /Ctrl \+ F 查找/);
   assert.doesNotMatch(scriptPanel, /清空脚本/);
   assert.doesNotMatch(scriptPanel, /FileCode2|Search/);

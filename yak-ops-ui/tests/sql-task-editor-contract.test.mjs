@@ -14,6 +14,7 @@ const editor = read("../apps/web/app/data-development/task-editor/sql/index.tsx"
 const router = read("../apps/web/app/data-development/task-editor/task-editor.tsx");
 const workflowStore = read("../apps/web/app/data-development/workflow-editor/store/workflow-store.tsx");
 const codeEditor = read("../apps/web/app/data-development/task-editor/sql/sql-code-editor.tsx");
+const workbench = read("../apps/web/app/data-development/workbench.tsx");
 const dorisPublishModal = read("../apps/web/app/data-modeling/models/dimension-modeling/workbench/components/doris-publish-modal.tsx");
 
 const treeSelect = read("../packages/yak-ui/src/tree-select/TreeSelect.tsx");
@@ -189,6 +190,8 @@ test("SQL Monaco editor registers SQL syntax highlighting and supports read-only
   assert.match(codeEditor, /setMonarchTokensProvider/);
   assert.match(codeEditor, /language: "sql"/);
   assert.match(codeEditor, /automaticLayout: true/);
+  assert.match(codeEditor, /fixedOverflowWidgets: true/);
+  assert.match(workbench, /readOnly=\{tab\.releaseState\.toUpperCase\(\) === "ONLINE"\}/);
   assert.match(codeEditor, /updateOptions\(\{ readOnly \}\)/);
   assert.match(codeEditor, /resizable\?: SqlCodeEditorResizeOptions/);
   assert.match(codeEditor, /setPointerCapture/);

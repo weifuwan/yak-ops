@@ -379,7 +379,13 @@ export function WorkflowCanvas({
           ) ?? node.data.task;
 
     if (latestTask) {
-      openTask(nodeWorkflowCode, latestTask, node.id, workflowReleaseState);
+      openTask(
+        nodeWorkflowCode,
+        latestTask,
+        node.id,
+        workflowReleaseState,
+        dag.workflowDefinition,
+      );
       return;
     }
 

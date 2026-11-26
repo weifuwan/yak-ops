@@ -62,7 +62,7 @@ const STATUS_VISUALS: Record<string, StatusVisual> = {
   },
   FAILURE: {
     shape: "triangle-alert",
-    colorClassName: "text-[var(--yak-color-danger)]",
+    colorClassName: "text-[var(--yak-components-danger-text)]",
   },
   PAUSE: {
     shape: "square-pause",
