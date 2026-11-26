@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +55,7 @@ class DataSyncExecutionReportServiceImplTest {
 
     @Test
     void acknowledgesDuplicateSnapshotAsIdempotent() {
-        when(taskInstanceDao.queryById(42))
+        when(taskInstanceDao.queryByIdForUpdate(42))
                 .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
         when(executionReportDao.queryByExecutionId("execution-1"))
                 .thenReturn(DataSyncExecutionReport.builder()
@@ -75,7 +75,7 @@ class DataSyncExecutionReportServiceImplTest {
 
     @Test
     void rejectsStaleSnapshotSequence() {
-        when(taskInstanceDao.queryById(42))
+        when(taskInstanceDao.queryByIdForUpdate(42))
                 .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
         when(executionReportDao.queryByExecutionId("execution-1"))
                 .thenReturn(DataSyncExecutionReport.builder()
@@ -96,7 +96,7 @@ class DataSyncExecutionReportServiceImplTest {
 
     @Test
     void finalizedExecutionCannotBeOverwrittenByLateSnapshot() {
-        when(taskInstanceDao.queryById(42))
+        when(taskInstanceDao.queryByIdForUpdate(42))
                 .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
         when(executionReportDao.queryByExecutionId("execution-1"))
                 .thenReturn(DataSyncExecutionReport.builder()
@@ -141,7 +141,7 @@ class DataSyncExecutionReportServiceImplTest {
                 .thenReturn(java.util.Collections.singletonList(DataSyncTableReport.builder()
                         .executionId("execution-1")
                         .tableKey("orders")
-                        .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                        .latestMetricsJson("{\"sourceTable\":\"db.orders\",\"readRecords\":10}")
                         .finalMetricsJson(null)
                         .build()));
 
