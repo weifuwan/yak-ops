@@ -7,6 +7,7 @@ import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.TaskGroupQueueService;
 import io.yak.ops.api.service.TaskInstanceService;
+import io.yak.ops.api.service.DataSyncInstanceActionPolicy;
 import io.yak.ops.api.service.UsersService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.utils.Result;
@@ -227,22 +228,20 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     @Override
     public Result taskSavePoint(User loginUser, long projectCode, Integer taskInstanceId) {
         Result result = new Result();
-
-        Project project = projectDao.queryByCode(projectCode);
-        projectService.checkHasProjectWritePermissionThrowException(loginUser, project);
-
-        TaskInstance taskInstance = taskInstanceDao.queryById(taskInstanceId);
-        if (taskInstance == null || taskInstance.getProjectCode() != projectCode) {
-            log.error("Task definition can not be found, projectCode:{}, taskInstanceId:{}.", projectCode,
-                    taskInstanceId);
-            putMsg(result, Status.TASK_INSTANCE_NOT_FOUND);
-            return result;
+        TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
+        String host = taskInstance.getHost();
+        if (StringUtils.isBlank(host)) {
+            throw new ServiceException("Task instance has not been dispatched to a worker");
         }
-        final TaskInstanceTriggerSavepointResponse taskInstanceTriggerSavepointResponse = Clients
+        TaskInstanceTriggerSavepointResponse response = Clients
                 .withService(IStreamingTaskInstanceOperator.class)
-                .withHost(taskInstance.getHost())
+                .withHost(host)
                 .triggerSavepoint(new TaskInstanceTriggerSavepointRequest(taskInstanceId));
-        log.info("StreamingTaskInstance trigger savepoint response: {}", taskInstanceTriggerSavepointResponse);
+        if (response == null || !response.isSuccess()) {
+            throw new ServiceException(response == null
+                    ? "Worker returned an empty savepoint response"
+                    : "Trigger savepoint failed: " + response.getMessage());
+        }
         putMsg(result, Status.SUCCESS);
         return result;
     }
@@ -250,27 +249,67 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     @Override
     public Result stopTask(User loginUser, long projectCode, Integer taskInstanceId) {
         Result result = new Result();
-
-        Project project = projectDao.queryByCode(projectCode);
-        projectService.checkHasProjectWritePermissionThrowException(loginUser, project);
-
-        TaskInstance taskInstance = taskInstanceDao.queryById(taskInstanceId);
-        if (taskInstance == null || taskInstance.getProjectCode() != projectCode) {
-            log.error("Task definition can not be found, projectCode:{}, taskInstanceId:{}.", projectCode,
-                    taskInstanceId);
-            putMsg(result, Status.TASK_INSTANCE_NOT_FOUND);
+        TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
+        if (taskInstance.getTaskExecuteType() == TaskExecuteType.STREAM) {
+            stopTaskWithSavepoint(loginUser, projectCode, taskInstanceId);
+            putMsg(result, Status.SUCCESS);
             return result;
         }
 
-        // todo: we only support streaming task for now
-        final TaskExecutorKillResponse taskExecutorKillResponse = Clients
+        String host = taskInstance.getHost();
+        if (StringUtils.isBlank(host)) {
+            throw new ServiceException("Task instance has no worker host");
+        }
+        TaskExecutorKillResponse response = Clients
                 .withService(IPhysicalTaskExecutorOperator.class)
-                .withHost(taskInstance.getHost())
+                .withHost(host)
                 .killTask(TaskExecutorKillRequest.of(taskInstanceId));
-        log.info("TaskInstance kill response: {}", taskExecutorKillResponse);
-
+        if (response == null || !response.isSuccess()) {
+            throw new ServiceException(response == null
+                    ? "Worker returned an empty kill response"
+                    : "Stop task failed: " + response.getMessage());
+        }
         putMsg(result, Status.SUCCESS);
         return result;
+    }
+
+    @Override
+    public String stopTaskWithSavepoint(User loginUser, long projectCode, Integer taskInstanceId) {
+        TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
+        if (taskInstance.getTaskExecuteType() != TaskExecuteType.STREAM) {
+            throw new ServiceException("Graceful savepoint stop is only supported for streaming tasks");
+        }
+        if (!DataSyncInstanceActionPolicy.isActive(taskInstance.getState())) {
+            throw new ServiceException("Only an active streaming task can be stopped");
+        }
+        String host = taskInstance.getHost();
+        if (StringUtils.isBlank(host)) {
+            throw new ServiceException("Task instance has not been dispatched to a worker");
+        }
+        TaskInstanceTriggerSavepointResponse response = Clients
+                .withService(IStreamingTaskInstanceOperator.class)
+                .withHost(host)
+                .stopWithSavepoint(new TaskInstanceTriggerSavepointRequest(taskInstanceId));
+        if (response == null || !response.isSuccess()) {
+            throw new ServiceException(response == null
+                    ? "Worker returned an empty stop-with-savepoint response"
+                    : "Stop with savepoint failed: " + response.getMessage());
+        }
+        if (StringUtils.isBlank(response.getSavepointPath())) {
+            throw new ServiceException("Worker stopped the task without returning a savepoint path");
+        }
+        return response.getSavepointPath();
+    }
+
+    private TaskInstance requireWritableTaskInstance(
+            User loginUser, long projectCode, Integer taskInstanceId) {
+        Project project = projectDao.queryByCode(projectCode);
+        projectService.checkHasProjectWritePermissionThrowException(loginUser, project);
+        TaskInstance taskInstance = taskInstanceDao.queryById(taskInstanceId);
+        if (taskInstance == null || taskInstance.getProjectCode() != projectCode) {
+            throw new ServiceException(Status.TASK_INSTANCE_NOT_FOUND);
+        }
+        return taskInstance;
     }
 
     @Override
