@@ -349,7 +349,11 @@ export function TaskCommonSettingsSection({
           <SettingField label="CPU 配额">
             <SliderInput
               label="CPU 配额"
-              value={Number.isFinite(Number(settings.cpuQuota)) ? Number(settings.cpuQuota) : -1}
+              value={
+                Number.isFinite(Number(settings.cpuQuota))
+                  ? Number(settings.cpuQuota)
+                  : -1
+              }
               min={-1}
               max={2147483647}
               sliderMax={1000}
@@ -362,7 +366,11 @@ export function TaskCommonSettingsSection({
           <SettingField label="最大内存">
             <SliderInput
               label="最大内存"
-              value={Number.isFinite(Number(settings.memoryMax)) ? Number(settings.memoryMax) : -1}
+              value={
+                Number.isFinite(Number(settings.memoryMax))
+                  ? Number(settings.memoryMax)
+                  : -1
+              }
               min={-1}
               max={2147483647}
               sliderMax={65536}
