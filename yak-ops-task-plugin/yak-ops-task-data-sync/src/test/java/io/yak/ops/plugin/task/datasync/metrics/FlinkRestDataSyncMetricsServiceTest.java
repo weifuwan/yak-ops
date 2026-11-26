@@ -7,7 +7,6 @@ import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
