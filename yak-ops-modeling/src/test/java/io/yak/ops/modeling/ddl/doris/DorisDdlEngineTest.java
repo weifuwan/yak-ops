@@ -10,13 +10,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
-import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
-import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
+import io.yak.ops.modeling.ddl.model.DdlDataType;
+import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
+import io.yak.ops.modeling.ddl.doris.model.DorisOptions;
+import io.yak.ops.modeling.ddl.model.DdlPublishMode;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
-import io.yak.ops.modeling.ddl.model.DorisDdlRequest;
+import io.yak.ops.modeling.ddl.model.DdlRequest;
+import io.yak.ops.modeling.ddl.session.DdlSession;
+import io.yak.ops.modeling.ddl.doris.planning.SchemaPlanner;
+import io.yak.ops.modeling.ddl.doris.planning.ReplicationPolicy;
+import io.yak.ops.modeling.ddl.doris.schema.DdlGenerator;
+import io.yak.ops.modeling.ddl.doris.schema.DdlFormatter;
+import io.yak.ops.modeling.ddl.doris.schema.SchemaInspector;
+import io.yak.ops.modeling.ddl.doris.schema.TableSchemaBuilder;
+import io.yak.ops.modeling.ddl.doris.validation.ModelValidator;
+import io.yak.ops.modeling.ddl.doris.execution.StatementExecutor;
 import io.yak.ops.plugin.datasource.api.catalog.CatalogObject;
 import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
@@ -34,34 +44,35 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DorisDdlEngineTest {
+class DorisDialectTest {
 
     @Mock private Connection connection;
     @Mock private DataSourceCatalog catalog;
 
-    private DorisDdlEngine engine;
+    private DorisDialect engine;
+    private DdlSession session;
 
     @BeforeEach
     void setUp() {
-        DorisConnectorAdapter connectorAdapter = new DorisConnectorAdapter();
-        DorisDdlValidator validator = new DorisDdlValidator(connectorAdapter);
-        DorisDdlGenerator generator = new DorisDdlGenerator(connectorAdapter, new DorisDdlFormatter());
-        DorisSchemaInspector inspector = new DorisSchemaInspector();
-        DorisSchemaPlanner planner = new DorisSchemaPlanner(
-                inspector, generator, new DorisBackendInspector());
-        engine = new DorisDdlEngine(
-                validator, planner, new DorisDdlExecutor(), inspector, generator);
+        TableSchemaBuilder schemaBuilder = new TableSchemaBuilder();
+        ModelValidator validator = new ModelValidator(schemaBuilder);
+        DdlGenerator generator = new DdlGenerator(schemaBuilder, new DdlFormatter());
+        SchemaInspector inspector = new SchemaInspector();
+        SchemaPlanner planner = new SchemaPlanner(inspector, generator, new ReplicationPolicy());
+        engine = new DorisDialect(
+                validator, planner, new StatementExecutor(), inspector, generator);
+        session = new DdlSession("DORIS", connection, catalog, "warehouse");
     }
 
     @Test
     void shouldExposeDorisTypeForSchemaDiagnostics() {
-        DorisDdlGenerator generator = new DorisDdlGenerator(
-                new DorisConnectorAdapter(), new DorisDdlFormatter());
+        DdlGenerator generator = new DdlGenerator(
+                new TableSchemaBuilder(), new DdlFormatter());
 
         assertEquals(
                 "BIGINT",
                 generator.toDorisType(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
     }
 
     @Test
@@ -69,12 +80,12 @@ class DorisDdlEngineTest {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
 
         DdlPlan plan = engine.plan(connection, catalog, request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true))));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true))));
 
         assertTrue(plan.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(plan.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
@@ -86,17 +97,17 @@ class DorisDdlEngineTest {
     @Test
     void shouldGenerateUniqueKeyDdlFromPrimaryFlag() {
         DdlColumnDefinition primaryId = new DdlColumnDefinition(
-                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, null,
+                "customer_id", DdlDataType.BIGINT, null, null, null, null,
                 Boolean.FALSE, true, null, null);
 
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
         DdlPlan plan = engine.plan(connection, catalog, request(
-                DorisDataModelEnum.UNIQUE,
-                DorisPublishModeEnum.INCREMENTAL,
+                DorisTableModel.UNIQUE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Arrays.asList(primaryId, column(
-                        "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, true))));
+                        "customer_name", DdlDataType.VARCHAR, 128, null, null, true))));
 
         assertTrue(plan.getDdl().contains("UNIQUE KEY(`customer_id`)"));
         assertTrue(plan.getDdl().contains("`customer_id` BIGINT NOT NULL COMMENT"));
@@ -106,32 +117,32 @@ class DorisDdlEngineTest {
 
     @Test
     void shouldRejectUniqueTableWithoutPrimaryKey() {
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.UNIQUE,
-                DorisPublishModeEnum.INCREMENTAL,
+        DdlRequest request = request(
+                DorisTableModel.UNIQUE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
         IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+                IllegalArgumentException.class, () -> engine.plan(session, request));
         assertTrue(error.getMessage().contains("至少需要一个主键字段"));
     }
 
     @Test
     void shouldGenerateNotNullForDuplicateValueFields() {
         DdlColumnDefinition keyField = new DdlColumnDefinition(
-                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, null,
+                "customer_id", DdlDataType.BIGINT, null, null, null, null,
                 Boolean.FALSE, false, null, "customer id");
         DdlColumnDefinition valueField = new DdlColumnDefinition(
-                "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, null,
+                "customer_name", DdlDataType.VARCHAR, 128, null, null, null,
                 Boolean.FALSE, false, null, "customer name, (display)");
 
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
         DdlPlan plan = engine.plan(connection, catalog, request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Arrays.asList(keyField, valueField)));
@@ -144,11 +155,11 @@ class DorisDdlEngineTest {
     @Test
     void shouldRejectInvalidDecimalScale() {
         DdlColumnDefinition decimal = new DdlColumnDefinition(
-                "amount", DimensionDataTypeEnum.DECIMAL, null, 10, 11, null,
+                "amount", DdlDataType.DECIMAL, null, 10, 11, null,
                 Boolean.TRUE, false, null, null);
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(decimal));
@@ -160,23 +171,23 @@ class DorisDdlEngineTest {
 
     @Test
     void shouldUseRecreateVerificationPolicyWhenExecutingDropRecreate() throws Exception {
-        DorisSchemaInspector inspector = mock(DorisSchemaInspector.class);
-        DorisDdlExecutor executor = mock(DorisDdlExecutor.class);
-        DorisDdlGenerator generator = new DorisDdlGenerator(
-                new DorisConnectorAdapter(), new DorisDdlFormatter());
-        DorisDdlEngine testEngine = new DorisDdlEngine(
-                new DorisDdlValidator(new DorisConnectorAdapter()),
-                mock(DorisSchemaPlanner.class),
+        SchemaInspector inspector = mock(SchemaInspector.class);
+        StatementExecutor executor = mock(StatementExecutor.class);
+        DdlGenerator generator = new DdlGenerator(
+                new TableSchemaBuilder(), new DdlFormatter());
+        DorisDialect testEngine = new DorisDialect(
+                new ModelValidator(new TableSchemaBuilder()),
+                mock(SchemaPlanner.class),
                 executor,
                 inspector,
                 generator);
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.DROP_RECREATE,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.DROP_RECREATE,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
         DdlPlan plan = new DdlPlan(
                 "DROP TABLE IF EXISTS ...; CREATE TABLE ...",
                 Arrays.asList("DROP TABLE IF EXISTS ...", "CREATE TABLE ..."),
@@ -186,16 +197,16 @@ class DorisDdlEngineTest {
                 any(Connection.class),
                 any(DataSourceCatalog.class),
                 any(DdlTableDefinition.class),
-                eq(DorisDataModelEnum.DUPLICATE),
+                eq(DorisTableModel.DUPLICATE),
                 eq(Collections.singletonList("customer_id")),
-                any(DorisDdlGenerator.class),
+                any(DdlGenerator.class),
                 eq(false)))
-                .thenReturn(new DorisSchemaInspector.VerificationResult(
+                .thenReturn(new SchemaInspector.VerificationResult(
                         true,
                         Collections.<String>emptyList(),
                         "CREATE TABLE warehouse.dwd_order_detail (...)"));
 
-        String physicalSchema = testEngine.execute(connection, catalog, request, plan, "publish-id");
+        String physicalSchema = testEngine.execute(session, request, plan, "publish-id");
 
         assertTrue(physicalSchema.contains("CREATE TABLE"));
         verify(executor).execute(
@@ -204,9 +215,9 @@ class DorisDdlEngineTest {
                 any(Connection.class),
                 any(DataSourceCatalog.class),
                 any(DdlTableDefinition.class),
-                eq(DorisDataModelEnum.DUPLICATE),
+                eq(DorisTableModel.DUPLICATE),
                 eq(Collections.singletonList("customer_id")),
-                any(DorisDdlGenerator.class),
+                any(DdlGenerator.class),
                 eq(false));
     }
 
@@ -223,18 +234,18 @@ class DorisDdlEngineTest {
                 "dwd_order_detail",
                 "订单明细",
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
-        DorisSchemaInspector inspector = new DorisSchemaInspector();
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
+        SchemaInspector inspector = new SchemaInspector();
 
-        DorisSchemaInspector.VerificationResult recreateResult = inspector.verify(
-                connection, catalog, table, DorisDataModelEnum.DUPLICATE,
+        SchemaInspector.VerificationResult recreateResult = inspector.verify(
+                connection, catalog, table, DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
-                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                new DdlGenerator(new TableSchemaBuilder(), new DdlFormatter()),
                 false);
-        DorisSchemaInspector.VerificationResult incrementalResult = inspector.verify(
-                connection, catalog, table, DorisDataModelEnum.DUPLICATE,
+        SchemaInspector.VerificationResult incrementalResult = inspector.verify(
+                connection, catalog, table, DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
-                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                new DdlGenerator(new TableSchemaBuilder(), new DdlFormatter()),
                 true);
 
         assertTrue(recreateResult.isMatched());
@@ -261,14 +272,14 @@ class DorisDdlEngineTest {
                 "dwd_order_detail",
                 "订单明细",
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, false)));
-        DorisSchemaInspector.VerificationResult result = new DorisSchemaInspector().verify(
+                        "customer_id", DdlDataType.BIGINT, null, null, null, false)));
+        SchemaInspector.VerificationResult result = new SchemaInspector().verify(
                 connection,
                 catalog,
                 table,
-                DorisDataModelEnum.DUPLICATE,
+                DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
-                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                new DdlGenerator(new TableSchemaBuilder(), new DdlFormatter()),
                 false);
 
         assertFalse(result.isMatched());
@@ -287,14 +298,14 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "customer_name", "VARCHAR", Types.VARCHAR, 384, 0, true, 2, false, null)));
 
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
-                DorisDataModelEnum.DUPLICATE,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
+                DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
                 Arrays.asList(
-                        column("customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, false),
-                        column("customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, false)));
+                        column("customer_id", DdlDataType.BIGINT, null, null, null, false),
+                        column("customer_name", DdlDataType.VARCHAR, 128, null, null, false)));
 
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
@@ -303,10 +314,10 @@ class DorisDdlEngineTest {
 
     @Test
     void shouldPreserveNotNullWhenGeneratingAddColumnDdl() {
-        DorisDdlGenerator generator = new DorisDdlGenerator(
-                new DorisConnectorAdapter(), new DorisDdlFormatter());
+        DdlGenerator generator = new DdlGenerator(
+                new TableSchemaBuilder(), new DdlFormatter());
         DdlColumnDefinition column = new DdlColumnDefinition(
-                "customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, null,
+                "customer_name", DdlDataType.VARCHAR, 128, null, null, null,
                 Boolean.FALSE, false, null, "customer name");
 
         String ddl = generator.generateAddColumnDdl("warehouse", "dwd_order_detail", column);
@@ -323,13 +334,13 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
 
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
         DdlPlan plan = engine.plan(connection, catalog, request);
 
@@ -355,13 +366,13 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "event_date", "DATE", Types.DATE, null, null, false, 2, false, null)));
 
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
@@ -377,13 +388,13 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
 
-        DorisDdlRequest request = new DorisDdlRequest(
+        DdlRequest request = new DdlRequest(
                 new DdlTableDefinition("warehouse", "dwd_order_detail", "订单明细",
                         Collections.singletonList(column(
-                                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true))),
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
-                DorisDataModelEnum.DUPLICATE,
+                                "customer_id", DdlDataType.BIGINT, null, null, null, true))),
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
+                DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
                 1,
                 "CREATE TABLE old_schema (...) PROPERTIES (\"replication_num\" = \"3\")");
@@ -403,11 +414,11 @@ class DorisDdlEngineTest {
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, true, null)));
 
         DdlColumnDefinition primaryId = new DdlColumnDefinition(
-                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, null,
+                "customer_id", DdlDataType.BIGINT, null, null, null, null,
                 Boolean.FALSE, true, null, null);
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.UNIQUE,
-                DorisPublishModeEnum.INCREMENTAL,
+        DdlRequest request = request(
+                DorisTableModel.UNIQUE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(primaryId));
@@ -426,14 +437,14 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
 
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
-                DorisDataModelEnum.DUPLICATE,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
+                DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
                 Arrays.asList(
-                        column("customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true),
-                        column("customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, true)));
+                        column("customer_id", DdlDataType.BIGINT, null, null, null, true),
+                        column("customer_name", DdlDataType.VARCHAR, 128, null, null, true)));
 
         DdlPlan plan = engine.plan(connection, catalog, request);
 
@@ -453,13 +464,13 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "legacy_note", "VARCHAR", Types.VARCHAR, 128, 0, true, 2, false, null)));
 
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
                 null,
                 Collections.<String>emptyList(),
                 Collections.singletonList(column(
-                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+                        "customer_id", DdlDataType.BIGINT, null, null, null, true)));
 
         DdlPlan plan = engine.plan(connection, catalog, request);
 
@@ -479,14 +490,14 @@ class DorisDdlEngineTest {
                 new DataSourceCatalogColumn(
                         "customer_name", "VARCHAR", Types.VARCHAR, 384, 0, true, 2, false, null)));
 
-        DorisDdlRequest request = request(
-                DorisDataModelEnum.DUPLICATE,
-                DorisPublishModeEnum.INCREMENTAL,
-                DorisDataModelEnum.DUPLICATE,
+        DdlRequest request = request(
+                DorisTableModel.DUPLICATE,
+                DdlPublishMode.INCREMENTAL,
+                DorisTableModel.DUPLICATE,
                 Collections.singletonList("customer_id"),
                 Arrays.asList(
-                        column("customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true),
-                        column("customer_name", DimensionDataTypeEnum.VARCHAR, 128, null, null, true)));
+                        column("customer_id", DdlDataType.BIGINT, null, null, null, true),
+                        column("customer_name", DdlDataType.VARCHAR, 128, null, null, true)));
 
         DdlPlan plan = engine.plan(connection, catalog, request);
 
@@ -513,19 +524,20 @@ class DorisDdlEngineTest {
         when(result.getString(2)).thenReturn(ddl);
     }
 
-    private DorisDdlRequest request(
-            DorisDataModelEnum model,
-            DorisPublishModeEnum mode,
-            DorisDataModelEnum previousModel,
+    private DdlRequest request(
+            DorisTableModel model,
+            DdlPublishMode mode,
+            DorisTableModel previousModel,
             java.util.List<String> previousKeys,
             java.util.List<DdlColumnDefinition> columns) {
-        return new DorisDdlRequest(
+        return new DdlRequest(
                 new DdlTableDefinition("warehouse", "dwd_order_detail", "订单明细", columns),
-                model, mode, previousModel, previousKeys, 1);
+                mode,
+                new DorisOptions(model, previousModel, previousKeys, 1, null));
     }
 
     private DdlColumnDefinition column(
-            String name, DimensionDataTypeEnum type, Integer length,
+            String name, DdlDataType type, Integer length,
             Integer precision, Integer scale, boolean nullable) {
         return new DdlColumnDefinition(
                 name, type, length, precision, scale, null,
