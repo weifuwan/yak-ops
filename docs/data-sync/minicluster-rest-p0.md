@@ -67,6 +67,22 @@ Flink 1.20.3 的 `metrics.fetcher.update-interval` 默认值为 10 秒。REST �
 
 P0 测试将该参数设为 100ms，以缩短测试等待时间。生产环境需要结合指标采集周期和 JobManager 负载显式确定该参数；如果 Yak-OPS 仍采用 5 秒采集周期，不能忽略默认 10 秒的刷新间隔，否则页面可能连续读到相同快照。
 
+
+## P0 验证结果
+
+<badge color="success">验证通过</badge>
+
+GitHub Actions（JDK 17）实际执行结果：
+
+- MiniCluster 使用随机端口启动，`MiniClusterClient.getWebInterfaceURL()` 能取得可访问的 REST 地址。
+- Job 运行期间可以读取 Source 的 `numSnapshotRecords` 和 Sink 的 `numCommittedRecords`。
+- Job 进入 FINISHED、CANCELED、FAILED 后，REST 状态和最后采集到的自定义 Counter 仍可读取。
+- MiniCluster 不会因 Job 终态自动关闭；调用方显式执行 `closeAsync()` 后才释放。
+
+测试结果：3 tests，0 failures，0 errors，0 skipped。CDC Tests 和 Backend Formatting 两个 GitHub Actions 工作流均通过。
+
+这证明“由 Yak-OPS 显式持有 MiniCluster 生命周期 + 使用 Flink REST 采集运行中及终态指标”的技术路径可行。验证使用的是自定义 Source/Sink Counter，真实 CDC Connector 指标接入仍属于后续阶段。
+
 ## P1 设计输入
 
 如果 P0 测试通过，P1 应采用“由 Yak-OPS 显式拥有 MiniCluster 生命周期”的执行方式：
