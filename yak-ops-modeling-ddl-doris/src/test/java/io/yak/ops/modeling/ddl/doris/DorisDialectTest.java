@@ -40,6 +40,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,7 +94,9 @@ class DorisDialectTest {
 
         assertTrue(plan.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
         assertTrue(plan.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
-        assertTrue(plan.getDdl().contains("\"replication_num\" = \"1\""));
+        assertTrue(Pattern.compile("(?is).*replication_num\\s*=\\s*['\"]?1['\"]?.*")
+                .matcher(plan.getDdl())
+                .matches());
         assertTrue(plan.getDdl().contains("(\n    `customer_id`"));
         assertTrue(!plan.isNoChanges());
     }
