@@ -179,12 +179,14 @@ class DorisDialectTest {
         StatementExecutor executor = mock(StatementExecutor.class);
         DdlGenerator generator = new DdlGenerator(
                 new TableSchemaBuilder(), new DdlFormatter());
-        DorisDialect testEngine = new DorisDialect(
+        DorisDialect dialect = new DorisDialect(
                 new ModelValidator(new TableSchemaBuilder()),
                 mock(SchemaPlanner.class),
                 executor,
                 inspector,
                 generator);
+        DdlEngine testEngine = new JdbcDdlEngine(
+                new DdlDialectRegistry(Collections.singletonList(dialect)));
         DdlRequest request = request(
                 DorisTableModel.DUPLICATE,
                 DdlPublishMode.DROP_RECREATE,
