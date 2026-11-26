@@ -18,6 +18,9 @@ const taskEditor = read("../apps/web/app/data-development/task-editor/task-edito
 const frame = read("../apps/web/app/data-development/task-editor/node-editor-frame.tsx");
 const commonPanel = read("../apps/web/app/data-development/task-editor/common/node-resource-params/panel.tsx");
 const commonSettings = read("../apps/web/app/data-development/task-editor/task-common-settings-section.tsx");
+const javaSettings = read("../apps/web/app/data-development/task-editor/java-run-config-panel.tsx");
+const executionResourceFields = read("../apps/web/app/data-development/task-editor/execution-resource-fields.tsx");
+const environmentService = read("../apps/web/service/environment/index.ts");
 const panelResizer = read("../apps/web/app/data-development/layout/panel-resizer.tsx");
 
 test("Shell serialization keeps DolphinScheduler resourceList and localParams contract", () => {
@@ -51,6 +54,23 @@ test("Shell uses the shared script editor and shared execution hook", () => {
   assert.match(commonSettings, /title="执行策略"/);
   assert.match(commonSettings, /title="超时设置"/);
   assert.match(commonSettings, /title="资源限制"/);
+});
+
+test("Node execution resources use selectable worker groups and compatible environments", () => {
+  for (const settings of [commonSettings, javaSettings]) {
+    assert.match(settings, /ExecutionResourceFields/);
+    assert.doesNotMatch(settings, /label="Worker Group"|label="Environment Code"/);
+    assert.doesNotMatch(settings, /Environment Code 填/);
+  }
+
+  assert.match(executionResourceFields, /label="Worker 分组"/);
+  assert.match(executionResourceFields, /label="执行环境"/);
+  assert.match(executionResourceFields, /listWorkerGroupNames/);
+  assert.match(executionResourceFields, /listAllEnvironments/);
+  assert.match(executionResourceFields, /environment\.workerGroups/);
+  assert.match(executionResourceFields, /isEnvironmentAvailableForWorkerGroup/);
+  assert.match(executionResourceFields, /onChange\(nextWorkerGroup, nextEnvironmentCode\)/);
+  assert.match(environmentService, /query-environment-list/);
 });
 
 test("Shared script editor registers both languages with their own indentation defaults", () => {
