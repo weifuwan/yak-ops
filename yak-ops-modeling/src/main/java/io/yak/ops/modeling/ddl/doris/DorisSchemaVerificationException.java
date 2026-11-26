@@ -10,6 +10,12 @@ public class DorisSchemaVerificationException extends IllegalStateException {
         this.physicalSchema = physicalSchema;
     }
 
+    public DorisSchemaVerificationException(
+            String message, String physicalSchema, Throwable cause) {
+        super(message, cause);
+        this.physicalSchema = physicalSchema;
+    }
+
     /** Returns the observed SHOW CREATE TABLE snapshot, when it was readable. */
     public String getPhysicalSchema() {
         return physicalSchema;
