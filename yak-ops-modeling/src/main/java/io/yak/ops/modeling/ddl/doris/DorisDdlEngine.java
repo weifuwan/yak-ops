@@ -88,7 +88,7 @@ public class DorisDdlEngine {
                 Thread.currentThread().interrupt();
                 throw new DorisSchemaVerificationException(
                         "Doris DDL 已执行，但物理结构校验被中断。请先检查目标表，不要直接重复删除重建。",
-                        lastResult.getPhysicalSchema(),
+                        lastResult == null ? null : lastResult.getPhysicalSchema(),
                         ex);
             }
         }
