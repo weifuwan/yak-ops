@@ -27,6 +27,7 @@ public class DataSyncInstanceVO {
     private List<DataSyncInstanceAction> availableActions;
     private boolean recoveryPointAvailable;
     private Date recoveryPointTime;
+    private Integer recoveryPointUsedByWorkflowInstanceId;
     private String recoveryUnavailableReason;
     private Date startTime;
     private Date endTime;
