@@ -8,16 +8,34 @@ from dataclasses import dataclass
 from typing import Any
 
 from agentscope.event import ModelCallEndEvent
+from agentscope.message import SystemMsg, UserMsg
 from agentscope.middleware import ReplyBudgetControlMiddleware
 
 # AgentScope's base `count_tokens` estimates input size as bytes / 4; keep the
 # startup gate consistent with the number the framework will use later.
 _BYTES_PER_TOKEN = 4
 
+# The compression threshold as a ratio of the model window. Shared by the
+# builder and the context payload so the UI and the agent agree.
+CONTEXT_TRIGGER_RATIO = 0.7
+
+# The cache-aware middleware parks the *raw* usage of the last model call here.
+# Downstream events stay billing-adjusted (non-cached input), so this key is the
+# only place the full prompt size and cache reads remain visible.
+RAW_USAGE_KEY = "yak_context_usage"
+
 # The compression tool is registered by the Agent after construction, so its
 # schema cannot be measured here; this conservative allowance covers its small
 # policy + description.
 COMPRESSION_TOOL_TOKENS = 200
+
+_CONTEXT_LABELS = {
+    "messages": "消息",
+    "tools": "系统工具",
+    "skills": "技能",
+    "systemPrompt": "系统提示词",
+    "other": "其他",
+}
 
 
 class ContextBudgetError(RuntimeError):
@@ -94,6 +112,141 @@ def enforce_context_budget(report: BudgetReport) -> None:
     )
 
 
+def cache_hit_rate(raw_usage: dict[str, Any] | None) -> float:
+    """Share of prompt tokens served from the provider cache (0..1)."""
+    raw = raw_usage or {}
+    input_tokens = max(0, int(raw.get("inputTokens") or 0))
+    cache_tokens = max(0, int(raw.get("cacheInputTokens") or 0))
+    if input_tokens <= 0:
+        return 0.0
+    return round(min(1.0, cache_tokens / input_tokens), 4)
+
+
+def context_payload(
+    *,
+    used_tokens: int,
+    limit_tokens: int,
+    average_cache_hit_rate: float = 0.0,
+    compressed: bool = False,
+    breakdown: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build the frontend-facing context capacity payload."""
+    used = max(0, int(used_tokens))
+    limit = max(0, int(limit_tokens))
+    return {
+        "usedTokens": used,
+        "limitTokens": limit,
+        "triggerTokens": int(limit * CONTEXT_TRIGGER_RATIO),
+        "ratio": round(min(1.0, used / limit), 4) if limit else 0.0,
+        "averageCacheHitRate": round(max(0.0, min(1.0, float(average_cache_hit_rate))), 4),
+        "compressed": bool(compressed),
+        "breakdown": list(breakdown or []),
+    }
+
+
+async def _count(model: Any, messages: list[Any], tools: list[dict] | None = None) -> int:
+    return max(0, int(await model.count_tokens(messages=messages, tools=tools) or 0))
+
+
+async def describe_context(
+    agent: Any,
+    *,
+    used_tokens: int,
+    limit_tokens: int,
+    average_cache_hit_rate: float = 0.0,
+    cache: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    """Describe where the model-visible context is spent.
+
+    The fixed inputs (tool schemas, skills, system prompt, summary) are counted
+    with the model's own counter; the conversation is the remainder of the real
+    prompt size. That keeps the breakdown exact and avoids re-scanning a large
+    context on every model call.
+    """
+    state = getattr(agent, "state", None)
+    toolkit = getattr(agent, "toolkit", None)
+    model = getattr(agent, "model", None)
+    if state is None or toolkit is None or model is None:
+        raise ValueError("agent does not expose state/toolkit/model")
+
+    groups = getattr(getattr(state, "tool_context", None), "activated_groups", None)
+    cached = cache or {}
+    if {"tools", "skills", "systemPrompt"} <= cached.keys():
+        tool_tokens = cached["tools"]
+        skill_tokens = cached["skills"]
+        system_tokens = cached["systemPrompt"]
+    else:
+        tool_schemas = await toolkit.get_tool_schemas(groups)
+        skill_instructions = await toolkit.get_skill_instructions(groups)
+        system_prompt = str(getattr(agent, "_system_prompt", "") or "")
+        tool_tokens = await _count(model, [], tool_schemas)
+        skill_tokens = (
+            await _count(model, [SystemMsg(name="system", content=skill_instructions)])
+            if skill_instructions
+            else 0
+        )
+        system_tokens = await _count(model, [SystemMsg(name="system", content=system_prompt)])
+        if cache is not None:
+            cache.update(tools=tool_tokens, skills=skill_tokens, systemPrompt=system_tokens)
+
+    summary = getattr(state, "summary", "")
+    other_tokens = await _count(model, [UserMsg(name="user", content=summary)]) if summary else 0
+    fixed = tool_tokens + skill_tokens + system_tokens + other_tokens
+
+    used = max(0, int(used_tokens))
+    if used <= 0:
+        # No model call yet: estimate the conversation too, so a freshly
+        # created session still reports its base prompt.
+        message_tokens = await _count(model, list(getattr(state, "context", []) or []))
+        used = fixed + message_tokens
+        alloc = {
+            "messages": message_tokens,
+            "tools": tool_tokens,
+            "skills": skill_tokens,
+            "systemPrompt": system_tokens,
+            "other": other_tokens,
+        }
+    elif fixed < used:
+        alloc = {
+            "messages": used - fixed,
+            "tools": tool_tokens,
+            "skills": skill_tokens,
+            "systemPrompt": system_tokens,
+            "other": other_tokens,
+        }
+    else:
+        # Tiny prompt where the fixed inputs alone exceed the reported size:
+        # scale them down so the breakdown still sums to the real total.
+        scale = used / fixed if fixed else 0
+        alloc = {
+            "messages": 0,
+            "tools": int(round(tool_tokens * scale)),
+            "skills": int(round(skill_tokens * scale)),
+            "systemPrompt": int(round(system_tokens * scale)),
+            "other": int(round(other_tokens * scale)),
+        }
+        alloc["other"] = max(0, alloc["other"] + used - sum(alloc.values()))
+        if sum(alloc.values()) != used:
+            alloc["tools"] = max(0, alloc["tools"] + used - sum(alloc.values()))
+
+    breakdown = [
+        {
+            "key": key,
+            "label": _CONTEXT_LABELS[key],
+            "tokens": alloc[key],
+            "ratio": round(alloc[key] / used, 4) if used else 0.0,
+        }
+        for key in _CONTEXT_LABELS
+    ]
+    return context_payload(
+        used_tokens=used,
+        limit_tokens=limit_tokens,
+        average_cache_hit_rate=average_cache_hit_rate,
+        compressed=bool(summary),
+        breakdown=breakdown,
+    )
+
+
 class CacheAwareReplyBudgetControlMiddleware(ReplyBudgetControlMiddleware):
     """Reply budget that bills only non-cached input tokens.
 
@@ -121,6 +274,19 @@ class CacheAwareReplyBudgetControlMiddleware(ReplyBudgetControlMiddleware):
         async def billable_events(**kwargs: Any) -> AsyncGenerator[Any, None]:
             async for event in next_handler(**kwargs):
                 if isinstance(event, ModelCallEndEvent):
+                    # Keep the raw values for the context panel before the
+                    # billing-adjusted copy is forwarded to the rest of the
+                    # chain (input_tokens includes cache reads by definition).
+                    middle_context = getattr(getattr(agent, "state", None), "middle_context", None)
+                    if isinstance(middle_context, dict):
+                        middle_context[RAW_USAGE_KEY] = {
+                            "inputTokens": max(0, int(event.input_tokens or 0)),
+                            "outputTokens": max(0, int(event.output_tokens or 0)),
+                            "cacheInputTokens": max(0, int(event.cache_input_tokens or 0)),
+                            "cacheCreationInputTokens": max(
+                                0, int(event.cache_creation_input_tokens or 0)
+                            ),
+                        }
                     event = event.model_copy(
                         update={
                             "input_tokens": max(0, event.input_tokens - event.cache_input_tokens),
