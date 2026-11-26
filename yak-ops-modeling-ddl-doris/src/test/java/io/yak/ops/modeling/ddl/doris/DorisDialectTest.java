@@ -392,12 +392,13 @@ class DorisDialectTest {
                 new DdlTableDefinition("warehouse", "dwd_order_detail", "订单明细",
                         Collections.singletonList(column(
                                 "customer_id", DdlDataType.BIGINT, null, null, null, true))),
-                DorisTableModel.DUPLICATE,
                 DdlPublishMode.INCREMENTAL,
-                DorisTableModel.DUPLICATE,
-                Collections.singletonList("customer_id"),
-                1,
-                "CREATE TABLE old_schema (...) PROPERTIES (\"replication_num\" = \"3\")");
+                new DorisOptions(
+                        DorisTableModel.DUPLICATE,
+                        DorisTableModel.DUPLICATE,
+                        Collections.singletonList("customer_id"),
+                        1,
+                        "CREATE TABLE old_schema (...) PROPERTIES (\"replication_num\" = \"3\")"));
 
         DdlPlan plan = engine.plan(session, request);
 
