@@ -233,6 +233,40 @@ class DorisDdlEngineTest {
     }
 
     @Test
+    void shouldReportTheExactPhysicalFieldTypeMismatch() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTableDdl(
+                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
+                        + "`customer_id` INT NOT NULL"
+                        + ") DUPLICATE KEY(`customer_id`) "
+                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
+                        + "PROPERTIES (\"replication_num\" = \"1\")");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "INT", Types.INTEGER, 10, 0, false, 1, false, null)));
+
+        DdlTableDefinition table = new DdlTableDefinition(
+                "warehouse",
+                "dwd_order_detail",
+                "订单明细",
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, false)));
+        DorisSchemaInspector.VerificationResult result = new DorisSchemaInspector().verify(
+                connection,
+                catalog,
+                table,
+                DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                false);
+
+        assertFalse(result.isMatched());
+        assertTrue(result.getSummary().contains("字段类型不一致: customer_id"));
+        assertTrue(result.getSummary().contains("模型期望 BIGINT"));
+        assertTrue(result.getSummary().contains("Doris 实际为 INT"));
+    }
+
+    @Test
     void shouldTreatNullabilityChangesAsIncompatibleSchemaChanges() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
         mockShowCreateTable("DUPLICATE");
