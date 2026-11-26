@@ -13,6 +13,6 @@ public interface DataSyncExecutionReportMapper extends BaseMapper<DataSyncExecut
     DataSyncExecutionReport queryByExecutionId(@Param("executionId") String executionId);
 
     @Select("SELECT * FROM t_yak_ops_data_sync_execution_report "
-            + "WHERE task_instance_id = #{taskInstanceId} ORDER BY update_time DESC, id DESC LIMIT 1")
+            + "WHERE task_instance_id = #{taskInstanceId} ORDER BY submitted_at DESC, create_time DESC, id DESC LIMIT 1")
     DataSyncExecutionReport queryLatestByTaskInstanceId(@Param("taskInstanceId") int taskInstanceId);
 }
