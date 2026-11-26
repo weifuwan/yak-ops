@@ -46,6 +46,7 @@ def _build_middleware(settings: Settings, workspace: Path) -> YakReMeMiddleware:
         workspace_dir=str(workspace),
         parameters=parameters,
         budget_tokens=settings.llm_memory_budget_tokens,
+        profile_budget_tokens=settings.llm_profile_budget_tokens,
         queue_size=settings.memory_write_queue,
         search_timeout=settings.memory_search_timeout_seconds,
         write_timeout=settings.memory_write_timeout_seconds,

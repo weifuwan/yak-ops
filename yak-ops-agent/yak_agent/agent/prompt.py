@@ -42,8 +42,9 @@ def compose_system_prompt(
     prompt_dir: Path = DEFAULT_PROMPT_DIR,
     include_ptc: bool = False,
     include_workspace: bool = False,
+    profile: str | None = None,
 ) -> str:
-    """Compose core + active domain fragments + optional sections."""
+    """Compose core + active domain fragments + optional sections + profile."""
     parts = [load_core_prompt(prompt_dir)]
     seen: set[str] = set()
     for domain in domains:
@@ -55,6 +56,8 @@ def compose_system_prompt(
         parts.append(load_section(prompt_dir, "ptc"))
     if include_workspace:
         parts.append(load_section(prompt_dir, "workspace"))
+    if profile:
+        parts.append(profile)
     return "\n\n".join(parts)
 
 

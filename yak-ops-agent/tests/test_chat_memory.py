@@ -21,6 +21,7 @@ class FakeMemory:
     def __init__(self, hint: str | None = "历史记忆") -> None:
         self.hint = hint
         self.queries: list[str] = []
+        self.remembers: list[str] = []
         self.writes: list[tuple[str, list]] = []
         self.began = 0
         self.ended = 0
@@ -30,6 +31,9 @@ class FakeMemory:
 
     def end_turn(self) -> None:
         self.ended += 1
+
+    def remember(self, text: str) -> None:
+        self.remembers.append(text)
 
     async def retrieve(self, query: str) -> str | None:
         self.queries.append(query)
@@ -96,6 +100,7 @@ class TurnMemoryTests(unittest.TestCase):
         asyncio.run(chat_service.run_turn(session, "我只看 FAILURE", _forward))
 
         self.assertEqual(memory.queries, ["我只看 FAILURE"])
+        self.assertEqual(memory.remembers, ["我只看 FAILURE"])
         hints = [m for m in agent.state.context if getattr(m, "name", None) == "memory"]
         self.assertEqual(len(hints), 1)
         self.assertIsNot(hints[0], old_hint)
