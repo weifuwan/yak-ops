@@ -43,10 +43,10 @@ public class DataSyncExecutionCoordinator {
     }
 
     public DataSyncExecutionCoordinator(
-            TaskExecutionContext context,
-            DataSyncExecutionService executionService,
-            DataSyncMetricsService metricsService,
-            DataSyncReportPublisher reportPublisher) {
+                                          TaskExecutionContext context,
+                                          DataSyncExecutionService executionService,
+                                          DataSyncMetricsService metricsService,
+                                          DataSyncReportPublisher reportPublisher) {
         this.context = context;
         this.executionService = executionService;
         this.metricsService = metricsService;
@@ -148,7 +148,8 @@ public class DataSyncExecutionCoordinator {
     }
 
     private DataSyncExecutionSnapshot collectOrReuse(
-            DataSyncExecutionHandle current, DataSyncExecutionSnapshot previous) {
+                                                       DataSyncExecutionHandle current,
+                                                       DataSyncExecutionSnapshot previous) {
         try {
             DataSyncExecutionSnapshot collected = metricsService.collect(current);
             if (previous == null) {
@@ -197,11 +198,11 @@ public class DataSyncExecutionCoordinator {
     }
 
     private void publish(
-            DataSyncExecutionHandle current,
-            long sequence,
-            String reportType,
-            DataSyncExecutionState state,
-            DataSyncExecutionSnapshot snapshot) {
+                          DataSyncExecutionHandle current,
+                          long sequence,
+                          String reportType,
+                          DataSyncExecutionState state,
+                          DataSyncExecutionSnapshot snapshot) {
         DataSyncExecutionMetrics summary = DataSyncExecutionMetrics.builder()
                 .readRecords(snapshot.getReadRecords())
                 .snapshotRecords(snapshot.getSnapshotRecords())
