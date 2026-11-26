@@ -69,7 +69,12 @@ export function TaskSummary({ task, updatedBy, dataSources, onCopyTaskId }: Prop
           </div>
         </BasicInfoField>
         <BasicInfoField label="同步方案">
-          MySQL · {scopeLabel} · {modeLabel}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-md bg-[#344054] px-2 py-0.5 text-xs font-medium text-white">
+              {scopeLabel}
+            </span>
+            <span>{modeLabel}</span>
+          </div>
         </BasicInfoField>
         <BasicInfoField label="同步范围">
           {task.scope === "DATABASE" ? "整库" : task.tableMappings.length + " 张表"}

@@ -18,6 +18,7 @@ const executionActions = readFileSync(
 const detailPage = readFileSync(join(root, "../detail/index.tsx"), "utf8");
 const executionTabs = readFileSync(join(root, "../detail/execution-tabs.tsx"), "utf8");
 const executionDetail = readFileSync(join(root, "../execution/execution-detail.tsx"), "utf8");
+const taskSummary = readFileSync(join(root, "../detail/task-summary.tsx"), "utf8");
 const executionLifecycle = readFileSync(
   join(root, "../../../service/data-sync/execution.ts"),
   "utf8",
@@ -160,4 +161,13 @@ test("switching instances uses a layout-matched skeleton in the execution status
   assert.ok(statusPanel.includes("selectedLoading ? ("));
   assert.ok(statusPanel.includes("<DataSyncExecutionDetailSkeleton controls={controls} />"));
   assert.doesNotMatch(statusPanel, /Spinner/);
+});
+
+
+test("task detail sync plan removes datasource prefix and highlights scope without a dot separator", () => {
+  assert.doesNotMatch(taskSummary, /MySQL\\s*·/);
+  assert.match(taskSummary, /bg-\\[#344054\\][^"]*text-white/);
+  assert.match(taskSummary, /<span>\\{scopeLabel\\}<\\/span>/);
+  assert.match(taskSummary, /<span>\\{modeLabel\\}<\\/span>/);
+  assert.doesNotMatch(taskSummary, /\\{scopeLabel\\}\\s*·/);
 });
