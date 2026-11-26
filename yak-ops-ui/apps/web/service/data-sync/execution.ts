@@ -1,7 +1,7 @@
 import type {
   TaskInstanceDefinitionRecord, TaskInstanceRecord, TaskInstanceStatus,
 } from "../task-execution/types";
-import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
+import type { DataSyncInstanceActionMetadata, DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
 import { canStopWorkflow, type WorkflowExecutionStatus } from "./workflow-state";
 import {
   pipelineDatabaseRoute,
@@ -48,7 +48,7 @@ export const getCancelableDataSyncWorkflowInstanceId = (
 };
 
 export function toDataSyncInstanceRecord(
-  instance: TaskInstanceRecord,
+  instance: TaskInstanceRecord & DataSyncInstanceActionMetadata,
   version: TaskInstanceDefinitionRecord,
 ): DataSyncInstanceRecord {
   if (instance.taskType !== "DATA_SYNC" ||
@@ -97,6 +97,12 @@ export function toDataSyncInstanceRecord(
     startTime: instance.startTime ?? undefined,
     finishTime: instance.endTime ?? undefined,
     errorMessage: instance.failureCode ?? undefined,
+    workflowStatus: instance.workflowStatus,
+    availableActions: instance.availableActions ?? [],
+    recoveryPointAvailable: instance.recoveryPointAvailable ?? false,
+    recoveryPointTime: instance.recoveryPointTime,
+    recoveryPointUsedByWorkflowInstanceId: instance.recoveryPointUsedByWorkflowInstanceId,
+    recoveryUnavailableReason: instance.recoveryUnavailableReason,
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
       tableMappings, scope, steps,
