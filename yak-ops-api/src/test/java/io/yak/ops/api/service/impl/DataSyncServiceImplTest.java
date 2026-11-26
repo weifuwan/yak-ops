@@ -783,6 +783,29 @@ class DataSyncServiceImplTest {
     }
 
     @Test
+    void failedStopKeepsAFailedRecoveryPointForAuditAndRetry() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.RUNNING_EXECUTION);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
+        when(dataSyncRecoveryPointDao.insertPending(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
+            DataSyncRecoveryPoint point = invocation.getArgument(0);
+            point.setId(56L);
+            return true;
+        });
+        when(taskInstanceService.stopTaskWithSavepoint(user, PROJECT_CODE, 42))
+                .thenThrow(new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "worker stop failed"));
+        when(dataSyncRecoveryPointDao.markFailed(56L)).thenReturn(true);
+
+        assertThrows(ServiceException.class,
+                () -> service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP));
+
+        verify(dataSyncRecoveryPointDao).markFailed(56L);
+    }
+
+    @Test
     void retryingStopReturnsExistingRecoveryPointWithoutStoppingTwice() {
         User user = testUser();
         TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
@@ -865,6 +888,42 @@ class DataSyncServiceImplTest {
     }
 
     @Test
+    void recoverFailureUsesLatestCheckpointAndLinksTheNewExecution() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.NEED_FAULT_TOLERANCE);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.FAILURE);
+        DataSyncRecoveryPoint point = availableCheckpoint(57L);
+        WorkflowDefinition definition = workflowVersion(5);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(eq(101L), any(int[].class)))
+                .thenReturn(Collections.emptyList());
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(point);
+        when(workflowDefinitionService.queryWorkflowDefinitionThrowExceptionIfNotFound(101L, 5))
+                .thenReturn(definition);
+        when(executorService.triggerDataSyncWorkflowInstance(
+                eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition), any()))
+                .thenReturn(101);
+        when(dataSyncRecoveryPointDao.markUsed(57L, 101)).thenReturn(true);
+        when(dataSyncRecoveryPointDao.markAllAvailableSuperseded(42)).thenReturn(true);
+
+        DataSyncInstanceActionResultVO result =
+                service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RECOVER_FAILURE);
+
+        assertEquals(101, result.getNewWorkflowInstanceId());
+        verify(executorService).triggerDataSyncWorkflowInstance(
+                eq(user),
+                eq(PROJECT_CODE),
+                eq(workflow),
+                eq(definition),
+                argThat(params -> "file:///yak-ops/checkpoints/chk-12"
+                        .equals(params.get(DataSyncRuntimeOptions.RESTORE_PATH))
+                        && point.getRecoveryPointId().equals(params.get(DataSyncRuntimeOptions.RECOVERY_POINT_ID))));
+        verify(dataSyncRecoveryPointDao).markUsed(57L, 101);
+        verify(dataSyncRecoveryPointDao).markAllAvailableSuperseded(42);
+    }
+
+    @Test
     void failoverBlocksManualRecoveryEvenWhenSavepointExists() {
         User user = testUser();
         TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.NEED_FAULT_TOLERANCE);
@@ -921,6 +980,25 @@ class DataSyncServiceImplTest {
         definition.setVersion(version);
         definition.setReleaseState(ReleaseState.OFFLINE);
         return definition;
+    }
+
+    private static DataSyncRecoveryPoint availableCheckpoint(long id) {
+        DataSyncRecoveryPoint point = new DataSyncRecoveryPoint();
+        point.setId(id);
+        point.setTaskInstanceId(42);
+        point.setProjectCode(PROJECT_CODE);
+        point.setTaskCode(99L);
+        point.setTaskDefinitionVersion(4);
+        point.setRuntimeMode("LOCAL_MINICLUSTER");
+        point.setExecutionId("execution-1");
+        point.setJobId("job-1");
+        point.setRecoveryPointId("execution-1:checkpoint:12");
+        point.setCheckpointId("12");
+        point.setRecoveryType("CHECKPOINT");
+        point.setRestorePath("file:///yak-ops/checkpoints/chk-12");
+        point.setCompletedAt(new java.util.Date());
+        point.setState("AVAILABLE");
+        return point;
     }
 
     private static DataSyncRecoveryPoint availableRecoveryPoint(long id) {
