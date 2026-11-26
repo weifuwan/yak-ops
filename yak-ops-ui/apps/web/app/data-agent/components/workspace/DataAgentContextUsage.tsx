@@ -148,6 +148,7 @@ function ContextUsageDetails({
     left: position.left,
     width: position.width,
     maxHeight: position.maxHeight,
+    transformOrigin: position.placement === "above" ? "bottom right" : "top right",
   };
   const breakdown = context ? orderedBreakdown(context.breakdown) : [];
   const usedRatio = context ? clampRatio(context.ratio) : 0;
@@ -352,7 +353,7 @@ export function DataAgentContextUsage({
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .yak-context-tooltip { animation: yakContextTooltipIn 150ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-        .yak-context-popover { animation: yakContextPopoverIn 190ms cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: bottom right; }
+        .yak-context-popover { animation: yakContextPopoverIn 190ms cubic-bezier(0.16, 1, 0.3, 1) both;; }
         @media (prefers-reduced-motion: reduce) {
           .yak-context-tooltip, .yak-context-popover { animation: none !important; }
         }
