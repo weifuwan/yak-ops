@@ -6,6 +6,7 @@ import io.yak.ops.api.dto.workflowInstance.WorkflowExecuteResponse;
 import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.common.enums.TaskDependType;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 
 import java.util.List;
