@@ -155,10 +155,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         Date startedAt = null;
         DimensionDorisPublishPO publish = null;
 
-        try (DdlSession context = sessionFactory.open(datasource)) {
+        try (DdlSession context = sessionFactory.open(new DdlConnectionInfo(datasource.getType().name(), datasource.getConnectionParams()))) {
             database = context.getDatabase();
             DdlRequest request = buildDdlRequest(table, fields, dto, database);
-            DdlPlan plan = ddlEngine.plan(context.getConnection(), context.getCatalog(), request);
+            DdlPlan plan = ddlEngine.plan(context, request);
             if (plan.isRequiresConfirmation() && !Boolean.TRUE.equals(dto.getConfirmDropColumns())) {
                 throw new IllegalArgumentException("增量发布包含删除字段操作，需要二次确认");
             }
