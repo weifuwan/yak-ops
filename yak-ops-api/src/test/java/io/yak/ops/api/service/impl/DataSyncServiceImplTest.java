@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -69,6 +70,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -109,6 +111,12 @@ class DataSyncServiceImplTest {
 
     @InjectMocks
     private DataSyncServiceImpl service;
+
+    @BeforeEach
+    void stubTaskDefinitionActionLock() {
+        lenient().when(taskDefinitionDao.queryByCodeForUpdate(anyLong()))
+                .thenAnswer(invocation -> taskDefinition(invocation.getArgument(0)));
+    }
 
     @Test
     void executionStatsAggregateProjectScopedDailyStates() {

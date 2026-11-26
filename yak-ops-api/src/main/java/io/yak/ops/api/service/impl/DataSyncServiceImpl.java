@@ -537,7 +537,13 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         }
 
         TaskInstance instance = taskInstanceDao.queryByIdForUpdate(instanceId);
-        if (instance == null || instance.getProjectCode() != projectCode || !TASK_TYPE.equals(instance.getTaskType())) {
+        if (instance == null || instance.getProjectCode() != projectCode || !TASK_TYPE.equals(instance.getTaskType())
+                || instance.getTaskCode() == null) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+        TaskDefinition lockedDefinition = taskDefinitionDao.queryByCodeForUpdate(instance.getTaskCode());
+        if (lockedDefinition == null || lockedDefinition.getProjectCode() != projectCode
+                || !TASK_TYPE.equals(lockedDefinition.getTaskType())) {
             throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
         }
         WorkflowInstance workflow = instance.getWorkflowInstanceId() > 0
@@ -546,8 +552,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         DataSyncRecoveryPoint recoveryPoint = instance.getTaskExecuteType() == TaskExecuteType.STREAM
                 ? dataSyncRecoveryPointDao.queryByTaskInstanceId(instanceId)
                 : null;
-        boolean recoveryPointAvailable = recoveryPoint != null
-                && "AVAILABLE".equals(recoveryPoint.getState());
+        boolean recoveryPointAvailable = hasUsableRecoveryPoint(recoveryPoint);
 
         List<DataSyncInstanceAction> availableActions =
                 DataSyncInstanceActionPolicy.availableActions(instance, workflow, recoveryPointAvailable);
@@ -921,8 +926,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .status(instance.getState())
                 .workflowStatus(workflow == null ? null : workflow.getState())
                 .availableActions(availableActions)
-                .recoveryPointAvailable(recoveryPoint != null
-                        && "AVAILABLE".equals(recoveryPoint.getState()))
+                .recoveryPointAvailable(hasUsableRecoveryPoint(recoveryPoint))
                 .recoveryPointTime(recoveryPoint == null ? null : recoveryPoint.getCreatedAt())
                 .recoveryPointUsedByWorkflowInstanceId(recoveryPoint == null
                         ? null : recoveryPoint.getUsedByWorkflowInstanceId())
@@ -937,6 +941,42 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                         ? instance.getWorkflowInstanceId()
                         : null)
                 .build();
+    }
+
+    private static boolean hasUsableRecoveryPoint(DataSyncRecoveryPoint recoveryPoint) {
+        return recoveryPoint != null
+                && "AVAILABLE".equals(recoveryPoint.getState())
+                && recoveryPoint.getRestorePath() != null
+                && !recoveryPoint.getRestorePath().trim().isEmpty();
+    }
+
+    private static String recoveryUnavailableReason(
+            boolean recoveryRequired, DataSyncRecoveryPoint recoveryPoint) {
+        if (!recoveryRequired) {
+            return null;
+        }
+        if (recoveryPoint == null) {
+            return "当前实例没有可用恢复点";
+        }
+        if ("CREATING".equals(recoveryPoint.getState())) {
+            return "恢复点正在生成";
+        }
+        if ("FAILED".equals(recoveryPoint.getState())) {
+            return "恢复点生成失败";
+        }
+        if ("USED".equals(recoveryPoint.getState())) {
+            return "恢复点已使用";
+        }
+        if ("SUPERSEDED".equals(recoveryPoint.getState())) {
+            return "恢复点已被新实例替代";
+        }
+        if ("EXPIRED".equals(recoveryPoint.getState())) {
+            return "恢复点已过期";
+        }
+        if ("AVAILABLE".equals(recoveryPoint.getState()) && !hasUsableRecoveryPoint(recoveryPoint)) {
+            return "恢复点路径不可用";
+        }
+        return "当前实例没有可用恢复点";
     }
 
     private DataSource[] validate(String name, JsonNode parameters, long projectCode) {

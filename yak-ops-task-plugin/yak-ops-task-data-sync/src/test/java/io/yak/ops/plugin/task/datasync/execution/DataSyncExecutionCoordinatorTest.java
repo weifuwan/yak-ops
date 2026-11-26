@@ -116,7 +116,7 @@ class DataSyncExecutionCoordinatorTest {
                 .collectedAt(300L)
                 .build();
 
-        when(executionService.submit(any(), any(), org.mockito.ArgumentMatchers.eq(42)))
+        when(executionService.submit(any(), any(), org.mockito.ArgumentMatchers.eq(42), isNull()))
                 .thenReturn(handle);
         when(executionService.queryState(handle)).thenReturn(DataSyncExecutionState.FINISHED);
         when(metricsService.collect(handle)).thenReturn(available, unavailable);
