@@ -109,6 +109,7 @@ export function SqlCodeEditor({
       theme: "vs",
       readOnly,
       automaticLayout: true,
+      fixedOverflowWidgets: true,
       minimap: { enabled: false },
       fontSize: 13,
       lineHeight: 22,
