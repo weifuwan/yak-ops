@@ -34,14 +34,13 @@ public class DataSyncRecoveryPointDaoImpl
     }
 
     @Override
-    public List<DataSyncRecoveryPoint> queryAvailableByTaskInstanceIds(List<Integer> taskInstanceIds) {
+    public List<DataSyncRecoveryPoint> queryByTaskInstanceIds(List<Integer> taskInstanceIds) {
         if (CollectionUtils.isEmpty(taskInstanceIds)) {
             return Collections.emptyList();
         }
         return mybatisMapper.selectList(
                 new QueryWrapper<DataSyncRecoveryPoint>()
                         .in("task_instance_id", taskInstanceIds)
-                        .eq("state", "AVAILABLE")
                         .orderByDesc("created_at"));
     }
 
