@@ -341,7 +341,7 @@ export function DataAgentContextUsage({
         aria-expanded={open}
         aria-disabled={!hasSession}
         className={
-          "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-[#f3f4f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b8b8b]/25 " +
+          "group relative grid size-8 shrink-0 cursor-pointer appearance-none place-items-center rounded-full border-0 p-0 leading-none transition-colors hover:bg-[#f3f4f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b8b8b]/25 " +
           (open ? "bg-[#f3f4f6]" : "")
         }
         onMouseEnter={showTooltip}
@@ -350,12 +350,14 @@ export function DataAgentContextUsage({
         onBlur={() => setHovered(false)}
         onClick={toggleDetails}
       >
-        <span
-          aria-hidden="true"
-          className="relative size-[21px] rounded-full"
-          style={{ background: ringBackground(context) }}
-        >
-          <span className="absolute inset-[3px] rounded-full bg-white" />
+        <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-full">
+          <span
+            aria-hidden="true"
+            className="relative block size-[21px] shrink-0 rounded-full"
+            style={{ background: ringBackground(context) }}
+          >
+            <span className="absolute inset-[3px] rounded-full bg-white" />
+          </span>
         </span>
       </button>
 
