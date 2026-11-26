@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.dao.entity.DataSyncExecutionReport;
+import io.yak.ops.dao.entity.DataSyncTableReport;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.repository.DataSyncExecutionReportDao;
 import io.yak.ops.dao.repository.DataSyncTableReportDao;
@@ -38,7 +40,7 @@ class DataSyncExecutionReportServiceImplTest {
 
     @Test
     void acceptsSnapshotForDataSyncTaskAndPersistsExecutionReport() {
-        when(taskInstanceDao.queryById(42))
+        when(taskInstanceDao.queryByIdForUpdate(42))
                 .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
         when(executionReportDao.queryByExecutionId("execution-1")).thenReturn(null);
 
@@ -110,6 +112,68 @@ class DataSyncExecutionReportServiceImplTest {
         assertTrue(ack.isAccepted());
         assertEquals("FINAL_ALREADY_ACCEPTED", ack.getResult());
         verify(executionReportDao, never()).updateById(any());
+    }
+
+    @Test
+    void locksTaskInstanceBeforeReadingExecutionReport() {
+        when(taskInstanceDao.queryByIdForUpdate(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1")).thenReturn(null);
+
+        service.acceptReport(request(1L, "SNAPSHOT"));
+
+        org.mockito.InOrder order = inOrder(taskInstanceDao, executionReportDao);
+        order.verify(taskInstanceDao).queryByIdForUpdate(42);
+        order.verify(executionReportDao).queryByExecutionId("execution-1");
+    }
+
+    @Test
+    void finalizedReportDoesNotFallBackToLatestTableMetrics() {
+        when(executionReportDao.queryLatestByTaskInstanceId(42))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .latestSequence(2L)
+                        .finalSequence(2L)
+                        .finalized(true)
+                        .build());
+        when(tableReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(java.util.Collections.singletonList(DataSyncTableReport.builder()
+                        .executionId("execution-1")
+                        .tableKey("orders")
+                        .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                        .finalMetricsJson(null)
+                        .build()));
+
+        assertTrue(service.getLatestReport(42).getTables().isEmpty());
+    }
+
+    @Test
+    void clearsTablesMissingFromTheCurrentSnapshot() {
+        when(taskInstanceDao.queryByIdForUpdate(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
+                        .latestSequence(1L)
+                        .finalized(false)
+                        .build());
+        DataSyncTableReport existing = DataSyncTableReport.builder()
+                .id(9L)
+                .executionId("execution-1")
+                .tableKey("orders")
+                .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                .build();
+        when(tableReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(java.util.Collections.singletonList(existing));
+
+        service.acceptReport(request(2L, "SNAPSHOT"));
+
+        verify(tableReportDao).updateById(org.mockito.ArgumentMatchers.argThat(table ->
+                table.getId().equals(9L) && table.getLatestMetricsJson() == null
+                        && table.getLatestSequence().equals(2L)));
     }
 
     private static DataSyncReportRequest request(long sequence, String reportType) {
