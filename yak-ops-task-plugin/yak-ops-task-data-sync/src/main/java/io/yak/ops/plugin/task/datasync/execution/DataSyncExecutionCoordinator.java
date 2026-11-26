@@ -44,18 +44,18 @@ public class DataSyncExecutionCoordinator {
     }
 
     public DataSyncExecutionCoordinator(
-            TaskExecutionContext context,
-            DataSyncExecutionService executionService,
-            DataSyncMetricsService metricsService,
-            DataSyncReportPublisher reportPublisher) {
+                                        TaskExecutionContext context,
+                                        DataSyncExecutionService executionService,
+                                        DataSyncMetricsService metricsService,
+                                        DataSyncReportPublisher reportPublisher) {
         this(context, () -> executionService, metricsService, reportPublisher);
     }
 
     public DataSyncExecutionCoordinator(
-            TaskExecutionContext context,
-            DataSyncExecutionServiceFactory executionServiceFactory,
-            DataSyncMetricsService metricsService,
-            DataSyncReportPublisher reportPublisher) {
+                                        TaskExecutionContext context,
+                                        DataSyncExecutionServiceFactory executionServiceFactory,
+                                        DataSyncMetricsService metricsService,
+                                        DataSyncReportPublisher reportPublisher) {
         this.context = context;
         this.executionServiceFactory = executionServiceFactory;
         this.metricsService = metricsService;
