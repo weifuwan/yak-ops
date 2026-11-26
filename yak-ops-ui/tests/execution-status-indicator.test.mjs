@@ -54,11 +54,12 @@ const yakUiStyles = readFileSync(
 );
 
 test("failure status icon uses the defined red danger token", () => {
-  assert.match(
-    indicator,
-    /FAILURE:\\s*\\{\\s*shape:\\s*"triangle-alert",\\s*colorClassName:\\s*"text-\\[var\\(--yak-components-danger-text\\)\\]"/,
+  assert.ok(
+    indicator.includes(
+      'FAILURE: {\\n    shape: "triangle-alert",\\n    colorClassName: "text-[var(--yak-components-danger-text)]",',
+    ),
   );
-  assert.match(yakUiStyles, /--yak-components-danger-text:\\s*#d92d20;/);
+  assert.ok(yakUiStyles.includes("--yak-components-danger-text: #d92d20;"));
 });
 
 test("execution status visuals use simple inline geometric SVG shapes", () => {
