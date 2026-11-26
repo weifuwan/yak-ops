@@ -2,6 +2,7 @@ import type {
   TaskInstanceDefinitionRecord, TaskInstanceRecord, TaskInstanceStatus,
 } from "../task-execution/types";
 import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
+import { canStopWorkflow, type WorkflowExecutionStatus } from "./workflow-state";
 import {
   pipelineDatabaseRoute,
   pipelineScope,
@@ -30,6 +31,21 @@ export const canCancelTaskInstance = (status: TaskInstanceStatus): boolean =>
   status === "RUNNING_EXECUTION" ||
   status === "DELAY_EXECUTION" ||
   status === "NEED_FAULT_TOLERANCE";
+
+/**
+ * Resolve the stop target from the current task lifecycle, never from a
+ * user-selected history record. A known workflow is authoritative.
+ */
+export const getCancelableDataSyncWorkflowInstanceId = (
+  workflow?: { id: number; state: WorkflowExecutionStatus } | null,
+  activeInstance?: Pick<TaskInstanceRecord, "workflowInstanceId" | "status">,
+): number | undefined => {
+  if (workflow) return canStopWorkflow(workflow.state) ? workflow.id : undefined;
+  if (!activeInstance?.workflowInstanceId || !canCancelTaskInstance(activeInstance.status)) {
+    return undefined;
+  }
+  return activeInstance.workflowInstanceId;
+};
 
 export function toDataSyncInstanceRecord(
   instance: TaskInstanceRecord,
