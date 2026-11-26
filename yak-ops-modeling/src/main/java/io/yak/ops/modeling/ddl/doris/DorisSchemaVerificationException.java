@@ -3,6 +3,8 @@ package io.yak.ops.modeling.ddl.doris;
 /** Indicates that DDL execution completed but the resulting physical schema did not verify. */
 public class DorisSchemaVerificationException extends IllegalStateException {
 
+    private static final long serialVersionUID = 1L;
+
     private final String physicalSchema;
 
     public DorisSchemaVerificationException(String message, String physicalSchema) {
