@@ -275,6 +275,46 @@ jobs:
               raise SystemExit('Data Sync report service tests did not pass')
           PY
 
+  data-sync-api:
+    name: Data Sync API Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run Data Sync API service tests
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-api -am \
+            '-Dtest=DataSyncServiceImplTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require Data Sync API test report
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          reports = list(Path('yak-ops-api/target/surefire-reports').glob(
+              'TEST-io.yak.ops.api.service.impl.DataSyncServiceImplTest.xml'
+          ))
+          if not reports:
+              raise SystemExit('Missing DataSyncServiceImplTest report')
+          result = ET.parse(reports[0]).getroot()
+          tests = int(result.attrib.get('tests', 0))
+          failures = int(result.attrib.get('failures', 0))
+          errors = int(result.attrib.get('errors', 0))
+          print(f'DataSyncServiceImplTest: tests={tests}, failures={failures}, errors={errors}')
+          if tests == 0 or failures or errors:
+              raise SystemExit('Data Sync API tests did not pass')
+          PY
+
   datasource-catalog-plugin:
     name: Datasource Catalog Plugin Tests (JDK 17)
     runs-on: ubuntu-latest
