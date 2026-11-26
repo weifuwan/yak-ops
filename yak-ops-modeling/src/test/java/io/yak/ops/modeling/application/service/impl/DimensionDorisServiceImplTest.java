@@ -28,10 +28,16 @@ import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.modeling.api.dto.dimension.DimensionDorisPublishDTO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionDorisPublishVO;
-import io.yak.ops.modeling.ddl.doris.DorisDataSourceAdapter;
-import io.yak.ops.modeling.ddl.doris.DorisDataSourceContext;
-import io.yak.ops.modeling.ddl.doris.DorisDdlEngine;
-import io.yak.ops.modeling.ddl.doris.DorisSchemaVerificationException;
+import io.yak.ops.modeling.ddl.api.DdlEngine;
+import io.yak.ops.modeling.ddl.api.DdlSessionFactory;
+import io.yak.ops.modeling.ddl.session.DdlConnectionInfo;
+import io.yak.ops.modeling.ddl.session.DdlSession;
+import io.yak.ops.modeling.ddl.model.DdlRequest;
+import io.yak.ops.modeling.ddl.model.DdlFieldTypeOption;
+import io.yak.ops.modeling.ddl.doris.model.DorisOptions;
+import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
+
+import io.yak.ops.modeling.ddl.doris.SchemaVerificationException;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.spi.enums.DbType;
 import java.sql.Connection;
@@ -55,8 +61,8 @@ class DimensionDorisServiceImplTest {
     @Mock private DimensionTableFieldDao dimensionTableFieldDao;
     @Mock private DimensionDorisPublishDao dimensionDorisPublishDao;
     @Mock private VersionManagementDao versionManagementDao;
-    @Mock private DorisDdlEngine ddlEngine;
-    @Mock private DorisDataSourceAdapter dataSourceAdapter;
+    @Mock private DdlEngine ddlEngine;
+    @Mock private DdlSessionFactory sessionFactory;
     @Mock private DimensionDorisPublishRecordService publishRecordService;
     @Mock private Connection connection;
     @Mock private DataSourceCatalog catalog;
@@ -70,9 +76,9 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dataSourceAdapter.open(any(DataSource.class)))
-                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
-        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+        when(sessionFactory.open(any(DdlConnectionInfo.class)))
+                .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
                 .thenReturn(new DdlPlan("CREATE TABLE ddl", Collections.singletonList("CREATE TABLE ddl"),
                         false, Collections.singletonList("customer_id")));
 
@@ -122,7 +128,7 @@ class DimensionDorisServiceImplTest {
                 () -> service.publish("table-id", dto, dorisDatasource(), "tester"));
 
         assertTrue(error.getMessage().contains("删除重建需要二次确认"));
-        verify(dataSourceAdapter, never()).open(any(DataSource.class));
+        verify(sessionFactory, never()).open(any(DdlConnectionInfo.class));
     }
 
     @Test
@@ -132,8 +138,8 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dataSourceAdapter.open(any(DataSource.class)))
-                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(sessionFactory.open(any(DataSource.class)))
+                .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
                 .thenReturn(new DdlPlan(
                         "CREATE TABLE ddl", Collections.singletonList("CREATE TABLE ddl"),
@@ -148,7 +154,7 @@ class DimensionDorisServiceImplTest {
                 });
         when(dimensionDorisPublishDao.queryById(anyString())).thenReturn(null);
         when(ddlEngine.execute(
-                any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
+                any(DdlSession.class), any(DdlRequest.class), any(DdlPlan.class), anyString()))
                 .thenReturn("CREATE TABLE `warehouse`.`dwd_order_detail` (...)");
 
         DimensionDorisPublishVO published =
@@ -164,7 +170,7 @@ class DimensionDorisServiceImplTest {
         verify(publishRecordService).updateStatus(
                 anyString(), eq(DorisPublishStatusEnum.SUCCESS), eq(null), any(), any(), any(), eq("tester"));
         verify(ddlEngine).execute(
-                any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString());
+                any(DdlSession.class), any(DdlRequest.class), any(DdlPlan.class), anyString());
     }
 
     @Test
@@ -174,8 +180,8 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dataSourceAdapter.open(any(DataSource.class)))
-                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(sessionFactory.open(any(DataSource.class)))
+                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
                 .thenReturn(new DdlPlan(
                         "CREATE TABLE ddl", Collections.singletonList("CREATE TABLE ddl"),
@@ -191,7 +197,7 @@ class DimensionDorisServiceImplTest {
         when(dimensionDorisPublishDao.queryById(anyString())).thenReturn(null);
         when(ddlEngine.execute(
                 any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
-                .thenThrow(new DorisSchemaVerificationException(
+                .thenThrow(new SchemaVerificationException(
                         "Doris DDL 已执行，但物理结构校验未通过：字段类型不一致",
                         "CREATE TABLE warehouse.dwd_order_detail (...)"));
 
@@ -221,12 +227,12 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableDao.queryById("table-id")).thenReturn(table());
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
-        when(dataSourceAdapter.open(any(DataSource.class)))
-                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(sessionFactory.open(any(DataSource.class)))
+                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
                 .thenAnswer(invocation -> {
-                    io.yak.ops.modeling.ddl.model.DorisDdlRequest ddlRequest =
-                            (io.yak.ops.modeling.ddl.model.DorisDdlRequest) invocation.getArguments()[2];
+                    io.yak.ops.modeling.ddl.model.DdlRequest ddlRequest =
+                            (io.yak.ops.modeling.ddl.model.DdlRequest) invocation.getArguments()[2];
                     assertNull(ddlRequest.getPreviousTableModel());
                     assertTrue(ddlRequest.getPreviousKeyFields().isEmpty());
                     assertNull(ddlRequest.getPreviousPhysicalSchema());
@@ -249,24 +255,21 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dataSourceAdapter.open(any(DataSource.class)))
-                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(sessionFactory.open(any(DataSource.class)))
+                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
                 .thenReturn(new DdlPlan(
                         "ALTER TABLE ... DROP COLUMN `legacy_note`",
                         Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
                         false,
                         Collections.singletonList("customer_id"),
-                        null,
-                        null,
-                        false,
-                        null,
                         true,
                         Collections.<String>emptyList(),
                         Collections.singletonList("legacy_note"),
                         true,
                         false,
-                        "SHOW CREATE TABLE ..."));
+                        "SHOW CREATE TABLE ...",
+                        null));
 
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class,
@@ -287,24 +290,21 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dataSourceAdapter.open(any(DataSource.class)))
-                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(sessionFactory.open(any(DataSource.class)))
+                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
                 .thenReturn(new DdlPlan(
                         "ALTER TABLE ... DROP COLUMN `legacy_note`",
                         Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
                         false,
                         Collections.singletonList("customer_id"),
-                        null,
-                        null,
-                        false,
-                        null,
                         true,
                         Collections.<String>emptyList(),
                         Collections.singletonList("legacy_note"),
                         true,
                         false,
-                        "SHOW CREATE TABLE ..."));
+                        "SHOW CREATE TABLE ...",
+                        null));
 
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class,
@@ -316,9 +316,9 @@ class DimensionDorisServiceImplTest {
     }
 
     @Test
-    void shouldExposeDorisFieldTypeOptions() {
-        when(ddlEngine.getFieldTypeOptions()).thenReturn(Arrays.asList(
-                new io.yak.ops.modeling.ddl.model.DorisFieldTypeOption(
+    void shouldExposeDdlFieldTypeOptions() {
+        when(ddlEngine.getFieldTypeOptions("DORIS")).thenReturn(Arrays.asList(
+                new io.yak.ops.modeling.ddl.model.DdlFieldTypeOption(
                         "DECIMAL", "DECIMAL", "DECIMAL", null, 38, 38)));
 
         assertEquals("DECIMAL", service.getFieldTypeOptions().get(0).getCode());
