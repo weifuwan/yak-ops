@@ -43,5 +43,7 @@ public class DataSyncRecoveryPoint {
 
     private Date createdAt;
 
-    private Integer usedByInstanceId;
+    private Integer usedByWorkflowInstanceId;
+
+    private Date usedAt;
 }
