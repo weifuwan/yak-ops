@@ -44,12 +44,25 @@ const ACTION_LABELS: Record<DataSyncInstanceAction, string> = {
   RERUN: "重新运行",
 };
 
-const ACTION_DESCRIPTIONS: Record<DataSyncInstanceAction, string> = {
-  STOP: "将请求 Flink 生成 Savepoint 后停止任务。停止完成后，可以使用该恢复点继续执行。",
-  RESUME: "将使用当前实例保存的恢复点创建一个新实例，原实例和执行记录会保留。",
-  RECOVER_FAILURE: "将从当前实例保存的恢复点创建一个新实例，继续处理失败任务。",
-  RERUN: "将创建一个全新的执行实例，从头开始运行，不会加载当前实例的旧恢复点。",
-};
+function actionDescription(syncType: DataSyncType, action: DataSyncInstanceAction): string {
+  if (syncType === "REALTIME") {
+    const descriptions: Record<DataSyncInstanceAction, string> = {
+      STOP: "先请求 Flink 生成 Savepoint，再停止当前实时任务。成功后会保存恢复点。",
+      RESUME: "使用当前实例最近的有效 Checkpoint 或 Savepoint 创建新实例，从原进度继续执行。",
+      RECOVER_FAILURE: "使用当前实例最近的有效 Checkpoint 或 Savepoint 创建新实例，恢复失败的实时同步。",
+      RERUN: "创建全新的实时同步实例，从头开始执行，不加载旧 Checkpoint 或 Savepoint。",
+    };
+    return descriptions[action];
+  }
+
+  const descriptions: Record<DataSyncInstanceAction, string> = {
+    STOP: "停止当前离线工作流实例。",
+    RESUME: "恢复当前已暂停或已停止的工作流实例，继续执行未完成的节点。",
+    RECOVER_FAILURE: "恢复当前工作流实例中的失败任务，已成功的任务不会重新执行。",
+    RERUN: "重新运行当前工作流实例，按照工作流引擎的重跑规则执行。",
+  };
+  return descriptions[action];
+}
 
 function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType }) {
   const navigate = useNavigate();
@@ -83,8 +96,10 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
       operateDataSyncInstance(instanceId, action),
     onSuccess: async (result, variables) => {
       setConfirmAction(undefined);
-      if (variables.action === "STOP") {
-        toast.success("停止请求已提交，正在生成恢复点");
+      if (variables.action === "STOP" && syncType === "REALTIME") {
+        toast.success("实时任务已停止，恢复点已保存");
+      } else if (variables.action === "STOP") {
+        toast.success("停止请求已提交");
       } else if (result.newWorkflowInstanceId) {
         toast.success(
           `${ACTION_LABELS[variables.action]}请求已提交，新工作流实例 #${result.newWorkflowInstanceId}`,
@@ -94,7 +109,10 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
       }
       await queryClient.invalidateQueries({ queryKey: ["operations", "data-sync-instances"] });
     },
-    onError: () => toast.error("实例操作失败，请刷新状态后重试"),
+    onError: async () => {
+      toast.error("实例操作失败，请刷新状态后重试");
+      await queryClient.invalidateQueries({ queryKey: ["operations", "data-sync-instances"] });
+    },
   });
 
   const columns: TableColumns<DataSyncInstanceSummary> = [
@@ -197,7 +215,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
               className="max-w-[112px] truncate text-[11px] text-[var(--yak-components-muted-text)]"
               title={r.recoveryUnavailableReason}
             >
-              无恢复点
+              {r.recoveryUnavailableReason}
             </span>
           ) : null}
         </div>
@@ -305,7 +323,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
       >
         {confirmAction ? (
           <div className="space-y-2 text-sm">
-            <p>{ACTION_DESCRIPTIONS[confirmAction.action]}</p>
+            <p>{actionDescription(syncType, confirmAction.action)}</p>
             <div className="rounded-md bg-[#f7f8fa] px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
               <div>任务：{confirmAction.instance.taskName || `同步任务 #${confirmAction.instance.taskId}`}</div>
               <div className="mt-1">实例：#{confirmAction.instance.id}</div>

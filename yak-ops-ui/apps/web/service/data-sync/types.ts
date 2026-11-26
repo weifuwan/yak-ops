@@ -232,6 +232,7 @@ export interface DataSyncInstanceActionMetadata {
   recoveryPointAvailable?: boolean;
   recoveryPointTime?: string | null;
   recoveryPointUsedByWorkflowInstanceId?: number | null;
+  recoveryPointUsedByInstanceId?: number | null;
   recoveryUnavailableReason?: string | null;
 }
 

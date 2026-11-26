@@ -59,7 +59,9 @@ export function useTaskListActions(scope: string) {
       }
       const messages = {
         run: "运行请求已提交",
-        stop: "已发送停止请求",
+        stop: command.task.syncType === "REALTIME"
+          ? "实时任务已停止，恢复点已保存"
+          : "已发送停止请求",
         publish: "同步任务已发布",
         unpublish: "同步任务已下线",
         delete: "同步任务已删除",
@@ -78,6 +80,9 @@ export function useTaskListActions(scope: string) {
         { queryKey: listQueryKeys.tasks(scope), type: "active" },
         { cancelRefetch: false },
       );
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "实例操作失败，请刷新状态后重试");
     },
   });
   const actionKey =
