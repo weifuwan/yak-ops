@@ -24,6 +24,7 @@ import io.yak.ops.modeling.application.service.DimensionDorisService;
 import io.yak.ops.modeling.ddl.doris.DorisDataSourceAdapter;
 import io.yak.ops.modeling.ddl.doris.DorisDataSourceContext;
 import io.yak.ops.modeling.ddl.doris.DorisDdlEngine;
+import io.yak.ops.modeling.ddl.doris.DorisSchemaVerificationException;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
@@ -188,16 +189,36 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             } catch (Exception ex) {
                 Date finishedAt = new Date();
                 long duration = System.currentTimeMillis() - startedMillis;
+                boolean verificationFailed = ex instanceof DorisSchemaVerificationException;
+                DorisPublishStatusEnum failureStatus = verificationFailed
+                        ? DorisPublishStatusEnum.VERIFY_FAILED
+                        : DorisPublishStatusEnum.FAILED;
+                if (verificationFailed) {
+                    String physicalSchema = ((DorisSchemaVerificationException) ex).getPhysicalSchema();
+                    if (StringUtils.isNotBlank(physicalSchema)) {
+                        try {
+                            publishRecordService.updatePhysicalSchema(
+                                    publish.getId(), physicalSchema, currentOperator);
+                            publish.setPhysicalSchema(physicalSchema);
+                        } catch (Exception persistenceException) {
+                            ex.addSuppressed(persistenceException);
+                            log.error(
+                                    "Failed to persist observed Doris schema after verification failure: publishId={}",
+                                    publish.getId(), persistenceException);
+                        }
+                    }
+                }
                 String message = errorMessage(ex);
                 publishRecordService.updateStatus(
-                        publish.getId(), DorisPublishStatusEnum.FAILED, message,
+                        publish.getId(), failureStatus, message,
                         startedAt, finishedAt, duration, currentOperator);
-                publish.setStatus(DorisPublishStatusEnum.FAILED);
+                publish.setStatus(failureStatus);
                 publish.setErrorMessage(StringUtils.left(message, 4000));
                 publish.setFinishedAt(finishedAt);
                 publish.setExecutionDurationMs(duration);
                 log.error(
-                        "Doris publish execution failed: publishId={}, tableId={}, datasourceId={}, database={}, table={}, mode={}, model={}, durationMs={}",
+                        "Doris publish {}: publishId={}, tableId={}, datasourceId={}, database={}, table={}, mode={}, model={}, durationMs={}",
+                        verificationFailed ? "verification failed after DDL execution" : "DDL execution failed",
                         publish.getId(), tableId, datasource.getId(), database, table.getTableName(),
                         dto.getPublishMode(), dto.getTableModel(), duration, ex);
             }
@@ -245,12 +266,18 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             List<DimensionTableFieldPO> fields,
             DimensionDorisPublishDTO dto,
             String database) {
-        DimensionDorisPublishPO previous = latestSuccessfulPublish(
-                table.getId(), dto.getDatasourceId(), database, table.getTableName());
-        DorisDataModelEnum previousModel = previous == null ? null : inferPreviousTableModel(previous);
-        List<String> previousKeys = previous == null
-                ? Collections.<String>emptyList()
-                : readPreviousKeyFields(previous, previousModel);
+        DorisDataModelEnum previousModel = null;
+        List<String> previousKeys = Collections.emptyList();
+        String previousPhysicalSchema = null;
+        if (dto.getPublishMode() == DorisPublishModeEnum.INCREMENTAL) {
+            DimensionDorisPublishPO previous = latestSuccessfulPublish(
+                    table.getId(), dto.getDatasourceId(), database, table.getTableName());
+            if (previous != null) {
+                previousModel = inferPreviousTableModel(previous);
+                previousKeys = readPreviousKeyFields(previous, previousModel);
+                previousPhysicalSchema = previous.getPhysicalSchema();
+            }
+        }
         return new DorisDdlRequest(
                 toTableDefinition(table, fields, database),
                 dto.getTableModel(),
@@ -258,7 +285,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 previousModel,
                 previousKeys,
                 dto.getReplicationNum(),
-                previous == null ? null : previous.getPhysicalSchema());
+                previousPhysicalSchema);
     }
 
     private DdlTableDefinition toTableDefinition(
