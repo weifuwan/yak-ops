@@ -30,6 +30,7 @@ public class DataSyncExecutionCoordinator {
     private final DataSyncReportPublisher reportPublisher;
     private final AtomicBoolean cancelRequested = new AtomicBoolean();
     private final AtomicBoolean cancelDispatched = new AtomicBoolean();
+    private final AtomicBoolean executionStarted = new AtomicBoolean();
 
     private volatile DataSyncExecutionHandle handle;
     private volatile boolean cancellationConfirmed;
@@ -58,6 +59,11 @@ public class DataSyncExecutionCoordinator {
             return;
         }
 
+        executionStarted.set(true);
+        if (cancelRequested.get()) {
+            cancellationConfirmed = true;
+            return;
+        }
         String executionId = UUID.randomUUID().toString();
         DataSyncExecutionSnapshot latestSnapshot = null;
         long sequence = 0L;
@@ -121,7 +127,7 @@ public class DataSyncExecutionCoordinator {
             } catch (Exception exception) {
                 throw new ExecutionException(exception);
             }
-        } else {
+        } else if (!executionStarted.get()) {
             cancellationConfirmed = true;
         }
     }
@@ -144,7 +150,30 @@ public class DataSyncExecutionCoordinator {
     private DataSyncExecutionSnapshot collectOrReuse(
             DataSyncExecutionHandle current, DataSyncExecutionSnapshot previous) {
         try {
-            return metricsService.collect(current);
+            DataSyncExecutionSnapshot collected = metricsService.collect(current);
+            if (previous == null) {
+                return collected;
+            }
+            if ("UNAVAILABLE".equals(collected.getMetricsState())) {
+                return previous.toBuilder()
+                        .metricsState("STALE")
+                        .errorMessage(collected.getErrorMessage())
+                        .collectedAt(System.currentTimeMillis())
+                        .build();
+            }
+            return collected.toBuilder()
+                    .readRecords(firstNonNull(collected.getReadRecords(), previous.getReadRecords()))
+                    .snapshotRecords(firstNonNull(collected.getSnapshotRecords(), previous.getSnapshotRecords()))
+                    .incrementalRecords(firstNonNull(collected.getIncrementalRecords(), previous.getIncrementalRecords()))
+                    .insertRecords(firstNonNull(collected.getInsertRecords(), previous.getInsertRecords()))
+                    .updateRecords(firstNonNull(collected.getUpdateRecords(), previous.getUpdateRecords()))
+                    .deleteRecords(firstNonNull(collected.getDeleteRecords(), previous.getDeleteRecords()))
+                    .committedRecords(firstNonNull(collected.getCommittedRecords(), previous.getCommittedRecords()))
+                    .ddlEvents(firstNonNull(collected.getDdlEvents(), previous.getDdlEvents()))
+                    .errorRecords(firstNonNull(collected.getErrorRecords(), previous.getErrorRecords()))
+                    .tables(collected.getTables() == null || collected.getTables().isEmpty()
+                            ? previous.getTables() : collected.getTables())
+                    .build();
         } catch (Exception exception) {
             log.warn("Failed to collect Flink CDC metrics, executionId={}",
                     current.getExecutionId(), exception);
@@ -161,6 +190,10 @@ public class DataSyncExecutionCoordinator {
                     .collectedAt(System.currentTimeMillis())
                     .build();
         }
+    }
+
+    private static Long firstNonNull(Long value, Long fallback) {
+        return value == null ? fallback : value;
     }
 
     private void publish(

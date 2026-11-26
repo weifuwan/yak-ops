@@ -31,7 +31,7 @@ class JdbcTableWriterMetricsTest {
                 org.mockito.ArgumentMatchers.anyString())).thenReturn(metricGroup);
         when(metricGroup.counter("numCommittedRecords")).thenReturn(counter);
 
-        JdbcTableWriter writer = new JdbcTableWriter(tableId, schema, builder, metricGroup);
+        JdbcTableWriter writer = new JdbcTableWriter(tableId, schema, builder, metricGroup, counter);
         JdbcRowData row = mock(JdbcRowData.class);
         when(row.getTableId()).thenReturn(tableId);
         when(row.hasPrimaryKey()).thenReturn(true);

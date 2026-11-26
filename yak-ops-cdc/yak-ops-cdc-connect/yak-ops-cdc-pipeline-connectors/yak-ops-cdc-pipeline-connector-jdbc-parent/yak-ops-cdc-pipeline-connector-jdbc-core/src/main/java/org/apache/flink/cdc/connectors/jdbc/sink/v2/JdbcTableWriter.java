@@ -20,13 +20,14 @@ public class JdbcTableWriter implements AutoCloseable {
     private final TableId tableId;
     private final Schema schema;
     private final RichJdbcOutputFormat outputFormat;
-    private final Counter committedRecords;
+    private final Counter executionCommittedRecords;
+    private final Counter tableCommittedRecords;
     private long pendingRecords;
 
     public JdbcTableWriter(
             TableId tableId, Schema schema, JdbcOutputFormatBuilder outputFormatBuilder)
             throws IOException {
-        this(tableId, schema, outputFormatBuilder, null);
+        this(tableId, schema, outputFormatBuilder, null, null);
     }
 
     public JdbcTableWriter(
@@ -35,10 +36,21 @@ public class JdbcTableWriter implements AutoCloseable {
             JdbcOutputFormatBuilder outputFormatBuilder,
             MetricGroup parentMetricGroup)
             throws IOException {
+        this(tableId, schema, outputFormatBuilder, parentMetricGroup, null);
+    }
+
+    public JdbcTableWriter(
+            TableId tableId,
+            Schema schema,
+            JdbcOutputFormatBuilder outputFormatBuilder,
+            MetricGroup parentMetricGroup,
+            Counter executionCommittedRecords)
+            throws IOException {
         this.tableId = checkNotNull(tableId);
         this.schema = checkNotNull(schema);
         this.outputFormat = checkNotNull(outputFormatBuilder).build(tableId, schema);
-        this.committedRecords = parentMetricGroup == null
+        this.executionCommittedRecords = executionCommittedRecords;
+        this.tableCommittedRecords = parentMetricGroup == null
                 ? null
                 : parentMetricGroup
                         .addGroup("namespace", tableId.getNamespace() == null ? "" : tableId.getNamespace())
@@ -68,8 +80,11 @@ public class JdbcTableWriter implements AutoCloseable {
     public void flush() throws IOException {
         outputFormat.flush();
         if (pendingRecords > 0) {
-            if (committedRecords != null) {
-                committedRecords.inc(pendingRecords);
+            if (executionCommittedRecords != null) {
+                executionCommittedRecords.inc(pendingRecords);
+            }
+            if (tableCommittedRecords != null) {
+                tableCommittedRecords.inc(pendingRecords);
             }
             pendingRecords = 0;
         }
