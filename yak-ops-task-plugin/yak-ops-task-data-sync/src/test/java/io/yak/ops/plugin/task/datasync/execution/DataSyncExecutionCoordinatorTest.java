@@ -2,6 +2,7 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -53,7 +54,7 @@ class DataSyncExecutionCoordinatorTest {
                 .collectedAt(200L)
                 .build();
 
-        when(executionService.submit(any(), any(), org.mockito.ArgumentMatchers.eq(42)))
+        when(executionService.submit(any(), any(), org.mockito.ArgumentMatchers.eq(42), isNull()))
                 .thenReturn(handle);
         when(executionService.queryState(handle)).thenReturn(DataSyncExecutionState.FINISHED);
         when(metricsService.collect(handle)).thenReturn(snapshot);
