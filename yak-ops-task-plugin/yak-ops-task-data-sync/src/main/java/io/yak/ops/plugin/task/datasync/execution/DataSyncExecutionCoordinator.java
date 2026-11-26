@@ -238,6 +238,7 @@ public class DataSyncExecutionCoordinator {
                 .deploymentMode(current.getDeploymentMode())
                 .clusterId(current.getClusterId())
                 .sequence(sequence)
+                .submittedAt(current.getSubmittedAt())
                 .reportType(reportType)
                 .executionState(state.name())
                 .metricsState(snapshot.getMetricsState())
