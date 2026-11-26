@@ -71,6 +71,12 @@ public class DataSyncRecoveryPointDaoImpl
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean saveCheckpointIfAbsent(DataSyncRecoveryPoint point) {
+        Long existingCount = mybatisMapper.selectCount(
+                new QueryWrapper<DataSyncRecoveryPoint>()
+                        .eq("recovery_point_id", point.getRecoveryPointId()));
+        if (existingCount != null && existingCount > 0) {
+            return false;
+        }
         List<DataSyncRecoveryPoint> retained = mybatisMapper.selectList(
                 new QueryWrapper<DataSyncRecoveryPoint>()
                         .eq("task_instance_id", point.getTaskInstanceId())
