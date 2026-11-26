@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
+  Modal,
   Select,
   SelectContent,
   SelectItem,
@@ -19,15 +20,15 @@ import {
 import { useWorkspace } from "@/hooks/use-workspace";
 import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import {
-  cancelDataSyncInstance,
   listDataSyncInstances,
+  operateDataSyncInstance,
+  type DataSyncInstanceAction,
   type DataSyncInstanceStatus,
   type DataSyncInstanceSummary,
   type DataSyncType,
 } from "@/service/data-sync";
 import { OperationsPageShell } from "../components/operations-page-shell";
 import {
-  ACTIVE_INSTANCE_STATES,
   INSTANCE_STATUS_ITEMS,
   durationText,
   instanceStatusText,
@@ -35,6 +36,20 @@ import {
 } from "../presentation";
 
 const PAGE_SIZE = 20;
+
+const ACTION_LABELS: Record<DataSyncInstanceAction, string> = {
+  STOP: "停止",
+  RESUME: "恢复",
+  RECOVER_FAILURE: "恢复失败任务",
+  RERUN: "重新运行",
+};
+
+const ACTION_DESCRIPTIONS: Record<DataSyncInstanceAction, string> = {
+  STOP: "将请求 Flink 生成 Savepoint 后停止任务。停止完成后，可以使用该恢复点继续执行。",
+  RESUME: "将使用当前实例保存的恢复点创建一个新实例，原实例和执行记录会保留。",
+  RECOVER_FAILURE: "将从当前实例保存的恢复点创建一个新实例，继续处理失败任务。",
+  RERUN: "将创建一个全新的执行实例，从头开始运行，不会加载当前实例的旧恢复点。",
+};
 
 function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType }) {
   const navigate = useNavigate();
@@ -44,6 +59,10 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
   const [status, setStatus] = useState<DataSyncInstanceStatus | "ALL">("ALL");
   const [pageNo, setPageNo] = useState(1);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [confirmAction, setConfirmAction] = useState<{
+    instance: DataSyncInstanceSummary;
+    action: DataSyncInstanceAction;
+  }>();
 
   const refreshSeconds = syncType === "REALTIME" ? 3 : 5;
   const query = useQuery({
@@ -59,13 +78,23 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
     refetchInterval: autoRefresh ? refreshSeconds * 1000 : false,
   });
 
-  const stopMutation = useMutation({
-    mutationFn: (workflowInstanceId: number) => cancelDataSyncInstance(workflowInstanceId),
-    onSuccess: async () => {
-      toast.success("停止指令已提交");
+  const actionMutation = useMutation({
+    mutationFn: ({ instanceId, action }: { instanceId: string; action: DataSyncInstanceAction }) =>
+      operateDataSyncInstance(instanceId, action),
+    onSuccess: async (result, variables) => {
+      setConfirmAction(undefined);
+      if (variables.action === "STOP") {
+        toast.success("停止请求已提交，正在生成恢复点");
+      } else if (result.newWorkflowInstanceId) {
+        toast.success(
+          `${ACTION_LABELS[variables.action]}请求已提交，新工作流实例 #${result.newWorkflowInstanceId}`,
+        );
+      } else {
+        toast.success(`${ACTION_LABELS[variables.action]}请求已提交`);
+      }
       await queryClient.invalidateQueries({ queryKey: ["operations", "data-sync-instances"] });
     },
-    onError: () => toast.error("停止实例失败"),
+    onError: () => toast.error("实例操作失败，请刷新状态后重试"),
   });
 
   const columns: TableColumns<DataSyncInstanceSummary> = [
@@ -133,35 +162,46 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
     {
       key: "actions",
       title: "操作",
-      width: "10%",
+      width: "20%",
       fixed: "right",
       align: "center",
-      render: (_v, r) => {
-        const active = ACTIVE_INSTANCE_STATES.has(r.status);
-        return (
-          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+      render: (_v, r) => (
+        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="px-2 text-xs font-medium !text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]"
+            onClick={() => navigate(`/data-sync/${r.taskId}/detail?executionId=${r.id}`)}
+          >
+            详情
+          </Button>
+          {(r.availableActions ?? []).map((action) => (
             <Button
+              key={action}
               size="sm"
               variant="ghost"
-              className="px-2 text-xs font-medium !text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]"
-              onClick={() => navigate(`/data-sync/${r.taskId}/detail?executionId=${r.id}`)}
+              className={[
+                "px-2 text-xs",
+                action === "STOP"
+                  ? "!text-[var(--yak-color-danger)] hover:!text-[var(--yak-color-danger)]"
+                  : "!text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]",
+              ].join(" ")}
+              isDisabled={actionMutation.isPending}
+              onClick={() => setConfirmAction({ instance: r, action })}
             >
-              详情
+              {ACTION_LABELS[action]}
             </Button>
-            {active && r.workflowInstanceId ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="px-2 text-xs !text-[var(--yak-color-danger)] hover:!text-[var(--yak-color-danger)]"
-                isPending={stopMutation.isPending}
-                onClick={() => stopMutation.mutate(r.workflowInstanceId!)}
-              >
-                停止
-              </Button>
-            ) : null}
-          </div>
-        );
-      },
+          ))}
+          {r.recoveryUnavailableReason ? (
+            <span
+              className="max-w-[112px] truncate text-[11px] text-[var(--yak-components-muted-text)]"
+              title={r.recoveryUnavailableReason}
+            >
+              无恢复点
+            </span>
+          ) : null}
+        </div>
+      ),
     },
   ];
 
@@ -216,7 +256,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
           bordered
           size="medium"
           loading={query.isPending}
-          scroll={{ x: 1080 }}
+          scroll={{ x: 1240 }}
           emptyText={query.isError ? "实例列表加载失败" : syncType === "REALTIME" ? "暂无实时实例" : "暂无离线实例"}
           pagination={
             (query.data?.total ?? 0) > 0
@@ -226,6 +266,52 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
         />
       </div>
     </OperationsPageShell>
+      <Modal
+        open={Boolean(confirmAction)}
+        centered
+        width={480}
+        title={confirmAction ? ACTION_LABELS[confirmAction.action] + "数据同步实例" : "实例操作"}
+        onClose={() => {
+          if (!actionMutation.isPending) setConfirmAction(undefined);
+        }}
+        footer={
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              isDisabled={actionMutation.isPending}
+              onClick={() => setConfirmAction(undefined)}
+            >
+              取消
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              isPending={actionMutation.isPending}
+              isDisabled={!confirmAction}
+              onClick={() => {
+                if (!confirmAction) return;
+                actionMutation.mutate({
+                  instanceId: confirmAction.instance.id,
+                  action: confirmAction.action,
+                });
+              }}
+            >
+              确认{confirmAction ? ACTION_LABELS[confirmAction.action] : "操作"}
+            </Button>
+          </>
+        }
+      >
+        {confirmAction ? (
+          <div className="space-y-2 text-sm">
+            <p>{ACTION_DESCRIPTIONS[confirmAction.action]}</p>
+            <div className="rounded-md bg-[var(--yak-components-panel-subtle)] px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
+              <div>任务：{confirmAction.instance.taskName || `同步任务 #${confirmAction.instance.taskId}`}</div>
+              <div className="mt-1">实例：#{confirmAction.instance.id}</div>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
   );
 }
 
