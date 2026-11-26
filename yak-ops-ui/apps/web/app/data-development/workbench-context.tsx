@@ -215,12 +215,17 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
         workflowCode,
         task,
         nodeId,
-        releaseState ?? workflowTab?.releaseState ?? workflow?.releaseState ?? "OFFLINE",
+        releaseState ??
+          workflowTab?.releaseState ??
+          workflow?.releaseState ??
+          "OFFLINE",
       );
       const taskIndex = nextTabs.findIndex((tab) => tab.id === taskTabId);
       if (taskIndex < 0) return [...nextTabs, nextTask];
 
-      return nextTabs.map((tab, index) => index === taskIndex ? nextTask : tab);
+      return nextTabs.map((tab, index) =>
+        index === taskIndex ? nextTask : tab,
+      );
     });
 
     setActiveTabId(taskTabId);
@@ -348,7 +353,8 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
     }));
   };
 
-  const registerWorkflowStore = useCallback((workflowCode: number, store: WorkflowStoreApi) => {
+  const registerWorkflowStore = useCallback(
+    (workflowCode: number, store: WorkflowStoreApi) => {
     workflowStoresRef.current.set(workflowCode, store);
     setWorkflowStoreCodes((current) => {
       if (current.has(workflowCode)) return current;
@@ -367,7 +373,9 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
         return next;
       });
     };
-  }, []);
+    },
+    [],
+  );
 
   const getWorkflowStore = useCallback(
     (workflowCode: number) => workflowStoresRef.current.get(workflowCode),
