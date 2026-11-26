@@ -226,7 +226,7 @@ public class DataSyncExecutionCoordinator {
     private DataSyncRecoveryPointSnapshot collectLatestCheckpointOrReuse(
             DataSyncExecutionService executionService,
             DataSyncExecutionHandle current,
-            DataSyncRecoveryPointSnapshot previous) {
+            DataSyncRecoveryPointSnapshot previous) throws InterruptedException {
         try {
             DataSyncRecoveryPointSnapshot latest = executionService.getLatestCompletedCheckpoint(current);
             if (latest == null) {
@@ -237,6 +237,9 @@ public class DataSyncExecutionCoordinator {
                 return latest;
             }
             return latest.getCompletedAt() >= previous.getCompletedAt() ? latest : previous;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw interrupted;
         } catch (Exception exception) {
             log.warn("Failed to collect latest Flink checkpoint, executionId={}",
                     current.getExecutionId(), exception);

@@ -44,7 +44,7 @@ class DataSyncPipelineBuilderTest {
         assertEquals("evolve", pipeline.path("pipeline").path("schema.change.behavior").asText());
         assertEquals("30s", pipeline.path("pipeline").path("flink-conf")
                 .path("execution.checkpointing.interval").asText());
-        assertEquals(1, pipeline.path("pipeline").path("flink-conf")
+        assertEquals(3, pipeline.path("pipeline").path("flink-conf")
                 .path("execution.checkpointing.num-retained").asInt());
         assertEquals("RETAIN_ON_CANCELLATION", pipeline.path("pipeline").path("flink-conf")
                 .path("execution.checkpointing.externalized-checkpoint-retention").asText());

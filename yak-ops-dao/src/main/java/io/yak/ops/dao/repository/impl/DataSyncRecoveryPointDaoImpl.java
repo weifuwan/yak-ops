@@ -71,16 +71,18 @@ public class DataSyncRecoveryPointDaoImpl
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean saveCheckpointIfAbsent(DataSyncRecoveryPoint point) {
-        DataSyncRecoveryPoint latest = mybatisMapper.selectOne(
+        List<DataSyncRecoveryPoint> retained = mybatisMapper.selectList(
                 new QueryWrapper<DataSyncRecoveryPoint>()
                         .eq("task_instance_id", point.getTaskInstanceId())
                         .eq("execution_id", point.getExecutionId())
                         .eq("recovery_type", "CHECKPOINT")
                         .eq("state", "AVAILABLE")
                         .orderByDesc("completed_at")
-                        .last("LIMIT 1"));
-        boolean isLatest = latest == null || isNewerCheckpoint(point, latest);
-        point.setState(isLatest ? "AVAILABLE" : "SUPERSEDED");
+                        .last("LIMIT 3"));
+        if (retained.size() >= 3 && !isNewerCheckpoint(point, retained.get(retained.size() - 1))) {
+            return false;
+        }
+        point.setState("AVAILABLE");
         try {
             if (mybatisMapper.insert(point) <= 0) {
                 return false;
@@ -88,17 +90,16 @@ public class DataSyncRecoveryPointDaoImpl
         } catch (DuplicateKeyException duplicate) {
             return false;
         }
-        if (isLatest) {
-            DataSyncRecoveryPoint update = new DataSyncRecoveryPoint();
-            update.setState("SUPERSEDED");
-            mybatisMapper.update(
-                    update,
-                    new UpdateWrapper<DataSyncRecoveryPoint>()
-                            .eq("task_instance_id", point.getTaskInstanceId())
-                            .eq("execution_id", point.getExecutionId())
-                            .eq("recovery_type", "CHECKPOINT")
-                            .eq("state", "AVAILABLE")
-                            .ne("recovery_point_id", point.getRecoveryPointId()));
+
+        List<DataSyncRecoveryPoint> afterInsert = mybatisMapper.selectList(
+                new QueryWrapper<DataSyncRecoveryPoint>()
+                        .eq("task_instance_id", point.getTaskInstanceId())
+                        .eq("execution_id", point.getExecutionId())
+                        .eq("recovery_type", "CHECKPOINT")
+                        .eq("state", "AVAILABLE")
+                        .orderByDesc("completed_at"));
+        for (int index = 3; index < afterInsert.size(); index++) {
+            mybatisMapper.deleteById(afterInsert.get(index).getId());
         }
         return true;
     }

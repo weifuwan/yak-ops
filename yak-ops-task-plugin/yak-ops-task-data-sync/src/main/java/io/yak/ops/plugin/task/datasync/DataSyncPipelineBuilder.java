@@ -98,7 +98,8 @@ public final class DataSyncPipelineBuilder {
             flinkConf.put("execution.checkpointing.interval", "30s");
         }
         if (!flinkConf.has("execution.checkpointing.num-retained")) {
-            flinkConf.put("execution.checkpointing.num-retained", 1);
+            // Keep a small fallback window; the DAO retains the same latest three checkpoints.
+            flinkConf.put("execution.checkpointing.num-retained", 3);
         }
         if (!flinkConf.has("execution.checkpointing.externalized-checkpoint-retention")) {
             flinkConf.put("execution.checkpointing.externalized-checkpoint-retention", "RETAIN_ON_CANCELLATION");
