@@ -138,9 +138,9 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(sessionFactory.open(any(DataSource.class)))
+        when(sessionFactory.open(any(DdlConnectionInfo.class)))
                 .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
-        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+        when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
                 .thenReturn(new DdlPlan(
                         "CREATE TABLE ddl", Collections.singletonList("CREATE TABLE ddl"),
                         false, Collections.singletonList("customer_id")));
@@ -180,9 +180,9 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(sessionFactory.open(any(DataSource.class)))
-                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
-        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+        when(sessionFactory.open(any(DdlConnectionInfo.class)))
+                .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
                 .thenReturn(new DdlPlan(
                         "CREATE TABLE ddl", Collections.singletonList("CREATE TABLE ddl"),
                         false, Collections.singletonList("customer_id")));
@@ -196,7 +196,7 @@ class DimensionDorisServiceImplTest {
                 });
         when(dimensionDorisPublishDao.queryById(anyString())).thenReturn(null);
         when(ddlEngine.execute(
-                any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
+                any(DdlSession.class), any(DdlRequest.class), any(DdlPlan.class), anyString()))
                 .thenThrow(new SchemaVerificationException(
                         "Doris DDL 已执行，但物理结构校验未通过：字段类型不一致",
                         "CREATE TABLE warehouse.dwd_order_detail (...)"));
@@ -227,15 +227,15 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableDao.queryById("table-id")).thenReturn(table());
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
-        when(sessionFactory.open(any(DataSource.class)))
-                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
-        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+        when(sessionFactory.open(any(DdlConnectionInfo.class)))
+                .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
                 .thenAnswer(invocation -> {
-                    io.yak.ops.modeling.ddl.model.DdlRequest ddlRequest =
-                            (io.yak.ops.modeling.ddl.model.DdlRequest) invocation.getArguments()[2];
-                    assertNull(ddlRequest.getPreviousTableModel());
-                    assertTrue(ddlRequest.getPreviousKeyFields().isEmpty());
-                    assertNull(ddlRequest.getPreviousPhysicalSchema());
+                    DdlRequest ddlRequest = (DdlRequest) invocation.getArguments()[1];
+                    DorisOptions options = ddlRequest.getOptions(DorisOptions.class);
+                    assertNull(options.getPreviousTableModel());
+                    assertTrue(options.getPreviousKeyFields().isEmpty());
+                    assertNull(options.getPreviousPhysicalSchema());
                     return new DdlPlan(
                             "DROP TABLE IF EXISTS ...; CREATE TABLE ...",
                             Arrays.asList("DROP TABLE IF EXISTS ...", "CREATE TABLE ..."),
@@ -255,9 +255,9 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(sessionFactory.open(any(DataSource.class)))
-                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
-        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+        when(sessionFactory.open(any(DdlConnectionInfo.class)))
+                .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
                 .thenReturn(new DdlPlan(
                         "ALTER TABLE ... DROP COLUMN `legacy_note`",
                         Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
@@ -290,9 +290,9 @@ class DimensionDorisServiceImplTest {
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
         when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(sessionFactory.open(any(DataSource.class)))
-                .thenReturn(new DdlSession(connection, catalog, "warehouse"));
-        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+        when(sessionFactory.open(any(DdlConnectionInfo.class)))
+                .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
                 .thenReturn(new DdlPlan(
                         "ALTER TABLE ... DROP COLUMN `legacy_note`",
                         Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
@@ -316,7 +316,7 @@ class DimensionDorisServiceImplTest {
     }
 
     @Test
-    void shouldExposeDdlFieldTypeOptions() {
+    void shouldExposeDorisFieldTypeOptions() {
         when(ddlEngine.getFieldTypeOptions("DORIS")).thenReturn(Arrays.asList(
                 new io.yak.ops.modeling.ddl.model.DdlFieldTypeOption(
                         "DECIMAL", "DECIMAL", "DECIMAL", null, 38, 38)));
