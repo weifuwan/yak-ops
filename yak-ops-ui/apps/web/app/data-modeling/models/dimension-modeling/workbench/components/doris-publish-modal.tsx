@@ -120,15 +120,18 @@ export function DorisPublishModal({
   const [replicationMode, setReplicationMode] = useState<"AUTO" | "MANUAL">("AUTO");
   const [replicationNum, setReplicationNum] = useState("1");
   const [busy, setBusy] = useState(false);
+  const [verificationBlocked, setVerificationBlocked] = useState(false);
   const [confirmDropOpen, setConfirmDropOpen] = useState(false);
   const [confirmDropColumnsOpen, setConfirmDropColumnsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
+      setVerificationBlocked(false);
       setConfirmDropOpen(false);
       setConfirmDropColumnsOpen(false);
       return;
     }
+    setVerificationBlocked(false);
     setDatasourceId("");
     setTableModel("UNIQUE");
     setPublishMode("INCREMENTAL");
@@ -273,6 +276,7 @@ export function DorisPublishModal({
         setConfirmDropOpen(false);
         onOpenChange(false);
       } else if (result.status === "VERIFY_FAILED") {
+        setVerificationBlocked(true);
         toast.warning(
           "DDL 已执行，但物理结构校验未通过。请先查看发布记录中的实际物理结构，不要直接重复删除重建。"
           + (result.errorMessage ? " " + result.errorMessage : ""),
@@ -293,6 +297,7 @@ export function DorisPublishModal({
 
   const canPublish = enabled
     && !busy
+    && !verificationBlocked
     && !datasourceQuery.isPending
     && !datasourceQuery.isError
     && Boolean(datasourceId && tableModel && publishMode && publishRemark.trim())
@@ -350,6 +355,11 @@ export function DorisPublishModal({
         }
       >
         <div className="space-y-4">
+          {verificationBlocked ? (
+            <p className="mb-0 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              上一次 DDL 已执行，但物理结构校验未通过。请先查看发布记录中的实际物理结构，关闭窗口后再决定是否重新发布。
+            </p>
+          ) : null}
           <section className="space-y-3">
             <Field className={HORIZONTAL_FIELD_CLASS}>
               <FieldLabel required className="pt-1 text-xs">Doris 表类型</FieldLabel>
