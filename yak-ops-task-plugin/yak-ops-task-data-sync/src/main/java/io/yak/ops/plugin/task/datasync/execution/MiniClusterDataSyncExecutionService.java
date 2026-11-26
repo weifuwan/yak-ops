@@ -7,6 +7,8 @@ import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
@@ -27,7 +29,11 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
     protected DataSyncExecutionHandle doSubmit(
                                                FlinkPipelineExecution execution, String executionId,
                                                int taskInstanceId) throws Exception {
+        JobGraph jobGraph = execution.getJobGraph();
         int parallelism = Math.max(1, execution.getParallelism());
+        for (JobVertex vertex : jobGraph.getVertices()) {
+            parallelism = Math.max(parallelism, vertex.getParallelism());
+        }
         Configuration configuration = new Configuration();
         configuration.set(RestOptions.ADDRESS, "127.0.0.1");
         configuration.set(RestOptions.BIND_ADDRESS, "127.0.0.1");
@@ -46,7 +52,7 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
         try {
             miniCluster.start();
             client = new MiniClusterClient(configuration, miniCluster);
-            JobID jobId = client.submitJob(execution.getJobGraph())
+            JobID jobId = client.submitJob(jobGraph)
                     .get(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             String restEndpoint = client.getWebInterfaceURL();
             executions.put(executionId, new RuntimeExecution(miniCluster, client, jobId));
