@@ -907,7 +907,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 || instance.getState() == TaskExecutionStatus.FAILURE
                 || instance.getState() == TaskExecutionStatus.NEED_FAULT_TOLERANCE);
         List<DataSyncInstanceAction> availableActions = DataSyncInstanceActionPolicy.availableActions(
-                instance, workflow, recoveryPoint != null);
+                instance, workflow, recoveryPoint != null && "AVAILABLE".equals(recoveryPoint.getState()));
         return DataSyncInstanceVO.builder()
                 .id(String.valueOf(instance.getId()))
                 .definitionId(String.valueOf(instance.getTaskCode()))
