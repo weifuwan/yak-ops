@@ -54,12 +54,34 @@ class DataSyncExecutionReportServiceImplTest {
     }
 
     @Test
+    void acknowledgesDuplicateSnapshotAsIdempotent() {
+        when(taskInstanceDao.queryById(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
+                        .latestSequence(1L)
+                        .finalized(false)
+                        .build());
+
+        DataSyncReportAck ack = service.acceptReport(request(1L, "SNAPSHOT"));
+
+        assertTrue(ack.isAccepted());
+        assertEquals("DUPLICATE", ack.getResult());
+        verify(executionReportDao, never()).updateById(any());
+    }
+
+    @Test
     void rejectsStaleSnapshotSequence() {
         when(taskInstanceDao.queryById(42))
                 .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
         when(executionReportDao.queryByExecutionId("execution-1"))
                 .thenReturn(DataSyncExecutionReport.builder()
                         .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
                         .latestSequence(5L)
                         .finalized(false)
                         .build());
@@ -79,6 +101,8 @@ class DataSyncExecutionReportServiceImplTest {
         when(executionReportDao.queryByExecutionId("execution-1"))
                 .thenReturn(DataSyncExecutionReport.builder()
                         .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
                         .latestSequence(3L)
                         .finalized(true)
                         .build());
@@ -98,6 +122,7 @@ class DataSyncExecutionReportServiceImplTest {
                 .jobId("job-1")
                 .deploymentMode("LOCAL_MINICLUSTER")
                 .sequence(sequence)
+                .submittedAt(System.currentTimeMillis())
                 .reportType(reportType)
                 .executionState("RUNNING")
                 .metricsState("AVAILABLE")
