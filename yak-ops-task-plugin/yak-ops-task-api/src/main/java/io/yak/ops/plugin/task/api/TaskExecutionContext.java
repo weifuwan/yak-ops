@@ -82,9 +82,6 @@ public class TaskExecutionContext implements Serializable {
      */
     private Map<String, Property> prepareParamsMap;
 
-    /** Runtime-only options supplied by the execution coordinator; never persisted in task definitions. */
-    private Map<String, String> runtimeOptions;
-
     // Please use task instanceId
     @Deprecated
     private String taskAppId;
