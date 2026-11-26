@@ -21,7 +21,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -159,7 +158,7 @@ class MiniClusterRestApiPocTest {
     }
 
     private static JobVertex findVertex(JobGraph jobGraph, String nameFragment) {
-        List<JobVertex> vertices = jobGraph.getVerticesSortedTopologically();
+        Iterable<JobVertex> vertices = jobGraph.getVertices();
         for (JobVertex vertex : vertices) {
             if (vertex.getName().contains(nameFragment)) {
                 return vertex;
