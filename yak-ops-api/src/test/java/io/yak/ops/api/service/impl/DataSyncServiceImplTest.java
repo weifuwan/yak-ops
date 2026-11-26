@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -844,7 +846,7 @@ class DataSyncServiceImplTest {
                 eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition),
                 argThat(Map::isEmpty));
         verify(dataSyncRecoveryPointDao).markSuperseded(55L);
-        verify(dataSyncRecoveryPointDao, never()).markUsed(any(Long.class), any(Integer.class));
+        verify(dataSyncRecoveryPointDao, never()).markUsed(anyLong(), anyInt());
     }
 
     @Test
