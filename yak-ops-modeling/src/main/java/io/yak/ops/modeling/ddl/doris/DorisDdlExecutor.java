@@ -6,6 +6,7 @@ import java.sql.Statement;
 import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Executes a previously validated Doris DDL plan in order. */
@@ -13,6 +14,17 @@ import org.springframework.stereotype.Component;
 public class DorisDdlExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(DorisDdlExecutor.class);
+
+    private final DorisSchemaChangeWaiter schemaChangeWaiter;
+
+    public DorisDdlExecutor() {
+        this(new DorisSchemaChangeWaiter());
+    }
+
+    @Autowired
+    public DorisDdlExecutor(DorisSchemaChangeWaiter schemaChangeWaiter) {
+        this.schemaChangeWaiter = schemaChangeWaiter;
+    }
 
     public void execute(
             Connection connection, DdlPlan plan, String database, String tableName, String publishId)
@@ -23,21 +35,35 @@ public class DorisDdlExecutor {
                     publishId, database, tableName);
             return;
         }
-        try (Statement statement = connection.createStatement()) {
-            int total = plan.getStatements().size();
-            for (int index = 0; index < total; index++) {
-                String sql = plan.getStatements().get(index);
-                log.info(
-                        "Executing Doris DDL step {}/{}: publishId={}, database={}, table={}, operation={}",
-                        index + 1,
-                        total,
-                        publishId,
-                        database,
-                        tableName,
-                        operationOf(sql));
+        int total = plan.getStatements().size();
+        for (int index = 0; index < total; index++) {
+            String sql = plan.getStatements().get(index);
+            boolean alter = isAlter(sql);
+            Long previousJobId = alter
+                    ? schemaChangeWaiter.latestJobId(connection, database, tableName)
+                    : null;
+            log.info(
+                    "Executing Doris DDL step {}/{}: publishId={}, database={}, table={}, operation={}",
+                    index + 1,
+                    total,
+                    publishId,
+                    database,
+                    tableName,
+                    operationOf(sql));
+            try (Statement statement = connection.createStatement()) {
                 statement.execute(sql);
             }
+            if (alter) {
+                schemaChangeWaiter.awaitCompletion(connection, database, tableName, previousJobId);
+                log.info(
+                        "Doris Schema Change completed: publishId={}, database={}, table={}",
+                        publishId, database, tableName);
+            }
         }
+    }
+
+    private boolean isAlter(String sql) {
+        return sql != null && sql.trim().toUpperCase(Locale.ROOT).startsWith("ALTER TABLE");
     }
 
     private String operationOf(String sql) {

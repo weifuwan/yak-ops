@@ -57,6 +57,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from yak_agent import audit
+from yak_agent.agent.budget import cache_hit_rate, context_payload
 from yak_agent.agent.prompt import validate_prompt_bundle
 from yak_agent.api import messages
 from yak_agent.api.deps import request_identity
@@ -208,6 +209,7 @@ async def list_sessions(request: Request) -> list[dict[str, Any]]:
                     "title": meta.get("title") or f"历史会话 · {path.stem[:6]}",
                     "preview": meta.get("preview", ""),
                     "usage": meta.get("usage", {}),
+                    "contextTokens": int(meta.get("contextTokens") or 0),
                     "updatedAt": path.stat().st_mtime,
                 }
             )
@@ -673,10 +675,23 @@ def _authorize_meta(sid: str, identity: Any) -> dict[str, Any]:
     return meta
 
 
+def _context_from_meta(meta: dict[str, Any], settings: Settings) -> dict[str, Any]:
+    """Context payload for a disk-only session (last persisted snapshot)."""
+    stored = meta.get("context")
+    if isinstance(stored, dict) and stored:
+        return stored
+    return context_payload(
+        used_tokens=int(meta.get("contextTokens") or 0),
+        limit_tokens=int(getattr(settings, "llm_context_size", 0) or 0),
+        average_cache_hit_rate=cache_hit_rate(meta.get("rawUsage") or {}),
+    )
+
+
 @app.get("/agent/sessions/{sid}")
 async def session_status(sid: str, request: Request) -> dict[str, Any]:
     """Current turn status, restored from memory or the persisted meta."""
-    identity = await _identify(request, _get_settings())
+    settings = _get_settings()
+    identity = await _identify(request, settings)
     session = SESSIONS.get(sid)
     if session is not None:
         if session.owner != identity.owner or session.workspace_id != identity.workspace_id:
@@ -684,6 +699,12 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
         meta = persistence.read_meta(sid)
         turn = session.turn
         pending = session.pending_event
+        context = session.context_snapshot or context_payload(
+            used_tokens=session.context_tokens,
+            limit_tokens=session.context_limit_tokens
+            or int(getattr(settings, "llm_context_size", 0) or 0),
+            average_cache_hit_rate=cache_hit_rate(session.raw_usage),
+        )
         return {
             "sessionId": sid,
             "state": turn.status if turn else ("queued" if session.queue else "idle"),
@@ -709,6 +730,7 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
             "preview": session.preview or meta.get("preview", ""),
             "updatedAt": _updated_at(sid),
             "usage": session.usage,
+            "context": context,
         }
 
     meta = _authorize_meta(sid, identity)
@@ -728,6 +750,7 @@ async def session_status(sid: str, request: Request) -> dict[str, Any]:
         "preview": meta.get("preview", ""),
         "updatedAt": _updated_at(sid),
         "usage": meta.get("usage", {}),
+        "context": _context_from_meta(meta, settings),
     }
 
 

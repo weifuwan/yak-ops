@@ -12,7 +12,8 @@ type Props = {
 
 function statusLabel(status?: string) {
   if (status === "SUCCESS") return "发布成功";
-  if (status === "FAILED") return "发布失败";
+  if (status === "FAILED") return "DDL 执行失败";
+  if (status === "VERIFY_FAILED") return "结构校验异常";
   if (status === "RUNNING") return "发布中";
   if (status === "PENDING") return "等待执行";
   if (status === "CONFLICT") return "目标表已存在";
@@ -22,6 +23,7 @@ function statusLabel(status?: string) {
 function statusClassName(status?: string) {
   if (status === "SUCCESS") return "text-[var(--yak-color-success)]";
   if (status === "FAILED" || status === "CONFLICT") return "text-[var(--yak-components-danger-text)]";
+  if (status === "VERIFY_FAILED") return "text-amber-700";
   if (status === "RUNNING" || status === "PENDING") return "text-[var(--yak-color-primary)]";
   return "text-[var(--yak-components-muted-text)]";
 }
@@ -88,8 +90,23 @@ export function DorisPublishHistoryPanel({ projectCode, tableId, onClose }: Prop
                 <span>{item.createTime || item.startedAt || "-"}</span>
                 {item.executionDurationMs != null ? <span>{item.executionDurationMs} ms</span> : null}
               </div>
+              {item.status === "VERIFY_FAILED" ? (
+                <p className="mb-0 mt-2 break-words text-xs text-amber-700">
+                  DDL 已执行，物理结构校验未通过。请先检查实际结构，不要直接重复删除重建。
+                </p>
+              ) : null}
               {item.errorMessage ? (
-                <p className="mb-0 mt-2 break-words text-xs text-[var(--yak-components-danger-text)]">{item.errorMessage}</p>
+                <p className={"mb-0 mt-2 break-words text-xs " + (item.status === "VERIFY_FAILED" ? "text-amber-700" : "text-[var(--yak-components-danger-text)]")}>{item.errorMessage}</p>
+              ) : null}
+              {item.physicalSchema ? (
+                <details className="mt-2 rounded-md bg-[var(--yak-components-muted-bg)] px-2 py-1.5">
+                  <summary className="cursor-pointer text-[11px] text-[var(--yak-components-muted-text)]">
+                    查看实际物理结构
+                  </summary>
+                  <pre className="mb-0 mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[10px] leading-4 text-[var(--yak-components-panel-text)]">
+                    {item.physicalSchema}
+                  </pre>
+                </details>
               ) : null}
             </article>
           ))

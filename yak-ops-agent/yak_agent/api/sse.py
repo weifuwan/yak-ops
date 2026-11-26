@@ -7,10 +7,64 @@ from typing import Any
 
 from agentscope.event import EventType
 
+from yak_agent.agent.budget import RAW_USAGE_KEY, cache_hit_rate, describe_context
 from yak_agent.service.events import emit
 from yak_agent.service.session import Session
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _raw_usage(session: Session) -> dict[str, Any]:
+    """Raw usage of the last model call, recorded before billing adjustments."""
+    state = getattr(session.agent, "state", None)
+    middle_context = getattr(state, "middle_context", None)
+    raw = middle_context.get(RAW_USAGE_KEY) if isinstance(middle_context, dict) else None
+    return raw if isinstance(raw, dict) else {}
+
+
+async def _emit_model_usage(session: Session, event: Any, reply_id: str) -> None:
+    """Update cumulative usage plus the context-capacity snapshot and emit both."""
+    raw = _raw_usage(session)
+    if raw:
+        session.context_tokens = max(0, int(raw.get("inputTokens") or 0))
+        for key in (
+            "inputTokens",
+            "outputTokens",
+            "cacheInputTokens",
+            "cacheCreationInputTokens",
+        ):
+            session.raw_usage[key] = session.raw_usage.get(key, 0) + max(0, int(raw.get(key) or 0))
+    else:
+        session.context_tokens = max(0, int(event.input_tokens or 0))
+    try:
+        session.context_snapshot = await describe_context(
+            session.agent,
+            used_tokens=session.context_tokens,
+            limit_tokens=session.context_limit_tokens,
+            average_cache_hit_rate=cache_hit_rate(session.raw_usage),
+            cache=session.context_fixed,
+        )
+    except Exception as ex:  # noqa: BLE001 - the panel must not break the stream
+        _LOGGER.warning("context snapshot failed: %s", ex)
+    for key, value in {
+        "inputTokens": event.input_tokens,
+        "outputTokens": event.output_tokens,
+        "cacheInputTokens": event.cache_input_tokens,
+        "cacheCreationInputTokens": event.cache_creation_input_tokens,
+    }.items():
+        session.usage[key] = session.usage.get(key, 0) + max(0, int(value or 0))
+    await emit(
+        session,
+        {
+            "type": "usage",
+            "inputTokens": event.input_tokens,
+            "outputTokens": event.output_tokens,
+            "cacheInputTokens": event.cache_input_tokens,
+            "cacheCreationInputTokens": event.cache_creation_input_tokens,
+            "contextTokens": session.context_tokens,
+            "replyId": reply_id,
+        },
+    )
 
 
 async def forward_event(session: Session, event: Any) -> None:
@@ -110,24 +164,7 @@ async def forward_event(session: Session, event: Any) -> None:
             },
         )
     elif event_type == EventType.MODEL_CALL_END:
-        for key, value in {
-            "inputTokens": event.input_tokens,
-            "outputTokens": event.output_tokens,
-            "cacheInputTokens": event.cache_input_tokens,
-            "cacheCreationInputTokens": event.cache_creation_input_tokens,
-        }.items():
-            session.usage[key] = session.usage.get(key, 0) + max(0, int(value or 0))
-        await emit(
-            session,
-            {
-                "type": "usage",
-                "inputTokens": event.input_tokens,
-                "outputTokens": event.output_tokens,
-                "cacheInputTokens": event.cache_input_tokens,
-                "cacheCreationInputTokens": event.cache_creation_input_tokens,
-                "replyId": reply_id,
-            },
-        )
+        await _emit_model_usage(session, event, reply_id)
     elif event_type == EventType.EXCEED_MAX_ITERS:
         # Deprecated in AgentScope; reply_end.finishedReason remains authoritative.
         await emit(

@@ -17,15 +17,22 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Doris JDBC metadata exposed through the shared datasource catalog contract. */
 public class DorisDataSourceCatalog implements DataSourceCatalog {
+
+    private static final Pattern TYPE_PARAMETERS = Pattern.compile("\\((\\d+)(?:,(\\d+))?\\)");
 
     @Override
     public List<ConnectionProperty> getConnectionProperties() {
@@ -73,8 +80,7 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
                 while (tables.next()) {
                     String name = tables.getString("TABLE_NAME");
                     if (name == null || (!keyword.isEmpty()
-                            && !name.toLowerCase(java.util.Locale.ROOT)
-                                    .contains(keyword.toLowerCase(java.util.Locale.ROOT)))) {
+                            && !name.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT)))) {
                         continue;
                     }
                     objects.add(new CatalogObject(
@@ -101,26 +107,48 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
             throw new IllegalArgumentException("A database and table name are required");
         }
         String database = requireConfiguredDatabase(connection, path.getDatabase());
-        try {
-            DatabaseMetaData metadata = connection.getMetaData();
-            try (ResultSet tables = metadata.getTables(database, null, path.getObjectName(),
-                    new String[] {"TABLE"})) {
-                while (tables.next()) {
-                    String tableName = tables.getString("TABLE_NAME");
-                    if (path.getObjectName().equalsIgnoreCase(tableName)) {
-                        return new CatalogObject(
-                                tableName,
-                                CatalogObjectType.TABLE,
-                                tables.getString("REMARKS"),
-                                new CatalogPath(null, database, null, tableName, CatalogObjectType.TABLE),
-                                true,
-                                Collections.<String>emptyList());
-                    }
+        String requestedName = path.getObjectName();
+
+        // Doris' MySQL-compatible JDBC metadata can return no rows for OLAP tables when
+        // TABLE is passed as the type filter. SHOW TABLES is the source of truth here.
+        try (Statement statement = connection.createStatement();
+                ResultSet tables = statement.executeQuery("SHOW TABLES FROM " + quoteIdentifier(database))) {
+            while (tables.next()) {
+                String tableName = tables.getString(1);
+                if (requestedName.equalsIgnoreCase(tableName)) {
+                    return new CatalogObject(
+                            tableName,
+                            CatalogObjectType.TABLE,
+                            null,
+                            new CatalogPath(null, database, null, tableName, CatalogObjectType.TABLE),
+                            true,
+                            Collections.<String>emptyList());
                 }
             }
             return null;
-        } catch (SQLException ex) {
-            throw new IllegalStateException("Failed to read Doris table metadata", ex);
+        } catch (SQLException showTablesException) {
+            // Keep a JDBC metadata fallback for Doris-compatible proxies that do not expose SHOW TABLES.
+            try {
+                DatabaseMetaData metadata = connection.getMetaData();
+                try (ResultSet tables = metadata.getTables(database, null, requestedName, null)) {
+                    while (tables.next()) {
+                        String tableName = tables.getString("TABLE_NAME");
+                        if (requestedName.equalsIgnoreCase(tableName)) {
+                            return new CatalogObject(
+                                    tableName,
+                                    CatalogObjectType.TABLE,
+                                    tables.getString("REMARKS"),
+                                    new CatalogPath(null, database, null, tableName, CatalogObjectType.TABLE),
+                                    true,
+                                    Collections.<String>emptyList());
+                        }
+                    }
+                }
+                return null;
+            } catch (SQLException metadataException) {
+                showTablesException.addSuppressed(metadataException);
+                throw new IllegalStateException("Failed to read Doris table metadata", showTablesException);
+            }
         }
     }
 
@@ -139,11 +167,49 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
             throw new IllegalArgumentException("A Doris table name is required");
         }
         String configuredDatabase = requireConfiguredDatabase(connection, database);
+        String sql = "SHOW FULL COLUMNS FROM " + quoteIdentifier(configuredDatabase)
+                + "." + quoteIdentifier(tableName);
+        try (Statement statement = connection.createStatement();
+                ResultSet result = statement.executeQuery(sql)) {
+            List<DataSourceCatalogColumn> columns = new ArrayList<>();
+            int ordinal = 0;
+            while (result.next()) {
+                String name = result.getString("Field");
+                if (name == null || name.trim().isEmpty()) {
+                    continue;
+                }
+                String typeName = result.getString("Type");
+                Integer[] parameters = parseTypeParameters(typeName);
+                String nullValue = result.getString("Null");
+                String keyValue = result.getString("Key");
+                columns.add(new DataSourceCatalogColumn(
+                        name,
+                        typeName,
+                        jdbcType(typeName),
+                        parameters[0],
+                        parameters[1],
+                        nullValue == null ? null : "YES".equalsIgnoreCase(nullValue),
+                        ++ordinal,
+                        isKey(keyValue),
+                        result.getString("Comment")));
+            }
+            if (!columns.isEmpty()) {
+                return columns;
+            }
+        } catch (SQLException showColumnsException) {
+            return readColumnsFromJdbcMetadata(
+                    connection, configuredDatabase, tableName, showColumnsException);
+        }
+        return readColumnsFromJdbcMetadata(connection, configuredDatabase, tableName, null);
+    }
+
+    private List<DataSourceCatalogColumn> readColumnsFromJdbcMetadata(
+            Connection connection, String database, String tableName, SQLException previousException) {
         try {
             DatabaseMetaData metadata = connection.getMetaData();
-            Set<String> primaryKeys = new HashSet<>(readPrimaryKeys(metadata, configuredDatabase, tableName));
+            Set<String> primaryKeys = new HashSet<>(readPrimaryKeys(metadata, database, tableName));
             List<DataSourceCatalogColumn> columns = new ArrayList<>();
-            try (ResultSet result = metadata.getColumns(configuredDatabase, null, tableName, null)) {
+            try (ResultSet result = metadata.getColumns(database, null, tableName, null)) {
                 while (result.next()) {
                     String actualTable = result.getString("TABLE_NAME");
                     if (!tableName.equalsIgnoreCase(actualTable)) {
@@ -177,8 +243,12 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
                 }
             }
             return columns;
-        } catch (SQLException ex) {
-            throw new IllegalStateException("Failed to read Doris table columns", ex);
+        } catch (SQLException metadataException) {
+            if (previousException != null) {
+                previousException.addSuppressed(metadataException);
+                throw new IllegalStateException("Failed to read Doris table columns", previousException);
+            }
+            throw new IllegalStateException("Failed to read Doris table columns", metadataException);
         }
     }
 
@@ -200,17 +270,73 @@ public class DorisDataSourceCatalog implements DataSourceCatalog {
         try {
             String configuredDatabase = connection.getCatalog();
             if (configuredDatabase == null || configuredDatabase.trim().isEmpty()) {
+                try (Statement statement = connection.createStatement();
+                        ResultSet result = statement.executeQuery("SELECT DATABASE()")) {
+                    if (result.next()) {
+                        configuredDatabase = result.getString(1);
+                    }
+                }
+            }
+            if (configuredDatabase == null || configuredDatabase.trim().isEmpty()) {
                 throw new IllegalStateException("The Doris datasource has no configured database");
             }
-            if (requestedDatabase != null && !configuredDatabase.equals(requestedDatabase)) {
+            if (requestedDatabase != null && !sameDatabase(configuredDatabase, requestedDatabase)) {
                 throw new IllegalArgumentException(
                         "Catalog database '" + requestedDatabase
                                 + "' is outside the configured Doris datasource database '"
                                 + configuredDatabase + "'");
             }
-            return configuredDatabase;
+            return requestedDatabase == null ? configuredDatabase : requestedDatabase;
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to resolve configured Doris database", ex);
         }
+    }
+
+    private boolean sameDatabase(String left, String right) {
+        return normalizeDatabaseName(left).equalsIgnoreCase(normalizeDatabaseName(right));
+    }
+
+    private String normalizeDatabaseName(String value) {
+        int separator = value.lastIndexOf(':');
+        return separator >= 0 ? value.substring(separator + 1) : value;
+    }
+
+    private String quoteIdentifier(String value) {
+        return "`" + value.replace("`", "``") + "`";
+    }
+
+    private Integer[] parseTypeParameters(String typeName) {
+        Matcher matcher = TYPE_PARAMETERS.matcher(typeName == null ? "" : typeName);
+        if (!matcher.find()) {
+            return new Integer[] {null, null};
+        }
+        return new Integer[] {
+            Integer.valueOf(matcher.group(1)),
+            matcher.group(2) == null ? null : Integer.valueOf(matcher.group(2))
+        };
+    }
+
+    private Integer jdbcType(String typeName) {
+        if (typeName == null) return null;
+        String normalized = typeName.toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("TINYINT")) return Types.TINYINT;
+        if (normalized.startsWith("SMALLINT")) return Types.SMALLINT;
+        if (normalized.startsWith("INT")) return Types.INTEGER;
+        if (normalized.startsWith("BIGINT")) return Types.BIGINT;
+        if (normalized.startsWith("DECIMAL")) return Types.DECIMAL;
+        if (normalized.startsWith("FLOAT")) return Types.FLOAT;
+        if (normalized.startsWith("DOUBLE")) return Types.DOUBLE;
+        if (normalized.startsWith("DATETIME") || normalized.startsWith("TIMESTAMP")) return Types.TIMESTAMP;
+        if (normalized.startsWith("DATE")) return Types.DATE;
+        if (normalized.startsWith("BOOL")) return Types.BOOLEAN;
+        if (normalized.startsWith("CHAR")) return Types.CHAR;
+        if (normalized.startsWith("VARCHAR") || normalized.startsWith("STRING")) return Types.VARCHAR;
+        return Types.OTHER;
+    }
+
+    private boolean isKey(String keyValue) {
+        return "PRI".equalsIgnoreCase(keyValue)
+                || "TRUE".equalsIgnoreCase(keyValue)
+                || "YES".equalsIgnoreCase(keyValue);
     }
 }

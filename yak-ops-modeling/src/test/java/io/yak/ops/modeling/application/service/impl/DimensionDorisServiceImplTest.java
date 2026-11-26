@@ -30,6 +30,7 @@ import io.yak.ops.modeling.api.vo.dimension.DimensionDorisPublishVO;
 import io.yak.ops.modeling.ddl.doris.DorisDataSourceAdapter;
 import io.yak.ops.modeling.ddl.doris.DorisDataSourceContext;
 import io.yak.ops.modeling.ddl.doris.DorisDdlEngine;
+import io.yak.ops.modeling.ddl.doris.DorisSchemaVerificationException;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.spi.enums.DbType;
 import java.sql.Connection;
@@ -145,6 +146,9 @@ class DimensionDorisServiceImplTest {
                     return record;
                 });
         when(dimensionDorisPublishDao.queryById(anyString())).thenReturn(null);
+        when(ddlEngine.execute(
+                any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
+                .thenReturn("CREATE TABLE `warehouse`.`dwd_order_detail` (...)");
 
         DimensionDorisPublishVO published =
                 service.publish("table-id", request(), dorisDatasource(), "tester");
@@ -154,10 +158,160 @@ class DimensionDorisServiceImplTest {
         assertEquals(DorisPublishModeEnum.INCREMENTAL, published.getPublishMode());
         verify(publishRecordService).createRunning(
                 eq("table-id"), any(DimensionDorisPublishPO.class), any());
+        verify(publishRecordService).updatePhysicalSchema(
+                anyString(), eq("CREATE TABLE `warehouse`.`dwd_order_detail` (...)"), eq("tester"));
         verify(publishRecordService).updateStatus(
                 anyString(), eq(DorisPublishStatusEnum.SUCCESS), eq(null), any(), any(), any(), eq("tester"));
         verify(ddlEngine).execute(
                 any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString());
+    }
+
+    @Test
+    void shouldPersistVerificationFailureSeparatelyAndKeepObservedPhysicalSchema() throws Exception {
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table());
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
+                field("customer_id", DimensionDataTypeEnum.BIGINT)));
+        when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dataSourceAdapter.open(any(DataSource.class)))
+                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+                .thenReturn(new DdlPlan(
+                        "CREATE TABLE ddl", Collections.singletonList("CREATE TABLE ddl"),
+                        false, Collections.singletonList("customer_id")));
+        when(publishRecordService.createRunning(
+                eq("table-id"), any(DimensionDorisPublishPO.class), any()))
+                .thenAnswer(invocation -> {
+                    DimensionDorisPublishPO record = (DimensionDorisPublishPO) invocation.getArguments()[1];
+                    record.setStatus(DorisPublishStatusEnum.RUNNING);
+                    record.setStartedAt((java.util.Date) invocation.getArguments()[2]);
+                    return record;
+                });
+        when(dimensionDorisPublishDao.queryById(anyString())).thenReturn(null);
+        when(ddlEngine.execute(
+                any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
+                .thenThrow(new DorisSchemaVerificationException(
+                        "Doris 已执行 DROP/CREATE，但物理结构校验未通过：字段类型不一致",
+                        "CREATE TABLE warehouse.dwd_order_detail (...)"));
+
+        DimensionDorisPublishVO published =
+                service.publish("table-id", request(), dorisDatasource(), "tester");
+
+        assertEquals(DorisPublishStatusEnum.VERIFY_FAILED, published.getStatus());
+        assertEquals("CREATE TABLE warehouse.dwd_order_detail (...)", published.getPhysicalSchema());
+        verify(publishRecordService).updatePhysicalSchema(
+                anyString(),
+                eq("CREATE TABLE warehouse.dwd_order_detail (...)"),
+                eq("tester"));
+        verify(publishRecordService).updateStatus(
+                anyString(),
+                eq(DorisPublishStatusEnum.VERIFY_FAILED),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                eq("tester"));
+    }
+
+    @Test
+    void shouldNotLoadHistoricalBaselineForDropRecreatePreview() throws Exception {
+        DimensionDorisPublishDTO dto = request();
+        dto.setPublishMode(DorisPublishModeEnum.DROP_RECREATE);
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table());
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
+                field("customer_id", DimensionDataTypeEnum.BIGINT)));
+        when(dataSourceAdapter.open(any(DataSource.class)))
+                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+                .thenAnswer(invocation -> {
+                    io.yak.ops.modeling.ddl.model.DorisDdlRequest ddlRequest =
+                            (io.yak.ops.modeling.ddl.model.DorisDdlRequest) invocation.getArguments()[2];
+                    assertEquals(null, ddlRequest.getPreviousTableModel());
+                    assertTrue(ddlRequest.getPreviousKeyFields().isEmpty());
+                    assertEquals(null, ddlRequest.getPreviousPhysicalSchema());
+                    return new DdlPlan(
+                            "DROP TABLE IF EXISTS ...; CREATE TABLE ...",
+                            Arrays.asList("DROP TABLE IF EXISTS ...", "CREATE TABLE ..."),
+                            false,
+                            Collections.singletonList("customer_id"));
+                });
+
+        service.preview("table-id", dto, dorisDatasource());
+
+        verify(dimensionDorisPublishDao, never()).queryList(any());
+    }
+
+    @Test
+    void shouldRequireExplicitConfirmationBeforeDroppingPhysicalColumns() throws Exception {
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table());
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
+                field("customer_id", DimensionDataTypeEnum.BIGINT)));
+        when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dataSourceAdapter.open(any(DataSource.class)))
+                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+                .thenReturn(new DdlPlan(
+                        "ALTER TABLE ... DROP COLUMN `legacy_note`",
+                        Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
+                        false,
+                        Collections.singletonList("customer_id"),
+                        null,
+                        null,
+                        false,
+                        null,
+                        true,
+                        Collections.<String>emptyList(),
+                        Collections.singletonList("legacy_note"),
+                        true,
+                        false,
+                        "SHOW CREATE TABLE ..."));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.publish("table-id", request(), dorisDatasource(), "tester"));
+
+        assertTrue(error.getMessage().contains("需要二次确认"));
+        verify(publishRecordService, never()).createRunning(
+                eq("table-id"), any(DimensionDorisPublishPO.class), any());
+    }
+
+    @Test
+    void shouldRejectStaleDdlHashForDestructiveColumnConfirmation() throws Exception {
+        DimensionDorisPublishDTO dto = request();
+        dto.setConfirmDropColumns(Boolean.TRUE);
+        dto.setConfirmedDdlHash("stale-preview-hash");
+        when(dimensionTableDao.queryById("table-id")).thenReturn(table());
+        when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
+                field("customer_id", DimensionDataTypeEnum.BIGINT)));
+        when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dataSourceAdapter.open(any(DataSource.class)))
+                .thenReturn(new DorisDataSourceContext(connection, catalog, "warehouse"));
+        when(ddlEngine.plan(any(Connection.class), any(DataSourceCatalog.class), any()))
+                .thenReturn(new DdlPlan(
+                        "ALTER TABLE ... DROP COLUMN `legacy_note`",
+                        Collections.singletonList("ALTER TABLE ... DROP COLUMN `legacy_note`"),
+                        false,
+                        Collections.singletonList("customer_id"),
+                        null,
+                        null,
+                        false,
+                        null,
+                        true,
+                        Collections.<String>emptyList(),
+                        Collections.singletonList("legacy_note"),
+                        true,
+                        false,
+                        "SHOW CREATE TABLE ..."));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.publish("table-id", dto, dorisDatasource(), "tester"));
+
+        assertTrue(error.getMessage().contains("物理表结构已变化"));
+        verify(publishRecordService, never()).createRunning(
+                eq("table-id"), any(DimensionDorisPublishPO.class), any());
     }
 
     @Test

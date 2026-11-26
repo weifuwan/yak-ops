@@ -15,6 +15,7 @@ public class DorisDdlRequest {
     private final DorisDataModelEnum previousTableModel;
     private final List<String> previousKeyFields;
     private final Integer replicationNum;
+    private final String previousPhysicalSchema;
 
     public DorisDdlRequest(
             DdlTableDefinition table,
@@ -22,7 +23,7 @@ public class DorisDdlRequest {
             DorisPublishModeEnum publishMode,
             DorisDataModelEnum previousTableModel,
             List<String> previousKeyFields) {
-        this(table, tableModel, publishMode, previousTableModel, previousKeyFields, null);
+        this(table, tableModel, publishMode, previousTableModel, previousKeyFields, null, null);
     }
 
     public DorisDdlRequest(
@@ -32,6 +33,18 @@ public class DorisDdlRequest {
             DorisDataModelEnum previousTableModel,
             List<String> previousKeyFields,
             Integer replicationNum) {
+        this(table, tableModel, publishMode, previousTableModel, previousKeyFields,
+                replicationNum, null);
+    }
+
+    public DorisDdlRequest(
+            DdlTableDefinition table,
+            DorisDataModelEnum tableModel,
+            DorisPublishModeEnum publishMode,
+            DorisDataModelEnum previousTableModel,
+            List<String> previousKeyFields,
+            Integer replicationNum,
+            String previousPhysicalSchema) {
         this.table = table;
         this.tableModel = tableModel;
         this.publishMode = publishMode;
@@ -40,6 +53,7 @@ public class DorisDdlRequest {
                 ? Collections.<String>emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(previousKeyFields));
         this.replicationNum = replicationNum;
+        this.previousPhysicalSchema = previousPhysicalSchema;
     }
 
     public DdlTableDefinition getTable() { return table; }
@@ -48,4 +62,5 @@ public class DorisDdlRequest {
     public DorisDataModelEnum getPreviousTableModel() { return previousTableModel; }
     public List<String> getPreviousKeyFields() { return previousKeyFields; }
     public Integer getReplicationNum() { return replicationNum; }
+    public String getPreviousPhysicalSchema() { return previousPhysicalSchema; }
 }

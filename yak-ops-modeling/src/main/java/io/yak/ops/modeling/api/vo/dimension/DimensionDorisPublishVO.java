@@ -4,6 +4,7 @@ import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import java.util.Date;
+import java.util.List;
 import lombok.Data;
 
 /** DDL preview or persisted physical publish result. */
@@ -21,11 +22,18 @@ public class DimensionDorisPublishVO {
     private String targetTable;
     private String ddl;
     private String ddlHash;
+    /** Actual SHOW CREATE TABLE snapshot, including when post-DDL verification fails. */
+    private String physicalSchema;
     private Boolean noChanges;
     private Integer replicationNum;
     private Integer availableBackendCount;
     private Boolean replicationAuto;
     private String replicationWarning;
+    private Boolean targetTableExists;
+    private List<String> addedColumns;
+    private List<String> droppedColumns;
+    private Boolean requiresConfirmation;
+    private Boolean schemaDrift;
     private DorisPublishStatusEnum status;
     private String errorMessage;
     private Long executionDurationMs;

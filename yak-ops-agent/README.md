@@ -147,7 +147,8 @@ coverage artifact）、`Agent Contract`（allowlist/registry/OpenAPI 一致性�
 | POST | `/agent/sessions` | 创建会话 → `{sessionId}` |
 | POST | `/agent/sessions/{sid}/messages` | 发消息（body `{message}`）→ **SSE 事件流**；忙时可加 `?queue=true` 排队 |
 | POST | `/agent/sessions/{sid}/confirm` | 确认/拒绝挂起的写操作（body `{approved: bool 或 [bool...]}`） |
-| GET | `/agent/sessions` | 列出**当前用户在当前工作空间**的已持久化会话 |
+| GET | `/agent/sessions` | 列出**当前用户在当前工作空间**的已持久化会话（含 `usage`、`contextTokens`） |
+| GET | `/agent/sessions/{sid}` | 会话状态、`usage` 与 `context` 上下文容量（见下） |
 | GET | `/agent/sessions/{sid}/queue` | 当前排队消息 `items[]`（`queueId`/`position`/`createdAt`/`messagePreview`）与 `max` |
 | DELETE | `/agent/sessions/{sid}/queue/{queueId}` | 取消一条未开始的排队消息（已开始 409，不存在 404） |
 | DELETE | `/agent/sessions/{sid}` | 删除会话（进行中的会话返回 409，需先结束本轮） |
@@ -160,6 +161,32 @@ coverage artifact）、`Agent Contract`（allowlist/registry/OpenAPI 一致性�
 收到 `queue_started` 与后续正常事件；取消则收到 `queue_cancelled`
 （`reason`：`cancelled` / `session_deleted` / `start_failed`）。队列只在
 进程内存中：重启后未开始的消息丢失，前端应提示用户重发。
+
+**上下文容量（`context`）**：`GET /agent/sessions/{sid}` 返回最近一次模型调用的真实上下文占用，
+历史会话返回最后一次落盘的快照：
+
+```json
+{
+  "usedTokens": 356000,
+  "limitTokens": 1000000,
+  "triggerTokens": 700000,
+  "ratio": 0.356,
+  "averageCacheHitRate": 0.985,
+  "compressed": false,
+  "breakdown": [
+    {"key": "messages", "label": "消息", "tokens": 298000, "ratio": 0.837},
+    {"key": "tools", "label": "系统工具", "tokens": 35000, "ratio": 0.099},
+    {"key": "skills", "label": "技能", "tokens": 4300, "ratio": 0.012},
+    {"key": "systemPrompt", "label": "系统提示词", "tokens": 1400, "ratio": 0.004},
+    {"key": "other", "label": "其他", "tokens": 17300, "ratio": 0.048}
+  ]
+}
+```
+
+- `usedTokens` 是**原始**输入 token（含缓存读取），不是计费口径；`usage` 仍是计费口径（缓存读取不计费），两者不要相加。
+- `breakdown` 按组件估算后归一化到 `usedTokens`，合计恒等于 `usedTokens`；`other` 含压缩摘要与格式开销。
+- `averageCacheHitRate` = 累计 `cacheInputTokens / inputTokens`；`limitTokens` 取 `LLM_CONTEXT_SIZE`，`triggerTokens` 为 70% 压缩阈值。
+- `GET /agent/sessions` 列表额外返回 `contextTokens`，便于会话列表展示。
 
 **鉴权两层**：
 
@@ -178,7 +205,7 @@ SSE 事件类型：
 | `tool_call_delta` | 工具入参 JSON 片段（`delta`） |
 | `tool_result_delta` | 工具结果文本片段（`delta`） |
 | `tool_result` | 工具调用结束（`state`：success/error/denied/interrupted） |
-| `usage` | 单次模型调用 token 用量（含 cache 计数） |
+| `usage` | 单次模型调用 token 用量（含 cache 计数；`contextTokens` 为本次调用的真实上下文大小） |
 | `reply_end` | 一轮回复结束（`finishedReason`：completed/interrupted/exceed_max_iters/error，含 `error`） |
 | `confirm_required` | 写操作待确认，含 `toolCalls[]` |
 | `queue_waiting` | 消息已排队（`queueId`/`position`/`messagePreview`，每 15s 心跳；仅 `?queue=true` 请求，不参与断线重放） |

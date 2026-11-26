@@ -16,6 +16,12 @@ public class DimensionDorisPublishDTO {
     private Integer replicationNum;
     private String publishRemark;
 
+    /** Required by the backend when an incremental plan drops existing physical columns. */
+    private Boolean confirmDropColumns;
+
+    /** DDL preview hash the user explicitly confirmed for a destructive operation. */
+    private String confirmedDdlHash;
+
     /** Required by the backend for destructive DROP_RECREATE execution. */
     private Boolean confirmDrop;
 }

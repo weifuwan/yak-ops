@@ -32,7 +32,7 @@ public class DorisBackendInspector {
             if (requestedReplicationNum == null) {
                 throw new IllegalArgumentException(
                         "无法自动检测 Doris 集群可用 BE 数量，可能是当前数据源账号没有 SHOW BACKENDS 查询权限。"
-                                + "请在发布弹窗「高级配置」中手动指定副本数（1～3），或检查数据源账号权限。",
+                                + "请切换为手动指定副本数（1～3），或检查数据源账号权限。",
                         exception);
             }
             return new DorisReplicationPlan(
@@ -88,6 +88,7 @@ public class DorisBackendInspector {
 
             boolean hasClusterDecommissioned = columns.contains("clusterdecommissioned");
             boolean hasNodeRole = columns.contains("noderole");
+            boolean hasLoadAvailable = columns.contains("isloadavailable");
 
             while (resultSet.next()) {
                 if (!isTrue(resultSet.getString("Alive"))
@@ -100,6 +101,9 @@ public class DorisBackendInspector {
                 }
                 if (hasNodeRole
                         && "COMPUTATION".equalsIgnoreCase(resultSet.getString("NodeRole"))) {
+                    continue;
+                }
+                if (hasLoadAvailable && !isTrue(resultSet.getString("IsLoadAvailable"))) {
                     continue;
                 }
                 if (isDefaultLocationTag(resultSet.getString("Tag"))) {

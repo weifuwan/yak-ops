@@ -1,9 +1,13 @@
 package io.yak.ops.modeling.ddl.doris;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
@@ -18,6 +22,8 @@ import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
@@ -142,8 +148,94 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldTreatNullabilityChangesAsIncompatibleSchemaChanges() {
+    void shouldUseRecreateVerificationPolicyWhenExecutingDropRecreate() throws Exception {
+        DorisSchemaInspector inspector = mock(DorisSchemaInspector.class);
+        DorisDdlExecutor executor = mock(DorisDdlExecutor.class);
+        DorisDdlGenerator generator = new DorisDdlGenerator(
+                new DorisConnectorAdapter(), new DorisDdlFormatter());
+        DorisDdlEngine testEngine = new DorisDdlEngine(
+                new DorisDdlValidator(new DorisConnectorAdapter()),
+                mock(DorisSchemaPlanner.class),
+                executor,
+                inspector,
+                generator);
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.DROP_RECREATE,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+        DdlPlan plan = new DdlPlan(
+                "DROP TABLE IF EXISTS ...; CREATE TABLE ...",
+                Arrays.asList("DROP TABLE IF EXISTS ...", "CREATE TABLE ..."),
+                false,
+                Collections.singletonList("customer_id"));
+        when(inspector.verify(
+                any(Connection.class),
+                any(DataSourceCatalog.class),
+                any(DdlTableDefinition.class),
+                eq(DorisDataModelEnum.DUPLICATE),
+                eq(Collections.singletonList("customer_id")),
+                any(DorisDdlGenerator.class),
+                eq(false)))
+                .thenReturn(new DorisSchemaInspector.VerificationResult(
+                        true,
+                        Collections.<String>emptyList(),
+                        "CREATE TABLE warehouse.dwd_order_detail (...)"));
+
+        String physicalSchema = testEngine.execute(connection, catalog, request, plan, "publish-id");
+
+        assertTrue(physicalSchema.contains("CREATE TABLE"));
+        verify(executor).execute(
+                connection, plan, "warehouse", "dwd_order_detail", "publish-id");
+        verify(inspector).verify(
+                any(Connection.class),
+                any(DataSourceCatalog.class),
+                any(DdlTableDefinition.class),
+                eq(DorisDataModelEnum.DUPLICATE),
+                eq(Collections.singletonList("customer_id")),
+                any(DorisDdlGenerator.class),
+                eq(false));
+    }
+
+    @Test
+    void shouldUseRelaxedVerificationForDropRecreateAndStrictVerificationForIncremental() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, false, null)));
+
+        DdlTableDefinition table = new DdlTableDefinition(
+                "warehouse",
+                "dwd_order_detail",
+                "订单明细",
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+        DorisSchemaInspector inspector = new DorisSchemaInspector();
+
+        DorisSchemaInspector.VerificationResult recreateResult = inspector.verify(
+                connection, catalog, table, DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                false);
+        DorisSchemaInspector.VerificationResult incrementalResult = inspector.verify(
+                connection, catalog, table, DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                new DorisDdlGenerator(new DorisConnectorAdapter(), new DorisDdlFormatter()),
+                true);
+
+        assertTrue(recreateResult.isMatched());
+        assertFalse(incrementalResult.isMatched());
+        assertTrue(incrementalResult.getSummary().contains("NULL 属性不一致"));
+        assertTrue(recreateResult.getPhysicalSchema().contains("DUPLICATE KEY"));
+    }
+
+    @Test
+    void shouldTreatNullabilityChangesAsIncompatibleSchemaChanges() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
         when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, false, null),
@@ -179,8 +271,44 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldRejectExistingTableWithoutSuccessfulYakOpsPublishHistory() {
+    void shouldUseLivePhysicalSchemaAsBaselineForManuallyCreatedTable() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
+
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+
+        DdlPlan plan = engine.plan(connection, catalog, request);
+
+        assertTrue(plan.isNoChanges());
+        assertTrue(plan.isTargetTableExists());
+        assertTrue(plan.getPhysicalSchema().contains("DUPLICATE KEY"));
+    }
+
+    @Test
+    void shouldProtectPartitionColumnsFromIncrementalDrop() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTableDdl(
+                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
+                        + "`customer_id` BIGINT NOT NULL, `event_date` DATE NOT NULL"
+                        + ") DUPLICATE KEY(`customer_id`) "
+                        + "PARTITION BY RANGE(`event_date`) "
+                        + "(PARTITION p202601 VALUES LESS THAN (\"2026-02-01\")) "
+                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
+                        + "PROPERTIES (\"replication_num\" = \"1\")");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, true, null),
+                new DataSourceCatalogColumn(
+                        "event_date", "DATE", Types.DATE, null, null, false, 2, false, null)));
 
         DorisDdlRequest request = request(
                 DorisDataModelEnum.DUPLICATE,
@@ -192,12 +320,63 @@ class DorisDdlEngineTest {
 
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
-        assertTrue(error.getMessage().contains("没有 Yak-OPS 成功发布记录"));
+
+        assertTrue(error.getMessage().contains("分区或分桶字段"));
     }
 
     @Test
-    void shouldPlanOnlyNullableColumnAdditions() {
+    void shouldMarkDriftWhenLivePhysicalSchemaDiffersFromLastSuccessfulSnapshot() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
+
+        DorisDdlRequest request = new DorisDdlRequest(
+                new DdlTableDefinition("warehouse", "dwd_order_detail", "订单明细",
+                        Collections.singletonList(column(
+                                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true))),
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                DorisDataModelEnum.DUPLICATE,
+                Collections.singletonList("customer_id"),
+                1,
+                "CREATE TABLE old_schema (...) PROPERTIES (\"replication_num\" = \"3\")");
+
+        DdlPlan plan = engine.plan(connection, catalog, request);
+
+        assertTrue(plan.isNoChanges());
+        assertTrue(plan.isSchemaDrift());
+    }
+
+    @Test
+    void shouldRejectPhysicalTableModelMismatch() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, false, 1, true, null)));
+
+        DdlColumnDefinition primaryId = new DdlColumnDefinition(
+                "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, null,
+                Boolean.FALSE, true, null, null);
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.UNIQUE,
+                DorisPublishModeEnum.INCREMENTAL,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(primaryId));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
+
+        assertTrue(error.getMessage().contains("与当前选择的 UNIQUE 不一致"));
+    }
+
+    @Test
+    void shouldPlanOnlyNullableColumnAdditions() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
         when(catalog.listColumns(any(Connection.class), any())).thenReturn(Collections.singletonList(
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null)));
@@ -220,8 +399,35 @@ class DorisDdlEngineTest {
     }
 
     @Test
-    void shouldReturnNoOpPlanWhenSchemaAlreadyMatches() {
+    void shouldPlanDropForOrdinaryPhysicalColumnAndRequireConfirmation() throws Exception {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
+        when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
+                new DataSourceCatalogColumn(
+                        "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null),
+                new DataSourceCatalogColumn(
+                        "legacy_note", "VARCHAR", Types.VARCHAR, 128, 0, true, 2, false, null)));
+
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.INCREMENTAL,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+
+        DdlPlan plan = engine.plan(connection, catalog, request);
+
+        assertEquals(1, plan.getStatements().size());
+        assertTrue(plan.getStatements().get(0).contains("DROP COLUMN `legacy_note`"));
+        assertTrue(plan.isRequiresConfirmation());
+        assertEquals(Collections.singletonList("legacy_note"), plan.getDroppedColumns());
+    }
+
+    @Test
+    void shouldReturnNoOpPlanWhenSchemaAlreadyMatches() throws Exception {
+        when(catalog.getObject(any(Connection.class), any())).thenReturn(tableObject());
+        mockShowCreateTable("DUPLICATE");
         when(catalog.listColumns(any(Connection.class), any())).thenReturn(Arrays.asList(
                 new DataSourceCatalogColumn(
                         "customer_id", "BIGINT", Types.BIGINT, 19, 0, true, 1, false, null),
@@ -241,6 +447,25 @@ class DorisDdlEngineTest {
 
         assertTrue(plan.isNoChanges());
         assertTrue(plan.getStatements().isEmpty());
+    }
+
+    private void mockShowCreateTable(String model) throws Exception {
+        mockShowCreateTableDdl(
+                "CREATE TABLE `warehouse`.`dwd_order_detail` ("
+                        + "`customer_id` BIGINT NOT NULL"
+                        + ") " + model + " KEY(`customer_id`) "
+                        + "DISTRIBUTED BY HASH(`customer_id`) BUCKETS 1 "
+                        + "PROPERTIES (\"replication_num\" = \"1\")");
+    }
+
+    private void mockShowCreateTableDdl(String ddl) throws Exception {
+        Statement statement = org.mockito.Mockito.mock(Statement.class);
+        ResultSet result = org.mockito.Mockito.mock(ResultSet.class);
+        when(connection.createStatement()).thenReturn(statement);
+        when(statement.executeQuery("SHOW CREATE TABLE `warehouse`.`dwd_order_detail`"))
+                .thenReturn(result);
+        when(result.next()).thenReturn(true);
+        when(result.getString(2)).thenReturn(ddl);
     }
 
     private DorisDdlRequest request(

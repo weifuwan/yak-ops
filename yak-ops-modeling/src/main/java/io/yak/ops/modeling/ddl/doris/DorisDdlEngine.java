@@ -1,5 +1,6 @@
 package io.yak.ops.modeling.ddl.doris;
 
+import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DorisDdlRequest;
 import io.yak.ops.modeling.ddl.model.DorisFieldTypeOption;
@@ -11,6 +12,10 @@ import org.springframework.stereotype.Component;
 /** Public entry point for Doris DDL planning, execution and post-execution verification. */
 @Component
 public class DorisDdlEngine {
+
+    private static final long INCREMENTAL_SCHEMA_VERIFY_TIMEOUT_MILLIS = 30_000L;
+    private static final long RECREATE_SCHEMA_VERIFY_TIMEOUT_MILLIS = 10_000L;
+    private static final long PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS = 500L;
 
     private final DorisDdlValidator validator;
     private final DorisSchemaPlanner planner;
@@ -41,15 +46,59 @@ public class DorisDdlEngine {
         return planner.plan(connection, catalog, request);
     }
 
-    public void execute(
+    /**
+     * Executes DDL and applies a verification policy matching the publish mode.
+     * DROP_RECREATE does not wait for Schema Change and does not reject metadata-only
+     * nullability differences; it verifies the newly created table model, Key and fields.
+     */
+    public String execute(
             Connection connection, DataSourceCatalog catalog, DorisDdlRequest request,
             DdlPlan plan, String publishId)
             throws Exception {
         executor.execute(
                 connection, plan, request.getTable().getDatabase(), request.getTable().getTableName(), publishId);
-        if (!inspector.matches(connection, catalog, request.getTable(), generator)) {
-            throw new IllegalStateException(
-                    "DDL 执行后目标 Doris 表结构与当前模型不一致，请检查目标库中的表定义。");
+
+        boolean recreate = request.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE;
+        boolean strictNullability = !recreate;
+        long timeout = recreate
+                ? RECREATE_SCHEMA_VERIFY_TIMEOUT_MILLIS
+                : INCREMENTAL_SCHEMA_VERIFY_TIMEOUT_MILLIS;
+        long deadline = System.currentTimeMillis() + timeout;
+        DorisSchemaInspector.VerificationResult lastResult = null;
+
+        while (true) {
+            lastResult = inspector.verify(
+                    connection,
+                    catalog,
+                    request.getTable(),
+                    request.getTableModel(),
+                    plan.getKeyFields(),
+                    generator,
+                    strictNullability);
+            if (lastResult.isMatched()) {
+                return lastResult.getPhysicalSchema();
+            }
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                break;
+            }
+            try {
+                Thread.sleep(Math.min(PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS, remaining));
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new DorisSchemaVerificationException(
+                        "Doris DDL 已执行，但物理结构校验被中断。请先检查目标表，不要直接重复删除重建。",
+                        lastResult.getPhysicalSchema(),
+                        ex);
+            }
         }
+
+        String details = lastResult == null ? "未能读取目标表元数据" : lastResult.getSummary();
+        String message = recreate
+                ? "Doris 已执行 DROP/CREATE，但新表物理结构校验未通过（等待 10 秒）。具体差异：" + details
+                        + "。请先检查目标表，不要直接重复删除重建。"
+                : "Doris DDL 已执行，但物理结构校验未通过（等待 30 秒）。具体差异：" + details;
+        throw new DorisSchemaVerificationException(
+                message, lastResult == null ? null : lastResult.getPhysicalSchema());
     }
 }

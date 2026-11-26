@@ -521,6 +521,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_publish (
   ddl text NULL,
   ddl_hash varchar(64) NULL,
   physical_config text NULL,
+  physical_schema text NULL,
   status varchar(32) NOT NULL,
   error_message text NULL,
   execution_duration_ms bigint NULL,

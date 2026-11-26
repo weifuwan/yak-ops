@@ -302,7 +302,7 @@ public class SchemaDao {
     }
 
     /**
-     * Persist the resolved physical configuration with each publish record and retire the
+     * Additive upgrade for Doris publish history and physical schema baselines, then retire the
      * former mutable Doris-config tables. Existing configured Key fields are migrated to the
      * logical field primaryFlag before their duplicate configuration tables are dropped.
      */
@@ -329,6 +329,7 @@ public class SchemaDao {
             String physicalConfigType = "mysql".equalsIgnoreCase(dbType.getDb())
                     ? "longtext NULL" : "text NULL";
             ensureColumn(metadata, connection, publishTable, "physical_config", physicalConfigType);
+            ensureColumn(metadata, connection, publishTable, "physical_schema", physicalConfigType);
             ensureColumn(metadata, connection, publishTable, "table_model", "varchar(32) NULL");
             ensureColumn(metadata, connection, publishTable, "publish_mode", "varchar(32) NULL");
             ensureColumn(metadata, connection, publishTable, "publish_remark", "text NULL");

@@ -60,6 +60,19 @@ test("the particle animation runs once after the first welcome prompt is accepte
   assert.match(conversationHook, /Visual effects are optional and must never block message delivery/);
 });
 
+test("conversation panel shows a subtle top blur only after scrolling away from the top", () => {
+  assert.match(conversationPanel, /const \[showTopFade, setShowTopFade\] = useState\(false\)/);
+  assert.match(conversationPanel, /setShowTopFade\(container\.scrollTop > 4\)/);
+  assert.match(conversationPanel, /data-testid="conversation-top-fade"/);
+  assert.match(conversationPanel, /h-\[72px\]/);
+  assert.match(conversationPanel, /transition-opacity duration-200/);
+  assert.match(conversationPanel, /backdropFilter: "blur\(8px\)"/);
+  assert.match(conversationPanel, /WebkitBackdropFilter: "blur\(8px\)"/);
+  assert.match(conversationPanel, /pointer-events-none/);
+  assert.match(conversationPanel, /maskImage:/);
+  assert.match(conversationPanel, /WebkitMaskImage:/);
+});
+
 test("creating a new conversation rearms the transition while selecting an existing session disables it", () => {
   const newStart = workspace.indexOf("function handleNewConversation");
   const selectStart = workspace.indexOf("function handleSelectConversation", newStart);

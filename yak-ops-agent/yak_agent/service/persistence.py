@@ -66,7 +66,15 @@ def persist(session: Any) -> bool:
             "title": session.title or existing.get("title", ""),
             "preview": session.preview or existing.get("preview", ""),
             "usage": {key: max(0, int(value)) for key, value in usage.items()},
+            "contextTokens": max(0, int(getattr(session, "context_tokens", 0) or 0)),
+            "rawUsage": {
+                key: max(0, int(value))
+                for key, value in (getattr(session, "raw_usage", None) or {}).items()
+            },
         }
+        snapshot = getattr(session, "context_snapshot", None)
+        if isinstance(snapshot, dict) and snapshot:
+            meta["context"] = snapshot
         turn = getattr(session, "turn", None)
         if turn is not None:
             meta["activeTurn"] = {

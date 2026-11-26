@@ -42,16 +42,19 @@ export function ConversationPanel({
   trailingActions,
 }: ConversationPanelProps) {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [showTopFade, setShowTopFade] = useState(false);
 
   const updateScrollToBottom = useCallback(() => {
     const container = scrollRef.current;
     if (!container) {
       setShowScrollToBottom(false);
+      setShowTopFade(false);
       return;
     }
 
     const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
     setShowScrollToBottom(remaining > 48);
+    setShowTopFade(container.scrollTop > 4);
   }, [scrollRef]);
 
   useEffect(() => {
@@ -88,6 +91,25 @@ export function ConversationPanel({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
       <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          data-testid="conversation-top-fade"
+          aria-hidden="true"
+          className={
+            "pointer-events-none absolute inset-x-0 top-0 z-20 h-[72px] " +
+            "transition-opacity duration-200 ease-out motion-reduce:transition-none " +
+            (showTopFade ? "opacity-100" : "opacity-0")
+          }
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0) 100%)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            maskImage:
+              "linear-gradient(to bottom, #000 0%, #000 35%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, #000 0%, #000 35%, transparent 100%)",
+          }}
+        />
         <MessageList
           messages={messages}
           pendingConfirmation={pendingConfirmation}

@@ -57,6 +57,13 @@ public class DorisDdlGenerator {
     }
 
     public List<String> resolveKeyFields(DdlTableDefinition table) {
+        return resolveKeyFields(table, DorisDataModelEnum.UNIQUE);
+    }
+
+    public List<String> resolveKeyFields(DdlTableDefinition table, DorisDataModelEnum tableModel) {
+        if (tableModel == DorisDataModelEnum.DUPLICATE) {
+            return Collections.singletonList(table.getColumns().get(0).getName());
+        }
         List<String> primaryFields = new ArrayList<>();
         for (DdlColumnDefinition column : table.getColumns()) {
             if (column.isPrimaryKey()) {
@@ -75,7 +82,7 @@ public class DorisDdlGenerator {
     public String generateCreateTableDdl(
             DdlTableDefinition table, DorisDataModelEnum tableModel, int replicationNum) {
         return formatter.format(connectorAdapter.generateCreateTableDdl(
-                table, tableModel, resolveKeyFields(table), replicationNum));
+                table, tableModel, resolveKeyFields(table, tableModel), replicationNum));
     }
 
     public String generateAddColumnDdl(String database, String tableName, DdlColumnDefinition column) {
@@ -95,14 +102,25 @@ public class DorisDdlGenerator {
         return formatter.format(ddl.toString());
     }
 
+    public String generateDropColumnDdl(String database, String tableName, String columnName) {
+        String ddl = "ALTER TABLE " + quoteIdentifier(database) + "." + quoteIdentifier(tableName)
+                + " DROP COLUMN " + quoteIdentifier(columnName);
+        return formatter.format(ddl);
+    }
+
     public boolean matches(DorisColumnMetadata actual, DdlColumnDefinition expected) {
+        if (!matchesType(actual, expected)) {
+            return false;
+        }
+        return expected.getNullable() == null || actual.getNullable() == null
+                || expected.getNullable().equals(actual.getNullable());
+    }
+
+    /** Compares the Doris physical type and its parameters without enforcing nullability. */
+    public boolean matchesType(DorisColumnMetadata actual, DdlColumnDefinition expected) {
         String expectedType = connectorAdapter.toDorisType(expected);
         String expectedBase = normalizeTypeName(expectedType);
         if (!expectedBase.equals(normalizeTypeName(actual.getTypeName()))) {
-            return false;
-        }
-        if (expected.getNullable() != null && actual.getNullable() != null
-                && !expected.getNullable().equals(actual.getNullable())) {
             return false;
         }
 
@@ -122,7 +140,13 @@ public class DorisDdlGenerator {
         }
         if ("DATETIME".equals(expectedBase)) {
             Integer expectedPrecision = Integer.valueOf(parameters.group(1));
-            return actual.getScale() != null && expectedPrecision.equals(actual.getScale());
+            Integer actualPrecision = actual.getScale() == null
+                    ? actual.getSize()
+                    : actual.getScale();
+            if (actualPrecision == null) {
+                actualPrecision = 0;
+            }
+            return expectedPrecision.equals(actualPrecision);
         }
         return true;
     }
@@ -167,6 +191,7 @@ public class DorisDdlGenerator {
                 .trim().toUpperCase(Locale.ROOT);
         if ("DECIMALV3".equals(baseType)) return "DECIMAL";
         if ("DATETIMEV2".equals(baseType)) return "DATETIME";
+        if ("TEXT".equals(baseType)) return "STRING";
         if ("DATEV2".equals(baseType)) return "DATE";
         return baseType;
     }

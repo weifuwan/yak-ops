@@ -15,6 +15,7 @@ from agentscope.tool import Toolkit
 
 from yak_agent.agent.budget import (
     COMPRESSION_TOOL_TOKENS,
+    CONTEXT_TRIGGER_RATIO,
     CacheAwareReplyBudgetControlMiddleware,
     check_context_budget,
     enforce_context_budget,
@@ -30,7 +31,6 @@ from yak_agent.tools.validation import check_tool_inventory, validate_tool_names
 from yak_agent.workspace import SessionWorkspace
 
 _SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
-_TRIGGER_RATIO = 0.7
 _COMPRESSION_ENABLED = True
 _LOGGER = logging.getLogger(__name__)
 _SKILL_TEXT_SUFFIXES = frozenset({".md", ".txt", ".yaml", ".yml", ".json"})
@@ -97,7 +97,7 @@ def build_agent(
 
     report = check_context_budget(
         context_size=settings.llm_context_size,
-        trigger_ratio=_TRIGGER_RATIO,
+        trigger_ratio=CONTEXT_TRIGGER_RATIO,
         system_prompt=system_prompt,
         tools=tools,
         memory_budget_tokens=settings.llm_memory_budget_tokens if memory is not None else 0,
@@ -156,7 +156,7 @@ def build_agent(
         ),
         injection_config=InjectionConfig(timezone=PLATFORM_TIMEZONE),
         context_config=ContextConfig(
-            trigger_ratio=_TRIGGER_RATIO,
+            trigger_ratio=CONTEXT_TRIGGER_RATIO,
             reserve_ratio=0.2,
             context_buffer_ratio=0.2,
             tool_result_limit=4000,

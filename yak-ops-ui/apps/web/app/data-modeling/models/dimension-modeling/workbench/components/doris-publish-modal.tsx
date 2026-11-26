@@ -21,7 +21,7 @@ import {
   Textarea,
   toast,
 } from "@yak-ops/yak-ui";
-import { ChevronDown, ChevronUp, Copy, Send } from "lucide-react";
+import { Copy, Send } from "lucide-react";
 
 import {
   dimensionModelingApi,
@@ -119,23 +119,27 @@ export function DorisPublishModal({
   const [publishRemark, setPublishRemark] = useState("");
   const [replicationMode, setReplicationMode] = useState<"AUTO" | "MANUAL">("AUTO");
   const [replicationNum, setReplicationNum] = useState("1");
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [verificationBlocked, setVerificationBlocked] = useState(false);
   const [confirmDropOpen, setConfirmDropOpen] = useState(false);
+  const [confirmDropColumnsOpen, setConfirmDropColumnsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
+      setVerificationBlocked(false);
       setConfirmDropOpen(false);
+      setConfirmDropColumnsOpen(false);
       return;
     }
+    setVerificationBlocked(false);
     setDatasourceId("");
     setTableModel("UNIQUE");
     setPublishMode("INCREMENTAL");
     setPublishRemark("");
     setReplicationMode("AUTO");
     setReplicationNum("1");
-    setAdvancedOpen(false);
     setConfirmDropOpen(false);
+    setConfirmDropColumnsOpen(false);
   }, [open, tableId]);
 
   const physicalFields = useMemo(
@@ -210,7 +214,7 @@ export function DorisPublishModal({
     }
   };
 
-  const publish = async (confirmedDrop = false) => {
+  const publish = async (confirmedDrop = false, confirmedDropColumns = false) => {
     if (busy) return;
     if (!datasourceId) {
       toast.warning("请选择 Doris 数据源");
@@ -236,6 +240,10 @@ export function DorisPublishModal({
       setConfirmDropOpen(true);
       return;
     }
+    if (preview?.requiresConfirmation && !confirmedDropColumns) {
+      setConfirmDropColumnsOpen(true);
+      return;
+    }
     if (previewQuery.isFetching || previewQuery.isError || !preview?.ddl) {
       toast.warning(previewError || "请等待 DDL 预览生成完成");
       return;
@@ -248,6 +256,8 @@ export function DorisPublishModal({
       publishRemark: publishRemark.trim(),
       replicationNum: replicationMode === "MANUAL" ? Number(replicationNum) : null,
       confirmDrop: publishMode === "DROP_RECREATE" && confirmedDrop,
+      confirmDropColumns: confirmedDropColumns,
+      confirmedDdlHash: confirmedDrop || confirmedDropColumns ? preview.ddlHash : undefined,
     };
 
     setBusy(true);
@@ -265,14 +275,21 @@ export function DorisPublishModal({
         toast.success(result.noChanges ? "目标表结构已是最新，无需变更" : "Doris 物理表发布成功");
         setConfirmDropOpen(false);
         onOpenChange(false);
+      } else if (result.status === "VERIFY_FAILED") {
+        setVerificationBlocked(true);
+        toast.warning(
+          "DDL 已执行，但物理结构校验未通过。请先查看发布记录中的实际物理结构，不要直接重复删除重建。"
+          + (result.errorMessage ? " " + result.errorMessage : ""),
+        );
       } else {
-        toast.warning(result.errorMessage || "发布未成功，请查看发布记录");
+        toast.warning(result.errorMessage || "DDL 执行失败，请查看发布记录");
       }
     } catch (error) {
       toast.warning(error instanceof Error ? error.message : "Doris 发布失败");
       await client.invalidateQueries({
         queryKey: ["modeling", "doris-publish-history", projectCode, tableId],
       });
+      void previewQuery.refetch();
     } finally {
       setBusy(false);
     }
@@ -280,6 +297,7 @@ export function DorisPublishModal({
 
   const canPublish = enabled
     && !busy
+    && !verificationBlocked
     && !datasourceQuery.isPending
     && !datasourceQuery.isError
     && Boolean(datasourceId && tableModel && publishMode && publishRemark.trim())
@@ -337,6 +355,11 @@ export function DorisPublishModal({
         }
       >
         <div className="space-y-4">
+          {verificationBlocked ? (
+            <p className="mb-0 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              上一次 DDL 已执行，但物理结构校验未通过。请先查看发布记录中的实际物理结构，关闭窗口后再决定是否重新发布。
+            </p>
+          ) : null}
           <section className="space-y-3">
             <Field className={HORIZONTAL_FIELD_CLASS}>
               <FieldLabel required className="pt-1 text-xs">Doris 表类型</FieldLabel>
@@ -422,61 +445,46 @@ export function DorisPublishModal({
             </Field>
           </section>
 
-          <section className="border-t border-[var(--yak-components-panel-border)] pt-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="!h-7 !px-1 text-xs"
-              onClick={() => setAdvancedOpen((current) => !current)}
-            >
-              <span>高级配置</span>
-              {advancedOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </Button>
-            {advancedOpen ? (
-              <div className="mt-3 space-y-3">
-                <Field className={HORIZONTAL_FIELD_CLASS}>
-                  <FieldLabel className="pt-1 text-xs">副本策略</FieldLabel>
-                  <RadioGroup
-                    aria-label="Doris 副本策略"
-                    value={replicationMode}
-                    onValueChange={(value) => setReplicationMode(String(value) as "AUTO" | "MANUAL")}
-                    className="flex flex-wrap items-center gap-5 pt-1"
-                  >
-                    <label htmlFor="doris-replication-auto" className="inline-flex cursor-pointer items-center gap-2 text-xs">
-                      <Radio id="doris-replication-auto" value="AUTO" />
-                      <span>自动适配</span>
-                    </label>
-                    <label htmlFor="doris-replication-manual" className="inline-flex cursor-pointer items-center gap-2 text-xs">
-                      <Radio id="doris-replication-manual" value="MANUAL" />
-                      <span>手动指定</span>
-                    </label>
-                  </RadioGroup>
-                </Field>
-                {replicationMode === "MANUAL" ? (
-                  <Field className={HORIZONTAL_FIELD_CLASS}>
-                    <FieldLabel className="pt-1.5 text-xs">副本数</FieldLabel>
-                    <FormSelect
-                      value={replicationNum}
-                      options={[
-                        { value: "1", label: "1 个副本" },
-                        { value: "2", label: "2 个副本" },
-                        { value: "3", label: "3 个副本" },
-                      ]}
-                      placeholder="请选择副本数"
-                      disabled={busy}
-                      onChange={setReplicationNum}
-                    />
-                  </Field>
-                ) : (
-                  <p className="mb-0 pl-[116px] text-xs text-[var(--yak-components-muted-text)]">
-                    系统根据 Doris 默认 Tag 下可用 BE 数量自动设置，最多使用 3 个副本。
-                  </p>
-                )}
-              </div>
+          {(!preview?.targetTableExists || publishMode === "DROP_RECREATE") ? (
+          <section className="space-y-3">
+            <Field className={HORIZONTAL_FIELD_CLASS}>
+              <FieldLabel className="pt-1 text-xs">副本策略</FieldLabel>
+              <RadioGroup
+                aria-label="Doris 副本策略"
+                value={replicationMode}
+                onValueChange={(value) => setReplicationMode(String(value) as "AUTO" | "MANUAL")}
+                className="flex flex-wrap items-center gap-5 pt-1"
+              >
+                <label htmlFor="doris-replication-auto" className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                  <Radio id="doris-replication-auto" value="AUTO" />
+                  <span>自动适配</span>
+                </label>
+                <label htmlFor="doris-replication-manual" className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                  <Radio id="doris-replication-manual" value="MANUAL" />
+                  <span>手动指定</span>
+                </label>
+              </RadioGroup>
+            </Field>
+            {replicationMode === "MANUAL" ? (
+              <Field className={HORIZONTAL_FIELD_CLASS}>
+                <FieldLabel className="pt-1.5 text-xs">副本数</FieldLabel>
+                <FormSelect
+                  value={replicationNum}
+                  options={[
+                    { value: "1", label: "1 个副本" },
+                    { value: "2", label: "2 个副本" },
+                    { value: "3", label: "3 个副本" },
+                  ]}
+                  placeholder="请选择副本数"
+                  disabled={busy}
+                  onChange={setReplicationNum}
+                />
+              </Field>
             ) : null}
           </section>
+          ) : null}
 
-          <section className="border-t border-[var(--yak-components-panel-border)] pt-4">
+          <section className="space-y-2">
             <div className="mb-2 flex items-center justify-between gap-2">
               <h3 className="m-0 text-xs font-medium text-[var(--yak-components-field-label)]">DDL 预览</h3>
               <Button
@@ -489,6 +497,37 @@ export function DorisPublishModal({
                 复制
               </Button>
             </div>
+            {preview?.targetTableExists && publishMode === "INCREMENTAL" ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--yak-components-muted-text)]">
+                <span>已识别 Doris 物理表</span>
+                {preview.addedColumns?.length ? (
+                  <span className="text-[var(--yak-components-success-text)]">
+                    新增 {preview.addedColumns.length} 个字段
+                  </span>
+                ) : null}
+                {preview.droppedColumns?.length ? (
+                  <span className="text-[var(--yak-components-danger-text)]">
+                    删除 {preview.droppedColumns.length} 个字段
+                  </span>
+                ) : null}
+                {!preview.addedColumns?.length && !preview.droppedColumns?.length ? (
+                  <span>物理结构与模型一致</span>
+                ) : null}
+              </div>
+            ) : preview?.targetTableExists ? (
+              <p className="mb-0 text-xs text-[var(--yak-components-muted-text)]">
+                现有物理表将删除并重建。
+              </p>
+            ) : preview ? (
+              <p className="mb-0 text-xs text-[var(--yak-components-muted-text)]">
+                目标表不存在，将创建新表。
+              </p>
+            ) : null}
+            {preview?.schemaDrift ? (
+              <p className="mb-0 text-xs text-[var(--yak-components-alert-warning-text)]">
+                检测到目标表自上次发布后发生结构变化，本次按当前物理结构计算差异。
+              </p>
+            ) : null}
             <div className="relative overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-white">
               <SqlCodeEditor
                 value={preview?.ddl || ""}
@@ -502,21 +541,6 @@ export function DorisPublishModal({
                 </div>
               ) : null}
             </div>
-            {preview?.replicationNum != null && !preview.noChanges ? (
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--yak-components-muted-text)]">
-                <span>
-                  副本数：{preview.replicationNum} · {preview.replicationAuto ? "自动适配" : "手动指定"}
-                </span>
-                {preview.availableBackendCount != null ? (
-                  <span>默认 Tag 可用 BE：{preview.availableBackendCount}</span>
-                ) : null}
-              </div>
-            ) : null}
-            {preview?.replicationWarning ? (
-              <p className="mb-0 mt-2 text-xs text-[var(--yak-components-alert-warning-text)]">
-                {preview.replicationWarning}
-              </p>
-            ) : null}
             {previewError ? (
               <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">{previewError}</p>
             ) : preview?.noChanges ? (
@@ -568,6 +592,44 @@ export function DorisPublishModal({
               onClick={() => void publish(true)}
             >
               确认删除并重建
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDropColumnsOpen}
+        onOpenChange={(nextOpen) => {
+          if (!busy) setConfirmDropColumnsOpen(nextOpen);
+        }}
+      >
+        <DialogContent className="w-[440px]">
+          <DialogTitle className="text-base font-semibold">确认删除物理字段？</DialogTitle>
+          <DialogDescription className="mt-3 text-sm leading-6 text-[var(--yak-components-muted-text)]">
+            以下字段存在于 Doris 物理表，但已从当前模型移除。继续发布会执行 DROP COLUMN，原字段数据将无法恢复。
+          </DialogDescription>
+          <div className="mt-3 rounded-md border border-[var(--yak-components-panel-border)] p-3 text-sm">
+            {preview?.droppedColumns?.join("、")}
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              isDisabled={busy}
+              onClick={() => setConfirmDropColumnsOpen(false)}
+            >
+              返回修改
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              isPending={busy}
+              onClick={() => {
+                setConfirmDropColumnsOpen(false);
+                void publish(false, true);
+              }}
+            >
+              确认删除字段
             </Button>
           </div>
         </DialogContent>

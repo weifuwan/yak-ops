@@ -27,6 +27,8 @@ public class DimensionDorisPublishPO extends ModelingBasePO {
     private String targetTable;
     private String ddl;
     private String ddlHash;
+    /** Physical SHOW CREATE TABLE snapshot captured after a successful publish. */
+    private String physicalSchema;
     /** Legacy snapshot retained for reading historical rows; V1 no longer writes it. */
     @Deprecated
     private String physicalConfig;
