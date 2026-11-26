@@ -5,9 +5,11 @@ import { X } from "lucide-react";
 import type { AgentSessionContext, AgentSessionContextBreakdown } from "@/service/data-agent";
 
 type FloatingPosition = {
-  top: number;
+  placement: "above" | "below";
+  offset: number;
   left: number;
   width: number;
+  maxHeight: number;
 };
 
 type DataAgentContextUsageProps = {
@@ -75,17 +77,26 @@ function ringBackground(context: AgentSessionContext | null) {
 
 function getPopoverPosition(rect: DOMRect): FloatingPosition {
   const margin = 12;
-  const width = Math.min(352, window.innerWidth - margin * 2);
-  const height = Math.min(420, window.innerHeight - margin * 2);
+  const gap = 8;
+  const width = Math.min(320, window.innerWidth - margin * 2);
   const left = Math.max(
     margin,
     Math.min(rect.right - width, window.innerWidth - width - margin),
   );
-  const above = rect.top - height - 10;
-  const top = above >= margin
-    ? above
-    : Math.min(window.innerHeight - height - margin, rect.bottom + 10);
-  return { top, left, width };
+  const availableAbove = Math.max(0, rect.top - margin - gap);
+  const availableBelow = Math.max(0, window.innerHeight - rect.bottom - margin - gap);
+  const placeAbove = availableAbove >= 220 || availableAbove >= availableBelow;
+  const availableHeight = placeAbove ? availableAbove : availableBelow;
+
+  return {
+    placement: placeAbove ? "above" : "below",
+    offset: placeAbove
+      ? window.innerHeight - rect.top + gap
+      : rect.bottom + gap,
+    left,
+    width,
+    maxHeight: Math.min(380, availableHeight),
+  };
 }
 
 function getTooltipPosition(rect: DOMRect): CSSProperties {
@@ -99,10 +110,10 @@ function getTooltipPosition(rect: DOMRect): CSSProperties {
 
 function ContextUsageSkeleton() {
   return (
-    <div className="animate-pulse space-y-4 px-5 pb-5 pt-4" aria-label="正在加载上下文详情">
+    <div className="animate-pulse space-y-3 px-4 pb-4 pt-3" aria-label="正在加载上下文详情">
       <div className="h-7 w-24 rounded bg-[#f0f1f4]" />
       <div className="h-2.5 rounded-full bg-[#f0f1f4]" />
-      <div className="space-y-3 pt-1">
+      <div className="space-y-2.5 pt-1">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="flex items-center justify-between">
             <div className="h-3 w-28 rounded bg-[#f0f1f4]" />
@@ -131,10 +142,12 @@ function ContextUsageDetails({
   onClose: () => void;
 }) {
   const style: CSSProperties = {
-    top: position.top,
+    ...(position.placement === "above"
+      ? { bottom: position.offset }
+      : { top: position.offset }),
     left: position.left,
     width: position.width,
-    maxHeight: "min(420px, calc(100vh - 24px))",
+    maxHeight: position.maxHeight,
   };
   const breakdown = context ? orderedBreakdown(context.breakdown) : [];
   const usedRatio = context ? clampRatio(context.ratio) : 0;
@@ -147,40 +160,40 @@ function ContextUsageDetails({
       ref={cardRef}
       role="dialog"
       aria-label="上下文用量详情"
-      className="fixed z-[140] overflow-y-auto rounded-[18px] border border-[#e8e8ec] bg-white text-[#202124] shadow-[0_14px_40px_rgba(0,0,0,0.16)]"
+      className="fixed z-[140] overflow-y-auto rounded-2xl border border-[#e8e8ec] bg-white text-[#202124] shadow-[0_12px_32px_rgba(0,0,0,0.14)]"
       style={style}
     >
-      <div className="flex items-center justify-between px-5 pb-1 pt-4">
-        <h3 className="m-0 text-[14px] font-medium text-[#202124]">上下文用量</h3>
+      <div className="flex items-center justify-between px-4 pb-0 pt-3">
+        <h3 className="m-0 text-[13px] font-medium text-[#202124]">上下文用量</h3>
         <button
           type="button"
           aria-label="关闭上下文用量详情"
-          className="flex size-7 cursor-pointer items-center justify-center rounded-full text-[#858585] transition-colors hover:bg-[#f3f4f6] hover:text-[#303030]"
+          className="flex size-6 cursor-pointer items-center justify-center rounded-full text-[#858585] transition-colors hover:bg-[#f3f4f6] hover:text-[#303030]"
           onClick={onClose}
         >
-          <X size={16} strokeWidth={1.8} />
+          <X size={14} strokeWidth={1.8} />
         </button>
       </div>
 
       {loading ? (
         <ContextUsageSkeleton />
       ) : error ? (
-        <div role="alert" className="px-5 pb-5 pt-4 text-xs leading-5 text-[#8b8b8b]">
+        <div role="alert" className="px-4 pb-4 pt-3 text-[11px] leading-5 text-[#8b8b8b]">
           {error}
         </div>
       ) : context ? (
-        <div className="px-5 pb-5 pt-2">
+        <div className="px-4 pb-4 pt-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-[26px] font-semibold leading-8 tracking-[-0.04em] text-[#202124]">
+            <span className="text-[24px] font-semibold leading-7 tracking-[-0.04em] text-[#202124]">
               {formatPercent(usedRatio)}
             </span>
-            <span className="text-xs text-[#777d87]">
+            <span className="text-[11px] text-[#777d87]">
               已使用 {formatTokenCount(context.usedTokens)} / {formatTokenCount(context.limitTokens)}
             </span>
           </div>
 
           <div
-            className="relative mt-3 flex h-2.5 overflow-hidden rounded-full bg-[#e9eaee]"
+            className="relative mt-2.5 flex h-2 overflow-hidden rounded-full bg-[#e9eaee]"
             aria-label={"上下文使用率 " + formatPercent(usedRatio)}
           >
             {breakdown.map((item) => (
@@ -202,41 +215,41 @@ function ContextUsageDetails({
             ) : null}
           </div>
 
-          <div className="mt-5 flex flex-col gap-3">
+          <div className="mt-4 flex flex-col gap-2.5">
             {breakdown.map((item) => (
               <div key={item.key} className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span
                     aria-hidden="true"
-                    className="size-2.5 shrink-0 rounded-full"
+                    className="size-2 shrink-0 rounded-full"
                     style={{ backgroundColor: CATEGORY_COLORS[item.key] ?? "#64748b" }}
                   />
-                  <span className="truncate text-[13px] text-[#555b65]">{item.label}</span>
+                  <span className="truncate text-xs text-[#555b65]">{item.label}</span>
                 </div>
-                <span className="shrink-0 text-[13px] font-medium tabular-nums text-[#30343b]">
+                <span className="shrink-0 text-xs font-medium tabular-nums text-[#30343b]">
                   {formatPercent(item.ratio)}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 space-y-3 border-t border-[#eceef1] pt-3">
+          <div className="mt-4 space-y-2.5 border-t border-[#eceef1] pt-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-[#858b95]">平均缓存命中率</span>
-              <span className="text-xs font-semibold tabular-nums text-[#30343b]">
+              <span className="text-[11px] text-[#858b95]">平均缓存命中率</span>
+              <span className="text-[11px] font-semibold tabular-nums text-[#30343b]">
                 {formatPercent(context.averageCacheHitRate)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-[#858b95]">上下文压缩</span>
-              <span className="text-xs font-medium text-[#555b65]">
+              <span className="text-[11px] text-[#858b95]">上下文压缩</span>
+              <span className="text-[11px] font-medium text-[#555b65]">
                 {context.compressed ? "已触发" : "未触发"}
               </span>
             </div>
           </div>
         </div>
       ) : (
-        <div className="px-5 pb-5 pt-4 text-xs text-[#858b95]">暂无上下文数据</div>
+        <div className="px-4 pb-4 pt-3 text-[11px] text-[#858b95]">暂无上下文数据</div>
       )}
     </div>
   );
