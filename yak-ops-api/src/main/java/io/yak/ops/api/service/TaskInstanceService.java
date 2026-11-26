@@ -78,5 +78,8 @@ public interface TaskInstanceService {
      */
     Result stopTask(User loginUser, long projectCode, Integer taskInstanceId);
 
+    /** Stop a streaming task gracefully and return its durable savepoint path. */
+    String stopTaskWithSavepoint(User loginUser, long projectCode, Integer taskInstanceId);
+
     void deleteByWorkflowInstanceId(Integer workflowInstanceId);
 }
