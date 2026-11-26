@@ -1,6 +1,5 @@
 package io.yak.ops.plugin.task.datasync.metrics;
 
-import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 
 import java.io.IOException;
@@ -18,9 +17,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /** Flink REST implementation shared by embedded and remote deployment modes. */
 public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final List<String> METRIC_NAMES = List.of(
             "numSnapshotRecords",
@@ -102,7 +104,7 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IOException("Flink REST returned HTTP " + response.statusCode() + " for " + url);
         }
-        return JSONUtils.parseObject(response.body());
+        return OBJECT_MAPPER.readTree(response.body());
     }
 
     private static boolean isSupportedMetric(String metricId) {
