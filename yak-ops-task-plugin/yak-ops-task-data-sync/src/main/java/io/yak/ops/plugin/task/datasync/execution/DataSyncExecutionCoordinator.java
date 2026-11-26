@@ -157,6 +157,9 @@ public class DataSyncExecutionCoordinator {
                                                      DataSyncExecutionSnapshot previous) {
         try {
             DataSyncExecutionSnapshot collected = metricsService.collect(current);
+            if (collected == null) {
+                throw new IllegalStateException("Metrics service returned an empty snapshot");
+            }
             if (previous == null) {
                 return collected;
             }

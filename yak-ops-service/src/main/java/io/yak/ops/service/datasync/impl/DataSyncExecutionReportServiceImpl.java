@@ -215,8 +215,11 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
         if (!"SNAPSHOT".equals(request.getReportType()) && !"FINAL".equals(request.getReportType())) {
             return "Unsupported report type";
         }
-        if (StringUtils.isBlank(request.getExecutionState()) || StringUtils.isBlank(request.getMetricsState())) {
-            return "Execution and metrics states are required";
+        if (StringUtils.isBlank(request.getDeploymentMode())
+                || StringUtils.isBlank(request.getExecutionState())
+                || StringUtils.isBlank(request.getMetricsState())
+                || request.getSummary() == null) {
+            return "Deployment mode, execution state, metrics state and summary are required";
         }
         return null;
     }
