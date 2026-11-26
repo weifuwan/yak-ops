@@ -1442,8 +1442,8 @@ CREATE TABLE t_yak_ops_data_sync_execution_report (
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_data_sync_report_task_update
-    ON t_yak_ops_data_sync_execution_report(task_instance_id, update_time);
+CREATE INDEX idx_data_sync_report_task_submitted
+    ON t_yak_ops_data_sync_execution_report(task_instance_id, submitted_at, create_time);
 CREATE INDEX idx_data_sync_report_job_id
     ON t_yak_ops_data_sync_execution_report(job_id);
 
