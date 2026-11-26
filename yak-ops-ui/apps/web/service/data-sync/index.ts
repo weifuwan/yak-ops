@@ -199,6 +199,12 @@ export const listDataSyncInstances = async (
       startTime: instance.startTime ?? undefined,
       finishTime: instance.endTime ?? undefined,
       createTime: instance.createTime ?? undefined,
+      workflowStatus: instance.workflowStatus,
+      availableActions: instance.availableActions ?? [],
+      recoveryPointAvailable: instance.recoveryPointAvailable ?? false,
+      recoveryPointTime: instance.recoveryPointTime,
+      recoveryPointUsedByWorkflowInstanceId: instance.recoveryPointUsedByWorkflowInstanceId,
+      recoveryUnavailableReason: instance.recoveryUnavailableReason,
     })),
   };
 };
