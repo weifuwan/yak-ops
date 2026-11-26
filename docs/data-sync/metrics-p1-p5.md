@@ -30,6 +30,12 @@
 - 指标采集或报告发送失败不会改变 CDC 作业本身的成功/失败结果；Worker 会保留最后一次成功快照并记录指标状态。
 - MiniCluster 在最终报告发送尝试完成后释放；远程部署实现可复用 Metrics 和 Report 服务，只替换 Execution 实现。
 
+## FINAL 报告补偿
+
+Worker 在 FINAL 报告连续 RPC 失败后，会将报告和目标 Master 地址写入本地 Outbox，再由后台线程每 30 秒重试，直到 Master 返回已接受的 ACK。默认目录为 `~/.yak-ops/data-sync-report-outbox`，可通过 JVM 参数 `-Dyak.ops.data-sync.report.outbox-dir=/持久化目录` 修改。
+
+生产部署应将该目录挂载到 Worker 的持久化磁盘；容器重建时如果使用临时文件系统，无法保证 Worker 重启后仍保留待发送报告。相同 executionId + sequence 的补发依赖 Master 幂等处理，不会重复生成最终记录。
+
 ## 数据库升级
 
 新增表：
