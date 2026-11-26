@@ -5,7 +5,6 @@ import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
 import io.yak.ops.modeling.ddl.model.DdlRequest;
-import io.yak.ops.modeling.ddl.model.DdlPublishMode;
 import io.yak.ops.modeling.ddl.doris.model.DorisOptions;
 import io.yak.ops.modeling.ddl.doris.schema.TableSchemaBuilder;
 import java.util.HashSet;
@@ -23,8 +22,8 @@ public class ModelValidator {
 
     private final TableSchemaBuilder tableSchemaBuilder;
 
-    public DorisDdlValidator(DorisConnectorAdapter connectorAdapter) {
-        this.connectorAdapter = connectorAdapter;
+    public ModelValidator(TableSchemaBuilder tableSchemaBuilder) {
+        this.tableSchemaBuilder = tableSchemaBuilder;
     }
 
     public void validate(DdlRequest request) {
@@ -70,10 +69,10 @@ public class ModelValidator {
             }
         }
 
-        if (tableModel == DorisDataModelEnum.UNIQUE && primaryKeyCount == 0) {
+        if (tableModel == DorisTableModel.UNIQUE && primaryKeyCount == 0) {
             throw new IllegalArgumentException("UNIQUE KEY 主键表至少需要一个主键字段，请先在字段管理中设置主键。");
         }
-        if (tableModel == DorisDataModelEnum.UNIQUE) {
+        if (tableModel == DorisTableModel.UNIQUE) {
             for (DdlColumnDefinition column : columns) {
                 if (column.isPrimaryKey() && !Boolean.FALSE.equals(column.getNullable())) {
                     throw new IllegalArgumentException(
@@ -90,10 +89,10 @@ public class ModelValidator {
         }
         switch (type) {
             case CHAR:
-                validateLength(column, 1, connectorAdapter.getMaxCharLength());
+                validateLength(column, 1, tableSchemaBuilder.getMaxCharLength());
                 return;
             case VARCHAR:
-                validateLength(column, 1, connectorAdapter.getMaxVarcharLength());
+                validateLength(column, 1, tableSchemaBuilder.getMaxVarcharLength());
                 return;
             case DECIMAL:
                 Integer precision = column.getPrecision();
