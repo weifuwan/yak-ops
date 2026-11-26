@@ -20,7 +20,8 @@ public interface DataSyncRecoveryPointDao extends IDao<DataSyncRecoveryPoint> {
     /** Persists a STOP Savepoint intent before the Worker RPC is invoked. */
     boolean insertPending(DataSyncRecoveryPoint point);
 
-    boolean markAvailable(long id, String restorePath, java.util.Date completedAt);
+    boolean markAvailable(long id, String restorePath, java.util.Date completedAt,
+                          String executionId, String jobId, String runtimeMode);
 
     boolean markFailed(long id);
 

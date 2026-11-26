@@ -762,8 +762,9 @@ class DataSyncServiceImplTest {
             point.setId(55L);
             return true;
         });
-        when(dataSyncRecoveryPointDao.markAvailable(eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any()))
-                .thenReturn(true);
+        when(dataSyncRecoveryPointDao.markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"))).thenReturn(true);
 
         DataSyncInstanceActionResultVO result =
                 service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP);
@@ -777,7 +778,8 @@ class DataSyncServiceImplTest {
                         && point.getRecoveryPointId() != null
                         && point.getTaskInstanceId() == 42));
         verify(dataSyncRecoveryPointDao).markAvailable(
-                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any());
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"));
     }
 
     @Test

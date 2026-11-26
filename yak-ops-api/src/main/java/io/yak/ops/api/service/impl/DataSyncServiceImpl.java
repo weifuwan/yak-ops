@@ -612,7 +612,9 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                         if (report != null && report.getDeploymentMode() != null) {
                             point.setRuntimeMode(report.getDeploymentMode());
                         }
-                        if (!dataSyncRecoveryPointDao.markAvailable(point.getId(), restorePath, new Date())) {
+                        if (!dataSyncRecoveryPointDao.markAvailable(
+                                point.getId(), restorePath, new Date(),
+                                point.getExecutionId(), point.getJobId(), point.getRuntimeMode())) {
                             throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
                                     "恢复点保存失败，请检查任务状态后重试");
                         }

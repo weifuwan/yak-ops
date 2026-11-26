@@ -129,11 +129,16 @@ public class DataSyncRecoveryPointDaoImpl
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean markAvailable(long id, String restorePath, Date completedAt) {
+    public boolean markAvailable(
+            long id, String restorePath, Date completedAt,
+            String executionId, String jobId, String runtimeMode) {
         DataSyncRecoveryPoint update = new DataSyncRecoveryPoint();
         update.setState("AVAILABLE");
         update.setRestorePath(restorePath);
         update.setCompletedAt(completedAt);
+        update.setExecutionId(executionId);
+        update.setJobId(jobId);
+        update.setRuntimeMode(runtimeMode);
         return mybatisMapper.update(
                 update,
                 new UpdateWrapper<DataSyncRecoveryPoint>()
