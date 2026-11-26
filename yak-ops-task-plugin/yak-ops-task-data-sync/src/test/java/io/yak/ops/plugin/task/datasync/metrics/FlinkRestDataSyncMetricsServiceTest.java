@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 
-import com.sun.net.httpserver.HttpServer;
-import org.junit.jupiter.api.Test;
-
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+
+import org.junit.jupiter.api.Test;
+
+import com.sun.net.httpserver.HttpServer;
 
 class FlinkRestDataSyncMetricsServiceTest {
 
