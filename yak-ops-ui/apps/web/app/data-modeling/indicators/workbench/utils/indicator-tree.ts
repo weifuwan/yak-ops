@@ -419,21 +419,23 @@ export function buildModifierTree(
       const id = String(record.domainId || "");
       return !id || !domainMap.has(id);
     });
-    const defaultNode: IndicatorTreeNode = {
-      key: "modifier-default",
-      id: "default",
-      title: "默认",
-      kind: "group",
-      nodeType: "dataDomain",
-      count: unassignedRecords.length,
-      children: unassignedRecords.map(assetNode),
-    };
+    const unassignedNode: IndicatorTreeNode | undefined = unassignedRecords.length
+      ? {
+        key: "modifier-unassigned-domain",
+        id: "unassigned-domain",
+        title: "未关联数据域",
+        kind: "group",
+        nodeType: "group",
+        count: unassignedRecords.length,
+        children: unassignedRecords.map(assetNode),
+      }
+      : undefined;
     if (scopeValue) {
       const selected = domainNodes.find((node) => node.id === scopeValue);
       root.children = selected ? [selected] : [];
       root.count = selected?.count || 0;
     } else {
-      root.children = [defaultNode, ...domainNodes];
+      root.children = [...(unassignedNode ? [unassignedNode] : []), ...domainNodes];
     }
     return [root];
   }
@@ -490,15 +492,17 @@ export function buildModifierTree(
     const id = String(record.busTypeId || "");
     return !id || !groupMap.has(id);
   });
-  const defaultNode: IndicatorTreeNode = {
-    key: "modifier-default",
-    id: "default",
-    title: "默认",
-    kind: "group",
-    nodeType: "businessType",
-    count: unassignedRecords.length,
-    children: unassignedRecords.map(assetNode),
-  };
+  const unassignedNode: IndicatorTreeNode | undefined = unassignedRecords.length
+    ? {
+      key: "modifier-unassigned-business-type",
+      id: "unassigned-business-type",
+      title: "未关联业务分类",
+      kind: "group",
+      nodeType: "group",
+      count: unassignedRecords.length,
+      children: unassignedRecords.map(assetNode),
+    }
+    : undefined;
 
   if (scopeValue) {
     const selectedNode = roots.reduce<IndicatorTreeNode | undefined>((found, node) => {
@@ -527,7 +531,7 @@ export function buildModifierTree(
       root.count = uniqueRecords.filter((record) => selectedIds.has(String(record.busTypeId || ""))).length;
     }
   } else {
-    root.children = [defaultNode, ...roots];
+    root.children = [...(unassignedNode ? [unassignedNode] : []), ...roots];
   }
   return [root];
 }
