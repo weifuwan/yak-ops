@@ -366,7 +366,7 @@ export function DataAgentContextUsage({
         aria-expanded={open}
         aria-disabled={!hasSession}
         className={
-          "group relative grid size-8 shrink-0 cursor-pointer appearance-none place-items-center rounded-full border-0 p-0 leading-none transition-[background-color,transform,box-shadow] duration-200 ease-out hover:scale-[1.04] hover:bg-[#f3f4f6] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b8b8b]/25 motion-reduce:transition-none motion-reduce:hover:transform-none " +
+          "group relative grid size-8 shrink-0 cursor-pointer appearance-none place-items-center rounded-full border-0 p-0 leading-none transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-[#f3f4f6] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b8b8b]/25 motion-reduce:transition-none " +
           (open ? "bg-[#f3f4f6]" : "")
         }
         onMouseEnter={showTooltip}
