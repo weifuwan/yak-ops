@@ -7,6 +7,7 @@ import {
 } from "@yak-ops/yak-ui";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { ExecutionResourceFields } from "./execution-resource-fields";
 import {
   isTaskGroupEnabled, listTaskGroupsByProjectCode, type TaskGroupRecord,
 } from "@/service/task-group";
@@ -91,7 +92,7 @@ export function normalizeTaskCommonSettings(settings: TaskCommonSettings): Workf
   const taskGroupId = parseInteger(String(settings.taskGroupId), "TaskGroup", 0);
   return {
     workerGroup: settings.workerGroup.trim() || "default",
-    environmentCode: parseInteger(settings.environmentCode || "-1", "Environment Code", -1),
+    environmentCode: parseInteger(settings.environmentCode || "-1", "执行环境", -1),
     taskPriority: settings.taskPriority,
     failRetryTimes: parseInteger(settings.failRetryTimes, "失败重试次数", 0),
     failRetryInterval: parseInteger(settings.failRetryInterval, "重试间隔", 1),
@@ -222,14 +223,14 @@ export function TaskCommonSettingsSection({
         contentClassName="space-y-3 pt-3"
       >
         <div className={fieldGridClass}>
-          <SettingField label="Worker Group">
-            <Input size="small" variant="outlined" value={settings.workerGroup} disabled={disabled}
-              onChange={event => update("workerGroup", event.target.value)} placeholder="default" className="w-full min-w-0" />
-          </SettingField>
-          <SettingField label="Environment Code">
-            <Input size="small" variant="outlined" type="number" value={settings.environmentCode} disabled={disabled}
-              onChange={event => update("environmentCode", event.target.value)} placeholder="-1" className="w-full min-w-0" />
-          </SettingField>
+          <ExecutionResourceFields
+            workerGroup={settings.workerGroup}
+            environmentCode={settings.environmentCode}
+            disabled={disabled}
+            onChange={(workerGroup, environmentCode) =>
+              onChange({ ...settings, workerGroup, environmentCode })
+            }
+          />
           <SettingField label="TaskGroup">
             <div className="space-y-1">
               <SettingsSelect value={String(settings.taskGroupId)} options={taskGroupOptions}
@@ -356,7 +357,7 @@ export function TaskCommonSettingsSection({
         </div>
         {!compact ? (
           <p className="text-[11px] leading-5 text-[var(--yak-components-muted-text)]">
-            CPU 配额和最大内存填写 -1 表示不限制；Environment Code 填 -1 表示使用默认环境。
+            CPU 配额和最大内存填写 -1 表示不限制。
           </p>
         ) : null}
       </CollapseSection>
