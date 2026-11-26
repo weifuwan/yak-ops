@@ -60,6 +60,13 @@ mvn -pl yak-ops-cdc/yak-ops-cdc-composer -am \\
 
 仓库的 CDC Tests GitHub Actions 工作流会在本目录变更推送到 main 后自动执行 CDC 模块测试。
 
+
+## 指标刷新间隔注意事项
+
+Flink 1.20.3 的 `metrics.fetcher.update-interval` 默认值为 10 秒。REST 指标接口读取的是 JobManager MetricFetcher 刷新后的指标缓存，因此它不等同于每次 HTTP 请求都立即从 TaskManager 拉取最新值。
+
+P0 测试将该参数设为 100ms，以缩短测试等待时间。生产环境需要结合指标采集周期和 JobManager 负载显式确定该参数；如果 Yak-OPS 仍采用 5 秒采集周期，不能忽略默认 10 秒的刷新间隔，否则页面可能连续读到相同快照。
+
 ## P1 设计输入
 
 如果 P0 测试通过，P1 应采用“由 Yak-OPS 显式拥有 MiniCluster 生命周期”的执行方式：
