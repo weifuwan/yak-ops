@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataAgentPage } from "@/app/data-agent/page";
@@ -70,6 +71,7 @@ import {
   RESOURCE_MANAGEMENT_NAVIGATION,
   RESOURCE_MANAGEMENT_PRODUCT_LABEL,
 } from "../layout/navigation";
+import { resolveDocumentTitle } from "../layout/document-title";
 import AppLoading from "./AppLoading";
 import WorkspaceGate from "./WorkspaceGate";
 
@@ -162,6 +164,12 @@ function LoginRoute() {
 }
 
 export default function AppRouter() {
+  const location = useLocation();
+
+  useEffect(() => {
+    document.title = resolveDocumentTitle(location.pathname);
+  }, [location.pathname]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
