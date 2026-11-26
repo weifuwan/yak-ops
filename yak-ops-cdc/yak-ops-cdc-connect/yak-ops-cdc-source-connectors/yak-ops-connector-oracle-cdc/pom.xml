@@ -74,6 +74,13 @@ limitations under the License.
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-oracle</artifactId>
             <version>${debezium.version}</version>
+            <exclusions>
+                <!-- The processor is only needed when building Debezium itself. -->
+                <exclusion>
+                    <groupId>org.infinispan.protostream</groupId>
+                    <artifactId>protostream-processor</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

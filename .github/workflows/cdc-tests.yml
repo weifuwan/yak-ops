@@ -74,6 +74,54 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  cli-runtime:
+    name: CDC CLI Runtime Dependencies (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Build CDC CLI with all runtime connectors
+        run: |
+          mvn -B -ntp -T 2 -fae \
+            -pl :yak-ops-cdc-cli -am \
+            -DskipUT=true -DskipITs=true \
+            -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
+            clean package
+      - name: Verify CLI runtime connector dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -ntp -pl :yak-ops-cdc-cli -am dependency:tree \
+            -Dscope=runtime \
+            -Dincludes=io.yak.ops:yak-ops-cdc-pipeline-connector-mysql,io.yak.ops:yak-ops-cdc-pipeline-connector-postgres,io.yak.ops:yak-ops-cdc-pipeline-connector-oracle \
+            | tee /tmp/cdc-cli-runtime-dependency-tree.log
+          for artifact in \
+            yak-ops-cdc-pipeline-connector-mysql \
+            yak-ops-cdc-pipeline-connector-postgres \
+            yak-ops-cdc-pipeline-connector-oracle; do
+            grep -F "io.yak.ops:${artifact}:jar:1.4.0:runtime" \
+              /tmp/cdc-cli-runtime-dependency-tree.log >/dev/null || {
+                echo "Missing CLI runtime connector dependency: ${artifact}"
+                exit 1
+              }
+          done
+      - name: Ensure Oracle annotation processor is not on the CLI dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -ntp -pl :yak-ops-cdc-cli -am dependency:tree \
+            -Dincludes=org.infinispan.protostream:protostream-processor \
+            | tee /tmp/cdc-cli-protostream-processor.log
+          if grep -Fq 'protostream-processor' /tmp/cdc-cli-protostream-processor.log; then
+            echo "Build-time ProtoStream annotation processor leaked into the CDC CLI dependency graph."
+            exit 1
+          fi
+
   postgres-integration:
     name: PostgreSQL CDC Integration Tests and Shaded JAR (JDK 17 + Docker)
     runs-on: ubuntu-latest
@@ -93,23 +141,13 @@ jobs:
         run: |
           printf 'api.version=1.44\n' > "$HOME/.docker-java.properties"
           cat "$HOME/.docker-java.properties"
-      - name: Build PostgreSQL connectors and CLI; run integration tests
+      - name: Build PostgreSQL connectors; run integration tests
         run: |
           mvn -B -ntp -T 2 -fae \
-            -pl :yak-ops-cdc-cli,:yak-ops-connector-postgres-cdc,:yak-ops-cdc-pipeline-connector-postgres -am \
+            -pl :yak-ops-connector-postgres-cdc,:yak-ops-cdc-pipeline-connector-postgres -am \
             -DskipUT=false -DskipITs=false \
             -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
             clean verify
-      - name: Verify CLI runtime dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          mvn -B -ntp -pl :yak-ops-cdc-cli -am dependency:tree \
-            -Dscope=runtime \
-            -Dincludes=io.yak.ops:yak-ops-cdc-pipeline-connector-postgres \
-            | tee /tmp/postgres-cli-runtime-dependency-tree.log
-          grep -F 'io.yak.ops:yak-ops-cdc-pipeline-connector-postgres:jar:1.4.0:runtime' \
-            /tmp/postgres-cli-runtime-dependency-tree.log
       - name: Verify shaded PostgreSQL Pipeline JAR and SPI registrations
         run: |
           python3 - <<'PY'
@@ -210,15 +248,13 @@ jobs:
         run: |
           echo 'api.version=1.44' > "$HOME/.docker-java.properties"
           cat "$HOME/.docker-java.properties"
-      - name: Build Oracle connectors and CLI; run integration tests
+      - name: Build Oracle connectors; run integration tests
         run: |
-          mvn -B -ntp -T 1 -fae -pl :yak-ops-cdc-cli,:yak-ops-connector-oracle-cdc,:yak-ops-cdc-pipeline-connector-oracle -am -DskipUT=false -DskipITs=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true clean verify
-      - name: Verify CLI runtime dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          mvn -B -ntp -pl :yak-ops-cdc-cli -am dependency:tree -Dscope=runtime -Dincludes=io.yak.ops:yak-ops-cdc-pipeline-connector-oracle | tee /tmp/oracle-cli-runtime-dependency-tree.log
-          grep -F 'io.yak.ops:yak-ops-cdc-pipeline-connector-oracle:jar:1.4.0:runtime' /tmp/oracle-cli-runtime-dependency-tree.log
+          mvn -B -ntp -T 1 -fae \
+            -pl :yak-ops-connector-oracle-cdc,:yak-ops-cdc-pipeline-connector-oracle -am \
+            -DskipUT=false -DskipITs=false \
+            -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true \
+            clean verify
       - name: Verify shaded Oracle Pipeline JAR and SPI registrations
         run: |
           python3 - <<'PY'
@@ -242,6 +278,8 @@ jobs:
           expected_classes = {
               "org/apache/flink/cdc/connectors/oracle/factory/OracleDataSourceFactory.class",
               "org/apache/flink/cdc/connectors/oracle/table/OracleTableSourceFactory.class",
+              "org/locationtech/jts/io/WKBReader.class",
+              "org/locationtech/jts/geom/Coordinate.class",
           }
 
           with ZipFile(jar) as archive:
@@ -261,7 +299,7 @@ jobs:
                       raise SystemExit(f"Missing SPI provider {provider} in {service}")
 
           print(f"Verified shaded JAR: {jar}")
-          print("Verified Oracle Source and Pipeline factory classes and SPI registrations.")
+          print("Verified Oracle Source and Pipeline factory classes, JTS geometry classes, and SPI registrations.")
           PY
       - name: Require executed Oracle integration tests
         if: always()

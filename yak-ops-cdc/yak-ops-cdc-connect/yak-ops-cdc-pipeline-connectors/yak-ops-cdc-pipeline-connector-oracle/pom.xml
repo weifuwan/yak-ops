@@ -30,6 +30,7 @@ limitations under the License.
 
     <properties>
         <scala.binary.version>2.12</scala.binary.version>
+        <jts.version>1.19.0</jts.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <json-path.version>2.7.0</json-path.version>
         <junit.version>5.13.1</junit.version>
@@ -59,6 +60,13 @@ limitations under the License.
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-connector-oracle-cdc</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- OracleEventDeserializer uses JTS to decode Debezium Geometry values. -->
+        <dependency>
+            <groupId>org.locationtech.jts</groupId>
+            <artifactId>jts-core</artifactId>
+            <version>${jts.version}</version>
         </dependency>
 
         <dependency>
@@ -228,6 +236,7 @@ limitations under the License.
                                     <include>com.fasterxml.*:*</include>
                                     <include>com.google.guava:*</include>
                                     <include>com.esri.geometry:esri-geometry-api</include>
+                                    <include>org.locationtech.jts:jts-core</include>
                                     <include>com.zaxxer:HikariCP</include>
                                     <include>org.apache.flink:flink-shaded-guava</include>
                                 </includes>
