@@ -1,7 +1,6 @@
 package io.yak.ops.modeling.ddl.doris.schema;
 
 import io.yak.ops.modeling.ddl.model.DdlDataType;
-import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
 import io.yak.ops.modeling.ddl.model.DdlColumnMetadata;
@@ -12,11 +11,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-/** Generates Doris SQL while delegating connector-specific types and CREATE DDL to its adapter. */
+/** Generates Doris SQL while using the Flink Doris connector schema builder. */
 @Component
 public class DdlGenerator {
 
@@ -25,20 +23,20 @@ public class DdlGenerator {
     private final TableSchemaBuilder tableSchemaBuilder;
     private final DdlFormatter formatter;
 
-    public DorisDdlGenerator(DorisConnectorAdapter connectorAdapter, DorisDdlFormatter formatter) {
-        this.connectorAdapter = connectorAdapter;
+    public DdlGenerator(TableSchemaBuilder tableSchemaBuilder, DdlFormatter formatter) {
+        this.tableSchemaBuilder = tableSchemaBuilder;
         this.formatter = formatter;
     }
 
     public List<DdlFieldTypeOption> getFieldTypeOptions() {
-        List<DorisFieldTypeOption> options = new ArrayList<>();
+        List<DdlFieldTypeOption> options = new ArrayList<>();
         options.add(option("TINYINT", "TINYINT", "NONE", null, null, null));
         options.add(option("SMALLINT", "SMALLINT", "NONE", null, null, null));
         options.add(option("INT", "INT", "NONE", null, null, null));
         options.add(option("BIGINT", "BIGINT", "NONE", null, null, null));
         options.add(option("BOOLEAN", "BOOLEAN", "NONE", null, null, null));
-        options.add(option("CHAR", "CHAR", "LENGTH", connectorAdapter.getMaxCharLength(), null, null));
-        options.add(option("VARCHAR", "VARCHAR", "LENGTH", connectorAdapter.getMaxVarcharLength(), null, null));
+        options.add(option("CHAR", "CHAR", "LENGTH", tableSchemaBuilder.getMaxCharLength(), null, null));
+        options.add(option("VARCHAR", "VARCHAR", "LENGTH", tableSchemaBuilder.getMaxVarcharLength(), null, null));
         options.add(option("STRING", "STRING", "NONE", null, null, null));
         options.add(option("DECIMAL", "DECIMAL", "DECIMAL", null, 38, 38));
         options.add(option("FLOAT", "FLOAT", "NONE", null, null, null));
@@ -61,8 +59,8 @@ public class DdlGenerator {
         return resolveKeyFields(table, DorisTableModel.UNIQUE);
     }
 
-    public List<String> resolveKeyFields(DdlTableDefinition table, DorisDataModelEnum tableModel) {
-        if (tableModel == DorisDataModelEnum.DUPLICATE) {
+    public List<String> resolveKeyFields(DdlTableDefinition table, DorisTableModel tableModel) {
+        if (tableModel == DorisTableModel.DUPLICATE) {
             return Collections.singletonList(table.getColumns().get(0).getName());
         }
         List<String> primaryFields = new ArrayList<>();
@@ -76,13 +74,13 @@ public class DdlGenerator {
                 : primaryFields;
     }
 
-    public String generateCreateTableDdl(DdlTableDefinition table, DorisDataModelEnum tableModel) {
+    public String generateCreateTableDdl(DdlTableDefinition table, DorisTableModel tableModel) {
         return generateCreateTableDdl(table, tableModel, 3);
     }
 
     public String generateCreateTableDdl(
-            DdlTableDefinition table, DorisDataModelEnum tableModel, int replicationNum) {
-        return formatter.format(connectorAdapter.generateCreateTableDdl(
+            DdlTableDefinition table, DorisTableModel tableModel, int replicationNum) {
+        return formatter.format(tableSchemaBuilder.generateCreateTableDdl(
                 table, tableModel, resolveKeyFields(table, tableModel), replicationNum));
     }
 
@@ -90,7 +88,7 @@ public class DdlGenerator {
         StringBuilder ddl = new StringBuilder("ALTER TABLE ")
                 .append(quoteIdentifier(database)).append(".").append(quoteIdentifier(tableName))
                 .append(" ADD COLUMN ").append(quoteIdentifier(column.getName()))
-                .append(" ").append(connectorAdapter.toDorisType(column))
+                .append(" ").append(tableSchemaBuilder.toDorisType(column))
                 .append(Boolean.FALSE.equals(column.getNullable()) ? " NOT NULL" : " NULL");
 
         String defaultValue = StringUtils.trimToNull(column.getDefaultValue());
@@ -111,7 +109,7 @@ public class DdlGenerator {
 
     /** Returns the Doris physical type for schema diagnostics and verification. */
     public String toDorisType(DdlColumnDefinition column) {
-        return connectorAdapter.toDorisType(column);
+        return tableSchemaBuilder.toDorisType(column);
     }
 
     public boolean matches(DdlColumnMetadata actual, DdlColumnDefinition expected) {
@@ -123,7 +121,7 @@ public class DdlGenerator {
     }
 
     /** Compares the Doris physical type and its parameters without enforcing nullability. */
-    public boolean matchesType(DorisColumnMetadata actual, DdlColumnDefinition expected) {
+    public boolean matchesType(DdlColumnMetadata actual, DdlColumnDefinition expected) {
         String expectedType = toDorisType(expected);
         String expectedBase = normalizeTypeName(expectedType);
         if (!expectedBase.equals(normalizeTypeName(actual.getTypeName()))) {
@@ -210,9 +208,9 @@ public class DdlGenerator {
         return value == null ? "" : value.replace("'", "''");
     }
 
-    private DorisFieldTypeOption option(
+    private DdlFieldTypeOption option(
             String code, String label, String parameterType,
             Integer maxLength, Integer maxPrecision, Integer maxScale) {
-        return new DorisFieldTypeOption(code, label, parameterType, maxLength, maxPrecision, maxScale);
+        return new DdlFieldTypeOption(code, label, parameterType, maxLength, maxPrecision, maxScale);
     }
 }
