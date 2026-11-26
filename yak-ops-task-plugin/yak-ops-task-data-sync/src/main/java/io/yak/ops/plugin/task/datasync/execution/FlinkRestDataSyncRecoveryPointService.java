@@ -48,9 +48,14 @@ public class FlinkRestDataSyncRecoveryPointService {
         if (completed.isMissingNode() || completed.isNull()) {
             return null;
         }
-        String status = completed.path("status").asText("COMPLETED");
-        String checkpointId = completed.path("id").asText();
-        String restorePath = completed.path("external_path").asText();
+        JsonNode statusNode = completed.get("status");
+        String status = statusNode == null || statusNode.isNull() ? "COMPLETED" : statusNode.asText();
+        JsonNode checkpointIdNode = completed.get("id");
+        String checkpointId = checkpointIdNode == null || checkpointIdNode.isNull()
+                ? "" : checkpointIdNode.asText();
+        JsonNode restorePathNode = completed.get("external_path");
+        String restorePath = restorePathNode == null || restorePathNode.isNull()
+                ? "" : restorePathNode.asText();
         long completedAt = completed.path("latest_ack_timestamp")
                 .asLong(completed.path("trigger_timestamp").asLong(0L));
         if (!"COMPLETED".equalsIgnoreCase(status)

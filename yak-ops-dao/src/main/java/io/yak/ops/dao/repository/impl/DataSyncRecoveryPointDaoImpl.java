@@ -168,6 +168,15 @@ public class DataSyncRecoveryPointDaoImpl
 
     @Override
     public boolean markUsedByInstance(String recoveryPointId, int instanceId, int workflowInstanceId) {
+        QueryWrapper<DataSyncRecoveryPoint> alreadyLinked = new QueryWrapper<DataSyncRecoveryPoint>()
+                .eq("recovery_point_id", recoveryPointId)
+                .eq("state", "USED")
+                .eq("used_by_workflow_instance_id", workflowInstanceId)
+                .eq("used_by_instance_id", instanceId);
+        if (mybatisMapper.selectCount(alreadyLinked) > 0) {
+            return true;
+        }
+
         DataSyncRecoveryPoint update = new DataSyncRecoveryPoint();
         update.setUsedByInstanceId(instanceId);
         return mybatisMapper.update(
@@ -175,7 +184,8 @@ public class DataSyncRecoveryPointDaoImpl
                 new UpdateWrapper<DataSyncRecoveryPoint>()
                         .eq("recovery_point_id", recoveryPointId)
                         .eq("state", "USED")
-                        .eq("used_by_workflow_instance_id", workflowInstanceId)) > 0;
+                        .eq("used_by_workflow_instance_id", workflowInstanceId)
+                        .isNull("used_by_instance_id")) > 0;
     }
 
     @Override
