@@ -8,7 +8,7 @@ public interface DataSyncRecoveryPointDao extends IDao<DataSyncRecoveryPoint> {
 
     DataSyncRecoveryPoint queryByTaskInstanceId(int taskInstanceId);
 
-    List<DataSyncRecoveryPoint> queryAvailableByTaskInstanceIds(List<Integer> taskInstanceIds);
+    List<DataSyncRecoveryPoint> queryByTaskInstanceIds(List<Integer> taskInstanceIds);
 
     boolean markUsed(long id, int workflowInstanceId);
 
