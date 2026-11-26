@@ -98,8 +98,23 @@ public final class DataSyncPipelineBuilder {
             flinkConf.put("execution.checkpointing.interval", "30s");
         }
         if (!flinkConf.has("execution.checkpointing.num-retained")) {
-            // Keep a small fallback window; the DAO retains the same latest three checkpoints.
             flinkConf.put("execution.checkpointing.num-retained", 3);
+        } else {
+            JsonNode retained = flinkConf.get("execution.checkpointing.num-retained");
+            int retainedCount;
+            try {
+                retainedCount = retained.isNumber()
+                        ? retained.asInt()
+                        : Integer.parseInt(retained.asText());
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException(
+                        "pipeline.flink-conf.execution.checkpointing.num-retained must be an integer >= 3",
+                        exception);
+            }
+            if (retainedCount < 3) {
+                // The Master keeps three recovery paths; Flink must not delete one before it is used.
+                flinkConf.put("execution.checkpointing.num-retained", 3);
+            }
         }
         if (!flinkConf.has("execution.checkpointing.externalized-checkpoint-retention")) {
             flinkConf.put("execution.checkpointing.externalized-checkpoint-retention", "RETAIN_ON_CANCELLATION");

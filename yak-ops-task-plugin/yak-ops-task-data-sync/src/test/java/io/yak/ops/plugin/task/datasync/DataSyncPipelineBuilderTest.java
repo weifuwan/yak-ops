@@ -57,6 +57,19 @@ class DataSyncPipelineBuilderTest {
     }
 
     @Test
+    void raisesCheckpointRetentionBelowTheRecoveryWindow() throws Exception {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .putObject("flink-conf")
+                .put("execution.checkpointing.num-retained", 1);
+
+        JsonNode pipeline = YAML.readTree(new DataSyncPipelineBuilder().build(context(), parameters));
+
+        assertEquals(3, pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.num-retained").asInt());
+    }
+
+    @Test
     void preservesUserCheckpointSettings() throws Exception {
         DataSyncParameters parameters = DataSyncParametersTest.valid();
         ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))

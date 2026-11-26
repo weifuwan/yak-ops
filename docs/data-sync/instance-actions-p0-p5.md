@@ -20,7 +20,7 @@ Instance actions lock both the task-instance row and its task-definition row. Or
 The DataSync pipeline builder supplies these defaults under `pipeline.flink-conf`, while preserving user overrides:
 
 - `execution.checkpointing.interval: 30s`
-- `execution.checkpointing.num-retained: 3`
+- `execution.checkpointing.num-retained: 3` (user values below three are raised to three so the Master never advertises a checkpoint Flink has already discarded)
 - `execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION`
 - `execution.checkpointing.storage: filesystem`
 - `execution.checkpointing.dir`: local default described below
