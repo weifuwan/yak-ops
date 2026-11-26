@@ -127,7 +127,6 @@ class DataSyncServiceImplTest {
         verifyNoInteractions(taskInstanceDao);
     }
 
-
     @Test
     void instanceReportUsesProjectScopedTaskInstanceAndReturnsLatestSnapshot() {
         TaskInstance instance = TaskInstance.builder()
