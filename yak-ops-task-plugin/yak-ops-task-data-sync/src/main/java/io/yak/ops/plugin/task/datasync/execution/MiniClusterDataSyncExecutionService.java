@@ -25,7 +25,8 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
 
     @Override
     protected DataSyncExecutionHandle doSubmit(
-            FlinkPipelineExecution execution, String executionId, int taskInstanceId) throws Exception {
+                                                 FlinkPipelineExecution execution, String executionId,
+                                                 int taskInstanceId) throws Exception {
         int parallelism = Math.max(1, execution.getParallelism());
         Configuration configuration = new Configuration();
         configuration.set(RestOptions.ADDRESS, "127.0.0.1");
