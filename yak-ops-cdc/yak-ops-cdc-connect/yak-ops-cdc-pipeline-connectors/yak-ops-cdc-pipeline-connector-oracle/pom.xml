@@ -62,14 +62,6 @@ limitations under the License.
         </dependency>
 
         <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-connector-oracle-cdc</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
