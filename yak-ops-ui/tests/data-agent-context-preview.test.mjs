@@ -13,46 +13,50 @@ const conversationList = read("../apps/web/app/data-agent/components/sidebar/Dat
 const contextUsage = read("../apps/web/app/data-agent/components/workspace/DataAgentContextUsage.tsx");
 
 test("Data Agent context usage uses the PR #1906 context contract and live token updates", () => {
-  assert.match(contextTypes, /interface AgentSessionContext/);
-  assert.match(contextTypes, /usedTokens: number/);
-  assert.match(contextTypes, /limitTokens: number/);
-  assert.match(contextTypes, /averageCacheHitRate: number/);
-  assert.match(contextTypes, /breakdown: AgentSessionContextBreakdown\\[\\]/);
-  assert.match(stream, /contextTokens: numericValue\\(payload\\.contextTokens\\)/);
-  assert.match(hook, /getAgentSessionStatus\\(targetSessionId, requestIdentity, signal\\)/);
-  assert.match(hook, /loadSessionContext/);
-  assert.match(hook, /event\\.contextTokens/);
-  assert.match(workspace, /loadSessionContext\\(activeConversationId, controller\\.signal\\)/);
-  assert.match(workspace, /activeSessionContextTokens/);
+  assert.ok(contextTypes.includes("interface AgentSessionContext"));
+  assert.ok(contextTypes.includes("usedTokens: number"));
+  assert.ok(contextTypes.includes("limitTokens: number"));
+  assert.ok(contextTypes.includes("averageCacheHitRate: number"));
+  assert.ok(contextTypes.includes("breakdown: AgentSessionContextBreakdown[]"));
+  assert.ok(stream.includes("contextTokens: numericValue(payload.contextTokens)"));
+  assert.ok(hook.includes("getAgentSessionStatus(targetSessionId, requestIdentity, signal)"));
+  assert.ok(hook.includes("loadSessionContext"));
+  assert.ok(hook.includes("event.contextTokens"));
+  assert.ok(workspace.includes("loadSessionContext(activeConversationId, controller.signal)"));
+  assert.ok(workspace.includes("activeSessionContextTokens"));
 });
 
 test("Context usage indicator sits beside the model selector, not in the session list", () => {
-  assert.match(workspace, /<DataAgentContextUsage/);
-  assert.match(workspace, /\\{modelSelector\\}/);
-  assert.match(workspace, /trailingActions=\\{composerActions\\}/);
-  assert.doesNotMatch(workspace, /onLoadSessionContext=\\{loadSessionContext\\}/);
-  assert.doesNotMatch(sidebar, /onLoadSessionContext/);
-  assert.doesNotMatch(conversationList, /DataAgentSessionContextCard|onMouseEnter=|onFocusCapture=/);
-  assert.doesNotMatch(conversationList, /contextCardPosition|loadContextPreview|createPortal/);
-  assert.match(conversationList, /onSelectConversation\\(conversation\\.id\\)/);
+  assert.ok(workspace.includes("<DataAgentContextUsage"));
+  assert.ok(workspace.includes("{modelSelector}"));
+  assert.ok(workspace.includes("trailingActions={composerActions}"));
+  assert.ok(!workspace.includes("onLoadSessionContext={loadSessionContext}"));
+  assert.ok(!sidebar.includes("onLoadSessionContext"));
+  assert.ok(!conversationList.includes("DataAgentSessionContextCard"));
+  assert.ok(!conversationList.includes("onMouseEnter="));
+  assert.ok(!conversationList.includes("onFocusCapture="));
+  assert.ok(!conversationList.includes("contextCardPosition"));
+  assert.ok(!conversationList.includes("loadContextPreview"));
+  assert.ok(!conversationList.includes("createPortal"));
+  assert.ok(conversationList.includes("onSelectConversation(conversation.id)"));
 });
 
 test("Context usage indicator has a segmented progress ring, hover summary and click details", () => {
-  assert.match(contextUsage, /conic-gradient/);
-  assert.match(contextUsage, /onMouseEnter=\\{showTooltip\\}/);
-  assert.match(contextUsage, /onClick=\\{toggleDetails\\}/);
-  assert.match(contextUsage, /role="tooltip"/);
-  assert.match(contextUsage, /role="dialog"/);
-  assert.match(contextUsage, /上下文已使用/);
-  assert.match(contextUsage, /bg-white/);
-  assert.match(contextUsage, /平均缓存命中率/);
+  assert.ok(contextUsage.includes("conic-gradient"));
+  assert.ok(contextUsage.includes("onMouseEnter={showTooltip}"));
+  assert.ok(contextUsage.includes("onClick={toggleDetails}"));
+  assert.ok(contextUsage.includes('role="tooltip"'));
+  assert.ok(contextUsage.includes('role="dialog"'));
+  assert.ok(contextUsage.includes("上下文已使用"));
+  assert.ok(contextUsage.includes("bg-white"));
+  assert.ok(contextUsage.includes("平均缓存命中率"));
 });
 
 test("Context categories use the reference palette while keeping the backend breakdown keys", () => {
-  assert.match(contextUsage, /systemPrompt: "#625BFF"/);
-  assert.match(contextUsage, /tools: "#10B981"/);
-  assert.match(contextUsage, /messages: "#F59E0B"/);
-  assert.match(contextUsage, /skills: "#EC4899"/);
-  assert.match(contextUsage, /item\\.label/);
-  assert.match(contextUsage, /item\\.ratio/);
+  assert.ok(contextUsage.includes('systemPrompt: "#625BFF"'));
+  assert.ok(contextUsage.includes('tools: "#10B981"'));
+  assert.ok(contextUsage.includes('messages: "#F59E0B"'));
+  assert.ok(contextUsage.includes('skills: "#EC4899"'));
+  assert.ok(contextUsage.includes("item.label"));
+  assert.ok(contextUsage.includes("item.ratio"));
 });
