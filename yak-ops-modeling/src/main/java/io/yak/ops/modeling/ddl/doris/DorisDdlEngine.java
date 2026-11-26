@@ -1,5 +1,6 @@
 package io.yak.ops.modeling.ddl.doris;
 
+import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DorisDdlRequest;
 import io.yak.ops.modeling.ddl.model.DorisFieldTypeOption;
@@ -57,7 +58,7 @@ public class DorisDdlEngine {
         executor.execute(
                 connection, plan, request.getTable().getDatabase(), request.getTable().getTableName(), publishId);
 
-        boolean recreate = request.getPublishMode() == io.yak.ops.dao.entity.enums.DorisPublishModeEnum.DROP_RECREATE;
+        boolean recreate = request.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE;
         boolean strictNullability = !recreate;
         long timeout = recreate
                 ? RECREATE_SCHEMA_VERIFY_TIMEOUT_MILLIS
