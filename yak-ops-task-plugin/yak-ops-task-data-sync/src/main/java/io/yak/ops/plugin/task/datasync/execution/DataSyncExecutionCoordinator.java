@@ -170,7 +170,8 @@ public class DataSyncExecutionCoordinator {
             return collected.toBuilder()
                     .readRecords(firstNonNull(collected.getReadRecords(), previous.getReadRecords()))
                     .snapshotRecords(firstNonNull(collected.getSnapshotRecords(), previous.getSnapshotRecords()))
-                    .incrementalRecords(firstNonNull(collected.getIncrementalRecords(), previous.getIncrementalRecords()))
+                    .incrementalRecords(
+                            firstNonNull(collected.getIncrementalRecords(), previous.getIncrementalRecords()))
                     .insertRecords(firstNonNull(collected.getInsertRecords(), previous.getInsertRecords()))
                     .updateRecords(firstNonNull(collected.getUpdateRecords(), previous.getUpdateRecords()))
                     .deleteRecords(firstNonNull(collected.getDeleteRecords(), previous.getDeleteRecords()))
@@ -178,7 +179,8 @@ public class DataSyncExecutionCoordinator {
                     .ddlEvents(firstNonNull(collected.getDdlEvents(), previous.getDdlEvents()))
                     .errorRecords(firstNonNull(collected.getErrorRecords(), previous.getErrorRecords()))
                     .tables(collected.getTables() == null || collected.getTables().isEmpty()
-                            ? previous.getTables() : collected.getTables())
+                            ? previous.getTables()
+                            : collected.getTables())
                     .build();
         } catch (Exception exception) {
             log.warn("Failed to collect Flink CDC metrics, executionId={}",

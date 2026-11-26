@@ -2,11 +2,11 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.RestOptions;
-import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
@@ -109,6 +109,7 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
     }
 
     private static final class RuntimeExecution {
+
         private final MiniCluster miniCluster;
         private final MiniClusterClient client;
         private final JobID jobId;
