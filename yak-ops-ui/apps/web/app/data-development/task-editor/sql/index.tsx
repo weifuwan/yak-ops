@@ -22,7 +22,6 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 
 import DatabaseIcons from "@/app/datasource/icons/DatabaseIcons";
-import { getDataSourceTypeLabel } from "@/app/datasource/constants";
 import { DataSyncSearchableSelect } from "@/app/data-sync/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -280,13 +279,6 @@ function SqlTaskWorkspace({
                   数据源列表加载失败，点击重试
                 </button>
               ) : null}
-            </div>
-          </SqlField>
-
-          <SqlField label="数据库类型">
-            <div className="flex h-8 items-center gap-2 text-xs text-[#475467]">
-              {form.type ? <DatabaseIcons dbType={form.type} width="16px" height="16px" /> : null}
-              <span>{form.type ? getDataSourceTypeLabel(form.type) : "选择数据源后自动识别"}</span>
             </div>
           </SqlField>
 

@@ -153,6 +153,22 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.ok(editor.includes("legacyDatasourceId > 0"));
 });
 
+test("SQL editor displays whitespace and keeps database type as an internal backend parameter", () => {
+  assert.match(codeEditor, /renderWhitespace: "all"/);
+  assert.match(codeEditor, /onChangeRef\.current\(editor\.getValue\(\)\)/);
+  assert.doesNotMatch(editor, /<SqlField label="数据库类型"/);
+  assert.doesNotMatch(editor, /getDataSourceTypeLabel/);
+
+  const adapter = read("../apps/web/app/data-development/task-editor/sql/adapter.ts");
+  assert.match(adapter, /type: toSqlTaskDbType\(form\.type\)/);
+  assert.equal(
+    buildSqlTaskParams(
+      parseSqlTaskForm({ type: "MYSQL", datasource: 12, sql: "select 1" }),
+    ).type,
+    "MYSQL",
+  );
+});
+
 test("TreeSelect search autofocus does not move the surrounding page", () => {
   assert.match(treeSelect, /searchInputRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
   assert.match(treeSelect, /ref=\{searchInputRef\}/);

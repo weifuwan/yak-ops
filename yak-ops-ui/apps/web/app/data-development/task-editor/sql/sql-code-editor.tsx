@@ -118,6 +118,7 @@ export function SqlCodeEditor({
       wordWrap: "on",
       scrollBeyondLastLine: false,
       renderLineHighlight: "line",
+      renderWhitespace: "all",
       cursorBlinking: "smooth",
       smoothScrolling: true,
       contextmenu: true,
