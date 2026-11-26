@@ -1,7 +1,6 @@
 package io.yak.ops.modeling.ddl.doris.schema;
 
 import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
-import io.yak.ops.modeling.ddl.doris.schema.DdlGenerator;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
 import io.yak.ops.modeling.ddl.model.DdlColumnMetadata;
