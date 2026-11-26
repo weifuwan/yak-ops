@@ -92,7 +92,7 @@ export function useExecutionActions({
       }
       await operateDataSyncInstance(activeInstance.id, "STOP");
       setPendingWorkflowInstanceId(undefined);
-      toast.success("已发送停止请求");
+      toast.success("停止请求已提交，正在生成恢复点");
       await Promise.all([refreshAfterCancel(), refreshActiveInstances()]);
     } finally {
       setCanceling(false);
