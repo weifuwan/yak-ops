@@ -12,7 +12,6 @@ import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
 import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
-import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.service.datasync.DataSyncExecutionReportService;
 import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
 
@@ -21,6 +20,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -56,6 +56,12 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
         }
 
         DataSyncExecutionReport report = executionReportDao.queryByExecutionId(request.getExecutionId());
+        if (report != null
+                && (!Objects.equals(report.getTaskInstanceId(), request.getTaskInstanceId())
+                        || !Objects.equals(report.getJobId(), request.getJobId()))) {
+            return DataSyncReportAck.rejected(
+                    "REJECTED", valueOrZero(report.getLatestSequence()), "Execution identity cannot be changed");
+        }
         if (report != null && Boolean.TRUE.equals(report.getFinalized())) {
             return DataSyncReportAck.accepted("FINAL_ALREADY_ACCEPTED", valueOrZero(report.getLatestSequence()));
         }
@@ -63,9 +69,11 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
         long latestSequence = report == null ? 0L : valueOrZero(report.getLatestSequence());
         long incomingSequence = request.getSequence();
         boolean finalReport = "FINAL".equals(request.getReportType());
-        if (incomingSequence < latestSequence
-                || (incomingSequence == latestSequence && !(finalReport && report != null))) {
-            return DataSyncReportAck.rejected("STALE", latestSequence, "Report sequence is not newer");
+        if (incomingSequence < latestSequence) {
+            return DataSyncReportAck.rejected("STALE", latestSequence, "Report sequence is older than latest");
+        }
+        if (incomingSequence == latestSequence && !(finalReport && report != null)) {
+            return DataSyncReportAck.accepted("DUPLICATE", latestSequence);
         }
 
         Date now = new Date();
@@ -75,6 +83,7 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
             report = DataSyncExecutionReport.builder()
                     .executionId(request.getExecutionId())
                     .taskInstanceId(request.getTaskInstanceId())
+                    .submittedAt(request.getSubmittedAt() == null ? now.getTime() : request.getSubmittedAt())
                     .jobId(request.getJobId())
                     .deploymentMode(request.getDeploymentMode())
                     .clusterId(request.getClusterId())
