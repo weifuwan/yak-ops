@@ -49,10 +49,10 @@ public class RpcDataSyncReportPublisher extends AbstractDataSyncReportPublisher 
     }
 
     RpcDataSyncReportPublisher(
-            TaskExecutionContext context,
-            Path outboxDirectory,
-            ReportTransport transport,
-            boolean retrySchedulingEnabled) {
+                               TaskExecutionContext context,
+                               Path outboxDirectory,
+                               ReportTransport transport,
+                               boolean retrySchedulingEnabled) {
         this.context = context;
         this.outboxDirectory = outboxDirectory.toAbsolutePath().normalize();
         this.transport = transport;
@@ -69,7 +69,7 @@ public class RpcDataSyncReportPublisher extends AbstractDataSyncReportPublisher 
 
     @Override
     protected DataSyncReportAck onDeliveryFailure(
-            DataSyncReportRequest request, Exception exception) throws Exception {
+                                                 DataSyncReportRequest request, Exception exception) throws Exception {
         if (request == null || !"FINAL".equals(request.getReportType())) {
             throw exception;
         }
