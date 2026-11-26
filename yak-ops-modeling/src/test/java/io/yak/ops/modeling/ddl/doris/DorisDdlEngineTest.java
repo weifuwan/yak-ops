@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.dao.entity.enums.DimensionDataTypeEnum;
@@ -142,6 +145,58 @@ class DorisDdlEngineTest {
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class, () -> engine.plan(connection, catalog, request));
         assertTrue(error.getMessage().contains("小数位数"));
+    }
+
+    @Test
+    void shouldUseRecreateVerificationPolicyWhenExecutingDropRecreate() throws Exception {
+        DorisSchemaInspector inspector = mock(DorisSchemaInspector.class);
+        DorisDdlExecutor executor = mock(DorisDdlExecutor.class);
+        DorisDdlGenerator generator = new DorisDdlGenerator(
+                new DorisConnectorAdapter(), new DorisDdlFormatter());
+        DorisDdlEngine testEngine = new DorisDdlEngine(
+                new DorisDdlValidator(new DorisConnectorAdapter()),
+                mock(DorisSchemaPlanner.class),
+                executor,
+                inspector,
+                generator);
+        DorisDdlRequest request = request(
+                DorisDataModelEnum.DUPLICATE,
+                DorisPublishModeEnum.DROP_RECREATE,
+                null,
+                Collections.<String>emptyList(),
+                Collections.singletonList(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+        DdlPlan plan = new DdlPlan(
+                "DROP TABLE IF EXISTS ...; CREATE TABLE ...",
+                Arrays.asList("DROP TABLE IF EXISTS ...", "CREATE TABLE ..."),
+                false,
+                Collections.singletonList("customer_id"));
+        when(inspector.verify(
+                any(Connection.class),
+                any(DataSourceCatalog.class),
+                any(DdlTableDefinition.class),
+                eq(DorisDataModelEnum.DUPLICATE),
+                eq(Collections.singletonList("customer_id")),
+                any(DorisDdlGenerator.class),
+                eq(false)))
+                .thenReturn(new DorisSchemaInspector.VerificationResult(
+                        true,
+                        Collections.<String>emptyList(),
+                        "CREATE TABLE warehouse.dwd_order_detail (...)"));
+
+        String physicalSchema = testEngine.execute(connection, catalog, request, plan, "publish-id");
+
+        assertTrue(physicalSchema.contains("CREATE TABLE"));
+        verify(executor).execute(
+                connection, plan, "warehouse", "dwd_order_detail", "publish-id");
+        verify(inspector).verify(
+                any(Connection.class),
+                any(DataSourceCatalog.class),
+                any(DdlTableDefinition.class),
+                eq(DorisDataModelEnum.DUPLICATE),
+                eq(Collections.singletonList("customer_id")),
+                any(DorisDdlGenerator.class),
+                eq(false));
     }
 
     @Test
