@@ -403,6 +403,8 @@ public class ExecutorServiceImpl extends BaseServiceImpl implements ExecutorServ
             });
         }
 
+        // A historical definition version may be stored offline after a later publish cycle.
+        workflowDefinition.setReleaseState(ReleaseState.ONLINE);
         TriggerWorkflowDTO triggerWorkflowDTO = TriggerWorkflowDTO.builder()
                 .loginUser(loginUser)
                 .workflowDefinition(workflowDefinition)
