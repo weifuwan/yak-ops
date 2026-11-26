@@ -35,7 +35,7 @@ public class ReplicationPolicy {
                                 + "请切换为手动指定副本数（1～3），或检查数据源账号权限。",
                         exception);
             }
-            return new DorisReplicationPlan(
+            return new ReplicationPlan(
                     requestedReplicationNum,
                     null,
                     false,
@@ -55,7 +55,7 @@ public class ReplicationPolicy {
             String warning = resolvedReplicationNum == 1
                     ? "当前集群默认 Tag 下只有 1 个可用 BE，已自动设置为单副本。单副本不具备数据冗余，建议仅用于开发和测试环境。"
                     : null;
-            return new DorisReplicationPlan(
+            return new ReplicationPlan(
                     resolvedReplicationNum, availableBackendCount, true, warning);
         }
 
@@ -69,7 +69,7 @@ public class ReplicationPolicy {
         String warning = requestedReplicationNum == 1
                 ? "当前使用单副本配置，不具备数据冗余，建议仅用于开发和测试环境。"
                 : null;
-        return new DorisReplicationPlan(
+        return new ReplicationPlan(
                 requestedReplicationNum, availableBackendCount, false, warning);
     }
 
