@@ -14,7 +14,7 @@ public class DataSyncReportAck {
 
     private boolean accepted;
 
-    /** ACCEPTED, DUPLICATE, STALE, FINAL_ALREADY_ACCEPTED or REJECTED. */
+    /** ACCEPTED, DUPLICATE, STALE, FINAL_ALREADY_ACCEPTED, QUEUED or REJECTED. */
     private String result;
 
     private long latestSequence;
