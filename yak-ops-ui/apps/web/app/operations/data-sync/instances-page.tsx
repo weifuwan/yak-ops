@@ -193,9 +193,6 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
               </SelectContent>
             </Select>
           </div>
-          <span className="text-xs text-[var(--yak-components-muted-text)]">
-            共 <span className="font-medium text-[var(--yak-components-panel-text)]">{query.data?.total ?? 0}</span> 条实例
-          </span>
         </div>
 
         <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
