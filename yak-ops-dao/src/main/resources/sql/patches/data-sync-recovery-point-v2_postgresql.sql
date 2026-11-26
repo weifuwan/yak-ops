@@ -14,7 +14,8 @@ SET recovery_point_id = 'legacy:' || id::VARCHAR,
 WHERE recovery_point_id IS NULL;
 
 ALTER TABLE t_yak_ops_data_sync_recovery_point
-    ALTER COLUMN recovery_point_id SET NOT NULL;
+    ALTER COLUMN recovery_point_id SET NOT NULL,
+    ALTER COLUMN restore_path DROP NOT NULL;
 
 CREATE UNIQUE INDEX uk_data_sync_recovery_point_id
     ON t_yak_ops_data_sync_recovery_point(recovery_point_id);

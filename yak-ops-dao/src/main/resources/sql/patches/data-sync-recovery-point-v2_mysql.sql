@@ -13,6 +13,7 @@ WHERE `recovery_point_id` IS NULL;
 
 ALTER TABLE `t_yak_ops_data_sync_recovery_point`
     MODIFY COLUMN `recovery_point_id` VARCHAR(128) NOT NULL,
+    MODIFY COLUMN `restore_path` VARCHAR(2048) DEFAULT NULL,
     ADD UNIQUE KEY `uk_data_sync_recovery_point_id` (`recovery_point_id`),
     ADD KEY `idx_data_sync_recovery_task_instance` (`task_instance_id`, `state`, `completed_at`),
     ADD KEY `idx_data_sync_recovery_used_instance` (`used_by_instance_id`);
