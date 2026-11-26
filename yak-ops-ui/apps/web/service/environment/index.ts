@@ -51,6 +51,14 @@ export const listEnvironments = (
     { signal },
   );
 
+export const listAllEnvironments = (
+  signal?: AbortSignal,
+): Promise<EnvironmentRecord[]> =>
+  HttpUtils.getData<EnvironmentRecord[]>(
+    ENVIRONMENT_API + "/query-environment-list",
+    { signal },
+  );
+
 export const queryEnvironmentByCode = (
   code: number | string,
   signal?: AbortSignal,
