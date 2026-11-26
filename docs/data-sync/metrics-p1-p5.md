@@ -26,6 +26,8 @@
 - 每次 Flink Job 生成独立 `executionId`，不复用 TaskInstance ID。
 - Worker 每 5 秒发送 `SNAPSHOT`，任务终态时发送 `FINAL`；报告携带 Worker 提交时间，查询时优先按提交时间选取 TaskInstance 的最新执行。
 - Master 根据 `executionId + sequence` 幂等接收；旧序号不能覆盖新快照。
+- Master 在事务内锁定所属 TaskInstance 行，再读取并更新 execution report，串行化同一任务实例的首条报告插入和后续序号更新。
+- Worker 每次发送的 `tables` 是完整表级快照；Master 清空本次未出现的旧表指标，FINAL 查询只返回本次 FINAL 中实际采集到的表。表级 `metricsState` 标记 `AVAILABLE`、`PARTIAL` 或 `STALE`。
 - FINAL 被接受后不可再被普通 SNAPSHOT 覆盖。
 - 指标采集或报告发送失败不会改变 CDC 作业本身的成功/失败结果；Worker 会保留最后一次成功快照并记录指标状态。
 - MiniCluster 在最终报告发送尝试完成后释放；远程部署实现可复用 Metrics 和 Report 服务，只替换 Execution 实现。
