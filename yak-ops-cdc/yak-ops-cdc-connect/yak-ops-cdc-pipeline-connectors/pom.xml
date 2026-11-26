@@ -15,6 +15,7 @@
         <module>yak-ops-cdc-pipeline-connector-doris</module>
         <module>yak-ops-cdc-pipeline-connector-mysql</module>
         <module>yak-ops-cdc-pipeline-connector-postgres</module>
+        <module>yak-ops-cdc-pipeline-connector-oracle</module>
         <module>yak-ops-cdc-pipeline-connector-jdbc-parent</module>
     </modules>
 

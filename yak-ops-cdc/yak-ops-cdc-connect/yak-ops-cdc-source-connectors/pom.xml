@@ -17,6 +17,7 @@
         <module>yak-ops-connector-debezium</module>
         <module>yak-ops-connector-mysql-cdc</module>
         <module>yak-ops-connector-postgres-cdc</module>
+        <module>yak-ops-connector-oracle-cdc</module>
     </modules>
 
     <dependencies>

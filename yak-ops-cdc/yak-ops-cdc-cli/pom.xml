@@ -63,6 +63,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Oracle CDC Pipeline Source -->
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-pipeline-connector-oracle</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- MySQL JDBC Pipeline Sink -->
         <dependency>
             <groupId>io.yak.ops</groupId>

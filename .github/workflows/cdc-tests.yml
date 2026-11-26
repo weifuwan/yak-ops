@@ -27,7 +27,7 @@ jobs:
   cdc-unit:
     name: All CDC Unit Tests (JDK 17)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -37,6 +37,14 @@ jobs:
           cache: maven
       - name: Show Maven version
         run: mvn --version
+      - name: Verify Docker availability for Oracle connector unit tests
+        run: |
+          docker version
+          docker info
+      - name: Configure Docker API compatibility for Testcontainers
+        run: |
+          echo 'api.version=1.44' > "$HOME/.docker-java.properties"
+          cat "$HOME/.docker-java.properties"
       - name: Run all CDC module tests (including test compilation)
         shell: bash
         run: |
@@ -182,3 +190,113 @@ jobs:
             yak-ops-cdc/**/target/failsafe-reports/**
           if-no-files-found: warn
           retention-days: 7
+
+  oracle-integration:
+    name: Oracle CDC Integration Tests and Shaded JAR (JDK 17 + Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Verify Docker availability
+        run: |
+          docker version
+          docker info
+      - name: Configure Docker API compatibility for Testcontainers
+        run: |
+          echo 'api.version=1.44' > "$HOME/.docker-java.properties"
+          cat "$HOME/.docker-java.properties"
+      - name: Build Oracle connectors and CLI; run integration tests
+        run: |
+          mvn -B -ntp -T 1 -fae -pl :yak-ops-cdc-cli,:yak-ops-connector-oracle-cdc,:yak-ops-cdc-pipeline-connector-oracle -am -DskipUT=false -DskipITs=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true clean verify
+      - name: Verify CLI runtime dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -ntp -pl :yak-ops-cdc-cli -am dependency:tree -Dscope=runtime -Dincludes=io.yak.ops:yak-ops-cdc-pipeline-connector-oracle | tee /tmp/oracle-cli-runtime-dependency-tree.log
+          grep -F 'io.yak.ops:yak-ops-cdc-pipeline-connector-oracle:jar:1.4.0:runtime' /tmp/oracle-cli-runtime-dependency-tree.log
+      - name: Verify shaded Oracle Pipeline JAR and SPI registrations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          jar = Path(
+              "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/"
+              "yak-ops-cdc-pipeline-connector-oracle/target/"
+              "yak-ops-cdc-pipeline-connector-oracle-1.4.0-shade.jar"
+          )
+          if not jar.is_file():
+              raise SystemExit(f"Shaded Oracle Pipeline JAR not found: {jar}")
+
+          expected_services = {
+              "META-INF/services/org.apache.flink.cdc.common.factories.Factory":
+                  "org.apache.flink.cdc.connectors.oracle.factory.OracleDataSourceFactory",
+              "META-INF/services/org.apache.flink.table.factories.Factory":
+                  "org.apache.flink.cdc.connectors.oracle.table.OracleTableSourceFactory",
+          }
+          expected_classes = {
+              "org/apache/flink/cdc/connectors/oracle/factory/OracleDataSourceFactory.class",
+              "org/apache/flink/cdc/connectors/oracle/table/OracleTableSourceFactory.class",
+          }
+
+          with ZipFile(jar) as archive:
+              entries = set(archive.namelist())
+              for entry in expected_classes:
+                  if entry not in entries:
+                      raise SystemExit(f"Missing connector class in shaded JAR: {entry}")
+              for service, provider in expected_services.items():
+                  if service not in entries:
+                      raise SystemExit(f"Missing SPI descriptor in shaded JAR: {service}")
+                  providers = {
+                      line.strip()
+                      for line in archive.read(service).decode("utf-8").splitlines()
+                      if line.strip() and not line.lstrip().startswith("#")
+                  }
+                  if provider not in providers:
+                      raise SystemExit(f"Missing SPI provider {provider} in {service}")
+
+          print(f"Verified shaded JAR: {jar}")
+          print("Verified Oracle Source and Pipeline factory classes and SPI registrations.")
+          PY
+      - name: Require executed Oracle integration tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          modules = [
+              Path("yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors/yak-ops-connector-oracle-cdc"),
+              Path("yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/yak-ops-cdc-pipeline-connector-oracle"),
+          ]
+          failed = False
+          for module in modules:
+              reports = list((module / "target" / "failsafe-reports").glob("TEST-*.xml"))
+              tests = skipped = 0
+              for report in reports:
+                  root = ET.parse(report).getroot()
+                  tests += int(root.attrib.get("tests", 0))
+                  skipped += int(root.attrib.get("skipped", 0))
+              executed = tests - skipped
+              print(f"{module.name}: reports={len(reports)}, tests={tests}, skipped={skipped}, executed={executed}")
+              if not reports or executed <= 0:
+                  failed = True
+          if failed:
+              raise SystemExit("Oracle integration tests did not execute in both connector modules.")
+          PY
+      - name: Upload Oracle test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-cdc-test-reports
+          path: |
+            yak-ops-cdc/**/target/surefire-reports/**
+            yak-ops-cdc/**/target/failsafe-reports/**
+          if-no-files-found: warn
+          retention-days: 7
+
