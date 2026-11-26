@@ -38,19 +38,26 @@ class MiniClusterDataSyncExecutionServiceTest {
         try {
             assertNotNull(handle.getJobId());
             assertTrue(handle.getRestEndpoint().startsWith("http://"));
-            assertEquals(DataSyncExecutionState.RUNNING, service.queryState(handle));
+            awaitState(service, handle, DataSyncExecutionState.RUNNING);
 
             service.cancel(handle);
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
-            DataSyncExecutionState state = service.queryState(handle);
-            while (state != DataSyncExecutionState.CANCELED && System.nanoTime() < deadline) {
-                Thread.sleep(100L);
-                state = service.queryState(handle);
-            }
-            assertEquals(DataSyncExecutionState.CANCELED, state);
+            awaitState(service, handle, DataSyncExecutionState.CANCELED);
         } finally {
             service.release(handle);
         }
+    }
+
+    private static void awaitState(
+            MiniClusterDataSyncExecutionService service,
+            DataSyncExecutionHandle handle,
+            DataSyncExecutionState expected) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+        DataSyncExecutionState state = service.queryState(handle);
+        while (state != expected && System.nanoTime() < deadline) {
+            Thread.sleep(100L);
+            state = service.queryState(handle);
+        }
+        assertEquals(expected, state);
     }
 
     private static final class BlockingSource extends RichParallelSourceFunction<Long> {
