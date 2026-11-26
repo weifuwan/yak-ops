@@ -18,18 +18,24 @@ import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.modeling.api.dto.dimension.DimensionDorisPublishDTO;
-import io.yak.ops.modeling.api.vo.dimension.DimensionDorisFieldTypeOptionVO;
+import io.yak.ops.modeling.api.vo.dimension.DimensionDdlFieldTypeOptionVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionDorisPublishVO;
 import io.yak.ops.modeling.application.service.DimensionDorisService;
-import io.yak.ops.modeling.ddl.doris.DorisDataSourceAdapter;
-import io.yak.ops.modeling.ddl.doris.DorisDataSourceContext;
-import io.yak.ops.modeling.ddl.doris.DorisDdlEngine;
-import io.yak.ops.modeling.ddl.doris.DorisSchemaVerificationException;
+import io.yak.ops.modeling.ddl.doris.SchemaVerificationException;
+import io.yak.ops.modeling.ddl.doris.model.DorisOptions;
+import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
+import io.yak.ops.modeling.ddl.doris.model.ReplicationPlan;
+import io.yak.ops.modeling.ddl.api.DdlEngine;
+import io.yak.ops.modeling.ddl.api.DdlSessionFactory;
+import io.yak.ops.modeling.ddl.model.DdlConnectionInfo;
+import io.yak.ops.modeling.ddl.model.DdlDataType;
+import io.yak.ops.modeling.ddl.model.DdlFieldTypeOption;
+import io.yak.ops.modeling.ddl.model.DdlPublishMode;
+import io.yak.ops.modeling.ddl.session.DdlSession;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
-import io.yak.ops.modeling.ddl.model.DorisDdlRequest;
-import io.yak.ops.modeling.ddl.model.DorisFieldTypeOption;
+import io.yak.ops.modeling.ddl.model.DdlRequest;
 import io.yak.ops.spi.enums.DbType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -70,17 +76,17 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     private VersionManagementDao versionManagementDao;
 
     @Resource
-    private DorisDdlEngine ddlEngine;
+    private DdlEngine ddlEngine;
 
     @Resource
-    private DorisDataSourceAdapter dataSourceAdapter;
+    private DdlSessionFactory sessionFactory;
 
     @Resource
     private DimensionDorisPublishRecordService publishRecordService;
 
     @Override
-    public List<DimensionDorisFieldTypeOptionVO> getFieldTypeOptions() {
-        return ddlEngine.getFieldTypeOptions().stream()
+    public List<DimensionDdlFieldTypeOptionVO> getFieldTypeOptions() {
+        return ddlEngine.getFieldTypeOptions(DbType.DORIS.name()).stream()
                 .map(this::toFieldTypeOptionVO)
                 .collect(Collectors.toList());
     }
@@ -94,10 +100,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         DimensionTablePO table = requirePhysicalTable(tableId);
         requireSubmitted(table);
         List<DimensionTableFieldPO> fields = listFields(tableId);
-        try (DorisDataSourceContext context = dataSourceAdapter.open(datasource)) {
+        try (DdlSession context = sessionFactory.open(new DdlConnectionInfo(datasource.getType().name(), datasource.getConnectionParams()))) {
             String database = context.getDatabase();
-            DorisDdlRequest request = buildDdlRequest(table, fields, dto, database);
-            DdlPlan plan = ddlEngine.plan(context.getConnection(), context.getCatalog(), request);
+            DdlRequest request = buildDdlRequest(table, fields, dto, database);
+            DdlPlan plan = ddlEngine.plan(context, request);
             DimensionDorisPublishVO vo = new DimensionDorisPublishVO();
             vo.setTableId(tableId);
             vo.setDatasourceId(datasource.getId());
@@ -110,10 +116,11 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             vo.setDdl(plan.getDdl());
             vo.setDdlHash(sha256(plan.getDdl()));
             vo.setNoChanges(plan.isNoChanges());
-            vo.setReplicationNum(plan.getReplicationNum());
-            vo.setAvailableBackendCount(plan.getAvailableBackendCount());
-            vo.setReplicationAuto(plan.isReplicationAuto());
-            vo.setReplicationWarning(plan.getReplicationWarning());
+            ReplicationPlan replication = plan.getDetails(ReplicationPlan.class);
+            vo.setReplicationNum(replication == null ? null : replication.getReplicationNum());
+            vo.setAvailableBackendCount(replication == null ? null : replication.getAvailableBackendCount());
+            vo.setReplicationAuto(replication != null && replication.isAutomatic());
+            vo.setReplicationWarning(replication == null ? null : replication.getWarning());
             vo.setTargetTableExists(plan.isTargetTableExists());
             vo.setAddedColumns(plan.getAddedColumns());
             vo.setDroppedColumns(plan.getDroppedColumns());
@@ -148,9 +155,9 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         Date startedAt = null;
         DimensionDorisPublishPO publish = null;
 
-        try (DorisDataSourceContext context = dataSourceAdapter.open(datasource)) {
+        try (DdlSession context = sessionFactory.open(datasource)) {
             database = context.getDatabase();
-            DorisDdlRequest request = buildDdlRequest(table, fields, dto, database);
+            DdlRequest request = buildDdlRequest(table, fields, dto, database);
             DdlPlan plan = ddlEngine.plan(context.getConnection(), context.getCatalog(), request);
             if (plan.isRequiresConfirmation() && !Boolean.TRUE.equals(dto.getConfirmDropColumns())) {
                 throw new IllegalArgumentException("增量发布包含删除字段操作，需要二次确认");
@@ -169,8 +176,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                         "Doris publish started: publishId={}, tableId={}, datasourceId={}, database={}, table={}, mode={}, model={}, ddlStatements={}",
                         publish.getId(), tableId, datasource.getId(), database, table.getTableName(),
                         dto.getPublishMode(), dto.getTableModel(), plan.getStatements().size());
-                String physicalSchema = ddlEngine.execute(
-                        context.getConnection(), context.getCatalog(), request, plan, publish.getId());
+                String physicalSchema = ddlEngine.execute(context, request, plan, publish.getId());
                 publishRecordService.updatePhysicalSchema(
                         publish.getId(), physicalSchema, currentOperator);
                 publish.setPhysicalSchema(physicalSchema);
@@ -189,13 +195,13 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             } catch (Exception ex) {
                 Date finishedAt = new Date();
                 long duration = System.currentTimeMillis() - startedMillis;
-                boolean verificationFailed = ex instanceof DorisSchemaVerificationException;
+                boolean verificationFailed = ex instanceof SchemaVerificationException;
                 DorisPublishStatusEnum failureStatus = verificationFailed
                         ? DorisPublishStatusEnum.VERIFY_FAILED
                         : DorisPublishStatusEnum.FAILED;
                 if (verificationFailed) {
                     String physicalSchema =
-                            ((DorisSchemaVerificationException) ex).getPhysicalSchema();
+                            ((SchemaVerificationException) ex).getPhysicalSchema();
                     if (StringUtils.isNotBlank(physicalSchema)) {
                         try {
                             publishRecordService.updatePhysicalSchema(
@@ -262,7 +268,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         return safeList(records).stream().map(this::toPublishVO).collect(Collectors.toList());
     }
 
-    private DorisDdlRequest buildDdlRequest(
+    private DdlRequest buildDdlRequest(
             DimensionTablePO table,
             List<DimensionTableFieldPO> fields,
             DimensionDorisPublishDTO dto,
@@ -279,14 +285,16 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 previousPhysicalSchema = previous.getPhysicalSchema();
             }
         }
-        return new DorisDdlRequest(
-                toTableDefinition(table, fields, database),
-                dto.getTableModel(),
-                dto.getPublishMode(),
-                previousModel,
+        DorisOptions options = new DorisOptions(
+                DorisTableModel.valueOf(dto.getTableModel().name()),
+                previousModel == null ? null : DorisTableModel.valueOf(previousModel.name()),
                 previousKeys,
                 dto.getReplicationNum(),
                 previousPhysicalSchema);
+        return new DdlRequest(
+                toTableDefinition(table, fields, database),
+                DdlPublishMode.valueOf(dto.getPublishMode().name()),
+                options);
     }
 
     private DdlTableDefinition toTableDefinition(
@@ -295,7 +303,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         for (DimensionTableFieldPO field : fields) {
             columns.add(new DdlColumnDefinition(
                     field.getFieldName(),
-                    field.getDataType(),
+                    DdlDataType.valueOf(field.getDataType().getCode()),
                     field.getLength(),
                     field.getFieldPrecision(),
                     field.getFieldScale(),
@@ -513,8 +521,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
     }
 
-    private DimensionDorisFieldTypeOptionVO toFieldTypeOptionVO(DorisFieldTypeOption option) {
-        return new DimensionDorisFieldTypeOptionVO(
+    private DimensionDdlFieldTypeOptionVO toFieldTypeOptionVO(DdlFieldTypeOption option) {
+        return new DimensionDdlFieldTypeOptionVO(
                 option.getCode(),
                 option.getLabel(),
                 option.getParameterType(),
