@@ -4,55 +4,50 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "../apps/web/app");
-const indicator = readFileSync(join(root, "components/execution-status-indicator.tsx"), "utf8");
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const appRoot = join(repoRoot, "yak-ops-ui/apps/web/app");
+const indicator = readFileSync(join(appRoot, "components/execution-status-indicator.tsx"), "utf8");
 const realtimeInstances = readFileSync(
-  join(root, "operations/data-sync/instances-page.tsx"),
+  join(appRoot, "operations/data-sync/instances-page.tsx"),
   "utf8",
 );
 const executionDetail = readFileSync(
-  join(root, "data-sync/execution/execution-detail.tsx"),
+  join(appRoot, "data-sync/execution/execution-detail.tsx"),
+  "utf8",
+);
+const taskStatusEnum = readFileSync(
+  join(
+    repoRoot,
+    "yak-ops-task-plugin/yak-ops-task-api/src/main/java/io/yak/ops/plugin/task/api/enums/TaskExecutionStatus.java",
+  ),
+  "utf8",
+);
+const workflowStatusEnum = readFileSync(
+  join(repoRoot, "yak-ops-common/src/main/java/io/yak/ops/common/enums/WorkflowExecutionStatus.java"),
   "utf8",
 );
 
-const taskStatuses = [
-  "SUBMITTED_SUCCESS",
-  "DISPATCH",
-  "RUNNING_EXECUTION",
-  "DELAY_EXECUTION",
-  "NEED_FAULT_TOLERANCE",
-  "SUCCESS",
-  "FORCED_SUCCESS",
-  "FAILURE",
-  "PAUSE",
-  "KILL",
-];
+const enumValues = (source) =>
+  [...source.matchAll(/^    ([A-Z][A-Z0-9_]*)\\(/gm)].map((match) => match[1]);
 
-const workflowStatuses = [
-  "SUBMITTED_SUCCESS",
-  "RUNNING_EXECUTION",
-  "READY_PAUSE",
-  "PAUSE",
-  "READY_STOP",
-  "STOP",
-  "FAILURE",
-  "SUCCESS",
-  "SERIAL_WAIT",
-  "FAILOVER",
-];
+test("shared execution status indicator covers every backend task and workflow enum value", () => {
+  const backendStatuses = new Set([
+    ...enumValues(taskStatusEnum),
+    ...enumValues(workflowStatusEnum),
+  ]);
 
-test("shared execution status indicator covers every task and workflow enum value", () => {
-  for (const status of new Set([...taskStatuses, ...workflowStatuses])) {
+  assert.ok(backendStatuses.size > 0, "backend execution enums should be readable");
+  for (const status of backendStatuses) {
     assert.match(
       indicator,
-      new RegExp(`\\b${status}:\\s*\\{`),
-      `missing visual mapping for ${status}`,
+      new RegExp(`\\\\b${status}:\\\\s*\\\\{`),
+      `missing visual mapping for backend status ${status}`,
     );
   }
 });
 
 test("execution status visuals use simple inline geometric SVG shapes", () => {
-  assert.match(indicator, /<svg[\s\S]*viewBox="0 0 16 16"/);
+  assert.match(indicator, /<svg[\\s\\S]*viewBox="0 0 16 16"/);
   assert.match(indicator, /<circle/);
   assert.match(indicator, /<path/);
   assert.match(indicator, /<rect/);
@@ -63,13 +58,13 @@ test("execution status visuals use simple inline geometric SVG shapes", () => {
 test("realtime instance table uses the shared status indicator and no local status palette", () => {
   assert.match(
     realtimeInstances,
-    /<ExecutionStatusIndicator status=\{r\.status\} label=\{instanceStatusText\(r\.status\)\}/,
+    /<ExecutionStatusIndicator status=\\{r\\.status\\} label=\\{instanceStatusText\\(r\\.status\\)\\}/,
   );
   assert.doesNotMatch(realtimeInstances, /INSTANCE_STATUS_STYLES|function InstanceStatus/);
 });
 
 test("data-sync execution detail reuses the shared status glyph", () => {
-  assert.match(executionDetail, /import \{ ExecutionStatusIndicator \} from "@\/app\/components\/execution-status-indicator"/);
-  assert.match(executionDetail, /<ExecutionStatusIndicator[\s\S]*showLabel=\{false\}/);
+  assert.match(executionDetail, /import \\{ ExecutionStatusIndicator \\} from "@\\/app\\/components\\/execution-status-indicator"/);
+  assert.match(executionDetail, /<ExecutionStatusIndicator[\\s\\S]*showLabel=\\{false\\}/);
   assert.doesNotMatch(executionDetail, /const STATUS_ICONS/);
 });
