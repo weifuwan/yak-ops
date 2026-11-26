@@ -69,7 +69,7 @@ test("Node execution resources use selectable worker groups and compatible envir
   assert.match(executionResourceFields, /listAllEnvironments/);
   assert.match(executionResourceFields, /environment\.workerGroups/);
   assert.match(executionResourceFields, /isEnvironmentAvailableForWorkerGroup/);
-  assert.match(executionResourceFields, /workerGroups\.length > 0 && workerGroups\.includes\(workerGroup\)/);
+  assert.match(executionResourceFields, /workerGroups\.length\s*>\s*0\s*&&\s*workerGroups\.includes\(workerGroup\)/);
   assert.match(executionResourceFields, /onChange\(nextWorkerGroup, nextEnvironmentCode\)/);
   assert.match(environmentService, /query-environment-list/);
 });
