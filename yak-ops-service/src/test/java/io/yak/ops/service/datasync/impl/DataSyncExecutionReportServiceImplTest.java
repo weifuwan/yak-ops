@@ -164,7 +164,7 @@ class DataSyncExecutionReportServiceImplTest {
                 .id(9L)
                 .executionId("execution-1")
                 .tableKey("orders")
-                .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                .latestMetricsJson("{\"sourceTable\":\"db.orders\",\"readRecords\":10}")
                 .build();
         when(tableReportDao.queryByExecutionId("execution-1"))
                 .thenReturn(java.util.Collections.singletonList(existing));
