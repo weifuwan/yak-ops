@@ -70,4 +70,26 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals(18L, snapshot.getCommittedRecords());
         assertEquals("AVAILABLE", snapshot.getMetricsState());
     }
+    @Test
+    void marksTableMetricsPartialWhenOnlyOneSideIsAvailable() throws Exception {
+        Map<String, Long> rawMetrics = new LinkedHashMap<>();
+        rawMetrics.put("source.namespace.db.schema..table.orders.numSnapshotRecords", 12L);
+
+        AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
+
+            @Override
+            protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) {
+                return rawMetrics;
+            }
+        };
+
+        DataSyncExecutionSnapshot snapshot = service.collect(
+                DataSyncExecutionHandle.builder().executionId("execution-partial").build());
+
+        assertEquals("PARTIAL", snapshot.getMetricsState());
+        assertEquals(1, snapshot.getTables().size());
+        assertEquals("PARTIAL", snapshot.getTables().get(0).getMetricsState());
+        assertEquals(null, snapshot.getTables().get(0).getCommittedRecords());
+    }
+
 }
