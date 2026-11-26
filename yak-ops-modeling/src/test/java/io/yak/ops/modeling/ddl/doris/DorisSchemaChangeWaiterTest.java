@@ -1,5 +1,7 @@
 package io.yak.ops.modeling.ddl.doris;
 
+import io.yak.ops.modeling.ddl.doris.execution.SchemaChangeWaiter;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,9 +14,9 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import org.junit.jupiter.api.Test;
 
-class DorisSchemaChangeWaiterTest {
+class SchemaChangeWaiterTest {
 
-    private final DorisSchemaChangeWaiter waiter = new DorisSchemaChangeWaiter();
+    private final SchemaChangeWaiter waiter = new SchemaChangeWaiter();
 
     @Test
     void shouldWaitForNewSchemaChangeJobToFinish() throws Exception {
