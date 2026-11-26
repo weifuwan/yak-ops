@@ -4,6 +4,7 @@ import org.apache.flink.api.common.JobStatus;
 
 /** Normalized lifecycle state for a CDC execution. */
 public enum DataSyncExecutionState {
+
     CREATED,
     RUNNING,
     FINISHED,
