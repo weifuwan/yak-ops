@@ -10,9 +10,9 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 
-import org.junit.jupiter.api.Test;
-
 import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Test;
 
 class MiniClusterDataSyncExecutionServiceTest {
 
