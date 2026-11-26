@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
   Table,
+  Switch,
   toast,
   type TableColumns,
 } from "@yak-ops/yak-ui";
@@ -42,6 +43,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
   const scope = currentWorkspace?.id ?? "";
   const [status, setStatus] = useState<DataSyncInstanceStatus | "ALL">("ALL");
   const [pageNo, setPageNo] = useState(1);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   const refreshSeconds = syncType === "REALTIME" ? 3 : 5;
   const query = useQuery({
@@ -54,7 +56,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
         status: status === "ALL" ? undefined : status,
       }),
     enabled: Boolean(scope),
-    refetchInterval: refreshSeconds * 1000,
+    refetchInterval: autoRefresh ? refreshSeconds * 1000 : false,
   });
 
   const stopMutation = useMutation({
@@ -196,19 +198,16 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
           </span>
         </div>
 
-        <div className="inline-flex items-center gap-2 text-xs text-[var(--yak-components-muted-text)]" aria-live="polite">
-          <span
-            aria-hidden="true"
-            className={`size-1.5 rounded-full ${query.isError ? "bg-[var(--yak-color-danger)]" : "bg-[var(--yak-color-primary)]"} ${syncType === "REALTIME" && !query.isError ? "animate-pulse" : ""}`}
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
+          <span>自动刷新</span>
+          <Switch
+            size="small"
+            checked={autoRefresh}
+            onCheckedChange={setAutoRefresh}
+            aria-label="自动刷新"
           />
-          <span>
-            {query.isError
-              ? "更新失败"
-              : query.isFetching && !query.isPending
-                ? "正在同步"
-                : `自动刷新 · 每 ${refreshSeconds} 秒`}
-          </span>
-        </div>
+          {autoRefresh ? <span>每 {refreshSeconds} 秒</span> : null}
+        </label>
       </div>
 
       <div className="min-h-0 flex-1">
