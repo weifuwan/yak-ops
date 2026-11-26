@@ -11,6 +11,7 @@ import io.yak.ops.plugin.datasource.api.catalog.CatalogObjectType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogColumn;
 import io.yak.ops.plugin.doris.param.DorisDataSourceProcessor;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
