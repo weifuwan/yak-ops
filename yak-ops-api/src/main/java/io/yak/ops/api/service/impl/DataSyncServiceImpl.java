@@ -926,13 +926,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .recoveryPointTime(recoveryPoint == null ? null : recoveryPoint.getCreatedAt())
                 .recoveryPointUsedByWorkflowInstanceId(recoveryPoint == null
                         ? null : recoveryPoint.getUsedByWorkflowInstanceId())
-                                .recoveryUnavailableReason(recoveryRequired && (recoveryPoint == null
-                        || !"AVAILABLE".equals(recoveryPoint.getState()))
-                        ? recoveryPoint == null ? "该实例没有可用的恢复点"
-                                : "CREATING".equals(recoveryPoint.getState()) ? "恢复点生成中"
-                                        : "USED".equals(recoveryPoint.getState()) ? "恢复点已用于新实例"
-                                                : "恢复点已被重新运行替代"
-                        : null)
+                .recoveryUnavailableReason(recoveryUnavailableReason(recoveryRequired, recoveryPoint))
                 .createTime(instance.getFirstSubmitTime())
                 .startTime(instance.getStartTime())
                 .endTime(instance.getEndTime())
