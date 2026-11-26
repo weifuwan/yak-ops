@@ -122,7 +122,7 @@ public class DataSyncExecutionCoordinator {
                 try {
                     executionService.release(current);
                 } catch (Exception exception) {
-                    log.warn("Failed to release MiniCluster, executionId={}", current.getExecutionId(), exception);
+                    log.warn("Failed to release CDC execution, executionId={}", current.getExecutionId(), exception);
                 } finally {
                     handle = null;
                     activeExecutionService = null;
