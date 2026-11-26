@@ -250,7 +250,8 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     public Result stopTask(User loginUser, long projectCode, Integer taskInstanceId) {
         Result result = new Result();
         TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
-        if (taskInstance.getTaskExecuteType() == TaskExecuteType.STREAM) {
+        if (taskInstance.getTaskExecuteType() == TaskExecuteType.STREAM
+                && "DATA_SYNC".equals(taskInstance.getTaskType())) {
             stopTaskWithSavepoint(loginUser, projectCode, taskInstanceId);
             putMsg(result, Status.SUCCESS);
             return result;
@@ -276,8 +277,9 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     @Override
     public String stopTaskWithSavepoint(User loginUser, long projectCode, Integer taskInstanceId) {
         TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
-        if (taskInstance.getTaskExecuteType() != TaskExecuteType.STREAM) {
-            throw new ServiceException("Graceful savepoint stop is only supported for streaming tasks");
+        if (taskInstance.getTaskExecuteType() != TaskExecuteType.STREAM
+                || !"DATA_SYNC".equals(taskInstance.getTaskType())) {
+            throw new ServiceException("Graceful savepoint stop is only supported for DATA_SYNC streaming tasks");
         }
         if (!DataSyncInstanceActionPolicy.isActive(taskInstance.getState())) {
             throw new ServiceException("Only an active streaming task can be stopped");
