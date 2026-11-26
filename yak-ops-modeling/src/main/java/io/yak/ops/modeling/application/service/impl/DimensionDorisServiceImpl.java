@@ -18,7 +18,7 @@ import io.yak.ops.dao.repository.modeling.DimensionTableDao;
 import io.yak.ops.dao.repository.modeling.DimensionTableFieldDao;
 import io.yak.ops.dao.repository.modeling.VersionManagementDao;
 import io.yak.ops.modeling.api.dto.dimension.DimensionDorisPublishDTO;
-import io.yak.ops.modeling.api.vo.dimension.DimensionDdlFieldTypeOptionVO;
+import io.yak.ops.modeling.api.vo.dimension.DimensionDorisFieldTypeOptionVO;
 import io.yak.ops.modeling.api.vo.dimension.DimensionDorisPublishVO;
 import io.yak.ops.modeling.application.service.DimensionDorisService;
 import io.yak.ops.modeling.ddl.doris.SchemaVerificationException;
@@ -85,7 +85,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
     private DimensionDorisPublishRecordService publishRecordService;
 
     @Override
-    public List<DimensionDdlFieldTypeOptionVO> getFieldTypeOptions() {
+    public List<DimensionDorisFieldTypeOptionVO> getFieldTypeOptions() {
         return ddlEngine.getFieldTypeOptions(DbType.DORIS.name()).stream()
                 .map(this::toFieldTypeOptionVO)
                 .collect(Collectors.toList());
@@ -521,8 +521,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
     }
 
-    private DimensionDdlFieldTypeOptionVO toFieldTypeOptionVO(DdlFieldTypeOption option) {
-        return new DimensionDdlFieldTypeOptionVO(
+    private DimensionDorisFieldTypeOptionVO toFieldTypeOptionVO(DdlFieldTypeOption option) {
+        return new DimensionDorisFieldTypeOptionVO(
                 option.getCode(),
                 option.getLabel(),
                 option.getParameterType(),
