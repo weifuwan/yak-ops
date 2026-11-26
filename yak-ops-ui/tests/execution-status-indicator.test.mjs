@@ -28,7 +28,10 @@ const workflowStatusEnum = readFileSync(
 );
 
 const enumValues = (source) =>
-  [...source.matchAll(/^    ([A-Z][A-Z0-9_]*)\\(/gm)].map((match) => match[1]);
+  source
+    .split("\n")
+    .map((line) => line.trim().match(/^([A-Z][A-Z0-9_]*)\(/)?.[1])
+    .filter(Boolean);
 
 test("shared execution status indicator covers every backend task and workflow enum value", () => {
   const backendStatuses = new Set([
@@ -38,16 +41,15 @@ test("shared execution status indicator covers every backend task and workflow e
 
   assert.ok(backendStatuses.size > 0, "backend execution enums should be readable");
   for (const status of backendStatuses) {
-    assert.match(
-      indicator,
-      new RegExp(`\\\\b${status}:\\\\s*\\\\{`),
-      `missing visual mapping for backend status ${status}`,
+    assert.ok(
+      indicator.includes(status + ": {"),
+      "missing visual mapping for backend status " + status,
     );
   }
 });
 
 test("execution status visuals use simple inline geometric SVG shapes", () => {
-  assert.match(indicator, /<svg[\\s\\S]*viewBox="0 0 16 16"/);
+  assert.match(indicator, /<svg[\s\S]*viewBox="0 0 16 16"/);
   assert.match(indicator, /<circle/);
   assert.match(indicator, /<path/);
   assert.match(indicator, /<rect/);
@@ -56,15 +58,21 @@ test("execution status visuals use simple inline geometric SVG shapes", () => {
 });
 
 test("realtime instance table uses the shared status indicator and no local status palette", () => {
-  assert.match(
-    realtimeInstances,
-    /<ExecutionStatusIndicator status=\\{r\\.status\\} label=\\{instanceStatusText\\(r\\.status\\)\\}/,
+  assert.ok(
+    realtimeInstances.includes(
+      '<ExecutionStatusIndicator status={r.status} label={instanceStatusText(r.status)} />',
+    ),
   );
   assert.doesNotMatch(realtimeInstances, /INSTANCE_STATUS_STYLES|function InstanceStatus/);
 });
 
 test("data-sync execution detail reuses the shared status glyph", () => {
-  assert.match(executionDetail, /import \\{ ExecutionStatusIndicator \\} from "@\\/app\\/components\\/execution-status-indicator"/);
-  assert.match(executionDetail, /<ExecutionStatusIndicator[\\s\\S]*showLabel=\\{false\\}/);
+  assert.ok(
+    executionDetail.includes(
+      'import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";',
+    ),
+  );
+  assert.ok(executionDetail.includes("<ExecutionStatusIndicator"));
+  assert.ok(executionDetail.includes("showLabel={false}"));
   assert.doesNotMatch(executionDetail, /const STATUS_ICONS/);
 });
