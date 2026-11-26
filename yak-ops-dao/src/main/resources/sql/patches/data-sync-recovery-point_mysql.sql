@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `t_yak_ops_data_sync_recovery_point` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `task_instance_id` INT NOT NULL,
+  `project_code` BIGINT NOT NULL,
+  `task_code` BIGINT NOT NULL,
+  `task_definition_version` INT NOT NULL,
+  `execution_id` VARCHAR(64) DEFAULT NULL,
+  `job_id` VARCHAR(64) DEFAULT NULL,
+  `runtime_mode` VARCHAR(32) NOT NULL,
+  `recovery_type` VARCHAR(32) NOT NULL,
+  `restore_path` VARCHAR(2048) NOT NULL,
+  `state` VARCHAR(16) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `used_by_workflow_instance_id` INT DEFAULT NULL,
+  `used_at` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_data_sync_recovery_task_instance` (`task_instance_id`),
+  KEY `idx_data_sync_recovery_state_created` (`state`, `created_at`),
+  KEY `idx_data_sync_recovery_used_workflow` (`used_by_workflow_instance_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
