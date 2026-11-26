@@ -254,9 +254,8 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
         TaskInstance taskInstance = requireWritableTaskInstance(loginUser, projectCode, taskInstanceId);
         if (taskInstance.getTaskExecuteType() == TaskExecuteType.STREAM
                 && "DATA_SYNC".equals(taskInstance.getTaskType())) {
-            stopTaskWithSavepoint(loginUser, projectCode, taskInstanceId);
-            putMsg(result, Status.SUCCESS);
-            return result;
+            throw new ServiceException(
+                    "DATA_SYNC streaming tasks must be stopped through the Data Sync instance action API");
         }
 
         String host = taskInstance.getHost();
