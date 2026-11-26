@@ -13,16 +13,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class StatementExecutor {
 
-    private static final Logger log = LoggerFactory.getLogger(DorisDdlExecutor.class);
+    private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
     private final SchemaChangeWaiter schemaChangeWaiter;
 
-    public DorisDdlExecutor() {
-        this(new DorisSchemaChangeWaiter());
+    public StatementExecutor() {
+        this(new SchemaChangeWaiter());
     }
 
     @Autowired
-    public DorisDdlExecutor(DorisSchemaChangeWaiter schemaChangeWaiter) {
+    public StatementExecutor(SchemaChangeWaiter schemaChangeWaiter) {
         this.schemaChangeWaiter = schemaChangeWaiter;
     }
 
