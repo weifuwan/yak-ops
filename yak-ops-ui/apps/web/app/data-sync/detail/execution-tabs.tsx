@@ -4,6 +4,7 @@ import { workflowStatusText, type DataSyncInstanceRecord,
   type DataSyncWorkflowInstance, type WorkflowExecutionStatus } from "@/service/data-sync";
 import {
   DataSyncExecutionDetailContent,
+  DataSyncExecutionDetailSkeleton,
   isActiveDataSyncInstance,
 } from "../execution/execution-detail";
 import { TaskInstanceLogPanel } from "./log/task-instance-log-panel";
@@ -51,6 +52,25 @@ export function ExecutionTabs({
       return [];
     }
   })();
+  const controls = (
+    <>
+      <label className="flex items-center gap-2 text-xs text-[var(--yak-components-collapse-section-icon)]">
+        自动刷新
+        <Switch size="small" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+      </label>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="sync-execution-icon-button h-7 w-7"
+        aria-label="刷新执行状态"
+        title="刷新"
+        isPending={refreshing}
+        onClick={() => void refreshExecution()}
+      >
+        <RefreshCw size={14} />
+      </Button>
+    </>
+  );
   return (
     <Tabs value={activeTab} onValueChange={changeTab}>
       <TabsList>
@@ -65,24 +85,7 @@ export function ExecutionTabs({
             onViewScheduleHistory={() => {
               onViewScheduleHistory(selectedInstance.scheduleId || undefined);
             }}
-            controls={
-              <>
-                <label className="flex items-center gap-2 text-xs text-[var(--yak-components-collapse-section-icon)]">
-                  自动刷新
-                  <Switch size="small" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-                </label>
-                <Button variant="secondary"
-                  size="sm"
-                  className="sync-execution-icon-button h-7 w-7"
-                  aria-label="刷新执行状态"
-                  title="刷新"
-                  isPending={refreshing}
-                  onClick={() => void refreshExecution()}
-                >
-                  <RefreshCw size={14} />
-                </Button>
-              </>
-            }
+            controls={controls}
           />
         ) : pendingWorkflowId ? (
           <div className="rounded-lg border border-[var(--yak-components-panel-border)] p-5">
@@ -106,9 +109,7 @@ export function ExecutionTabs({
             ) : null}
           </div>
         ) : selectedLoading ? (
-          <div className="flex min-h-40 items-center justify-center">
-            <Spinner size="medium" label="加载实例详情" />
-          </div>
+          <DataSyncExecutionDetailSkeleton controls={controls} />
         ) : (
           <div className="py-12 text-center text-sm text-[var(--yak-components-muted-text)]">
             {instances.length === 0 ? "暂无执行记录" : "选择左侧执行记录"}

@@ -1,4 +1,4 @@
-import { Button, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
+import { Button, Skeleton, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
 import {
   CheckCircle2,
   CircleHelp,
@@ -116,39 +116,71 @@ const rowCountText = (value?: number) =>
 
 function ExecutionProgressCard({ record }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
-  const scopeLabel =
-    record.scope === "DATABASE"
-      ? "整库同步"
-      : record.scope === "MULTI_TABLE"
-        ? "多表同步"
-        : "单表同步";
-  const hasFull = record.steps.includes("FULL");
-  const hasIncremental = record.steps.includes("INCREMENTAL");
-  const modeLabel = hasFull && hasIncremental
-    ? "全量 + 增量"
-    : hasFull ? "全量" : "增量";
   const summary =
     record.executionReport && record.executionReport.version !== 1
       ? record.executionReport
       : undefined;
 
   return (
-    <div className="border border-[#eef0f3] bg-white px-3 py-3 text-center">
-      {realtime || summary || record.steps.includes("SCHEMA") ? (
-        <ExecutionStages status={record.status} steps={record.steps} summary={summary} />
-      ) : (
-        <ExecutionProgressBar
-          status={record.status}
-          percent={record.progressPercent}
-          realtime={false}
-        />
-      )}
+    <div className="grid min-h-28 place-items-center border border-[#eef0f3] bg-white px-3 py-3 text-center">
+      <div className="w-full">
+        {realtime || summary || record.steps.includes("SCHEMA") ? (
+          <ExecutionStages status={record.status} steps={record.steps} summary={summary} />
+        ) : (
+          <ExecutionProgressBar
+            status={record.status}
+            percent={record.progressPercent}
+            realtime={false}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
-      <h3 className="mt-2 text-sm font-semibold text-[#344054]">
-        MySQL · {scopeLabel} · {modeLabel}
-      </h3>
-      <div className="mt-1 text-xs text-[#98a2b3]">
-        v{record.taskVersion} · {dataSyncTriggerText(record.triggerType)}
+const TABLE_SKELETON_WIDTHS = ["72%", "72%", 16, 28, 28, "82%", "82%", 32] as const;
+
+/** Mirrors the execution detail layout while a newly selected instance is loading. */
+export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: ReactNode }) {
+  return (
+    <div className="space-y-4" role="status" aria-label="加载执行详情" aria-busy="true">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          <Skeleton width={56} height={12} />
+          <Skeleton width={14} height={14} className="rounded-full" />
+          <Skeleton width={42} height={12} />
+        </div>
+        {controls ? <div className="flex items-center gap-3">{controls}</div> : null}
+      </div>
+
+      <div className="grid min-h-28 place-items-center border border-[#eef0f3] bg-white px-3 py-3">
+        <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }, (_value, index) => (
+            <div key={index} className="min-w-0">
+              <Skeleton height={22} />
+              <Skeleton width={64} height={14} className="mx-auto mt-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="min-w-0 overflow-x-auto pt-4">
+        <div className="min-w-[1180px]">
+          <div className="grid grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_90px_110px_110px_170px_170px_90px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
+            {TABLE_SKELETON_WIDTHS.map((width, index) => (
+              <div key={index} className="min-w-0">
+                <Skeleton width={width} height={12} />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_90px_110px_110px_170px_170px_90px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
+            {TABLE_SKELETON_WIDTHS.map((width, index) => (
+              <div key={index} className="min-w-0">
+                <Skeleton width={width} height={12} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

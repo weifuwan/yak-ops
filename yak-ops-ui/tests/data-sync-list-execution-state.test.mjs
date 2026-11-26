@@ -17,6 +17,7 @@ const executionActions = readFileSync(
 );
 const detailPage = readFileSync(join(root, "../detail/index.tsx"), "utf8");
 const executionTabs = readFileSync(join(root, "../detail/execution-tabs.tsx"), "utf8");
+const executionDetail = readFileSync(join(root, "../execution/execution-detail.tsx"), "utf8");
 const executionLifecycle = readFileSync(
   join(root, "../../../service/data-sync/execution.ts"),
   "utf8",
@@ -136,4 +137,27 @@ test("data-sync detail exposes one task-level stop action and never cancels sele
     /getCancelableDataSyncWorkflowInstanceId\(workflow, activeInstance\)/,
   );
   assert.doesNotMatch(executionActions, /selectedInstance/);
+});
+
+
+test("execution progress card removes duplicated task summary and preserves its height", () => {
+  const start = executionDetail.indexOf("function ExecutionProgressCard");
+  const end = executionDetail.indexOf("export function DataSyncExecutionDetailSkeleton", start);
+  const progressCard = executionDetail.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.doesNotMatch(progressCard, /scopeLabel|modeLabel|taskVersion|dataSyncTriggerText/);
+  assert.match(progressCard, /min-h-28/);
+  assert.match(progressCard, /place-items-center/);
+});
+
+test("switching instances uses a layout-matched skeleton in the execution status tab", () => {
+  const statusPanel = executionTabs.match(
+    /<TabsPanel value="status"[\s\S]*?<\/TabsPanel>/,
+  )?.[0] ?? "";
+  assert.match(executionDetail, /export function DataSyncExecutionDetailSkeleton/);
+  assert.match(executionDetail, /aria-label="加载执行详情"/);
+  assert.ok(executionDetail.includes("min-w-[1180px]"));
+  assert.ok(statusPanel.includes("selectedLoading ? ("));
+  assert.ok(statusPanel.includes("<DataSyncExecutionDetailSkeleton controls={controls} />"));
+  assert.doesNotMatch(statusPanel, /Spinner/);
 });
