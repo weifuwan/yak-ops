@@ -76,3 +76,13 @@ test("data-sync execution detail reuses the shared status glyph", () => {
   assert.ok(executionDetail.includes("showLabel={false}"));
   assert.doesNotMatch(executionDetail, /const STATUS_ICONS/);
 });
+
+test("operations instance list uses a switch to control automatic polling", () => {
+  assert.match(realtimeInstances, /import \{ ExecutionStatusIndicator \} from "@\/app\/components\/execution-status-indicator"/);
+  assert.match(realtimeInstances, /Switch,/);
+  assert.match(realtimeInstances, /const \[autoRefresh, setAutoRefresh\] = useState\(true\)/);
+  assert.match(realtimeInstances, /refetchInterval: autoRefresh \? refreshSeconds \* 1000 : false/);
+  assert.match(realtimeInstances, /<Switch[\s\S]*checked=\{autoRefresh\}[\s\S]*onCheckedChange=\{setAutoRefresh\}/);
+  assert.match(realtimeInstances, /自动刷新/);
+  assert.doesNotMatch(realtimeInstances, /自动刷新 · 每 \$\{refreshSeconds\} 秒/);
+});
