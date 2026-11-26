@@ -54,6 +54,17 @@ class DorisDdlEngineTest {
     }
 
     @Test
+    void shouldExposeDorisTypeForSchemaDiagnostics() {
+        DorisDdlGenerator generator = new DorisDdlGenerator(
+                new DorisConnectorAdapter(), new DorisDdlFormatter());
+
+        assertEquals(
+                "BIGINT",
+                generator.toDorisType(column(
+                        "customer_id", DimensionDataTypeEnum.BIGINT, null, null, null, true)));
+    }
+
+    @Test
     void shouldGenerateCreateDdlForDuplicateTable() {
         when(catalog.getObject(any(Connection.class), any())).thenReturn(null);
 
