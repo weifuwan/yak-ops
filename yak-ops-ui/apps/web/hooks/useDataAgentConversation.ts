@@ -16,6 +16,7 @@ import {
   renameAgentSession,
   resumeAgentStream,
   sendAgentMessage,
+  type AgentSessionContext,
   type AgentSessionQueueItem,
   type AgentSessionStatus,
   type AgentSessionSummary,
@@ -186,6 +187,7 @@ function createSessionSummary(
     id: session.sessionId,
     title: session.title || "历史会话 · " + session.sessionId.slice(0, 6),
     preview: session.preview || "",
+    contextTokens: Math.max(0, Number(session.contextTokens) || 0),
     updatedAt: formatSessionTime(session.updatedAt),
     messages: [],
     restored: true,
@@ -221,6 +223,7 @@ export function useDataAgentConversation({
   const [connectionError, setConnectionError] = useState("");
   const [sessionNotice, setSessionNotice] = useState("");
   const [sessionUsage, setSessionUsage] = useState<AgentSessionUsage>(EMPTY_USAGE);
+  const [contextTokensBySession, setContextTokensBySession] = useState<Record<string, number>>({});
   const [pendingConfirmation, setPendingConfirmation] =
     useState<PendingConfirmation | null>(null);
 
@@ -283,9 +286,17 @@ export function useDataAgentConversation({
       );
       const summary = {
         ...status,
+        contextTokens: status.context?.usedTokens ?? existing?.contextTokens ?? 0,
         title: status.title || existing?.title || "历史会话 · " + targetSessionId.slice(0, 6),
         preview: status.preview || existing?.preview || "",
       };
+      if (typeof status.context?.usedTokens === "number") {
+        const usedTokens = status.context.usedTokens;
+        setContextTokensBySession((current) => ({
+          ...current,
+          [targetSessionId]: usedTokens,
+        }));
+      }
       let conversation = mapAgentHistoryToConversation(targetSessionId, summary, history);
       const activeTurn = appendActiveTurn(
         conversation,
@@ -540,6 +551,13 @@ export function useDataAgentConversation({
             }
             break;
           case "usage":
+            if (typeof event.contextTokens === "number") {
+              const usedTokens = event.contextTokens;
+              setContextTokensBySession((current) => ({
+                ...current,
+                [targetSessionId]: usedTokens,
+              }));
+            }
             dispatch({
               type: "USAGE_RECORDED",
               sessionId: targetSessionId,
@@ -609,6 +627,7 @@ export function useDataAgentConversation({
     setConnectionError("");
     setSessionNotice("");
     setSessionUsage(EMPTY_USAGE);
+    setContextTokensBySession({});
     dispatch({ type: "RESET" });
 
     if (!requestIdentity) {
@@ -834,6 +853,7 @@ export function useDataAgentConversation({
           const created = await createAgentSession(requestIdentity, controller.signal);
           resolvedSessionId = created.sessionId;
           streamSessionIdRef.current = resolvedSessionId;
+          setContextTokensBySession((current) => ({ ...current, [resolvedSessionId!]: 0 }));
           dispatch({ type: "SELECT_CONVERSATION", sessionId: resolvedSessionId });
           onSessionCreatedRef.current?.(resolvedSessionId);
         }
@@ -940,6 +960,15 @@ export function useDataAgentConversation({
     [requestIdentity, setPending],
   );
 
+  const loadSessionContext = useCallback(
+    async (targetSessionId: string, signal?: AbortSignal): Promise<AgentSessionContext | null> => {
+      if (!requestIdentity) throw new Error("请先登录并选择工作空间");
+      const status = await getAgentSessionStatus(targetSessionId, requestIdentity, signal);
+      return status.context ?? null;
+    },
+    [requestIdentity],
+  );
+
   const stopCurrentTurn = useCallback(async () => {
     if (!sessionId || !requestIdentity || !sendingRef.current) return;
     try {
@@ -980,6 +1009,11 @@ export function useDataAgentConversation({
       if (!requestIdentity) throw new Error("请先登录并选择工作空间");
       await deleteAgentSession(targetSessionId, requestIdentity);
       dispatch({ type: "REMOVE_CONVERSATION", sessionId: targetSessionId });
+      setContextTokensBySession((current) => {
+        const next = { ...current };
+        delete next[targetSessionId];
+        return next;
+      });
       if (targetSessionId === sessionId) {
         setPending(null);
         setSessionUsage(EMPTY_USAGE);
@@ -988,8 +1022,18 @@ export function useDataAgentConversation({
     [requestIdentity, sessionId, setPending],
   );
 
+  const conversations = useMemo(
+    () =>
+      state.conversations.map((conversation) => ({
+        ...conversation,
+        contextTokens:
+          contextTokensBySession[conversation.id] ?? conversation.contextTokens ?? 0,
+      })),
+    [state.conversations, contextTokensBySession],
+  );
+
   return {
-    conversations: state.conversations,
+    conversations,
     activeConversationId,
     activeConversation,
     messages,
@@ -1013,5 +1057,6 @@ export function useDataAgentConversation({
     stopCurrentTurn,
     renameConversation,
     deleteConversation,
+    loadSessionContext,
   };
 }

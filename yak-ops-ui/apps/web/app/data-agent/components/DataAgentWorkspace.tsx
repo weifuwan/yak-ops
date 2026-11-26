@@ -44,6 +44,7 @@ export function DataAgentWorkspace({
     connectionError,
     sessionNotice,
     sessionUsage,
+    loadSessionContext,
     pendingConfirmation,
     createConversation,
     selectConversation,
@@ -229,6 +230,7 @@ export function DataAgentWorkspace({
               conversations={conversations}
               activeConversationId={activeConversationId}
               busy={isSending}
+              onLoadSessionContext={loadSessionContext}
               onNewConversation={handleNewConversation}
               onSelectConversation={handleSelectConversation}
               onRenameConversation={renameConversation}

@@ -163,6 +163,7 @@ export function mapAgentHistoryToConversation(
     title: summary.title || "历史会话 · " + sessionId.slice(0, 6),
     preview: summary.preview || "",
     updatedAt,
+    contextTokens: Math.max(0, Number(summary.contextTokens) || 0),
     messages,
     restored: true,
   };
@@ -172,4 +173,5 @@ type AgentSessionStatusLike = {
   title: string;
   preview: string;
   updatedAt?: number | string | null;
+  contextTokens?: number;
 };

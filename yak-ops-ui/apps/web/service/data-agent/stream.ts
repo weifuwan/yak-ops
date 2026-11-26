@@ -180,6 +180,9 @@ export function parseAgentSseFrame(frame: string): AgentStreamEvent | null {
         outputTokens: numericValue(payload.outputTokens),
         cacheInputTokens: numericValue(payload.cacheInputTokens),
         cacheCreationInputTokens: numericValue(payload.cacheCreationInputTokens),
+        ...(typeof payload.contextTokens === "number"
+          ? { contextTokens: numericValue(payload.contextTokens) }
+          : {}),
         ...identity,
         ...metadata,
       };

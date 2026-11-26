@@ -19,7 +19,7 @@
     "test:auth": "node --experimental-strip-types --test tests/auth-contract.test.mjs",
     "test:data-agent-particle-transition": "node --test tests/data-agent-particle-transition-contract.test.mjs",
     "test:management-token": "node --experimental-strip-types --test tests/management-access-tokens.test.mjs",
-    "test:data-agent": "node --experimental-strip-types --test tests/data-agent-entrypoints.test.mjs tests/data-agent-api.test.mjs tests/data-agent-markdown.test.mjs tests/data-agent-reducer.test.mjs tests/data-agent-session-history.test.mjs tests/data-agent-particle-preview.test.mjs tests/data-agent-particle-transition-contract.test.mjs tests/data-agent-activity-groups.test.mjs",
+    "test:data-agent": "node --experimental-strip-types --test tests/data-agent-entrypoints.test.mjs tests/data-agent-api.test.mjs tests/data-agent-markdown.test.mjs tests/data-agent-reducer.test.mjs tests/data-agent-session-history.test.mjs tests/data-agent-particle-preview.test.mjs tests/data-agent-particle-transition-contract.test.mjs tests/data-agent-activity-groups.test.mjs tests/data-agent-context-preview.test.mjs",
     "test:http": "node --experimental-strip-types --test tests/http-request-cancellation.test.mjs",
     "test:http-task-editor": "node --experimental-strip-types --test tests/http-task-editor-contract.test.mjs",
     "test:sql-editor": "node --experimental-strip-types --test tests/sql-task-editor-contract.test.mjs",

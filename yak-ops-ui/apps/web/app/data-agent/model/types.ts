@@ -66,6 +66,7 @@ export type AgentConversation = {
   title: string;
   updatedAt: string;
   preview?: string;
+  contextTokens?: number;
   messages: AgentMessage[];
   restored?: boolean;
 };

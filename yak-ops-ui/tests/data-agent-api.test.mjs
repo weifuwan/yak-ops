@@ -126,8 +126,8 @@ test("SSE parser reads text, tool, confirmation, completion and error events", (
     { type: "progress", phase: "analysis", title: "正在分析你的需求", status: "running" },
   );
   assert.deepEqual(
-    parseAgentSseFrame('event: usage\ndata: {"type":"usage","inputTokens":120,"outputTokens":35,"cacheInputTokens":12,"cacheCreationInputTokens":3}'),
-    { type: "usage", inputTokens: 120, outputTokens: 35, cacheInputTokens: 12, cacheCreationInputTokens: 3 },
+    parseAgentSseFrame('event: usage\ndata: {"type":"usage","inputTokens":120,"outputTokens":35,"cacheInputTokens":12,"cacheCreationInputTokens":3,"contextTokens":43000}'),
+    { type: "usage", inputTokens: 120, outputTokens: 35, cacheInputTokens: 12, cacheCreationInputTokens: 3, contextTokens: 43000 },
   );
   assert.deepEqual(
     parseAgentSseFrame('event: reply_end\ndata: {"type":"reply_end","replyId":"reply-1","finishedReason":"completed","error":null}'),

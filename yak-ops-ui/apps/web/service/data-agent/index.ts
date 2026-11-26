@@ -18,6 +18,8 @@ export {
   type AgentHistoryMessage,
   type AgentRequestIdentity,
   type AgentSessionHistory,
+  type AgentSessionContext,
+  type AgentSessionContextBreakdown,
   type AgentSessionQueue,
   type AgentSessionQueueItem,
   type AgentSessionState,

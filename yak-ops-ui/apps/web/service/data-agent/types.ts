@@ -10,12 +10,30 @@ export interface AgentSessionUsage {
   cacheCreationInputTokens: number;
 }
 
+export interface AgentSessionContextBreakdown {
+  key: string;
+  label: string;
+  tokens: number;
+  ratio: number;
+}
+
+export interface AgentSessionContext {
+  usedTokens: number;
+  limitTokens: number;
+  triggerTokens: number;
+  ratio: number;
+  averageCacheHitRate: number;
+  compressed: boolean;
+  breakdown: AgentSessionContextBreakdown[];
+}
+
 export interface AgentSessionSummary {
   sessionId: string;
   title: string;
   preview: string;
   updatedAt: number;
   usage?: AgentSessionUsage;
+  contextTokens?: number;
 }
 
 export type AgentSessionState =
@@ -44,6 +62,7 @@ export interface AgentSessionStatus {
   preview: string;
   updatedAt?: number | null;
   usage?: AgentSessionUsage;
+  context?: AgentSessionContext;
 }
 
 export interface AgentSessionQueueItem {
@@ -161,6 +180,7 @@ type AgentStreamPayload =
       outputTokens: number;
       cacheInputTokens: number;
       cacheCreationInputTokens: number;
+      contextTokens?: number;
     })
   | (AgentEventIdentity & {
       type: "exceed_max_iters";
