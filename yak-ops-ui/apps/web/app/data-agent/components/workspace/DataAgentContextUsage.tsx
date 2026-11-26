@@ -353,7 +353,7 @@ export function DataAgentContextUsage({
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .yak-context-tooltip { animation: yakContextTooltipIn 150ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-        .yak-context-popover { animation: yakContextPopoverIn 190ms cubic-bezier(0.16, 1, 0.3, 1) both;; }
+        .yak-context-popover { animation: yakContextPopoverIn 190ms cubic-bezier(0.16, 1, 0.3, 1) both; }
         @media (prefers-reduced-motion: reduce) {
           .yak-context-tooltip, .yak-context-popover { animation: none !important; }
         }
