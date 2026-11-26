@@ -1478,7 +1478,7 @@ CREATE TABLE t_yak_ops_data_sync_recovery_point (
     job_id VARCHAR(64),
     runtime_mode VARCHAR(32) NOT NULL,
     recovery_type VARCHAR(32) NOT NULL,
-    restore_path VARCHAR(2048) NOT NULL,
+    restore_path`? VARCHAR(2048) DEFAULT NULL,
     state VARCHAR(16) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     used_by_workflow_instance_id INTEGER,
