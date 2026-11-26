@@ -11,6 +11,7 @@ public enum DorisPublishStatusEnum {
     RUNNING("RUNNING", "执行中"),
     SUCCESS("SUCCESS", "成功"),
     FAILED("FAILED", "执行失败"),
+    VERIFY_FAILED("VERIFY_FAILED", "结构校验异常"),
     CONFLICT("CONFLICT", "目标表已存在");
 
     @EnumValue
