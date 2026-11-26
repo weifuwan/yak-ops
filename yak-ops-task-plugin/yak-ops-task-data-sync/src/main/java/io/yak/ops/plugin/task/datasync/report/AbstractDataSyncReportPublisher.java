@@ -22,6 +22,9 @@ public abstract class AbstractDataSyncReportPublisher implements DataSyncReportP
                     throw new IllegalStateException("Master returned an empty CDC report acknowledgement");
                 }
                 return ack;
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw exception;
             } catch (Exception exception) {
                 lastException = exception;
                 if (attempt == MAX_ATTEMPTS) {
@@ -29,10 +32,20 @@ public abstract class AbstractDataSyncReportPublisher implements DataSyncReportP
                 }
                 log.warn("CDC report delivery failed, executionId={}, sequence={}, attempt={}",
                         request.getExecutionId(), request.getSequence(), attempt, exception);
-                Thread.sleep(RETRY_INTERVAL_MILLIS);
+                try {
+                    Thread.sleep(RETRY_INTERVAL_MILLIS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw interrupted;
+                }
             }
         }
-        throw lastException;
+        return onDeliveryFailure(request, lastException);
+    }
+
+    protected DataSyncReportAck onDeliveryFailure(DataSyncReportRequest request, Exception exception)
+            throws Exception {
+        throw exception;
     }
 
     protected abstract DataSyncReportAck doPublish(DataSyncReportRequest request) throws Exception;
