@@ -2,6 +2,7 @@ package io.yak.ops.api.service;
 
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncInstanceAction;
 import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.utils.PageInfo;
@@ -9,6 +10,7 @@ import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncInstanceActionResultVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
@@ -54,6 +56,9 @@ public interface DataSyncService {
                                              List<Long> taskCodes, boolean activeOnly);
 
     DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId);
+
+    DataSyncInstanceActionResultVO performInstanceAction(
+            User user, long projectCode, int instanceId, DataSyncInstanceAction action);
 
     DataSyncExecutionReportVO getInstanceReport(User user, long projectCode, int instanceId);
 
