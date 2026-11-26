@@ -40,6 +40,7 @@ class FlinkRestDataSyncMetricsServiceMiniClusterTest {
         try {
             DataSyncExecutionSnapshot runningSnapshot =
                     awaitAvailableSnapshot(metricsService, handle);
+            assertEquals(DataSyncExecutionState.RUNNING, executionService.queryState(handle));
             assertMetrics(runningSnapshot);
 
             awaitState(executionService, handle, DataSyncExecutionState.FINISHED);
